@@ -165,18 +165,11 @@ public interface JsonParserEx extends JsonParser
     void skipValue();
 
     /**
-     * The structured {@link JsonEvent} the parser is currently positioned on — the last one delivered by
-     * {@link #nextEvent(Mode)} — even when a stage forwards it to a sink relabeled as {@link JsonEvent#VERBATIM}.
-     * A terminal sink copying a verbatim run reads this to drive its generator's structural state as the bytes
-     * splice through. The {@link JsonSource#event()} accessor promoted onto the parser surface.
+     * The structural {@link JsonSteps} the current verbatim run represents — the events delivered since the last
+     * {@code getSteps()}, each with its source occupancy. The {@link JsonSource#getSteps()} accessor promoted
+     * onto the parser surface.
      */
-    JsonEvent event();
-
-    /**
-     * Whether the member or element at the current event was preceded by a separator in the original source. The
-     * {@link JsonSource#separated()} accessor promoted onto the parser surface.
-     */
-    boolean separated();
+    JsonSteps getSteps();
 
     /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same

@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonSteps;
 
 /**
  * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
@@ -222,15 +223,9 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
 
         @Override
-        public JsonEvent event()
+        public JsonSteps getSteps()
         {
-            return parser.event();
-        }
-
-        @Override
-        public boolean separated()
-        {
-            return parser.separated();
+            return parser.getSteps();
         }
 
         @Override

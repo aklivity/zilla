@@ -238,7 +238,7 @@ class JsonInjectTest
     }
 
     // Supplies an injected key or number value: getStringView() returns the injected text. The injected events
-    // are fed structurally (not verbatim), so the generator tracks state from them directly — event() is never
+    // are fed structurally (not verbatim), so the generator tracks state from them directly — getSteps() is never
     // consulted for an injected source.
     private static final class InjectSource implements JsonSource
     {
@@ -257,13 +257,7 @@ class JsonInjectTest
         }
 
         @Override
-        public JsonEvent event()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean separated()
+        public JsonSteps getSteps()
         {
             throw new UnsupportedOperationException();
         }

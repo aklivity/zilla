@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonSteps;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
@@ -158,13 +159,7 @@ public final class McpHttpRename implements JsonTransform
         }
 
         @Override
-        public JsonEvent event()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean separated()
+        public JsonSteps getSteps()
         {
             throw new UnsupportedOperationException();
         }

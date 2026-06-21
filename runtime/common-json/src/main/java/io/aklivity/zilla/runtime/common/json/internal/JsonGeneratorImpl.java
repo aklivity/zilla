@@ -30,6 +30,7 @@ import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
+import io.aklivity.zilla.runtime.common.json.JsonSteps;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
@@ -487,21 +488,25 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         DirectBuffer source,
         int index,
         int length,
-        JsonEvent step,
-        boolean separated)
+        JsonSteps steps)
     {
-        // synthesize the leading separator only when this block begins a member/element that was first in the
-        // source ({@code !separated}, so its bytes carry no leading comma) yet the container already holds a
-        // member in the output — an injected value took the first slot, displacing this former-first member.
-        // Source occupancy, not the run bytes: the original separator may have been split into a prior run.
-        if (needsSeparator(step, separated))
+        final int count = steps.count();
+        // synthesize the leading separator only when the run begins a member/element that was first in the
+        // source (its leading step is not separated, so its bytes carry no leading comma) yet the container
+        // already holds a member in the output — an injected value took the first slot, displacing this
+        // former-first member. Only the leading step can need it: interior member-starts of a coalesced run are
+        // contiguous in the source, so they carry their own separators. Source occupancy, not the run bytes.
+        if (count > 0 && needsSeparator(steps.step(0), steps.separated(0)))
         {
             putByte.accept(',');
         }
         copy(source, index, length);
-        // track the block's structural effect (open/close depth, member occupancy) so the generator's state
+        // apply every step's structural effect (open/close depth, member occupancy) so the generator's state
         // stays coherent for an injected value that follows — state only, the bytes carried the structure
-        advance(step);
+        for (int index0 = 0; index0 < count; index0++)
+        {
+            advance(steps.step(index0));
+        }
         return this;
     }
 

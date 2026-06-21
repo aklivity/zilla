@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonSteps;
 
 /**
  * Terminal {@link JsonSink} that materializes each fed event into the corresponding {@code writeXxx}
@@ -47,14 +48,11 @@ public final class JsonSinkImpl implements JsonSink
     // whether a VERBATIM event has been copied this document: gates flush() so a segment-mode sink (whose
     // verbatim cursor never advanced) does not re-emit the whole input from cursor zero
     private boolean verbatimSeen;
-    // the structural step the current verbatim run represents, applied to the generator on the run's first
+    // the structural steps the current verbatim run represents, applied to the generator on the run's first
     // byte-copying chunk so it tracks open/close depth and member occupancy as the bytes splice through (and
     // synthesizes a leading separator for a displaced former-first member); null once applied, so a resumed
     // continuation chunk is a pure byte conduit
-    private JsonEvent verbatimStep;
-    // source occupancy of that step's member/element (whether a separator preceded it in the original), passed
-    // with the step so the generator decides separator synthesis from source structure, not the run bytes
-    private boolean verbatimSeparated;
+    private JsonSteps verbatimSteps;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -110,8 +108,7 @@ public final class JsonSinkImpl implements JsonSink
             // structural step is applied to the generator as the bytes splice through, so its state stays
             // coherent for any injected value that follows.
             verbatimSeen = true;
-            verbatimStep = source.event();
-            verbatimSeparated = source.separated();
+            verbatimSteps = source.getSteps();
             status = writeVerbatim(source);
             break;
         case VALUE_TRUE:
@@ -187,7 +184,7 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         verbatimSeen = false;
-        verbatimStep = null;
+        verbatimSteps = null;
         generator.reset();
     }
 
@@ -318,13 +315,13 @@ public final class JsonSinkImpl implements JsonSink
         final int length = run.capacity();
         if (length > 0)
         {
-            if (verbatimStep != null)
+            if (verbatimSteps != null)
             {
-                // first byte-copying chunk of this run: the generator tracks the step's structural effect and
-                // synthesizes a leading separator for a displaced former-first member (source occupancy via
-                // verbatimSeparated, not the run bytes)
-                generator.writeVerbatim(run, 0, length, verbatimStep, verbatimSeparated);
-                verbatimStep = null;
+                // first byte-copying chunk of this run: the generator tracks each step's structural effect and
+                // synthesizes a leading separator for a displaced former-first member (source occupancy carried
+                // by the steps, not the run bytes)
+                generator.writeVerbatim(run, 0, length, verbatimSteps);
+                verbatimSteps = null;
             }
             else
             {

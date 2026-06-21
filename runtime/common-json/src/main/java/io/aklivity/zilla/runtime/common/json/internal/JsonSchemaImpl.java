@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
 import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonSteps;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 
@@ -1209,13 +1210,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public JsonEvent event()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean separated()
+        public JsonSteps getSteps()
         {
             throw new UnsupportedOperationException();
         }
@@ -2012,13 +2007,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public JsonEvent event()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean separated()
+        public JsonSteps getSteps()
         {
             throw new UnsupportedOperationException();
         }
@@ -2281,15 +2270,9 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public JsonEvent event()
+        public JsonSteps getSteps()
         {
-            return delegateEx.event();
-        }
-
-        @Override
-        public boolean separated()
-        {
-            return delegateEx.separated();
+            return delegateEx.getSteps();
         }
 
         @Override

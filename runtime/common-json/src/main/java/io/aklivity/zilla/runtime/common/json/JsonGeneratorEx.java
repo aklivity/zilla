@@ -158,29 +158,27 @@ public interface JsonGeneratorEx extends JsonGenerator
 
     /**
      * Splices {@code length} bytes of an original-document run from {@code source} starting at {@code index}
-     * straight to the output, the run representing the structural {@code step} (the {@link JsonEvent} the bytes
-     * would have produced structurally). The bytes already carry their own braces, commas, colons, and
-     * whitespace, so the copy is verbatim — but the generator <em>tracks</em> the structural effect of
-     * {@code step} (open/close depth, member occupancy) so its state stays coherent for any injected value that
-     * follows, and synthesizes a single leading separator when the block begins a member that was first in the
-     * source ({@code separated} is {@code false}) yet the container already holds a member in the output (an
-     * injected value took the first slot, displacing this former-first member). {@code separated} is the
-     * source's occupancy — whether a separator preceded this member in the original — not a property of the run
-     * bytes, since the original separator may have been split into a prior run. The copy is 1:1, so a caller
-     * pre-bounds the pull (via {@link JsonSource#getVerbatim(int)}) to {@link #remaining()} and the bytes always
-     * fit. Used on the first chunk of a block; {@link #writeVerbatim(DirectBuffer, int, int)} continues a chunked
-     * block without re-applying the step.
+     * straight to the output, the run representing the structural {@code steps} (the {@link JsonEvent}s the bytes
+     * would have produced structurally, each with its source occupancy). The bytes already carry their own
+     * braces, commas, colons, and whitespace, so the copy is verbatim — but the generator <em>applies</em> every
+     * step's structural effect (open/close depth, member occupancy) so its state stays coherent for any injected
+     * value that follows, and synthesizes a single leading separator when the run begins a member that was first
+     * in the source (its leading step's {@code separated} is {@code false}) yet the container already holds a
+     * member in the output (an injected value took the first slot, displacing this former-first member). Source
+     * occupancy, not the run bytes — the original separator may have been split into a prior run. The copy is
+     * 1:1, so a caller pre-bounds the pull (via {@link JsonSource#getVerbatim(int)}) to {@link #remaining()} and
+     * the bytes always fit. Used on the first chunk of a run; {@link #writeVerbatim(DirectBuffer, int, int)}
+     * continues a chunked run without re-applying the steps.
      */
     JsonGeneratorEx writeVerbatim(
         DirectBuffer source,
         int index,
         int length,
-        JsonEvent step,
-        boolean separated);
+        JsonSteps steps);
 
     /**
-     * Continues a verbatim block already begun by {@link #writeVerbatim(DirectBuffer, int, int, JsonEvent, boolean)},
-     * splicing {@code length} more of its bytes with no structural-state change — the step was applied on the
+     * Continues a verbatim run already begun by {@link #writeVerbatim(DirectBuffer, int, int, JsonSteps)},
+     * splicing {@code length} more of its bytes with no structural-state change — the steps were applied on the
      * first chunk, so a resumed chunk is a pure byte conduit.
      */
     JsonGeneratorEx writeVerbatim(

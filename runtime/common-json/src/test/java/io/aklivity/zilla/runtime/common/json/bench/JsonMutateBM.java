@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonSteps;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
@@ -453,13 +454,7 @@ public class JsonMutateBM
         }
 
         @Override
-        public JsonEvent event()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean separated()
+        public JsonSteps getSteps()
         {
             throw new UnsupportedOperationException();
         }
