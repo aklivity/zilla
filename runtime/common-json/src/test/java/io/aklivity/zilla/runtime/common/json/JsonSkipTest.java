@@ -27,40 +27,40 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 // kept content keeps its original bytes (insignificant whitespace included). The drop is driven by a single
 // source.skipValue() call on the matched KEY_NAME — the parser advances past the whole member (key,
 // separator, value) and folds in the leading-separator trim that keeps the surviving siblings well-formed.
-class JsonPruneTest
+class JsonSkipTest
 {
     @Test
     void shouldDropMiddleFieldPreservingWhitespace()
     {
-        assertEquals("{ \"a\" : 1, \"c\" : 3 }", prune("b", "{ \"a\" : 1, \"b\" : 2, \"c\" : 3 }"));
+        assertEquals("{ \"a\" : 1, \"c\" : 3 }", skip("b", "{ \"a\" : 1, \"b\" : 2, \"c\" : 3 }"));
     }
 
     @Test
     void shouldDropLastFieldPreservingWhitespace()
     {
-        assertEquals("{ \"a\" : 1 }", prune("b", "{ \"a\" : 1, \"b\" : 2 }"));
+        assertEquals("{ \"a\" : 1 }", skip("b", "{ \"a\" : 1, \"b\" : 2 }"));
     }
 
     @Test
     void shouldDropFirstFieldPreservingWhitespace()
     {
-        assertEquals("{ \"b\" : 2 }", prune("a", "{ \"a\" : 1, \"b\" : 2 }"));
+        assertEquals("{ \"b\" : 2 }", skip("a", "{ \"a\" : 1, \"b\" : 2 }"));
     }
 
     @Test
     void shouldDropFieldWithObjectValue()
     {
         assertEquals("{ \"a\" : 1, \"c\" : 3 }",
-            prune("b", "{ \"a\" : 1, \"b\" : { \"x\" : [1, 2] }, \"c\" : 3 }"));
+            skip("b", "{ \"a\" : 1, \"b\" : { \"x\" : [1, 2] }, \"c\" : 3 }"));
     }
 
     @Test
     void shouldDropOnlyField()
     {
-        assertEquals("{}", prune("a", "{ \"a\" : 1 }"));
+        assertEquals("{}", skip("a", "{ \"a\" : 1 }"));
     }
 
-    private static String prune(
+    private static String skip(
         String dropKey,
         String json)
     {
@@ -68,7 +68,7 @@ class JsonPruneTest
         MutableDirectBuffer output = new UnsafeBuffer(new byte[1024]);
         generator.wrap(output, 0, output.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(new Prune(dropKey))
+            .transform(new Skip(dropKey))
             .into(JsonEx.createSink(generator));
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
@@ -85,7 +85,7 @@ class JsonPruneTest
     // verbatim(), re-asserting it downstream so kept content copies its original bytes. It forwards every event
     // verbatim except a named top-level field, which it drops with a single source.skipValue() on the matched
     // KEY_NAME — the parser consumes the whole member's sub-events, so the transform never sees them.
-    private static final class Prune implements JsonTransform
+    private static final class Skip implements JsonTransform
     {
         private final String dropKey;
 
@@ -114,7 +114,7 @@ class JsonPruneTest
             }
         };
 
-        private Prune(
+        private Skip(
             String dropKey)
         {
             this.dropKey = dropKey;
