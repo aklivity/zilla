@@ -91,8 +91,15 @@ seam always well-formed:
 - **A3 separator ownership** — every value contributes its own leading separator; the **first**
   value in each container contributes none. A per-container "has-a-sibling-been-emitted-yet"
   first-flag is **shared** between the verbatim source and the generator (also fixes prune).
-- **A4 member parity** — verbatim chunk and injected run each emit complete members (key+value);
-  never hand off mid-member.
+- **A4 boundary points** — hand off only at well-defined points: a value boundary (between
+  complete members/elements) **or** the after-key value-expected boundary (verbatim through a
+  `KEY_NAME`, value replaced by injection — terminal `KEY_NAME`, see below). Never mid-token.
+- **A5 balance verification** — the generator asserts structural balance on injected `END_*`:
+  the close kind matches the innermost open it tracks, it does not pop below the seed baseline
+  (an injected run must not close the container it was seeded into — that's verbatim's job), and
+  `END_DOCUMENT` leaves no injected container open. Scoped to injected runs; verbatim bytes are
+  copied raw (well-formed from the validated original), so whole-document validity stays the
+  validator's responsibility. Fail-fast (`IllegalStateException`) against a buggy transform.
 
 ### Structural-effect metadata — shape and example
 
@@ -186,12 +193,20 @@ step per descended level, each carrying container kind **and** occupancy:
 - `START_OBJECT` / `START_ARRAY` — entered, **empty** (no child yet).
 - `CONTINUE_OBJECT` / `CONTINUE_ARRAY` — in a container that **already has a child** (occupied →
   the next sibling needs a leading separator).
+- `KEY_NAME` (**terminal only**) — verbatim emitted a key, its **value is expected** (an
+  after-key cut, replacing the value). The generator writes `:value` — no comma, no key; it owns
+  the colon (the `: ` spacing canonicalizes; the key stays verbatim). This is the one place a
+  `KEY_NAME` step is needed — for ancestor path levels the key name is never carried.
+
+Invariant: every **non-terminal** step is necessarily `CONTINUE_*` (descending into a child
+makes each ancestor non-empty), and only the **terminal** step is consulted by the generator for
+a single injection — so the list's earlier steps are diagnostic/headroom, not load-bearing.
 
 Occupancy lives in the step kind, so there is no trailing boolean (which would be meaningless for
-scalars) and occupancy is captured per level, not just innermost. No member **keys** are carried:
-the originals were emitted verbatim, and the generator needs only kind + occupancy + depth — it
-reads "object ⇒ write a key, array ⇒ write an element" from the innermost step. `JsonStep` has a
-natural equivalence to `JsonEvent` (`START_*` parallels `JsonEvent.START_*`; `CONTINUE_*` are the
+scalars). No member key **names** are carried (the originals were emitted verbatim); the terminal
+step tells the generator what to write next — `*_OBJECT` ⇒ a member (key+value), `*_ARRAY` ⇒ an
+element, terminal `KEY_NAME` ⇒ just the value of a pending key. `JsonStep` has a natural
+equivalence to `JsonEvent` (`START_*`/`KEY_NAME` parallel the events; `CONTINUE_*` are the
 occupancy-bearing additions — a *state*, where the event is a *transition*).
 
 The generator **seeds** itself from the `JsonPosition` (push a `{kind, occupied}` frame per step)
