@@ -174,13 +174,13 @@ public class ProtobufChunkingTest
 
         List<byte[]> chunks = new ArrayList<>();
         UnsafeBuffer buffer = new UnsafeBuffer(input);
-        ProtobufPipeline.Status status = pipeline.feed(buffer, 0, input.length);
+        ProtobufPipeline.Status status = pipeline.transform(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
             assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
             chunks.add(bytes(out, generator.length()));
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(buffer, 0, input.length);
+            status = pipeline.transform(buffer, 0, input.length);
         }
         assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         chunks.add(bytes(out, generator.length()));
@@ -259,7 +259,7 @@ public class ProtobufChunkingTest
         ProtobufTransform recorder = (control, source, event, sink) ->
         {
             events.add(event);
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
             .transform(recorder)
@@ -267,11 +267,11 @@ public class ProtobufChunkingTest
         pipeline.reset();
 
         UnsafeBuffer buffer = new UnsafeBuffer(input);
-        ProtobufPipeline.Status status = pipeline.feed(buffer, 0, input.length);
+        ProtobufPipeline.Status status = pipeline.transform(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(buffer, 0, input.length);
+            status = pipeline.transform(buffer, 0, input.length);
         }
         assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         return events;
@@ -298,13 +298,13 @@ public class ProtobufChunkingTest
 
         List<byte[]> chunks = new ArrayList<>();
         UnsafeBuffer buffer = new UnsafeBuffer(input);
-        ProtobufPipeline.Status status = pipeline.feed(buffer, 0, input.length);
+        ProtobufPipeline.Status status = pipeline.transform(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
             assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
             chunks.add(bytes(out, generator.length()));
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(buffer, 0, input.length);
+            status = pipeline.transform(buffer, 0, input.length);
         }
         assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");

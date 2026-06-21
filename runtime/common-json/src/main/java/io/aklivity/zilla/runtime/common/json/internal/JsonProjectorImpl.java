@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 /**
  * Resumable, event-driven {@link JsonTransform} that projects a document down to a set of retained
  * RFC 6901 pointers, forwarding the kept events to the downstream {@code sink} passed into each
- * {@link #feed(JsonController, JsonSource, JsonEvent, JsonSink)}. This class holds the per-value descent
+ * {@link #transform(JsonController, JsonSource, JsonEvent, JsonSink)}. This class holds the per-value descent
  * state only; the downstream is bound once at assembly and supplied per event.
  * <p>
  * The retained pointer set is compiled once into a {@link Node trie}: each node has children keyed by
@@ -148,7 +148,7 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event,
@@ -196,7 +196,7 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonSource source,
         JsonEvent event)
     {
-        Status status = sink.feed(downstreamControl, source, event);
+        Status status = sink.transform(downstreamControl, source, event);
         if (rank(status) > rank(downstream))
         {
             downstream = status;

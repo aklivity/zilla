@@ -94,7 +94,7 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         DirectBuffer buffer,
         int offset,
         int limit,
@@ -119,7 +119,7 @@ final class AvroPipelineImpl implements AvroPipeline
                 {
                     break;
                 }
-                status = root.feed(control, source, event);
+                status = root.transform(control, source, event);
             }
             if (status == ADVANCED)
             {
@@ -162,7 +162,7 @@ final class AvroPipelineImpl implements AvroPipeline
         // re-target the terminal generator at the caller's output region, preserving structural context
         // across a SUSPENDED drain, then pump the same window the existing feed contract expects
         generator.wrap(dst, dstOffset, dstLimit);
-        Status status = feed(src, offset, limit, last);
+        Status status = transform(src, offset, limit, last);
         boolean rejected = status == REJECTED;
         int produced = rejected ? 0 : generator.length();
         // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window

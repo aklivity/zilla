@@ -73,7 +73,7 @@ class JsonSkipTest
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
         assertEquals(Status.COMPLETED, status);
 
         byte[] out = new byte[generator.length()];
@@ -121,7 +121,7 @@ class JsonSkipTest
         }
 
         @Override
-        public Status feed(
+        public Status transform(
             JsonController control,
             JsonSource source,
             JsonEvent event,
@@ -134,12 +134,12 @@ class JsonSkipTest
             case START_OBJECT:
             case START_ARRAY:
                 depth++;
-                status = sink.feed(mediator, source, forward(event));
+                status = sink.transform(mediator, source, forward(event));
                 break;
             case END_OBJECT:
             case END_ARRAY:
                 depth--;
-                Status downstream = sink.feed(mediator, source, forward(event));
+                Status downstream = sink.transform(mediator, source, forward(event));
                 status = downstream == Status.REJECTED ? Status.REJECTED
                     : depth == 0 ? Status.COMPLETED
                     : downstream;
@@ -154,11 +154,11 @@ class JsonSkipTest
                 }
                 else
                 {
-                    status = sink.feed(mediator, source, forward(event));
+                    status = sink.transform(mediator, source, forward(event));
                 }
                 break;
             default:
-                status = sink.feed(mediator, source, forward(event));
+                status = sink.transform(mediator, source, forward(event));
                 break;
             }
             return status;

@@ -64,7 +64,7 @@ public final class JsonSinkImpl implements JsonSink
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event)

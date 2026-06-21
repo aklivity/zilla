@@ -41,7 +41,7 @@ JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
     .transform(JsonEx.projector(List.of("/id", "/name")))
     .into(JsonSink.of(generator));
 pipeline.reset();
-if (pipeline.feed(in, off, limit) == JsonPipeline.Status.COMPLETED)   // ADVANCED / SUSPENDED / COMPLETED / REJECTED
+if (pipeline.transform(in, off, limit) == JsonPipeline.Status.COMPLETED)   // ADVANCED / SUSPENDED / COMPLETED / REJECTED
 {
     int length = generator.length();    // projected JSON bytes in out
 }
@@ -51,8 +51,8 @@ if (pipeline.feed(in, off, limit) == JsonPipeline.Status.COMPLETED)   // ADVANCE
   and terminates (`into`), yielding the runnable **`JsonPipeline`** (`reset` / `feed` / `Status`).
 - **`JsonSource`** is the per-event read-only value view handed to a stage — the parser's accessors
   without the cursor advance, so a stage cannot disturb the pump.
-- **`JsonTransform`** is an intermediate stage (`feed(control, source, event, sink)`); **`JsonSink`**
-  is the terminal (`feed(control, source, event)`). Third parties may implement either to consume or
+- **`JsonTransform`** is an intermediate stage (`transform(control, source, event, sink)`); **`JsonSink`**
+  is the terminal (`transform(control, source, event)`). Third parties may implement either to consume or
   rewrite the projected event stream (e.g. field masking, encryption).
 - **`JsonEx.projector(pointers)`** returns a `JsonTransform` that prunes a document to a set of
   retained RFC 6901 pointers (`-` matches any array index), forwarding only kept events.
@@ -99,12 +99,12 @@ JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
     .into(JsonSink.of(generator));
 pipeline.reset();
 
-JsonPipeline.Status status = pipeline.feed(in, off, limit);
+JsonPipeline.Status status = pipeline.transform(in, off, limit);
 while (status == JsonPipeline.Status.SUSPENDED)   // output full
 {
     emitDataFrame(out, 0, generator.length());    // drain — flow-controlled
     generator.wrap(out, 0, limit);                // re-target output, structural context preserved
-    status = pipeline.feed(in, off, limit);       // resume the in-flight value
+    status = pipeline.transform(in, off, limit);       // resume the in-flight value
 }
 // COMPLETED: emit the final generator.length() bytes
 ```
@@ -132,7 +132,7 @@ both `STRUCTURED` and `SEGMENTABLE` delivery.
 
 Resumption is a **per-stage cascade**, not an event replay: `JsonSink.resume(control, source, event)`
 and `JsonTransform.resume(control, source, event, sink)` continue any in-flight fragment before the next
-event is pulled, with the same `control` and `source` context as `feed` plus the value `event` that
+event is pulled, with the same `control` and `source` context as `transform` plus the value `event` that
 suspended (supplied by the pump, which owns the single resume cursor, so a stage keeps no per-value
 resume state). The sink holds none: it continues only while the source view still has an unwritten
 remainder (`getStringView().length()`/`getSegment().capacity()`) and otherwise just advances.

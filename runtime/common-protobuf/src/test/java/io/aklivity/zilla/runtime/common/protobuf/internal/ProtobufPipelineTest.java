@@ -290,7 +290,7 @@ public class ProtobufPipelineTest
 
         // back-pressure is not failure: a value split mid-varint STARVES without firing the reporter
         UnsafeBuffer buffer = new UnsafeBuffer(message);
-        assertEquals(Status.STARVED, pipeline.feed(buffer, 0, message.length - 1, false));
+        assertEquals(Status.STARVED, pipeline.transform(buffer, 0, message.length - 1, false));
         assertNull(reason[0]);
     }
 
@@ -365,7 +365,7 @@ public class ProtobufPipelineTest
     @Test
     public void shouldForwardThroughDefaultResetTransform()
     {
-        ProtobufTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
+        ProtobufTransform passthrough = (control, source, event, sink) -> sink.transform(control, source, event);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
             .transform(passthrough)
             .into(new ProtobufDiscardSinkImpl());
@@ -511,9 +511,9 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         // the value 300 is a two-byte varint; split the window between its bytes
-        assertEquals(Status.STARVED, pipeline.feed(buffer, 0, message.length - 1, false));
+        assertEquals(Status.STARVED, pipeline.transform(buffer, 0, message.length - 1, false));
         int progress = (message.length - 1) - pipeline.remaining();
-        assertEquals(Status.COMPLETED, pipeline.feed(buffer, progress, message.length, true));
+        assertEquals(Status.COMPLETED, pipeline.transform(buffer, progress, message.length, true));
         assertEquals(List.of("{", "F2", "V300", "}"), sink.events);
     }
 
@@ -540,9 +540,9 @@ public class ProtobufPipelineTest
         // split inside the nested message body so remaining must survive the window swap
         UnsafeBuffer buffer = new UnsafeBuffer(message);
         int split = message.length - 2;
-        assertEquals(Status.STARVED, pipeline.feed(buffer, 0, split, false));
+        assertEquals(Status.STARVED, pipeline.transform(buffer, 0, split, false));
         int progress = split - pipeline.remaining();
-        assertEquals(Status.COMPLETED, pipeline.feed(buffer, progress, message.length, true));
+        assertEquals(Status.COMPLETED, pipeline.transform(buffer, progress, message.length, true));
         assertEquals(expected, sink.events);
     }
 
@@ -612,9 +612,9 @@ public class ProtobufPipelineTest
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
         pipeline.reset();
 
-        assertEquals(Status.STARVED, pipeline.feed(buffer, 0, split, false));
+        assertEquals(Status.STARVED, pipeline.transform(buffer, 0, split, false));
         int progress = split - pipeline.remaining();
-        assertEquals(Status.COMPLETED, pipeline.feed(buffer, progress, message.length, true));
+        assertEquals(Status.COMPLETED, pipeline.transform(buffer, progress, message.length, true));
         assertEquals(List.of("{", "F1", "Vneo", "F2", "V7", "}"), sink.events);
     }
 
@@ -727,7 +727,7 @@ public class ProtobufPipelineTest
             int take = Math.min(window, message.length - limit);
             limit += take;
             boolean last = limit >= message.length;
-            status = pipeline.feed(new UnsafeBuffer(message), progress, limit, last);
+            status = pipeline.transform(new UnsafeBuffer(message), progress, limit, last);
             if (status == Status.STARVED)
             {
                 progress = limit - pipeline.remaining();
@@ -807,7 +807,7 @@ public class ProtobufPipelineTest
             int take = Math.min(window, message.length - limit);
             limit += take;
             boolean last = limit >= message.length;
-            Status status = pipeline.feed(in, progress, limit, last);
+            Status status = pipeline.transform(in, progress, limit, last);
             switch (status)
             {
             case STARVED:
@@ -859,14 +859,14 @@ public class ProtobufPipelineTest
             limit += take;
             boolean last = limit >= message.length;
             // the retained tail [progress, oldLimit) plus the new window is just message[progress, limit)
-            Status status = pipeline.feed(in, progress, limit, last);
+            Status status = pipeline.transform(in, progress, limit, last);
             while (status == Status.SUSPENDED)
             {
                 sawSuspended = true;
                 drained.putBytes(drainedLength, output, 0, generator.length());
                 drainedLength += generator.length();
                 generator.wrap(output, 0, cap);
-                status = pipeline.feed(in, progress, limit, last);
+                status = pipeline.transform(in, progress, limit, last);
             }
             switch (status)
             {
@@ -904,7 +904,7 @@ public class ProtobufPipelineTest
     {
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(message), 0, message.length, true);
+        return pipeline.transform(new UnsafeBuffer(message), 0, message.length, true);
     }
 
     // feeds a message window-by-window, retaining the unconsumed tail (remaining() bytes) across feeds the
@@ -924,7 +924,7 @@ public class ProtobufPipelineTest
             // the retained tail is message[progress, limit); appending the next window keeps it contiguous
             limit += take;
             boolean last = limit >= message.length;
-            status = pipeline.feed(new UnsafeBuffer(message), progress, limit, last);
+            status = pipeline.transform(new UnsafeBuffer(message), progress, limit, last);
             if (status == Status.STARVED)
             {
                 assertFalse(last, "last window must not starve");
@@ -951,7 +951,7 @@ public class ProtobufPipelineTest
         ProtobufPipeline pipeline,
         byte[] message)
     {
-        return pipeline.feed(new UnsafeBuffer(message), 0, message.length);
+        return pipeline.transform(new UnsafeBuffer(message), 0, message.length);
     }
 
     private static byte[] wire(
@@ -1020,7 +1020,7 @@ public class ProtobufPipelineTest
         }
 
         @Override
-        public ProtobufPipeline.Status feed(
+        public ProtobufPipeline.Status transform(
             ProtobufController control,
             ProtobufSource source,
             ProtobufEvent event)

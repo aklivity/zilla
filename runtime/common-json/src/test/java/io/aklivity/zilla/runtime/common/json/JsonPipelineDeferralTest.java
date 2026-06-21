@@ -35,7 +35,7 @@ class JsonPipelineDeferralTest
     private static final class WholeValueTransform implements JsonTransform
     {
         @Override
-        public Status feed(
+        public Status transform(
             JsonController control,
             JsonSource source,
             JsonEvent event,
@@ -50,7 +50,7 @@ class JsonPipelineDeferralTest
             }
             else
             {
-                status = sink.feed(control, source, event);
+                status = sink.transform(control, source, event);
             }
             return status;
         }
@@ -68,8 +68,8 @@ class JsonPipelineDeferralTest
         // a bare string split across two windows: open-quote + 20 'a' (no close), then 20 'b' + close-quote
         byte[] f1 = "\"aaaaaaaaaaaaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbbbbbbbbbbbb\"".getBytes(UTF_8);
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length, false));
-        Status status = pipeline.feed(new UnsafeBuffer(f2), 0, f2.length, true);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBuffer(f1), 0, f1.length, false));
+        Status status = pipeline.transform(new UnsafeBuffer(f2), 0, f2.length, true);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -90,8 +90,8 @@ class JsonPipelineDeferralTest
         // a bare string declined fragment by fragment grows past the 16-char cap on the second window
         byte[] f1 = "\"aaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbb".getBytes(UTF_8);
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length, false));
-        Status status = pipeline.feed(new UnsafeBuffer(f2), 0, f2.length, false);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBuffer(f1), 0, f1.length, false));
+        Status status = pipeline.transform(new UnsafeBuffer(f2), 0, f2.length, false);
 
         assertEquals(Status.REJECTED, status);
     }

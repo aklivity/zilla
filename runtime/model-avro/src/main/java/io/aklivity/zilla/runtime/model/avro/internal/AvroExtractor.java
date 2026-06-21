@@ -70,7 +70,7 @@ final class AvroExtractor implements AvroTransform
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         AvroController control,
         AvroSource source,
         AvroEvent event,
@@ -80,7 +80,7 @@ final class AvroExtractor implements AvroTransform
         {
             observe(source, event);
         }
-        return sink.feed(control, source, event);
+        return sink.transform(control, source, event);
     }
 
     @Override

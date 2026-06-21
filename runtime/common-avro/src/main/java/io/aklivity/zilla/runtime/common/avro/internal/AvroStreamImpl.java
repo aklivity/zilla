@@ -99,12 +99,12 @@ public final class AvroStreamImpl implements AvroStream
         }
 
         @Override
-        public Status feed(
+        public Status transform(
             AvroController control,
             AvroSource source,
             AvroEvent event)
         {
-            return transform.feed(control, source, event, downstream);
+            return transform.transform(control, source, event, downstream);
         }
 
         @Override

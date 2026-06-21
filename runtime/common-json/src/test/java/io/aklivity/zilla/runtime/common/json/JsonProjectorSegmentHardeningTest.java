@@ -89,6 +89,6 @@ class JsonProjectorSegmentHardeningTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 }

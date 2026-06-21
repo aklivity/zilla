@@ -41,7 +41,7 @@ class JsonValidatorVerbatimTest
         // the regression: through the validator a structured replay canonicalizes to {"id":"123","status":"OK"}
         byte[] bytes = "{\"id\": \"123\", \"status\": \"OK\"}".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\": \"123\", \"status\": \"OK\"}", output(gen, buffer));
@@ -63,8 +63,8 @@ class JsonValidatorVerbatimTest
         byte[] second = "\"n\": 2} ".getBytes(UTF_8);
 
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(first), 0, first.length, false));
-        Status status = pipeline.feed(new UnsafeBuffer(second), 0, second.length);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBuffer(first), 0, first.length, false));
+        Status status = pipeline.transform(new UnsafeBuffer(second), 0, second.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\": \"123\", \"n\": 2}", output(gen, buffer));
@@ -83,7 +83,7 @@ class JsonValidatorVerbatimTest
         // id must be a string; a number violates the schema
         byte[] bytes = "{\"id\": 123}".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.REJECTED, status);
     }
@@ -129,7 +129,7 @@ class JsonValidatorVerbatimTest
         Status status;
         do
         {
-            status = pipeline.feed(in, 0, bytes.length);
+            status = pipeline.transform(in, 0, bytes.length);
             byte[] chunk = new byte[gen.length()];
             output.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));

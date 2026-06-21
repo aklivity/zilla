@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
- * driver. {@link #feed(DirectBuffer, int, int)} re-targets the parser at the frame buffer then pumps
+ * driver. {@link #transform(DirectBuffer, int, int)} re-targets the parser at the frame buffer then pumps
  * each parsed event through the root sink, passing a {@link Source} view that adapts the parser to the
  * immutable {@code JsonSource} surface and a {@link Control} that adapts it to the {@link JsonController}.
  */
@@ -91,7 +91,7 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         DirectBuffer buffer,
         int offset,
         int limit,
@@ -118,7 +118,7 @@ public final class JsonPipelineImpl implements JsonPipeline
                 {
                     break;
                 }
-                status = root.feed(control, source, event);
+                status = root.transform(control, source, event);
                 if (status == Status.SUSPENDED)
                 {
                     // the pump owns the resume cursor: remember the in-flight event for the next entry
@@ -170,9 +170,9 @@ public final class JsonPipelineImpl implements JsonPipeline
         int dstLimit)
     {
         // re-target the terminal generator at the caller's output region, preserving structural context
-        // across a SUSPENDED drain, then pump the same window the existing feed contract expects
+        // across a SUSPENDED drain, then pump the same window the existing transform contract expects
         generator.wrap(dst, dstOffset, dstLimit);
-        Status status = feed(src, offset, limit, last);
+        Status status = transform(src, offset, limit, last);
         boolean rejected = status == Status.REJECTED;
         int produced = rejected ? 0 : generator.length();
         // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window

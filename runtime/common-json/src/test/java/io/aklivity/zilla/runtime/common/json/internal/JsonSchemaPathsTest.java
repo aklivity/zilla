@@ -116,7 +116,7 @@ class JsonSchemaPathsTest
             .into(JsonEx.createSink(gen));
         pipeline.reset();
         byte[] bytes = "{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} ".getBytes(UTF_8);
-        pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"items\":[{\"id\":1},{\"id\":2}]}", new String(out, UTF_8));

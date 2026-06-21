@@ -122,7 +122,7 @@ public class ProtobufRawPipelineTest
         ProtobufTransform redact = (control, source, event, sink) ->
             (event == ProtobufEvent.FIELD || event == ProtobufEvent.VALUE) && source.fieldNumber() == 2
                 ? Status.ADVANCED
-                : sink.feed(control, source, event);
+                : sink.transform(control, source, event);
 
         assertArrayEquals(expected, copy(message, redact));
     }
@@ -152,7 +152,7 @@ public class ProtobufRawPipelineTest
         ProtobufPipeline pipeline,
         byte[] message)
     {
-        return pipeline.feed(new UnsafeBuffer(message), 0, message.length);
+        return pipeline.transform(new UnsafeBuffer(message), 0, message.length);
     }
 
     private static byte[] wire(
@@ -172,7 +172,7 @@ public class ProtobufRawPipelineTest
         private int depth;
 
         @Override
-        public ProtobufPipeline.Status feed(
+        public ProtobufPipeline.Status transform(
             ProtobufController control,
             ProtobufSource source,
             ProtobufEvent event)

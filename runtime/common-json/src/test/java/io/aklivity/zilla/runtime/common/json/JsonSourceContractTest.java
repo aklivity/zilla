@@ -36,7 +36,7 @@ class JsonSourceContractTest
             {
                 assertThrows(AssertionError.class, source::getSegment);
             }
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
         run(probe, "[42]", JsonSink.Delivery.STRUCTURED);
     }
@@ -53,7 +53,7 @@ class JsonSourceContractTest
                 assertThrows(AssertionError.class, source::getStringView);
                 assertThrows(AssertionError.class, source::getInt);
             }
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
         // the sink opts into segment delivery, so the whole document arrives as SEGMENT events
         run(probe, "{\"a\":1}", JsonSink.Delivery.SEGMENTABLE);
@@ -73,6 +73,6 @@ class JsonSourceContractTest
         pipeline.reset();
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
-        pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 }

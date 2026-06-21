@@ -97,7 +97,7 @@ final class JsonExtractor implements JsonTransform
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event,
@@ -110,7 +110,7 @@ final class JsonExtractor implements JsonTransform
             // byte-delivery opt-ins) before re-asserting verbatim toward the sink
             observe(source, event);
         }
-        return sink.feed(mediator, source, forward(event));
+        return sink.transform(mediator, source, forward(event));
     }
 
     @Override

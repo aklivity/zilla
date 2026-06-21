@@ -101,7 +101,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         DirectBuffer buffer,
         int offset,
         int limit,
@@ -133,7 +133,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
                 }
                 else
                 {
-                    status = head.feed(control, source, event);
+                    status = head.transform(control, source, event);
                     if (status == Status.SUSPENDED)
                     {
                         // the pump owns the resume cursor: remember the in-flight event for the next entry
@@ -171,10 +171,10 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         int dstLimit)
     {
         // re-target the terminal generator at the caller's output region, preserving structural context
-        // across a SUSPENDED drain, then pump the same window the existing feed contract expects; the
+        // across a SUSPENDED drain, then pump the same window the existing transform contract expects; the
         // protobuf generator bounds writes by a length from the offset, so pass dstLimit - dstOffset
         generator.wrap(dst, dstOffset, dstLimit - dstOffset);
-        Status status = feed(src, offset, limit, last);
+        Status status = transform(src, offset, limit, last);
         boolean rejected = status == Status.REJECTED;
         if (status == Status.COMPLETED)
         {
@@ -203,12 +203,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         }
 
         @Override
-        public Status feed(
+        public Status transform(
             ProtobufController control,
             ProtobufSource source,
             ProtobufEvent event)
         {
-            return transform.feed(control, source, event, downstream);
+            return transform.transform(control, source, event, downstream);
         }
 
         @Override

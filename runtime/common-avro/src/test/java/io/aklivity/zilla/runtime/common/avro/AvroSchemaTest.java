@@ -42,7 +42,7 @@ public class AvroSchemaTest
     {
         AvroPipeline pipeline = Avro.stream(Avro.parser(Avro.schema(schemaText))).into(sink);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
+        return pipeline.transform(new UnsafeBuffer(binary), 0, binary.length);
     }
 
     @Test

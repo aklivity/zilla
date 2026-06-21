@@ -32,7 +32,7 @@ class JsonSinkSegmentTest
         private boolean armed;
 
         @Override
-        public Status feed(
+        public Status transform(
             JsonController control,
             JsonSource source,
             JsonEvent event,
@@ -46,7 +46,7 @@ class JsonSinkSegmentTest
             }
             else
             {
-                status = sink.feed(control, source, event);
+                status = sink.transform(control, source, event);
             }
             return status;
         }
@@ -64,7 +64,7 @@ class JsonSinkSegmentTest
 
         byte[] bytes = "{ \"a\" : 1 } ".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -83,7 +83,7 @@ class JsonSinkSegmentTest
 
         byte[] bytes = "{ \"a\" : [1, 2], \"b\" : 3 } ".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -103,7 +103,7 @@ class JsonSinkSegmentTest
 
         byte[] bytes = "[ 1, 2 ] ".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -123,7 +123,7 @@ class JsonSinkSegmentTest
 
         byte[] bytes = "{ \"x\" : [1 ,2] } ".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -145,8 +145,8 @@ class JsonSinkSegmentTest
         byte[] second = "\"b\":2} ".getBytes(UTF_8);
 
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(first), 0, first.length, false));
-        Status status = pipeline.feed(new UnsafeBuffer(second), 0, second.length);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBuffer(first), 0, first.length, false));
+        Status status = pipeline.transform(new UnsafeBuffer(second), 0, second.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];

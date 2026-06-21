@@ -55,13 +55,13 @@ public final class AvroSchemaImpl implements AvroSchema
     private static final class Validator implements AvroTransform
     {
         @Override
-        public Status feed(
+        public Status transform(
             AvroController control,
             AvroSource source,
             AvroEvent event,
             AvroSink sink)
         {
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         }
     }
 }

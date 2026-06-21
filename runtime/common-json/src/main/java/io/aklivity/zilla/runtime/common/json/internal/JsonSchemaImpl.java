@@ -2313,7 +2313,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public Status feed(
+        public Status transform(
             JsonController control,
             JsonSource source,
             JsonEvent event,
@@ -2324,7 +2324,7 @@ public final class JsonSchemaImpl implements JsonSchema
             boolean scalar = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {
-                Status downstream = sink.feed(decline, source, event);
+                Status downstream = sink.transform(decline, source, event);
                 status = downstream == Status.REJECTED ? Status.REJECTED
                     : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
             }
@@ -2347,14 +2347,14 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     throw new JsonValidationException(diagnostics);
                 }
-                Status downstream = sink.feed(decline, source, forward(event));
+                Status downstream = sink.transform(decline, source, forward(event));
                 status = verdictStatus(verdict, downstream);
             }
             else
             {
                 // structural events and keys forward first, preserving the emit-then-reject ordering (e.g. a
                 // missing required property is detected at END_OBJECT only after the object has been emitted)
-                Status downstream = sink.feed(decline, source, forward(event));
+                Status downstream = sink.transform(decline, source, forward(event));
                 Verdict verdict = eval.feed(toEvent(event), source);
                 // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
                 // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message

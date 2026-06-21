@@ -72,7 +72,7 @@ final class ProtobufExtractor implements ProtobufTransform
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event,
@@ -82,7 +82,7 @@ final class ProtobufExtractor implements ProtobufTransform
         {
             observe(source, event);
         }
-        return sink.feed(control, source, event);
+        return sink.transform(control, source, event);
     }
 
     @Override
