@@ -61,6 +61,13 @@ import io.aklivity.zilla.manager.internal.commands.install.ZpmDependency;
 
 public final class ZpmCache
 {
+    // ZPM resolves dependencies in a single, one-shot process that needs no cross-process
+    // or cross-thread locking. maven-resolver's sync-context lock factories deadlock here
+    // while resolving SNAPSHOT metadata: a shared lock on the runtime metadata cannot be
+    // acquired within the 30s timeout (observed with both the default "file-lock" factory
+    // and the in-JVM "rwlock-local" factory). Disable locking with the "noop" factory.
+    private static final String CONFIG_PROP_NAMED_LOCK_FACTORY = "aether.syncContext.named.factory";
+
     private final RepositorySystem repositorySystem;
 
     private final RepositorySystemSession session;
@@ -173,6 +180,7 @@ public final class ZpmCache
                 .setRepositoryListener(new ZpmConsoleRepositoryListener())
                 .setTransferListener(new ZpmConsoleTransferListener())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
+                .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
                 .build();
     }
 

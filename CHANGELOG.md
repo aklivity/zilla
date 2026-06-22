@@ -1,12 +1,19 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [2.0.0-alpha-5](https://github.com/aklivity/zilla/tree/2.0.0-alpha-5) (2026-06-22)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-4...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-4...2.0.0-alpha-5)
 
 **Closed issues:**
 
 - engine: unify model ConverterHandler and ValidatorHandler into a single streaming model handler [\#1836](https://github.com/aklivity/zilla/issues/1836)
+
+**Merged pull requests:**
+
+- ci: declare Maven Central first to avoid slow aklivity-repo misses [\#1945](https://github.com/aklivity/zilla/pull/1945) ([jfallows](https://github.com/jfallows))
+- feat\(common-json\): generalize the verbatim transform pipeline — validate, prune, inject [\#1943](https://github.com/aklivity/zilla/pull/1943) ([jfallows](https://github.com/jfallows))
+- ci\(build\): route Docker Hub pulls through mirror.gcr.io and make PR builds uniform [\#1941](https://github.com/aklivity/zilla/pull/1941) ([jfallows](https://github.com/jfallows))
+- Add ModelHandler and ModelPipeline abstractions for data validation [\#1933](https://github.com/aklivity/zilla/pull/1933) ([jfallows](https://github.com/jfallows))
 
 ## [2.0.0-alpha-4](https://github.com/aklivity/zilla/tree/2.0.0-alpha-4) (2026-06-20)
 
