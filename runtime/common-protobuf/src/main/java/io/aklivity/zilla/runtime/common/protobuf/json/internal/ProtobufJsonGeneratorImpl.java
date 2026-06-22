@@ -53,6 +53,8 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private static final char[] BASE64 =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
 
+    private static final int RESERVE = 2;
+
     private final JsonGeneratorEx json;
     private final ProtobufSchema schema;
     private final String messageName;
@@ -70,6 +72,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
 
     private boolean segmentActive;
     private boolean segmentOpened;
+    private boolean segmentDeferred;
     private int consumed;
     private boolean flushed;
 
@@ -121,6 +124,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             rootOpened = false;
             segmentActive = false;
             segmentOpened = false;
+            segmentDeferred = false;
         }
         consumed = 0;
         return this;
@@ -141,7 +145,28 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public int remaining()
     {
-        return json.remaining();
+        return Math.max(0, json.remaining() - RESERVE - pendingKeyWidth());
+    }
+
+    private int pendingKeyWidth()
+    {
+        int width = 0;
+        if (rootOpened && depth >= 0)
+        {
+            Scope scope = scopes[depth];
+            if (!scope.mapEntry && scope.message != null)
+            {
+                int separator = scope.openField != -1 || !scope.written.isEmpty() ? 1 : 0;
+                for (ProtobufField field : scope.message.sortedFields())
+                {
+                    if (!scope.written.get(field.number()))
+                    {
+                        width = Math.max(width, key(field).length() + 3 + separator);
+                    }
+                }
+            }
+        }
+        return width;
     }
 
     @Override
@@ -401,9 +426,15 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     {
         if (!segmentActive)
         {
+            if (json.length() > 0 && segmentKeyWidth(field) > json.remaining())
+            {
+                segmentDeferred = true;
+                return this;
+            }
             prepare(field);
             segmentActive = true;
             segmentOpened = false;
+            segmentDeferred = false;
         }
         if (scalarKey)
         {
@@ -474,10 +505,8 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator flush()
     {
-        if (segmentActive)
+        if (segmentActive || segmentDeferred)
         {
-            // a value is in flight: the bounded output filled mid-value, so leave the open string and scopes
-            // untouched — this chunk drains and the next window resumes the same document by concatenation
             flushed = true;
         }
         else
@@ -512,6 +541,34 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             depth = 0;
             scopes[0].set(schema.message(messageName), false);
         }
+    }
+
+    private int segmentKeyWidth(
+        int number)
+    {
+        int width = 0;
+        if (rootOpened && depth >= 0)
+        {
+            Scope scope = scopes[depth];
+            if (scope.mapEntry)
+            {
+                if (number != 1 && scope.pendingKey != null)
+                {
+                    int separator = scope.written.isEmpty() ? 0 : 1;
+                    width = scope.pendingKey.length() + 3 + separator;
+                }
+            }
+            else if (scope.message != null)
+            {
+                ProtobufField field = scope.message.field(number);
+                if (field != null && !(field.repeated() && scope.openField == number))
+                {
+                    int separator = scope.openField != -1 || !scope.written.isEmpty() ? 1 : 0;
+                    width = key(field).length() + 3 + separator;
+                }
+            }
+        }
+        return width;
     }
 
     private void prepare(
