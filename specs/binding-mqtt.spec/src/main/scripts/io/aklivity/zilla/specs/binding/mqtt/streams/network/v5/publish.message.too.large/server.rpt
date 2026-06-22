@@ -14,14 +14,15 @@
 # under the License.
 #
 
-connect "zilla://streams/net0"
-   option zilla:window 8192
-   option zilla:transmission "duplex"
+accept "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
+accepted
 connected
 
-write [0x10 0x18]                           # CONNECT
+read  [0x10 0x18]                           # CONNECT
       [0x00 0x04] "MQTT"                    # protocol name
       [0x05]                                # protocol version
       [0x02]                                # flags = clean start
@@ -30,18 +31,18 @@ write [0x10 0x18]                           # CONNECT
       [0x27] 33792                          # maximum packet size = 33792
       [0x00 0x06] "client"                  # client id
 
-read  [0x20 0x03]                           # CONNACK
+write [0x20 0x03]                           # CONNACK
       [0x00]                                # flags = none
       [0x00]                                # reason code
       [0x00]                                # properties
 
-write [0x30 0xb4 0x42]                      # PUBLISH, remaining length = 8500
+read  [0x30 0xb4 0x42]                      # PUBLISH, remaining length = 8500
       [0x00 0x0a] "sensor/one"              # topic name
       [0x00]                                # properties
-      ${mqtt:randomBytes(8176)}             # oversized message payload
+      [0..8176]                             # oversized message payload
 
-read  [0xe0 0x02]                           # DISCONNECT
+write [0xe0 0x02]                           # DISCONNECT
       [0x99]                                # payload format invalid
       [0x00]                                # properties = none
 
-read closed
+write close

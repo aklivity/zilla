@@ -412,6 +412,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.message.too.large/client",
+        "${net}/publish.message.too.large/server"})
+    public void shouldRejectPublishMessageTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.unroutable/client",
         "${net}/publish.unroutable/server"})
     public void shouldRejectUnroutable() throws Exception

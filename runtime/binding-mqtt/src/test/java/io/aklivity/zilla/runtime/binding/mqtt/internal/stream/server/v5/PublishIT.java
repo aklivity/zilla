@@ -132,7 +132,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.message.too.large/client",
         "${app}/session.publish/server"})
-    public void shouldRejectPublishMessageExceedingDecodeSlot() throws Exception
+    public void shouldRejectPublishMessageTooLarge() throws Exception
     {
         k3po.finish();
     }
