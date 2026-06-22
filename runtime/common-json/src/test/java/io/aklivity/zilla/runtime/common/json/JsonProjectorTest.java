@@ -121,8 +121,8 @@ class JsonProjectorTest
         UnsafeBuffer in = new UnsafeBuffer(bytes);
 
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.feed(in, 0, 7, false));
-        Status status = pipeline.feed(in, 7, bytes.length);
+        assertEquals(Status.STARVED, pipeline.transform(in, 0, 7, false));
+        Status status = pipeline.transform(in, 7, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -235,7 +235,7 @@ class JsonProjectorTest
         Status status;
         do
         {
-            status = pipeline.feed(in, 0, bytes.length);
+            status = pipeline.transform(in, 0, bytes.length);
             byte[] chunk = new byte[gen.length()];
             buffer.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
@@ -256,6 +256,6 @@ class JsonProjectorTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 }

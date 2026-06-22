@@ -263,7 +263,7 @@ public class JsonPipelineBM
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
-        pipeline.feed(buffer, 0, length);
+        pipeline.transform(buffer, 0, length);
         return generator.length();
     }
 
@@ -285,7 +285,7 @@ public class JsonPipelineBM
         {
             limit = Math.min(limit + window, length);
             boolean last = limit >= length;
-            status = pipeline.feed(buffer, progress, limit, last);
+            status = pipeline.transform(buffer, progress, limit, last);
             if (status != Status.STARVED)
             {
                 break;

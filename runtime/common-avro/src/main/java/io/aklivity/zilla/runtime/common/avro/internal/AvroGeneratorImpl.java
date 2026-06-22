@@ -18,6 +18,7 @@ import static java.nio.ByteOrder.LITTLE_ENDIAN;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
@@ -26,9 +27,13 @@ import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 public final class AvroGeneratorImpl implements AvroGenerator
 {
+    // shared empty target so an unwrapped generator is in a defensible state (length/remaining read zero)
+    // before transform re-targets it at the caller's destination, rather than holding a null buffer
+    private static final MutableDirectBuffer EMPTY = new UnsafeBuffer(new byte[0]);
+
     private final AvroNode root;
 
-    private MutableDirectBuffer buffer;
+    private MutableDirectBuffer buffer = EMPTY;
     private int base;
     private int bound;
     private AvroNode[] nodeStack;

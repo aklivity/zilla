@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexFile;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
@@ -94,7 +95,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 
 public final class KafkaCacheServerFetchFactory implements BindingHandler
 {
@@ -152,6 +152,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer transformBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
@@ -179,6 +180,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.transformBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -485,8 +487,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaOffsetType defaultOffset;
         private final long retentionMillisMax;
         private final List<KafkaCacheServerFetchStream> members;
-        private final ConverterHandler convertKey;
-        private final ConverterHandler convertValue;
+        private final KafkaCacheModel transformKey;
+        private final KafkaCacheModel transformValue;
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
         private final KafkaTopicTransformsType transforms;
@@ -535,8 +537,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.retentionMillisMax = defaultOffset == LIVE ? retentionMillisMaxLive : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
-            this.convertKey = topicType.keyReader;
-            this.convertValue = topicType.valueReader;
+            this.transformKey = KafkaCacheModel.decoder(topicType.keyModel, transformBuffer);
+            this.transformValue = KafkaCacheModel.decoder(topicType.valueModel, transformBuffer);
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
             this.transforms = topicType.transforms;
@@ -786,7 +788,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp, AUTHORITATIVE,
                     producerId, EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
-                    entryFlags, KafkaDeltaType.NONE, convertKey, convertValue, verbose, transforms);
+                    entryFlags, KafkaDeltaType.NONE, transformKey, transformValue, verbose, transforms);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -893,7 +895,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     (timestampType == AUTHORITATIVE ? CACHE_ENTRY_FLAGS_AUTHORITATIVE : 0x00);
                 partition.writeEntryStart(context, traceId, routedId, partitionOffset, entryMark, valueMark,
                     timestamp, timestampType, producerId, key, valueLength, findAncestor, entryFlags, deltaType, valueFragment,
-                    convertKey, convertValue, transforms, verbose);
+                    transformKey, transformValue, transforms, verbose);
             }
 
             if (valueFragment != null)
@@ -918,7 +920,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionOffset >= this.partitionOffset;
 
                 partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, flags, partitionOffset,
-                    entryMark, valueMark, convertKey, convertValue, verbose, transforms);
+                    entryMark, valueMark, transformKey, transformValue, verbose, transforms);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;

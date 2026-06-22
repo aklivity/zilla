@@ -17,9 +17,11 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufReporter;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
@@ -62,6 +64,25 @@ public final class ProtobufStreamImpl implements ProtobufStream
     public ProtobufPipeline into(
         ProtobufSink sink)
     {
-        return new ProtobufPipelineImpl(parser, transforms, sink, reporter);
+        return new ProtobufPipelineImpl(parser, transforms, sink, reporter, null);
+    }
+
+    @Override
+    public ProtobufPipeline into(
+        ProtobufGenerator generator)
+    {
+        // the pipeline owns the generator and re-targets it at the caller's destination per transform call
+        return new ProtobufPipelineImpl(parser, transforms, ProtobufSink.of(generator), reporter, generator);
+    }
+
+    @Override
+    public ProtobufPipeline into(
+        ProtobufGenerator generator,
+        ProtobufSchema schema,
+        String messageName)
+    {
+        // the pipeline owns the generator and re-targets it at the caller's destination per transform call
+        return new ProtobufPipelineImpl(parser, transforms, ProtobufSink.of(generator, schema, messageName), reporter,
+            generator);
     }
 }

@@ -50,7 +50,7 @@ class JsonSourceTest
             {
                 views.add(source.getStringView().toString());
             }
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
 
         JsonGeneratorEx gen = JsonEx.createGenerator();
@@ -62,7 +62,7 @@ class JsonSourceTest
 
         byte[] bytes = "[42,-7,\"hi\"]".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals(List.of(42, -7), ints);

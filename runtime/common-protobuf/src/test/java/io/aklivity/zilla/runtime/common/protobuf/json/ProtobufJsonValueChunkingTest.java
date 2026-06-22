@@ -177,7 +177,7 @@ public class ProtobufJsonValueChunkingTest
         UnsafeBuffer in = new UnsafeBuffer(json);
         int suspends = 0;
         int guard = 0;
-        Status status = pipeline.feed(in, 0, json.length);
+        Status status = pipeline.transform(in, 0, json.length);
         while (status == Status.SUSPENDED && guard < 10_000_000)
         {
             assertTrue(generator.length() <= window, "chunk exceeded the generator limit");
@@ -185,7 +185,7 @@ public class ProtobufJsonValueChunkingTest
             generator.wrap(out, 0, window);
             suspends++;
             guard++;
-            status = pipeline.feed(in, 0, json.length);
+            status = pipeline.transform(in, 0, json.length);
         }
         assertEquals(Status.COMPLETED, status);
         generator.flush();
@@ -204,7 +204,7 @@ public class ProtobufJsonValueChunkingTest
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(wire), 0, wire.length);
+        Status status = pipeline.transform(new UnsafeBuffer(wire), 0, wire.length);
         assertEquals(Status.COMPLETED, status);
         generator.flush();
         byte[] bytes = new byte[generator.length()];

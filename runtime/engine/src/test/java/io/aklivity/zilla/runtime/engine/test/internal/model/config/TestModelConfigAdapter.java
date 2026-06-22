@@ -34,6 +34,7 @@ public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapt
 {
     private static final String TEST = "test";
     private static final String LENGTH = "length";
+    private static final String TRANSFORM = "transform";
     private static final String CAPABILITY = "capability";
     private static final String READ = "read";
     private static final String CATALOG_NAME = "catalog";
@@ -63,6 +64,10 @@ public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapt
             ? object.getInt(LENGTH)
             : 0;
 
+        int transformLength = object.containsKey(TRANSFORM)
+            ? object.getJsonObject(TRANSFORM).getInt(LENGTH)
+            : -1;
+
         boolean read = object.containsKey(CAPABILITY)
             ? object.getString(CAPABILITY).equals(READ)
             : false;
@@ -85,6 +90,6 @@ public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapt
             }
         }
 
-        return new TestModelConfig(length, catalogs, read);
+        return new TestModelConfig(length, catalogs, read, transformLength);
     }
 }

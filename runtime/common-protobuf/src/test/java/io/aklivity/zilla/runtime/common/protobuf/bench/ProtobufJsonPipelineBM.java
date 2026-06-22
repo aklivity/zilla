@@ -113,7 +113,7 @@ public class ProtobufJsonPipelineBM
     {
         wireGenerator.wrap(outputBuffer, 0, outputBuffer.capacity());
         jsonToProtobufPipeline.reset();
-        jsonToProtobufPipeline.feed(jsonBuffer, 0, jsonLength);
+        jsonToProtobufPipeline.transform(jsonBuffer, 0, jsonLength);
         return wireGenerator.length();
     }
 
@@ -122,7 +122,7 @@ public class ProtobufJsonPipelineBM
     {
         jsonRenderer.wrap(outputBuffer, 0, outputBuffer.capacity());
         protobufToJsonPipeline.reset();
-        protobufToJsonPipeline.feed(wireBuffer, 0, wireLength);
+        protobufToJsonPipeline.transform(wireBuffer, 0, wireLength);
         jsonRenderer.flush();
         return jsonRenderer.length();
     }

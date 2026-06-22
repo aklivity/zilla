@@ -138,7 +138,7 @@ public class JsonMutateBM
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
-        pipeline.feed(documentBuffer, 0, documentLength);
+        pipeline.transform(documentBuffer, 0, documentLength);
         return generator.length();
     }
 
@@ -194,7 +194,7 @@ public class JsonMutateBM
         };
 
         @Override
-        public JsonPipeline.Status feed(
+        public JsonPipeline.Status transform(
             JsonController control,
             JsonSource source,
             JsonEvent event,
@@ -207,18 +207,18 @@ public class JsonMutateBM
             case START_OBJECT:
             case START_ARRAY:
                 depth++;
-                status = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                status = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 break;
             case END_OBJECT:
             case END_ARRAY:
                 depth--;
-                JsonPipeline.Status downstream = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                JsonPipeline.Status downstream = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 status = downstream == JsonPipeline.Status.REJECTED ? JsonPipeline.Status.REJECTED
                     : depth == 0 ? JsonPipeline.Status.COMPLETED
                     : downstream;
                 break;
             default:
-                status = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                status = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 break;
             }
             return status;
@@ -270,7 +270,7 @@ public class JsonMutateBM
         }
 
         @Override
-        public JsonPipeline.Status feed(
+        public JsonPipeline.Status transform(
             JsonController control,
             JsonSource source,
             JsonEvent event,
@@ -283,12 +283,12 @@ public class JsonMutateBM
             case START_OBJECT:
             case START_ARRAY:
                 depth++;
-                status = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                status = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 break;
             case END_OBJECT:
             case END_ARRAY:
                 depth--;
-                JsonPipeline.Status downstream = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                JsonPipeline.Status downstream = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 status = downstream == JsonPipeline.Status.REJECTED ? JsonPipeline.Status.REJECTED
                     : depth == 0 ? JsonPipeline.Status.COMPLETED
                     : downstream;
@@ -301,11 +301,11 @@ public class JsonMutateBM
                 }
                 else
                 {
-                    status = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                    status = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 }
                 break;
             default:
-                status = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                status = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 break;
             }
             return status;
@@ -386,7 +386,7 @@ public class JsonMutateBM
         }
 
         @Override
-        public JsonPipeline.Status feed(
+        public JsonPipeline.Status transform(
             JsonController control,
             JsonSource source,
             JsonEvent event,
@@ -399,12 +399,12 @@ public class JsonMutateBM
             case START_OBJECT:
             case START_ARRAY:
                 depth++;
-                status = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                status = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 break;
             case END_OBJECT:
             case END_ARRAY:
                 depth--;
-                JsonPipeline.Status downstream = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                JsonPipeline.Status downstream = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 status = downstream == JsonPipeline.Status.REJECTED ? JsonPipeline.Status.REJECTED
                     : depth == 0 ? JsonPipeline.Status.COMPLETED
                     : downstream;
@@ -414,13 +414,13 @@ public class JsonMutateBM
                 {
                     // the generator's state is current from the verbatim steps applied so far, so the injected
                     // member separates correctly with no per-op allocation in the transform
-                    sink.feed(injectControl, keySource, JsonEvent.KEY_NAME);
-                    sink.feed(injectControl, valueSource, JsonEvent.VALUE_NUMBER);
+                    sink.transform(injectControl, keySource, JsonEvent.KEY_NAME);
+                    sink.transform(injectControl, valueSource, JsonEvent.VALUE_NUMBER);
                 }
-                status = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                status = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 break;
             default:
-                status = sink.feed(mediator, source, forward(downstreamVerbatim, event));
+                status = sink.transform(mediator, source, forward(downstreamVerbatim, event));
                 break;
             }
             return status;

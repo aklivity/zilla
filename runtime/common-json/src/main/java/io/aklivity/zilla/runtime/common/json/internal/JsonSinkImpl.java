@@ -64,7 +64,7 @@ public final class JsonSinkImpl implements JsonSink
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event)
@@ -73,7 +73,7 @@ public final class JsonSinkImpl implements JsonSink
         switch (event)
         {
         case KEY_NAME:
-            generator.writeKey(source.getStringView());
+            status = writeKeyName(control, source);
             break;
         case START_OBJECT:
             generator.writeStartObject();
@@ -192,6 +192,7 @@ public final class JsonSinkImpl implements JsonSink
         {
         case VALUE_STRING:
         case VALUE_NUMBER:
+        case KEY_NAME:
             result = source.getStringView().length() > 0;
             break;
         case SEGMENT:
@@ -213,7 +214,11 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         Status status;
-        if (event == JsonEvent.VALUE_NUMBER || event == JsonEvent.VALUE_STRING)
+        if (event == JsonEvent.KEY_NAME)
+        {
+            status = writeKeyName(control, source);
+        }
+        else if (event == JsonEvent.VALUE_NUMBER || event == JsonEvent.VALUE_STRING)
         {
             // a structured scalar renders canonically from its char view; a verbatim value arrives as a
             // SEGMENT, so getSegment() is reached only for segmented events
@@ -222,6 +227,38 @@ public final class JsonSinkImpl implements JsonSink
         else
         {
             status = writeChunk(control, source.getSegment(), source);
+        }
+        return status;
+    }
+
+    // Renders an object key canonically from its decoded char view, the key-domain analog of writeScalar:
+    // the generator owns the quotes and trailing separator, writing only what fits the bound and reporting
+    // consumed source chars so the parser advances its char cursor and re-exposes the remainder on resume.
+    private Status writeKeyName(
+        JsonController control,
+        JsonSource source)
+    {
+        final boolean deferred = source.deferredBytes();
+        final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+        final CharSequence view = source.getStringView();
+        final int available = view.length();
+        final int before = generator.consumed();
+        generator.writeKey(view, completion);
+        final int consumed = generator.consumed() - before;
+        // push back the consumed chars so the source re-exposes the remainder on resume. A stage that forwards
+        // a buffered key (e.g. the projector) absorbs this so it does not reach the live parser's value cursor.
+        control.consumed(consumed);
+        Status status;
+        if (available - consumed > 0)
+        {
+            // the output filled mid-key; resume continues from the unconsumed remainder
+            status = Status.SUSPENDED;
+        }
+        else
+        {
+            // a key is never a top-level value, so it never COMPLETES; advance to its value (or starve for
+            // the next window when the key spans windows)
+            status = Status.ADVANCED;
         }
         return status;
     }

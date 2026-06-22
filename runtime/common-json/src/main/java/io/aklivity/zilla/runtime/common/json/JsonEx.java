@@ -50,7 +50,7 @@ public final class JsonEx
 
     /**
      * Returns an empty {@link JsonParserEx} to be fed via {@link JsonParserEx#wrap(
-     * org.agrona.DirectBuffer, int, int)} (or {@link JsonPipeline#feed(org.agrona.DirectBuffer,
+     * org.agrona.DirectBuffer, int, int)} (or {@link JsonPipeline#transform(org.agrona.DirectBuffer,
      * int, int)} when driving a pipeline). Reuse a single instance per thread.
      */
     public static JsonParserEx createParser()

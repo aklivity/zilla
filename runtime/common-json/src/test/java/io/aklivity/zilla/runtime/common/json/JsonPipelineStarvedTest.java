@@ -35,7 +35,7 @@ class JsonPipelineStarvedTest
         pipeline.reset();
 
         byte[] f1 = "{\"a\":1,".getBytes(UTF_8);
-        Status status = pipeline.feed(new UnsafeBuffer(f1), 0, f1.length, false);
+        Status status = pipeline.transform(new UnsafeBuffer(f1), 0, f1.length, false);
 
         assertEquals(Status.STARVED, status);
     }
@@ -49,8 +49,8 @@ class JsonPipelineStarvedTest
 
         byte[] f1 = "{\"a\":1,".getBytes(UTF_8);
         byte[] f2 = "\"b\":2} ".getBytes(UTF_8);
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length, false));
-        Status status = pipeline.feed(new UnsafeBuffer(f2), 0, f2.length, true);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBuffer(f1), 0, f1.length, false));
+        Status status = pipeline.transform(new UnsafeBuffer(f2), 0, f2.length, true);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -67,7 +67,7 @@ class JsonPipelineStarvedTest
 
         // the object never closes and this is the final window: truncated, not merely starved
         byte[] bytes = "{\"a\":1".getBytes(UTF_8);
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length, true);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length, true);
 
         assertEquals(Status.REJECTED, status);
     }
@@ -81,7 +81,7 @@ class JsonPipelineStarvedTest
 
         // an unterminated string at terminal EOF is malformed
         byte[] bytes = "{\"a\":\"abc".getBytes(UTF_8);
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length, true);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length, true);
 
         assertEquals(Status.REJECTED, status);
     }
@@ -95,7 +95,7 @@ class JsonPipelineStarvedTest
 
         // the three-argument shorthand is last == true: a whole value completes in one shot
         byte[] bytes = "{\"a\":1}".getBytes(UTF_8);
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
     }
@@ -109,7 +109,7 @@ class JsonPipelineStarvedTest
 
         // a bare trailing number with no delimiter completes because last == true makes EOF terminal
         byte[] bytes = "42".getBytes(UTF_8);
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];

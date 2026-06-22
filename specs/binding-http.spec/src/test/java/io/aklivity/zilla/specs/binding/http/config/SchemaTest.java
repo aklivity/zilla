@@ -191,7 +191,7 @@ public class SchemaTest
     @Test
     public void shouldValidateHttp2ClientWithValidation()
     {
-        JsonObject config = schema.validate("v2/client.validation.yaml");
+        JsonObject config = schema.validate("v2/client.model.yaml");
 
         assertThat(config, not(nullValue()));
     }

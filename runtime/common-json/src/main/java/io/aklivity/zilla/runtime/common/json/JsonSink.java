@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.common.json;
 
 /**
- * The consume end of a {@link JsonStream} pipeline. Each {@link #feed(JsonController, JsonSource, JsonEvent)}
+ * The consume end of a {@link JsonStream} pipeline. Each {@link #transform(JsonController, JsonSource, JsonEvent)}
  * delivers one event (with {@code source} positioned to read its scalar, or its bytes when the event is
  * {@link JsonEvent#segmented()}) and returns whether the current top-level value has reached a terminal
  * {@link JsonPipeline.Status}. {@code control} steers the immediate upstream. A terminal sink materializes
@@ -46,7 +46,7 @@ public interface JsonSink
         SEGMENTABLE
     }
 
-    JsonPipeline.Status feed(
+    JsonPipeline.Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event);

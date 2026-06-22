@@ -199,6 +199,20 @@ public interface JsonGeneratorEx extends JsonGenerator
     JsonGeneratorEx writeKey(
         CharSequence name);
 
+    /**
+     * Writes an object key that may arrive in fragments, the key-domain counterpart to
+     * {@link #write(CharSequence, Completion)}. The generator owns the surrounding quotes and the trailing
+     * {@code :}: the opening quote (and any leading {@code ,}) is emitted before the first fragment, each
+     * fragment's chars are escaped and encoded only while they fit the output bound, and the closing quote
+     * and {@code :} are emitted when {@code completion} is {@link Completion#COMPLETE} once the final
+     * fragment is fully written. Track the source chars taken via {@link #consumed()} so a chunking driver
+     * advances its cursor and resumes from the remainder. {@code writeKey(name, COMPLETE)} for a key that
+     * fits is equivalent to {@link #writeKey(CharSequence)}.
+     */
+    JsonGeneratorEx writeKey(
+        CharSequence name,
+        Completion completion);
+
     @Override
     JsonGeneratorEx writeEnd();
 
