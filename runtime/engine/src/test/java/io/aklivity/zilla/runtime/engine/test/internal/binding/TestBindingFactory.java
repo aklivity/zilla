@@ -320,6 +320,7 @@ final class TestBindingFactory implements BindingHandler
         private TestTarget target;
         private boolean pendingBegin;
         private long pendingTraceId;
+        private boolean storeAssertionsStarted;
 
         private TestSource(
             MessageConsumer source,
@@ -620,8 +621,6 @@ final class TestBindingFactory implements BindingHandler
                 doInitialReset(traceId);
             }
 
-            runStoreAssertions(traceId);
-
             while (events != null && eventIndex < events.size())
             {
                 Event e = events.get(eventIndex);
@@ -633,10 +632,11 @@ final class TestBindingFactory implements BindingHandler
         private void runStoreAssertions(
             long traceId)
         {
-            if (store == null || storeAssertions == null || storeAssertions.isEmpty())
+            if (storeAssertionsStarted || store == null || storeAssertions == null || storeAssertions.isEmpty())
             {
                 return;
             }
+            storeAssertionsStarted = true;
             runStoreAssertion(traceId, 0);
         }
 
@@ -823,22 +823,37 @@ final class TestBindingFactory implements BindingHandler
                 returned.value = true;
                 break;
             case "watch":
-                // registration is synchronous; listener fires async on mutations
-                store.watch(a.key, (k, v) ->
-                {
-                    if (Thread.currentThread() != dispatchThread ||
-                        a.hasExpect && !Objects.equals(v, a.expect))
-                    {
-                        doInitialReset(traceId);
-                    }
-                });
-                next.run();
+                runWatchAssertion(traceId, a, dispatchThread, next);
                 break;
             default:
                 doInitialReset(traceId);
                 next.run();
                 break;
             }
+        }
+
+        private void runWatchAssertion(
+            long traceId,
+            StoreAssertion a,
+            Thread dispatchThread,
+            Runnable next)
+        {
+            // registration is synchronous; listener fires async on mutations. emit an observable
+            // reply flush per notification so the script can gate on the callback having fired on
+            // the dispatch thread, making the watch deterministic
+            store.watch(a.key, (k, v) ->
+            {
+                if (Thread.currentThread() != dispatchThread ||
+                    a.hasExpect && !Objects.equals(v, a.expect))
+                {
+                    doInitialReset(traceId);
+                }
+                else
+                {
+                    doReplyFlush(traceId, 0);
+                }
+            });
+            next.run();
         }
 
         private String resolveToken(
@@ -916,6 +931,10 @@ final class TestBindingFactory implements BindingHandler
             replyCap = window.capabilities();
 
             target.doReplyWindow(traceId, replyAck, replyMax, replyBud, replyPad, replyCap);
+
+            // defer store assertions until the reply stream is established and credited, so any
+            // notification (e.g. watch) can emit an observable reply frame the script gates on
+            runStoreAssertions(traceId);
         }
 
         private void onReplyChallenge(
