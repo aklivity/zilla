@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.0.0-alpha-9](https://github.com/aklivity/zilla/tree/2.0.0-alpha-9) (2026-06-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-6...2.0.0-alpha-9)
+
+**Merged pull requests:**
+
+- Remove Docker Hub authentication from CI workflows [\#1952](https://github.com/aklivity/zilla/pull/1952) ([jfallows](https://github.com/jfallows))
+- Migrate tshark Docker image to ghcr.io/aklivity registry [\#1950](https://github.com/aklivity/zilla/pull/1950) ([jfallows](https://github.com/jfallows))
+- test\(engine\): emit reply flush when store assertion chain completes [\#1949](https://github.com/aklivity/zilla/pull/1949) ([jfallows](https://github.com/jfallows))
+- ci: pass docker image between build jobs via artifact instead of cache [\#1948](https://github.com/aklivity/zilla/pull/1948) ([jfallows](https://github.com/jfallows))
+- Remove Maven Central repository, use Aklivity packages only [\#1947](https://github.com/aklivity/zilla/pull/1947) ([jfallows](https://github.com/jfallows))
+
+## [2.0.0-alpha-6](https://github.com/aklivity/zilla/tree/2.0.0-alpha-6) (2026-06-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-5...2.0.0-alpha-6)
+
+**Merged pull requests:**
+
+- test\(engine\): make store watch assertion deterministic via reply flush [\#1946](https://github.com/aklivity/zilla/pull/1946) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): pin in-JVM resolver lock factory to fix ZPM install deadlock [\#1944](https://github.com/aklivity/zilla/pull/1944) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0-alpha-5](https://github.com/aklivity/zilla/tree/2.0.0-alpha-5) (2026-06-22)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-4...2.0.0-alpha-5)

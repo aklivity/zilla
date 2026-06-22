@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpDissecto
 
 class TsharkRunner
 {
-    private static final String TSHARK_DOCKER_IMAGE = "kreinerattila/tshark:4.2.0";
+    private static final String TSHARK_DOCKER_IMAGE = "ghcr.io/aklivity/tshark:4.2.0";
     private static final String COMMAND = "sleep infinity";
     private static final WaitStrategy WAIT_STRATEGY = Wait.forSuccessfulCommand("echo 42");
 
