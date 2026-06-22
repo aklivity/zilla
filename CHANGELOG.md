@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-4...HEAD)
+
+**Closed issues:**
+
+- engine: unify model ConverterHandler and ValidatorHandler into a single streaming model handler [\#1836](https://github.com/aklivity/zilla/issues/1836)
+
 ## [2.0.0-alpha-4](https://github.com/aklivity/zilla/tree/2.0.0-alpha-4) (2026-06-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-2...2.0.0-alpha-4)
