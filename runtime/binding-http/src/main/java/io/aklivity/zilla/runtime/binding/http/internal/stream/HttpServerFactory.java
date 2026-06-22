@@ -2167,7 +2167,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             int initialPad,
             int minInitialWin)
         {
-            final int initialMax = exchange != null ? decodeMax : 0;
+            final int initialMax = decodeMax;
             final int decodable = decodeMax - decodeSlotOffset;
             final int newInitialWin = Math.min(decodable, minInitialWin);
 
