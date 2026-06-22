@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.0-alpha-6](https://github.com/aklivity/zilla/tree/2.0.0-alpha-6) (2026-06-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-5...2.0.0-alpha-6)
+
+**Merged pull requests:**
+
+- test\(engine\): make store watch assertion deterministic via reply flush [\#1946](https://github.com/aklivity/zilla/pull/1946) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): pin in-JVM resolver lock factory to fix ZPM install deadlock [\#1944](https://github.com/aklivity/zilla/pull/1944) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0-alpha-5](https://github.com/aklivity/zilla/tree/2.0.0-alpha-5) (2026-06-22)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-4...2.0.0-alpha-5)
