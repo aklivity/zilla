@@ -127,6 +127,17 @@ public class PublishIT
     }
 
     @Test
+    @Configuration("server.validator.yaml")
+    @Configure(name = "zilla.engine.buffer.slot.capacity", value = "8192")
+    @Specification({
+        "${net}/publish.message.too.large/client",
+        "${app}/session.publish/server"})
+    public void shouldRejectPublishMessageExceedingDecodeSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.content.transform.grow.yaml")
     @Specification({
         "${net}/publish.message.transform.grow/client",
