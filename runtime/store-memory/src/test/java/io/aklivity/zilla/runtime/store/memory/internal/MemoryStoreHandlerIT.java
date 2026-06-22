@@ -89,8 +89,8 @@ public class MemoryStoreHandlerIT
     @Test
     @Configuration("store.watch.yaml")
     @Specification({
-        "${net}/handshake/client",
-        "${app}/handshake/server"})
+        "${net}/store.watch/client",
+        "${app}/store.watch/server"})
     public void shouldWatchKey() throws Exception
     {
         k3po.finish();
