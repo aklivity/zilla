@@ -17,8 +17,6 @@ package io.aklivity.zilla.manager.internal.commands.install.cache;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
-import static org.eclipse.aether.ConfigurationProperties.CONNECT_TIMEOUT;
-import static org.eclipse.aether.ConfigurationProperties.REQUEST_TIMEOUT;
 import static org.eclipse.aether.util.graph.transformer.ConflictResolver.CONFIG_PROP_VERBOSE;
 
 import java.nio.file.Path;
@@ -69,11 +67,6 @@ public final class ZpmCache
     // acquired within the 30s timeout (observed with both the default "file-lock" factory
     // and the in-JVM "rwlock-local" factory). Disable locking with the "noop" factory.
     private static final String CONFIG_PROP_NAMED_LOCK_FACTORY = "aether.syncContext.named.factory";
-
-    // Fail fast on slow or unreachable remote repositories so a stalled metadata or artifact
-    // request times out in seconds rather than blocking the install for the resolver default.
-    private static final int CONNECTOR_CONNECT_TIMEOUT_MS = 5000;
-    private static final int CONNECTOR_REQUEST_TIMEOUT_MS = 15000;
 
     private final RepositorySystem repositorySystem;
 
@@ -188,8 +181,6 @@ public final class ZpmCache
                 .setTransferListener(new ZpmConsoleTransferListener())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
-                .setConfigProperty(CONNECT_TIMEOUT, CONNECTOR_CONNECT_TIMEOUT_MS)
-                .setConfigProperty(REQUEST_TIMEOUT, CONNECTOR_REQUEST_TIMEOUT_MS)
                 .build();
     }
 
