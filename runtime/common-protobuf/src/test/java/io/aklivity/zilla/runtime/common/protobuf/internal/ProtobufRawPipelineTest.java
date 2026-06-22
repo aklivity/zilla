@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -122,7 +122,7 @@ public class ProtobufRawPipelineTest
         ProtobufTransform redact = (control, source, event, sink) ->
             (event == ProtobufEvent.FIELD || event == ProtobufEvent.VALUE) && source.fieldNumber() == 2
                 ? Status.ADVANCED
-                : sink.feed(control, source, event);
+                : sink.transform(control, source, event);
 
         assertArrayEquals(expected, copy(message, redact));
     }
@@ -131,7 +131,7 @@ public class ProtobufRawPipelineTest
         byte[] message,
         ProtobufTransform transform)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufStream stream = Protobuf.stream(Protobuf.parser());
         if (transform != null)
@@ -152,7 +152,7 @@ public class ProtobufRawPipelineTest
         ProtobufPipeline pipeline,
         byte[] message)
     {
-        return pipeline.feed(new UnsafeBufferEx(message), 0, message.length);
+        return pipeline.transform(new UnsafeBufferEx(message), 0, message.length);
     }
 
     private static byte[] wire(
@@ -172,7 +172,7 @@ public class ProtobufRawPipelineTest
         private int depth;
 
         @Override
-        public ProtobufPipeline.Status feed(
+        public ProtobufPipeline.Status transform(
             ProtobufController control,
             ProtobufSource source,
             ProtobufEvent event)

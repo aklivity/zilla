@@ -127,6 +127,57 @@ public class PublishIT
     }
 
     @Test
+    @Configuration("server.validator.yaml")
+    @Configure(name = "zilla.engine.buffer.slot.capacity", value = "8192")
+    @Specification({
+        "${net}/publish.message.too.large/client",
+        "${app}/session.publish/server"})
+    public void shouldRejectPublishMessageTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.content.transform.grow.yaml")
+    @Specification({
+        "${net}/publish.message.transform.grow/client",
+        "${app}/publish.message.transform.grow/server"})
+    public void shouldPublishMessageTransformGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.content.transform.shrink.yaml")
+    @Specification({
+        "${net}/publish.message.transform.shrink/client",
+        "${app}/publish.message.transform.shrink/server"})
+    public void shouldPublishMessageTransformShrink() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.user.property.transform.yaml")
+    @Specification({
+        "${net}/publish.user.property.transform.shrink/client",
+        "${app}/publish.user.property.transform.shrink/server"})
+    public void shouldPublishUserPropertyTransformShrink() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.user.property.transform.grow.yaml")
+    @Specification({
+        "${net}/publish.user.property.transform.grow/client",
+        "${app}/publish.user.property.transform.grow/server"})
+    public void shouldPublishUserPropertyTransformGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.retained/client",

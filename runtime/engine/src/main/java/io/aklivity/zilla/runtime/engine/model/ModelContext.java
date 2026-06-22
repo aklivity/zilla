@@ -71,4 +71,14 @@ public interface ModelContext
     {
         return null;
     }
+
+    /**
+     * Returns a {@link ModelHandler} that vends per-stream decode and encode pipelines for the given
+     * model configuration, or {@code null} if this model does not transform values.
+     *
+     * @param config  the model configuration
+     * @return a {@link ModelHandler} for the configuration, or {@code null}
+     */
+    ModelHandler supplyHandler(
+        ModelConfig config);
 }

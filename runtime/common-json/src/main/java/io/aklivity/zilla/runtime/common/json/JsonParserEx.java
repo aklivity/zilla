@@ -142,6 +142,30 @@ public interface JsonParserEx extends JsonParser
     DirectBuffer getSegment();
 
     /**
+     * Bounded pull of the coalesced <em>verbatim</em> run as a {@link JsonVerbatim} block — the original source
+     * bytes parsed since the last {@code getVerbatim} call, bounded to the whole-token prefix that fits
+     * {@code limit} and advancing the verbatim cursor by exactly that, so the next call continues the run with no
+     * gap or overlap. The block's {@link JsonVerbatim#getSegment()} and {@link JsonVerbatim#getSteps()} agree
+     * on a token boundary; an empty block signals the run is drained. Unlike {@link #getSegment()} this is valid
+     * alongside the structured event stream (the parser keeps delivering typed events; this reads their underlying
+     * bytes), letting a stage inspect structure yet reproduce the input byte-for-byte. The pull is denominated in
+     * source bytes and the splice is 1:1, so the caller pre-bounds it to its free output space and never needs
+     * {@link JsonController#consumed(int)} to report partial progress. The {@link JsonSource#getVerbatim(int)}
+     * accessor promoted onto the parser surface.
+     */
+    JsonVerbatim getVerbatim(
+        int limit);
+
+    /**
+     * Drops the value at the current member boundary — valid only when the current event is a
+     * {@link JsonEvent#KEY_NAME} — advancing the parser past the whole member (key, separator, value) and the
+     * verbatim cursor past its bytes so they are never emitted, folding in the leading-separator trim a prune
+     * needs to keep the surviving siblings well-formed. The {@link JsonSource#skipValue()} accessor promoted
+     * onto the parser surface.
+     */
+    void skipValue();
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same
      * value follows (the value is being streamed across input frames because it exceeds the input window),
      * {@code false} when this event completes it. The {@link JsonSource#deferredBytes()} accessor promoted onto

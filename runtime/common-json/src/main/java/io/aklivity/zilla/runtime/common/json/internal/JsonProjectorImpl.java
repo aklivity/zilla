@@ -29,11 +29,12 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Resumable, event-driven {@link JsonTransform} that projects a document down to a set of retained
  * RFC 6901 pointers, forwarding the kept events to the downstream {@code sink} passed into each
- * {@link #feed(JsonController, JsonSource, JsonEvent, JsonSink)}. This class holds the per-value descent
+ * {@link #transform(JsonController, JsonSource, JsonEvent, JsonSink)}. This class holds the per-value descent
  * state only; the downstream is bound once at assembly and supplied per event.
  * <p>
  * The retained pointer set is compiled once into a {@link Node trie}: each node has children keyed by
@@ -85,6 +86,10 @@ public final class JsonProjectorImpl implements JsonTransform
     private JsonEvent deferredStart;
     private boolean scalarPending;
     private boolean scalarEmit;
+    // true while a buffered key is being forwarded downstream: the parser delivered that key live and already
+    // moved on, so the sink's consumed() pushback for it must be absorbed rather than relayed to the parser's
+    // now-current (value) char cursor
+    private boolean forwardingKey;
 
     private enum SegMode
     {
@@ -111,6 +116,7 @@ public final class JsonProjectorImpl implements JsonTransform
         deferredStart = null;
         scalarPending = false;
         scalarEmit = false;
+        forwardingKey = false;
     }
 
     private void onDownstreamSegmentable()
@@ -132,12 +138,17 @@ public final class JsonProjectorImpl implements JsonTransform
         public void consumed(
             int sourceBytes)
         {
-            upstreamControl.consumed(sourceBytes);
+            // a buffered key's pushback is absorbed (the parser already delivered that key live); a value's
+            // pushback relays to the parser so it re-exposes the value remainder on resume
+            if (!forwardingKey)
+            {
+                upstreamControl.consumed(sourceBytes);
+            }
         }
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event,
@@ -185,7 +196,7 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonSource source,
         JsonEvent event)
     {
-        Status status = sink.feed(downstreamControl, source, event);
+        Status status = sink.transform(downstreamControl, source, event);
         if (rank(status) > rank(downstream))
         {
             downstream = status;
@@ -287,7 +298,9 @@ public final class JsonProjectorImpl implements JsonTransform
     {
         if (pendingKey != null)
         {
+            forwardingKey = true;
             forward(sink, keySource.with(pendingKey), JsonEvent.KEY_NAME);
+            forwardingKey = false;
             pendingKey = null;
         }
     }
@@ -731,6 +744,19 @@ public final class JsonProjectorImpl implements JsonTransform
 
         @Override
         public DirectBufferEx getSegment()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public JsonVerbatim getVerbatim(
+            int limit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void skipValue()
         {
             throw new UnsupportedOperationException();
         }

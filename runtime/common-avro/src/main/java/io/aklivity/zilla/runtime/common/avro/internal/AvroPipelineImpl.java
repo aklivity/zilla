@@ -19,14 +19,17 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.STARVED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
+import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
 import io.aklivity.zilla.runtime.common.avro.AvroReporter;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
@@ -52,6 +55,9 @@ final class AvroPipelineImpl implements AvroPipeline
     private final AvroSink root;
     private final AvroReporter reporter;
     private final Diagnostic diagnostic;
+    // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
+    private final AvroGenerator generator;
+    private final AvroPipelineResult result;
 
     private boolean suspended;
     private AvroEvent suspendedEvent;
@@ -59,7 +65,8 @@ final class AvroPipelineImpl implements AvroPipeline
     AvroPipelineImpl(
         AvroParser parser,
         AvroSink root,
-        AvroReporter reporter)
+        AvroReporter reporter,
+        AvroGenerator generator)
     {
         this.parser = parser;
         this.source = new Source(parser);
@@ -67,6 +74,8 @@ final class AvroPipelineImpl implements AvroPipeline
         this.root = root;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
+        this.generator = generator;
+        this.result = new AvroPipelineResult();
     }
 
     @Override
@@ -85,8 +94,8 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     @Override
-    public Status feed(
-        DirectBufferEx buffer,
+    public Status transform(
+        DirectBuffer buffer,
         int offset,
         int limit,
         boolean last)
@@ -110,7 +119,7 @@ final class AvroPipelineImpl implements AvroPipeline
                 {
                     break;
                 }
-                status = root.feed(control, source, event);
+                status = root.transform(control, source, event);
             }
             if (status == ADVANCED)
             {
@@ -138,6 +147,28 @@ final class AvroPipelineImpl implements AvroPipeline
             suspendedEvent = event;
         }
         return status;
+    }
+
+    @Override
+    public AvroPipelineResult transform(
+        DirectBuffer src,
+        int offset,
+        int limit,
+        boolean last,
+        MutableDirectBuffer dst,
+        int dstOffset,
+        int dstLimit)
+    {
+        // re-target the terminal generator at the caller's output region, preserving structural context
+        // across a SUSPENDED drain, then pump the same window the existing feed contract expects
+        generator.wrap(dst, dstOffset, dstLimit);
+        Status status = transform(src, offset, limit, last);
+        boolean rejected = status == REJECTED;
+        int produced = rejected ? 0 : generator.length();
+        // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
+        // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
+        int consumed = rejected || status == SUSPENDED ? 0 : (limit - offset) - parser.remaining();
+        return result.set(status, consumed, produced);
     }
 
     // the read-only view handed to stages: the parser's accessors without its cursor, so a stage reads the
@@ -201,7 +232,7 @@ final class AvroPipelineImpl implements AvroPipeline
         }
 
         @Override
-        public DirectBufferEx getSegment()
+        public DirectBuffer getSegment()
         {
             return parser.getSegment();
         }

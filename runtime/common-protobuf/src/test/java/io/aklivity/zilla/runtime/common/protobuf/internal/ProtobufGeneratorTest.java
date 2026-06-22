@@ -68,7 +68,7 @@ public class ProtobufGeneratorTest
         Capture sink = new Capture();
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(sink);
         pipeline.reset();
-        ProtobufPipeline.Status status = pipeline.feed(out, 0, generator.length());
+        ProtobufPipeline.Status status = pipeline.transform(out, 0, generator.length());
 
         assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         assertEquals(List.of("{",
@@ -89,7 +89,7 @@ public class ProtobufGeneratorTest
         Capture sink = new Capture();
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(sink);
         pipeline.reset();
-        ProtobufPipeline.Status status = pipeline.feed(out, 0, generator.length());
+        ProtobufPipeline.Status status = pipeline.transform(out, 0, generator.length());
 
         assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         assertEquals(List.of("{", "F1", "V-5", "F11", "(", "F1", "V9", ")", "}"), sink.events);
@@ -138,7 +138,7 @@ public class ProtobufGeneratorTest
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(new Mirror(generator));
         pipeline.reset();
 
-        assertEquals(ProtobufPipeline.Status.COMPLETED, pipeline.feed(in, 0, input.length));
+        assertEquals(ProtobufPipeline.Status.COMPLETED, pipeline.transform(in, 0, input.length));
         assertArrayEquals(input, bytes(out, generator.length()));
     }
 
@@ -160,7 +160,7 @@ public class ProtobufGeneratorTest
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(sink);
         pipeline.reset();
 
-        assertEquals(ProtobufPipeline.Status.COMPLETED, pipeline.feed(out, 0, generator.length()));
+        assertEquals(ProtobufPipeline.Status.COMPLETED, pipeline.transform(out, 0, generator.length()));
         assertEquals(List.of("{", "F10", "{", "F1", "V9", "}", "}"), sink.events);
     }
 
@@ -219,7 +219,7 @@ public class ProtobufGeneratorTest
         private int depth;
 
         @Override
-        public ProtobufPipeline.Status feed(
+        public ProtobufPipeline.Status transform(
             ProtobufController control,
             ProtobufSource source,
             ProtobufEvent event)
@@ -305,7 +305,7 @@ public class ProtobufGeneratorTest
         }
 
         @Override
-        public ProtobufPipeline.Status feed(
+        public ProtobufPipeline.Status transform(
             ProtobufController control,
             ProtobufSource source,
             ProtobufEvent event)

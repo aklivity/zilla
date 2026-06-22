@@ -18,7 +18,11 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -26,13 +30,18 @@ import static org.junit.Assert.assertSame;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.MutableInteger;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
@@ -40,14 +49,23 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedValueFW;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class KafkaCachePartitionTest
 {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
+
+    private final MutableDirectBuffer scratch = new UnsafeBufferEx(new byte[8192]);
+    private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
+    private final KafkaCachePaddedValueFW paddedValueRO = new KafkaCachePaddedValueFW();
 
     @Test
     public void shouldSeekNotAfterNotFound() throws Exception
@@ -189,6 +207,236 @@ public class KafkaCachePartitionTest
         assertEquals("[cache] test[0]", partition.toString());
     }
 
+    @Test
+    public void shouldTransformValueWithDecodeModel() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaKeyFW key = key(buffer, "abc");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        OctetsFW value = value(buffer, headers.limit(), "hello");
+
+        KafkaCacheModel transformValue = KafkaCacheModel.decoder(handler(5), scratch);
+
+        partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, transformValue, false, null);
+
+        KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
+        assertNotEquals(-1, entry.convertedPosition());
+
+        KafkaCachePaddedValueFW transformed = head.segment().convertedFile()
+            .readBytes(entry.convertedPosition(), paddedValueRO::wrap);
+        assertEquals(5, transformed.length());
+        assertArrayEquals("hello".getBytes(UTF_8), bytes(transformed.value()));
+    }
+
+    @Test
+    public void shouldAbortEntryWhenValueRejected() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaKeyFW key = key(buffer, "abc");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        OctetsFW value = value(buffer, headers.limit(), "hello");
+
+        KafkaCacheModel transformValue = KafkaCacheModel.decoder(handler(99), scratch);
+
+        partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, transformValue, false, null);
+
+        int flags = head.segment().logFile().readInt(entryMark.value + KafkaCacheEntryFW.FIELD_OFFSET_FLAGS);
+        assertEquals(KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED,
+            flags & KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED);
+    }
+
+    @Test
+    public void shouldExtractKeyAndHeader() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaKeyFW key = key(buffer, "key1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        OctetsFW value = value(buffer, headers.limit(), "regionEast");
+
+        KafkaTopicTransformsType transforms = new KafkaTopicTransformsType("$.key",
+            singletonList(new KafkaTopicHeaderType("region", "$.region")));
+
+        KafkaExtractor keyExtractor = new KafkaExtractor();
+        KafkaCacheModel transformKey =
+            new KafkaCacheModel(new ExtractingPipeline(keyExtractor, "$.key"), keyExtractor, scratch);
+        KafkaExtractor valueExtractor = new KafkaExtractor();
+        KafkaCacheModel transformValue =
+            new KafkaCacheModel(new ExtractingPipeline(valueExtractor, "$.region"), valueExtractor, scratch);
+
+        partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            key, headers, value, 0x00, KafkaDeltaType.NONE, transformKey, transformValue, false, transforms);
+
+        KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
+
+        KafkaCachePaddedKeyFW paddedKey = entry.paddedKey();
+        assertArrayEquals("key1".getBytes(UTF_8), bytes(paddedKey.key().value()));
+
+        MutableInteger trailerCount = new MutableInteger(0);
+        entry.trailers().forEach(trailer ->
+        {
+            trailerCount.value++;
+            assertArrayEquals("region".getBytes(UTF_8), bytes(trailer.name()));
+            assertArrayEquals("regionEast".getBytes(UTF_8), bytes(trailer.value()));
+        });
+        assertEquals(1, trailerCount.value);
+    }
+
+    @Test
+    public void shouldIsolateInterleavedStreams() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaTopicTransformsType transforms = new KafkaTopicTransformsType(null,
+            singletonList(new KafkaTopicHeaderType("region", "$.region")));
+
+        KafkaExtractor extractorA = new KafkaExtractor();
+        KafkaCacheModel modelA =
+            new KafkaCacheModel(new ExtractingPipeline(extractorA, "$.region"), extractorA, scratch);
+        KafkaExtractor extractorB = new KafkaExtractor();
+        KafkaCacheModel modelB =
+            new KafkaCacheModel(new ExtractingPipeline(extractorB, "$.region"), extractorB, scratch);
+
+        assertEquals("AAA", writeAndReadTrailer(partition, head, entryMark, valueMark, buffer, 11L, "AAA", modelA, transforms));
+        assertEquals("BBBB", writeAndReadTrailer(partition, head, entryMark, valueMark, buffer, 12L, "BBBB", modelB, transforms));
+        assertEquals("CC", writeAndReadTrailer(partition, head, entryMark, valueMark, buffer, 13L, "CC", modelA, transforms));
+    }
+
+    private String writeAndReadTrailer(
+        KafkaCachePartition partition,
+        Node head,
+        MutableInteger entryMark,
+        MutableInteger valueMark,
+        MutableDirectBuffer buffer,
+        long offset,
+        String valueText,
+        KafkaCacheModel transformValue,
+        KafkaTopicTransformsType transforms)
+    {
+        KafkaKeyFW key = key(buffer, "k");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        OctetsFW value = value(buffer, headers.limit(), valueText);
+
+        partition.writeEntry(null, 1L, 1L, offset, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, transformValue, false, transforms);
+
+        KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
+        StringBuilder trailer = new StringBuilder();
+        entry.trailers().forEach(t -> trailer.append(t.value().buffer().getStringWithoutLengthUtf8(t.value().offset(),
+            t.value().sizeof())));
+        return trailer.toString();
+    }
+
+    private KafkaCachePartition newPartition() throws Exception
+    {
+        Path location = tempFolder.newFolder().toPath();
+        KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        return new KafkaCachePartition(location, config, "cache", "test", 0, 65536, long[]::new);
+    }
+
+    private static TestModelHandler handler(
+        int length)
+    {
+        return new TestModelHandler(new TestModelConfig(length, emptyList(), true));
+    }
+
+    private static KafkaKeyFW key(
+        MutableDirectBuffer buffer,
+        String text)
+    {
+        byte[] bytes = text.getBytes(UTF_8);
+        return new KafkaKeyFW.Builder().wrap(buffer, 0, buffer.capacity())
+            .length(bytes.length)
+            .value(k -> k.set(bytes))
+            .build();
+    }
+
+    private static Array32FW<KafkaHeaderFW> noHeaders(
+        MutableDirectBuffer buffer,
+        int offset)
+    {
+        return new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+            .wrap(buffer, offset, buffer.capacity())
+            .build();
+    }
+
+    private static OctetsFW value(
+        MutableDirectBuffer buffer,
+        int offset,
+        String text)
+    {
+        return new OctetsFW.Builder()
+            .wrap(buffer, offset, buffer.capacity())
+            .set(text.getBytes(UTF_8))
+            .build();
+    }
+
+    private static byte[] bytes(
+        OctetsFW octets)
+    {
+        byte[] result = new byte[octets.sizeof()];
+        octets.buffer().getBytes(octets.offset(), result);
+        return result;
+    }
+
+    private static final class ExtractingPipeline implements ModelPipeline
+    {
+        private final ModelVisitor visitor;
+        private final String path;
+        private final ModelPipelineResult result = new ModelPipelineResult();
+
+        private ExtractingPipeline(
+            ModelVisitor visitor,
+            String path)
+        {
+            this.visitor = visitor;
+            this.path = path;
+        }
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            int flags,
+            DirectBuffer src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBuffer dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            int srcLength = srcLimit - srcIndex;
+            dst.putBytes(dstIndex, src, srcIndex, srcLength);
+            visitor.onField(path, src, srcIndex, srcLength);
+            return result.set(ModelStatus.COMPLETE, srcLength, srcLength);
+        }
+
+        @Override
+        public void reset()
+        {
+        }
+    }
+
     public static class NodeTest
     {
         @Rule
@@ -202,7 +450,7 @@ public class KafkaCachePartitionTest
             KafkaCacheTopicConfig topic = new KafkaCacheTopicConfig(config);
 
             int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
-            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(slotCapacity * 2));
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(slotCapacity * 2));
             MutableInteger entryMark = new MutableInteger(0);
             MutableInteger valueMark = new MutableInteger(0);
             MutableInteger valueLimit = new MutableInteger(0);
@@ -230,15 +478,15 @@ public class KafkaCachePartitionTest
             KafkaCacheSegment head10s = head10.segment();
 
             partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
-                key, headers, value, 0x00, KafkaDeltaType.NONE, ConverterHandler.NONE,
-                ConverterHandler.NONE, false, null);
+                key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE,
+                KafkaCacheModel.NONE, false, null);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
             partition.writeEntry(null, 1L, 1L, 12L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
-                key, headers, value, 0x00, KafkaDeltaType.NONE, ConverterHandler.NONE,
-                ConverterHandler.NONE, false, null);
+                key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE,
+                KafkaCacheModel.NONE, false, null);
 
             Node head15 = partition.append(15L);
             KafkaCacheSegment head15s = head15.segment();
@@ -264,7 +512,7 @@ public class KafkaCachePartitionTest
             Path location = tempFolder.newFolder().toPath();
             KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
 
-            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(1024));
+            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(1024));
             MutableInteger entryMark = new MutableInteger(0);
             MutableInteger valueMark = new MutableInteger(0);
             MutableInteger valueLimit = new MutableInteger(0);
@@ -288,15 +536,15 @@ public class KafkaCachePartitionTest
             Node head10 = partition.append(10L);
 
             partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
-                key, headers, value, 0x00, KafkaDeltaType.NONE, ConverterHandler.NONE,
-                ConverterHandler.NONE, false, null);
+                key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE,
+                KafkaCacheModel.NONE, false, null);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
             partition.writeEntry(null, 1L, 1L, 12L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
-                key, headers, value, 0x00, KafkaDeltaType.NONE, ConverterHandler.NONE,
-                ConverterHandler.NONE, false, null);
+                key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE,
+                KafkaCacheModel.NONE, false, null);
 
             Node head15 = partition.append(15L);
             Node tail10 = head15.previous();

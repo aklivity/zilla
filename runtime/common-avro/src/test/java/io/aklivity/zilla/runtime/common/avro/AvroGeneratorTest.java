@@ -38,15 +38,15 @@ public class AvroGeneratorTest
     public void shouldRejectMismatchedScalarEvent()
     {
         AvroSink sink = sink("\"int\"");
-        assertThrows(AvroValidationException.class, () -> sink.feed(NO_CONTROL, zero, AvroEvent.BOOLEAN));
+        assertThrows(AvroValidationException.class, () -> sink.transform(NO_CONTROL, zero, AvroEvent.BOOLEAN));
     }
 
     @Test
     public void shouldRejectEventAfterValueComplete()
     {
         AvroSink sink = sink("\"int\"");
-        sink.feed(NO_CONTROL, zero, AvroEvent.INT);
-        assertThrows(AvroValidationException.class, () -> sink.feed(NO_CONTROL, zero, AvroEvent.INT));
+        sink.transform(NO_CONTROL, zero, AvroEvent.INT);
+        assertThrows(AvroValidationException.class, () -> sink.transform(NO_CONTROL, zero, AvroEvent.INT));
     }
 
     @Test
@@ -54,7 +54,7 @@ public class AvroGeneratorTest
     {
         AvroSink sink = sink(
             "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"}]}");
-        assertThrows(AvroValidationException.class, () -> sink.feed(NO_CONTROL, zero, AvroEvent.INT));
+        assertThrows(AvroValidationException.class, () -> sink.transform(NO_CONTROL, zero, AvroEvent.INT));
     }
 
     @Test
@@ -63,7 +63,7 @@ public class AvroGeneratorTest
         AvroSink sink = sink("\"bytes\"");
         AvroSource bytes = new ZeroSource(new byte[] { 0x01, 0x02, 0x03 });
         // writeValue streams the segment and reports control.consumed(...) — here the no-op default
-        assertEquals(AvroPipeline.Status.COMPLETED, sink.feed(NO_CONTROL, bytes, AvroEvent.BYTES));
+        assertEquals(AvroPipeline.Status.COMPLETED, sink.transform(NO_CONTROL, bytes, AvroEvent.BYTES));
     }
 
     private static final class ZeroSource implements AvroSource

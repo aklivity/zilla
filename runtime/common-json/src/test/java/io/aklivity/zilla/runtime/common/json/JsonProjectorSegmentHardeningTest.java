@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.List;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonProjectorSegmentHardeningTest
 {
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
 
     @Test
     void shouldSegmentDeeplyNestedKeptSubtreeAsSingleVerbatimValue()
@@ -67,7 +67,7 @@ class JsonProjectorSegmentHardeningTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");
 
@@ -89,6 +89,6 @@ class JsonProjectorSegmentHardeningTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
     }
 }

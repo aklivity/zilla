@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +36,7 @@ class JsonSourceContractTest
             {
                 assertThrows(AssertionError.class, source::getSegment);
             }
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
         run(probe, "[42]", JsonSink.Delivery.STRUCTURED);
     }
@@ -53,7 +53,7 @@ class JsonSourceContractTest
                 assertThrows(AssertionError.class, source::getStringView);
                 assertThrows(AssertionError.class, source::getInt);
             }
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
         // the sink opts into segment delivery, so the whole document arrives as SEGMENT events
         run(probe, "{\"a\":1}", JsonSink.Delivery.SEGMENTABLE);
@@ -65,7 +65,7 @@ class JsonSourceContractTest
         JsonSink.Delivery delivery)
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer output = new UnsafeBufferEx(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
             .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, delivery)));
@@ -73,6 +73,6 @@ class JsonSourceContractTest
         pipeline.reset();
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
-        pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length);
+        pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
     }
 }

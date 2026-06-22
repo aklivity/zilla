@@ -18,6 +18,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 
 public class BooleanModelContext implements ModelContext
@@ -51,9 +52,22 @@ public class BooleanModelContext implements ModelContext
         return new BooleanValidatorHandler(context);
     }
 
+    @Override
+    public ModelHandler supplyHandler(
+        ModelConfig config)
+    {
+        return supplyCoreHandler(config);
+    }
+
     private BooleanConverterHandler supply(
         ModelConfig config)
     {
         return new BooleanConverterHandler(context);
+    }
+
+    private CoreModelHandler supplyCoreHandler(
+        ModelConfig config)
+    {
+        return new CoreModelHandler(context, BooleanModel.NAME, BooleanModelValidator::new);
     }
 }

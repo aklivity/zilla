@@ -52,7 +52,10 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
 import org.agrona.BitUtil;
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBinding;
@@ -74,9 +77,6 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetF
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.filesystem.model.FileSystemObject;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
@@ -130,21 +130,12 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private final Long2ObjectHashMap<FileSystemBindingConfig> bindings;
     private final BufferPool bufferPool;
-<<<<<<< HEAD
-    private final MutableDirectBufferEx writeBuffer;
-    private final MutableDirectBufferEx extBuffer;
-    private final MutableDirectBufferEx errorBuffer;
-    private final MutableDirectBufferEx readBuffer;
-    private final MutableDirectBufferEx directoryBuffer;
-    private final LongFunction<BudgetDebitor> supplyDebitor;
-=======
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer errorBuffer;
     private final MutableDirectBuffer readBuffer;
     private final MutableDirectBuffer directoryBuffer;
     private final EngineContext context;
->>>>>>> origin/develop
     private final LongUnaryOperator supplyReplyId;
     private final int fileSystemTypeId;
     private final URI serverRoot;
@@ -164,19 +155,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.bufferPool = context.bufferPool();
         this.serverRoot = config.serverRoot();
         this.writeBuffer = context.writeBuffer();
-<<<<<<< HEAD
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.readBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.errorBuffer = new UnsafeBufferEx(new byte[1]);
-        this.directoryBuffer = new UnsafeBufferEx();
-        this.supplyDebitor = context::supplyDebitor;
-=======
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.readBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.errorBuffer = new UnsafeBufferEx(new byte[1]);
         this.directoryBuffer = new UnsafeBufferEx();
         this.context = context;
->>>>>>> origin/develop
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
@@ -205,7 +188,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length,
         MessageConsumer app)
@@ -369,7 +352,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBufferEx buffer,
+            DirectBuffer buffer,
             int index,
             int length)
         {
@@ -882,7 +865,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBufferEx buffer,
+            DirectBuffer buffer,
             int index,
             int length)
         {

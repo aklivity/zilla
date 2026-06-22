@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -323,14 +323,14 @@ public class ProtobufJsonTest
         String messageName,
         byte[] wire)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
 
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBufferEx(wire), 0, wire.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(wire), 0, wire.length));
         generator.flush();
 
         byte[] bytes = new byte[generator.length()];
@@ -342,14 +342,14 @@ public class ProtobufJsonTest
         String messageName,
         String json)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
 
         byte[] in = json.getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBufferEx(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(in), 0, in.length));
 
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);
@@ -361,7 +361,7 @@ public class ProtobufJsonTest
         String json,
         int window)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
@@ -378,7 +378,7 @@ public class ProtobufJsonTest
             int take = Math.min(window, length - limit);
             limit += take;
             boolean last = limit >= length;
-            status = pipeline.feed(in, progress, limit, last);
+            status = pipeline.transform(in, progress, limit, last);
             if (status == Status.STARVED)
             {
                 progress = limit - pipeline.remaining();
@@ -404,7 +404,7 @@ public class ProtobufJsonTest
         generator.wrap(out, 0, out.capacity());
         pipeline.reset();
         byte[] in = json.getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBufferEx(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(in), 0, in.length));
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);
         return bytes;
@@ -414,13 +414,13 @@ public class ProtobufJsonTest
         String messageName,
         String json)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
         byte[] in = json.getBytes(UTF_8);
-        return pipeline.feed(new UnsafeBufferEx(in), 0, in.length);
+        return pipeline.transform(new UnsafeBufferEx(in), 0, in.length);
     }
 
     private byte[] nestedWire()
@@ -439,7 +439,7 @@ public class ProtobufJsonTest
     private static byte[] wire(
         Consumer<ProtobufGenerator> body)
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(buffer, 0, buffer.capacity());
         body.accept(generator);
         byte[] bytes = new byte[generator.length()];

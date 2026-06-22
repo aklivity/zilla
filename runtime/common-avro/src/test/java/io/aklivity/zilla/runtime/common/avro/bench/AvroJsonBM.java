@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -86,7 +86,7 @@ public class AvroJsonBM
         {"name":"items","type":{"type":"array","items":{"type":"record","name":"Item","fields":[
         {"name":"key","type":"string"},{"name":"value","type":"long"}]}}}]}""";
 
-    private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
+    private final MutableDirectBuffer outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
 
     private AvroGenerator flatJsonGenerator;
     private AvroGenerator nestedJsonGenerator;
@@ -170,7 +170,7 @@ public class AvroJsonBM
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
-        pipeline.feed(buffer, 0, length);
+        pipeline.transform(buffer, 0, length);
         return generator.length();
     }
 
@@ -178,12 +178,12 @@ public class AvroJsonBM
         AvroSchema schema,
         byte[] avro)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[16 * 1024]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[16 * 1024]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json).wrap(out, 0, out.capacity());
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBufferEx(avro), 0, avro.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(avro), 0, avro.length);
         if (status != Status.COMPLETED)
         {
             throw new IllegalStateException("avro -> json did not complete: " + status);

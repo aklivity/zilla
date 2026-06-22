@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
 public class KafkaTopicType
 {
@@ -35,10 +35,8 @@ public class KafkaTopicType
 
     public static final KafkaTopicType DEFAULT_TOPIC_TYPE = new KafkaTopicType();
 
-    public final ConverterHandler keyReader;
-    public final ConverterHandler keyWriter;
-    public final ConverterHandler valueReader;
-    public final ConverterHandler valueWriter;
+    public final ModelHandler keyModel;
+    public final ModelHandler valueModel;
     public final KafkaTopicTransformsType transforms;
 
     private final Matcher topicMatch;
@@ -47,10 +45,8 @@ public class KafkaTopicType
     private KafkaTopicType()
     {
         this.topicMatch = null;
-        this.keyReader = ConverterHandler.NONE;
-        this.keyWriter = ConverterHandler.NONE;
-        this.valueReader = ConverterHandler.NONE;
-        this.valueWriter = ConverterHandler.NONE;
+        this.keyModel = null;
+        this.valueModel = null;
         this.transforms = null;
         this.matcher = TRANSFORM_PATH_PATTERN.matcher("");
     }
@@ -62,22 +58,8 @@ public class KafkaTopicType
         this.matcher = TRANSFORM_PATH_PATTERN.matcher("");
         this.topicMatch = topicConfig.name != null ? asMatcher(topicConfig.name) : null;
         this.transforms = topicConfig.transforms != null ? transforms(topicConfig.transforms) : null;
-        this.keyReader = Optional.ofNullable(topicConfig.key)
-            .map(context::supplyReadConverter)
-            .map(this::key)
-            .map(this::headers)
-            .orElse(ConverterHandler.NONE);
-        this.keyWriter = Optional.ofNullable(topicConfig.key)
-            .map(context::supplyWriteConverter)
-            .orElse(ConverterHandler.NONE);
-        this.valueReader = Optional.ofNullable(topicConfig.value)
-            .map(context::supplyReadConverter)
-            .map(this::key)
-            .map(this::headers)
-            .orElse(ConverterHandler.NONE);
-        this.valueWriter = Optional.ofNullable(topicConfig.value)
-            .map(context::supplyWriteConverter)
-            .orElse(ConverterHandler.NONE);
+        this.keyModel = topicConfig.key != null ? key(context.supplyModel(topicConfig.key)) : null;
+        this.valueModel = topicConfig.value != null ? headers(context.supplyModel(topicConfig.value)) : null;
     }
 
     public boolean matches(
@@ -86,20 +68,20 @@ public class KafkaTopicType
         return this.topicMatch == null || this.topicMatch.reset(topic).matches();
     }
 
-    private ConverterHandler key(
-        ConverterHandler handler)
+    private ModelHandler key(
+        ModelHandler handler)
     {
-        if (transforms != null && transforms.extractKey != null)
+        if (handler != null && transforms != null && transforms.extractKey != null)
         {
             handler.extract(transforms.extractKey);
         }
         return handler;
     }
 
-    private ConverterHandler headers(
-        ConverterHandler handler)
+    private ModelHandler headers(
+        ModelHandler handler)
     {
-        if (transforms != null && transforms.extractHeaders != null)
+        if (handler != null && transforms != null && transforms.extractHeaders != null)
         {
             for (KafkaTopicHeaderType header : transforms.extractHeaders)
             {

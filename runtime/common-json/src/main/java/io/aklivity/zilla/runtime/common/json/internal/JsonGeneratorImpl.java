@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.function.IntConsumer;
 
@@ -24,11 +25,14 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
+import io.aklivity.zilla.runtime.common.json.JsonStep;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
@@ -44,13 +48,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
     private static final int MAX_DEPTH = 64;
     private static final byte[] HEX = "0123456789abcdef".getBytes();
+    // a defensible initial target so a freshly constructed generator never NPEs on direct use before wrap
+    private static final MutableDirectBuffer EMPTY = new UnsafeBufferEx(new byte[0]);
 
     private final boolean[] inArray = new boolean[MAX_DEPTH];
     private final boolean[] hasMembers = new boolean[MAX_DEPTH];
     private final IntConsumer putByte;
     private final SegmentWriter writeSegment;
 
-    private MutableDirectBufferEx buffer;
+    private MutableDirectBuffer buffer = EMPTY;
     private int offset;
     private int progress;
     private int limit;
@@ -75,7 +81,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl wrap(
-        MutableDirectBufferEx buffer,
+        MutableDirectBuffer buffer,
         int offset,
         int limit)
     {
@@ -166,6 +172,37 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         writeString(name);
         putByte.accept(':');
         pending = Pending.AFTER_KEY;
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeKey(
+        CharSequence name,
+        Completion completion)
+    {
+        if (pending != Pending.KEY)
+        {
+            if (hasMembers[depth - 1])
+            {
+                putByte.accept(',');
+            }
+            hasMembers[depth - 1] = true;
+            putByte.accept('"');
+            pending = Pending.KEY;
+        }
+        // emit only the code points whose escaped form fits the output bound, reserving room on the final
+        // fragment for the closing quote and key separator; report the source chars taken via consumed() so a
+        // chunking driver advances its cursor and resumes from the remainder, the key-domain analog of
+        // write(CharSequence, Completion)
+        final int reserve = completion == Completion.COMPLETE ? 2 : 0;
+        final int written = writeStringBody(name, reserve);
+        consumed += written;
+        if (written == name.length() && completion == Completion.COMPLETE)
+        {
+            putByte.accept('"');
+            putByte.accept(':');
+            pending = Pending.AFTER_KEY;
+        }
         return this;
     }
 
@@ -440,7 +477,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeRaw(
-        DirectBufferEx source,
+        DirectBuffer source,
         int index,
         int length)
     {
@@ -452,7 +489,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeSegment(
-        DirectBufferEx source,
+        DirectBuffer source,
         int index,
         int length)
     {
@@ -462,7 +499,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeSegment(
-        DirectBufferEx source,
+        DirectBuffer source,
         int index,
         int length,
         Completion completion)
@@ -479,6 +516,112 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             pending = Pending.NONE;
         }
         return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeVerbatim(
+        JsonVerbatim verbatim)
+    {
+        final Iterator<JsonStep> steps = verbatim.getSteps();
+        final DirectBuffer segment = verbatim.getSegment();
+        // synthesize the leading separator only when the block begins a member/element that was first in the
+        // source (its leading step is a member/element start rather than a SEPARATOR, so its bytes carry no
+        // leading comma) yet the container already holds a member in the output — an injected value took the
+        // first slot, displacing this former-first member. A leading SEPARATOR means the comma is in the bytes;
+        // interior separators of a coalesced block likewise ride in the bytes. Source occupancy, not the bytes.
+        final JsonStep first = steps.hasNext() ? steps.next() : null;
+        if (first != null && needsSeparator(first))
+        {
+            putByte.accept(',');
+        }
+        copy(segment, 0, segment.capacity());
+        // apply every step's structural effect (open/close depth, member occupancy) so the generator's state
+        // stays coherent for an injected value that follows — state only, the bytes carried the structure
+        if (first != null)
+        {
+            advance(first);
+            while (steps.hasNext())
+            {
+                advance(steps.next());
+            }
+        }
+        return this;
+    }
+
+    // Copies the verbatim block 1:1; the caller pre-bounds the pull to remaining(), so the bytes always fit.
+    private void copy(
+        DirectBuffer source,
+        int index,
+        int length)
+    {
+        assert progress + length <= limit;
+        buffer.putBytes(progress, source, index, length);
+        progress += length;
+    }
+
+    // Whether the block begins a member (object key) or array element that was first in the source (so carries
+    // no leading separator) into a container that already holds a member in the output — so one is synthesized.
+    private boolean needsSeparator(
+        JsonStep step)
+    {
+        boolean result = false;
+        if (step != JsonStep.SEPARATOR && depth > 0 && hasMembers[depth - 1])
+        {
+            result = inArray[depth - 1] ? isValueStart(step) : step == JsonStep.KEY_NAME;
+        }
+        return result;
+    }
+
+    // Tracks the structural effect of a verbatim block without emitting (the bytes carried the structure): the
+    // state-only analog of preValue()/writeKey()/push()/writeEnd(). A SEPARATOR rides in the bytes and moves no
+    // state.
+    private void advance(
+        JsonStep step)
+    {
+        switch (step)
+        {
+        case START_OBJECT:
+            markValueStart();
+            push(false);
+            break;
+        case START_ARRAY:
+            markValueStart();
+            push(true);
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            depth--;
+            break;
+        case KEY_NAME:
+            hasMembers[depth - 1] = true;
+            pending = Pending.AFTER_KEY;
+            break;
+        case VALUE:
+            markValueStart();
+            break;
+        default:
+            break;
+        }
+    }
+
+    // The state-only effect of preValue() for a verbatim value: clear an after-key expectation, or mark the
+    // current array occupied; no separator is emitted (the bytes carry it, or needsSeparator synthesized it).
+    private void markValueStart()
+    {
+        if (pending == Pending.AFTER_KEY)
+        {
+            pending = Pending.NONE;
+        }
+        else if (depth > 0 && inArray[depth - 1])
+        {
+            hasMembers[depth - 1] = true;
+        }
+    }
+
+    private static boolean isValueStart(
+        JsonStep step)
+    {
+        return step == JsonStep.START_OBJECT || step == JsonStep.START_ARRAY || step == JsonStep.VALUE;
     }
 
     @Override
@@ -717,7 +860,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Copies whole source units (UTF-8 char or JSON escape sequence), stopping before one that overflows
     // the output bound, so consumed() always advances on a unit boundary.
     private int writeRawSegment(
-        DirectBufferEx source,
+        DirectBuffer source,
         int index,
         int length)
     {
@@ -740,7 +883,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Escapes whole source units (see writeRawSegment), stopping before a unit whose escaped width
     // would overflow the output bound.
     private int writeEscapedSegment(
-        DirectBufferEx source,
+        DirectBuffer source,
         int index,
         int length)
     {
@@ -765,7 +908,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Byte length of the next source unit: a backslash escape (2 or 6 bytes) or a UTF-8 char (1-4 bytes),
     // capped at length so a unit not wholly available is held back rather than split.
     private static int unitLength(
-        DirectBufferEx source,
+        DirectBuffer source,
         int index,
         int length)
     {
@@ -801,7 +944,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     // Output byte width of a source unit once escaped: the sum of each byte's escaped width.
     private static int escapedUnitWidth(
-        DirectBufferEx source,
+        DirectBuffer source,
         int index,
         int unit)
     {
@@ -899,7 +1042,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private interface SegmentWriter
     {
         int accept(
-            DirectBufferEx source,
+            DirectBuffer source,
             int index,
             int length);
     }
@@ -908,6 +1051,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         NONE,
         AFTER_KEY,
+        KEY,
         STRING,
         NUMBER,
         SEGMENT

@@ -43,7 +43,7 @@ public class AvroMalformedTest
         pipeline.reset();
 
         byte[] overlong = { (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x01 };
-        assertEquals(REJECTED, pipeline.feed(new UnsafeBufferEx(overlong), 0, overlong.length));
+        assertEquals(REJECTED, pipeline.transform(new UnsafeBufferEx(overlong), 0, overlong.length));
         assertNotNull(reason[0]);
     }
 
@@ -59,7 +59,7 @@ public class AvroMalformedTest
         pipeline.reset();
 
         byte[] spades = { 0x00 };
-        assertEquals(COMPLETED, pipeline.feed(new UnsafeBufferEx(spades), 0, spades.length));
+        assertEquals(COMPLETED, pipeline.transform(new UnsafeBufferEx(spades), 0, spades.length));
         assertNull(reason[0]);
     }
 

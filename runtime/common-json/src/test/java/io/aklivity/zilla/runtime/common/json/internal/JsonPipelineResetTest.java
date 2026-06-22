@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -36,18 +36,18 @@ class JsonPipelineResetTest
     void shouldClearGeneratorContextOnResetForReuse()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonEx.createSink(generator));
 
         generator.wrap(buffer, 0, buffer.capacity());
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBufferEx("[1,".getBytes(UTF_8)), 0, 3, false));
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBufferEx("[1,".getBytes(UTF_8)), 0, 3, false));
 
         pipeline.reset();
         generator.wrap(buffer, 0, buffer.capacity());
         byte[] bytes = "{\"b\":2} ".getBytes(UTF_8);
-        Status status = pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];

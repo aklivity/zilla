@@ -34,14 +34,43 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 final class JsonExtractor implements JsonTransform
 {
     private final List<Field> fields;
+    private final JsonController mediator;
 
+    private JsonController upstreamControl;
+    private boolean downstreamVerbatim;
     private int depth;
     private int armed;
 
     JsonExtractor()
     {
         this.fields = new ArrayList<>();
+        this.mediator = new Mediator();
         this.armed = -1;
+    }
+
+    // Extraction reads the decoded structured events, so this stage must keep receiving them: it intercepts the
+    // downstream's byte-delivery opt-ins (segmentable, verbatim) rather than letting them reach the upstream
+    // validator (which would substitute opaque segments or coalesced VERBATIM runs for the structure), and
+    // re-asserts verbatim toward its own downstream so the terminal sink still reproduces the original bytes.
+    private final class Mediator implements JsonController
+    {
+        @Override
+        public void segmentable()
+        {
+        }
+
+        @Override
+        public void verbatim()
+        {
+            downstreamVerbatim = true;
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            upstreamControl.consumed(sourceBytes);
+        }
     }
 
     void register(
@@ -68,17 +97,41 @@ final class JsonExtractor implements JsonTransform
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event,
         JsonSink sink)
     {
+        upstreamControl = control;
         if (!fields.isEmpty())
         {
+            // observe the structured event (the upstream keeps delivering it because this stage intercepts the
+            // byte-delivery opt-ins) before re-asserting verbatim toward the sink
             observe(source, event);
         }
-        return sink.feed(control, source, event);
+        return sink.transform(mediator, source, forward(event));
+    }
+
+    @Override
+    public Status resume(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        upstreamControl = control;
+        return sink.resume(mediator, source, forward(event));
+    }
+
+    @Override
+    public Status flush(
+        JsonController control,
+        JsonSource source,
+        JsonSink sink)
+    {
+        upstreamControl = control;
+        return sink.flush(mediator, source);
     }
 
     @Override
@@ -86,10 +139,21 @@ final class JsonExtractor implements JsonTransform
     {
         depth = 0;
         armed = -1;
+        downstreamVerbatim = false;
         for (int i = 0; i < fields.size(); i++)
         {
             fields.get(i).length = 0;
         }
+    }
+
+    // Re-asserts verbatim downstream: once the sink has opted in, a body event (scalar, key, or structural —
+    // not document framing or a segment) is forwarded as a VERBATIM event so the sink copies the original
+    // bytes; the structured event was already observed above for extraction.
+    private JsonEvent forward(
+        JsonEvent event)
+    {
+        boolean body = event != JsonEvent.START_DOCUMENT && event != JsonEvent.END_DOCUMENT && !event.segmented();
+        return downstreamVerbatim && body ? JsonEvent.VERBATIM : event;
     }
 
     private void observe(

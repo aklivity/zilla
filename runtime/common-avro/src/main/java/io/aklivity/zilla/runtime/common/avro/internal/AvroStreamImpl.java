@@ -19,6 +19,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
@@ -62,12 +63,26 @@ public final class AvroStreamImpl implements AvroStream
     public AvroPipeline into(
         AvroSink sink)
     {
+        return new AvroPipelineImpl(driver, bind(sink), reporter, null);
+    }
+
+    @Override
+    public AvroPipeline into(
+        AvroGenerator generator)
+    {
+        // the pipeline owns the generator and re-targets it at the caller's destination per transform call
+        return new AvroPipelineImpl(driver, bind(new AvroSinkImpl(generator)), reporter, generator);
+    }
+
+    private AvroSink bind(
+        AvroSink sink)
+    {
         AvroSink head = sink;
         for (int i = transforms.size() - 1; i >= 0; i--)
         {
             head = new BoundSink(transforms.get(i), head);
         }
-        return new AvroPipelineImpl(driver, head, reporter);
+        return head;
     }
 
     private static final class BoundSink implements AvroSink
@@ -84,12 +99,12 @@ public final class AvroStreamImpl implements AvroStream
         }
 
         @Override
-        public Status feed(
+        public Status transform(
             AvroController control,
             AvroSource source,
             AvroEvent event)
         {
-            return transform.feed(control, source, event, downstream);
+            return transform.transform(control, source, event, downstream);
         }
 
         @Override

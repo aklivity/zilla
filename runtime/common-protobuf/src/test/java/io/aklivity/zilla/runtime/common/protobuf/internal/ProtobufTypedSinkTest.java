@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -158,13 +158,13 @@ public class ProtobufTypedSinkTest
         String writeMessage,
         byte[] message)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, readMessage))
             .into(ProtobufSink.of(generator, schema, writeMessage));
         pipeline.reset();
 
-        Status status = pipeline.feed(new UnsafeBufferEx(message), 0, message.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(message), 0, message.length);
         assertEquals(Status.COMPLETED, status);
 
         byte[] result = new byte[generator.length()];

@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
 import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_INIT;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -23,12 +25,13 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -62,6 +65,10 @@ public class JsonValidatorTest
             "\"items\": " +
             OBJECT_SCHEMA +
             "}";
+
+    // a 4-byte schema-id framing prefix; the test catalog strips it by length via decode and resolves the
+    // schema via catalog.id, modeling how a real catalog embeds the schema id on the wire
+    private static final String ENCODED_PREFIX = "sid9";
 
     private EngineContext context;
 
@@ -99,7 +106,7 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -142,7 +149,7 @@ public class JsonValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -183,7 +190,7 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -227,7 +234,7 @@ public class JsonValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -269,7 +276,7 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
                 "[" +
@@ -285,6 +292,102 @@ public class JsonValidatorTest
     }
 
     @Test
+    public void shouldVerifyValidJsonObjectFragmentedPerByte()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        byte[] bytes =
+                ("{" +
+                    "\"id\": \"123\"," +
+                    "\"status\": \"OK\"" +
+                "}").getBytes();
+        DirectBuffer data = new UnsafeBufferEx(bytes);
+
+        boolean valid = true;
+        for (int i = 0; i < bytes.length; i++)
+        {
+            int flags = 0;
+            if (i == 0)
+            {
+                flags |= FLAGS_INIT;
+            }
+            if (i == bytes.length - 1)
+            {
+                flags |= FLAGS_FIN;
+            }
+            valid = validator.validate(0L, 0L, flags, data, i, 1, ValueConsumer.NOP);
+            assertTrue("fragment " + i + " rejected", valid);
+        }
+    }
+
+    @Test
+    public void shouldVerifyInvalidJsonObjectFragmentedPerByte()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        byte[] bytes =
+                ("{" +
+                    "\"id\": 123," +
+                    "\"status\": \"OK\"" +
+                "}").getBytes();
+        DirectBuffer data = new UnsafeBufferEx(bytes);
+
+        boolean valid = true;
+        for (int i = 0; i < bytes.length; i++)
+        {
+            int flags = 0;
+            if (i == 0)
+            {
+                flags |= FLAGS_INIT;
+            }
+            if (i == bytes.length - 1)
+            {
+                flags |= FLAGS_FIN;
+            }
+            valid = validator.validate(0L, 0L, flags, data, i, 1, ValueConsumer.NOP);
+        }
+
+        assertFalse(valid);
+    }
+
+    @Test
+    public void shouldVerifyValidJsonObjectWithMultibyteFragmented()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        DirectBuffer data = new UnsafeBufferEx();
+
+        String payload =
+                "{" +
+                    "\"id\": \"状態値\"," +
+                    "\"status\": \"OK\"" +
+                "}";
+        byte[] bytes = payload.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        data.wrap(bytes, 0, bytes.length);
+
+        boolean valid = true;
+        int window = 3;
+        for (int offset = 0; offset < bytes.length; offset += window)
+        {
+            int length = Math.min(window, bytes.length - offset);
+            int flags = 0;
+            if (offset == 0)
+            {
+                flags |= FLAGS_INIT;
+            }
+            if (offset + length >= bytes.length)
+            {
+                flags |= FLAGS_FIN;
+            }
+            valid = validator.validate(0L, 0L, flags, data, offset, length, ValueConsumer.NOP);
+        }
+
+        assertTrue(valid);
+    }
+
+    @Test
     public void shouldVerifyValidCompleteJsonObjectWithEncoded()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
@@ -294,6 +397,7 @@ public class JsonValidatorTest
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
                 .schema(OBJECT_SCHEMA)
+                .prefix(ENCODED_PREFIX)
                 .build()
             .build();
 
@@ -318,7 +422,7 @@ public class JsonValidatorTest
 
         int length = encoded.length + event.length;
 
-        ExpandableDirectByteBufferEx data = new ExpandableDirectByteBufferEx(length);
+        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(length);
         data.putBytes(0, encoded, 0, encoded.length);
         data.putBytes(encoded.length, event, 0, event.length);
 
@@ -335,6 +439,51 @@ public class JsonValidatorTest
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
                 .schema(OBJECT_SCHEMA)
+                .prefix(ENCODED_PREFIX)
+                .build()
+            .build();
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("encoded")
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+
+        byte[] encoded = {0x00, 0x00, 0x00, 0x09};
+        byte[] event = """
+            {
+              "id": 123,
+              "status": "OK"
+            }""".getBytes();
+
+        int length = encoded.length + event.length;
+
+        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(length);
+        data.putBytes(0, encoded, 0, encoded.length);
+        data.putBytes(encoded.length, event, 0, event.length);
+
+        assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyValidFragmentedJsonObjectWithEncoded()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .prefix(ENCODED_PREFIX)
                 .build()
             .build();
 
@@ -350,15 +499,174 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        byte[] event = """
-            {
-              "id": "123",
-              "status": "OK"
-            }""".getBytes();
+        byte[] encoded = {0x00, 0x00, 0x00, 0x09};
+        byte[] event = "{\"id\": \"123\",\"status\": \"OK\"}".getBytes();
+        int total = encoded.length + event.length;
 
-        DirectBufferEx data = new UnsafeBufferEx();
-        data.wrap(event, 0, event.length);
+        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(total);
+        data.putBytes(0, encoded, 0, encoded.length);
+        data.putBytes(encoded.length, event, 0, event.length);
 
-        assertFalse(validator.validate(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        int split = encoded.length + 8;
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, split, ValueConsumer.NOP));
+        assertTrue(validator.validate(0L, 0L, FLAGS_FIN, data, split, total - split, ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldVerifyInvalidFragmentedJsonObjectWithEncoded()
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(9)
+                .schema(OBJECT_SCHEMA)
+                .prefix(ENCODED_PREFIX)
+                .build()
+            .build();
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("encoded")
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
+
+        byte[] encoded = {0x00, 0x00, 0x00, 0x09};
+        byte[] event = "{\"id\": 123,\"status\": \"OK\"}".getBytes();
+        int total = encoded.length + event.length;
+
+        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(total);
+        data.putBytes(0, encoded, 0, encoded.length);
+        data.putBytes(encoded.length, event, 0, event.length);
+
+        int split = encoded.length + 7;
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, data, 0, split, ValueConsumer.NOP));
+        assertFalse(validator.validate(0L, 0L, FLAGS_FIN, data, split, total - split, ValueConsumer.NOP));
+    }
+
+    @Test
+    public void shouldForwardValidatedBytesToConsumer()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        Capture capture = new Capture();
+        String payload = "{\"id\":\"123\",\"status\":\"OK\"}";
+        byte[] bytes = payload.getBytes(UTF_8);
+        DirectBuffer data = new UnsafeBufferEx(bytes);
+
+        assertTrue(validator.validate(0L, 0L, data, 0, bytes.length, capture));
+        assertEquals(payload, capture.text());
+    }
+
+    @Test
+    public void shouldForwardValidatedBytesVerbatimPreservingWhitespace()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        Capture capture = new Capture();
+        // insignificant whitespace after ':' and ',' must be preserved byte-for-byte;
+        // a validator does not transform the payload, so the original bytes are forwarded unchanged
+        String payload = "{\"id\": \"123\", \"status\": \"OK\"}";
+        byte[] bytes = payload.getBytes(UTF_8);
+        DirectBuffer data = new UnsafeBufferEx(bytes);
+
+        assertTrue(validator.validate(0L, 0L, data, 0, bytes.length, capture));
+        assertEquals(payload, capture.text());
+    }
+
+    @Test
+    public void shouldForwardValidatedBytesIncrementallyWhenFragmented()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        Capture capture = new Capture();
+        byte[] head = "{\"id\":\"123\",".getBytes(UTF_8);
+        byte[] tail = "\"status\":\"OK\"}".getBytes(UTF_8);
+
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, new UnsafeBufferEx(head), 0, head.length, capture));
+        int forwardedAfterInit = capture.length;
+        assertTrue(validator.validate(0L, 0L, FLAGS_FIN, new UnsafeBufferEx(tail), 0, tail.length, capture));
+
+        assertTrue("expected bytes forwarded before the final fragment", forwardedAfterInit > 0);
+        assertEquals("{\"id\":\"123\",\"status\":\"OK\"}", capture.text());
+    }
+
+    @Test
+    public void shouldForwardEarlierFragmentsThenRejectInvalidLater()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        Capture capture = new Capture();
+        byte[] head = "{\"id\":\"123\",".getBytes(UTF_8);
+        byte[] tail = "\"status\":123}".getBytes(UTF_8);
+
+        assertTrue(validator.validate(0L, 0L, FLAGS_INIT, new UnsafeBufferEx(head), 0, head.length, capture));
+        assertFalse(validator.validate(0L, 0L, FLAGS_FIN, new UnsafeBufferEx(tail), 0, tail.length, capture));
+
+        assertTrue("earlier valid fragment should have been forwarded", capture.length > 0);
+    }
+
+    private JsonValidatorHandler newValidator(
+        String schema)
+    {
+        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .schema(schema)
+                .build()
+            .build();
+
+        JsonModelConfig model = JsonModelConfig.builder()
+            .catalog()
+            .name("test0")
+                .schema()
+                    .strategy("topic")
+                    .subject(null)
+                    .version("latest")
+                    .id(1)
+                    .build()
+                .build()
+            .build();
+
+        when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        return new JsonValidatorHandler(model, context);
+    }
+
+    private static final class Capture implements ValueConsumer
+    {
+        private final MutableDirectBuffer buffer = new ExpandableDirectByteBuffer();
+
+        private int length;
+
+        @Override
+        public void accept(
+            DirectBuffer data,
+            int index,
+            int length)
+        {
+            buffer.putBytes(this.length, data, index, length);
+            this.length += length;
+        }
+
+        private String text()
+        {
+            byte[] bytes = new byte[length];
+            buffer.getBytes(0, bytes);
+            return new String(bytes, UTF_8);
+        }
     }
 }

@@ -28,7 +28,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -226,7 +226,7 @@ public class ProtobufJsonChunkingTest
         byte[] json,
         int window)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[window]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[window]);
         ProtobufGenerator generator = Protobuf.generator();
         generator.wrap(out, 0, window);
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
@@ -237,7 +237,7 @@ public class ProtobufJsonChunkingTest
         UnsafeBufferEx in = new UnsafeBufferEx(json);
         int suspends = 0;
         int guard = 0;
-        Status status = pipeline.feed(in, 0, json.length);
+        Status status = pipeline.transform(in, 0, json.length);
         while (status == Status.SUSPENDED && guard < 1_000_000)
         {
             assertTrue(generator.length() <= window, "chunk exceeded the generator limit");
@@ -245,7 +245,7 @@ public class ProtobufJsonChunkingTest
             generator.wrap(out, 0, window);
             suspends++;
             guard++;
-            status = pipeline.feed(in, 0, json.length);
+            status = pipeline.transform(in, 0, json.length);
         }
         assertEquals(Status.COMPLETED, status);
         generator.flush();
@@ -258,13 +258,13 @@ public class ProtobufJsonChunkingTest
         String messageName,
         byte[] wire)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[65536]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[65536]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBufferEx(wire), 0, wire.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(wire), 0, wire.length);
         assertEquals(Status.COMPLETED, status);
         generator.flush();
         return chunk(out, generator.length());
@@ -286,7 +286,7 @@ public class ProtobufJsonChunkingTest
     }
 
     private static byte[] bytes(
-        MutableDirectBufferEx buffer,
+        MutableDirectBuffer buffer,
         int length)
     {
         byte[] bytes = new byte[length];
@@ -299,7 +299,7 @@ public class ProtobufJsonChunkingTest
         byte[] wire,
         int window)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[window]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[window]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, window);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
@@ -310,7 +310,7 @@ public class ProtobufJsonChunkingTest
         UnsafeBufferEx in = new UnsafeBufferEx(wire);
         int suspends = 0;
         int guard = 0;
-        Status status = pipeline.feed(in, 0, wire.length);
+        Status status = pipeline.transform(in, 0, wire.length);
         while (status == Status.SUSPENDED && guard < 1_000_000)
         {
             assertTrue(generator.length() <= window, "chunk exceeded the generator limit");
@@ -318,7 +318,7 @@ public class ProtobufJsonChunkingTest
             generator.wrap(out, 0, window);
             suspends++;
             guard++;
-            status = pipeline.feed(in, 0, wire.length);
+            status = pipeline.transform(in, 0, wire.length);
         }
         assertEquals(Status.COMPLETED, status);
         generator.flush();
@@ -335,7 +335,7 @@ public class ProtobufJsonChunkingTest
         int inWindow,
         int outWindow)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[outWindow]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[outWindow]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, outWindow);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
@@ -359,14 +359,14 @@ public class ProtobufJsonChunkingTest
             int take = Math.min(inWindow, wire.length - limit);
             limit += take;
             boolean last = limit >= wire.length;
-            Status status = pipeline.feed(in, progress, limit, last);
+            Status status = pipeline.transform(in, progress, limit, last);
             while (status == Status.SUSPENDED)
             {
                 assertTrue(generator.length() <= outWindow, "chunk exceeded the generator limit");
                 result.append(chunk(out, generator.length()));
                 generator.wrap(out, 0, outWindow);
                 suspends++;
-                status = pipeline.feed(in, progress, limit, last);
+                status = pipeline.transform(in, progress, limit, last);
             }
             switch (status)
             {
@@ -389,7 +389,7 @@ public class ProtobufJsonChunkingTest
     }
 
     private static String chunk(
-        MutableDirectBufferEx buffer,
+        MutableDirectBuffer buffer,
         int length)
     {
         byte[] bytes = new byte[length];
@@ -409,7 +409,7 @@ public class ProtobufJsonChunkingTest
     private static byte[] wire(
         Consumer<ProtobufGenerator> body)
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[65536]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[65536]);
         ProtobufGenerator generator = Protobuf.generator().wrap(buffer, 0, buffer.capacity());
         body.accept(generator);
         byte[] bytes = new byte[generator.length()];

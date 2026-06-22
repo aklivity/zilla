@@ -19,21 +19,25 @@ import java.math.BigDecimal;
 import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
- * driver. {@link #feed(DirectBuffer, int, int)} re-targets the parser at the frame buffer then pumps
+ * driver. {@link #transform(DirectBuffer, int, int)} re-targets the parser at the frame buffer then pumps
  * each parsed event through the root sink, passing a {@link Source} view that adapts the parser to the
  * immutable {@code JsonSource} surface and a {@link Control} that adapts it to the {@link JsonController}.
  */
@@ -45,6 +49,9 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final JsonSink root;
     private final JsonReporter reporter;
     private final Diagnostic diagnostic;
+    // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
+    private final JsonGeneratorEx generator;
+    private final JsonPipelineResult result;
 
     private boolean suspended;
     // the value event in flight across a suspend, handed to root.resume() so no stage stores it
@@ -53,7 +60,8 @@ public final class JsonPipelineImpl implements JsonPipeline
     public JsonPipelineImpl(
         JsonParserEx parser,
         JsonSink root,
-        JsonReporter reporter)
+        JsonReporter reporter,
+        JsonGeneratorEx generator)
     {
         this.parser = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
@@ -62,6 +70,8 @@ public final class JsonPipelineImpl implements JsonPipeline
         this.root = root;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
+        this.generator = generator;
+        this.result = new JsonPipelineResult();
     }
 
     @Override
@@ -81,8 +91,8 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
-    public Status feed(
-        DirectBufferEx buffer,
+    public Status transform(
+        DirectBuffer buffer,
         int offset,
         int limit,
         boolean last)
@@ -108,18 +118,30 @@ public final class JsonPipelineImpl implements JsonPipeline
                 {
                     break;
                 }
-                status = root.feed(control, source, event);
+                status = root.transform(control, source, event);
                 if (status == Status.SUSPENDED)
                 {
                     // the pump owns the resume cursor: remember the in-flight event for the next entry
                     resumeEvent = event;
                 }
             }
-            if (status == Status.ADVANCED)
+            if (status == Status.ADVANCED || status == Status.STARVED)
             {
-                // the window was consumed before the value completed: more input is needed, unless this was
-                // the final window, in which case the value is truncated
-                status = last ? Status.REJECTED : Status.STARVED;
+                // the window was consumed before a terminal value — either the pump ran out of events, or a
+                // stage starved mid-value (e.g. a validator declining a fragment to accumulate it). Always
+                // give the sink a final drain before the window is replaced: a verbatim run pulls the bytes it
+                // has consumed so far via getVerbatim, so its cursor tracks the parse frontier across windows
+                // and never lags into a replaced window. STARVED stays STARVED; an exhausted-but-advancing
+                // pump needs more input (or is truncated on the final window).
+                final Status drained = root.flush(control, source);
+                if (drained == Status.SUSPENDED)
+                {
+                    status = Status.SUSPENDED;
+                }
+                else if (status == Status.ADVANCED)
+                {
+                    status = last ? Status.REJECTED : Status.STARVED;
+                }
             }
         }
         catch (JsonException ex)
@@ -135,6 +157,28 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
         suspended = status == Status.SUSPENDED;
         return status;
+    }
+
+    @Override
+    public JsonPipelineResult transform(
+        DirectBuffer src,
+        int offset,
+        int limit,
+        boolean last,
+        MutableDirectBuffer dst,
+        int dstOffset,
+        int dstLimit)
+    {
+        // re-target the terminal generator at the caller's output region, preserving structural context
+        // across a SUSPENDED drain, then pump the same window the existing transform contract expects
+        generator.wrap(dst, dstOffset, dstLimit);
+        Status status = transform(src, offset, limit, last);
+        boolean rejected = status == Status.REJECTED;
+        int produced = rejected ? 0 : generator.length();
+        // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
+        // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
+        int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - parser.remaining();
+        return result.set(status, consumed, produced);
     }
 
     // Adapts the parser to the non-advancing JsonSource view a stage reads off the current event.
@@ -194,6 +238,19 @@ public final class JsonPipelineImpl implements JsonPipeline
         public DirectBuffer getSegment()
         {
             return parser.getSegment();
+        }
+
+        @Override
+        public JsonVerbatim getVerbatim(
+            int limit)
+        {
+            return parser.getVerbatim(limit);
+        }
+
+        @Override
+        public void skipValue()
+        {
+            parser.skipValue();
         }
 
         @Override

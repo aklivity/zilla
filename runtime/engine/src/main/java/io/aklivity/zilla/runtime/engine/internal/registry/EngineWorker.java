@@ -161,6 +161,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
@@ -739,6 +740,14 @@ public class EngineWorker implements EngineContext, Agent
     {
         ModelContext model = modelsByType.get(config.model);
         return model != null ? model.supplyWriteConverterHandler(config) : null;
+    }
+
+    @Override
+    public ModelHandler supplyModel(
+        ModelConfig config)
+    {
+        ModelContext model = modelsByType.get(config.model);
+        return model != null ? model.supplyHandler(config) : null;
     }
 
     @Override

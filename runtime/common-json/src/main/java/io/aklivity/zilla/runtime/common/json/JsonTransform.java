@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.json;
 /**
  * An intermediate stage in a {@link JsonStream} pipeline that transforms the event stream — forwarding,
  * dropping, or substituting events — before they reach the next stage. Each
- * {@link #feed(JsonController, JsonSource, JsonEvent, JsonSink)} consumes one event and forwards what it
+ * {@link #transform(JsonController, JsonSource, JsonEvent, JsonSink)} consumes one event and forwards what it
  * keeps to {@code sink} (the downstream, bound once at assembly), optionally substituting a value by
  * feeding {@code sink} a different {@link JsonSource}. A mediating stage supplies its own
  * {@link JsonController} to {@code sink}; a non-mediating stage passes {@code control} through. Stages
@@ -26,7 +26,7 @@ package io.aklivity.zilla.runtime.common.json;
  */
 public interface JsonTransform
 {
-    JsonPipeline.Status feed(
+    JsonPipeline.Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event,
@@ -34,7 +34,7 @@ public interface JsonTransform
 
     /**
      * Continues the value left in flight by a prior {@link JsonPipeline.Status#SUSPENDED} before the next
-     * event is fed, with the same {@code control} and {@code source} context as {@link #feed} and the
+     * event is fed, with the same {@code control} and {@code source} context as {@link #transform} and the
      * {@code event} that suspended. The default forwards to {@code sink.resume(control, source, event)},
      * draining whatever is pending downstream — sufficient for a stage that only forwards events. A stage
      * that itself emits a value across chunks (substituting or expanding output) overrides this to continue
@@ -48,6 +48,22 @@ public interface JsonTransform
         JsonSink sink)
     {
         return sink.resume(control, source, event);
+    }
+
+    /**
+     * Forwards the pump's end-of-feed {@link JsonSink#flush(JsonController, JsonSource) flush} to {@code sink}
+     * when the input window is consumed before a terminal value, letting the terminal sink do end-of-feed work
+     * (e.g. a verbatim sink draining bytes consumed during lookahead) before the window is replaced. The
+     * default forwards to {@code sink.flush(control, source)} — sufficient for a stage that only forwards
+     * events. A mediating stage that supplies its own {@link JsonController} to {@code sink} overrides this to
+     * pass the same controller it uses in {@link #transform}.
+     */
+    default JsonPipeline.Status flush(
+        JsonController control,
+        JsonSource source,
+        JsonSink sink)
+    {
+        return sink.flush(control, source);
     }
 
     default void reset()

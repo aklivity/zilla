@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -106,7 +106,7 @@ class JsonSchemaPathsTest
     void shouldDriveProjectorEndToEnd()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(JsonSchemaPaths.retained(
@@ -116,7 +116,7 @@ class JsonSchemaPathsTest
             .into(JsonEx.createSink(gen));
         pipeline.reset();
         byte[] bytes = "{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} ".getBytes(UTF_8);
-        pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length);
+        pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"items\":[{\"id\":1},{\"id\":2}]}", new String(out, UTF_8));

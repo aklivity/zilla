@@ -38,11 +38,11 @@ public class AvroFragmentedParserTest
         pipeline.reset();
         UnsafeBufferEx buffer = new UnsafeBufferEx(binary);
         // simulate byte-by-byte arrival: each feed presents the unconsumed remainder plus one new byte
-        Status status = pipeline.feed(buffer, 0, 0, false);
+        Status status = pipeline.transform(buffer, 0, 0, false);
         int progress = 0;
         for (int available = 1; available <= binary.length && status != COMPLETED; available++)
         {
-            status = pipeline.feed(buffer, progress, available, available == binary.length);
+            status = pipeline.transform(buffer, progress, available, available == binary.length);
             progress = available - pipeline.remaining();
         }
         assertEquals(COMPLETED, status);
@@ -122,11 +122,11 @@ public class AvroFragmentedParserTest
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator, AvroSink.Delivery.SEGMENTABLE));
         pipeline.reset();
         UnsafeBufferEx buffer = new UnsafeBufferEx(binary);
-        Status status = pipeline.feed(buffer, 0, 0, false);
+        Status status = pipeline.transform(buffer, 0, 0, false);
         int progress = 0;
         for (int available = 1; available <= binary.length && status != COMPLETED; available++)
         {
-            status = pipeline.feed(buffer, progress, available, available == binary.length);
+            status = pipeline.transform(buffer, progress, available, available == binary.length);
             progress = available - pipeline.remaining();
         }
         assertEquals(COMPLETED, status);

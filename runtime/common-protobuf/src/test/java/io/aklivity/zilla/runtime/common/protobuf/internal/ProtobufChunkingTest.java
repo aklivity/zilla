@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -166,7 +166,7 @@ public class ProtobufChunkingTest
         });
 
         int limit = 48;
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(grouped, "Record"))
             .into(ProtobufSink.of(generator, grouped, "Record"));
@@ -174,13 +174,13 @@ public class ProtobufChunkingTest
 
         List<byte[]> chunks = new ArrayList<>();
         UnsafeBufferEx buffer = new UnsafeBufferEx(input);
-        ProtobufPipeline.Status status = pipeline.feed(buffer, 0, input.length);
+        ProtobufPipeline.Status status = pipeline.transform(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
             assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
             chunks.add(bytes(out, generator.length()));
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(buffer, 0, input.length);
+            status = pipeline.transform(buffer, 0, input.length);
         }
         assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         chunks.add(bytes(out, generator.length()));
@@ -253,13 +253,13 @@ public class ProtobufChunkingTest
         byte[] input,
         int limit)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         List<ProtobufEvent> events = new ArrayList<>();
         ProtobufTransform recorder = (control, source, event, sink) ->
         {
             events.add(event);
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
             .transform(recorder)
@@ -267,11 +267,11 @@ public class ProtobufChunkingTest
         pipeline.reset();
 
         UnsafeBufferEx buffer = new UnsafeBufferEx(input);
-        ProtobufPipeline.Status status = pipeline.feed(buffer, 0, input.length);
+        ProtobufPipeline.Status status = pipeline.transform(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(buffer, 0, input.length);
+            status = pipeline.transform(buffer, 0, input.length);
         }
         assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         return events;
@@ -290,7 +290,7 @@ public class ProtobufChunkingTest
         byte[] input,
         int limit)
     {
-        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, message))
             .into(ProtobufSink.of(generator, schema, message));
@@ -298,13 +298,13 @@ public class ProtobufChunkingTest
 
         List<byte[]> chunks = new ArrayList<>();
         UnsafeBufferEx buffer = new UnsafeBufferEx(input);
-        ProtobufPipeline.Status status = pipeline.feed(buffer, 0, input.length);
+        ProtobufPipeline.Status status = pipeline.transform(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
             assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
             chunks.add(bytes(out, generator.length()));
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(buffer, 0, input.length);
+            status = pipeline.transform(buffer, 0, input.length);
         }
         assertEquals(ProtobufPipeline.Status.COMPLETED, status);
         assertTrue(generator.length() <= limit, "chunk exceeded the generator limit");
@@ -398,7 +398,7 @@ public class ProtobufChunkingTest
     }
 
     private static byte[] bytes(
-        MutableDirectBufferEx buffer,
+        MutableDirectBuffer buffer,
         int length)
     {
         byte[] result = new byte[length];

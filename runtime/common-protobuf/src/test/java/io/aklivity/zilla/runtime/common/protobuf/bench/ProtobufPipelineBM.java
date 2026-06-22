@@ -171,7 +171,7 @@ public class ProtobufPipelineBM
         int length)
     {
         pipeline.reset();
-        return pipeline.feed(buffer, 0, length).ordinal();
+        return pipeline.transform(buffer, 0, length).ordinal();
     }
 
     private int runWrite(
@@ -181,7 +181,7 @@ public class ProtobufPipelineBM
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
-        pipeline.feed(buffer, 0, length);
+        pipeline.transform(buffer, 0, length);
         return generator.length();
     }
 

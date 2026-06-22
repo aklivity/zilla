@@ -18,7 +18,7 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufTypedSinkImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufUntypedSinkImpl;
 
 /**
- * The consume end of a {@link ProtobufStream} pipeline. Each {@link #feed(ProtobufController, ProtobufSource,
+ * The consume end of a {@link ProtobufStream} pipeline. Each {@link #transform(ProtobufController, ProtobufSource,
  * ProtobufEvent)} delivers one event (with {@code source} positioned to read its scalar, or its bytes when
  * the event is {@link ProtobufEvent#segmented()}) and returns whether the message has reached a terminal
  * {@link ProtobufPipeline.Status}. The downstream of a {@link ProtobufTransform} is also a {@code
@@ -26,13 +26,13 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufUntypedSinkImp
  */
 public interface ProtobufSink
 {
-    ProtobufPipeline.Status feed(
+    ProtobufPipeline.Status transform(
         ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event);
 
     /**
-     * Continues the work left unfinished when a prior {@link #feed} returned
+     * Continues the work left unfinished when a prior {@link #transform} returned
      * {@link ProtobufPipeline.Status#SUSPENDED} — the pipeline calls this on resume instead of replaying
      * the event through the rest of the pipeline. {@code event} is the event that suspended (supplied by the
      * pump, so the sink keeps no resume cursor of its own), with {@code source} still positioned to read it.

@@ -16,20 +16,23 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.avro.AvroRuntimeException;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.CanonicalJsonEncoder;
-import org.apache.avro.io.JsonEncoder;
-
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import org.agrona.DirectBuffer;
+import org.agrona.collections.Int2ObjectCache;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
+import io.aklivity.zilla.runtime.common.avro.Avro;
+import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
+import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
+import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroSink;
+import io.aklivity.zilla.runtime.common.avro.json.AvroJson;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
@@ -40,9 +43,12 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 {
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
 
     private final Matcher matcher;
+    private final Int2ObjectCache<AvroToJson> pipelines;
+
+    private String reason;
 
     public AvroReadConverterHandler(
         AvroModelConfiguration config,
@@ -51,11 +57,12 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     {
         super(config, options, context);
         this.matcher = PATH_PATTERN.matcher("");
+        this.pipelines = new Int2ObjectCache<>(1, 1024, i -> {});
     }
 
     @Override
     public int padding(
-        DirectBufferEx data,
+        DirectBuffer data,
         int index,
         int length)
     {
@@ -94,12 +101,12 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     public int convert(
         long traceId,
         long bindingId,
-        DirectBufferEx data,
+        DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
     {
-        for (AvroField field: extracted.values())
+        for (AvroField field : extracted.values())
         {
             field.value.wrap(EMPTY_BUFFER, 0, 0);
         }
@@ -137,7 +144,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBufferEx data,
+        DirectBuffer data,
         int index,
         int length,
         ValueConsumer next)
@@ -158,12 +165,10 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 
         if (VIEW_JSON.equals(view))
         {
-            deserializeRecord(traceId, bindingId, schemaId, data, index, length);
-            int recordLength = expandable.position();
-            if (recordLength > 0)
+            valLength = deserializeRecord(traceId, bindingId, schemaId, data, index, length, next);
+            if (valLength != -1 && !extracted.isEmpty())
             {
-                next.accept((DirectBufferEx) expandable.buffer(), 0, recordLength);
-                valLength = recordLength;
+                validate(traceId, bindingId, schemaId, data, index, length);
             }
         }
         else if (validate(traceId, bindingId, schemaId, data, index, length))
@@ -174,36 +179,103 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
         return valLength;
     }
 
-    private void deserializeRecord(
+    private int deserializeRecord(
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBufferEx buffer,
+        DirectBuffer data,
         int index,
-        int length)
+        int length,
+        ValueConsumer next)
     {
-        try
-        {
-            GenericDatumReader<GenericRecord> reader = supplyReader(schemaId);
-            GenericDatumWriter<GenericRecord> writer = supplyWriter(schemaId);
-            if (reader != null)
-            {
-                GenericRecord record = supplyRecord(schemaId);
-                in.wrap(buffer, index, length);
-                expandable.wrap(expandable.buffer());
-                record = reader.read(record, decoderFactory.binaryDecoder(in, decoder));
-                Schema schema = record.getSchema();
-                JsonEncoder out = new CanonicalJsonEncoder(schema, expandable);
-                writer.write(record, out);
-                out.flush();
+        int valLength = -1;
 
-                progress = index;
-                extractFields(buffer, index + length, schema);
+        AvroToJson pipeline = supplyPipeline(schemaId);
+        if (pipeline != null)
+        {
+            int limit = outLimit(length);
+            int accumulated = 0;
+            pipeline.generator.wrap(out, 0, limit);
+            pipeline.pipeline.reset();
+            Status status = pipeline.pipeline.transform(data, index, index + length, true);
+            while (status == Status.SUSPENDED)
+            {
+                pipeline.json.flush();
+                int chunk = pipeline.json.length();
+                accumulator.putBytes(accumulated, out, 0, chunk);
+                accumulated += chunk;
+                pipeline.generator.wrap(out, 0, limit);
+                status = pipeline.pipeline.transform(data, index, index + length, true);
+            }
+
+            if (status == Status.COMPLETED)
+            {
+                pipeline.json.flush();
+                int chunk = pipeline.json.length();
+                if (accumulated == 0)
+                {
+                    next.accept(out, 0, chunk);
+                    valLength = chunk;
+                }
+                else
+                {
+                    accumulator.putBytes(accumulated, out, 0, chunk);
+                    accumulated += chunk;
+                    next.accept(accumulator, 0, accumulated);
+                    valLength = accumulated;
+                }
+            }
+            else
+            {
+                event.validationFailure(traceId, bindingId, reason);
             }
         }
-        catch (IOException | AvroRuntimeException ex)
+        return valLength;
+    }
+
+    private void onRejected(
+        AvroDiagnostic diagnostic)
+    {
+        reason = diagnostic.message();
+    }
+
+    private AvroToJson supplyPipeline(
+        int schemaId)
+    {
+        return pipelines.computeIfAbsent(schemaId, this::newPipeline);
+    }
+
+    private AvroToJson newPipeline(
+        int schemaId)
+    {
+        AvroToJson pipeline = null;
+        AvroSchema schema = supplySchema(schemaId);
+        if (schema != null)
         {
-            event.validationFailure(traceId, bindingId, ex.getMessage());
+            JsonGeneratorEx json = JsonEx.createGenerator();
+            AvroGenerator generator = AvroJson.generator(schema, json, true);
+            AvroPipeline avro = Avro.stream(Avro.parser(schema))
+                .reporting(this::onRejected)
+                .into(AvroSink.of(generator));
+            pipeline = new AvroToJson(avro, json, generator);
+        }
+        return pipeline;
+    }
+
+    private static final class AvroToJson
+    {
+        private final AvroPipeline pipeline;
+        private final JsonGeneratorEx json;
+        private final AvroGenerator generator;
+
+        private AvroToJson(
+            AvroPipeline pipeline,
+            JsonGeneratorEx json,
+            AvroGenerator generator)
+        {
+            this.pipeline = pipeline;
+            this.json = json;
+            this.generator = generator;
         }
     }
 }

@@ -63,6 +63,36 @@ public interface JsonSource
     DirectBufferEx getSegment();
 
     /**
+     * Bounded pull of the coalesced <em>verbatim</em> run as a {@link JsonVerbatim} block: the original source
+     * bytes parsed since the last call, bounded to the whole-token prefix that fits {@code limit}, advancing the
+     * verbatim cursor by exactly that. The returned block's {@link JsonVerbatim#getSegment()} is the contiguous
+     * bytes and {@link JsonVerbatim#getSteps()} their structural transcript, always agreeing on a token
+     * boundary. An empty block (no steps, zero-length segment) signals the run is fully drained. Valid on
+     * a {@link JsonEvent#isVerbatim()} or {@link JsonEvent} {@code STRUCTURED} event when the consumer has opted
+     * in via {@link JsonController#verbatim()}; lets a stage that inspects structure (e.g. a validator) reproduce
+     * the input byte-for-byte without the canonical re-serialization a structured replay imposes. The splice is
+     * 1:1, so the caller pre-sizes {@code limit} to its free output space and the returned bytes always fit — no
+     * {@link JsonController#consumed(int)} report is needed on this path. The returned instance is non-owning and
+     * reused across calls (valid on-stack only). A source that does not track verbatim runs rejects this.
+     */
+    JsonVerbatim getVerbatim(
+        int limit);
+
+    /**
+     * Drops the value at the current member boundary — valid only when the current event is a
+     * {@link JsonEvent#KEY_NAME} (an object member) — advancing the source past the whole member: its key, the
+     * separator, and the value (a scalar, or a container to its matching close). The dropped member's
+     * sub-events are consumed internally, so the calling stage never sees them. The verbatim cursor advances
+     * past the dropped bytes so they are never emitted, and the source folds in the leading-separator trim a
+     * prune needs: dropping the first surviving member of a container defers trimming the next kept sibling's
+     * leading separator, so the survivors stay well-formed (e.g. dropping {@code a} from {@code {"a":1,"b":2}}
+     * yields {@code {"b":2}}, not {@code {,"b":2}}). Like {@link #getVerbatim(int)} this requires the consumer
+     * to have opted in via {@link JsonController#verbatim()}; a source that does not track verbatim runs rejects
+     * it.
+     */
+    void skipValue();
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of
      * this same value follows (the value is being streamed across input frames because it exceeds the
      * input window), {@code false} when this event completes it. A JSON string is quote-delimited, so

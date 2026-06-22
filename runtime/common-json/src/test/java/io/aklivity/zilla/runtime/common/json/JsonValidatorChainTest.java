@@ -25,7 +25,7 @@ import java.util.Map;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +37,7 @@ class JsonValidatorChainTest
         "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}," +
         "\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]}";
 
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
 
     @Test
     void shouldForwardFullStreamWhenValid()
@@ -103,7 +103,7 @@ class JsonValidatorChainTest
         {
             limit = Math.min(limit + step, bytes.length);
             boolean last = limit >= bytes.length;
-            status = pipeline.feed(new UnsafeBufferEx(bytes), progress, limit, last);
+            status = pipeline.transform(new UnsafeBufferEx(bytes), progress, limit, last);
             progress = limit - pipeline.remaining();
         }
         return status;
@@ -168,8 +168,8 @@ class JsonValidatorChainTest
         UnsafeBufferEx in = new UnsafeBufferEx(bytes);
 
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.feed(in, 0, 8, false));
-        Status status = pipeline.feed(in, 8, bytes.length);
+        assertEquals(Status.STARVED, pipeline.transform(in, 0, 8, false));
+        Status status = pipeline.transform(in, 8, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
@@ -196,7 +196,7 @@ class JsonValidatorChainTest
     void shouldForwardThroughDefaultResetTransform()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
+        JsonTransform passthrough = (control, source, event, sink) -> sink.transform(control, source, event);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
             .into(JsonEx.createSink(gen));
@@ -265,7 +265,7 @@ class JsonValidatorChainTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
     }
 
     private static JsonParser parserFor(

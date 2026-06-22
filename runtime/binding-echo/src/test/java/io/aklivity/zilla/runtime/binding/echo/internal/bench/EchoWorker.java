@@ -22,8 +22,9 @@ import java.time.Clock;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -43,6 +44,7 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -51,7 +53,7 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 public class EchoWorker implements EngineContext
 {
     private static final int BUFFER_SIZE = 1024 * 8;
-    private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[BUFFER_SIZE]);
+    private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[BUFFER_SIZE]);
 
     @Override
     public int index()
@@ -193,9 +195,6 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
-<<<<<<< HEAD
-    public MutableDirectBufferEx writeBuffer()
-=======
     public BudgetDebit supplyDebit(long streamId, long sharedStreamId, BudgetFlusher onResume)
     {
         return null;
@@ -209,7 +208,6 @@ public class EchoWorker implements EngineContext
 
     @Override
     public MutableDirectBuffer writeBuffer()
->>>>>>> origin/develop
     {
         return writeBuffer;
     }
@@ -367,6 +365,13 @@ public class EchoWorker implements EngineContext
 
     @Override
     public ConverterHandler supplyWriteConverter(
+        ModelConfig config)
+    {
+        return null;
+    }
+
+    @Override
+    public ModelHandler supplyModel(
         ModelConfig config)
     {
         return null;

@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonPipelineDeferralTest
 {
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+    private final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
 
     // a transform that needs each scalar whole: while a value still has deferred bytes it pushes back via
     // consumed(0) and does not forward; once the value is complete it forwards it downstream. The source
@@ -35,7 +35,7 @@ class JsonPipelineDeferralTest
     private static final class WholeValueTransform implements JsonTransform
     {
         @Override
-        public Status feed(
+        public Status transform(
             JsonController control,
             JsonSource source,
             JsonEvent event,
@@ -50,7 +50,7 @@ class JsonPipelineDeferralTest
             }
             else
             {
-                status = sink.feed(control, source, event);
+                status = sink.transform(control, source, event);
             }
             return status;
         }
@@ -62,14 +62,14 @@ class JsonPipelineDeferralTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(new WholeValueTransform())
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         pipeline.reset();
 
         // a bare string split across two windows: open-quote + 20 'a' (no close), then 20 'b' + close-quote
         byte[] f1 = "\"aaaaaaaaaaaaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbbbbbbbbbbbb\"".getBytes(UTF_8);
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBufferEx(f1), 0, f1.length, false));
-        Status status = pipeline.feed(new UnsafeBufferEx(f2), 0, f2.length, true);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBufferEx(f1), 0, f1.length, false));
+        Status status = pipeline.transform(new UnsafeBufferEx(f2), 0, f2.length, true);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -84,14 +84,14 @@ class JsonPipelineDeferralTest
         // cap the retained value at 16 chars; a decliner that grows the value past it must fail closed
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16)))
             .transform(new WholeValueTransform())
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         pipeline.reset();
 
         // a bare string declined fragment by fragment grows past the 16-char cap on the second window
         byte[] f1 = "\"aaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbb".getBytes(UTF_8);
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBufferEx(f1), 0, f1.length, false));
-        Status status = pipeline.feed(new UnsafeBufferEx(f2), 0, f2.length, false);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBufferEx(f1), 0, f1.length, false));
+        Status status = pipeline.transform(new UnsafeBufferEx(f2), 0, f2.length, false);
 
         assertEquals(Status.REJECTED, status);
     }

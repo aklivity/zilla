@@ -19,8 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -49,19 +50,19 @@ class JsonSourceTest
             {
                 views.add(source.getStringView().toString());
             }
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
 
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[256]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(capture)
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         byte[] bytes = "[42,-7,\"hi\"]".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals(List.of(42, -7), ints);

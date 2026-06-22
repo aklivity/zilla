@@ -14,18 +14,20 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -100,7 +102,7 @@ public class JsonConverterTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonReadConverterHandler converter = new JsonReadConverterHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
         String payload =
                 "{" +
                     "\"id\": \"123\"," +
@@ -109,7 +111,10 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        Capture capture = new Capture();
+        // forward unchanged: the converter preserves the original bytes verbatim (insignificant whitespace kept)
+        assertEquals(payload.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(payload, capture.text());
     }
 
     @Test
@@ -140,7 +145,7 @@ public class JsonConverterTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonWriteConverterHandler converter = new JsonWriteConverterHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
             "[" +
@@ -152,7 +157,8 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        // forward unchanged: the converter preserves the original bytes verbatim (insignificant whitespace kept)
+        assertEquals(payload.length(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -185,7 +191,7 @@ public class JsonConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonReadConverterHandler converter = new JsonReadConverterHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -195,7 +201,7 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        MutableDirectBufferEx value = new UnsafeBufferEx(new byte[data.capacity() + 5]);
+        MutableDirectBuffer value = new UnsafeBufferEx(new byte[data.capacity() + 5]);
         value.putBytes(0, new byte[]{0x00, 0x00, 0x00, 0x00, 0x01});
         value.putBytes(5, bytes);
 
@@ -230,7 +236,7 @@ public class JsonConverterTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonWriteConverterHandler converter = new JsonWriteConverterHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -240,7 +246,10 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        Capture capture = new Capture();
+        // forward unchanged: the converter preserves the original bytes verbatim (insignificant whitespace kept)
+        assertEquals(payload.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(payload, capture.text());
     }
 
     @Test
@@ -273,7 +282,7 @@ public class JsonConverterTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonWriteConverterHandler converter = new JsonWriteConverterHandler(model, context);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
             "[" +
@@ -323,7 +332,7 @@ public class JsonConverterTest
         String zillaIdPath = "$.zillaId";
         converter.extract(zillaIdPath);
 
-        DirectBufferEx data = new UnsafeBufferEx();
+        DirectBuffer data = new UnsafeBufferEx();
 
         String payload =
             "{" +
@@ -333,7 +342,8 @@ public class JsonConverterTest
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        assertEquals(data.capacity(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        // forward unchanged: the converter preserves the original bytes verbatim (insignificant whitespace kept)
+        assertEquals(payload.length(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
         assertEquals(2, converter.extractedLength(statusPath));
         final ConverterHandler.FieldVisitor visitor = (buffer, index, length) ->
@@ -348,5 +358,29 @@ public class JsonConverterTest
             assertEquals("321", buffer.getStringWithoutLengthUtf8(index, length));
         };
         converter.extracted(zillaIdPath, zillaIdVisitor);
+    }
+
+    private static final class Capture implements ValueConsumer
+    {
+        private final MutableDirectBuffer buffer = new ExpandableDirectByteBuffer();
+
+        private int length;
+
+        @Override
+        public void accept(
+            DirectBuffer data,
+            int index,
+            int length)
+        {
+            buffer.putBytes(this.length, data, index, length);
+            this.length += length;
+        }
+
+        private String text()
+        {
+            byte[] bytes = new byte[length];
+            buffer.getBytes(0, bytes);
+            return new String(bytes, UTF_8);
+        }
     }
 }
