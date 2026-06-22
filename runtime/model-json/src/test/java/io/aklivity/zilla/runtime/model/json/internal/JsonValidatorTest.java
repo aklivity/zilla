@@ -568,6 +568,22 @@ public class JsonValidatorTest
     }
 
     @Test
+    public void shouldForwardValidatedBytesVerbatimPreservingWhitespace()
+    {
+        JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
+
+        Capture capture = new Capture();
+        // insignificant whitespace after ':' and ',' must be preserved byte-for-byte;
+        // a validator does not transform the payload, so the original bytes are forwarded unchanged
+        String payload = "{\"id\": \"123\", \"status\": \"OK\"}";
+        byte[] bytes = payload.getBytes(UTF_8);
+        DirectBuffer data = new UnsafeBuffer(bytes);
+
+        assertTrue(validator.validate(0L, 0L, data, 0, bytes.length, capture));
+        assertEquals(payload, capture.text());
+    }
+
+    @Test
     public void shouldForwardValidatedBytesIncrementallyWhenFragmented()
     {
         JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);

@@ -160,7 +160,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         do
         {
             generator.wrap(output, 0, OUTPUT_CAPACITY);
-            status = pipeline.feed(data, index, index + length, true);
+            status = pipeline.transform(data, index, index + length, true);
             int chunk = generator.length();
             if (chunk > 0 && status != Status.REJECTED)
             {

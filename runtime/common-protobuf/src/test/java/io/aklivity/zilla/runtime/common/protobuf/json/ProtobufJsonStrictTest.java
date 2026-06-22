@@ -57,7 +57,7 @@ public class ProtobufJsonStrictTest
         pipeline.reset();
 
         byte[] in = "{\"name\":\"neo\",\"nope\":1}".getBytes(UTF_8);
-        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
         assertTrue(reason[0].contains("nope"), reason[0]);
     }
 
@@ -72,7 +72,7 @@ public class ProtobufJsonStrictTest
         pipeline.reset();
 
         byte[] in = "{\"name\":\"neo\",\"nope\":1}".getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
         assertNull(reason[0]);
     }
 
@@ -88,7 +88,7 @@ public class ProtobufJsonStrictTest
         pipeline.reset();
 
         byte[] in = "{\"name\":\"neo\"}".getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
         assertNull(reason[0]);
     }
 
@@ -106,14 +106,14 @@ public class ProtobufJsonStrictTest
         generator.wrap(out, 0, out.capacity());
         pipeline.reset();
         byte[] bad = "{\"nope\":1}".getBytes(UTF_8);
-        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bad), 0, bad.length));
+        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBuffer(bad), 0, bad.length));
 
         generator.wrap(out, 0, out.capacity());
         pipeline.reset();
         // the prior reject's message must not leak onto a clean value: the reporter fires only on REJECTED
         reason[0] = null;
         byte[] good = "{\"name\":\"neo\"}".getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(good), 0, good.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(good), 0, good.length));
         assertNull(reason[0]);
     }
 }

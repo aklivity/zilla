@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-4...HEAD)
+
+**Closed issues:**
+
+- engine: unify model ConverterHandler and ValidatorHandler into a single streaming model handler [\#1836](https://github.com/aklivity/zilla/issues/1836)
+
+## [2.0.0-alpha-4](https://github.com/aklivity/zilla/tree/2.0.0-alpha-4) (2026-06-20)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-2...2.0.0-alpha-4)
+
+**Merged pull requests:**
+
+- ci\(release\): route Docker Hub pulls through mirror.gcr.io and cache layers in GHCR [\#1940](https://github.com/aklivity/zilla/pull/1940) ([jfallows](https://github.com/jfallows))
+- Add common-json dependency to model-protobuf module [\#1939](https://github.com/aklivity/zilla/pull/1939) ([jfallows](https://github.com/jfallows))
+- Convert test config assertions from JSON to YAML format [\#1938](https://github.com/aklivity/zilla/pull/1938) ([jfallows](https://github.com/jfallows))
+- Introduce BudgetCredit and BudgetDebit handle APIs [\#1934](https://github.com/aklivity/zilla/pull/1934) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0-alpha-2](https://github.com/aklivity/zilla/tree/2.0.0-alpha-2) (2026-06-20)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-1...2.0.0-alpha-2)

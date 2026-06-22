@@ -17,15 +17,18 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufReporter;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
@@ -47,6 +50,9 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final ProtobufSink head;
     private final ProtobufReporter reporter;
     private final Diagnostic diagnostic;
+    // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
+    private final ProtobufGenerator generator;
+    private final ProtobufPipelineResult result;
 
     private boolean suspended;
     private boolean starved;
@@ -57,11 +63,14 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         ProtobufParser parser,
         List<ProtobufTransform> transforms,
         ProtobufSink sink,
-        ProtobufReporter reporter)
+        ProtobufReporter reporter,
+        ProtobufGenerator generator)
     {
         this.parser = parser;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
+        this.generator = generator;
+        this.result = new ProtobufPipelineResult();
         // the per-edge handles the stages see: a read-only source view of the parser, and a control handle
         // that records a stage's segment request which the pump turns into the SEGMENTED mode on the next pull
         this.source = new Source(parser);
@@ -92,7 +101,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         DirectBuffer buffer,
         int offset,
         int limit,
@@ -124,7 +133,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
                 }
                 else
                 {
-                    status = head.feed(control, source, event);
+                    status = head.transform(control, source, event);
                     if (status == Status.SUSPENDED)
                     {
                         // the pump owns the resume cursor: remember the in-flight event for the next entry
@@ -151,6 +160,35 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         return status;
     }
 
+    @Override
+    public ProtobufPipelineResult transform(
+        DirectBuffer src,
+        int offset,
+        int limit,
+        boolean last,
+        MutableDirectBuffer dst,
+        int dstOffset,
+        int dstLimit)
+    {
+        // re-target the terminal generator at the caller's output region, preserving structural context
+        // across a SUSPENDED drain, then pump the same window the existing transform contract expects; the
+        // protobuf generator bounds writes by a length from the offset, so pass dstLimit - dstOffset
+        generator.wrap(dst, dstOffset, dstLimit - dstOffset);
+        Status status = transform(src, offset, limit, last);
+        boolean rejected = status == Status.REJECTED;
+        if (status == Status.COMPLETED)
+        {
+            // finalize the document: the wire generator's records are already closed (a no-op at completion),
+            // while the JSON generator writes its closing structure here so the produced bytes are well-formed
+            generator.flush();
+        }
+        int produced = rejected ? 0 : generator.length();
+        // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
+        // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
+        int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - parser.remaining();
+        return result.set(status, consumed, produced);
+    }
+
     private final class StageSink implements ProtobufSink
     {
         private final ProtobufTransform transform;
@@ -165,12 +203,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         }
 
         @Override
-        public Status feed(
+        public Status transform(
             ProtobufController control,
             ProtobufSource source,
             ProtobufEvent event)
         {
-            return transform.feed(control, source, event, downstream);
+            return transform.transform(control, source, event, downstream);
         }
 
         @Override

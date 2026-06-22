@@ -18,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
+import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -120,8 +121,8 @@ class JsonProjectorTest
         UnsafeBuffer in = new UnsafeBuffer(bytes);
 
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.feed(in, 0, 7, false));
-        Status status = pipeline.feed(in, 7, bytes.length);
+        assertEquals(Status.STARVED, pipeline.transform(in, 0, 7, false));
+        Status status = pipeline.transform(in, 7, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -205,7 +206,7 @@ class JsonProjectorTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(retained))
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         feed(pipeline, input + " ");
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
@@ -234,7 +235,7 @@ class JsonProjectorTest
         Status status;
         do
         {
-            status = pipeline.feed(in, 0, bytes.length);
+            status = pipeline.transform(in, 0, bytes.length);
             byte[] chunk = new byte[gen.length()];
             buffer.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
@@ -255,6 +256,6 @@ class JsonProjectorTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 }

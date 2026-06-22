@@ -156,6 +156,22 @@ public interface JsonGeneratorEx extends JsonGenerator
         int length,
         Completion completion);
 
+    /**
+     * Splices a {@link JsonVerbatim} block straight to the output: its {@link JsonVerbatim#getSegment()} bytes are
+     * copied 1:1 (they already carry their own braces, commas, colons, and whitespace) while the generator
+     * <em>applies</em> every step of {@link JsonVerbatim#getSteps()} (open/close depth, member occupancy) so
+     * its state stays coherent for any injected value that follows. It synthesizes a single leading separator when
+     * the block begins a member/element that was first in the source — its leading step is a member/element start
+     * rather than a {@link JsonStep#SEPARATOR}, so the bytes carry no leading comma — yet the container already
+     * holds a member in the output (an injected value took the first slot, displacing this former-first member).
+     * A leading {@link JsonStep#SEPARATOR} means the comma is in the bytes, so none is synthesized. Each block
+     * carries its own structure, so a run drained across several blocks applies each block's steps in turn. The
+     * copy is 1:1, so a caller pre-bounds the pull (via {@link JsonSource#getVerbatim(int)}) to {@link #remaining()}
+     * and the bytes always fit.
+     */
+    JsonGeneratorEx writeVerbatim(
+        JsonVerbatim verbatim);
+
     @Override
     JsonGeneratorEx writeStartObject();
 
@@ -182,6 +198,20 @@ public interface JsonGeneratorEx extends JsonGenerator
      */
     JsonGeneratorEx writeKey(
         CharSequence name);
+
+    /**
+     * Writes an object key that may arrive in fragments, the key-domain counterpart to
+     * {@link #write(CharSequence, Completion)}. The generator owns the surrounding quotes and the trailing
+     * {@code :}: the opening quote (and any leading {@code ,}) is emitted before the first fragment, each
+     * fragment's chars are escaped and encoded only while they fit the output bound, and the closing quote
+     * and {@code :} are emitted when {@code completion} is {@link Completion#COMPLETE} once the final
+     * fragment is fully written. Track the source chars taken via {@link #consumed()} so a chunking driver
+     * advances its cursor and resumes from the remainder. {@code writeKey(name, COMPLETE)} for a key that
+     * fits is equivalent to {@link #writeKey(CharSequence)}.
+     */
+    JsonGeneratorEx writeKey(
+        CharSequence name,
+        Completion completion);
 
     @Override
     JsonGeneratorEx writeEnd();

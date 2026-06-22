@@ -49,7 +49,7 @@ class JsonPipelineRejectTest
         byte[] bytes = "[1 2]".getBytes(UTF_8);
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.REJECTED, status);
     }
@@ -67,7 +67,7 @@ class JsonPipelineRejectTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length));
         assertNotNull(reason[0]);
     }
 
@@ -89,7 +89,7 @@ class JsonPipelineRejectTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length));
         assertEquals("[1,11][/id] expected string but was number", reason[0]);
     }
 
@@ -108,7 +108,7 @@ class JsonPipelineRejectTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        assertEquals(Status.REJECTED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length));
         assertEquals("[2,12][/id] expected string but was number", reason[0]);
     }
 
@@ -125,7 +125,7 @@ class JsonPipelineRejectTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length));
         assertNull(reason[0]);
     }
 }

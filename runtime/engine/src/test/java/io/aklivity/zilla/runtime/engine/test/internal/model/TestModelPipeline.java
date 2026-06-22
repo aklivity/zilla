@@ -1,0 +1,146 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+package io.aklivity.zilla.runtime.engine.test.internal.model;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.util.List;
+
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+
+// Per-stream transform mirroring the test model's whole-value length check: the value is accepted only when
+// the total length across fragments equals the configured length. By default the value bytes are copied
+// through into dst unchanged (identity); when a transformed length is configured, the whole value is padded
+// or truncated to that length so a non-identity, length-changing transform can be exercised. Registered
+// extraction paths surface a fixed token to the visitor when a value completes. State lives on the pipeline
+// so interleaved streams stay isolated.
+final class TestModelPipeline implements ModelPipeline
+{
+    private final DirectBuffer extractedValue = new UnsafeBuffer("1234".getBytes(UTF_8));
+
+    private final int length;
+    private final int transformLength;
+    private final List<String> paths;
+    private final ModelVisitor visitor;
+    private final ModelPipelineResult result;
+
+    private int processed;
+
+    TestModelPipeline(
+        int length,
+        int transformLength,
+        List<String> paths,
+        ModelVisitor visitor)
+    {
+        this.length = length;
+        this.transformLength = transformLength;
+        this.paths = paths;
+        this.visitor = visitor;
+        this.result = new ModelPipelineResult();
+    }
+
+    @Override
+    public ModelPipelineResult transform(
+        long traceId,
+        long bindingId,
+        int flags,
+        DirectBuffer src,
+        int srcIndex,
+        int srcLimit,
+        MutableDirectBuffer dst,
+        int dstIndex,
+        int dstLimit)
+    {
+        if ((flags & FLAGS_INIT) != 0)
+        {
+            processed = 0;
+        }
+
+        int srcLength = srcLimit - srcIndex;
+        int dstLength = dstLimit - dstIndex;
+        int available = Math.min(srcLength, dstLength);
+        boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;
+        int total = processed + available;
+        boolean valid = tail ? total == length : total <= length;
+
+        ModelStatus status;
+        int consumed;
+        int produced;
+        if (!valid)
+        {
+            status = ModelStatus.REJECTED;
+            consumed = 0;
+            produced = 0;
+        }
+        else if (tail && transformLength >= 0)
+        {
+            // whole-value transform: truncate, or grow by stamping the original value repeatedly,
+            // clipped to the configured transformed length
+            processed = total;
+            final int copy = Math.min(available, transformLength);
+            dst.putBytes(dstIndex, src, srcIndex, copy);
+            for (int index = copy; index < transformLength; index++)
+            {
+                final byte stamp = available > 0 ? src.getByte(srcIndex + index % available) : (byte) 0;
+                dst.putByte(dstIndex + index, stamp);
+            }
+            consumed = available;
+            produced = transformLength;
+            status = ModelStatus.COMPLETE;
+            for (int i = 0; i < paths.size(); i++)
+            {
+                visitor.onField(paths.get(i), extractedValue, 0, extractedValue.capacity());
+            }
+        }
+        else
+        {
+            processed = total;
+            dst.putBytes(dstIndex, src, srcIndex, available);
+            consumed = available;
+            produced = available;
+            if (available < srcLength)
+            {
+                status = ModelStatus.OVERFLOW;
+            }
+            else if (tail)
+            {
+                status = ModelStatus.COMPLETE;
+                for (int i = 0; i < paths.size(); i++)
+                {
+                    visitor.onField(paths.get(i), extractedValue, 0, extractedValue.capacity());
+                }
+            }
+            else
+            {
+                status = ModelStatus.UNDERFLOW;
+            }
+        }
+        return result.set(status, consumed, produced);
+    }
+
+    @Override
+    public void reset()
+    {
+        processed = 0;
+    }
+}

@@ -100,7 +100,7 @@ public class ProtobufModelHandler
             int emitted = 0;
             generator.wrap(out, 0, out.capacity());
             pipeline.reset();
-            ProtobufPipeline.Status status = pipeline.feed(data, index, index + length);
+            ProtobufPipeline.Status status = pipeline.transform(data, index, index + length);
             // each filled window is a finished chunk (the sink backfills any open length slots before
             // suspending); emit it as-is and resume into the same window — flush() is only for completion
             while (status == ProtobufPipeline.Status.SUSPENDED)
@@ -109,7 +109,7 @@ public class ProtobufModelHandler
                 next.accept(out, 0, chunk);
                 emitted += chunk;
                 generator.wrap(out, 0, out.capacity());
-                status = pipeline.feed(data, index, index + length);
+                status = pipeline.transform(data, index, index + length);
             }
             if (status == ProtobufPipeline.Status.COMPLETED)
             {

@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Composable forwarding {@link JsonTransform} that rewrites top-level object keys per a rename map,
@@ -53,7 +54,7 @@ public final class McpHttpRename implements JsonTransform
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event,
@@ -64,22 +65,22 @@ public final class McpHttpRename implements JsonTransform
         {
         case START_OBJECT:
         case START_ARRAY:
-            status = sink.feed(control, source, event);
+            status = sink.transform(control, source, event);
             depth++;
             break;
         case END_OBJECT:
         case END_ARRAY:
             depth--;
-            status = sink.feed(control, source, event);
+            status = sink.transform(control, source, event);
             break;
         case KEY_NAME:
             final String renamed = depth == 1 ? renames.get(source.getStringView().toString()) : null;
             status = renamed != null
-                ? sink.feed(control, keySource.with(renamed), event)
-                : sink.feed(control, source, event);
+                ? sink.transform(control, keySource.with(renamed), event)
+                : sink.transform(control, source, event);
             break;
         default:
-            status = sink.feed(control, source, event);
+            status = sink.transform(control, source, event);
             break;
         }
         return status;
@@ -140,6 +141,19 @@ public final class McpHttpRename implements JsonTransform
 
         @Override
         public DirectBuffer getSegment()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public JsonVerbatim getVerbatim(
+            int limit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void skipValue()
         {
             throw new UnsupportedOperationException();
         }

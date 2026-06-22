@@ -23,7 +23,7 @@ public class KafkaTopicTransformsType
 
     public final List<KafkaTopicHeaderType> extractHeaders;
 
-    KafkaTopicTransformsType(
+    public KafkaTopicTransformsType(
         String extractKey,
         List<KafkaTopicHeaderType> extractHeaders)
     {

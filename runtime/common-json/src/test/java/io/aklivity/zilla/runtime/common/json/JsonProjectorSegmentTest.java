@@ -53,7 +53,7 @@ class JsonProjectorSegmentTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
 
@@ -67,7 +67,7 @@ class JsonProjectorSegmentTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("")))
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         // structured delivery renders each leaf string from its decoded value, so escaping is canonical:
         // the redundant A collapses to A. Byte-verbatim preservation is the segmented path's job.
@@ -83,7 +83,7 @@ class JsonProjectorSegmentTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("")))
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         Status status = run(pipeline, "{ \"a\" : 1.0e2 } ");
 
@@ -109,7 +109,7 @@ class JsonProjectorSegmentTest
     void shouldStaySegmentFreeAndValidWithValidatorUpstream()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonTransform decliner = (control, source, event, sink) -> sink.feed(() ->
+        JsonTransform decliner = (control, source, event, sink) -> sink.transform(() ->
         {
         }, source, event);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
@@ -161,7 +161,7 @@ class JsonProjectorSegmentTest
         {
             limit = Math.min(limit + 8, bytes.length);
             boolean last = limit >= bytes.length;
-            status = pipeline.feed(new UnsafeBuffer(bytes), progress, limit, last);
+            status = pipeline.transform(new UnsafeBuffer(bytes), progress, limit, last);
             progress = limit - pipeline.remaining();
             if (status == Status.COMPLETED || status == Status.REJECTED)
             {
@@ -222,7 +222,7 @@ class JsonProjectorSegmentTest
                 limit = Math.min(limit + inStep, bytes.length);
             }
             boolean last = limit >= bytes.length;
-            status = pipeline.feed(new UnsafeBuffer(bytes), progress, limit, last);
+            status = pipeline.transform(new UnsafeBuffer(bytes), progress, limit, last);
             byte[] chunk = new byte[gen.length()];
             out.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
@@ -283,7 +283,7 @@ class JsonProjectorSegmentTest
                 limit = Math.min(limit + inStep, bytes.length);
             }
             boolean last = limit >= bytes.length;
-            status = pipeline.feed(new UnsafeBuffer(bytes), progress, limit, last);
+            status = pipeline.transform(new UnsafeBuffer(bytes), progress, limit, last);
             byte[] chunk = new byte[gen.length()];
             out.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
@@ -313,7 +313,7 @@ class JsonProjectorSegmentTest
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
         byte[] bytes = json.getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
         assertEquals(Status.COMPLETED, status);
         byte[] rendered = new byte[gen.length()];
         out.getBytes(0, rendered);
@@ -350,6 +350,6 @@ class JsonProjectorSegmentTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 }
