@@ -34,11 +34,9 @@ jobs:
     - name: Cache ZPM test artifacts
       uses: actions/cache@v5
       with:
-        path: |
-          manager/target/zpm/cache
-          !manager/target/zpm/cache/.locks
-        key: zpm-v2-${{ runner.os }}-${{ hashFiles('manager/src/conf/install/zpm.json') }}
-        restore-keys: zpm-v2-${{ runner.os }}-
+        path: manager/target/zpm/cache
+        key: zpm-${{ runner.os }}-${{ hashFiles('manager/src/conf/install/zpm.json') }}
+        restore-keys: zpm-${{ runner.os }}-
     - name: Route Docker Hub pulls through mirror.gcr.io
       run: |
         sudo mkdir -p /etc/docker

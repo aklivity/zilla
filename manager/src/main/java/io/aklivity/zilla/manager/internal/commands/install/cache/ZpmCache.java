@@ -61,6 +61,13 @@ import io.aklivity.zilla.manager.internal.commands.install.ZpmDependency;
 
 public final class ZpmCache
 {
+    // maven-resolver 2.x defaults the sync-context lock factory to the cross-process
+    // "file-lock" factory, which deadlocks resolving SNAPSHOT metadata in a single-process
+    // install (shared lock cannot be acquired within the 30s timeout). Pin the in-JVM
+    // read/write lock factory with GAV name mapping, matching resolver 1.x behavior.
+    private static final String CONFIG_PROP_NAMED_LOCK_FACTORY = "aether.syncContext.named.factory";
+    private static final String CONFIG_PROP_NAMED_NAME_MAPPER = "aether.syncContext.named.nameMapper";
+
     private final RepositorySystem repositorySystem;
 
     private final RepositorySystemSession session;
@@ -173,6 +180,8 @@ public final class ZpmCache
                 .setRepositoryListener(new ZpmConsoleRepositoryListener())
                 .setTransferListener(new ZpmConsoleTransferListener())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
+                .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "rwlock-local")
+                .setConfigProperty(CONFIG_PROP_NAMED_NAME_MAPPER, "gav")
                 .build();
     }
 
