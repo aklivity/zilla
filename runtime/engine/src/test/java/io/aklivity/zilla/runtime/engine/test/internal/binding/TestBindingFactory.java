@@ -646,6 +646,10 @@ final class TestBindingFactory implements BindingHandler
         {
             if (index >= storeAssertions.size())
             {
+                // the chain advances only from inside each op's async completion, so reaching the
+                // end means every completion has fired; emit an observable reply flush so the
+                // script can gate on the whole chain having completed on the dispatch thread
+                doReplyFlush(traceId, 0);
                 return;
             }
 

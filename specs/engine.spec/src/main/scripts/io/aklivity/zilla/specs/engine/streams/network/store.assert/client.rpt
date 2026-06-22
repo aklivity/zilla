@@ -20,4 +20,3 @@ connect "zilla://streams/net0"
 connected
 
 read advised zilla:flush
-read advised zilla:flush
