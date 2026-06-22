@@ -95,12 +95,13 @@ jobs:
         mkdir -p ~/docker-cache
         docker save -o ~/docker-cache/docker.tar $(docker images --format "{{.Repository}}" | grep "zilla")
 
-    - name: Cache Docker image
-      uses: actions/cache@v5
+    - name: Upload Docker image
+      uses: actions/upload-artifact@v7
       if: success()
       with:
+        name: zilla-image
         path: ~/docker-cache/docker.tar
-        key: zilla-develop-SNAPSHOT-${{ github.run_id }}
+        retention-days: 1
 
     - name: Conditional Artifact Upload
       uses: actions/upload-artifact@v7
@@ -176,13 +177,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Restore cached Docker images
-        uses: actions/cache@v5
+      - name: Download Docker image
+        uses: actions/download-artifact@v7
         with:
-          path: ~/docker-cache/docker.tar
-          key: zilla-develop-SNAPSHOT-${{ github.run_id }}
+          name: zilla-image
+          path: ~/docker-cache
 
-      - name: Load cached Docker image
+      - name: Load Docker image
         run: |
           docker load -i ~/docker-cache/docker.tar
 
@@ -221,3 +222,28 @@ jobs:
         if: ${{ always() && hashFiles(format('examples/{0}/teardown.sh', matrix.dir)) != '' }}
         working-directory: examples/${{ matrix.dir }}
         run: docker compose down --remove-orphans
+
+  cleanup:
+    if: always()
+    needs:
+      - testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Docker image artifact
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            for (const artifact of artifacts.data.artifacts) {
+              if (artifact.name === 'zilla-image') {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id,
+                });
+              }
+            }
