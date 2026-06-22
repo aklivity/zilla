@@ -62,7 +62,7 @@ public final class AvroSinkImpl implements AvroSink
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         AvroController control,
         AvroSource source,
         AvroEvent event)
@@ -211,7 +211,7 @@ public final class AvroSinkImpl implements AvroSink
         AvroSource source,
         AvroEvent event)
     {
-        return feed(control, source, event);
+        return transform(control, source, event);
     }
 
     @Override

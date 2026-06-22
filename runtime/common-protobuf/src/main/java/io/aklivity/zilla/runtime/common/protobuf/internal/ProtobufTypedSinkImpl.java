@@ -70,7 +70,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     }
 
     @Override
-    public ProtobufPipeline.Status feed(
+    public ProtobufPipeline.Status transform(
         ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event)

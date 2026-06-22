@@ -330,7 +330,7 @@ public class ProtobufJsonTest
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
 
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(wire), 0, wire.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(wire), 0, wire.length));
         generator.flush();
 
         byte[] bytes = new byte[generator.length()];
@@ -349,7 +349,7 @@ public class ProtobufJsonTest
         pipeline.reset();
 
         byte[] in = json.getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
 
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);
@@ -378,7 +378,7 @@ public class ProtobufJsonTest
             int take = Math.min(window, length - limit);
             limit += take;
             boolean last = limit >= length;
-            status = pipeline.feed(in, progress, limit, last);
+            status = pipeline.transform(in, progress, limit, last);
             if (status == Status.STARVED)
             {
                 progress = limit - pipeline.remaining();
@@ -404,7 +404,7 @@ public class ProtobufJsonTest
         generator.wrap(out, 0, out.capacity());
         pipeline.reset();
         byte[] in = json.getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);
         return bytes;
@@ -420,7 +420,7 @@ public class ProtobufJsonTest
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
         byte[] in = json.getBytes(UTF_8);
-        return pipeline.feed(new UnsafeBuffer(in), 0, in.length);
+        return pipeline.transform(new UnsafeBuffer(in), 0, in.length);
     }
 
     private byte[] nestedWire()

@@ -112,9 +112,9 @@ public class JsonConverterTest
         data.wrap(bytes, 0, bytes.length);
 
         Capture capture = new Capture();
-        String canonical = "{\"id\":\"123\",\"status\":\"OK\"}";
-        assertEquals(canonical.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
-        assertEquals(canonical, capture.text());
+        // forward unchanged: the converter preserves the original bytes verbatim (insignificant whitespace kept)
+        assertEquals(payload.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(payload, capture.text());
     }
 
     @Test
@@ -157,8 +157,8 @@ public class JsonConverterTest
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
 
-        String canonical = "[{\"id\":\"123\",\"status\":\"OK\"}]";
-        assertEquals(canonical.length(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        // forward unchanged: the converter preserves the original bytes verbatim (insignificant whitespace kept)
+        assertEquals(payload.length(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
     }
 
     @Test
@@ -247,9 +247,9 @@ public class JsonConverterTest
         data.wrap(bytes, 0, bytes.length);
 
         Capture capture = new Capture();
-        String canonical = "{\"id\":\"123\",\"status\":\"OK\"}";
-        assertEquals(canonical.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
-        assertEquals(canonical, capture.text());
+        // forward unchanged: the converter preserves the original bytes verbatim (insignificant whitespace kept)
+        assertEquals(payload.length(), converter.convert(0L, 0L, data, 0, data.capacity(), capture));
+        assertEquals(payload, capture.text());
     }
 
     @Test
@@ -342,8 +342,8 @@ public class JsonConverterTest
                 "}";
         byte[] bytes = payload.getBytes();
         data.wrap(bytes, 0, bytes.length);
-        String canonical = "{\"id\":\"123\",\"zillaId\":321,\"status\":\"OK\"}";
-        assertEquals(canonical.length(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
+        // forward unchanged: the converter preserves the original bytes verbatim (insignificant whitespace kept)
+        assertEquals(payload.length(), converter.convert(0L, 0L, data, 0, data.capacity(), ValueConsumer.NOP));
 
         assertEquals(2, converter.extractedLength(statusPath));
         final ConverterHandler.FieldVisitor visitor = (buffer, index, length) ->

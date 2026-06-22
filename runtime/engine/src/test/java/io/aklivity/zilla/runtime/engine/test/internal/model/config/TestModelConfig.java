@@ -25,15 +25,26 @@ public class TestModelConfig extends ModelConfig
 {
     public final int length;
     public final boolean read;
+    public final int transformLength;
 
     public TestModelConfig(
         int length,
         List<CatalogedConfig> cataloged,
         boolean read)
     {
+        this(length, cataloged, read, -1);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength)
+    {
         super("test", cataloged);
         this.length = length;
         this.read = read;
+        this.transformLength = transformLength;
     }
 
     public static <T> TestModelConfigBuilder<T> builder(

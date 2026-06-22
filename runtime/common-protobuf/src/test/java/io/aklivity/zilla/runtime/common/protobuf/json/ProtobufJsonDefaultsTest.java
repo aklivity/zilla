@@ -152,7 +152,7 @@ public class ProtobufJsonDefaultsTest
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(wire), 0, wire.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(wire), 0, wire.length));
         generator.flush();
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);

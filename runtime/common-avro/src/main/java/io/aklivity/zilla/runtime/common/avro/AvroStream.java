@@ -36,4 +36,14 @@ public interface AvroStream
 
     AvroPipeline into(
         AvroSink sink);
+
+    /**
+     * Terminates the pipeline with a generator-backed sink the pipeline owns and re-targets per
+     * {@link AvroPipeline#transform} call. The generator need not be wrapped over the caller's destination
+     * beforehand — it is re-targeted at that destination on each {@code transform}. Use this terminal
+     * (rather than {@link #into(AvroSink)} over a caller-wrapped generator) when driving the pipeline with
+     * {@link AvroPipeline#transform}.
+     */
+    AvroPipeline into(
+        AvroGenerator generator);
 }

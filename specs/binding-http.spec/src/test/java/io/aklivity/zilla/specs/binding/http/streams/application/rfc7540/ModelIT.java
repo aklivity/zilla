@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.http.streams.application.rfc7230;
+package io.aklivity.zilla.specs.binding.http.streams.application.rfc7540;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -27,10 +27,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class ValidationIT
+public class ModelIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/validation");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/model");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -68,7 +68,7 @@ public class ValidationIT
     @Specification({
         "${app}/invalid.response.content/client",
         "${app}/invalid.response.content/server" })
-    public void shouldAbortForInvalidContentResponse() throws Exception
+    public void shouldAbortForInvalidResponse() throws Exception
     {
         k3po.finish();
     }

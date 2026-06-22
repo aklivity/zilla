@@ -30,7 +30,7 @@ public final class ProtobufDiscardSinkImpl implements ProtobufSink
     private int depth;
 
     @Override
-    public ProtobufPipeline.Status feed(
+    public ProtobufPipeline.Status transform(
         ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event)

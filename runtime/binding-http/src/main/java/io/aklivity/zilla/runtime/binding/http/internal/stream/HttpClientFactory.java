@@ -47,7 +47,6 @@ import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -85,6 +84,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpModel;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRequestType;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
@@ -119,9 +119,6 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class HttpClientFactory implements HttpStreamFactory
 {
@@ -147,6 +144,10 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final int NO_CONTENT_LENGTH = -1;
     private static final int CLIENT_INITIATED = 1;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
+
+    private static final int FLAG_FIN = 0x01;
+    private static final int FLAG_INIT = 0x02;
+    private static final int FLAG_COM = 0x03;
 
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
 
@@ -231,6 +232,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
 
     private final HttpBeginExFW.Builder beginExRW = new HttpBeginExFW.Builder();
+    private final HttpBeginExFW.Builder modelBeginExRW = new HttpBeginExFW.Builder();
     private final HttpFlushExFW.Builder flushExRW = new HttpFlushExFW.Builder();
     private final HttpEndExFW.Builder endExRW = new HttpEndExFW.Builder();
 
@@ -294,7 +296,9 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HpackHeaderBlockFW headerBlockRO = new HpackHeaderBlockFW();
     private final MutableInteger payloadRemaining = new MutableInteger(0);
 
-    private final Function<ModelConfig, ValidatorHandler> supplyValidator;
+    private final MutableDirectBuffer modelBuffer;
+    private final MutableDirectBuffer modelBeginExBuffer;
+    private final MutableBoolean modelValid = new MutableBoolean();
 
     private final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType;
     {
@@ -358,6 +362,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.modelBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.modelBeginExBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.headersPool = bufferPool.duplicate();
         this.initialSettings = new Http2Settings(config, headersPool);
@@ -384,7 +390,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.maximumPushPromiseListSize = config.maxPushPromiseListSize();
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
-        this.supplyValidator = context::supplyValidator;
         this.verbose = config.verbose();
 
         final byte[] settingsPayload = new byte[12];
@@ -406,7 +411,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        HttpBindingConfig httpBinding = new HttpBindingConfig(context, binding);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(context, binding, modelBuffer);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -788,6 +793,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         if (contentLength > 0)
                         {
                             client.decodableContentLength = contentLength;
+                            client.contentLength = contentLength;
                             client.decoder = decodeHttp11Content;
                         }
                         break;
@@ -927,7 +933,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         int progress = offset;
         if (decodableBytes > 0)
         {
-            progress = client.onDecodeHttp11Body(traceId, authorization, budgetId,
+            progress = client.onDecodeHttp11Body(traceId, authorization, budgetId, FLAG_COM,
                                            buffer, offset, offset + decodableBytes, EMPTY_OCTETS);
             client.decodableChunkSize -= progress - offset;
 
@@ -983,7 +989,18 @@ public final class HttpClientFactory implements HttpStreamFactory
         int progress = offset;
         if (length > 0)
         {
-            progress = client.onDecodeHttp11Body(traceId, authorization, budgetId, buffer, offset, offset + length, EMPTY_OCTETS);
+            int flags = 0;
+            if (client.decodableContentLength == client.contentLength)
+            {
+                flags = FLAG_INIT;
+            }
+            if (client.decodableContentLength == length)
+            {
+                flags |= FLAG_FIN;
+            }
+
+            progress = client.onDecodeHttp11Body(traceId, authorization, budgetId, flags,
+                buffer, offset, offset + length, EMPTY_OCTETS);
             assert progress <= limit;
             client.decodableContentLength -= progress - offset;
         }
@@ -1084,7 +1101,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         int offset,
         int limit)
     {
-        return client.onDecodeHttp11Body(traceId, authorization, budgetId, buffer, offset, limit, EMPTY_OCTETS);
+        return client.onDecodeHttp11Body(traceId, authorization, budgetId, FLAG_COM, buffer, offset, limit, EMPTY_OCTETS);
     }
 
     private static int http2FramePadding(
@@ -2216,6 +2233,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private Http2ErrorCode decodeError;
         private int decodableChunkSize;
         private int decodableContentLength;
+        private int contentLength;
 
         private final MutableDirectBuffer encodeHeadersBuffer;
         private final MutableDirectBuffer encodeReservedBuffer;
@@ -2880,10 +2898,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             else
             {
                 exchange.resolveResponse(beginEx);
-                boolean valid = exchange.validateResponseHeaders(beginEx);
+                final HttpBeginExFW transformedBeginEx = exchange.transformResponseBeginEx(beginEx);
+                boolean valid = transformedBeginEx != null;
                 if (valid)
                 {
-                    exchange.doResponseBegin(traceId, authorization, beginEx);
+                    exchange.doResponseBegin(traceId, authorization, transformedBeginEx);
 
                     final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
                     if (connection != null && connectionClose.reset(connection.value().asString()).matches())
@@ -2919,22 +2938,14 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization,
             long budgetId,
+            int flags,
             DirectBuffer buffer,
             int offset,
             int limit,
             Flyweight extension)
         {
-            int result;
-            boolean valid = true;
-            if (exchange.response != null && exchange.response.content != null)
-            {
-                valid = exchange.validateResponseContent(buffer, offset, limit - offset);
-            }
-            if (valid)
-            {
-                result = exchange.doResponseData(traceId, authorization, buffer, offset, limit, extension);
-            }
-            else
+            int result = exchange.doResponseData(traceId, authorization, flags, buffer, offset, limit, extension);
+            if (result < 0)
             {
                 exchange.onResponseInvalid(traceId, authorization);
                 result = limit;
@@ -3361,24 +3372,23 @@ public final class HttpClientFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            boolean valid = true;
-                            if (exchange.response != null && exchange.response.content != null)
-                            {
-                                valid = exchange.validateResponseContent(payload, 0, payloadLength);
-                            }
-                            if (valid)
-                            {
-                                final int remainingProgress = exchange.doResponseData(traceId, authorization, payload,
-                                    0, payloadLength, EMPTY_OCTETS);
-                                payloadRemaining.value -= remainingProgress;
-                                exchange.responseContentObserved += remainingProgress;
-                                progress += payloadLength - payloadRemaining.value;
-                                deferred += payloadRemaining.value;
-                            }
-                            else
+                            final int initFlag = exchange.responseContentInited ? 0 : FLAG_INIT;
+                            final int finFlag = Http2Flags.endStream(flags) && deferred == 0 ? FLAG_FIN : 0;
+                            exchange.responseContentInited = true;
+
+                            final int consumed = exchange.doResponseData(traceId, authorization, initFlag | finFlag,
+                                payload, 0, payloadLength, EMPTY_OCTETS);
+                            if (consumed < 0)
                             {
                                 exchange.onResponseInvalid(traceId, authorization);
                                 progress += payloadLength;
+                            }
+                            else
+                            {
+                                payloadRemaining.value -= consumed;
+                                exchange.responseContentObserved += consumed;
+                                progress += payloadLength - payloadRemaining.value;
+                                deferred += payloadRemaining.value;
                             }
                         }
                     }
@@ -3476,10 +3486,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .build();
 
                 exchange.resolveResponse(beginEx);
-                boolean valid = exchange.validateResponseHeaders(beginEx);
+                final HttpBeginExFW transformedBeginEx = exchange.transformResponseBeginEx(beginEx);
+                boolean valid = transformedBeginEx != null;
                 if (valid)
                 {
-                    exchange.doResponseBegin(traceId, authorization, beginEx);
+                    exchange.doResponseBegin(traceId, authorization, transformedBeginEx);
                     if (endResponse)
                     {
                         exchange.doResponseEnd(traceId, authorization, EMPTY_OCTETS);
@@ -4593,7 +4604,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final HttpBindingConfig binding;
         private HttpRequestType requestType;
         private HttpRequestType.Response response;
-        private ValidatorHandler contentType;
+        private HttpModel content;
+        private boolean responseContentInited;
 
         private HttpExchange(
             HttpClient client,
@@ -4929,35 +4941,81 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int doResponseData(
             long traceId,
             long authorization,
+            int flags,
             DirectBuffer buffer,
             int offset,
             int limit,
             Flyweight extension)
         {
-            int responseNoAck = (int)(responseSeq - responseAck);
-            int length = Math.min(responseMax - responseNoAck - responsePad, limit - offset);
-            int reserved = length + responsePad;
+            int progress;
 
-            if (responseDebit != null)
+            if (content == HttpModel.NONE)
             {
-                final int minimum = reserved; // TODO: fragmentation
-                reserved = responseDebit.claim(traceId, minimum, reserved);
-                length = Math.max(reserved - responsePad, 0);
+                int responseNoAck = (int)(responseSeq - responseAck);
+                int length = Math.min(responseMax - responseNoAck - responsePad, limit - offset);
+                int reserved = length + responsePad;
+
+                if (responseDebit != null)
+                {
+                    final int minimum = reserved; // TODO: fragmentation
+                    reserved = responseDebit.claim(traceId, minimum, reserved);
+                    length = Math.max(reserved - responsePad, 0);
+                }
+
+                if (length > 0)
+                {
+                    doData(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
+                            traceId, authorization, responseBud,
+                            reserved, buffer, offset, length, extension);
+
+                    responseSeq += reserved;
+                    localBudget -= length;
+
+                    assert responseSeq <= responseAck + responseMax;
+                }
+
+                progress = offset + length;
+            }
+            else
+            {
+                final int responseNoAck = (int)(responseSeq - responseAck);
+                final int window = Math.max(responseMax - responseNoAck - responsePad, 0);
+                final int dstMax = Math.min(window, modelBuffer.capacity());
+                final int consumed = content.transform(traceId, routedId, flags, buffer, offset, limit, dstMax);
+
+                if (consumed < 0)
+                {
+                    progress = -1;
+                }
+                else
+                {
+                    final int produced = content.produced();
+
+                    if (produced > 0)
+                    {
+                        int reserved = produced + responsePad;
+
+                        if (responseDebit != null)
+                        {
+                            final int minimum = reserved; // TODO: fragmentation
+                            reserved = responseDebit.claim(traceId, minimum, reserved);
+                        }
+
+                        doData(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
+                                traceId, authorization, responseBud,
+                                reserved, content.buffer(), 0, produced, extension);
+
+                        responseSeq += reserved;
+                        localBudget -= produced;
+
+                        assert responseSeq <= responseAck + responseMax;
+                    }
+
+                    progress = offset + consumed;
+                }
             }
 
-            if (length > 0)
-            {
-                doData(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
-                        traceId, authorization, responseBud,
-                        reserved, buffer, offset, length, extension);
-
-                responseSeq += reserved;
-                localBudget -= length;
-
-                assert responseSeq <= responseAck + responseMax;
-            }
-
-            return offset + length;
+            return progress;
         }
 
         private void doResponseFlush(
@@ -5159,42 +5217,53 @@ public final class HttpClientFactory implements HttpStreamFactory
             HttpBeginExFW beginEx)
         {
             this.response = binding.resolveResponse(requestType, beginEx);
-            this.contentType = response != null && response.content != null
-                ? supplyValidator.apply(response.content)
-                : null;
+            this.content = response != null
+                ? HttpModel.decoder(response.content, modelBuffer)
+                : HttpModel.NONE;
         }
 
-        public boolean validateResponseHeaders(
+        public HttpBeginExFW transformResponseBeginEx(
             HttpBeginExFW beginEx)
         {
-            MutableBoolean valid = new MutableBoolean(true);
-            if (response != null && response.headers != null)
+            HttpBeginExFW result = beginEx;
+            if (response != null && response.headers != null && !response.headers.isEmpty())
             {
+                final long traceId = supplyTraceId.getAsLong();
+                final HttpBeginExFW.Builder builder =
+                    modelBeginExRW.wrap(modelBeginExBuffer, 0, modelBeginExBuffer.capacity())
+                        .compositeId(beginEx.compositeId())
+                        .typeId(beginEx.typeId());
+
+                modelValid.value = true;
                 beginEx.headers().forEach(header ->
                 {
-                    if (valid.value)
+                    if (modelValid.value)
                     {
-                        ValidatorHandler validator = response.headers.get(header.name());
-                        if (validator != null)
+                        final String8FW name = header.name();
+                        final String16FW value = header.value();
+                        final HttpModel model = response.headers.get(name);
+                        if (model != null && model != HttpModel.NONE)
                         {
-                            String16FW value = header.value();
-                            valid.value &=
-                                validator.validate(supplyTraceId.getAsLong(), routedId, value.value(),
-                                    value.offset(), value.length(), ValueConsumer.NOP);
+                            final int produced = model.transform(traceId, routedId, value.value(), 0, value.length());
+                            if (produced < 0)
+                            {
+                                modelValid.value = false;
+                            }
+                            else
+                            {
+                                builder.headersItem(item -> item.name(name).value(model.buffer(), 0, produced));
+                            }
+                        }
+                        else
+                        {
+                            builder.headersItem(item -> item.name(name).value(value));
                         }
                     }
                 });
-            }
-            return valid.value;
-        }
 
-        private boolean validateResponseContent(
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            return contentType == null ||
-                contentType.validate(supplyTraceId.getAsLong(), routedId, buffer, index, length, ValueConsumer.NOP);
+                result = modelValid.value ? builder.build() : null;
+            }
+            return result;
         }
 
         private void onResponseInvalid(
