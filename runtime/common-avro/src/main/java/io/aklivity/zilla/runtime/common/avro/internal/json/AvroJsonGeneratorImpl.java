@@ -140,7 +140,22 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     @Override
     public int remaining()
     {
-        return Math.max(0, json.remaining() - RESERVE);
+        return Math.max(0, json.remaining() - RESERVE - pendingKeyWidth());
+    }
+
+    private int pendingKeyWidth()
+    {
+        int width = 0;
+        if (top > 0)
+        {
+            Frame frame = stack[top - 1];
+            if (frame.kind == RECORD && frame.fieldIndex < frame.fields.size())
+            {
+                String name = frame.fields.get(frame.fieldIndex).name();
+                width = name.length() + 3 + (frame.fieldIndex > 0 ? 1 : 0);
+            }
+        }
+        return width;
     }
 
     @Override
