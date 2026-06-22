@@ -57,6 +57,25 @@ class JsonPipelineTransformTest
     }
 
     @Test
+    void shouldForwardTrailingNewlineVerbatim()
+    {
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createGenerator());
+        pipeline.reset();
+
+        byte[] in = "{\"a\":1}\n".getBytes(UTF_8);
+        int dstCap = 64;
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        JsonPipelineResult result = pipeline.transform(srcOf(in), SRC_OFFSET, SRC_OFFSET + in.length, true,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+
+        assertEquals(Status.COMPLETED, result.status());
+        assertEquals(in.length, result.consumed());
+        byte[] out = new byte[result.produced()];
+        dst.getBytes(DST_OFFSET, out);
+        assertEquals("{\"a\":1}\n", new String(out, UTF_8));
+    }
+
+    @Test
     void shouldSuspendOnBoundedOutputThenCompleteAcrossDrains()
     {
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createGenerator());
@@ -126,7 +145,7 @@ class JsonPipelineTransformTest
         assertTrue(second.produced() <= dstCap);
         drainChunk(dst, second.produced(), drained);
 
-        assertEquals("{\"a\":1,\"b\":2}", drained.toString(UTF_8));
+        assertEquals("{\"a\":1,\"b\":2} ", drained.toString(UTF_8));
     }
 
     private String drainToCompletion(

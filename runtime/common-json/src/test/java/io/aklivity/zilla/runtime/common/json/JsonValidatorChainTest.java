@@ -204,7 +204,7 @@ class JsonValidatorChainTest
         Status status = run(pipeline, "{\"id\":1} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"id\":1}", output(gen));
+        assertEquals("{\"id\":1} ", output(gen));
     }
 
     @Test

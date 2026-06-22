@@ -69,7 +69,7 @@ class JsonSinkSegmentTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
-        assertEquals("{ \"a\" : 1 }", new String(out, UTF_8));
+        assertEquals("{ \"a\" : 1 } ", new String(out, UTF_8));
     }
 
     @Test
@@ -88,7 +88,7 @@ class JsonSinkSegmentTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
-        assertEquals("{ \"a\" : [1, 2], \"b\" : 3 }", new String(out, UTF_8));
+        assertEquals("{ \"a\" : [1, 2], \"b\" : 3 } ", new String(out, UTF_8));
     }
 
     @Test
@@ -108,7 +108,7 @@ class JsonSinkSegmentTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
-        assertEquals("[ 1, 2 ]", new String(out, UTF_8));
+        assertEquals("[ 1, 2 ] ", new String(out, UTF_8));
     }
 
     @Test
@@ -128,7 +128,7 @@ class JsonSinkSegmentTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
-        assertEquals("{ \"x\" : [1 ,2] }", new String(out, UTF_8));
+        assertEquals("{ \"x\" : [1 ,2] } ", new String(out, UTF_8));
     }
 
     @Test
@@ -151,7 +151,7 @@ class JsonSinkSegmentTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
-        assertEquals("{\"a\":1,\"b\":2}", new String(out, UTF_8));
+        assertEquals("{\"a\":1,\"b\":2} ", new String(out, UTF_8));
     }
 
     @Test

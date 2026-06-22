@@ -102,7 +102,7 @@ class JsonProjectorSegmentTest
         Status status = run(pipeline, "{ \"a\" : 1 } ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{ \"a\" : 1 }", output(gen));
+        assertEquals("{ \"a\" : 1 } ", output(gen));
     }
 
     @Test
