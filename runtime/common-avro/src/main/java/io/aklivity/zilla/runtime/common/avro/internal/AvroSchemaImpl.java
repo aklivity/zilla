@@ -63,5 +63,11 @@ public final class AvroSchemaImpl implements AvroSchema
         {
             return sink.transform(control, source, event);
         }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
     }
 }

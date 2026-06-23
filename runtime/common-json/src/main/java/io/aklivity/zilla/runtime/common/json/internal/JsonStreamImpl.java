@@ -137,5 +137,11 @@ public final class JsonStreamImpl implements JsonStream
             transform.reset();
             downstream.reset();
         }
+
+        @Override
+        public boolean identity()
+        {
+            return transform.identity() && downstream.identity();
+        }
     }
 }

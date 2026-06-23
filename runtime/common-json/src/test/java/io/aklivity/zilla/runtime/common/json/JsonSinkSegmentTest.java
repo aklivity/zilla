@@ -159,7 +159,23 @@ class JsonSinkSegmentTest
     {
         // a stage that only forwards events relies on the JsonSink default resume/reset:
         // reset is a no-op and resume reports nothing pending
-        JsonSink sink = (control, source, event) -> Status.ADVANCED;
+        JsonSink sink = new JsonSink()
+        {
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event)
+            {
+                return Status.ADVANCED;
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return false;
+            }
+        };
         sink.reset();
         assertEquals(Status.ADVANCED, sink.resume(null, null, null));
     }

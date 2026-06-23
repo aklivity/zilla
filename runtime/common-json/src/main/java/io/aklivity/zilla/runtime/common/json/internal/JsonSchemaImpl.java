@@ -2191,6 +2191,12 @@ public final class JsonSchemaImpl implements JsonSchema
             }
         }
 
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+
         // streaming-over-buffers surface, delegated; validation runs on the next()/getString() pull path
         @Override
         public JsonParserEx wrap(
@@ -2418,6 +2424,12 @@ public final class JsonSchemaImpl implements JsonSchema
             diagnostics.clear();
             eval = eval(new Trace(diagnostics::add));
             downstreamVerbatim = false;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
         }
     }
 

@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -39,7 +40,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public class JsonReadModelPipelineTest
+public class JsonDecodeModelPipelineTest
 {
     private static final String OBJECT_SCHEMA = "{" +
         "\"type\": \"object\"," +
@@ -142,6 +143,22 @@ public class JsonReadModelPipelineTest
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
+    }
+
+    @Test
+    public void shouldReportIdentity()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        assertFalse(pipeline.identity());
+
+        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertTrue(pipeline.identity());
     }
 
     private JsonModelHandlerImpl newHandler()

@@ -212,6 +212,12 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
+    @Override
     public boolean hasNext()
     {
         boolean result;

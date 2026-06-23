@@ -115,6 +115,12 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     }
 
     @Override
+    public boolean identity()
+    {
+        return false;
+    }
+
+    @Override
     public AvroGenerator wrap(
         MutableDirectBuffer buffer,
         int offset,

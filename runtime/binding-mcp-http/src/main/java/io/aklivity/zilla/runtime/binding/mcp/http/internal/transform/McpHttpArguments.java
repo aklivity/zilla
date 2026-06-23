@@ -60,6 +60,12 @@ public final class McpHttpArguments implements JsonTransform
     }
 
     @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
+    @Override
     public Status transform(
         JsonController control,
         JsonSource source,

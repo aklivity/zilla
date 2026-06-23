@@ -29,6 +29,17 @@ class JsonValidatorVerbatimTest
     private static final String SCHEMA = "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}}}";
 
     @Test
+    void shouldReportIdentityForValidatingPipeline()
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of(SCHEMA).validator())
+            .into(JsonEx.createSink(gen));
+
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
     void shouldValidateThenForwardVerbatimPreservingWhitespace()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();

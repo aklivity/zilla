@@ -109,6 +109,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
+    public boolean identity()
+    {
+        return false;
+    }
+
+    @Override
     public ProtobufGenerator wrap(
         MutableDirectBuffer buffer,
         int offset,

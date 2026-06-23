@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +44,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
-public class ProtobufReadModelPipelineTest
+public class ProtobufDecodeModelPipelineTest
 {
     private static final String SCHEMA = """
                                             syntax = "proto3";
@@ -303,6 +305,34 @@ public class ProtobufReadModelPipelineTest
             new UnsafeBuffer(invalid), 0, invalid.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldReportIdentityWhenNoView()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        assertFalse(pipeline.identity());
+
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenJsonView()
+    {
+        ProtobufModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+
+        assertFalse(pipeline.identity());
     }
 
     private ProtobufModelHandlerImpl newHandler(
