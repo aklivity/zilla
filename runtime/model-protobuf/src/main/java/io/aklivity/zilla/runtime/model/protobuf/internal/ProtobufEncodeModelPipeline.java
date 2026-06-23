@@ -12,39 +12,43 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.avro.internal;
+package io.aklivity.zilla.runtime.model.protobuf.internal;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Int2ObjectCache;
 
-import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
-import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
-import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
-import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
-// Per-stream write transform session vended by AvroModelHandlerImpl: owns its own schema-keyed pipeline
-// cache. transform emits the catalog framing prefix into the destination on the first fragment, then drives
-// the common-avro transform (JSON in, Avro binary out) into the destination after it.
-final class AvroWriteModelPipeline implements ModelPipeline
+// Per-stream write transform session vended by ProtobufModelHandlerImpl: owns its own message-keyed
+// pipeline cache. transform emits the catalog framing then the message-index prefix into the destination on
+// the first fragment, then drives the common-protobuf transform (JSON or wire in, wire out) into the
+// destination after them.
+final class ProtobufEncodeModelPipeline implements ModelPipeline
 {
-    private final AvroModelHandlerImpl handler;
-    private final Int2ObjectCache<AvroPipeline> pipelines;
+    private final ProtobufModelHandlerImpl handler;
+    private final Map<String, ProtobufPipeline> pipelines;
     private final ModelPipelineResult result;
 
-    private AvroPipeline active;
+    private ProtobufPipeline active;
     private String diagnostic;
     private MutableDirectBuffer prefixBuffer;
     private int prefixAt;
 
-    AvroWriteModelPipeline(
-        AvroModelHandlerImpl handler)
+    ProtobufEncodeModelPipeline(
+        ProtobufModelHandlerImpl handler)
     {
         this.handler = handler;
-        this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
+        this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
     }
 
@@ -66,13 +70,16 @@ final class AvroWriteModelPipeline implements ModelPipeline
         if ((flags & FLAGS_INIT) != 0)
         {
             int schemaId = handler.resolveSchemaId();
-            active = supplyPipeline(schemaId);
+            int[] path = handler.messagePath(schemaId);
+            ProtobufMessage message = handler.message(schemaId, path);
             diagnostic = null;
+            active = message != null ? supplyPipeline(schemaId, message.name()) : null;
             if (active != null)
             {
                 active.reset();
-                // the schema framing prefix is emitted once into the destination ahead of the value
-                prefix = writePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, dst, dstIndex);
+                // the catalog framing and the message-index prefix are emitted once into the destination ahead
+                // of the value
+                prefix = writeFraming(traceId, bindingId, schemaId, path, src, srcIndex, srcLength, dst, dstIndex);
             }
         }
 
@@ -81,7 +88,7 @@ final class AvroWriteModelPipeline implements ModelPipeline
         int produced;
         if (active == null)
         {
-            handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : AvroModel.NAME);
+            handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : ProtobufModel.NAME);
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;
@@ -89,14 +96,14 @@ final class AvroWriteModelPipeline implements ModelPipeline
         else
         {
             boolean last = (flags & FLAGS_FIN) != 0;
-            AvroPipelineResult avro =
+            ProtobufPipelineResult proto =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
-            status = map(avro.status());
-            consumed = avro.consumed();
-            produced = prefix + avro.produced();
+            status = map(proto.status());
+            consumed = proto.consumed();
+            produced = prefix + proto.produced();
             if (status == ModelStatus.REJECTED)
             {
-                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : AvroModel.NAME);
+                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : ProtobufModel.NAME);
             }
         }
         return result.set(status, consumed, produced);
@@ -128,10 +135,11 @@ final class AvroWriteModelPipeline implements ModelPipeline
         diagnostic = null;
     }
 
-    private int writePrefix(
+    private int writeFraming(
         long traceId,
         long bindingId,
         int schemaId,
+        int[] path,
         DirectBuffer src,
         int srcIndex,
         int srcLength,
@@ -141,6 +149,9 @@ final class AvroWriteModelPipeline implements ModelPipeline
         prefixBuffer = dst;
         prefixAt = dstIndex;
         handler.encodePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, this::putPrefix);
+        byte[] framing = handler.indexFraming(path);
+        prefixBuffer.putBytes(prefixAt, framing, 0, framing.length);
+        prefixAt += framing.length;
         return prefixAt - dstIndex;
     }
 
@@ -153,14 +164,15 @@ final class AvroWriteModelPipeline implements ModelPipeline
         prefixAt += length;
     }
 
-    private AvroPipeline supplyPipeline(
-        int schemaId)
+    private ProtobufPipeline supplyPipeline(
+        int schemaId,
+        String messageName)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, this::onRejected));
+        return pipelines.computeIfAbsent(messageName, name -> handler.newPipeline(schemaId, name, this::onRejected));
     }
 
     private void onRejected(
-        AvroDiagnostic diagnostic)
+        ProtobufDiagnostic diagnostic)
     {
         this.diagnostic = diagnostic.message();
     }

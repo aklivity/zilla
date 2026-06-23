@@ -44,7 +44,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
-public class ProtobufReadModelPipelineTest
+public class ProtobufDecodeModelPipelineTest
 {
     private static final String SCHEMA = """
                                             syntax = "proto3";

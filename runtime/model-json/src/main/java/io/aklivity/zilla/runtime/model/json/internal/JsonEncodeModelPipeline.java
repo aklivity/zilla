@@ -12,43 +12,43 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.protobuf.internal;
-
-import java.util.HashMap;
-import java.util.Map;
+package io.aklivity.zilla.runtime.model.json.internal;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectCache;
 
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
-// Per-stream write transform session vended by ProtobufModelHandlerImpl: owns its own message-keyed
-// pipeline cache. transform emits the catalog framing then the message-index prefix into the destination on
-// the first fragment, then drives the common-protobuf transform (JSON or wire in, wire out) into the
-// destination after them.
-final class ProtobufWriteModelPipeline implements ModelPipeline
+// Per-stream write transform session vended by JsonModelHandlerImpl: owns its own generator and
+// schema-keyed pipeline cache. transform emits the catalog framing prefix into the destination on the
+// first fragment, then drives the common-json transform into the destination after it.
+final class JsonEncodeModelPipeline implements ModelPipeline
 {
-    private final ProtobufModelHandlerImpl handler;
-    private final Map<String, ProtobufPipeline> pipelines;
+    private final JsonModelHandlerImpl handler;
+    private final JsonGeneratorEx generator;
+    private final Int2ObjectCache<JsonPipeline> pipelines;
     private final ModelPipelineResult result;
 
-    private ProtobufPipeline active;
+    private JsonPipeline active;
     private String diagnostic;
     private MutableDirectBuffer prefixBuffer;
     private int prefixAt;
 
-    ProtobufWriteModelPipeline(
-        ProtobufModelHandlerImpl handler)
+    JsonEncodeModelPipeline(
+        JsonModelHandlerImpl handler)
     {
         this.handler = handler;
-        this.pipelines = new HashMap<>();
+        this.generator = JsonEx.createGenerator();
+        this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
 
@@ -70,16 +70,13 @@ final class ProtobufWriteModelPipeline implements ModelPipeline
         if ((flags & FLAGS_INIT) != 0)
         {
             int schemaId = handler.resolveSchemaId();
-            int[] path = handler.messagePath(schemaId);
-            ProtobufMessage message = handler.message(schemaId, path);
+            active = supplyPipeline(schemaId);
             diagnostic = null;
-            active = message != null ? supplyPipeline(schemaId, message.name()) : null;
             if (active != null)
             {
                 active.reset();
-                // the catalog framing and the message-index prefix are emitted once into the destination ahead
-                // of the value
-                prefix = writeFraming(traceId, bindingId, schemaId, path, src, srcIndex, srcLength, dst, dstIndex);
+                // the schema framing prefix is emitted once into the destination ahead of the value
+                prefix = writePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, dst, dstIndex);
             }
         }
 
@@ -88,7 +85,7 @@ final class ProtobufWriteModelPipeline implements ModelPipeline
         int produced;
         if (active == null)
         {
-            handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : ProtobufModel.NAME);
+            handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;
@@ -96,14 +93,14 @@ final class ProtobufWriteModelPipeline implements ModelPipeline
         else
         {
             boolean last = (flags & FLAGS_FIN) != 0;
-            ProtobufPipelineResult proto =
+            JsonPipelineResult json =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
-            status = map(proto.status());
-            consumed = proto.consumed();
-            produced = prefix + proto.produced();
+            status = map(json.status());
+            consumed = json.consumed();
+            produced = prefix + json.produced();
             if (status == ModelStatus.REJECTED)
             {
-                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : ProtobufModel.NAME);
+                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
             }
         }
         return result.set(status, consumed, produced);
@@ -135,11 +132,10 @@ final class ProtobufWriteModelPipeline implements ModelPipeline
         diagnostic = null;
     }
 
-    private int writeFraming(
+    private int writePrefix(
         long traceId,
         long bindingId,
         int schemaId,
-        int[] path,
         DirectBuffer src,
         int srcIndex,
         int srcLength,
@@ -149,9 +145,6 @@ final class ProtobufWriteModelPipeline implements ModelPipeline
         prefixBuffer = dst;
         prefixAt = dstIndex;
         handler.encodePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, this::putPrefix);
-        byte[] framing = handler.indexFraming(path);
-        prefixBuffer.putBytes(prefixAt, framing, 0, framing.length);
-        prefixAt += framing.length;
         return prefixAt - dstIndex;
     }
 
@@ -164,15 +157,14 @@ final class ProtobufWriteModelPipeline implements ModelPipeline
         prefixAt += length;
     }
 
-    private ProtobufPipeline supplyPipeline(
-        int schemaId,
-        String messageName)
+    private JsonPipeline supplyPipeline(
+        int schemaId)
     {
-        return pipelines.computeIfAbsent(messageName, name -> handler.newPipeline(schemaId, name, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, generator, this::onRejected));
     }
 
     private void onRejected(
-        ProtobufDiagnostic diagnostic)
+        JsonDiagnostic diagnostic)
     {
         this.diagnostic = diagnostic.message();
     }
