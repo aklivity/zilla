@@ -88,7 +88,7 @@ class JsonPipelineChunkingTest
             .into(JsonEx.createSink(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test

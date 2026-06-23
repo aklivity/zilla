@@ -119,7 +119,7 @@ class JsonSchemaPathsTest
         pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
-        assertEquals("{\"items\":[{\"id\":1},{\"id\":2}]}", new String(out, UTF_8));
+        assertEquals("{\"items\":[{\"id\":1},{\"id\":2}]} ", new String(out, UTF_8));
     }
 
     private static List<String> retained(

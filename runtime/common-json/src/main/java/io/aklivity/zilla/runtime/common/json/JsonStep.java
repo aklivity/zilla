@@ -25,11 +25,15 @@ package io.aklivity.zilla.runtime.common.json;
  * copying bytes never needs a scalar's type, only that a value occupies a slot. {@link #SEPARATOR} marks a
  * value separator present in the block's bytes; only a block's leading/trailing separator is consulted (to
  * stitch an injected value at a block seam without doubling or dropping a comma), interior separators ride in
- * the bytes and move no state. There is no {@code START_DOCUMENT}/{@code END_DOCUMENT} — framing is not part of
- * a spliced run.
+ * the bytes and move no state. {@link #START_DOCUMENT} and {@link #END_DOCUMENT} are structurally inert framing
+ * steps — they open or close no container and move no depth or member state — present so a verbatim block can
+ * carry a document's leading/trailing insignificant bytes (e.g. a trailing newline) as the byte range
+ * associated with the framing step rather than through a separate sink path.
  */
 public enum JsonStep
 {
+    START_DOCUMENT,
+    END_DOCUMENT,
     START_OBJECT,
     END_OBJECT,
     START_ARRAY,
