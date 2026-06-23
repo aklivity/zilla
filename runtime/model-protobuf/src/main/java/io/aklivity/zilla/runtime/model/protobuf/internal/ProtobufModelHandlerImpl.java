@@ -43,8 +43,8 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 // Per-worker factory for a protobuf model. One handler serves both directions: supplyDecoder vends a
-// per-stream ProtobufReadModelPipeline (catalog framing and message-index prefix stripped, value validated and
-// re-encoded as JSON or canonical wire) and supplyEncoder vends a per-stream ProtobufWriteModelPipeline
+// per-stream ProtobufDecodeModelPipeline (catalog framing and message-index prefix stripped, value validated and
+// re-encoded as JSON or canonical wire) and supplyEncoder vends a per-stream ProtobufEncodeModelPipeline
 // (catalog framing and message-index prefix emitted, value validated). Configuration-derived state (catalog,
 // schema cache, extraction paths) is shared; in-flight state lives on each pipeline.
 public final class ProtobufModelHandlerImpl extends ProtobufModelHandler implements ModelHandler
@@ -89,14 +89,14 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new ProtobufReadModelPipeline(this, paths, names, visitor);
+        return new ProtobufDecodeModelPipeline(this, paths, names, visitor);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
-        return new ProtobufWriteModelPipeline(this);
+        return new ProtobufEncodeModelPipeline(this);
     }
 
     int decodePadding(

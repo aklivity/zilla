@@ -65,6 +65,11 @@ public interface AvroSink
     }
 
     /**
+     * Whether this sink, together with everything downstream of it, leaves the bytes unchanged.
+     */
+    boolean identity();
+
+    /**
      * A terminal sink that materializes each fed event into the corresponding write on {@code generator}.
      * The supplied generator must already be wrapped over its target buffer.
      */

@@ -102,6 +102,12 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
         pendingField = null;
     }
 
+    @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
     private Scope scope(
         int depth)
     {

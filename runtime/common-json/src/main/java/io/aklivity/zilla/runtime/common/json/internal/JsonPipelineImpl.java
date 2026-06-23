@@ -85,6 +85,12 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        return parser.identity() && root.identity();
+    }
+
+    @Override
     public int remaining()
     {
         return parser.remaining();

@@ -161,6 +161,12 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     @Override
+    public boolean identity()
+    {
+        return false;
+    }
+
+    @Override
     public ProtobufParser wrap(
         DirectBuffer buffer,
         int offset,

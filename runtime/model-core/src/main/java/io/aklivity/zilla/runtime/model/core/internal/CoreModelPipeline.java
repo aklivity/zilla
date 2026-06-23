@@ -90,6 +90,12 @@ final class CoreModelPipeline implements ModelPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
+    @Override
     public void reset()
     {
     }

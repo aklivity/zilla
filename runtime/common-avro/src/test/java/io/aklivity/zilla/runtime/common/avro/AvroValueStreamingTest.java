@@ -190,6 +190,12 @@ public class AvroValueStreamingTest
                 }
                 return status;
             }
+
+            @Override
+            public boolean identity()
+            {
+                return false;
+            }
         };
 
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(collector);
@@ -338,6 +344,12 @@ public class AvroValueStreamingTest
         {
             chunks.clear();
             deferreds.clear();
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
         }
 
         private byte[] bytes()

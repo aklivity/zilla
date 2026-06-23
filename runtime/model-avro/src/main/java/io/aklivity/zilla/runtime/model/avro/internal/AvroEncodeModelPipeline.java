@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // Per-stream write transform session vended by AvroModelHandlerImpl: owns its own schema-keyed pipeline
 // cache. transform emits the catalog framing prefix into the destination on the first fragment, then drives
 // the common-avro transform (JSON in, Avro binary out) into the destination after it.
-final class AvroWriteModelPipeline implements ModelPipeline
+final class AvroEncodeModelPipeline implements ModelPipeline
 {
     private final AvroModelHandlerImpl handler;
     private final Int2ObjectCache<AvroPipeline> pipelines;
@@ -40,7 +40,7 @@ final class AvroWriteModelPipeline implements ModelPipeline
     private MutableDirectBuffer prefixBuffer;
     private int prefixAt;
 
-    AvroWriteModelPipeline(
+    AvroEncodeModelPipeline(
         AvroModelHandlerImpl handler)
     {
         this.handler = handler;
@@ -100,6 +100,12 @@ final class AvroWriteModelPipeline implements ModelPipeline
             }
         }
         return result.set(status, consumed, produced);
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return false;
     }
 
     @Override

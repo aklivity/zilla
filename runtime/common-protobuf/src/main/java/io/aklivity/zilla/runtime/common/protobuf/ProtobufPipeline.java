@@ -77,6 +77,12 @@ public interface ProtobufPipeline
     void reset();
 
     /**
+     * Whether this pipeline reproduces its input bytes for every accepted datum — the composition of its
+     * parser, transform stages, and terminal generator all being identity.
+     */
+    boolean identity();
+
+    /**
      * The number of bytes at the tail of the most recently fed window not yet consumed — exactly what the
      * caller retains (typically in its own reassembly slot) and re-presents, contiguous, at the front of the
      * next {@link #transform}. A caller buffering across windows keeps this many bytes without tracking the

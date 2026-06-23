@@ -122,5 +122,11 @@ public final class AvroStreamImpl implements AvroStream
             transform.reset();
             downstream.reset();
         }
+
+        @Override
+        public boolean identity()
+        {
+            return transform.identity() && downstream.identity();
+        }
     }
 }

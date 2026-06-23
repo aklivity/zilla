@@ -186,6 +186,12 @@ public final class JsonSinkImpl implements JsonSink
         generator.reset();
     }
 
+    @Override
+    public boolean identity()
+    {
+        return generator.identity();
+    }
+
     // Whether the suspended event still has value bytes/chars left to write, read from the source cursor —
     // the sink keeps no pending state of its own.
     private boolean inFlight(

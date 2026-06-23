@@ -95,6 +95,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        return parser.identity() && head.identity();
+    }
+
+    @Override
     public int remaining()
     {
         return parser.remaining();
@@ -225,6 +231,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         {
             transform.reset();
             downstream.reset();
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return transform.identity() && downstream.identity();
         }
     }
 

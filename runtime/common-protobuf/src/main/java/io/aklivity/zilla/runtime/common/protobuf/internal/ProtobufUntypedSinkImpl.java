@@ -71,6 +71,12 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         depth = 0;
     }
 
+    @Override
+    public boolean identity()
+    {
+        return generator.identity();
+    }
+
     private ProtobufPipeline.Status dispatch(
         ProtobufController control,
         ProtobufSource source,
