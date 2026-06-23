@@ -48,6 +48,7 @@ public final class JsonSinkImpl implements JsonSink
     // whether a VERBATIM event has been copied this document: gates flush() so a segment-mode sink (whose
     // verbatim cursor never advanced) does not re-emit the whole input from cursor zero
     private boolean verbatimSeen;
+    private boolean documentReplayed;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -128,6 +129,7 @@ public final class JsonSinkImpl implements JsonSink
             }
             break;
         case END_DOCUMENT:
+            status = writeTrailing(control, source);
             break;
         default:
             break;
@@ -143,7 +145,11 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         Status status;
-        if (event != null && event.isVerbatim())
+        if (event == JsonEvent.END_DOCUMENT)
+        {
+            status = writeTrailing(control, source);
+        }
+        else if (event != null && event.isVerbatim())
         {
             verbatimSeen = true;
             status = writeVerbatim(source);
@@ -178,6 +184,7 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         verbatimSeen = false;
+        documentReplayed = false;
         generator.reset();
     }
 
@@ -326,6 +333,7 @@ public final class JsonSinkImpl implements JsonSink
         }
         else
         {
+            documentReplayed = depth == 0;
             status = scalarStatus();
         }
         return status;
@@ -354,6 +362,27 @@ public final class JsonSinkImpl implements JsonSink
         // means the output capped the run, so suspend and resume against a freshly drained buffer. An empty
         // block (drained, or no token fit) is shorter than the bound, so it advances.
         return length < free ? Status.ADVANCED : Status.SUSPENDED;
+    }
+
+    private Status writeTrailing(
+        JsonController control,
+        JsonSource source)
+    {
+        Status status = Status.ADVANCED;
+        if (documentReplayed)
+        {
+            final DirectBuffer trailing = source.getSegment();
+            final int available = trailing.capacity();
+            if (available > 0)
+            {
+                final int before = generator.consumed();
+                generator.writeSegment(trailing, 0, available);
+                final int consumed = generator.consumed() - before;
+                control.consumed(consumed);
+                status = available - consumed > 0 ? Status.SUSPENDED : Status.ADVANCED;
+            }
+        }
+        return status;
     }
 
     // Suspends at an event boundary once the bounded output nears its limit, so the next event's write

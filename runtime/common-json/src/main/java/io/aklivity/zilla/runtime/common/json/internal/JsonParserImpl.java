@@ -313,6 +313,10 @@ public final class JsonParserImpl implements JsonParserEx
         else if (segmentState == SegmentState.NONE && !tokenizerHasNext() && tokenizer.done())
         {
             docState = DocState.ENDED;
+            final long documentEnd = tokenizer.documentEndOffset();
+            segmentSliceOffset = bufferOffset(documentEnd);
+            segmentSliceLength = (int) (tokenizer.streamOffset() - documentEnd);
+            segmentConsumed = 0;
             event = JsonEvent.END_DOCUMENT;
         }
         else
@@ -620,7 +624,7 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public DirectBuffer getSegment()
     {
-        assert lastEvent != null && lastEvent.segmented();
+        assert lastEvent != null && (lastEvent.segmented() || lastEvent == JsonEvent.END_DOCUMENT);
         // re-expose the unconsumed remainder of the segment slice after consumed() pushback, append-only
         segmentView.wrap(ownedInput.buffer(), segmentSliceOffset + segmentConsumed, segmentSliceLength - segmentConsumed);
         return segmentView;

@@ -95,6 +95,7 @@ public final class JsonTokenizer
     private long streamOffset;
     private long valueStreamStart;
     private long valueStreamEnd;
+    private long documentEndOffset;
     // 1-based line/column of the next byte to read; snapshots restore them when the scan rewinds the
     // stream offset to a value start (value*) or a complete-unit boundary (unit*) at a window edge
     private long line = 1;
@@ -194,6 +195,7 @@ public final class JsonTokenizer
         pendingString = null;
         valuePending = false;
         streamOffset = 0;
+        documentEndOffset = 0;
         line = 1;
         column = 1;
         valueLine = 1;
@@ -424,6 +426,11 @@ public final class JsonTokenizer
     public boolean done()
     {
         return state == ParseState.DOC_DONE;
+    }
+
+    public long documentEndOffset()
+    {
+        return documentEndOffset;
     }
 
     public boolean inObjectContext()
@@ -931,6 +938,7 @@ public final class JsonTokenizer
         {
         case DOC_START:
             state = ParseState.DOC_DONE;
+            documentEndOffset = streamOffset;
             break;
         case OBJ_AFTER_COLON:
             state = ParseState.OBJ_AFTER_VALUE;
@@ -957,6 +965,10 @@ public final class JsonTokenizer
         else
         {
             state = stack.pop();
+        }
+        if (state == ParseState.DOC_DONE)
+        {
+            documentEndOffset = streamOffset;
         }
         markValueConsumed();
     }
