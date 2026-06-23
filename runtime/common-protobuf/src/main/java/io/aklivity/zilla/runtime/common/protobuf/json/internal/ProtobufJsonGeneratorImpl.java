@@ -76,6 +76,9 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private int consumed;
     private boolean flushed;
 
+    private int keyAt;
+    private boolean keyDrained;
+
     public ProtobufJsonGeneratorImpl(
         JsonGeneratorEx json,
         ProtobufSchema schema,
@@ -125,6 +128,8 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             segmentActive = false;
             segmentOpened = false;
             segmentDeferred = false;
+            keyAt = 0;
+            keyDrained = false;
         }
         consumed = 0;
         return this;
@@ -431,6 +436,10 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
                 segmentDeferred = true;
                 return this;
             }
+            if (drainKey(field))
+            {
+                return this;
+            }
             prepare(field);
             segmentActive = true;
             segmentOpened = false;
@@ -505,7 +514,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator flush()
     {
-        if (segmentActive || segmentDeferred)
+        if (segmentActive || segmentDeferred || keyAt > 0)
         {
             flushed = true;
         }
@@ -571,6 +580,48 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         return width;
     }
 
+    // Emits a message field key whose prefix exceeds the output window across windows, mirroring the way
+    // JsonSinkImpl.writeKeyName fragments a key from its source: the schema field key is re-read from keyAt and
+    // driven through the bounded json.writeKey(view, COMPLETE), which appends only what fits and closes the key
+    // once its final char lands. Returns true while the key is still in flight so writeSegment consumes nothing
+    // and the driving sink suspends, re-presenting the value's bytes on resume; the key is a stable schema string,
+    // so only the integer cursor crosses the window — no value bytes are buffered here.
+    private boolean drainKey(
+        int number)
+    {
+        boolean draining = false;
+        if (!keyDrained && rootOpened && depth >= 0)
+        {
+            Scope scope = scopes[depth];
+            if (!scope.mapEntry && scope.message != null)
+            {
+                ProtobufField field = scope.message.field(number);
+                if (field != null && !(field.repeated() && scope.openField == number))
+                {
+                    String name = key(field);
+                    int separator = scope.openField != -1 || !scope.written.isEmpty() ? 1 : 0;
+                    int prefix = separator + 1 + name.length() + 2;
+                    if (keyAt > 0 || prefix > json.remaining())
+                    {
+                        int before = json.consumed();
+                        json.writeKey(name.subSequence(keyAt, name.length()), Completion.COMPLETE);
+                        keyAt += json.consumed() - before;
+                        if (keyAt == name.length())
+                        {
+                            keyDrained = true;
+                            keyAt = 0;
+                        }
+                        else
+                        {
+                            draining = true;
+                        }
+                    }
+                }
+            }
+        }
+        return draining;
+    }
+
     private void prepare(
         int number)
     {
@@ -599,14 +650,22 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             {
                 if (scope.openField != number)
                 {
-                    json.writeKey(key(field));
+                    if (!keyDrained)
+                    {
+                        json.writeKey(key(field));
+                    }
+                    keyDrained = false;
                     json.writeStartArray();
                     scope.openField = number;
                 }
             }
             else
             {
-                json.writeKey(key(field));
+                if (!keyDrained)
+                {
+                    json.writeKey(key(field));
+                }
+                keyDrained = false;
             }
         }
     }

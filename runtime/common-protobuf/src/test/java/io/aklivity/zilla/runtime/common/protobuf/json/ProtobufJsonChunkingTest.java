@@ -236,6 +236,17 @@ public class ProtobufJsonChunkingTest
         assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
     }
 
+    @Test
+    public void shouldFragmentRecordKeyPrefixLargerThanWindow()
+    {
+        byte[] wire = wire(g -> g
+            .writeString(1, "123")
+            .writeString(2, "OK"));
+        Drained drained = toJsonBounded("Event", wire, 32);
+        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED chunk boundary, got: " + drained.json);
+        assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
+    }
+
     private Drained toJsonBounded(
         String messageName,
         byte[] wire,
