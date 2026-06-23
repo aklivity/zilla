@@ -38,11 +38,23 @@ public enum JsonEvent
     VALUE_TRUE,
     VALUE_FALSE,
     VALUE_NULL,
-    SEGMENT;
+    SEGMENT,
+    VERBATIM;
 
     public boolean segmented()
     {
         return this == SEGMENT;
+    }
+
+    /**
+     * Whether this event carries a coalesced run of original source bytes pulled via
+     * {@link JsonSource#getVerbatim(int)}. A {@code VERBATIM} event is <em>not</em> {@link #segmented()}: it
+     * rides alongside the structured event stream (additive) rather than substituting for it, so a consumer
+     * can both inspect structure and reproduce the input verbatim.
+     */
+    public boolean isVerbatim()
+    {
+        return this == VERBATIM;
     }
 
     public static JsonEvent of(

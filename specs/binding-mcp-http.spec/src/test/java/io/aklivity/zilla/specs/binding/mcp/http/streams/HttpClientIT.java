@@ -74,6 +74,15 @@ public class HttpClientIT
 
     @Test
     @Specification({
+        "${http}/create.pr.rich/client",
+        "${http}/create.pr.rich/server"})
+    public void shouldProxyCreatePrWithStructuredArgumentsToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/read.order.10k/client",
         "${http}/read.order.10k/server"})
     public void shouldProxyReadOrder10kToHttp() throws Exception

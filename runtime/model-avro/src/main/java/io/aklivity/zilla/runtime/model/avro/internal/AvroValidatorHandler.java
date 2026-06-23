@@ -129,7 +129,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
                 limit = carryLength + length;
             }
 
-            Status status = feed(buffer, offset, limit, last, next);
+            Status status = transform(buffer, offset, limit, last, next);
 
             switch (status)
             {
@@ -189,7 +189,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         return status;
     }
 
-    private Status feed(
+    private Status transform(
         DirectBuffer buffer,
         int offset,
         int limit,
@@ -200,7 +200,7 @@ public class AvroValidatorHandler extends AvroModelHandler implements ValidatorH
         do
         {
             active.generator.wrap(active.output, 0, OUTPUT_CAPACITY);
-            status = active.pipeline.feed(buffer, offset, limit, last);
+            status = active.pipeline.transform(buffer, offset, limit, last);
             int produced = active.generator.length();
             if (produced > 0 && status != Status.REJECTED)
             {

@@ -83,7 +83,7 @@ public class AvroChunkingTest
         // a double is 8 bytes and cannot be split, so it does not fit the 4-byte limit even in a fresh
         // buffer — rather than write past the limit, the datum is rejected
         byte[] datum = new byte[8];
-        Status status = pipeline.feed(new UnsafeBuffer(datum), 0, datum.length);
+        Status status = pipeline.transform(new UnsafeBuffer(datum), 0, datum.length);
         assertEquals(REJECTED, status);
     }
 
@@ -102,7 +102,7 @@ public class AvroChunkingTest
         AvroTransform counting = (control, source, event, sink) ->
         {
             feeds[0]++;
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
 
         int limit = 8;
@@ -113,11 +113,11 @@ public class AvroChunkingTest
         pipeline.reset();
 
         UnsafeBuffer in = new UnsafeBuffer(datum);
-        Status status = pipeline.feed(in, 0, datum.length);
+        Status status = pipeline.transform(in, 0, datum.length);
         while (status == SUSPENDED)
         {
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(in, 0, datum.length);
+            status = pipeline.transform(in, 0, datum.length);
         }
         assertEquals(COMPLETED, status);
 
@@ -149,12 +149,12 @@ public class AvroChunkingTest
 
         List<byte[]> chunks = new ArrayList<>();
         UnsafeBuffer in = new UnsafeBuffer(datum);
-        Status status = pipeline.feed(in, 0, datum.length);
+        Status status = pipeline.transform(in, 0, datum.length);
         while (status == SUSPENDED)
         {
             chunks.add(drain(out, generator.length()));
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(in, 0, datum.length);
+            status = pipeline.transform(in, 0, datum.length);
         }
         assertEquals(COMPLETED, status);
         chunks.add(drain(out, generator.length()));
@@ -186,12 +186,12 @@ public class AvroChunkingTest
 
         List<byte[]> chunks = new ArrayList<>();
         UnsafeBuffer in = new UnsafeBuffer(datum);
-        Status status = pipeline.feed(in, 0, datum.length);
+        Status status = pipeline.transform(in, 0, datum.length);
         while (status == SUSPENDED)
         {
             chunks.add(drain(out, generator.length()));
             generator.wrap(out, 0, limit);
-            status = pipeline.feed(in, 0, datum.length);
+            status = pipeline.transform(in, 0, datum.length);
         }
         assertEquals(COMPLETED, status);
         chunks.add(drain(out, generator.length()));

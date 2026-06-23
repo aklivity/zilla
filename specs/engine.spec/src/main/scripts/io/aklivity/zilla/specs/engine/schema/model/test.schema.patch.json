@@ -31,6 +31,18 @@
                     {
                         "type": "integer"
                     },
+                    "transform":
+                    {
+                        "type": "object",
+                        "properties":
+                        {
+                            "length":
+                            {
+                                "type": "integer"
+                            }
+                        },
+                        "additionalProperties": false
+                    },
                     "capability":
                     {
                         "type": "string"
@@ -145,6 +157,18 @@
                     "length":
                     {
                         "type": "integer"
+                    },
+                    "transform":
+                    {
+                        "type": "object",
+                        "properties":
+                        {
+                            "length":
+                            {
+                                "type": "integer"
+                            }
+                        },
+                        "additionalProperties": false
                     },
                     "capability":
                     {

@@ -47,7 +47,7 @@ public final class AvroValues
         Recorder recorder = new Recorder();
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(recorder);
         pipeline.reset();
-        recorder.status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
+        recorder.status = pipeline.transform(new UnsafeBuffer(binary), 0, binary.length);
         return recorder.events;
     }
 
@@ -58,7 +58,7 @@ public final class AvroValues
         Recorder recorder = new Recorder();
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(recorder);
         pipeline.reset();
-        recorder.status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
+        recorder.status = pipeline.transform(new UnsafeBuffer(binary), 0, binary.length);
         return recorder;
     }
 
@@ -73,7 +73,7 @@ public final class AvroValues
             .transform(schema.validator())
             .into(AvroSink.of(generator, delivery));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(binary), 0, binary.length);
+        Status status = pipeline.transform(new UnsafeBuffer(binary), 0, binary.length);
         if (status != Status.COMPLETED)
         {
             throw new AssertionError("parse did not complete: " + status);
@@ -130,7 +130,7 @@ public final class AvroValues
         public Status status;
 
         @Override
-        public Status feed(
+        public Status transform(
             AvroController control,
             AvroSource source,
             AvroEvent event)
@@ -144,6 +144,12 @@ public final class AvroValues
                 entries.add(new Entry(event, source));
             }
             return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
         }
 
         @Override

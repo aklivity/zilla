@@ -18,6 +18,7 @@ import java.nio.ByteOrder;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
@@ -31,7 +32,11 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  */
 public final class ProtobufWriter
 {
-    private MutableDirectBuffer buffer;
+    // shared empty target so an unwrapped writer is in a defensible state (length reads zero) before it is
+    // wrapped over the caller's destination, rather than holding a null buffer
+    private static final MutableDirectBuffer EMPTY = new UnsafeBuffer(new byte[0]);
+
+    private MutableDirectBuffer buffer = EMPTY;
     private int start;
     private int offset;
     private int limit;

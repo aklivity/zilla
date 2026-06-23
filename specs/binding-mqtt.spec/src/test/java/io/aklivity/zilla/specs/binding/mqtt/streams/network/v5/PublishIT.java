@@ -376,6 +376,51 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.message.transform.grow/client",
+        "${net}/publish.message.transform.grow/server"})
+    public void shouldPublishMessageTransformGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.message.transform.shrink/client",
+        "${net}/publish.message.transform.shrink/server"})
+    public void shouldPublishMessageTransformShrink() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.user.property.transform.shrink/client",
+        "${net}/publish.user.property.transform.shrink/server"})
+    public void shouldPublishUserPropertyTransformShrink() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.user.property.transform.grow/client",
+        "${net}/publish.user.property.transform.grow/server"})
+    public void shouldPublishUserPropertyTransformGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.message.too.large/client",
+        "${net}/publish.message.too.large/server"})
+    public void shouldRejectPublishMessageTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.unroutable/client",
         "${net}/publish.unroutable/server"})
     public void shouldRejectUnroutable() throws Exception

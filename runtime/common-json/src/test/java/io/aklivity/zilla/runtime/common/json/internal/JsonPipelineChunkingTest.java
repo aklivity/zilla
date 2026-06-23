@@ -50,7 +50,7 @@ class JsonPipelineChunkingTest
             .into(JsonEx.createSink(generator));
 
         String json = "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -62,7 +62,7 @@ class JsonPipelineChunkingTest
             .into(JsonEx.createSink(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -75,7 +75,7 @@ class JsonPipelineChunkingTest
             .into(JsonEx.createSink(generator));
 
         String json = "{\"id\":1,\"items\":[10,11,12,13,14,15,16,17,18,19],\"ok\":true}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -88,7 +88,7 @@ class JsonPipelineChunkingTest
             .into(JsonEx.createSink(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -157,13 +157,13 @@ class JsonPipelineChunkingTest
         // a single string value split mid-token across two input frames (larger than the input window)
         byte[] f1 = "{\"data\":\"aaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbb\"} ".getBytes(UTF_8);
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(f1), 0, f1.length, false));
-        Status status = pipeline.feed(new UnsafeBuffer(f2), 0, f2.length);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBuffer(f1), 0, f1.length, false));
+        Status status = pipeline.transform(new UnsafeBuffer(f2), 0, f2.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
-        assertEquals("{\"data\":\"aaaaaaaaaabbbbbbbbbb\"}", new String(out, UTF_8));
+        assertEquals("{\"data\":\"aaaaaaaaaabbbbbbbbbb\"} ", new String(out, UTF_8));
     }
 
     @Test
@@ -178,7 +178,7 @@ class JsonPipelineChunkingTest
             {
                 deferred.add(source.deferredBytes());
             }
-            return sink.feed(control, source, event);
+            return sink.transform(control, source, event);
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
@@ -186,8 +186,8 @@ class JsonPipelineChunkingTest
         generator.wrap(output, 0, output.capacity());
         pipeline.reset();
 
-        pipeline.feed(new UnsafeBuffer("{\"data\":\"aaaaaaaaaa".getBytes(UTF_8)), 0, 19, false);
-        pipeline.feed(new UnsafeBuffer("bbbbbbbbbb\"} ".getBytes(UTF_8)), 0, 13);
+        pipeline.transform(new UnsafeBuffer("{\"data\":\"aaaaaaaaaa".getBytes(UTF_8)), 0, 19, false);
+        pipeline.transform(new UnsafeBuffer("bbbbbbbbbb\"} ".getBytes(UTF_8)), 0, 13);
 
         // first fragment is mid-stream (more deferred); the closing fragment completes the value
         assertTrue(deferred.get(0));
@@ -204,7 +204,7 @@ class JsonPipelineChunkingTest
 
         // a single string property value far larger than BOUND, in structured delivery
         String json = "{\"data\":\"" + "x".repeat(96) + "\"}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -217,7 +217,7 @@ class JsonPipelineChunkingTest
 
         // a single numeric property value far larger than BOUND, in structured delivery
         String json = "{\"data\":" + "1".repeat(96) + "}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -231,7 +231,7 @@ class JsonPipelineChunkingTest
         // one top-level array whose verbatim form far exceeds BOUND, delivered as a single segment that
         // must be fragmented across many chunks
         String json = "[\"aaaaaaaa\",\"bbbbbbbb\",\"cccccccc\",\"dddddddd\",\"eeeeeeee\",\"ffffffff\"]";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -239,14 +239,14 @@ class JsonPipelineChunkingTest
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
-        JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
+        JsonTransform passthrough = (control, source, event, sink) -> sink.transform(control, source, event);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
             .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         // the resume cascade must continue the in-flight fragment through the transform stage
         String json = "[\"aaaaaaaa\",\"bbbbbbbb\",\"cccccccc\",\"dddddddd\",\"eeeeeeee\",\"ffffffff\"]";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -260,12 +260,12 @@ class JsonPipelineChunkingTest
         byte[] bytes = "[1,2,3] ".getBytes(UTF_8);
         pipeline.reset();
         generator.wrap(output, 0, 128);
-        Status status = pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
-        assertEquals("[1,2,3]", new String(out, UTF_8));
+        assertEquals("[1,2,3] ", new String(out, UTF_8));
     }
 
     @Test
@@ -301,11 +301,11 @@ class JsonPipelineChunkingTest
             }
         }
 
-        assertEquals(Status.STARVED, pipeline.feed(new UnsafeBuffer(msg), 0, w1, false));
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBuffer(msg), 0, w1, false));
         assertEquals(1, pipeline.remaining(), "the split 'é' lead byte is the unconsumed partial unit");
         int progress = w1 - pipeline.remaining();
         assertEquals(Status.COMPLETED,
-            pipeline.feed(new UnsafeBuffer(msg), progress, msg.length, true));
+            pipeline.transform(new UnsafeBuffer(msg), progress, msg.length, true));
 
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
@@ -358,7 +358,7 @@ class JsonPipelineChunkingTest
                     }
                     intRejected.add(rejected);
                 }
-                result = sink.feed(control, source, event);
+                result = sink.transform(control, source, event);
             }
             return result;
         };
@@ -377,7 +377,7 @@ class JsonPipelineChunkingTest
         {
             limit = Math.min(limit + 8, msg.length);
             boolean last = limit >= msg.length;
-            status = pipeline.feed(new UnsafeBuffer(msg), progress, limit, last);
+            status = pipeline.transform(new UnsafeBuffer(msg), progress, limit, last);
             if (status != Status.STARVED)
             {
                 break;
@@ -413,7 +413,7 @@ class JsonPipelineChunkingTest
         {
             limit = Math.min(limit + window, msg.length);
             boolean last = limit >= msg.length;
-            status = pipeline.feed(new UnsafeBuffer(msg), progress, limit, last);
+            status = pipeline.transform(new UnsafeBuffer(msg), progress, limit, last);
             if (status != Status.STARVED)
             {
                 break;
@@ -458,7 +458,7 @@ class JsonPipelineChunkingTest
                 limit = Math.min(limit + inWindow, msg.length);
             }
             boolean last = limit >= msg.length;
-            status = pipeline.feed(new UnsafeBuffer(msg), progress, limit, last);
+            status = pipeline.transform(new UnsafeBuffer(msg), progress, limit, last);
             byte[] chunk = new byte[generator.length()];
             output.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
@@ -502,7 +502,7 @@ class JsonPipelineChunkingTest
         Status status;
         do
         {
-            status = pipeline.feed(in, 0, bytes.length);
+            status = pipeline.transform(in, 0, bytes.length);
             byte[] chunk = new byte[generator.length()];
             output.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));

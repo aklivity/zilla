@@ -41,7 +41,7 @@ class JsonProjectorSegmentHardeningTest
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } }}", output(gen));
+        assertEquals("{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } }} ", output(gen));
     }
 
     @Test
@@ -54,11 +54,11 @@ class JsonProjectorSegmentHardeningTest
 
         gen.wrap(buffer, 0, buffer.capacity());
         run(pipeline, "{\"x\":{ \"v\" : 1 },\"y\":2} ");
-        assertEquals("{\"x\":{ \"v\" : 1 }}", output(gen));
+        assertEquals("{\"x\":{ \"v\" : 1 }} ", output(gen));
 
         gen.wrap(buffer, 0, buffer.capacity());
         run(pipeline, "{\"x\":[9 ,8]} ");
-        assertEquals("{\"x\":[9 ,8]}", output(gen));
+        assertEquals("{\"x\":[9 ,8]} ", output(gen));
     }
 
     @Test
@@ -67,7 +67,7 @@ class JsonProjectorSegmentHardeningTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : { \"c\" : [1, {\"d\": 2}] } },\"z\":9} ");
 
@@ -89,6 +89,6 @@ class JsonProjectorSegmentHardeningTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 }

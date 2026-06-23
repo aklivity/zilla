@@ -239,4 +239,10 @@ public interface ProtobufGenerator
      * fragmented across a chunk (it cannot be end-tagged mid-value); attempting it throws.
      */
     ProtobufGenerator flush();
+
+    /**
+     * Whether this generator writes the values it receives verbatim, reproducing the input bytes. A
+     * generator that re-encodes into a different representation (e.g. JSON) is not identity.
+     */
+    boolean identity();
 }
