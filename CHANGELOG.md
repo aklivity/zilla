@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.0-alpha-10](https://github.com/aklivity/zilla/tree/2.0.0-alpha-10) (2026-06-23)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-9...2.0.0-alpha-10)
+
+**Merged pull requests:**
+
+- fix\(common-json\): preserve document trailing bytes on the verbatim-forward path [\#1955](https://github.com/aklivity/zilla/pull/1955) ([jfallows](https://github.com/jfallows))
+- fix\(catalog-schema-registry\): strip framing prefix on ModelPipeline read path [\#1953](https://github.com/aklivity/zilla/pull/1953) ([jfallows](https://github.com/jfallows))
+- fix\(model\): preserve content across bounded output windows on json/avro/protobuf view paths [\#1951](https://github.com/aklivity/zilla/pull/1951) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0-alpha-9](https://github.com/aklivity/zilla/tree/2.0.0-alpha-9) (2026-06-22)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-6...2.0.0-alpha-9)
