@@ -128,6 +128,20 @@ public class AvroJsonChunkingTest
         assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
     }
 
+    @Test
+    public void shouldFragmentRecordKeyPrefixLargerThanWindow()
+    {
+        String json = Json.createObjectBuilder()
+            .add("id", "123")
+            .add(LONG_KEY, "OK")
+            .build()
+            .toString();
+        byte[] wire = jsonToAvro(longKeySchema, json);
+        Drained drained = avroToJsonBounded(longKeySchema, wire, 32);
+        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED chunk boundary, got: " + drained.json);
+        assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
+    }
+
     private Drained avroToJsonBounded(
         AvroSchema valueSchema,
         byte[] wire,
