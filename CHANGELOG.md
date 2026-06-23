@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0-alpha-11](https://github.com/aklivity/zilla/tree/2.0.0-alpha-11) (2026-06-23)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-10...2.0.0-alpha-11)
+
+**Merged pull requests:**
+
+- feat\(engine\): add identity\(\) capability to ModelPipeline [\#1957](https://github.com/aklivity/zilla/pull/1957) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0-alpha-10](https://github.com/aklivity/zilla/tree/2.0.0-alpha-10) (2026-06-23)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-9...2.0.0-alpha-10)
