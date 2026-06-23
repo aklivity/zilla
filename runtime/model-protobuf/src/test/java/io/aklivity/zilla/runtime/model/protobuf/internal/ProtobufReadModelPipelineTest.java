@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -303,6 +305,26 @@ public class ProtobufReadModelPipelineTest
             new UnsafeBuffer(invalid), 0, invalid.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldReportIdentityWhenNoView()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        // without a json view the read model reproduces the validated wire message, so the value passes through unchanged
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenJsonView()
+    {
+        ProtobufModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        // a json view re-encodes the protobuf message into JSON, changing the bytes
+        assertFalse(pipeline.identity());
     }
 
     private ProtobufModelHandlerImpl newHandler(

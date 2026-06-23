@@ -144,6 +144,16 @@ public class JsonReadModelPipelineTest
         assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
     }
 
+    @Test
+    public void shouldReportIdentity()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        // a read json model only validates the value, so an accepted value passes through unchanged
+        assertTrue(pipeline.identity());
+    }
+
     private JsonModelHandlerImpl newHandler()
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)

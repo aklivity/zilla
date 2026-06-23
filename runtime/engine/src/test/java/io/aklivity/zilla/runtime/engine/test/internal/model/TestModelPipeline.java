@@ -139,6 +139,13 @@ final class TestModelPipeline implements ModelPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        // no transformed length configured means the value bytes pass through unchanged
+        return transformLength < 0;
+    }
+
+    @Override
     public void reset()
     {
         processed = 0;

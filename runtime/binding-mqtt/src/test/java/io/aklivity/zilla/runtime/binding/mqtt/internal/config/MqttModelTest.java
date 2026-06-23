@@ -84,6 +84,49 @@ public class MqttModelTest
         assertFalse(model.active());
     }
 
+    @Test
+    public void shouldReportIdentityForValidator()
+    {
+        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+
+        // no transformed length configured means the value bytes pass through unchanged
+        assertTrue(model.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityForTransformingModel()
+    {
+        MqttModel model = MqttModel.decoder(handler(5, 8), new UnsafeBuffer(new byte[256]));
+
+        assertFalse(model.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenNoHandler()
+    {
+        MqttModel model = MqttModel.decoder(null, new UnsafeBuffer(new byte[8]));
+
+        assertFalse(model.identity());
+    }
+
+    @Test
+    public void shouldValidateStreamedFragments()
+    {
+        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+
+        assertTrue(model.validate(0L, 0L, true, false, value("hello"), 0, 3));
+        assertTrue(model.validate(0L, 0L, false, true, value("hello"), 3, 5));
+    }
+
+    @Test
+    public void shouldRejectInvalidStreamedFragments()
+    {
+        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+
+        // the whole value length does not match the configured length, so it is rejected on the final fragment
+        assertFalse(model.validate(0L, 0L, true, true, value("nope"), 0, 4));
+    }
+
     private static TestModelHandler handler(
         int length)
     {

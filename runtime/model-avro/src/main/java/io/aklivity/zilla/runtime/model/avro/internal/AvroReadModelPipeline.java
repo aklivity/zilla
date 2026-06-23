@@ -132,6 +132,12 @@ final class AvroReadModelPipeline implements ModelPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        return handler.identity();
+    }
+
+    @Override
     public int padding(
         DirectBuffer data,
         int index,

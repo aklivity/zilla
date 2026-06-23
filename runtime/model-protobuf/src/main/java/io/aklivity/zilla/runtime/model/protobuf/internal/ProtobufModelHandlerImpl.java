@@ -99,6 +99,13 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         return new ProtobufWriteModelPipeline(this);
     }
 
+    // a json view re-encodes the protobuf message into JSON, changing the bytes; any other configuration
+    // reproduces the validated wire message, so an accepted value passes through unchanged on the read path
+    boolean identity()
+    {
+        return !VIEW_JSON.equals(view);
+    }
+
     int decodePadding(
         DirectBuffer data,
         int index,

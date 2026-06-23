@@ -131,6 +131,14 @@ final class JsonReadModelPipeline implements ModelPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        // a read json model only validates the value against its schema; it never re-encodes to a
+        // different representation, so an accepted value passes through unchanged
+        return true;
+    }
+
+    @Override
     public int padding(
         DirectBuffer data,
         int index,

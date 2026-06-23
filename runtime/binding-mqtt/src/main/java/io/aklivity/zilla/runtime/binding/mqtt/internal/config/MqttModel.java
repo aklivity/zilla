@@ -67,6 +67,11 @@ public final class MqttModel
         return pipeline != null;
     }
 
+    public boolean identity()
+    {
+        return pipeline != null && pipeline.identity();
+    }
+
     public int transform(
         long traceId,
         long bindingId,
@@ -107,6 +112,40 @@ public final class MqttModel
 
         pipeline.reset();
         return total;
+    }
+
+    // drives the pipeline over one streamed fragment purely to validate it, discarding the produced bytes;
+    // used for an identity model where the accepted bytes are forwarded unchanged from the source, so the
+    // whole payload need not be buffered to recompute its length. returns false when the fragment is rejected
+    public boolean validate(
+        long traceId,
+        long bindingId,
+        boolean first,
+        boolean last,
+        DirectBuffer data,
+        int index,
+        int limit)
+    {
+        int flags = 0;
+        if (first)
+        {
+            flags |= ModelPipeline.FLAGS_INIT;
+        }
+        if (last)
+        {
+            flags |= ModelPipeline.FLAGS_FIN;
+        }
+
+        final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+            data, index, limit, scratch, 0, scratch.capacity());
+        final ModelStatus status = result.status();
+        final boolean valid = status != ModelStatus.REJECTED;
+
+        if (last || status == ModelStatus.COMPLETE || status == ModelStatus.REJECTED)
+        {
+            pipeline.reset();
+        }
+        return valid;
     }
 
     public DirectBuffer buffer()

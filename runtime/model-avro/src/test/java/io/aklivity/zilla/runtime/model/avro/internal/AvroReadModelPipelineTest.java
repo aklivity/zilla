@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -161,7 +162,33 @@ public class AvroReadModelPipelineTest
         assertTrue(pipeline.padding(new UnsafeBuffer(AVRO), 0, AVRO.length) >= 0);
     }
 
+    @Test
+    public void shouldReportIdentityWhenNoView()
+    {
+        AvroModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        // without a json view the read model reproduces the validated Avro, so the value passes through unchanged
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenJsonView()
+    {
+        AvroModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        // a json view re-encodes the Avro value into JSON, changing the bytes
+        assertFalse(pipeline.identity());
+    }
+
     private AvroModelHandlerImpl newHandler()
+    {
+        return newHandler("json");
+    }
+
+    private AvroModelHandlerImpl newHandler(
+        String view)
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -173,7 +200,7 @@ public class AvroReadModelPipelineTest
                 .build()
             .build();
         AvroModelConfig model = AvroModelConfig.builder()
-            .view("json")
+            .view(view)
             .catalog()
                 .name("test0")
                     .schema()

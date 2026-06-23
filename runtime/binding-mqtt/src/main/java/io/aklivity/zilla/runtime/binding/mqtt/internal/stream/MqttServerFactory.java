@@ -1328,6 +1328,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
                 server.publishPayloadModeling = false;
                 server.publishPayloadModelProgress = 0;
+                server.publishPayloadValidating = false;
                 server.decodeablePacketBytes = limit - publishLimit;
                 server.decoder = decodePublishPayload;
                 progress = publishLimit;
@@ -1466,6 +1467,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
                 server.publishPayloadModeling = false;
                 server.publishPayloadModelProgress = 0;
+                server.publishPayloadValidating = false;
                 server.decodeablePacketBytes = limit - publishLimit;
                 server.decoder = decodePublishPayload;
                 progress = publishLimit;
@@ -1506,11 +1508,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             int available = length;
             boolean ready = true;
 
-            // when a content model is active the publish payload is buffered whole, transformed once,
-            // then emitted from the model buffer with the true (possibly changed) deferred total; the
-            // transform is deferred until the application stream is open so rejection timing matches the
-            // unmodeled path
-            if (model.active() && canPublish)
+            // when a length-changing content model is active the publish payload is buffered whole, transformed
+            // once, then emitted from the model buffer with the true (changed) deferred total; the transform is
+            // deferred until the application stream is open so rejection timing matches the unmodeled path. An
+            // identity model leaves the bytes unchanged, so it is validated fragment-by-fragment as the original
+            // bytes stream through below — a payload larger than the decode slot need not be buffered nor rejected
+            if (model.active() && !model.identity() && canPublish)
             {
                 if (!server.publishPayloadModeling)
                 {
@@ -1569,7 +1572,23 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final OctetsFW payload = payloadRO.wrap(payloadBuffer, payloadOffset, payloadOffset + sizeClaimed);
 
-                if (canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
+                if (canPublish && model.identity() && (sizeClaimed > 0 || server.decodeablePublishPayloadBytes == 0))
+                {
+                    // validate the streamed fragment in place; an identity model leaves the bytes unchanged, so
+                    // the original payload is forwarded below without buffering the whole value to reframe it.
+                    // gated on canPublish so validation (and any rejection) is deferred until the stream is open,
+                    // matching the modeled path and avoiding re-validation of the same bytes on a later retry
+                    final boolean first = !server.publishPayloadValidating;
+                    final boolean last = sizeClaimed == server.decodeablePublishPayloadBytes;
+                    server.publishPayloadValidating = !last;
+                    if (!model.validate(traceId, publisher.routedId, first, last,
+                            payloadBuffer, payloadOffset, payloadOffset + sizeClaimed))
+                    {
+                        reasonCode = PAYLOAD_FORMAT_INVALID;
+                    }
+                }
+
+                if (reasonCode == SUCCESS && canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
                 {
                     if (server.publishPayloadDeferred == 0)
                     {
@@ -2520,6 +2539,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private boolean publishPayloadModeling;
         private int publishPayloadModelProgress;
         private int publishPayloadConsumable;
+        private boolean publishPayloadValidating;
         private int willPayloadDeferred;
         public int willPayloadBytes;
 
