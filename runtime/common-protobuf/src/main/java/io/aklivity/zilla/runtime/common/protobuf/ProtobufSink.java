@@ -52,13 +52,9 @@ public interface ProtobufSink
     }
 
     /**
-     * Whether this sink, together with everything downstream of it, leaves the bytes unchanged. The default
-     * is {@code false}: only a sink that can prove its whole downstream is identity reports {@code true}.
+     * Whether this sink, together with everything downstream of it, leaves the bytes unchanged.
      */
-    default boolean identity()
-    {
-        return false;
-    }
+    boolean identity();
 
     /**
      * A terminal sink that writes the event stream out as Protobuf wire through {@code generator},

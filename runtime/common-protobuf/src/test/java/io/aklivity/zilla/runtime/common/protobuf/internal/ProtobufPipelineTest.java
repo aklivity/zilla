@@ -1098,6 +1098,12 @@ public class ProtobufPipelineTest
             depth = 0;
         }
 
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
+
         private static String value(
             ProtobufSource source)
         {
