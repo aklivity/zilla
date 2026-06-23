@@ -58,13 +58,13 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
     }
 
     @Override
-    public ProtobufPipeline.Status feed(
+    public ProtobufPipeline.Status transform(
         ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event,
         ProtobufSink sink)
     {
-        ProtobufPipeline.Status status = sink.feed(control, source, event);
+        ProtobufPipeline.Status status = sink.transform(control, source, event);
         switch (event)
         {
         case START_MESSAGE:
@@ -100,6 +100,12 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
     {
         depth = -1;
         pendingField = null;
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return true;
     }
 
     private Scope scope(

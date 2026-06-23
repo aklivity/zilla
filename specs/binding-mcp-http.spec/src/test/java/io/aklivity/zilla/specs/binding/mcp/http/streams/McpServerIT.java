@@ -110,6 +110,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/create.pr.rich/client",
+        "${mcp}/create.pr.rich/server"})
+    public void shouldCallToolCreatePrWithStructuredArguments() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/read.order.10k/client",
         "${mcp}/read.order.10k/server"})
     public void shouldReadResourceOrder10k() throws Exception

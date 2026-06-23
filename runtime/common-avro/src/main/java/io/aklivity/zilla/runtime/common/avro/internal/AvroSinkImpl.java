@@ -62,7 +62,7 @@ public final class AvroSinkImpl implements AvroSink
     }
 
     @Override
-    public Status feed(
+    public Status transform(
         AvroController control,
         AvroSource source,
         AvroEvent event)
@@ -211,13 +211,19 @@ public final class AvroSinkImpl implements AvroSink
         AvroSource source,
         AvroEvent event)
     {
-        return feed(control, source, event);
+        return transform(control, source, event);
     }
 
     @Override
     public void reset()
     {
         depth = 0;
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return generator.identity();
     }
 
     // Streams a length-delimited value (string/bytes/fixed) into the bounded generator without sink state:

@@ -112,6 +112,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttEventContext;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttModel;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Array32FW;
@@ -193,8 +194,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -476,7 +476,11 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Supplier<String16FW> supplyClientId;
     private final MqttValidator validator;
     private final CharsetDecoder utf8Decoder;
-    private final Function<ModelConfig, ValidatorHandler> supplyValidator;
+    private final Function<ModelConfig, ModelHandler> supplyModel;
+    private final MutableDirectBuffer modelBuffer;
+    private final String16FW.Builder userPropertyValueRW = new String16FW.Builder();
+    private final MutableDirectBuffer userPropertyValueBuffer;
+    private final OctetsFW modelPayloadRO = new OctetsFW();
     private final MqttEventContext events;
 
     private MqttQoS publishQosMax;
@@ -524,7 +528,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodePacketTypeByVersion = new Int2ObjectHashMap<>();
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_4, this::decodePacketTypeV4);
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_5, this::decodePacketTypeV5);
-        this.supplyValidator = context::supplyValidator;
+        this.supplyModel = context::supplyModel;
+        this.modelBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.userPropertyValueBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.events = new MqttEventContext(context);
     }
 
@@ -1320,6 +1326,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
                 server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
+                server.publishPayloadModeling = false;
+                server.publishPayloadModelProgress = 0;
+                server.publishPayloadValidating = false;
                 server.decodeablePacketBytes = limit - publishLimit;
                 server.decoder = decodePublishPayload;
                 progress = publishLimit;
@@ -1456,6 +1465,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
                 server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
+                server.publishPayloadModeling = false;
+                server.publishPayloadModelProgress = 0;
+                server.publishPayloadValidating = false;
                 server.decodeablePacketBytes = limit - publishLimit;
                 server.decoder = decodePublishPayload;
                 progress = publishLimit;
@@ -1488,46 +1500,118 @@ public final class MqttServerFactory implements MqttStreamFactory
         if (length >= 0)
         {
             MqttServer.MqttPublishStream publisher = server.publishes.get(server.decodePublisherKey);
+            final MqttModel model = publisher.contentType;
+            final boolean canPublish = MqttState.initialOpened(publisher.state);
 
-            int initialBudget = publisher.initialBudget();
-            int lengthMax = Math.min(length, server.decodeablePublishPayloadBytes);
-            int reservedMax = Math.max(publisher.initialPad, Math.min(lengthMax + publisher.initialPad, initialBudget));
+            DirectBuffer payloadBuffer = buffer;
+            int payloadOffset = offset;
+            int available = length;
+            boolean ready = true;
 
-            boolean canPublish = MqttState.initialOpened(publisher.state);
-
-            final int maximum = reservedMax;
-            final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024) + publisher.initialPad);
-
-            int valueClaimed = maximum;
-
-            if (canPublish && publisher.debit != null && lengthMax != 0)
+            if (model.active() && !model.identity() && canPublish)
             {
-                valueClaimed = publisher.debit.claim(traceId, minimum, maximum);
-            }
-
-            int sizeClaimed = valueClaimed - publisher.initialPad;
-
-            final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + sizeClaimed);
-
-            if (canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
-            {
-                if (server.publishPayloadDeferred == 0)
+                if (!server.publishPayloadModeling)
                 {
-                    server.onDecodePublish(traceId, authorization, server.decodedQos, server.decodedRetained,
-                        server.decodedPacketId);
+                    final int sourceBytes = server.decodeablePublishPayloadBytes;
+                    if (length < sourceBytes)
+                    {
+                        if (sourceBytes > bufferPool.slotCapacity())
+                        {
+                            reasonCode = PAYLOAD_FORMAT_INVALID;
+                        }
+                        ready = false;
+                    }
+                    else
+                    {
+                        final int produced =
+                            model.transform(traceId, publisher.routedId, buffer, offset, offset + sourceBytes);
+                        if (produced < 0)
+                        {
+                            reasonCode = PAYLOAD_FORMAT_INVALID;
+                        }
+                        else
+                        {
+                            server.publishPayloadModeling = true;
+                            server.publishPayloadModelProgress = 0;
+                            server.publishPayloadConsumable = sourceBytes;
+                            server.decodeablePublishPayloadBytes = produced;
+                        }
+                    }
                 }
 
-                server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId, server.decodedQos,
-                    server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType, server.decodedPayloadFormat,
-                    server.decodedResponseTopic, server.decodedCorrelationData, server.decodedUserProperties,
-                    payload, payload.offset(), payload.offset() + sizeClaimed, publisher.contentType);
-
-                progress = payload.offset() + sizeClaimed;
-
-
-                if (server.decodeablePublishPayloadBytes == 0)
+                if (ready && reasonCode == SUCCESS && server.publishPayloadModeling)
                 {
-                    server.decoder = decodePacketTypeByVersion.get(server.version);
+                    payloadBuffer = model.buffer();
+                    payloadOffset = server.publishPayloadModelProgress;
+                    available = server.decodeablePublishPayloadBytes;
+                }
+            }
+
+            if (ready && reasonCode == SUCCESS)
+            {
+                int initialBudget = publisher.initialBudget();
+                int lengthMax = Math.min(available, server.decodeablePublishPayloadBytes);
+                int reservedMax = Math.max(publisher.initialPad, Math.min(lengthMax + publisher.initialPad, initialBudget));
+
+                final int maximum = reservedMax;
+                final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024) + publisher.initialPad);
+
+                int valueClaimed = maximum;
+
+                if (canPublish && publisher.debit != null && lengthMax != 0)
+                {
+                    valueClaimed = publisher.debit.claim(traceId, minimum, maximum);
+                }
+
+                int sizeClaimed = valueClaimed - publisher.initialPad;
+
+                final OctetsFW payload = payloadRO.wrap(payloadBuffer, payloadOffset, payloadOffset + sizeClaimed);
+
+                if (canPublish && model.identity() && (sizeClaimed > 0 || server.decodeablePublishPayloadBytes == 0))
+                {
+                    final boolean first = !server.publishPayloadValidating;
+                    final boolean last = sizeClaimed == server.decodeablePublishPayloadBytes;
+                    server.publishPayloadValidating = !last;
+                    if (!model.validate(traceId, publisher.routedId, first, last,
+                            payloadBuffer, payloadOffset, payloadOffset + sizeClaimed))
+                    {
+                        reasonCode = PAYLOAD_FORMAT_INVALID;
+                    }
+                }
+
+                if (reasonCode == SUCCESS && canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
+                {
+                    if (server.publishPayloadDeferred == 0)
+                    {
+                        server.onDecodePublish(traceId, authorization, server.decodedQos, server.decodedRetained,
+                            server.decodedPacketId);
+                    }
+
+                    server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId,
+                        server.decodedQos, server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType,
+                        server.decodedPayloadFormat, server.decodedResponseTopic, server.decodedCorrelationData,
+                        server.decodedUserProperties, payload, payload.offset(), payload.offset() + sizeClaimed);
+
+                    if (server.publishPayloadModeling)
+                    {
+                        server.publishPayloadModelProgress += sizeClaimed;
+
+                        if (server.decodeablePublishPayloadBytes == 0)
+                        {
+                            progress = offset + server.publishPayloadConsumable;
+                            server.publishPayloadModeling = false;
+                            server.decoder = decodePacketTypeByVersion.get(server.version);
+                        }
+                    }
+                    else
+                    {
+                        progress = payload.offset() + sizeClaimed;
+
+                        if (server.decodeablePublishPayloadBytes == 0)
+                        {
+                            server.decoder = decodePacketTypeByVersion.get(server.version);
+                        }
+                    }
                 }
             }
         }
@@ -2443,6 +2527,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int decodeablePacketBytes;
         private int publishPayloadDeferred;
         public int decodeablePublishPayloadBytes;
+        private boolean publishPayloadModeling;
+        private int publishPayloadModelProgress;
+        private int publishPayloadConsumable;
+        private boolean publishPayloadValidating;
         private int willPayloadDeferred;
         public int willPayloadBytes;
 
@@ -3227,17 +3315,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             Array32FW<MqttUserPropertyFW> userProperties,
             OctetsFW payload,
             int offset,
-            int limit,
-            ValidatorHandler model)
+            int limit)
         {
             int reasonCode = SUCCESS;
 
             if (mqttPublishHelper.payloadFormat.equals(MqttPayloadFormat.TEXT) && invalidUtf8(payload))
-            {
-                reasonCode = PAYLOAD_FORMAT_INVALID;
-            }
-
-            if (model != null && !validContent(traceId, model, payload))
             {
                 reasonCode = PAYLOAD_FORMAT_INVALID;
             }
@@ -4970,15 +5052,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             return flags;
         }
 
-        private boolean validContent(
-            long traceId,
-            ValidatorHandler contentType,
-            OctetsFW payload)
-        {
-            return contentType == null ||
-                contentType.validate(traceId, routedId, payload.buffer(), payload.offset(),
-                    payload.sizeof(), ValueConsumer.NOP);
-        }
 
         private int decodeBudget()
         {
@@ -5630,7 +5703,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private final long initialId;
             private final long replyId;
             private final long compositeId;
-            private final ValidatorHandler contentType;
+            private final MqttModel contentType;
             private long budgetId;
 
             private BudgetDebit debit;
@@ -5666,7 +5739,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.compositeId = compositeId;
                 this.topic = topic;
                 this.topicKey = topicKey;
-                this.contentType = config != null ? supplyValidator.apply(config) : null;
+                this.contentType = MqttModel.decoder(config != null ? supplyModel.apply(config) : null, modelBuffer);
             }
 
             private void doPublishBegin(
@@ -7092,11 +7165,31 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     case KIND_USER_PROPERTY:
                         final MqttUserPropertyFW userProperty = mqttProperty.userProperty();
-                        userPropertiesRW.item(c -> c.key(userProperty.key()).value(userProperty.value()));
-                        final ModelConfig config = binding.supplyUserPropertyModelConfig(topic, userProperty.key());
-                        if (!validateUserProperty(traceId, server.routedId, userProperty.value(), config))
+                        final String16FW userPropertyKey = userProperty.key();
+                        final String16FW userPropertyValue = userProperty.value();
+                        final ModelConfig config = binding.supplyUserPropertyModelConfig(topic, userPropertyKey);
+                        final MqttModel model =
+                            MqttModel.decoder(config != null ? supplyModel.apply(config) : null, modelBuffer);
+                        if (model.active())
                         {
-                            reasonCode = PAYLOAD_FORMAT_INVALID;
+                            final int produced = model.transform(traceId, server.routedId, userPropertyValue.buffer(),
+                                userPropertyValue.offset() + BitUtil.SIZE_OF_SHORT, userPropertyValue.limit());
+                            if (produced < 0)
+                            {
+                                reasonCode = PAYLOAD_FORMAT_INVALID;
+                            }
+                            else
+                            {
+                                final String16FW transformed = userPropertyValueRW
+                                    .wrap(userPropertyValueBuffer, 0, userPropertyValueBuffer.capacity())
+                                    .set(model.buffer(), 0, produced)
+                                    .build();
+                                userPropertiesRW.item(c -> c.key(userPropertyKey).value(transformed));
+                            }
+                        }
+                        else
+                        {
+                            userPropertiesRW.item(c -> c.key(userPropertyKey).value(userPropertyValue));
                         }
                         break;
                     default:
@@ -7109,17 +7202,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             return reasonCode;
-        }
-
-        private boolean validateUserProperty(
-            long traceId,
-            long routedId,
-            String16FW userProperty,
-            ModelConfig config)
-        {
-            return config == null ||
-                supplyValidator.apply(config).validate(traceId, routedId, userProperty.buffer(),
-                    userProperty.offset() + BitUtil.SIZE_OF_SHORT, userProperty.length(), ValueConsumer.NOP);
         }
 
         private int decodeV4(

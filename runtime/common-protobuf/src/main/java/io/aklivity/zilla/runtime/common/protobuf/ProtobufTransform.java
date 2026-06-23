@@ -17,21 +17,21 @@ package io.aklivity.zilla.runtime.common.protobuf;
 /**
  * An intermediate stage in a {@link ProtobufStream} pipeline that transforms the event stream —
  * forwarding, dropping, or substituting events — before they reach the next stage. Each
- * {@link #feed(ProtobufController, ProtobufSource, ProtobufEvent, ProtobufSink)} consumes one event and
+ * {@link #transform(ProtobufController, ProtobufSource, ProtobufEvent, ProtobufSink)} consumes one event and
  * forwards what it keeps to {@code sink} (the downstream, bound once at assembly). A mediating stage
  * supplies its own {@link ProtobufController} to {@code sink}; a non-mediating stage passes {@code control}
  * through. Stages compose left-to-right via {@link ProtobufStream#transform(ProtobufTransform)}.
  */
 public interface ProtobufTransform
 {
-    ProtobufPipeline.Status feed(
+    ProtobufPipeline.Status transform(
         ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event,
         ProtobufSink sink);
 
     /**
-     * Continues after a prior {@link #feed} returned {@link ProtobufPipeline.Status#SUSPENDED}, with the
+     * Continues after a prior {@link #transform} returned {@link ProtobufPipeline.Status#SUSPENDED}, with the
      * {@code event} that suspended supplied by the pump. The default forwards to
      * {@code sink.resume(control, source, event)}, so a stage that does not originate suspension needs no
      * awareness of it; a stage that returns {@code SUSPENDED} on its own (e.g. to emit buffered events)
@@ -48,5 +48,14 @@ public interface ProtobufTransform
 
     default void reset()
     {
+    }
+
+    /**
+     * Whether this stage forwards every event verbatim, leaving the bytes unchanged. A validating or
+     * observing stage is identity; a stage that substitutes, drops, or rewrites events is not.
+     */
+    default boolean identity()
+    {
+        return false;
     }
 }

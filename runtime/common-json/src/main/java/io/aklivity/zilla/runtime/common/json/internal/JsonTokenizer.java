@@ -95,6 +95,7 @@ public final class JsonTokenizer
     private long streamOffset;
     private long valueStreamStart;
     private long valueStreamEnd;
+    private long documentEndOffset;
     // 1-based line/column of the next byte to read; snapshots restore them when the scan rewinds the
     // stream offset to a value start (value*) or a complete-unit boundary (unit*) at a window edge
     private long line = 1;
@@ -127,6 +128,18 @@ public final class JsonTokenizer
     // (a segment scan or an armed scalar leaf), so the caller splices its raw token bytes; false when it
     // was decoded into scratch, so the caller renders it canonically from the decoded chars.
     private boolean stringVerbatim;
+
+    // set as each object key / array element begins: true when it was reached after a separator comma (a
+    // sibling precedes it in its container), false when it was the first member after the container open.
+    // A prune reads this at the dropped member to decide whether the next surviving sibling's leading
+    // separator must be trimmed.
+    private boolean memberSeparated;
+
+    // set as each token is consumed: true when that token was immediately preceded by a value-separator comma
+    // (a member/element start with a sibling before it), false otherwise. Unlike memberSeparated, which stays
+    // set across the whole member (its value and trailing close included), this is one-shot per token, so a
+    // verbatim transcript can emit exactly one SEPARATOR step per source comma.
+    private boolean separatorBefore;
 
     // set when a read hits the end of the current input window mid-token: the scan unwinds logically
     // (no exception) and advance() routes to onScalarStarved; reset at the top of each advance()
@@ -174,12 +187,15 @@ public final class JsonTokenizer
         scratchConsumed = 0;
         numberState = NumberState.START;
         stringVerbatim = false;
+        memberSeparated = false;
+        separatorBefore = false;
         pathDepth = 0;
         state = ParseState.DOC_START;
         pendingEvent = null;
         pendingString = null;
         valuePending = false;
         streamOffset = 0;
+        documentEndOffset = 0;
         line = 1;
         column = 1;
         valueLine = 1;
@@ -412,6 +428,11 @@ public final class JsonTokenizer
         return state == ParseState.DOC_DONE;
     }
 
+    public long documentEndOffset()
+    {
+        return documentEndOffset;
+    }
+
     public boolean inObjectContext()
     {
         return pathDepth > 0 && !pathInArray[pathDepth - 1];
@@ -420,6 +441,22 @@ public final class JsonTokenizer
     public boolean inArrayContext()
     {
         return pathDepth > 0 && pathInArray[pathDepth - 1];
+    }
+
+    // True when the member (object key or array element) at the current boundary was reached after a
+    // separator comma — a sibling precedes it in its container — and false when it was the first member
+    // after the container open. Read by a prune at a dropped member to decide leading-separator trimming.
+    public boolean memberSeparated()
+    {
+        return memberSeparated;
+    }
+
+    // True when the token just delivered was immediately preceded by a value-separator comma — one-shot per
+    // token, unlike memberSeparated() which stays set across the whole member. A verbatim consumer emits one
+    // SEPARATOR step per source comma directly from this, with no need to re-derive container structure.
+    public boolean separatorBefore()
+    {
+        return separatorBefore;
     }
 
     // True while a value-string is being delivered in fragments and more fragments follow the current
@@ -488,12 +525,17 @@ public final class JsonTokenizer
     private void advanceOne(
         InputStream in) throws IOException
     {
+        // a comma precedes only the token consumed at a member/element-start state; mirror that here so the
+        // signal is one-shot per token — a starved scalar resumes via resumeScan, which leaves this untouched,
+        // so a token reached after a comma keeps the flag set across a window boundary
+        separatorBefore = state == ParseState.OBJ_AFTER_COMMA || state == ParseState.ARR_AFTER_COMMA;
         switch (state)
         {
         case DOC_START:
             consumeValue(in);
             break;
         case OBJ_AFTER_OPEN:
+            memberSeparated = false;
             consumeKeyOrEnd(in);
             break;
         case OBJ_AFTER_KEY:
@@ -506,15 +548,18 @@ public final class JsonTokenizer
             consumeSeparatorOrEnd(in, true);
             break;
         case OBJ_AFTER_COMMA:
+            memberSeparated = true;
             consumeKey(in);
             break;
         case ARR_AFTER_OPEN:
+            memberSeparated = false;
             consumeValueOrEnd(in);
             break;
         case ARR_AFTER_VALUE:
             consumeSeparatorOrEnd(in, false);
             break;
         case ARR_AFTER_COMMA:
+            memberSeparated = true;
             consumeValue(in);
             break;
         default:
@@ -893,6 +938,7 @@ public final class JsonTokenizer
         {
         case DOC_START:
             state = ParseState.DOC_DONE;
+            documentEndOffset = streamOffset;
             break;
         case OBJ_AFTER_COLON:
             state = ParseState.OBJ_AFTER_VALUE;
@@ -919,6 +965,10 @@ public final class JsonTokenizer
         else
         {
             state = stack.pop();
+        }
+        if (state == ParseState.DOC_DONE)
+        {
+            documentEndOffset = streamOffset;
         }
         markValueConsumed();
     }

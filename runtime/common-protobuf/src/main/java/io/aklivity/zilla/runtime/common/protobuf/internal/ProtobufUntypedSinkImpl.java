@@ -48,7 +48,7 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
     }
 
     @Override
-    public ProtobufPipeline.Status feed(
+    public ProtobufPipeline.Status transform(
         ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event)
@@ -69,6 +69,12 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
     public void reset()
     {
         depth = 0;
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return generator.identity();
     }
 
     private ProtobufPipeline.Status dispatch(

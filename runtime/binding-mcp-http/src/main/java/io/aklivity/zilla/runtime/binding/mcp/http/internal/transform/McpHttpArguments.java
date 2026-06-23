@@ -60,7 +60,13 @@ public final class McpHttpArguments implements JsonTransform
     }
 
     @Override
-    public Status feed(
+    public boolean identity()
+    {
+        return true;
+    }
+
+    @Override
+    public Status transform(
         JsonController control,
         JsonSource source,
         JsonEvent event,
@@ -160,7 +166,7 @@ public final class McpHttpArguments implements JsonTransform
         JsonSource source,
         JsonEvent event)
     {
-        return sink.feed(downstreamControl, source, event);
+        return sink.transform(downstreamControl, source, event);
     }
 
     private void onDownstreamSegmentable()

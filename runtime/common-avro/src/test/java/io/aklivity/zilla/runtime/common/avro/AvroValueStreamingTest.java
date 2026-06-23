@@ -138,7 +138,7 @@ public class AvroValueStreamingTest
         UnsafeBuffer in = new UnsafeBuffer(datum);
         int progress = 0;
         int length = 0;
-        Status status = pipeline.feed(in, 0, 0, false);
+        Status status = pipeline.transform(in, 0, 0, false);
         while (status != COMPLETED && status != REJECTED)
         {
             if (status == SUSPENDED)
@@ -152,7 +152,7 @@ public class AvroValueStreamingTest
                 progress += length - pipeline.remaining();
             }
             length = Math.min(16, datum.length - progress);
-            status = pipeline.feed(in, progress, progress + length, progress + length == datum.length);
+            status = pipeline.transform(in, progress, progress + length, progress + length == datum.length);
         }
         assertEquals(COMPLETED, status);
         output.add(drain(out, generator.length()));
@@ -170,7 +170,7 @@ public class AvroValueStreamingTest
         AvroSink collector = new AvroSink()
         {
             @Override
-            public Status feed(
+            public Status transform(
                 AvroController control,
                 AvroSource source,
                 AvroEvent event)
@@ -190,18 +190,24 @@ public class AvroValueStreamingTest
                 }
                 return status;
             }
+
+            @Override
+            public boolean identity()
+            {
+                return false;
+            }
         };
 
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(collector);
         pipeline.reset();
         UnsafeBuffer buffer = new UnsafeBuffer(datum);
-        Status status = pipeline.feed(buffer, 0, 0, false);
+        Status status = pipeline.transform(buffer, 0, 0, false);
         int progress = 0;
         int guard = datum.length * 2 + 8;
         while (status != COMPLETED && status != REJECTED && guard-- > 0)
         {
             int length = Math.min(8, datum.length - progress);
-            status = pipeline.feed(buffer, progress, progress + length, progress + length == datum.length);
+            status = pipeline.transform(buffer, progress, progress + length, progress + length == datum.length);
             progress += length - pipeline.remaining();
         }
         assertEquals(COMPLETED, status);
@@ -223,7 +229,7 @@ public class AvroValueStreamingTest
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(new Collector());
         pipeline.reset();
         // a partial window with more input to follow (last == false) — starved, not truncated
-        Status status = pipeline.feed(new UnsafeBuffer(datum), 0, 10, false);
+        Status status = pipeline.transform(new UnsafeBuffer(datum), 0, 10, false);
 
         assertEquals(STARVED, status);
     }
@@ -237,7 +243,7 @@ public class AvroValueStreamingTest
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(new Collector());
         pipeline.reset();
         // the final window holds only part of the value, so it cannot complete -> truncated
-        Status status = pipeline.feed(new UnsafeBuffer(datum), 0, 10, true);
+        Status status = pipeline.transform(new UnsafeBuffer(datum), 0, 10, true);
 
         assertEquals(REJECTED, status);
     }
@@ -251,13 +257,13 @@ public class AvroValueStreamingTest
         pipeline.reset();
         collector.reset();
         UnsafeBuffer buffer = new UnsafeBuffer(datum);
-        Status status = pipeline.feed(buffer, 0, 0, false);
+        Status status = pipeline.transform(buffer, 0, 0, false);
         int progress = 0;
         int guard = datum.length * 2 + 8;
         while (status != COMPLETED && status != REJECTED && guard-- > 0)
         {
             int length = Math.min(window, datum.length - progress);
-            status = pipeline.feed(buffer, progress, progress + length, progress + length == datum.length);
+            status = pipeline.transform(buffer, progress, progress + length, progress + length == datum.length);
             progress += length - pipeline.remaining();
         }
         return status;
@@ -317,7 +323,7 @@ public class AvroValueStreamingTest
         private final List<Integer> deferreds = new ArrayList<>();
 
         @Override
-        public Status feed(
+        public Status transform(
             AvroController control,
             AvroSource source,
             AvroEvent event)
@@ -338,6 +344,12 @@ public class AvroValueStreamingTest
         {
             chunks.clear();
             deferreds.clear();
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
         }
 
         private byte[] bytes()

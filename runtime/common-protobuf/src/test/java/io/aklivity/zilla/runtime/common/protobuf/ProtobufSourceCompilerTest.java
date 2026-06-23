@@ -235,7 +235,7 @@ public class ProtobufSourceCompilerTest
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
 
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(wire), 0, wire.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(wire), 0, wire.length));
         generator.flush();
 
         byte[] bytes = new byte[generator.length()];
@@ -255,7 +255,7 @@ public class ProtobufSourceCompilerTest
         pipeline.reset();
 
         byte[] in = json.getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.feed(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
 
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);

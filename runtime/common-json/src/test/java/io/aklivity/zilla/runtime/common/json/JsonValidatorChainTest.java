@@ -51,7 +51,7 @@ class JsonValidatorChainTest
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
+        assertEquals("{\"id\":1,\"name\":\"x\"} ", output(gen));
     }
 
     @Test
@@ -103,7 +103,7 @@ class JsonValidatorChainTest
         {
             limit = Math.min(limit + step, bytes.length);
             boolean last = limit >= bytes.length;
-            status = pipeline.feed(new UnsafeBuffer(bytes), progress, limit, last);
+            status = pipeline.transform(new UnsafeBuffer(bytes), progress, limit, last);
             progress = limit - pipeline.remaining();
         }
         return status;
@@ -122,7 +122,7 @@ class JsonValidatorChainTest
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"id\":1}", output(gen));
+        assertEquals("{\"id\":1} ", output(gen));
     }
 
     @Test
@@ -168,11 +168,11 @@ class JsonValidatorChainTest
         UnsafeBuffer in = new UnsafeBuffer(bytes);
 
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.feed(in, 0, 8, false));
-        Status status = pipeline.feed(in, 8, bytes.length);
+        assertEquals(Status.STARVED, pipeline.transform(in, 0, 8, false));
+        Status status = pipeline.transform(in, 8, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
+        assertEquals("{\"id\":1,\"name\":\"x\"} ", output(gen));
     }
 
     @Test
@@ -186,7 +186,7 @@ class JsonValidatorChainTest
 
         gen.wrap(buffer, 0, buffer.capacity());
         assertEquals(Status.COMPLETED, run(pipeline, "{\"id\":1,\"name\":\"a\"} "));
-        assertEquals("{\"id\":1,\"name\":\"a\"}", output(gen));
+        assertEquals("{\"id\":1,\"name\":\"a\"} ", output(gen));
 
         gen.wrap(buffer, 0, buffer.capacity());
         assertEquals(Status.REJECTED, run(pipeline, "{\"id\":2} "));
@@ -196,7 +196,7 @@ class JsonValidatorChainTest
     void shouldForwardThroughDefaultResetTransform()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonTransform passthrough = (control, source, event, sink) -> sink.feed(control, source, event);
+        JsonTransform passthrough = (control, source, event, sink) -> sink.transform(control, source, event);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
             .into(JsonEx.createSink(gen));
@@ -204,7 +204,7 @@ class JsonValidatorChainTest
         Status status = run(pipeline, "{\"id\":1} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"id\":1}", output(gen));
+        assertEquals("{\"id\":1} ", output(gen));
     }
 
     @Test
@@ -265,7 +265,7 @@ class JsonValidatorChainTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 
     private static JsonParser parserFor(

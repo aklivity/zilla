@@ -46,6 +46,8 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 
 public class ProtobufJsonChunkingTest
 {
+    private static final String LONG_KEY = "status_field_with_a_deliberately_long_name";
+
     private final ProtobufSchema schema = newSchema();
 
     @Test
@@ -221,6 +223,64 @@ public class ProtobufJsonChunkingTest
         assertEquals("v", object.getJsonObject("props").getString(key));
     }
 
+    @Test
+    public void shouldPreserveStringValuesAcrossStructuralPrefixOverrun()
+    {
+        byte[] wire = wire(g -> g
+            .writeString(1, "123")
+            .writeString(2, "OK"));
+
+        Drained drained = toJsonBounded("Event", wire, 56);
+
+        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED chunk boundary, got: " + drained.json);
+        assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
+    }
+
+    @Test
+    public void shouldFragmentRecordKeyPrefixLargerThanWindow()
+    {
+        byte[] wire = wire(g -> g
+            .writeString(1, "123")
+            .writeString(2, "OK"));
+        Drained drained = toJsonBounded("Event", wire, 32);
+        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED chunk boundary, got: " + drained.json);
+        assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
+    }
+
+    private Drained toJsonBounded(
+        String messageName,
+        byte[] wire,
+        int window)
+    {
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(256, window * 8)]);
+        ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
+        generator.wrap(out, 0, window);
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
+            .into(ProtobufSink.of(generator, schema, messageName));
+        pipeline.reset();
+
+        StringBuilder result = new StringBuilder();
+        UnsafeBuffer in = new UnsafeBuffer(wire);
+        int suspends = 0;
+        int guard = 0;
+        Status status = pipeline.transform(in, 0, wire.length);
+        while (status == Status.SUSPENDED && guard < 1_000_000)
+        {
+            assertTrue(generator.length() <= window, "drained chunk overran the output bound: " + generator.length());
+            result.append(chunk(out, generator.length()));
+            generator.wrap(out, 0, window);
+            suspends++;
+            guard++;
+            status = pipeline.transform(in, 0, wire.length);
+        }
+        assertEquals(Status.COMPLETED, status);
+        generator.flush();
+        assertTrue(generator.length() <= window, "final chunk overran the output bound: " + generator.length());
+        result.append(chunk(out, generator.length()));
+
+        return new Drained(result.toString(), suspends);
+    }
+
     private WireDrained fromJsonWindowed(
         String messageName,
         byte[] json,
@@ -237,7 +297,7 @@ public class ProtobufJsonChunkingTest
         UnsafeBuffer in = new UnsafeBuffer(json);
         int suspends = 0;
         int guard = 0;
-        Status status = pipeline.feed(in, 0, json.length);
+        Status status = pipeline.transform(in, 0, json.length);
         while (status == Status.SUSPENDED && guard < 1_000_000)
         {
             assertTrue(generator.length() <= window, "chunk exceeded the generator limit");
@@ -245,7 +305,7 @@ public class ProtobufJsonChunkingTest
             generator.wrap(out, 0, window);
             suspends++;
             guard++;
-            status = pipeline.feed(in, 0, json.length);
+            status = pipeline.transform(in, 0, json.length);
         }
         assertEquals(Status.COMPLETED, status);
         generator.flush();
@@ -264,7 +324,7 @@ public class ProtobufJsonChunkingTest
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(wire), 0, wire.length);
+        Status status = pipeline.transform(new UnsafeBuffer(wire), 0, wire.length);
         assertEquals(Status.COMPLETED, status);
         generator.flush();
         return chunk(out, generator.length());
@@ -310,7 +370,7 @@ public class ProtobufJsonChunkingTest
         UnsafeBuffer in = new UnsafeBuffer(wire);
         int suspends = 0;
         int guard = 0;
-        Status status = pipeline.feed(in, 0, wire.length);
+        Status status = pipeline.transform(in, 0, wire.length);
         while (status == Status.SUSPENDED && guard < 1_000_000)
         {
             assertTrue(generator.length() <= window, "chunk exceeded the generator limit");
@@ -318,7 +378,7 @@ public class ProtobufJsonChunkingTest
             generator.wrap(out, 0, window);
             suspends++;
             guard++;
-            status = pipeline.feed(in, 0, wire.length);
+            status = pipeline.transform(in, 0, wire.length);
         }
         assertEquals(Status.COMPLETED, status);
         generator.flush();
@@ -359,14 +419,14 @@ public class ProtobufJsonChunkingTest
             int take = Math.min(inWindow, wire.length - limit);
             limit += take;
             boolean last = limit >= wire.length;
-            Status status = pipeline.feed(in, progress, limit, last);
+            Status status = pipeline.transform(in, progress, limit, last);
             while (status == Status.SUSPENDED)
             {
                 assertTrue(generator.length() <= outWindow, "chunk exceeded the generator limit");
                 result.append(chunk(out, generator.length()));
                 generator.wrap(out, 0, outWindow);
                 suspends++;
-                status = pipeline.feed(in, progress, limit, last);
+                status = pipeline.transform(in, progress, limit, last);
             }
             switch (status)
             {
@@ -439,6 +499,10 @@ public class ProtobufJsonChunkingTest
             .message(ProtobufMessage.builder("Props")
                 .field(ProtobufField.builder().number(1).name("props").type(ProtobufType.MESSAGE).typeName("PropsEntry")
                     .repeated(true).build())
+                .build())
+            .message(ProtobufMessage.builder("Event")
+                .field(ProtobufField.builder().number(1).name("id").jsonName("id").type(ProtobufType.STRING).build())
+                .field(ProtobufField.builder().number(2).name(LONG_KEY).jsonName(LONG_KEY).type(ProtobufType.STRING).build())
                 .build())
             .build();
     }

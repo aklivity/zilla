@@ -174,7 +174,7 @@ public class AvroPipelineBM
         int length)
     {
         pipeline.reset();
-        pipeline.feed(buffer, 0, length);
+        pipeline.transform(buffer, 0, length);
         return length;
     }
 
@@ -186,7 +186,7 @@ public class AvroPipelineBM
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
-        pipeline.feed(buffer, 0, length);
+        pipeline.transform(buffer, 0, length);
         return generator.length();
     }
 
@@ -272,12 +272,18 @@ public class AvroPipelineBM
     private static final class NoopSink implements AvroSink
     {
         @Override
-        public Status feed(
+        public Status transform(
             AvroController control,
             AvroSource source,
             AvroEvent event)
         {
             return Status.ADVANCED;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
         }
     }
 }

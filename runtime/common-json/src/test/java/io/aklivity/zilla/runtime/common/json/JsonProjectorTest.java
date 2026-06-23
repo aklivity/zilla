@@ -18,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
+import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -120,13 +121,13 @@ class JsonProjectorTest
         UnsafeBuffer in = new UnsafeBuffer(bytes);
 
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.feed(in, 0, 7, false));
-        Status status = pipeline.feed(in, 7, bytes.length);
+        assertEquals(Status.STARVED, pipeline.transform(in, 0, 7, false));
+        Status status = pipeline.transform(in, 7, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
-        assertEquals("{\"a\":1,\"c\":3}", new String(out, UTF_8));
+        assertEquals("{\"a\":1,\"c\":3} ", new String(out, UTF_8));
     }
 
     @Test
@@ -142,13 +143,13 @@ class JsonProjectorTest
         feed(pipeline, "{\"x\":1,\"y\":2} ");
         byte[] out1 = new byte[gen.length()];
         buffer.getBytes(0, out1);
-        assertEquals("{\"x\":1}", new String(out1, UTF_8));
+        assertEquals("{\"x\":1} ", new String(out1, UTF_8));
 
         gen.wrap(buffer, 0, buffer.capacity());
         feed(pipeline, "{\"x\":\"two\"} ");
         byte[] out2 = new byte[gen.length()];
         buffer.getBytes(0, out2);
-        assertEquals("{\"x\":\"two\"}", new String(out2, UTF_8));
+        assertEquals("{\"x\":\"two\"} ", new String(out2, UTF_8));
     }
 
     @Test
@@ -191,7 +192,7 @@ class JsonProjectorTest
     {
         // kept keys are forwarded live at the key event, so a key write can land on an output-bound
         // boundary and suspend; the drain/resume must advance to the value without re-emitting the key
-        assertEquals("{\"alpha\":1,\"gamma\":3,\"epsilon\":5}",
+        assertEquals("{\"alpha\":1,\"gamma\":3,\"epsilon\":5} ",
             projectBounded(List.of("/alpha", "/gamma", "/epsilon"),
                 "{\"alpha\":1,\"beta\":2,\"gamma\":3,\"delta\":4,\"epsilon\":5}", 12));
     }
@@ -205,7 +206,7 @@ class JsonProjectorTest
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(retained))
-            .into(JsonEx.createSink(gen));
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         feed(pipeline, input + " ");
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
@@ -234,7 +235,7 @@ class JsonProjectorTest
         Status status;
         do
         {
-            status = pipeline.feed(in, 0, bytes.length);
+            status = pipeline.transform(in, 0, bytes.length);
             byte[] chunk = new byte[gen.length()];
             buffer.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
@@ -255,6 +256,6 @@ class JsonProjectorTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.feed(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
     }
 }

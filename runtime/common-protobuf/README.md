@@ -92,7 +92,7 @@ ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(readSchema, "Person"
     .transform(readSchema.validator("Person"))
     .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
 pipeline.reset();
-if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)  // COMPLETED / SUSPENDED / REJECTED
+if (pipeline.transform(in, off, len) == ProtobufPipeline.Status.COMPLETED)  // COMPLETED / SUSPENDED / REJECTED
 {
     int length = generator.length();   // PersonV2 wire bytes in out
 }
@@ -102,8 +102,8 @@ if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)  // COMPLE
   terminates (`into`), yielding the runnable **`ProtobufPipeline`** (`reset` / `feed` / `Status`).
 - **`ProtobufSource`** is the per-event read-only value view handed to a stage — the parser's typed
   accessors without the cursor advance, so a stage cannot disturb the pump.
-- **`ProtobufTransform`** is an intermediate stage (`feed(control, source, event, sink)`);
-  **`ProtobufSink`** is the terminal (`feed(control, source, event)`).
+- **`ProtobufTransform`** is an intermediate stage (`transform(control, source, event, sink)`);
+  **`ProtobufSink`** is the terminal (`transform(control, source, event)`).
 - **`schema.validator(messageName)`** returns a `ProtobufTransform` that forwards every event and
   adds descriptor-level semantic validation (proto2 `required`-field presence), reporting at the
   message boundary so callers abort on `REJECTED` (emit-then-abort). For a one-shot check,
@@ -152,12 +152,12 @@ pipeline.reset();
 for (boolean done = false; !done; )
 {
     appendToSlot(nextWindowBytes());                 // grow the reassembly slot with new input
-    Status status = pipeline.feed(slot, 0, slotLength, finalWindow);
+    Status status = pipeline.transform(slot, 0, slotLength, finalWindow);
     while (status == Status.SUSPENDED)               // output full
     {
         emitDataFrame(out, 0, generator.length());   // drain — flow-controlled
         generator.wrap(out, 0, limit);               // reset output (fresh or recycled buffer)
-        status = pipeline.feed(slot, 0, slotLength, finalWindow);
+        status = pipeline.transform(slot, 0, slotLength, finalWindow);
     }
     switch (status)
     {
@@ -212,12 +212,12 @@ ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(readSchema, "Person"
     .into(ProtobufSink.of(generator, writeSchema, "PersonV2"));
 pipeline.reset();
 
-ProtobufPipeline.Status status = pipeline.feed(in, off, len);
+ProtobufPipeline.Status status = pipeline.transform(in, off, len);
 while (status == ProtobufPipeline.Status.SUSPENDED)   // output full
 {
     emitDataFrame(out, 0, generator.length());        // drain — flow-controlled
     generator.wrap(out, 0, limit);                    // reset output (fresh or recycled buffer)
-    status = pipeline.feed(in, off, len);             // resume the in-flight message
+    status = pipeline.transform(in, off, len);             // resume the in-flight message
 }
 // COMPLETED: emit the final generator.length() bytes
 ```
@@ -263,7 +263,7 @@ can keep/drop/redact fields by number with no schema:
 ```java
 ProtobufGenerator generator = Protobuf.generator().wrap(out, 0);
 ProtobufTransform redact = (control, source, event, sink) ->
-    source.fieldNumber() == SSN ? ProtobufPipeline.Status.ADVANCED : sink.feed(control, source, event);
+    source.fieldNumber() == SSN ? ProtobufPipeline.Status.ADVANCED : sink.transform(control, source, event);
 Protobuf.stream(Protobuf.parser()).transform(redact).into(ProtobufSink.of(generator));
 ```
 
@@ -303,7 +303,7 @@ ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
 ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, "Person"))
     .into(ProtobufSink.of(generator, schema, "Person"));
 pipeline.reset();
-if (pipeline.feed(jsonIn, off, len) == ProtobufPipeline.Status.COMPLETED)
+if (pipeline.transform(jsonIn, off, len) == ProtobufPipeline.Status.COMPLETED)
 {
     int length = generator.length();   // Person wire bytes in out
 }
@@ -323,7 +323,7 @@ json.wrap(out, 0, out.capacity());
 ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
     .into(ProtobufSink.of(json, schema, "Person"));
 pipeline.reset();
-if (pipeline.feed(in, off, len) == ProtobufPipeline.Status.COMPLETED)
+if (pipeline.transform(in, off, len) == ProtobufPipeline.Status.COMPLETED)
 {
     json.flush();                 // finalize the root object (the protobuf root carries no end event)
     int length = json.length();   // Person rendered as JSON in out

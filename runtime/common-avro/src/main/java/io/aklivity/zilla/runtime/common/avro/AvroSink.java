@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.avro;
 import io.aklivity.zilla.runtime.common.avro.internal.AvroSinkImpl;
 
 /**
- * The consume end of an {@link AvroStream} pipeline. Each {@link #feed(AvroController, AvroSource,
+ * The consume end of an {@link AvroStream} pipeline. Each {@link #transform(AvroController, AvroSource,
  * AvroEvent)} delivers one event (with {@code source} positioned to read its scalar, or its bytes when
  * the event is {@link AvroEvent#segmented()}) and returns whether the current top-level datum has
  * reached a terminal {@link AvroPipeline.Status}. {@code control} steers the immediate upstream. A
@@ -39,13 +39,13 @@ public interface AvroSink
         SEGMENTABLE
     }
 
-    AvroPipeline.Status feed(
+    AvroPipeline.Status transform(
         AvroController control,
         AvroSource source,
         AvroEvent event);
 
     /**
-     * Continues the value in flight when the previous {@link #feed} returned
+     * Continues the value in flight when the previous {@link #transform} returned
      * {@link AvroPipeline.Status#SUSPENDED}, after the caller has drained and re-wrapped the output.
      * {@code event} is the value event that suspended, supplied by the pump so the sink keeps no resume
      * state of its own; the sink re-reads the in-flight value's remainder from {@code source}. The default
@@ -63,6 +63,11 @@ public interface AvroSink
     default void reset()
     {
     }
+
+    /**
+     * Whether this sink, together with everything downstream of it, leaves the bytes unchanged.
+     */
+    boolean identity();
 
     /**
      * A terminal sink that materializes each fed event into the corresponding write on {@code generator}.

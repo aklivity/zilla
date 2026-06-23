@@ -30,6 +30,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
 
     private int length;
     private boolean read;
+    private int transformLength = -1;
     private List<CatalogedConfig> catalogs;
 
     TestModelConfigBuilder(
@@ -59,6 +60,13 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> transformLength(
+        int transformLength)
+    {
+        this.transformLength = transformLength;
+        return this;
+    }
+
     public CatalogedConfigBuilder<TestModelConfigBuilder<T>> catalog()
     {
         return CatalogedConfig.builder(this::catalog);
@@ -78,6 +86,6 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new TestModelConfig(length, catalogs, read));
+        return mapper.apply(new TestModelConfig(length, catalogs, read, transformLength));
     }
 }

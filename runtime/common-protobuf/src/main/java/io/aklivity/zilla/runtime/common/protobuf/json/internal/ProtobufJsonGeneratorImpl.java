@@ -53,6 +53,8 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private static final char[] BASE64 =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
 
+    private static final int RESERVE = 2;
+
     private final JsonGeneratorEx json;
     private final ProtobufSchema schema;
     private final String messageName;
@@ -70,8 +72,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
 
     private boolean segmentActive;
     private boolean segmentOpened;
+    private boolean segmentDeferred;
     private int consumed;
     private boolean flushed;
+
+    private int keyAt;
+    private boolean keyDrained;
 
     public ProtobufJsonGeneratorImpl(
         JsonGeneratorEx json,
@@ -103,6 +109,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
+    public boolean identity()
+    {
+        return false;
+    }
+
+    @Override
     public ProtobufGenerator wrap(
         MutableDirectBuffer buffer,
         int offset,
@@ -121,6 +133,9 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             rootOpened = false;
             segmentActive = false;
             segmentOpened = false;
+            segmentDeferred = false;
+            keyAt = 0;
+            keyDrained = false;
         }
         consumed = 0;
         return this;
@@ -141,7 +156,28 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public int remaining()
     {
-        return json.remaining();
+        return Math.max(0, json.remaining() - RESERVE - pendingKeyWidth());
+    }
+
+    private int pendingKeyWidth()
+    {
+        int width = 0;
+        if (rootOpened && depth >= 0)
+        {
+            Scope scope = scopes[depth];
+            if (!scope.mapEntry && scope.message != null)
+            {
+                int separator = scope.openField != -1 || !scope.written.isEmpty() ? 1 : 0;
+                for (ProtobufField field : scope.message.sortedFields())
+                {
+                    if (!scope.written.get(field.number()))
+                    {
+                        width = Math.max(width, key(field).length() + 3 + separator);
+                    }
+                }
+            }
+        }
+        return width;
     }
 
     @Override
@@ -401,9 +437,19 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     {
         if (!segmentActive)
         {
+            if (json.length() > 0 && segmentKeyWidth(field) > json.remaining())
+            {
+                segmentDeferred = true;
+                return this;
+            }
+            if (drainKey(field))
+            {
+                return this;
+            }
             prepare(field);
             segmentActive = true;
             segmentOpened = false;
+            segmentDeferred = false;
         }
         if (scalarKey)
         {
@@ -474,10 +520,8 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator flush()
     {
-        if (segmentActive)
+        if (segmentActive || segmentDeferred || keyAt > 0)
         {
-            // a value is in flight: the bounded output filled mid-value, so leave the open string and scopes
-            // untouched — this chunk drains and the next window resumes the same document by concatenation
             flushed = true;
         }
         else
@@ -514,6 +558,76 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         }
     }
 
+    private int segmentKeyWidth(
+        int number)
+    {
+        int width = 0;
+        if (rootOpened && depth >= 0)
+        {
+            Scope scope = scopes[depth];
+            if (scope.mapEntry)
+            {
+                if (number != 1 && scope.pendingKey != null)
+                {
+                    int separator = scope.written.isEmpty() ? 0 : 1;
+                    width = scope.pendingKey.length() + 3 + separator;
+                }
+            }
+            else if (scope.message != null)
+            {
+                ProtobufField field = scope.message.field(number);
+                if (field != null && !(field.repeated() && scope.openField == number))
+                {
+                    int separator = scope.openField != -1 || !scope.written.isEmpty() ? 1 : 0;
+                    width = key(field).length() + 3 + separator;
+                }
+            }
+        }
+        return width;
+    }
+
+    // Emits a message field key whose prefix exceeds the output window across windows, mirroring the way
+    // JsonSinkImpl.writeKeyName fragments a key from its source: the schema field key is re-read from keyAt and
+    // driven through the bounded json.writeKey(view, COMPLETE), which appends only what fits and closes the key
+    // once its final char lands. Returns true while the key is still in flight so writeSegment consumes nothing
+    // and the driving sink suspends, re-presenting the value's bytes on resume; the key is a stable schema string,
+    // so only the integer cursor crosses the window — no value bytes are buffered here.
+    private boolean drainKey(
+        int number)
+    {
+        boolean draining = false;
+        if (!keyDrained && rootOpened && depth >= 0)
+        {
+            Scope scope = scopes[depth];
+            if (!scope.mapEntry && scope.message != null)
+            {
+                ProtobufField field = scope.message.field(number);
+                if (field != null && !(field.repeated() && scope.openField == number))
+                {
+                    String name = key(field);
+                    int separator = scope.openField != -1 || !scope.written.isEmpty() ? 1 : 0;
+                    int prefix = separator + 1 + name.length() + 2;
+                    if (keyAt > 0 || prefix > json.remaining())
+                    {
+                        int before = json.consumed();
+                        json.writeKey(name.subSequence(keyAt, name.length()), Completion.COMPLETE);
+                        keyAt += json.consumed() - before;
+                        if (keyAt == name.length())
+                        {
+                            keyDrained = true;
+                            keyAt = 0;
+                        }
+                        else
+                        {
+                            draining = true;
+                        }
+                    }
+                }
+            }
+        }
+        return draining;
+    }
+
     private void prepare(
         int number)
     {
@@ -542,14 +656,22 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             {
                 if (scope.openField != number)
                 {
-                    json.writeKey(key(field));
+                    if (!keyDrained)
+                    {
+                        json.writeKey(key(field));
+                    }
+                    keyDrained = false;
                     json.writeStartArray();
                     scope.openField = number;
                 }
             }
             else
             {
-                json.writeKey(key(field));
+                if (!keyDrained)
+                {
+                    json.writeKey(key(field));
+                }
+                keyDrained = false;
             }
         }
     }

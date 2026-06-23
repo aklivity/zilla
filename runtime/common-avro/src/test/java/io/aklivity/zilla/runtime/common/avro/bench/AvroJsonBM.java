@@ -170,7 +170,7 @@ public class AvroJsonBM
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
         pipeline.reset();
-        pipeline.feed(buffer, 0, length);
+        pipeline.transform(buffer, 0, length);
         return generator.length();
     }
 
@@ -183,7 +183,7 @@ public class AvroJsonBM
         AvroGenerator generator = AvroJson.generator(schema, json).wrap(out, 0, out.capacity());
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         pipeline.reset();
-        Status status = pipeline.feed(new UnsafeBuffer(avro), 0, avro.length);
+        Status status = pipeline.transform(new UnsafeBuffer(avro), 0, avro.length);
         if (status != Status.COMPLETED)
         {
             throw new IllegalStateException("avro -> json did not complete: " + status);

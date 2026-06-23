@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.avro;
 /**
  * An intermediate stage in an {@link AvroStream} pipeline that transforms the event stream —
  * forwarding, dropping, or substituting events — before they reach the next stage. Each
- * {@link #feed(AvroController, AvroSource, AvroEvent, AvroSink)} consumes one event and forwards what
+ * {@link #transform(AvroController, AvroSource, AvroEvent, AvroSink)} consumes one event and forwards what
  * it keeps to {@code sink} (the downstream, bound once at assembly). A mediating stage supplies its own
  * {@link AvroController} to {@code sink}; a non-mediating stage passes {@code control} through. Stages
  * compose left-to-right via {@link AvroStream#transform(AvroTransform)}. {@link AvroSchema#validator()}
@@ -25,7 +25,7 @@ package io.aklivity.zilla.runtime.common.avro;
  */
 public interface AvroTransform
 {
-    AvroPipeline.Status feed(
+    AvroPipeline.Status transform(
         AvroController control,
         AvroSource source,
         AvroEvent event,
@@ -48,5 +48,14 @@ public interface AvroTransform
 
     default void reset()
     {
+    }
+
+    /**
+     * Whether this stage forwards every event verbatim, leaving the bytes unchanged. A validating or
+     * observing stage is identity; a stage that substitutes, drops, or rewrites events is not.
+     */
+    default boolean identity()
+    {
+        return false;
     }
 }

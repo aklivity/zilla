@@ -70,7 +70,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     }
 
     @Override
-    public ProtobufPipeline.Status feed(
+    public ProtobufPipeline.Status transform(
         ProtobufController control,
         ProtobufSource source,
         ProtobufEvent event)
@@ -94,6 +94,12 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
     {
         depth = -1;
         pending = null;
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return generator.identity();
     }
 
     private ProtobufPipeline.Status dispatch(
