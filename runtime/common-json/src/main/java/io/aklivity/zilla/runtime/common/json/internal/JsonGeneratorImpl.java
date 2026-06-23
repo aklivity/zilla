@@ -599,6 +599,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         case VALUE:
             markValueStart();
             break;
+        case START_DOCUMENT:
+        case END_DOCUMENT:
+            break;
         default:
             break;
         }
