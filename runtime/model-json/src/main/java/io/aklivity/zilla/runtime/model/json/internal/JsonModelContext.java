@@ -16,10 +16,8 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonModelContext implements ModelContext
@@ -29,27 +27,6 @@ public class JsonModelContext implements ModelContext
     public JsonModelContext(EngineContext context)
     {
         this.context = context;
-    }
-
-    @Override
-    public ConverterHandler supplyReadConverterHandler(
-        ModelConfig config)
-    {
-        return new JsonReadConverterHandler(JsonModelConfig.class.cast(config), context);
-    }
-
-    @Override
-    public ConverterHandler supplyWriteConverterHandler(
-        ModelConfig config)
-    {
-        return new JsonWriteConverterHandler(JsonModelConfig.class.cast(config), context);
-    }
-
-    @Override
-    public ValidatorHandler supplyValidatorHandler(
-        ModelConfig config)
-    {
-        return new JsonValidatorHandler(JsonModelConfig.class.cast(config), context);
     }
 
     @Override

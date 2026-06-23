@@ -42,8 +42,6 @@ public class DoubleModelFactoryTest
         ModelConfig modelConfig = DoubleModelConfig.builder().build();
 
         assertThat(model, instanceOf(DoubleModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(DoubleConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(DoubleConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(DoubleValidatorHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
     }
 }

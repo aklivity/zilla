@@ -41,9 +41,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -514,35 +512,6 @@ public interface EngineContext
      */
     CatalogHandler supplyCatalog(
         long catalogId);
-
-    /**
-     * Returns a {@link ValidatorHandler} configured for the given model configuration.
-     *
-     * @param config  the model configuration
-     * @return the validator handler, or {@code null} if the model does not support validation
-     */
-    ValidatorHandler supplyValidator(
-        ModelConfig config);
-
-    /**
-     * Returns a {@link ConverterHandler} for converting inbound (read) payloads according
-     * to the given model configuration.
-     *
-     * @param config  the model configuration
-     * @return the read converter handler
-     */
-    ConverterHandler supplyReadConverter(
-        ModelConfig config);
-
-    /**
-     * Returns a {@link ConverterHandler} for converting outbound (write) payloads according
-     * to the given model configuration.
-     *
-     * @param config  the model configuration
-     * @return the write converter handler
-     */
-    ConverterHandler supplyWriteConverter(
-        ModelConfig config);
 
     /**
      * Returns a {@link ModelHandler} that vends per-stream decode and encode pipelines for the

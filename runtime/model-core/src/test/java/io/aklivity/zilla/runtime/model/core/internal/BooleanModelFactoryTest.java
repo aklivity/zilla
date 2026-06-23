@@ -42,8 +42,6 @@ public class BooleanModelFactoryTest
         ModelConfig modelConfig = BooleanModelConfig.builder().build();
 
         assertThat(model, instanceOf(BooleanModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(BooleanConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(BooleanConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(BooleanValidatorHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
     }
 }

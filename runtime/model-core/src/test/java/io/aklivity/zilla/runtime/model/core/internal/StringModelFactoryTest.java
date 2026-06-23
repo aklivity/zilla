@@ -42,8 +42,6 @@ public class StringModelFactoryTest
         ModelConfig modelConfig = StringModelConfig.builder().encoding("utf_8").build();
 
         assertThat(model, instanceOf(StringModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(StringConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(StringConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(StringValidatorHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
     }
 }

@@ -17,17 +17,15 @@ package io.aklivity.zilla.runtime.engine.model;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModel;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelContext;
-import io.aklivity.zilla.runtime.engine.test.internal.model.TestValidatorHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class ModelFactoryTest
@@ -43,36 +41,6 @@ public class ModelFactoryTest
         ModelContext context = new TestModelContext(mock(EngineContext.class));
 
         assertThat(model, instanceOf(TestModel.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(TestValidatorHandler.class));
-    }
-
-    @Test
-    public void shouldCreateNullValidator()
-    {
-        TestModelConfig config = TestModelConfig.builder().length(4).build();
-        ModelContext context = new ModelContext()
-        {
-            @Override
-            public ConverterHandler supplyReadConverterHandler(
-                ModelConfig config)
-            {
-                return null;
-            }
-
-            @Override
-            public ConverterHandler supplyWriteConverterHandler(
-                ModelConfig config)
-            {
-                return null;
-            }
-
-            @Override
-            public ModelHandler supplyHandler(
-                ModelConfig config)
-            {
-                return null;
-            }
-        };
-        assertNull(context.supplyValidatorHandler(config));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(TestModelHandler.class));
     }
 }

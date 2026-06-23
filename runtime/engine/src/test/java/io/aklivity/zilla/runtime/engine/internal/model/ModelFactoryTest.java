@@ -26,9 +26,9 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelFactory;
-import io.aklivity.zilla.runtime.engine.test.internal.model.TestConverterHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModel;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelContext;
+import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class ModelFactoryTest
@@ -40,11 +40,10 @@ public class ModelFactoryTest
         ModelFactory factory = ModelFactory.instantiate();
         Model model = factory.create("test", config);
 
-        TestModelConfig converterConfig = TestModelConfig.builder().length(4).build();
+        TestModelConfig modelConfig = TestModelConfig.builder().length(4).build();
         ModelContext context = new TestModelContext(mock(EngineContext.class));
 
         assertThat(model, instanceOf(TestModel.class));
-        assertThat(context.supplyReadConverterHandler(converterConfig), instanceOf(TestConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(converterConfig), instanceOf(TestConverterHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(TestModelHandler.class));
     }
 }

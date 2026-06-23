@@ -42,8 +42,6 @@ public class FloatModelFactoryTest
         ModelConfig modelConfig = FloatModelConfig.builder().build();
 
         assertThat(model, instanceOf(FloatModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(FloatConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(FloatConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(FloatValidatorHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
     }
 }

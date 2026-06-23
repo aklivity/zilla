@@ -16,10 +16,8 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
 
 public class DoubleModelContext implements ModelContext
@@ -33,37 +31,10 @@ public class DoubleModelContext implements ModelContext
     }
 
     @Override
-    public ConverterHandler supplyReadConverterHandler(
-        ModelConfig config)
-    {
-        return supply(config);
-    }
-
-    @Override
-    public ConverterHandler supplyWriteConverterHandler(
-        ModelConfig config)
-    {
-        return supply(config);
-    }
-
-    @Override
-    public ValidatorHandler supplyValidatorHandler(
-        ModelConfig config)
-    {
-        return new DoubleValidatorHandler(DoubleModelConfig.class.cast(config), context);
-    }
-
-    @Override
     public ModelHandler supplyHandler(
         ModelConfig config)
     {
         return supplyCoreHandler(config);
-    }
-
-    private DoubleConverterHandler supply(
-        ModelConfig config)
-    {
-        return new DoubleConverterHandler(DoubleModelConfig.class.cast(config), context);
     }
 
     private CoreModelHandler supplyCoreHandler(

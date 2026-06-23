@@ -42,8 +42,6 @@ public class Int64ModelFactoryTest
         ModelConfig modelConfig = Int64ModelConfig.builder().build();
 
         assertThat(model, instanceOf(Int64Model.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(Int64ConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(Int64ConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(Int64ValidatorHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
     }
 }

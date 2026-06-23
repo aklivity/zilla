@@ -51,8 +51,6 @@ public class AvroModelFactorySpiTest
                 .build();
 
         assertThat(model, instanceOf(AvroModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(AvroReadConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(AvroWriteConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(AvroValidatorHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(AvroModelHandlerImpl.class));
     }
 }

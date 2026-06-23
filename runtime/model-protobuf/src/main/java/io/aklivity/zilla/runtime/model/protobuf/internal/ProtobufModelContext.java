@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
@@ -33,20 +32,6 @@ public class ProtobufModelContext implements ModelContext
     {
         this.config = new ProtobufModelConfiguration(config);
         this.context = context;
-    }
-
-    @Override
-    public ConverterHandler supplyReadConverterHandler(
-        ModelConfig config)
-    {
-        return new ProtobufReadConverterHandler(ProtobufModelConfig.class.cast(config), context);
-    }
-
-    @Override
-    public ConverterHandler supplyWriteConverterHandler(
-        ModelConfig config)
-    {
-        return new ProtobufWriteConverterHandler(ProtobufModelConfig.class.cast(config), context);
     }
 
     @Override

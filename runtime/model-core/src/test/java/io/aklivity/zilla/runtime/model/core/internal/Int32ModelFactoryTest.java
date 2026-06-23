@@ -42,8 +42,6 @@ public class Int32ModelFactoryTest
         ModelConfig modelConfig = Int32ModelConfig.builder().build();
 
         assertThat(model, instanceOf(Int32Model.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(Int32ConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(Int32ConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(Int32ValidatorHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
     }
 }
