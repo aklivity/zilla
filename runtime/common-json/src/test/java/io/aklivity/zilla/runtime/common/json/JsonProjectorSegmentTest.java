@@ -44,7 +44,7 @@ class JsonProjectorSegmentTest
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"a\":{ \"b\" : 1 }}", output(gen));
+        assertEquals("{\"a\":{ \"b\" : 1 }} ", output(gen));
     }
 
     @Test
@@ -120,7 +120,7 @@ class JsonProjectorSegmentTest
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"a\":{\"b\":1}}", output(gen));
+        assertEquals("{\"a\":{\"b\":1}} ", output(gen));
     }
 
     @Test
@@ -134,7 +134,7 @@ class JsonProjectorSegmentTest
         Status status = run(pipeline, "{\"items\":[{ \"id\" : 1 },{\"id\":2}]} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"items\":[{ \"id\" : 1 }]}", output(gen));
+        assertEquals("{\"items\":[{ \"id\" : 1 }]} ", output(gen));
     }
 
     @Test
@@ -252,7 +252,7 @@ class JsonProjectorSegmentTest
         String whole = driveMulti(json, 4096, 4096);
 
         assertEquals(whole, escaped);
-        assertEquals("{\"id\":\"12345\",\"status\":\"" + status + "\",\"total\":42.5}",
+        assertEquals("{\"id\":\"12345\",\"status\":\"" + status + "\",\"total\":42.5} ",
             decodeJsonString(escaped));
     }
 

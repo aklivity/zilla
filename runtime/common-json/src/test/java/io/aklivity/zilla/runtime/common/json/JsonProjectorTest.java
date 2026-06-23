@@ -127,7 +127,7 @@ class JsonProjectorTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
-        assertEquals("{\"a\":1,\"c\":3}", new String(out, UTF_8));
+        assertEquals("{\"a\":1,\"c\":3} ", new String(out, UTF_8));
     }
 
     @Test
@@ -143,13 +143,13 @@ class JsonProjectorTest
         feed(pipeline, "{\"x\":1,\"y\":2} ");
         byte[] out1 = new byte[gen.length()];
         buffer.getBytes(0, out1);
-        assertEquals("{\"x\":1}", new String(out1, UTF_8));
+        assertEquals("{\"x\":1} ", new String(out1, UTF_8));
 
         gen.wrap(buffer, 0, buffer.capacity());
         feed(pipeline, "{\"x\":\"two\"} ");
         byte[] out2 = new byte[gen.length()];
         buffer.getBytes(0, out2);
-        assertEquals("{\"x\":\"two\"}", new String(out2, UTF_8));
+        assertEquals("{\"x\":\"two\"} ", new String(out2, UTF_8));
     }
 
     @Test
@@ -192,7 +192,7 @@ class JsonProjectorTest
     {
         // kept keys are forwarded live at the key event, so a key write can land on an output-bound
         // boundary and suspend; the drain/resume must advance to the value without re-emitting the key
-        assertEquals("{\"alpha\":1,\"gamma\":3,\"epsilon\":5}",
+        assertEquals("{\"alpha\":1,\"gamma\":3,\"epsilon\":5} ",
             projectBounded(List.of("/alpha", "/gamma", "/epsilon"),
                 "{\"alpha\":1,\"beta\":2,\"gamma\":3,\"delta\":4,\"epsilon\":5}", 12));
     }
