@@ -47,6 +47,15 @@ public interface JsonPipeline
     void reset();
 
     /**
+     * Whether this pipeline reproduces its input bytes for every accepted datum — the composition of its
+     * parser, transform stages, and terminal generator all being identity. The default is {@code false}.
+     */
+    default boolean identity()
+    {
+        return false;
+    }
+
+    /**
      * Transforms a whole value in one shot (equivalent to {@link #transform(DirectBuffer, int, int, boolean)} with
      * {@code last == true}), for callers that reassemble the value before feeding it.
      */

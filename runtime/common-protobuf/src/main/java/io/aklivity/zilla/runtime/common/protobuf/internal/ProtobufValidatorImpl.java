@@ -102,6 +102,13 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
         pendingField = null;
     }
 
+    @Override
+    public boolean identity()
+    {
+        // validates the value and forwards it verbatim, leaving the bytes unchanged
+        return true;
+    }
+
     private Scope scope(
         int depth)
     {

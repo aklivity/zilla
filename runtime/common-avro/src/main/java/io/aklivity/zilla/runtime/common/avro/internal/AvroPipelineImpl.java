@@ -88,6 +88,14 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        // the pipeline reproduces its input only when the parser, every transform stage, and the terminal
+        // generator all leave the bytes unchanged
+        return parser.identity() && root.identity();
+    }
+
+    @Override
     public int remaining()
     {
         return parser.remaining();

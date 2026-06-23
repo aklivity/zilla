@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -134,6 +135,28 @@ class ProtobufPipelineTransformTest
         System.arraycopy(f1, 0, expected, 0, f1.length);
         System.arraycopy(f2, 0, expected, f1.length, f2.length);
         assertArrayEquals(expected, drained.toByteArray());
+    }
+
+    @Test
+    void shouldReportIdentityForWirePipeline()
+    {
+        ProtobufSchema schema = newSchema();
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
+            .into(Protobuf.generator(), schema, "P");
+
+        // a same-schema re-encode into the wire generator reproduces the input bytes
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    void shouldNotReportIdentityForJsonPipeline()
+    {
+        ProtobufSchema schema = newSchema();
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
+            .into(ProtobufJson.generator(JsonEx.createGenerator(), schema, "P"), schema, "P");
+
+        // re-encoding the wire message into JSON changes the bytes, so the pipeline is not identity
+        assertFalse(pipeline.identity());
     }
 
     @Test

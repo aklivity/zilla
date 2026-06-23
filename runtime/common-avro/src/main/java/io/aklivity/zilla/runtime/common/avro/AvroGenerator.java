@@ -123,4 +123,13 @@ public interface AvroGenerator
      * declared bytes were written.
      */
     void flush();
+
+    /**
+     * Whether this generator writes the values it receives verbatim, reproducing the input bytes. A
+     * generator that re-encodes into a different representation (e.g. JSON) is not identity.
+     */
+    default boolean identity()
+    {
+        return true;
+    }
 }

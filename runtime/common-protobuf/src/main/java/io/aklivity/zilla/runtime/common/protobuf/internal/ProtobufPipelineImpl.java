@@ -95,6 +95,14 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        // the pipeline reproduces its input only when the parser, every transform stage, and the terminal
+        // generator all leave the bytes unchanged
+        return parser.identity() && head.identity();
+    }
+
+    @Override
     public int remaining()
     {
         return parser.remaining();
@@ -225,6 +233,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         {
             transform.reset();
             downstream.reset();
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return transform.identity() && downstream.identity();
         }
     }
 

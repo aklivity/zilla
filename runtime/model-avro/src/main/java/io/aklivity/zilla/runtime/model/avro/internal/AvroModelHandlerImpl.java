@@ -93,13 +93,6 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         return new AvroWriteModelPipeline(this);
     }
 
-    // a json view re-encodes Avro into JSON, changing the bytes; any other configuration reproduces the
-    // validated Avro, so an accepted value passes through unchanged on the read path
-    boolean identity()
-    {
-        return !VIEW_JSON.equals(view);
-    }
-
     int decodePadding(
         DirectBuffer data,
         int index,

@@ -133,9 +133,9 @@ final class JsonReadModelPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        // a read json model only validates the value against its schema; it never re-encodes to a
-        // different representation, so an accepted value passes through unchanged
-        return true;
+        // the underlying pipeline knows whether its parser, transforms and generator preserve the bytes;
+        // it is selected per value on the first fragment, so report false until one is bound
+        return active != null && active.identity();
     }
 
     @Override

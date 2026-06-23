@@ -2419,6 +2419,13 @@ public final class JsonSchemaImpl implements JsonSchema
             eval = eval(new Trace(diagnostics::add));
             downstreamVerbatim = false;
         }
+
+        @Override
+        public boolean identity()
+        {
+            // validates the value and forwards it verbatim, leaving the bytes unchanged
+            return true;
+        }
     }
 
     private static Event toEvent(

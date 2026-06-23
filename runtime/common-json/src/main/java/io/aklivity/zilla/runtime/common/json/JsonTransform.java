@@ -69,4 +69,13 @@ public interface JsonTransform
     default void reset()
     {
     }
+
+    /**
+     * Whether this stage forwards every event verbatim, leaving the bytes unchanged. A validating or
+     * observing stage is identity; a stage that projects, drops, or rewrites members is not.
+     */
+    default boolean identity()
+    {
+        return true;
+    }
 }

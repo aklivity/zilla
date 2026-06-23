@@ -55,6 +55,15 @@ public interface AvroPipeline
     void reset();
 
     /**
+     * Whether this pipeline reproduces its input bytes for every accepted datum — the composition of its
+     * parser, transform stages, and terminal generator all being identity. The default is {@code false}.
+     */
+    default boolean identity()
+    {
+        return false;
+    }
+
+    /**
      * Feeds the whole datum, or the final window of a streamed one ({@code last == true}).
      */
     default Status transform(

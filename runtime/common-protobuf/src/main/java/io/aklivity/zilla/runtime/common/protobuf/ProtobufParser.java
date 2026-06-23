@@ -182,4 +182,13 @@ public interface ProtobufParser
      * @return the location of the current event within the message, for diagnostics
      */
     ProtobufLocation getLocation();
+
+    /**
+     * Whether this cursor reads its input verbatim, leaving the bytes intact for an identity generator. A
+     * cursor over the native Protobuf wire form is identity; one that parses a foreign representation is not.
+     */
+    default boolean identity()
+    {
+        return true;
+    }
 }

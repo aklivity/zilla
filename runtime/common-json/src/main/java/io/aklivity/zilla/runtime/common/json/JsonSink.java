@@ -88,4 +88,13 @@ public interface JsonSink
     default void reset()
     {
     }
+
+    /**
+     * Whether this sink, together with everything downstream of it, leaves the bytes unchanged. The default
+     * is {@code false}: only a sink that can prove its whole downstream is identity reports {@code true}.
+     */
+    default boolean identity()
+    {
+        return false;
+    }
 }
