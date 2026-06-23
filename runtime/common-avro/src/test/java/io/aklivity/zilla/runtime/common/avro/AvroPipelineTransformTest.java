@@ -44,7 +44,6 @@ class AvroPipelineTransformTest
             .transform(schema.validator())
             .into(generatorFor(schema));
 
-        // a validator into the canonical Avro generator reproduces the input bytes
         assertTrue(pipeline.identity());
     }
 

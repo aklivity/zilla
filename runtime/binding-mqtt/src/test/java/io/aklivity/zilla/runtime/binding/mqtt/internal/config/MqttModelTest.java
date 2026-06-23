@@ -89,7 +89,6 @@ public class MqttModelTest
     {
         MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
 
-        // no transformed length configured means the value bytes pass through unchanged
         assertTrue(model.identity());
     }
 
@@ -123,7 +122,6 @@ public class MqttModelTest
     {
         MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
 
-        // the whole value length does not match the configured length, so it is rejected on the final fragment
         assertFalse(model.validate(0L, 0L, true, true, value("nope"), 0, 4));
     }
 

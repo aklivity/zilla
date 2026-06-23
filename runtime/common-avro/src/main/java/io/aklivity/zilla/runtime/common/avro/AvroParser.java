@@ -50,10 +50,7 @@ public interface AvroParser
      * Whether this cursor reads its input verbatim, leaving the bytes intact for an identity generator. A
      * cursor over the native Avro wire form is identity; one that parses a foreign representation is not.
      */
-    default boolean identity()
-    {
-        return true;
-    }
+    boolean identity();
 
     /**
      * Presents {@code [offset, limit)} of the caller-owned {@code buffer} as the next contiguous

@@ -62,7 +62,6 @@ public final class McpHttpArguments implements JsonTransform
     @Override
     public boolean identity()
     {
-        // captures each argument's value as it streams past and forwards it verbatim, leaving the bytes unchanged
         return true;
     }
 

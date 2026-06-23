@@ -56,6 +56,6 @@ public interface ProtobufTransform
      */
     default boolean identity()
     {
-        return true;
+        return false;
     }
 }

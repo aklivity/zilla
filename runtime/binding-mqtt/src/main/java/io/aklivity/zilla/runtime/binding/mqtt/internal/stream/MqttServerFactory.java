@@ -1508,11 +1508,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             int available = length;
             boolean ready = true;
 
-            // when a length-changing content model is active the publish payload is buffered whole, transformed
-            // once, then emitted from the model buffer with the true (changed) deferred total; the transform is
-            // deferred until the application stream is open so rejection timing matches the unmodeled path. An
-            // identity model leaves the bytes unchanged, so it is validated fragment-by-fragment as the original
-            // bytes stream through below — a payload larger than the decode slot need not be buffered nor rejected
             if (model.active() && !model.identity() && canPublish)
             {
                 if (!server.publishPayloadModeling)
@@ -1574,10 +1569,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (canPublish && model.identity() && (sizeClaimed > 0 || server.decodeablePublishPayloadBytes == 0))
                 {
-                    // validate the streamed fragment in place; an identity model leaves the bytes unchanged, so
-                    // the original payload is forwarded below without buffering the whole value to reframe it.
-                    // gated on canPublish so validation (and any rejection) is deferred until the stream is open,
-                    // matching the modeled path and avoiding re-validation of the same bytes on a later retry
                     final boolean first = !server.publishPayloadValidating;
                     final boolean last = sizeClaimed == server.decodeablePublishPayloadBytes;
                     server.publishPayloadValidating = !last;

@@ -135,8 +135,6 @@ final class ProtobufReadModelPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        // the underlying pipeline knows whether its parser, transforms and generator preserve the bytes;
-        // it is selected per value on the first fragment, so report false until one is bound
         return active != null && active.identity();
     }
 

@@ -146,7 +146,6 @@ public final class AvroJsonParserImpl implements AvroParser
     @Override
     public boolean identity()
     {
-        // parses a JSON representation into Avro events, so it does not read its input verbatim
         return false;
     }
 

@@ -76,6 +76,6 @@ public interface JsonTransform
      */
     default boolean identity()
     {
-        return true;
+        return false;
     }
 }

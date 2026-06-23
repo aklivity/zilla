@@ -46,7 +46,6 @@ public class AvroJsonTest
         AvroGenerator generator = AvroJson.generator(schema, JsonEx.createGenerator(), true).wrap(out, 0, out.capacity());
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
 
-        // re-encoding Avro into JSON changes the bytes, so the pipeline is not identity
         assertFalse(pipeline.identity());
     }
 

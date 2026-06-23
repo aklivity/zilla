@@ -331,8 +331,5 @@ public interface JsonGeneratorEx extends JsonGenerator
      * Whether this generator reproduces the values it receives verbatim when fed a verbatim/segmented run,
      * leaving the input bytes unchanged. A generator that re-encodes into a different representation is not.
      */
-    default boolean identity()
-    {
-        return true;
-    }
+    boolean identity();
 }

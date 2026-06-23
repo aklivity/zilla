@@ -313,14 +313,12 @@ public class ProtobufReadModelPipelineTest
         ProtobufModelHandlerImpl handler = newHandler(null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-        // conservatively false until a datum binds the underlying pipeline
         assertFalse(pipeline.identity());
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
-        // without a json view the read model reproduces the validated wire message, so the value passes through unchanged
         assertTrue(pipeline.identity());
     }
 
@@ -334,7 +332,6 @@ public class ProtobufReadModelPipelineTest
         pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
-        // a json view re-encodes the protobuf message into JSON, changing the bytes
         assertFalse(pipeline.identity());
     }
 

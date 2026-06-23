@@ -78,12 +78,9 @@ public interface ProtobufPipeline
 
     /**
      * Whether this pipeline reproduces its input bytes for every accepted datum — the composition of its
-     * parser, transform stages, and terminal generator all being identity. The default is {@code false}.
+     * parser, transform stages, and terminal generator all being identity.
      */
-    default boolean identity()
-    {
-        return false;
-    }
+    boolean identity();
 
     /**
      * The number of bytes at the tail of the most recently fed window not yet consumed — exactly what the

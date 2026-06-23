@@ -81,10 +81,7 @@ public interface JsonParserEx extends JsonParser
      * Whether this parser reads its input verbatim, leaving the bytes intact for an identity generator. A
      * cursor over the native JSON form is identity; one that parses a foreign representation is not.
      */
-    default boolean identity()
-    {
-        return true;
-    }
+    boolean identity();
 
     /**
      * The number of bytes at the tail of the current window not yet consumed — what the caller retains and

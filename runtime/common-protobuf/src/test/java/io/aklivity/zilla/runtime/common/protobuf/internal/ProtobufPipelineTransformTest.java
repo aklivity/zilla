@@ -144,7 +144,6 @@ class ProtobufPipelineTransformTest
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
             .into(Protobuf.generator(), schema, "P");
 
-        // a same-schema re-encode into the wire generator reproduces the input bytes
         assertTrue(pipeline.identity());
     }
 
@@ -155,7 +154,6 @@ class ProtobufPipelineTransformTest
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
             .into(ProtobufJson.generator(JsonEx.createGenerator(), schema, "P"), schema, "P");
 
-        // re-encoding the wire message into JSON changes the bytes, so the pipeline is not identity
         assertFalse(pipeline.identity());
     }
 

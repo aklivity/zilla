@@ -56,6 +56,6 @@ public interface AvroTransform
      */
     default boolean identity()
     {
-        return true;
+        return false;
     }
 }

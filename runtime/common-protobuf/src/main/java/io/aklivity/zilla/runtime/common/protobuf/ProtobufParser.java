@@ -187,8 +187,5 @@ public interface ProtobufParser
      * Whether this cursor reads its input verbatim, leaving the bytes intact for an identity generator. A
      * cursor over the native Protobuf wire form is identity; one that parses a foreign representation is not.
      */
-    default boolean identity()
-    {
-        return true;
-    }
+    boolean identity();
 }

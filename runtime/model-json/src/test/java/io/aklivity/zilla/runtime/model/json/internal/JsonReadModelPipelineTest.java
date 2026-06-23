@@ -151,7 +151,6 @@ public class JsonReadModelPipelineTest
         JsonModelHandlerImpl handler = newHandler();
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-        // conservatively false until a datum binds the underlying pipeline
         assertFalse(pipeline.identity());
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
@@ -159,7 +158,6 @@ public class JsonReadModelPipelineTest
         pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
-        // a read json model only validates the value, so an accepted value passes through unchanged
         assertTrue(pipeline.identity());
     }
 

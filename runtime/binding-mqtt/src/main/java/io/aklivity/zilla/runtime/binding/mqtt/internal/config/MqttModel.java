@@ -114,9 +114,6 @@ public final class MqttModel
         return total;
     }
 
-    // drives the pipeline over one streamed fragment purely to validate it, discarding the produced bytes;
-    // used for an identity model where the accepted bytes are forwarded unchanged from the source, so the
-    // whole payload need not be buffered to recompute its length. returns false when the fragment is rejected
     public boolean validate(
         long traceId,
         long bindingId,

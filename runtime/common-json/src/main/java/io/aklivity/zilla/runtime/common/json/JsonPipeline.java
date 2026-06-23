@@ -48,12 +48,9 @@ public interface JsonPipeline
 
     /**
      * Whether this pipeline reproduces its input bytes for every accepted datum — the composition of its
-     * parser, transform stages, and terminal generator all being identity. The default is {@code false}.
+     * parser, transform stages, and terminal generator all being identity.
      */
-    default boolean identity()
-    {
-        return false;
-    }
+    boolean identity();
 
     /**
      * Transforms a whole value in one shot (equivalent to {@link #transform(DirectBuffer, int, int, boolean)} with

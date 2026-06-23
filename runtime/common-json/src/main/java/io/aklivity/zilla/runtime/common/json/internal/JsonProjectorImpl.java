@@ -119,13 +119,6 @@ public final class JsonProjectorImpl implements JsonTransform
         forwardingKey = false;
     }
 
-    @Override
-    public boolean identity()
-    {
-        // projects (drops or substitutes) members, so the produced bytes differ from the input
-        return false;
-    }
-
     private void onDownstreamSegmentable()
     {
         downstreamDemand = true;

@@ -117,7 +117,6 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     @Override
     public boolean identity()
     {
-        // re-encodes the Avro value as JSON, so the produced bytes differ from the input
         return false;
     }
 

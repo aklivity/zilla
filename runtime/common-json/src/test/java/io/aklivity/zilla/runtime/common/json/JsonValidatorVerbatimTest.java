@@ -36,7 +36,6 @@ class JsonValidatorVerbatimTest
             .transform(JsonSchema.of(SCHEMA).validator())
             .into(JsonEx.createSink(gen));
 
-        // a validator forwards the value verbatim, so the pipeline reproduces its input bytes
         assertTrue(pipeline.identity());
     }
 

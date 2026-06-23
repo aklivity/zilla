@@ -55,6 +55,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private final boolean[] hasMembers = new boolean[MAX_DEPTH];
     private final IntConsumer putByte;
     private final SegmentWriter writeSegment;
+    private final boolean escaped;
 
     private MutableDirectBuffer buffer = EMPTY;
     private int offset;
@@ -74,9 +75,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl(
         Map<String, ?> config)
     {
-        final boolean escaped = Boolean.TRUE.equals(config.get(JsonGeneratorEx.GENERATE_ESCAPED));
+        this.escaped = Boolean.TRUE.equals(config.get(JsonGeneratorEx.GENERATE_ESCAPED));
         this.putByte = escaped ? this::putEscaped : this::putRaw;
         this.writeSegment = escaped ? this::writeEscapedSegment : this::writeRawSegment;
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return !escaped;
     }
 
     @Override

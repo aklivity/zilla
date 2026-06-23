@@ -111,7 +111,6 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public boolean identity()
     {
-        // re-encodes the protobuf message as JSON, so the produced bytes differ from the input
         return false;
     }
 

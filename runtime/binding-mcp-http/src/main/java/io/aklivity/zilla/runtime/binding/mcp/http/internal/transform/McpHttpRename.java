@@ -54,13 +54,6 @@ public final class McpHttpRename implements JsonTransform
     }
 
     @Override
-    public boolean identity()
-    {
-        // rewrites top-level object keys per the rename map, so the produced bytes differ from the input
-        return false;
-    }
-
-    @Override
     public Status transform(
         JsonController control,
         JsonSource source,

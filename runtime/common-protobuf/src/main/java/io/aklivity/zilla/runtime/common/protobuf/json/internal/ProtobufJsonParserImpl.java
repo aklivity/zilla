@@ -163,7 +163,6 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     @Override
     public boolean identity()
     {
-        // parses a JSON representation into Protobuf events, so it does not read its input verbatim
         return false;
     }
 
