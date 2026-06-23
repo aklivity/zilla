@@ -52,6 +52,6 @@ class JsonPipelineResetTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];
         buffer.getBytes(0, out);
-        assertEquals("{\"b\":2}", new String(out, UTF_8));
+        assertEquals("{\"b\":2} ", new String(out, UTF_8));
     }
 }

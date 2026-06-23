@@ -51,7 +51,7 @@ class JsonValidatorChainTest
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
+        assertEquals("{\"id\":1,\"name\":\"x\"} ", output(gen));
     }
 
     @Test
@@ -122,7 +122,7 @@ class JsonValidatorChainTest
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"id\":1}", output(gen));
+        assertEquals("{\"id\":1} ", output(gen));
     }
 
     @Test
@@ -172,7 +172,7 @@ class JsonValidatorChainTest
         Status status = pipeline.transform(in, 8, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"id\":1,\"name\":\"x\"}", output(gen));
+        assertEquals("{\"id\":1,\"name\":\"x\"} ", output(gen));
     }
 
     @Test
@@ -186,7 +186,7 @@ class JsonValidatorChainTest
 
         gen.wrap(buffer, 0, buffer.capacity());
         assertEquals(Status.COMPLETED, run(pipeline, "{\"id\":1,\"name\":\"a\"} "));
-        assertEquals("{\"id\":1,\"name\":\"a\"}", output(gen));
+        assertEquals("{\"id\":1,\"name\":\"a\"} ", output(gen));
 
         gen.wrap(buffer, 0, buffer.capacity());
         assertEquals(Status.REJECTED, run(pipeline, "{\"id\":2} "));
@@ -204,7 +204,7 @@ class JsonValidatorChainTest
         Status status = run(pipeline, "{\"id\":1} ");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("{\"id\":1}", output(gen));
+        assertEquals("{\"id\":1} ", output(gen));
     }
 
     @Test

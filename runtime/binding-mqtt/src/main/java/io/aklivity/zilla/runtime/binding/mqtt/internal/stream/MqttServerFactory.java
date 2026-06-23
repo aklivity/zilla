@@ -1328,6 +1328,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
                 server.publishPayloadModeling = false;
                 server.publishPayloadModelProgress = 0;
+                server.publishPayloadValidating = false;
                 server.decodeablePacketBytes = limit - publishLimit;
                 server.decoder = decodePublishPayload;
                 progress = publishLimit;
@@ -1466,6 +1467,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
                 server.publishPayloadModeling = false;
                 server.publishPayloadModelProgress = 0;
+                server.publishPayloadValidating = false;
                 server.decodeablePacketBytes = limit - publishLimit;
                 server.decoder = decodePublishPayload;
                 progress = publishLimit;
@@ -1506,11 +1508,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int available = length;
             boolean ready = true;
 
-            // when a content model is active the publish payload is buffered whole, transformed once,
-            // then emitted from the model buffer with the true (possibly changed) deferred total; the
-            // transform is deferred until the application stream is open so rejection timing matches the
-            // unmodeled path
-            if (model.active() && canPublish)
+            if (model.active() && !model.identity() && canPublish)
             {
                 if (!server.publishPayloadModeling)
                 {
@@ -1569,7 +1567,19 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final OctetsFW payload = payloadRO.wrap(payloadBuffer, payloadOffset, payloadOffset + sizeClaimed);
 
-                if (canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
+                if (canPublish && model.identity() && (sizeClaimed > 0 || server.decodeablePublishPayloadBytes == 0))
+                {
+                    final boolean first = !server.publishPayloadValidating;
+                    final boolean last = sizeClaimed == server.decodeablePublishPayloadBytes;
+                    server.publishPayloadValidating = !last;
+                    if (!model.validate(traceId, publisher.routedId, first, last,
+                            payloadBuffer, payloadOffset, payloadOffset + sizeClaimed))
+                    {
+                        reasonCode = PAYLOAD_FORMAT_INVALID;
+                    }
+                }
+
+                if (reasonCode == SUCCESS && canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
                 {
                     if (server.publishPayloadDeferred == 0)
                     {
@@ -2520,6 +2530,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private boolean publishPayloadModeling;
         private int publishPayloadModelProgress;
         private int publishPayloadConsumable;
+        private boolean publishPayloadValidating;
         private int willPayloadDeferred;
         public int willPayloadBytes;
 

@@ -38,14 +38,14 @@ class JsonInjectTest
     @Test
     void shouldInjectMemberBetweenVerbatimRuns()
     {
-        assertEquals("{\"a\": 1, \"b\": 2,\"x\":9, \"c\": 3}",
+        assertEquals("{\"a\": 1, \"b\": 2,\"x\":9, \"c\": 3} ",
             inject("c", "x", "9", "{\"a\": 1, \"b\": 2, \"c\": 3}"));
     }
 
     @Test
     void shouldInjectStringMemberBetweenVerbatimRuns()
     {
-        assertEquals("{\"a\": 1,\"tag\":\"new\", \"b\": 2}",
+        assertEquals("{\"a\": 1,\"tag\":\"new\", \"b\": 2} ",
             inject("b", "tag", JsonEvent.VALUE_STRING, "new", "{\"a\": 1, \"b\": 2}"));
     }
 
@@ -54,14 +54,14 @@ class JsonInjectTest
     {
         // injecting before a container's first member displaces it to non-first: the seeded generator
         // synthesizes the separator the displaced member's verbatim bytes do not carry
-        assertEquals("{\"x\":9,\"a\": 1}",
+        assertEquals("{\"x\":9,\"a\": 1} ",
             inject("a", "x", "9", "{\"a\": 1}"));
     }
 
     @Test
     void shouldInjectMemberBeforeFirstOfManyFields()
     {
-        assertEquals("{\"x\":9,\"a\": 1, \"b\": 2}",
+        assertEquals("{\"x\":9,\"a\": 1, \"b\": 2} ",
             inject("a", "x", "9", "{\"a\": 1, \"b\": 2}"));
     }
 

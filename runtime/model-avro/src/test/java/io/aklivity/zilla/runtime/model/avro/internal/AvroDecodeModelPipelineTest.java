@@ -15,14 +15,16 @@
 package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Clock;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -42,15 +44,15 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
-public class AvroWriteModelPipelineTest
+public class AvroDecodeModelPipelineTest
 {
     private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
         "{\"name\":\"status\",\"type\":\"string\"}]," +
         "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-    private static final String JSON = "{\"id\":\"id0\",\"status\":\"positive\"}";
-    // id="id0" (len 3) then status="positive" (len 8); the TestCatalog adds no framing prefix
+    // id="id0" (len 3) then status="positive" (len 8)
     private static final byte[] AVRO = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+    private static final String JSON = "{\"id\":\"id0\",\"status\":\"positive\"}";
 
     private EngineContext context;
     private AvroModelConfiguration config;
@@ -66,18 +68,15 @@ public class AvroWriteModelPipelineTest
     public void shouldTransformWholeValue()
     {
         AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-        byte[] in = JSON.getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertArrayEquals(AVRO, out);
+        assertEquals(AVRO.length, result.consumed());
+        assertEquals(JSON, text(dst, result.produced()));
     }
 
     @Test
@@ -85,11 +84,12 @@ public class AvroWriteModelPipelineTest
     {
         AvroModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyEncoder(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
 
-        byte[] a1 = "{\"id\":\"id0\",".getBytes(UTF_8);
-        byte[] a2tail = "\"status\":\"positive\"}".getBytes(UTF_8);
+        // stream A split at the field boundary: the id field first, the status field on the final fragment
+        byte[] a1 = {0x06, 0x69, 0x64, 0x30};
+        byte[] a2tail = {0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
@@ -100,13 +100,10 @@ public class AvroWriteModelPipelineTest
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        byte[] bIn = JSON.getBytes(UTF_8);
         ModelPipelineResult rb = b.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bIn), 0, bIn.length, dst, 0, dst.capacity());
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
-        byte[] outB = new byte[rb.produced()];
-        dst.getBytes(0, outB);
-        assertArrayEquals(AVRO, outB);
+        assertEquals(JSON, text(dst, rb.produced()));
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
@@ -115,7 +112,28 @@ public class AvroWriteModelPipelineTest
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
-        assertArrayEquals(AVRO, outA.toByteArray());
+        assertEquals(JSON, outA.toString(UTF_8));
+    }
+
+    @Test
+    public void shouldExtractField()
+    {
+        AvroModelHandlerImpl handler = newHandler();
+        handler.extract("$.id");
+        handler.extract("$.status");
+
+        Map<String, String> extracted = new HashMap<>();
+        ModelVisitor visitor = (path, buffer, index, length) ->
+            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
+        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals("id0", extracted.get("$.id"));
+        assertEquals("positive", extracted.get("$.status"));
     }
 
     @Test
@@ -124,28 +142,61 @@ public class AvroWriteModelPipelineTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-        // id must be a string, not a number
-        byte[] in = "{\"id\":123,\"status\":\"positive\"}".getBytes(UTF_8);
+        // truncated: id length prefix promises 3 bytes but the status field is missing under FLAGS_FIN
+        byte[] invalid = {0x06, 0x69, 0x64, 0x30, 0x10};
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+            new UnsafeBufferEx(invalid), 0, invalid.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
     @Test
-    public void shouldReportEncodePadding()
+    public void shouldReportDecodePadding()
     {
         AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-        byte[] in = JSON.getBytes(UTF_8);
-        assertTrue(pipeline.padding(new UnsafeBufferEx(in), 0, in.length) >= 0);
+        assertTrue(pipeline.padding(new UnsafeBufferEx(AVRO), 0, AVRO.length) >= 0);
+    }
+
+    @Test
+    public void shouldReportIdentityWhenNoView()
+    {
+        AvroModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        assertFalse(pipeline.identity());
+
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenJsonView()
+    {
+        AvroModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+
+        assertFalse(pipeline.identity());
     }
 
     private AvroModelHandlerImpl newHandler()
+    {
+        return newHandler("json");
+    }
+
+    private AvroModelHandlerImpl newHandler(
+        String view)
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -157,7 +208,7 @@ public class AvroWriteModelPipelineTest
                 .build()
             .build();
         AvroModelConfig model = AvroModelConfig.builder()
-            .view("json")
+            .view(view)
             .catalog()
                 .name("test0")
                     .schema()
@@ -191,5 +242,14 @@ public class AvroWriteModelPipelineTest
         byte[] chunk = new byte[produced];
         dst.getBytes(0, chunk);
         sink.writeBytes(chunk);
+    }
+
+    private static String text(
+        MutableDirectBuffer dst,
+        int produced)
+    {
+        byte[] chunk = new byte[produced];
+        dst.getBytes(0, chunk);
+        return new String(chunk, UTF_8);
     }
 }

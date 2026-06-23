@@ -37,6 +37,17 @@ class AvroPipelineTransformTest
     private static final int GUARD = 1000;
 
     @Test
+    void shouldReportIdentityForValidatingPipeline()
+    {
+        AvroSchema schema = Avro.schema("\"string\"");
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema))
+            .transform(schema.validator())
+            .into(generatorFor(schema));
+
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
     void shouldTransformWholeValueIntoDestination()
     {
         AvroSchema schema = Avro.schema("\"string\"");

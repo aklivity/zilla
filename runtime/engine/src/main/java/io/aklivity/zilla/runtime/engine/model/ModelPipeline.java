@@ -83,6 +83,20 @@ public interface ModelPipeline
         int dstLimit);
 
     /**
+     * Indicates whether this pipeline leaves every accepted value byte-for-byte unchanged.
+     * <p>
+     * A pipeline that only validates — accepting or rejecting a value without rewriting its bytes or
+     * changing its length — returns {@code true}. This lets a caller that forwards a length-prefixed or
+     * checksum-protected wire format stream the original bytes through untouched, rather than buffering
+     * the whole value to recompute its framing and checksum. A pipeline that may rewrite bytes or resize
+     * the value returns {@code false}.
+     * </p>
+     *
+     * @return {@code true} if accepted values pass through unchanged; {@code false} otherwise
+     */
+    boolean identity();
+
+    /**
      * Returns the number of additional bytes required in the output buffer to accommodate any framing
      * overhead this pipeline's transform may add (e.g., schema id prefix bytes) for the given input.
      *

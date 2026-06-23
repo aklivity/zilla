@@ -52,6 +52,11 @@ public interface ProtobufSink
     }
 
     /**
+     * Whether this sink, together with everything downstream of it, leaves the bytes unchanged.
+     */
+    boolean identity();
+
+    /**
      * A terminal sink that writes the event stream out as Protobuf wire through {@code generator},
      * encoded against the message named {@code messageName} in {@code schema}, mapping each event's
      * field by name into the target message. When {@code schema} is the read schema this re-encodes;

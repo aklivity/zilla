@@ -212,5 +212,11 @@ public class ProtobufRawPipelineTest
             events.clear();
             depth = 0;
         }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
     }
 }

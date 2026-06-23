@@ -16,6 +16,8 @@
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import org.agrona.MutableDirectBuffer;
@@ -134,6 +136,27 @@ public class TestModelHandlerTest
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, result.status());
+    }
+
+    @Test
+    public void shouldReportIdentityWhenNoTransformConfigured()
+    {
+        ModelPipeline pipeline = readPipeline(4);
+
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenTransformConfigured()
+    {
+        TestModelConfig config = TestModelConfig.builder()
+            .length(4)
+            .transformLength(8)
+            .build();
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        assertFalse(pipeline.identity());
     }
 
     private ModelPipeline readPipeline(

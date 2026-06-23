@@ -78,6 +78,12 @@ public interface JsonParserEx extends JsonParser
     void reset();
 
     /**
+     * Whether this parser reads its input verbatim, leaving the bytes intact for an identity generator. A
+     * cursor over the native JSON form is identity; one that parses a foreign representation is not.
+     */
+    boolean identity();
+
+    /**
      * The number of bytes at the tail of the current window not yet consumed — what the caller retains and
      * re-presents, contiguous, at the front of the next window. The window-relative peer of the absolute
      * {@code getLocation().getStreamOffset()}: a caller buffering across windows keeps exactly this many bytes

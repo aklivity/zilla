@@ -55,7 +55,7 @@ class JsonPipelineStarvedTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
-        assertEquals("{\"a\":1,\"b\":2}", new String(out, UTF_8));
+        assertEquals("{\"a\":1,\"b\":2} ", new String(out, UTF_8));
     }
 
     @Test

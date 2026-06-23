@@ -81,6 +81,30 @@ public class JsonParserDocumentTest
         assertFalse(parser.hasNextEvent());
     }
 
+    @Test
+    public void shouldDeferEndDocumentUntilBoundaryKnownOnNonTerminalWindow()
+    {
+        final JsonParserImpl parser = new JsonParserImpl();
+        final byte[] bytes = "{\"a\":1}".getBytes(UTF_8);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+
+        // a non-terminal window: the top-level value closes but the trailing bytes are still ambiguous (this
+        // document's trailing whitespace, or the next document's leading bytes), so END_DOCUMENT must not be
+        // emitted yet — it would risk swallowing a following document's start
+        parser.wrap(buffer, 0, bytes.length, false);
+        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
+        assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
+        assertEquals(JsonEvent.KEY_NAME, parser.nextEvent());
+        assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
+        assertEquals(JsonEvent.END_OBJECT, parser.nextEvent());
+        assertFalse(parser.hasNextEvent());
+
+        // the terminal window resolves the boundary; END_DOCUMENT now follows
+        parser.wrap(buffer, bytes.length, bytes.length, true);
+        assertEquals(JsonEvent.END_DOCUMENT, parser.nextEvent());
+        assertFalse(parser.hasNextEvent());
+    }
+
     private static void wrap(
         JsonParserImpl parser,
         String json)

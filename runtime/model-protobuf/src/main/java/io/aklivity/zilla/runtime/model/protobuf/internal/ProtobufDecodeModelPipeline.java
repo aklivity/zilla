@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 // strips the catalog framing and the message-index prefix on the first fragment, drives the common-protobuf
 // transform into the caller's destination (re-encoding the wire message as JSON or canonical wire), and
 // surfaces extracted fields to the ModelVisitor when a value completes.
-final class ProtobufReadModelPipeline implements ModelPipeline
+final class ProtobufDecodeModelPipeline implements ModelPipeline
 {
     private final ProtobufModelHandlerImpl handler;
     private final List<String> paths;
@@ -51,7 +51,7 @@ final class ProtobufReadModelPipeline implements ModelPipeline
     private ProtobufPipeline active;
     private String diagnostic;
 
-    ProtobufReadModelPipeline(
+    ProtobufDecodeModelPipeline(
         ProtobufModelHandlerImpl handler,
         List<String> paths,
         List<String> names,
@@ -130,6 +130,12 @@ final class ProtobufReadModelPipeline implements ModelPipeline
             }
         }
         return result.set(status, consumed, produced);
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return active != null && active.identity();
     }
 
     @Override

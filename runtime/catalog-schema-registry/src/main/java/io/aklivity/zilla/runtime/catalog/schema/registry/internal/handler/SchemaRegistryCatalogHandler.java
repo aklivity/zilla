@@ -424,6 +424,20 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     }
 
     @Override
+    public int decodePadding(
+        DirectBuffer data,
+        int index,
+        int length)
+    {
+        int padding = 0;
+        if (length >= BitUtil.SIZE_OF_BYTE && data.getByte(index) == MAGIC_BYTE)
+        {
+            padding = MAX_PADDING_LENGTH;
+        }
+        return padding;
+    }
+
+    @Override
     public boolean validate(
         long traceId,
         long bindingId,

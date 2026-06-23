@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // Per-stream write transform session vended by JsonModelHandlerImpl: owns its own generator and
 // schema-keyed pipeline cache. transform emits the catalog framing prefix into the destination on the
 // first fragment, then drives the common-json transform into the destination after it.
-final class JsonWriteModelPipeline implements ModelPipeline
+final class JsonEncodeModelPipeline implements ModelPipeline
 {
     private final JsonModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
@@ -43,7 +43,7 @@ final class JsonWriteModelPipeline implements ModelPipeline
     private MutableDirectBuffer prefixBuffer;
     private int prefixAt;
 
-    JsonWriteModelPipeline(
+    JsonEncodeModelPipeline(
         JsonModelHandlerImpl handler)
     {
         this.handler = handler;
@@ -104,6 +104,12 @@ final class JsonWriteModelPipeline implements ModelPipeline
             }
         }
         return result.set(status, consumed, produced);
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return false;
     }
 
     @Override

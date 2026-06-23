@@ -45,6 +45,37 @@ public class AvroSchemaTest
         return pipeline.transform(new UnsafeBufferEx(binary), 0, binary.length);
     }
 
+    @FunctionalInterface
+    private interface Forwarding
+    {
+        Status transform(
+            AvroController control,
+            AvroSource source,
+            AvroEvent event);
+    }
+
+    private static AvroSink forwarding(
+        Forwarding fn)
+    {
+        return new AvroSink()
+        {
+            @Override
+            public Status transform(
+                AvroController control,
+                AvroSource source,
+                AvroEvent event)
+            {
+                return fn.transform(control, source, event);
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return false;
+            }
+        };
+    }
+
     @Test
     public void shouldCompileLogicalTypeOnLong()
     {
@@ -99,14 +130,14 @@ public class AvroSchemaTest
     public void shouldReadStringValueViaGetString()
     {
         String[] captured = new String[1];
-        AvroSink sink = (control, source, event) ->
+        AvroSink sink = forwarding((control, source, event) ->
         {
             if (event == AvroEvent.STRING)
             {
                 captured[0] = source.getString();
             }
             return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
-        };
+        });
         assertEquals(COMPLETED, parse("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }, sink));
         assertEquals("foo", captured[0]);
     }
@@ -115,7 +146,7 @@ public class AvroSchemaTest
     public void shouldExposeBytesView()
     {
         byte[][] captured = new byte[1][];
-        AvroSink sink = (control, source, event) ->
+        AvroSink sink = forwarding((control, source, event) ->
         {
             if (event == AvroEvent.BYTES)
             {
@@ -125,7 +156,7 @@ public class AvroSchemaTest
                 captured[0] = dst;
             }
             return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
-        };
+        });
         assertEquals(COMPLETED, parse("\"bytes\"", new byte[] { 0x04, (byte) 0xff, 0x01 }, sink));
         assertArrayEquals(new byte[] { (byte) 0xff, 0x01 }, captured[0]);
     }
@@ -138,14 +169,14 @@ public class AvroSchemaTest
         binary[0] = (byte) (euro.length << 1);
         System.arraycopy(euro, 0, binary, 1, euro.length);
         String[] captured = new String[1];
-        AvroSink sink = (control, source, event) ->
+        AvroSink sink = forwarding((control, source, event) ->
         {
             if (event == AvroEvent.STRING)
             {
                 captured[0] = source.getString();
             }
             return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
-        };
+        });
         assertEquals(COMPLETED, parse("\"string\"", binary, sink));
         assertEquals("€", captured[0]);
     }
@@ -154,14 +185,14 @@ public class AvroSchemaTest
     public void shouldReadRecordFieldNamesViaGetField()
     {
         List<String> fields = new ArrayList<>();
-        AvroSink sink = (control, source, event) ->
+        AvroSink sink = forwarding((control, source, event) ->
         {
             if (event == AvroEvent.FIELD_NAME)
             {
                 fields.add(source.getField());
             }
             return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
-        };
+        });
         assertEquals(COMPLETED, parse("""
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
@@ -174,14 +205,14 @@ public class AvroSchemaTest
     public void shouldReadMapKeysViaGetKey()
     {
         List<String> keys = new ArrayList<>();
-        AvroSink sink = (control, source, event) ->
+        AvroSink sink = forwarding((control, source, event) ->
         {
             if (event == AvroEvent.MAP_KEY)
             {
                 keys.add(source.getKey());
             }
             return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
-        };
+        });
         // one block, count 1 (0x02), key "a" (0x02 'a'), value 7 (0x0e), terminator 0x00
         assertEquals(COMPLETED, parse("{\"type\":\"map\",\"values\":\"long\"}",
             new byte[] { 0x02, 0x02, 0x61, 0x0e, 0x00 }, sink));
@@ -193,7 +224,7 @@ public class AvroSchemaTest
     {
         int[] depth = { -1 };
         long[] position = { -1L };
-        AvroSink sink = (control, source, event) ->
+        AvroSink sink = forwarding((control, source, event) ->
         {
             if (event == AvroEvent.STRING)
             {
@@ -202,7 +233,7 @@ public class AvroSchemaTest
                 position[0] = location.getStreamOffset();
             }
             return event == AvroEvent.END_MESSAGE ? Status.COMPLETED : Status.ADVANCED;
-        };
+        });
         // record { id:int=1 (0x02), name:string="hi" (0x04 'h' 'i') }; name begins at byte 1, depth 2
         assertEquals(COMPLETED, parse("""
             {"type":"record","name":"R","fields":[

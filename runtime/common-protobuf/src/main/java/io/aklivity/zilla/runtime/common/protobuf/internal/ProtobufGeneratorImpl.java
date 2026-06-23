@@ -67,6 +67,12 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
+    @Override
     public ProtobufGenerator wrap(
         MutableDirectBufferEx buffer,
         int offset,

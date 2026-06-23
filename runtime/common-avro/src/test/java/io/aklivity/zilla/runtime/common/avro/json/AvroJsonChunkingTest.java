@@ -47,7 +47,14 @@ public class AvroJsonChunkingTest
         {"name":"st","type":"string"},
         {"name":"by","type":"bytes"}]}""";
 
+    private static final String LONG_KEY = "status_field_with_a_deliberately_long_name";
+    private static final String LONG_KEY_SCHEMA = """
+        {"type":"record","name":"Event","fields":[
+        {"name":"id","type":"string"},
+        {"name":"%s","type":"string"}]}""".formatted(LONG_KEY);
+
     private final AvroSchema schema = Avro.schema(SCHEMA);
+    private final AvroSchema longKeySchema = Avro.schema(LONG_KEY_SCHEMA);
 
     @Test
     public void shouldFragmentLargeStringAndBytesAcrossTinyWindows()
@@ -103,6 +110,85 @@ public class AvroJsonChunkingTest
         JsonObject object = parse(whole.json);
         assertEquals(text, object.getString("st"));
         assertArrayEquals(blob, Base64.getDecoder().decode(object.getString("by")));
+    }
+
+    @Test
+    public void shouldPreserveStringValuesAcrossStructuralPrefixOverrun()
+    {
+        String json = Json.createObjectBuilder()
+            .add("id", "123")
+            .add(LONG_KEY, "OK")
+            .build()
+            .toString();
+        byte[] wire = jsonToAvro(longKeySchema, json);
+
+        Drained drained = avroToJsonBounded(longKeySchema, wire, 56);
+
+        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED chunk boundary, got: " + drained.json);
+        assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
+    }
+
+    @Test
+    public void shouldFragmentRecordKeyPrefixLargerThanWindow()
+    {
+        String json = Json.createObjectBuilder()
+            .add("id", "123")
+            .add(LONG_KEY, "OK")
+            .build()
+            .toString();
+        byte[] wire = jsonToAvro(longKeySchema, json);
+        Drained drained = avroToJsonBounded(longKeySchema, wire, 32);
+        assertTrue(drained.suspends >= 1, "expected at least one SUSPENDED chunk boundary, got: " + drained.json);
+        assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
+    }
+
+    private Drained avroToJsonBounded(
+        AvroSchema valueSchema,
+        byte[] wire,
+        int window)
+    {
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[Math.max(256, window * 8)]);
+        JsonGeneratorEx json = JsonEx.createGenerator();
+        AvroGenerator generator = AvroJson.generator(valueSchema, json, false).wrap(out, 0, window);
+        AvroPipeline pipeline = Avro.stream(Avro.parser(valueSchema)).into(AvroSink.of(generator));
+        pipeline.reset();
+
+        StringBuilder result = new StringBuilder();
+        UnsafeBufferEx in = new UnsafeBufferEx(wire);
+        int suspends = 0;
+        int guard = 0;
+        Status status = pipeline.transform(in, 0, wire.length);
+        while (status == Status.SUSPENDED && guard < 1_000_000)
+        {
+            assertTrue(generator.length() <= window, "drained chunk overran the output bound: " + generator.length());
+            result.append(chunk(out, generator.length()));
+            generator.wrap(out, 0, window);
+            suspends++;
+            guard++;
+            status = pipeline.transform(in, 0, wire.length);
+        }
+        assertEquals(Status.COMPLETED, status);
+        json.flush();
+        assertTrue(generator.length() <= window, "final chunk overran the output bound: " + generator.length());
+        result.append(chunk(out, generator.length()));
+
+        return new Drained(result.toString(), suspends);
+    }
+
+    private byte[] jsonToAvro(
+        AvroSchema valueSchema,
+        String json)
+    {
+        byte[] jsonBytes = json.getBytes(UTF_8);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
+        AvroGenerator generator = Avro.generator(valueSchema, out, 0);
+        AvroPipeline pipeline = AvroJson.stream(valueSchema, JsonEx.createParser()).into(AvroSink.of(generator));
+        pipeline.reset();
+        Status status = pipeline.transform(new UnsafeBufferEx(jsonBytes), 0, jsonBytes.length);
+        assertEquals(Status.COMPLETED, status);
+        byte[] avro = new byte[generator.length()];
+        out.getBytes(0, avro);
+        return avro;
     }
 
     private Drained avroToJsonWindowed(

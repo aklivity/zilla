@@ -147,6 +147,12 @@ public final class AvroValues
         }
 
         @Override
+        public boolean identity()
+        {
+            return false;
+        }
+
+        @Override
         public void reset()
         {
             events.clear();

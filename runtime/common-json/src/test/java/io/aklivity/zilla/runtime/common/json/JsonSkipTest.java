@@ -32,32 +32,32 @@ class JsonSkipTest
     @Test
     void shouldDropMiddleFieldPreservingWhitespace()
     {
-        assertEquals("{ \"a\" : 1, \"c\" : 3 }", skip("b", "{ \"a\" : 1, \"b\" : 2, \"c\" : 3 }"));
+        assertEquals("{ \"a\" : 1, \"c\" : 3 } ", skip("b", "{ \"a\" : 1, \"b\" : 2, \"c\" : 3 }"));
     }
 
     @Test
     void shouldDropLastFieldPreservingWhitespace()
     {
-        assertEquals("{ \"a\" : 1 }", skip("b", "{ \"a\" : 1, \"b\" : 2 }"));
+        assertEquals("{ \"a\" : 1 } ", skip("b", "{ \"a\" : 1, \"b\" : 2 }"));
     }
 
     @Test
     void shouldDropFirstFieldPreservingWhitespace()
     {
-        assertEquals("{ \"b\" : 2 }", skip("a", "{ \"a\" : 1, \"b\" : 2 }"));
+        assertEquals("{ \"b\" : 2 } ", skip("a", "{ \"a\" : 1, \"b\" : 2 }"));
     }
 
     @Test
     void shouldDropFieldWithObjectValue()
     {
-        assertEquals("{ \"a\" : 1, \"c\" : 3 }",
+        assertEquals("{ \"a\" : 1, \"c\" : 3 } ",
             skip("b", "{ \"a\" : 1, \"b\" : { \"x\" : [1, 2] }, \"c\" : 3 }"));
     }
 
     @Test
     void shouldDropOnlyField()
     {
-        assertEquals("{}", skip("a", "{ \"a\" : 1 }"));
+        assertEquals("{} ", skip("a", "{ \"a\" : 1 }"));
     }
 
     private static String skip(

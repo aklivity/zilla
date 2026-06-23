@@ -96,6 +96,12 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         pending = null;
     }
 
+    @Override
+    public boolean identity()
+    {
+        return generator.identity();
+    }
+
     private ProtobufPipeline.Status dispatch(
         ProtobufController control,
         ProtobufSource source,

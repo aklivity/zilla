@@ -47,6 +47,12 @@ public interface AvroParser
     void reset();
 
     /**
+     * Whether this cursor reads its input verbatim, leaving the bytes intact for an identity generator. A
+     * cursor over the native Avro wire form is identity; one that parses a foreign representation is not.
+     */
+    boolean identity();
+
+    /**
      * Presents {@code [offset, limit)} of the caller-owned {@code buffer} as the next contiguous
      * run of datum bytes with {@code last == true} — the whole datum, or the final window of a streamed one.
      */
