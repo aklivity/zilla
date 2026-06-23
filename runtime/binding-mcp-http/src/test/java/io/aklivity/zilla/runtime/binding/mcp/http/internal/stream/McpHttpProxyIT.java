@@ -114,6 +114,16 @@ public class McpHttpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/create.pr.rich/client",
+        "${http}/create.pr.rich/server"})
+    public void shouldCallToolCreatePrWithStructuredArguments() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/read.order.10k/client",
         "${http}/read.order.10k/server"})
     public void shouldReadResourceOrder10k() throws Exception
