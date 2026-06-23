@@ -91,18 +91,10 @@ public interface ModelPipeline
      * the whole value to recompute its framing and checksum. A pipeline that may rewrite bytes or resize
      * the value returns {@code false}.
      * </p>
-     * <p>
-     * The default is {@code false}: a transforming pipeline that did not override this would otherwise
-     * let a caller forward stale framing for changed bytes, so a pipeline opts in to {@code true} only
-     * when it never alters an accepted value.
-     * </p>
      *
      * @return {@code true} if accepted values pass through unchanged; {@code false} otherwise
      */
-    default boolean identity()
-    {
-        return false;
-    }
+    boolean identity();
 
     /**
      * Returns the number of additional bytes required in the output buffer to accommodate any framing
