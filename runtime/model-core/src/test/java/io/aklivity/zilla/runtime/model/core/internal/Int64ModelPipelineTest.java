@@ -75,6 +75,147 @@ public class Int64ModelPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
+    @Test
+    public void shouldTransformSignedSuffixedValue()
+    {
+        ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        byte[] bytes = "+8449999L".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals(bytes.length, result.produced());
+    }
+
+    @Test
+    public void shouldTransformNegativeValue()
+    {
+        ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "-125".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+    }
+
+    @Test
+    public void shouldRejectAboveMaxLimit()
+    {
+        ModelHandler handler = handler(Int64ModelConfig.builder().format("text").max(999L).build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "8449999".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldRejectAtExclusiveMaxLimit()
+    {
+        ModelHandler handler = handler(Int64ModelConfig.builder()
+            .format("text")
+            .max(999L)
+            .exclusiveMax(true)
+            .build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "999".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldRejectAtExclusiveMinLimit()
+    {
+        ModelHandler handler = handler(Int64ModelConfig.builder()
+            .format("text")
+            .min(999L)
+            .exclusiveMin(true)
+            .build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "999".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldTransformBinaryValue()
+    {
+        ModelHandler handler = handler(Int64ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 42};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals(bytes.length, result.produced());
+    }
+
+    @Test
+    public void shouldTransformSignedBinaryValue()
+    {
+        ModelHandler handler = handler(Int64ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = {-1, -1, -1, -1, -1, -1, -1, -32};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+    }
+
+    @Test
+    public void shouldRejectBinaryTooLong()
+    {
+        ModelHandler handler = handler(Int64ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "Test value!".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldTransformBinaryFragmented()
+    {
+        ModelHandler handler = handler(Int64ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] head = {0, 0, 0, 0};
+        byte[] tail = {0, 0, 1, 42};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
+
+        ModelPipelineResult first = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
+            new UnsafeBuffer(head), 0, head.length, dst, 0, dst.capacity());
+        assertEquals(ModelStatus.UNDERFLOW, first.status());
+
+        ModelPipelineResult second = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
+            new UnsafeBuffer(tail), 0, tail.length, dst, head.length, dst.capacity());
+        assertEquals(ModelStatus.COMPLETE, second.status());
+    }
+
     private ModelHandler handler(
         Int64ModelConfig config)
     {

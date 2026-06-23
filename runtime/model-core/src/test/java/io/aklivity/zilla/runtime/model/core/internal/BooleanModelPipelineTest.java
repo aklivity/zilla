@@ -75,6 +75,35 @@ public class BooleanModelPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
+    @Test
+    public void shouldTransformFalseValue()
+    {
+        ModelHandler handler = handler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        byte[] bytes = {0x00};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[8]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals(1, result.produced());
+    }
+
+    @Test
+    public void shouldRejectTooLong()
+    {
+        ModelHandler handler = handler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = {0x01, 0x00};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[8]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
     private ModelHandler handler()
     {
         return new BooleanModelContext(context).supplyHandler(BooleanModelConfig.builder().build());

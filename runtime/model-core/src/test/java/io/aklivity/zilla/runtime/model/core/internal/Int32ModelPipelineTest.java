@@ -92,6 +92,118 @@ public class Int32ModelPipelineTest
     }
 
     @Test
+    public void shouldTransformSignedValue()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        byte[] bytes = "+8449999".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+    }
+
+    @Test
+    public void shouldTransformNegativeValue()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "-125".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+    }
+
+    @Test
+    public void shouldRejectAtExclusiveMaxLimit()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder()
+            .format("text")
+            .max(999)
+            .exclusiveMax(true)
+            .build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "999".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldRejectAtExclusiveMinLimit()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder()
+            .format("text")
+            .min(999)
+            .exclusiveMin(true)
+            .build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "999".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldTransformBinaryWholeValue()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        byte[] bytes = {0, 0, 0, 42};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals(bytes.length, result.produced());
+    }
+
+    @Test
+    public void shouldRejectBinaryTooLong()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "Test value".getBytes();
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldRejectBinaryFragmentedTooShort()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] head = {0, 0, 0};
+        byte[] tail = {0, 42};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
+
+        ModelPipelineResult first = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
+            new UnsafeBuffer(head), 0, head.length, dst, 0, dst.capacity());
+        assertEquals(ModelStatus.UNDERFLOW, first.status());
+
+        ModelPipelineResult second = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
+            new UnsafeBuffer(tail), 0, tail.length, dst, head.length, dst.capacity());
+        assertEquals(ModelStatus.REJECTED, second.status());
+    }
+
+    @Test
     public void shouldTransformBinaryFragmented()
     {
         ModelHandler handler = handler(Int32ModelConfig.builder().format("binary").build());

@@ -83,4 +83,55 @@ public class DoubleModelConfigAdapterTest
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
     }
+
+    @Test
+    public void shouldWrite()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"model\":\"double\"," +
+                "\"format\":\"binary\"," +
+                "\"range\":\"[-999.98,999.99)\"," +
+                "\"multiple\":100" +
+            "}";
+
+        DoubleModelConfig model = DoubleModelConfig.builder()
+            .format("binary")
+            .max(999.99)
+            .min(-999.98)
+            .exclusiveMax(true)
+            .multiple(100.0)
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldWriteWithExclusiveMin()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"model\":\"double\"," +
+                "\"range\":\"(,1234.0]\"" +
+            "}";
+
+        DoubleModelConfig model = DoubleModelConfig.builder()
+            .max(1234.0)
+            .exclusiveMin(true)
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
 }
