@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class MqttBindingConfig
 {
@@ -57,6 +58,7 @@ public final class MqttBindingConfig
     public final List<MqttVersion> versions;
     public final ToLongFunction<String> resolveId;
     public final GuardHandler guard;
+    public final StoreHandler store;
 
     public MqttBindingConfig(
         BindingConfig binding,
@@ -90,6 +92,9 @@ public final class MqttBindingConfig
         }
 
         this.guard = resolveGuard(context);
+        this.store = options != null && options.store != null
+            ? context.supplyStore(resolveId.applyAsLong(options.store))
+            : null;
         this.versions = options != null &&
             options.versions != null ? options.versions : DEFAULT_VERSIONS;
     }

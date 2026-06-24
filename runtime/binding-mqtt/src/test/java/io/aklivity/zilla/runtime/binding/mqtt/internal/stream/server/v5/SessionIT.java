@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_LEASE_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_RENEW_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -237,6 +239,42 @@ public class SessionIT
     }
 
     @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.client.takeover/client",
+        "${app}/session.client.takeover/server"})
+    public void shouldTakeOverSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.exists.clean.start/client",
+        "${app}/session.exists.clean.start/server"})
+    public void shouldRemoveSessionAtCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.will.message.takeover/client",
+        "${app}/session.will.message.takeover/server"})
+    public void shouldDeliverWillMessageOnSessionTakeover() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.server.redirect.after.connack/client",
@@ -252,6 +290,15 @@ public class SessionIT
         "${net}/session.server.redirect.before.connack/client",
         "${app}/session.server.redirect.before.connack/server"})
     public void shouldRedirectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.redirect.yaml")
+    @Specification({
+        "${net}/session.redirect/client"})
+    public void shouldRedirect() throws Exception
     {
         k3po.finish();
     }

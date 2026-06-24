@@ -25,7 +25,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
                                 .filter()
                                     .header("type", "will-signal")
                                     .build()
@@ -45,7 +44,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .fetch()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
@@ -58,7 +57,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .fetch()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
@@ -80,7 +79,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .fetch()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .header("type", "expiry-signal")
                                .build()
                            .build()}
@@ -115,77 +114,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
-                                .filter()
-                                    .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender-1")
-                                    .build()
-                                .build()
-                            .build()}
-
-connected
-# receive sender-1 migrate signal
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#migrate")
-                               .hashKey("client-1")
-                               .header("sender-id", "sender-1")
-                               .build()
-                           .build()}
-read zilla:data.empty
-
-read closed
-write close
-
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                               .typeId(zilla:id("kafka"))
-                               .group()
-                                   .groupId("zilla:test-mqtt0-client-1-session")
-                                   .protocol("highlander")
-                                   .timeout(1000)
-                                   .build()
-                               .build()}
-
-connected
-
-# send group members (leader)
-write advise zilla:flush ${kafka:flushEx()
-                             .typeId(zilla:id("kafka"))
-                             .group()
-                                 .leaderId("member-1")
-                                 .memberId("member-1")
-                                 .members("member-1")
-                                 .build()
-                             .build()}
-write flush
-
-read zilla:data.empty
-
-read aborted
-
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
-                                .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1")
-                                    .build()
-                                .filter()
-                                    .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender-1")
                                     .build()
                                 .build()
                             .build()}
@@ -199,7 +129,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-signal")
+                               .key("client-1#will")
                                .hashKey("client-1")
                                .header("type", "will-signal")
                                .build()
@@ -215,7 +145,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
@@ -230,7 +160,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
@@ -257,7 +187,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
