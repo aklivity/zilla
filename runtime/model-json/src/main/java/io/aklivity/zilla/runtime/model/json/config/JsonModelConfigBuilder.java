@@ -21,6 +21,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class JsonModelConfigBuilder<T> extends ConfigBuilder<T, JsonModelConfigBuilder<T>>
 {
@@ -28,6 +29,7 @@ public class JsonModelConfigBuilder<T> extends ConfigBuilder<T, JsonModelConfigB
 
     private List<CatalogedConfig> catalogs;
     private String subject;
+    private ValidateConfig validate;
 
     JsonModelConfigBuilder(
         Function<JsonModelConfig, T> mapper)
@@ -65,9 +67,16 @@ public class JsonModelConfigBuilder<T> extends ConfigBuilder<T, JsonModelConfigB
         return this;
     }
 
+    public JsonModelConfigBuilder<T> validate(
+        ValidateConfig validate)
+    {
+        this.validate = validate;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new JsonModelConfig(catalogs, subject));
+        return mapper.apply(new JsonModelConfig(catalogs, subject, validate));
     }
 }

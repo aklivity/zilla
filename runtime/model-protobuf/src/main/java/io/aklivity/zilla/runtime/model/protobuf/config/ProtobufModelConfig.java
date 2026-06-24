@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public final class ProtobufModelConfig extends ModelConfig
 {
@@ -28,9 +29,10 @@ public final class ProtobufModelConfig extends ModelConfig
     public ProtobufModelConfig(
         List<CatalogedConfig> cataloged,
         String subject,
-        String view)
+        String view,
+        ValidateConfig validate)
     {
-        super("protobuf", cataloged);
+        super("protobuf", cataloged, validate);
         this.subject = subject;
         this.view = view;
     }

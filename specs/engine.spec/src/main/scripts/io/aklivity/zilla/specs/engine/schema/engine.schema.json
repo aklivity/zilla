@@ -537,6 +537,34 @@
             [
             ]
         },
+        "validate":
+        {
+            "oneOf":
+            [
+                {
+                    "type": "string",
+                    "enum": [ "strict", "lenient" ]
+                },
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "decode":
+                        {
+                            "type": "string",
+                            "enum": [ "strict", "lenient" ]
+                        },
+                        "encode":
+                        {
+                            "type": "string",
+                            "enum": [ "strict", "lenient" ]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            ],
+            "default": "strict"
+        },
         "converter":
         {
             "oneOf":
@@ -561,6 +589,10 @@
                     "model":
                     {
                         "$ref": "#/$defs/converter/types"
+                    },
+                    "validate":
+                    {
+                        "$ref": "#/$defs/validate"
                     }
                 },
                 "required":
@@ -596,6 +628,10 @@
                     "model":
                     {
                         "$ref": "#/$defs/validator/types"
+                    },
+                    "validate":
+                    {
+                        "$ref": "#/$defs/validate"
                     }
                 },
                 "required":

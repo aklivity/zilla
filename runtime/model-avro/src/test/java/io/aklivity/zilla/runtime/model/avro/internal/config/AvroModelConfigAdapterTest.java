@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.avro.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -26,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroModelConfigAdapterTest
@@ -138,5 +141,192 @@ public class AvroModelConfigAdapterTest
         // THEN
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldDefaultValidateStrictWhenAbsent()
+    {
+        // GIVEN
+        String json =
+            "{" +
+                "\"model\": \"avro\"," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\": \"cat\"," +
+                            "\"version\": \"latest\"" +
+                        "}" +
+                    "]" +
+                "}" +
+            "}";
+
+        // WHEN
+        AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
+
+        // THEN
+        assertThat(converter.validate, not(nullValue()));
+        assertThat(converter.validate.decode, equalTo(ValidateMode.STRICT));
+        assertThat(converter.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldReadScalarValidate()
+    {
+        // GIVEN
+        String json =
+            "{" +
+                "\"model\": \"avro\"," +
+                "\"validate\": \"lenient\"," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\": \"cat\"," +
+                            "\"version\": \"latest\"" +
+                        "}" +
+                    "]" +
+                "}" +
+            "}";
+
+        // WHEN
+        AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
+
+        // THEN
+        assertThat(converter.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(converter.validate.encode, equalTo(ValidateMode.LENIENT));
+    }
+
+    @Test
+    public void shouldReadObjectValidate()
+    {
+        // GIVEN
+        String json =
+            "{" +
+                "\"model\": \"avro\"," +
+                "\"validate\":" +
+                "{" +
+                    "\"decode\": \"lenient\"," +
+                    "\"encode\": \"strict\"" +
+                "}," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\": \"cat\"," +
+                            "\"version\": \"latest\"" +
+                        "}" +
+                    "]" +
+                "}" +
+            "}";
+
+        // WHEN
+        AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
+
+        // THEN
+        assertThat(converter.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(converter.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldWriteScalarValidate()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"model\":\"avro\"," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\":\"cat\"," +
+                            "\"version\":\"latest\"" +
+                        "}" +
+                    "]" +
+                "}," +
+                "\"validate\":\"lenient\"" +
+            "}";
+        AvroModelConfig converter = AvroModelConfig.builder()
+            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .subject("cat")
+                        .version("latest")
+                        .build()
+                    .build()
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(converter);
+
+        // THEN
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldWriteObjectValidate()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"model\":\"avro\"," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\":\"cat\"," +
+                            "\"version\":\"latest\"" +
+                        "}" +
+                    "]" +
+                "}," +
+                "\"validate\":" +
+                "{" +
+                    "\"decode\":\"lenient\"," +
+                    "\"encode\":\"strict\"" +
+                "}" +
+            "}";
+        AvroModelConfig converter = AvroModelConfig.builder()
+            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT))
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .subject("cat")
+                        .version("latest")
+                        .build()
+                    .build()
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(converter);
+
+        // THEN
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldOmitValidateWhenStrict()
+    {
+        // GIVEN
+        AvroModelConfig converter = AvroModelConfig.builder()
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .subject("cat")
+                        .version("latest")
+                        .build()
+                    .build()
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(converter);
+
+        // THEN
+        assertThat(json, not(containsString("validate")));
     }
 }

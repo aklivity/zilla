@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.protobuf.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
@@ -28,6 +29,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelConfigAdapterTest
@@ -164,5 +167,126 @@ public class ProtobufModelConfigAdapterTest
         assertThat(converter.model, equalTo("protobuf"));
         assertThat(converter.cataloged, hasSize(1));
         assertThat(converter.cataloged.get(0).name, equalTo("test0"));
+    }
+
+    @Test
+    public void shouldDefaultValidateStrictWhenAbsent()
+    {
+        String json = """
+                {
+                    "model":"protobuf",
+                    "catalog":
+                    {
+                        "test0":
+                        [
+                            {
+                                "subject":"user",
+                                "version":"latest"
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        ProtobufModelConfig converter = jsonb.fromJson(json, ProtobufModelConfig.class);
+
+        assertThat(converter.validate, not(nullValue()));
+        assertThat(converter.validate.decode, equalTo(ValidateMode.STRICT));
+        assertThat(converter.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldReadScalarValidate()
+    {
+        String json = """
+                {
+                    "model":"protobuf",
+                    "validate":"lenient",
+                    "catalog":
+                    {
+                        "test0":
+                        [
+                            {
+                                "subject":"user",
+                                "version":"latest"
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        ProtobufModelConfig converter = jsonb.fromJson(json, ProtobufModelConfig.class);
+
+        assertThat(converter.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(converter.validate.encode, equalTo(ValidateMode.LENIENT));
+    }
+
+    @Test
+    public void shouldReadObjectValidate()
+    {
+        String json = """
+                {
+                    "model":"protobuf",
+                    "validate":
+                    {
+                        "decode":"lenient",
+                        "encode":"strict"
+                    },
+                    "catalog":
+                    {
+                        "test0":
+                        [
+                            {
+                                "subject":"user",
+                                "version":"latest"
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        ProtobufModelConfig converter = jsonb.fromJson(json, ProtobufModelConfig.class);
+
+        assertThat(converter.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(converter.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldWriteScalarValidate()
+    {
+        String expectedJson = """
+                {"model":"protobuf","catalog":{"test0":[{"subject":"user","version":"latest"}]},"validate":"lenient"}""";
+        ProtobufModelConfig converter = ProtobufModelConfig.builder()
+                .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .subject("user")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build();
+
+        String json = jsonb.toJson(converter);
+
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldOmitValidateWhenStrict()
+    {
+        ProtobufModelConfig converter = ProtobufModelConfig.builder()
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .subject("user")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build();
+
+        String json = jsonb.toJson(converter);
+
+        assertThat(json, not(containsString("validate")));
     }
 }

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.core.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class DoubleModelConfigBuilder<T> extends ConfigBuilder<T, DoubleModelConfigBuilder<T>>
 {
@@ -30,6 +31,7 @@ public class DoubleModelConfigBuilder<T> extends ConfigBuilder<T, DoubleModelCon
     private Double multiple;
     private Boolean exclusiveMax;
     private Boolean exclusiveMin;
+    private ValidateConfig validate;
 
     DoubleModelConfigBuilder(
         Function<DoubleModelConfig, T> mapper)
@@ -86,6 +88,13 @@ public class DoubleModelConfigBuilder<T> extends ConfigBuilder<T, DoubleModelCon
         return this;
     }
 
+    public DoubleModelConfigBuilder<T> validate(
+        ValidateConfig validate)
+    {
+        this.validate = validate;
+        return this;
+    }
+
     @Override
     public T build()
     {
@@ -94,6 +103,6 @@ public class DoubleModelConfigBuilder<T> extends ConfigBuilder<T, DoubleModelCon
         double min = this.min != null ? this.min : Double.NEGATIVE_INFINITY;
         boolean exclusiveMax = this.exclusiveMax != null ? this.exclusiveMax : false;
         boolean exclusiveMin = this.exclusiveMin != null ? this.exclusiveMin : false;
-        return mapper.apply(new DoubleModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple));
+        return mapper.apply(new DoubleModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple, validate));
     }
 }

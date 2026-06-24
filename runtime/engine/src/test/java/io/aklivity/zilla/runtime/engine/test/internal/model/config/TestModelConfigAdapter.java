@@ -30,6 +30,8 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 
 public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
@@ -42,6 +44,7 @@ public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapt
     private static final String FIELDS = "fields";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
+    private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
     @Override
     public String type()
@@ -102,6 +105,8 @@ public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapt
             }
         }
 
-        return new TestModelConfig(length, catalogs, read, transformLength, fields);
+        ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
+
+        return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig);
     }
 }

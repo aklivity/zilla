@@ -30,6 +30,8 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
@@ -39,8 +41,10 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VIEW = "view";
+    private static final String VALIDATE_NAME = "validate";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
+    private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
     @Override
     public String type()
@@ -75,6 +79,13 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
             }
             converter.add(CATALOG_NAME, catalogs);
         }
+
+        JsonValue validateJson = validate.adaptToJson(protobufConfig.validate);
+        if (validateJson != null)
+        {
+            converter.add(VALIDATE_NAME, validateJson);
+        }
+
         return converter.build();
     }
 
@@ -109,6 +120,8 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
                 ? object.getString(VIEW)
                 : null;
 
-        return new ProtobufModelConfig(catalogs, subject, view);
+        ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
+
+        return new ProtobufModelConfig(catalogs, subject, view, validateConfig);
     }
 }

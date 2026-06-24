@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.json.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -26,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonModelConfigAdapterTest
@@ -133,5 +136,151 @@ public class JsonModelConfigAdapterTest
         // THEN
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldDefaultValidateStrictWhenAbsent()
+    {
+        // GIVEN
+        String json =
+            "{" +
+                "\"model\": \"json\"," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\": \"subject1\"," +
+                            "\"version\": \"latest\"" +
+                        "}" +
+                    "]" +
+                "}" +
+            "}";
+
+        // WHEN
+        JsonModelConfig config = jsonb.fromJson(json, JsonModelConfig.class);
+
+        // THEN
+        assertThat(config.validate, not(nullValue()));
+        assertThat(config.validate.decode, equalTo(ValidateMode.STRICT));
+        assertThat(config.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldReadScalarValidate()
+    {
+        // GIVEN
+        String json =
+            "{" +
+                "\"model\": \"json\"," +
+                "\"validate\": \"lenient\"," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\": \"subject1\"," +
+                            "\"version\": \"latest\"" +
+                        "}" +
+                    "]" +
+                "}" +
+            "}";
+
+        // WHEN
+        JsonModelConfig config = jsonb.fromJson(json, JsonModelConfig.class);
+
+        // THEN
+        assertThat(config.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(config.validate.encode, equalTo(ValidateMode.LENIENT));
+    }
+
+    @Test
+    public void shouldReadObjectValidate()
+    {
+        // GIVEN
+        String json =
+            "{" +
+                "\"model\": \"json\"," +
+                "\"validate\":" +
+                "{" +
+                    "\"decode\": \"lenient\"," +
+                    "\"encode\": \"strict\"" +
+                "}," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\": \"subject1\"," +
+                            "\"version\": \"latest\"" +
+                        "}" +
+                    "]" +
+                "}" +
+            "}";
+
+        // WHEN
+        JsonModelConfig config = jsonb.fromJson(json, JsonModelConfig.class);
+
+        // THEN
+        assertThat(config.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(config.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldWriteScalarValidate()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"model\":\"json\"," +
+                "\"catalog\":" +
+                "{" +
+                    "\"test0\":" +
+                    "[" +
+                        "{" +
+                            "\"subject\":\"subject1\"," +
+                            "\"version\":\"latest\"" +
+                        "}" +
+                    "]" +
+                "}," +
+                "\"validate\":\"lenient\"" +
+            "}";
+        JsonModelConfig config = JsonModelConfig.builder()
+            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .subject("subject1")
+                        .version("latest")
+                        .build()
+                    .build()
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(config);
+
+        // THEN
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldOmitValidateWhenStrict()
+    {
+        // GIVEN
+        JsonModelConfig config = JsonModelConfig.builder()
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .subject("subject1")
+                        .version("latest")
+                        .build()
+                    .build()
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(config);
+
+        // THEN
+        assertThat(json, not(containsString("validate")));
     }
 }

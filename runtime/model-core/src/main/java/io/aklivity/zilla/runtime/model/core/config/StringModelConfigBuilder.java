@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.core.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class StringModelConfigBuilder<T> extends ConfigBuilder<T, StringModelConfigBuilder<T>>
 {
@@ -28,6 +29,7 @@ public class StringModelConfigBuilder<T> extends ConfigBuilder<T, StringModelCon
     private String pattern;
     private int maxLength;
     private int minLength;
+    private ValidateConfig validate;
 
     StringModelConfigBuilder(
         Function<StringModelConfig, T> mapper)
@@ -70,10 +72,17 @@ public class StringModelConfigBuilder<T> extends ConfigBuilder<T, StringModelCon
         return this;
     }
 
+    public StringModelConfigBuilder<T> validate(
+        ValidateConfig validate)
+    {
+        this.validate = validate;
+        return this;
+    }
+
     @Override
     public T build()
     {
         String encoding = this.encoding != null ? this.encoding : DEFAULT_ENCODING;
-        return mapper.apply(new StringModelConfig(encoding, pattern, maxLength, minLength));
+        return mapper.apply(new StringModelConfig(encoding, pattern, maxLength, minLength, validate));
     }
 }

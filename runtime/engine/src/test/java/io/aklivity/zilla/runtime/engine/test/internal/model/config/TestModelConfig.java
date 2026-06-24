@@ -20,6 +20,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class TestModelConfig extends ModelConfig
 {
@@ -52,7 +53,18 @@ public class TestModelConfig extends ModelConfig
         int transformLength,
         List<String> fields)
     {
-        super("test", cataloged);
+        this(length, cataloged, read, transformLength, fields, ValidateConfig.STRICT);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields,
+        ValidateConfig validate)
+    {
+        super("test", cataloged, validate);
         this.length = length;
         this.read = read;
         this.transformLength = transformLength;

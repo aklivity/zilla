@@ -7,44 +7,36 @@
     {
         "op": "add",
         "path": "/$defs/converter/model/allOf/-",
-        "value":
-        {
-            "if":
-            {
-                "properties":
-                {
-                    "model":
-                    {
+        "value": {
+            "if": {
+                "properties": {
+                    "model": {
                         "const": "int64"
                     }
                 }
             },
-            "then":
-            {
-                "properties":
-                {
-                    "model":
-                    {
+            "then": {
+                "properties": {
+                    "model": {
                         "const": "int64"
                     },
-                    "format":
-                    {
+                    "format": {
                         "type": "string",
-                        "enum":
-                        [
+                        "enum": [
                             "binary",
                             "text"
                         ],
                         "default": "text"
                     },
-                    "range":
-                    {
+                    "range": {
                         "type": "string",
                         "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
                     },
-                    "multiple":
-                    {
+                    "multiple": {
                         "type": "integer"
+                    },
+                    "validate": {
+                        "$ref": "#/$defs/validate"
                     }
                 },
                 "additionalProperties": false
@@ -59,44 +51,36 @@
     {
         "op": "add",
         "path": "/$defs/validator/model/allOf/-",
-        "value":
-        {
-            "if":
-            {
-                "properties":
-                {
-                    "model":
-                    {
+        "value": {
+            "if": {
+                "properties": {
+                    "model": {
                         "const": "int64"
                     }
                 }
             },
-            "then":
-            {
-                "properties":
-                {
-                    "model":
-                    {
+            "then": {
+                "properties": {
+                    "model": {
                         "const": "int64"
                     },
-                    "format":
-                    {
+                    "format": {
                         "type": "string",
-                        "enum":
-                        [
+                        "enum": [
                             "binary",
                             "text"
                         ],
                         "default": "text"
                     },
-                    "range":
-                    {
+                    "range": {
                         "type": "string",
                         "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
                     },
-                    "multiple":
-                    {
+                    "multiple": {
                         "type": "number"
+                    },
+                    "validate": {
+                        "$ref": "#/$defs/validate"
                     }
                 },
                 "additionalProperties": false

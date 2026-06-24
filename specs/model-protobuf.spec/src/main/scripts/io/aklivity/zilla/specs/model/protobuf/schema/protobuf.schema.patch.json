@@ -7,62 +7,44 @@
     {
         "op": "add",
         "path": "/$defs/converter/model/allOf/-",
-        "value":
-        {
-            "if":
-            {
-                "properties":
-                {
-                    "model":
-                    {
+        "value": {
+            "if": {
+                "properties": {
+                    "model": {
                         "const": "protobuf"
                     }
                 }
             },
-            "then":
-            {
-                "properties":
-                {
-                    "model":
-                    {
+            "then": {
+                "properties": {
+                    "model": {
                         "const": "protobuf"
                     },
-                    "view":
-                    {
+                    "view": {
                         "type": "string",
-                        "enum":
-                        [
+                        "enum": [
                             "json"
                         ]
                     },
-                    "catalog":
-                    {
+                    "catalog": {
                         "title": "Catalog",
                         "type": "object",
-                        "patternProperties":
-                        {
-                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                            {
+                        "patternProperties": {
+                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$": {
                                 "type": "array",
-                                "items":
-                                {
-                                    "oneOf":
-                                    [
+                                "items": {
+                                    "oneOf": [
                                         {
                                             "type": "object",
-                                            "properties":
-                                            {
-                                                "id":
-                                                {
+                                            "properties": {
+                                                "id": {
                                                     "type": "integer"
                                                 },
-                                                "record":
-                                                {
+                                                "record": {
                                                     "type": "string"
                                                 }
                                             },
-                                            "required":
-                                            [
+                                            "required": [
                                                 "id",
                                                 "record"
                                             ],
@@ -70,25 +52,22 @@
                                         },
                                         {
                                             "type": "object",
-                                            "properties":
-                                            {
-                                                "strategy":
-                                                {
+                                            "properties": {
+                                                "strategy": {
                                                     "type": "string",
-                                                    "enum": [ "topic" ]
+                                                    "enum": [
+                                                        "topic"
+                                                    ]
                                                 },
-                                                "version":
-                                                {
+                                                "version": {
                                                     "type": "string",
                                                     "default": "latest"
                                                 },
-                                                "record":
-                                                {
+                                                "record": {
                                                     "type": "string"
                                                 }
                                             },
-                                            "required":
-                                            [
+                                            "required": [
                                                 "strategy",
                                                 "record"
                                             ],
@@ -96,24 +75,19 @@
                                         },
                                         {
                                             "type": "object",
-                                            "properties":
-                                            {
-                                                "subject":
-                                                {
+                                            "properties": {
+                                                "subject": {
                                                     "type": "string"
                                                 },
-                                                "version":
-                                                {
+                                                "version": {
                                                     "type": "string",
                                                     "default": "latest"
                                                 },
-                                                "record":
-                                                {
+                                                "record": {
                                                     "type": "string"
                                                 }
                                             },
-                                            "required":
-                                            [
+                                            "required": [
                                                 "subject",
                                                 "record"
                                             ],
@@ -124,10 +98,12 @@
                             }
                         },
                         "maxProperties": 1
+                    },
+                    "validate": {
+                        "$ref": "#/$defs/validate"
                     }
                 },
-                "required":
-                [
+                "required": [
                     "catalog"
                 ],
                 "additionalProperties": false

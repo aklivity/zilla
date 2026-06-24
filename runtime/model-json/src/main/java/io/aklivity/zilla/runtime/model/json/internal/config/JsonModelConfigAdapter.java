@@ -30,6 +30,8 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
@@ -38,8 +40,10 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
     private static final String MODEL_NAME = "model";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
+    private static final String VALIDATE_NAME = "validate";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
+    private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
     @Override
     public String type()
@@ -68,6 +72,13 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
             }
             converter.add(CATALOG_NAME, catalogs);
         }
+
+        JsonValue validateJson = validate.adaptToJson(jsonConfig.validate);
+        if (validateJson != null)
+        {
+            converter.add(VALIDATE_NAME, validateJson);
+        }
+
         return converter.build();
     }
 
@@ -98,6 +109,8 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
                 ? object.getString(SUBJECT_NAME)
                 : null;
 
-        return new JsonModelConfig(catalogs, subject);
+        ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
+
+        return new JsonModelConfig(catalogs, subject, validateConfig);
     }
 }

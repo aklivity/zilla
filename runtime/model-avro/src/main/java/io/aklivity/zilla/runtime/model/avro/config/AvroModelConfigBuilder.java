@@ -21,6 +21,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigBuilder<T>>
 {
@@ -29,6 +30,7 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigB
     private List<CatalogedConfig> catalogs;
     private String subject;
     private String view;
+    private ValidateConfig validate;
 
     AvroModelConfigBuilder(
         Function<AvroModelConfig, T> mapper)
@@ -57,6 +59,13 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigB
         return this;
     }
 
+    public AvroModelConfigBuilder<T> validate(
+        ValidateConfig validate)
+    {
+        this.validate = validate;
+        return this;
+    }
+
     public CatalogedConfigBuilder<AvroModelConfigBuilder<T>> catalog()
     {
         return CatalogedConfig.builder(this::catalog);
@@ -76,6 +85,6 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new AvroModelConfig(catalogs, subject, view));
+        return mapper.apply(new AvroModelConfig(catalogs, subject, view, validate));
     }
 }
