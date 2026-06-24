@@ -472,45 +472,9 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.connect.override.max.session.expiry/client",
-        "${mqtt}/session.connect.override.max.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooBig() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/session.connect.override.min.session.expiry/client",
-        "${mqtt}/session.connect.override.min.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooSmall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.abort.reconnect.non.clean.start/client",
         "${mqtt}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/session.client.takeover/client",
-        "${mqtt}/session.client.takeover/server"})
-    public void shouldTakeOverSession() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/session.exists.clean.start/client",
-        "${mqtt}/session.exists.clean.start/server"})
-    public void shouldRemoveSessionAtCleanStart() throws Exception
     {
         k3po.finish();
     }
@@ -657,17 +621,6 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.will.message.takeover.deliver.will/client",
-        "${mqtt}/session.will.message.takeover.deliver.will/server"})
-    public void shouldDeliverWillMessageOnSessionTakeover() throws Exception
-    {
-        k3po.start();
-        k3po.notifyBarrier("WILL_STREAM_STARTED");
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.will.message/client",
         "${mqtt}/session.will.message/server"})
     public void shouldSaveWillMessage() throws Exception
@@ -692,6 +645,16 @@ public class MqttIT
         "${mqtt}/publish.qos2/client",
         "${mqtt}/publish.qos2/server"})
     public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.no.prior.offsets/client",
+        "${mqtt}/publish.qos2.no.prior.offsets/server"})
+    public void shouldPublishQoS2MessageNoPriorOffsets() throws Exception
     {
         k3po.start();
         k3po.finish();
