@@ -45,9 +45,17 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfigBuilder;
 
 public class AvroModelEncoderPipelineTest
 {
-    private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
-        "{\"name\":\"status\",\"type\":\"string\"}]," +
-        "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+    private static final String SCHEMA = """
+        {
+            "fields":
+            [
+                { "name": "id", "type": "string" },
+                { "name": "status", "type": "string" }
+            ],
+            "name": "Event",
+            "namespace": "io.aklivity.example",
+            "type": "record"
+        }""";
 
     private static final String JSON = "{\"id\":\"id0\",\"status\":\"positive\"}";
     // id="id0" (len 3) then status="positive" (len 8); the TestCatalog adds no framing prefix

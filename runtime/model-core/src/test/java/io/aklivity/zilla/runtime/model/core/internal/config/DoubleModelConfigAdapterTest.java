@@ -46,13 +46,13 @@ public class DoubleModelConfigAdapterTest
     public void shouldRead()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\":\"double\"," +
-                "\"format\":\"text\"," +
-                "\"range\":\"[-999.98,999.99)\"," +
-                "\"multiple\":100" +
-            "}";
+        String json = """
+            {
+                "model": "double",
+                "format": "text",
+                "range": "[-999.98,999.99)",
+                "multiple": 100
+            }""";
 
         // WHEN
         DoubleModelConfig model = jsonb.fromJson(json, DoubleModelConfig.class);

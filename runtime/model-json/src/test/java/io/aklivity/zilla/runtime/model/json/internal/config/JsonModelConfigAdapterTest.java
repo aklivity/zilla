@@ -47,27 +47,27 @@ public class JsonModelConfigAdapterTest
     public void shouldReadJsonConverter()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"json\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\": \"subject1\"," +
-                            "\"version\": \"latest\"" +
-                        "}," +
-                        "{" +
-                            "\"strategy\": \"topic\"," +
-                            "\"version\": \"latest\"" +
-                        "}," +
-                        "{" +
-                            "\"id\": 42" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "model": "json",
+                "catalog":
+                {
+                    "test0":
+                    [
+                        {
+                            "subject": "subject1",
+                            "version": "latest"
+                        },
+                        {
+                            "strategy": "topic",
+                            "version": "latest"
+                        },
+                        {
+                            "id": 42
+                        }
+                    ]
+                }
+            }""";
 
         // WHEN
         JsonModelConfig config = jsonb.fromJson(json, JsonModelConfig.class);
@@ -142,20 +142,20 @@ public class JsonModelConfigAdapterTest
     public void shouldDefaultValidateStrictWhenAbsent()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"json\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\": \"subject1\"," +
-                            "\"version\": \"latest\"" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "model": "json",
+                "catalog":
+                {
+                    "test0":
+                    [
+                        {
+                            "subject": "subject1",
+                            "version": "latest"
+                        }
+                    ]
+                }
+            }""";
 
         // WHEN
         JsonModelConfig config = jsonb.fromJson(json, JsonModelConfig.class);
@@ -170,21 +170,21 @@ public class JsonModelConfigAdapterTest
     public void shouldReadScalarValidate()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"json\"," +
-                "\"validate\": \"lenient\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\": \"subject1\"," +
-                            "\"version\": \"latest\"" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "model": "json",
+                "validate": "lenient",
+                "catalog":
+                {
+                    "test0":
+                    [
+                        {
+                            "subject": "subject1",
+                            "version": "latest"
+                        }
+                    ]
+                }
+            }""";
 
         // WHEN
         JsonModelConfig config = jsonb.fromJson(json, JsonModelConfig.class);
@@ -198,25 +198,25 @@ public class JsonModelConfigAdapterTest
     public void shouldReadObjectValidate()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"json\"," +
-                "\"validate\":" +
-                "{" +
-                    "\"decode\": \"lenient\"," +
-                    "\"encode\": \"strict\"" +
-                "}," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\": \"subject1\"," +
-                            "\"version\": \"latest\"" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "model": "json",
+                "validate":
+                {
+                    "decode": "lenient",
+                    "encode": "strict"
+                },
+                "catalog":
+                {
+                    "test0":
+                    [
+                        {
+                            "subject": "subject1",
+                            "version": "latest"
+                        }
+                    ]
+                }
+            }""";
 
         // WHEN
         JsonModelConfig config = jsonb.fromJson(json, JsonModelConfig.class);

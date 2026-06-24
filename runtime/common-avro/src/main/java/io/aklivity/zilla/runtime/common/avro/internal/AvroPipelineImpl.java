@@ -61,8 +61,6 @@ final class AvroPipelineImpl implements AvroPipeline
     // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
     private final AvroGenerator generator;
     private final AvroPipelineResult result;
-    // LENIENT: a semantic-validation failure is reported then the already-produced structurally-valid value
-    // passes through, rather than rejecting; a parse failure always rejects. Inert today (throwerless seam).
     private final boolean lenient;
 
     private boolean suspended;
@@ -144,9 +142,7 @@ final class AvroPipelineImpl implements AvroPipeline
         }
         catch (AvroValidationException ex)
         {
-            // a structurally well-formed value that violates a semantic rule: report it either way, then
-            // LENIENT lets the already-produced value flow (COMPLETED) while STRICT rejects. Inert today —
-            // no stage throws this yet; the branch is wired for when semantic validation lands.
+            // inert today — no stage throws this yet; wired for when semantic validation lands
             diagnostic.message = ex.getMessage();
             if (reporter != null)
             {
@@ -156,13 +152,11 @@ final class AvroPipelineImpl implements AvroPipeline
         }
         catch (AvroParsingException ex)
         {
-            // malformed or truncated input: no valid value could be produced, so always reject
             status = REJECTED;
             diagnostic.message = ex.getMessage();
         }
         catch (AvroException ex)
         {
-            // any other pipeline failure rejects, preserving the single-catch reject contract
             status = REJECTED;
             diagnostic.message = ex.getMessage();
         }

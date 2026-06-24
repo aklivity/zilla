@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
+import java.util.function.Function;
+
 public final class ValidateConfig
 {
     public static final ValidateConfig STRICT = new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT);
@@ -32,6 +34,6 @@ public final class ValidateConfig
 
     public static ValidateConfigBuilder<ValidateConfig> builder()
     {
-        return new ValidateConfigBuilder<>(identity -> identity);
+        return new ValidateConfigBuilder<>(Function.identity());
     }
 }

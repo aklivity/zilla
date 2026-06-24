@@ -2315,9 +2315,6 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private final JsonController decline = new Decline();
         private final List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
-        // LENIENT: a schema-violating but structurally well-formed document is forwarded in full (so the
-        // sink produces the complete value), then a single JsonValidationException is thrown at the value
-        // boundary — the pipeline reports it and, being lenient, completes with the produced bytes
         private final boolean lenient;
 
         private JsonController upstreamControl;
@@ -2345,9 +2342,6 @@ public final class JsonSchemaImpl implements JsonSchema
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {
                 Status downstream = sink.transform(decline, source, event);
-                // LENIENT defers the throw to the value boundary: once the whole document has been forwarded
-                // (the sink has produced the complete value), surface the collected diagnostics so the
-                // pipeline reports them and completes with the produced bytes rather than rejecting
                 if (lenient && failed && event == JsonEvent.END_DOCUMENT && downstream != Status.SUSPENDED)
                 {
                     throw new JsonValidationException(diagnostics);
@@ -2374,8 +2368,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     throw new JsonValidationException(diagnostics);
                 }
-                // LENIENT: forward the structurally-valid scalar so it flows through the sink's copy path,
-                // and remember the failure to surface at the value boundary
                 failed |= verdict == Verdict.INVALID;
                 Status downstream = sink.transform(decline, source, forward(event));
                 status = lenient && verdict == Verdict.INVALID
@@ -2394,8 +2386,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     throw new JsonValidationException(diagnostics);
                 }
-                // LENIENT: the event was already forwarded; remember the failure and keep pumping so the
-                // whole document reaches the sink before the boundary throw
                 failed |= verdict == Verdict.INVALID;
                 status = lenient && verdict == Verdict.INVALID
                     ? leniently(downstream)
@@ -2449,9 +2439,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
         }
 
-        // LENIENT verdict mapping for a tolerated INVALID: do not surface a verdict-driven COMPLETED here —
-        // keep pumping (ADVANCED) so the rest of the document forwards, and the boundary throw at
-        // END_DOCUMENT carries the diagnostics; only honour downstream back-pressure
         private Status leniently(
             Status downstream)
         {

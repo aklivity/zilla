@@ -41,14 +41,16 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonModelEncoderPipelineTest
 {
-    private static final String OBJECT_SCHEMA = "{" +
-        "\"type\": \"object\"," +
-        "\"properties\": {" +
-            "\"id\": { \"type\": \"string\" }," +
-            "\"status\": { \"type\": \"string\" }" +
-        "}," +
-        "\"required\": [ \"id\", \"status\" ]" +
-        "}";
+    private static final String OBJECT_SCHEMA = """
+        {
+            "type": "object",
+            "properties":
+            {
+                "id": { "type": "string" },
+                "status": { "type": "string" }
+            },
+            "required": [ "id", "status" ]
+        }""";
 
     private EngineContext context;
 

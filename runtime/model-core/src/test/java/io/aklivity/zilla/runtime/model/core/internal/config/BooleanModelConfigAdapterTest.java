@@ -47,10 +47,10 @@ public class BooleanModelConfigAdapterTest
     public void shouldRead()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\":\"boolean\"" +
-            "}";
+        String json = """
+            {
+                "model": "boolean"
+            }""";
 
         // WHEN
         BooleanModelConfig model = jsonb.fromJson(json, BooleanModelConfig.class);
@@ -80,10 +80,10 @@ public class BooleanModelConfigAdapterTest
     public void shouldDefaultValidateStrictWhenAbsent()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\":\"boolean\"" +
-            "}";
+        String json = """
+            {
+                "model": "boolean"
+            }""";
 
         // WHEN
         BooleanModelConfig model = jsonb.fromJson(json, BooleanModelConfig.class);
@@ -98,11 +98,11 @@ public class BooleanModelConfigAdapterTest
     public void shouldReadScalarValidate()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\":\"boolean\"," +
-                "\"validate\":\"lenient\"" +
-            "}";
+        String json = """
+            {
+                "model": "boolean",
+                "validate": "lenient"
+            }""";
 
         // WHEN
         BooleanModelConfig model = jsonb.fromJson(json, BooleanModelConfig.class);
@@ -116,15 +116,15 @@ public class BooleanModelConfigAdapterTest
     public void shouldReadObjectValidate()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\":\"boolean\"," +
-                "\"validate\":" +
-                "{" +
-                    "\"decode\":\"lenient\"," +
-                    "\"encode\":\"strict\"" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "model": "boolean",
+                "validate":
+                {
+                    "decode": "lenient",
+                    "encode": "strict"
+                }
+            }""";
 
         // WHEN
         BooleanModelConfig model = jsonb.fromJson(json, BooleanModelConfig.class);

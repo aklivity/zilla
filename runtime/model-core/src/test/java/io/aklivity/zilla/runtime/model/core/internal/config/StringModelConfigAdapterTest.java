@@ -47,14 +47,14 @@ public class StringModelConfigAdapterTest
     public void shouldReadString()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"string\"," +
-                "\"encoding\": \"utf_8\"," +
-                "\"pattern\": \"^[a-zA-Z]\"," +
-                "\"maxLength\": 5," +
-                "\"minLength\": 2" +
-            "}";
+        String json = """
+            {
+                "model": "string",
+                "encoding": "utf_8",
+                "pattern": "^[a-zA-Z]",
+                "maxLength": 5,
+                "minLength": 2
+            }""";
 
         // WHEN
         StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
@@ -147,11 +147,11 @@ public class StringModelConfigAdapterTest
     public void shouldReadScalarValidate()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"string\"," +
-                "\"validate\": \"lenient\"" +
-            "}";
+        String json = """
+            {
+                "model": "string",
+                "validate": "lenient"
+            }""";
 
         // WHEN
         StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
@@ -165,15 +165,15 @@ public class StringModelConfigAdapterTest
     public void shouldReadObjectValidate()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"string\"," +
-                "\"validate\":" +
-                "{" +
-                    "\"decode\": \"lenient\"," +
-                    "\"encode\": \"strict\"" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "model": "string",
+                "validate":
+                {
+                    "decode": "lenient",
+                    "encode": "strict"
+                }
+            }""";
 
         // WHEN
         StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);

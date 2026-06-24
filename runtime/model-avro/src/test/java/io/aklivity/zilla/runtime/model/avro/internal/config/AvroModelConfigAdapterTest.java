@@ -47,28 +47,28 @@ public class AvroModelConfigAdapterTest
     public void shouldReadAvroconverter()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"view\":\"json\"," +
-                "\"model\": \"avro\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"strategy\": \"topic\"," +
-                            "\"version\": \"latest\"" +
-                        "}," +
-                        "{" +
-                            "\"subject\": \"cat\"," +
-                            "\"version\": \"latest\"" +
-                        "}," +
-                        "{" +
-                            "\"id\": 42" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "view": "json",
+                "model": "avro",
+                "catalog":
+                {
+                    "test0":
+                    [
+                        {
+                            "strategy": "topic",
+                            "version": "latest"
+                        },
+                        {
+                            "subject": "cat",
+                            "version": "latest"
+                        },
+                        {
+                            "id": 42
+                        }
+                    ]
+                }
+            }""";
 
         // WHEN
         AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
@@ -147,20 +147,20 @@ public class AvroModelConfigAdapterTest
     public void shouldDefaultValidateStrictWhenAbsent()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"avro\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\": \"cat\"," +
-                            "\"version\": \"latest\"" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "model": "avro",
+                "catalog":
+                {
+                    "test0":
+                    [
+                        {
+                            "subject": "cat",
+                            "version": "latest"
+                        }
+                    ]
+                }
+            }""";
 
         // WHEN
         AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
@@ -175,21 +175,21 @@ public class AvroModelConfigAdapterTest
     public void shouldReadScalarValidate()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"avro\"," +
-                "\"validate\": \"lenient\"," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\": \"cat\"," +
-                            "\"version\": \"latest\"" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "model": "avro",
+                "validate": "lenient",
+                "catalog":
+                {
+                    "test0":
+                    [
+                        {
+                            "subject": "cat",
+                            "version": "latest"
+                        }
+                    ]
+                }
+            }""";
 
         // WHEN
         AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
@@ -203,25 +203,25 @@ public class AvroModelConfigAdapterTest
     public void shouldReadObjectValidate()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"avro\"," +
-                "\"validate\":" +
-                "{" +
-                    "\"decode\": \"lenient\"," +
-                    "\"encode\": \"strict\"" +
-                "}," +
-                "\"catalog\":" +
-                "{" +
-                    "\"test0\":" +
-                    "[" +
-                        "{" +
-                            "\"subject\": \"cat\"," +
-                            "\"version\": \"latest\"" +
-                        "}" +
-                    "]" +
-                "}" +
-            "}";
+        String json = """
+            {
+                "model": "avro",
+                "validate":
+                {
+                    "decode": "lenient",
+                    "encode": "strict"
+                },
+                "catalog":
+                {
+                    "test0":
+                    [
+                        {
+                            "subject": "cat",
+                            "version": "latest"
+                        }
+                    ]
+                }
+            }""";
 
         // WHEN
         AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
