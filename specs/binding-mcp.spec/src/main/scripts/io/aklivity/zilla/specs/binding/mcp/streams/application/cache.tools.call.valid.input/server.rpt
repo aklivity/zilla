@@ -13,12 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property authorization 0L
+property serverAddress "zilla://streams/app0"
 
-accept "zilla://streams/app0"
+accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
 
 accepted
 
@@ -33,7 +32,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
+                               .sessionId("agent-1")
                                .build()
                            .build()}
 write flush
@@ -42,66 +41,10 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
-                              .sessionId("session-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-write '{"tools":'
-        '['
-          '{'
-            '"name": "get_weather",'
-            '"description": "Get current weather information for a location",'
-            '"inputSchema": {'
-              '"type": "object",'
-              '"properties": {'
-                '"location": {'
-                  '"type": "string"'
-                '}'
-              '},'
-              '"required": ["location"]'
-            '}'
-          '}'
-        ']'
-      '}'
-write flush
-
-write close
-
-read closed
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsList()
-                              .sessionId("session-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-write '{"tools":[]}'
-write flush
-
-write close
-
-read closed
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
                           .toolsCall()
-                              .sessionId("session-1")
+                              .sessionId("agent-1")
                               .name("get_weather")
-                              .contentLength(52)
+                              .contentLength(59)
                               .build()
                           .build()}
 
@@ -111,7 +54,7 @@ read  '{'
         '"name":"get_weather",'
         '"arguments":'
         '{'
-          '"location": 123'
+          '"location": "New York"'
         '}'
       '}'
 
@@ -122,7 +65,7 @@ write '{'
         '['
           '{'
             '"type": "text",'
-            '"text": "ok"'
+            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
           '}'
         '],'
         '"isError": false'

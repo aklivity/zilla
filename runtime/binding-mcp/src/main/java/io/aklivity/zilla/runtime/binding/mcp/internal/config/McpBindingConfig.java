@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -27,9 +29,16 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Object2IntHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -79,7 +88,9 @@ public final class McpBindingConfig
     private final ModelConfig toolsModel;
     private final Function<ModelConfig, ModelHandler> supplyModel;
     private final Int2ObjectHashMap<ModelPipeline> decodersBySchemaId;
+    private final Object2IntHashMap<String> toolSchemaIdsByName;
     private final MutableDirectBuffer scratch;
+    private final MutableDirectBuffer argsScratch;
 
     public McpBindingConfig(
         BindingConfig binding,
@@ -147,7 +158,9 @@ public final class McpBindingConfig
             : null;
         this.supplyModel = context::supplyModel;
         this.decodersBySchemaId = new Int2ObjectHashMap<>();
+        this.toolSchemaIdsByName = new Object2IntHashMap<>(NO_SCHEMA_ID);
         this.scratch = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.argsScratch = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
     }
 
     public boolean validatesTools()
@@ -222,6 +235,102 @@ public final class McpBindingConfig
             decoder.reset();
         }
         return valid;
+    }
+
+    public void rebuildToolSchemaIndex(
+        String toolsListJson)
+    {
+        final Map<String, String> schemasByName = new LinkedHashMap<>();
+        if (toolsListJson != null)
+        {
+            try (JsonReader reader = Json.createReader(
+                new ByteArrayInputStream(toolsListJson.getBytes(StandardCharsets.UTF_8))))
+            {
+                final JsonObject root = reader.readObject();
+                if (root.containsKey("tools"))
+                {
+                    final JsonArray tools = root.getJsonArray("tools");
+                    for (JsonValue item : tools)
+                    {
+                        final JsonObject tool = item.asJsonObject();
+                        if (tool.containsKey("name") && tool.containsKey("inputSchema"))
+                        {
+                            schemasByName.put(tool.getString("name"), tool.getJsonObject("inputSchema").toString());
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                schemasByName.clear();
+            }
+        }
+
+        final List<String> stale = new ArrayList<>();
+        for (String name : toolSchemaIdsByName.keySet())
+        {
+            if (!schemasByName.containsKey(name))
+            {
+                stale.add(name);
+            }
+        }
+        for (String name : stale)
+        {
+            unregisterToolSchema(name);
+            toolSchemaIdsByName.removeKey(name);
+        }
+
+        for (Map.Entry<String, String> entry : schemasByName.entrySet())
+        {
+            final int schemaId = registerToolSchema(entry.getKey(), entry.getValue());
+            toolSchemaIdsByName.put(entry.getKey(), schemaId);
+        }
+    }
+
+    public int toolSchemaId(
+        String toolName)
+    {
+        return toolSchemaIdsByName.getValue(toolName);
+    }
+
+    public boolean validateToolCall(
+        int schemaId,
+        long traceId,
+        long bindingId,
+        DirectBuffer params,
+        int index,
+        int limit)
+    {
+        boolean valid = false;
+        final String arguments = extractArguments(params, index, limit);
+        if (arguments != null)
+        {
+            final int length = argsScratch.putStringWithoutLengthUtf8(0, arguments);
+            valid = validateToolArgs(schemaId, traceId, bindingId, argsScratch, 0, length);
+        }
+        return valid;
+    }
+
+    private String extractArguments(
+        DirectBuffer params,
+        int index,
+        int limit)
+    {
+        String arguments;
+        final byte[] bytes = new byte[limit - index];
+        params.getBytes(index, bytes);
+        try (JsonReader reader = Json.createReader(new ByteArrayInputStream(bytes)))
+        {
+            final JsonObject root = reader.readObject();
+            arguments = root.containsKey("arguments")
+                ? root.get("arguments").toString()
+                : "{}";
+        }
+        catch (Exception ex)
+        {
+            arguments = null;
+        }
+        return arguments;
     }
 
     private ModelPipeline newToolDecoder(

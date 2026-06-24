@@ -13,12 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property authorization 0L
-
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
-        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
@@ -31,7 +28,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
+                              .sessionId("agent-1")
                               .build()
                           .build()}
 
@@ -41,51 +38,11 @@ connect await LIFECYCLE_INITIALIZED
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
-        option zilla:authorization ${authorization}
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("session-1")
-                               .build()
-                           .build()}
-
-connected
-
-read  '{"tools":'
-        '['
-          '{'
-            '"name": "get_weather",'
-            '"title": "Weather Information Provider",'
-            '"description": "Get current weather information for a location",'
-            '"inputSchema": {'
-              '"type": "object",'
-              '"properties": {'
-                '"location": {'
-                  '"type": "string",'
-                  '"description": "City name or zip code"'
-                '}'
-              '},'
-              '"required": ["location"]'
-            '}'
-          '}'
-        ']'
-      '}'
-read closed
-read notify TOOLS_LISTED
-
-write close
-
-connect await TOOLS_LISTED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
-                               .sessionId("session-1")
+                               .sessionId("agent-1")
                                .name("get_weather")
                                .contentLength(59)
                                .build()

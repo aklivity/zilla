@@ -73,56 +73,6 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.validation.yaml")
-    @Specification({
-        "${net}/tools.call.valid.input/client",
-        "${app}/tools.call.valid.input/server"})
-    public void shouldAcceptToolsCallWithValidInput() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.validation.yaml")
-    @Specification({
-        "${net}/tools.call.invalid.input/client",
-        "${app}/tools.call.invalid.input/server"})
-    public void shouldRejectToolsCallWithInvalidInput() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.validation.yaml")
-    @Specification({
-        "${net}/tools.call.no.schema/client",
-        "${app}/tools.call.no.schema/server"})
-    public void shouldForwardToolsCallWithoutSchema() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.validation.yaml")
-    @Specification({
-        "${net}/tools.list.recapture/client",
-        "${app}/tools.list.recapture/server"})
-    public void shouldValidateToolsCallAgainstRecapturedSchema() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.validation.yaml")
-    @Specification({
-        "${net}/tools.list.drop/client",
-        "${app}/tools.list.drop/server"})
-    public void shouldForwardToolsCallForToolDroppedFromList() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.initialize.elicitation.url/client",

@@ -100,11 +100,6 @@
                                             },
                                             "additionalProperties": false,
                                             "maxProperties": 1
-                                        },
-                                        "tools":
-                                        {
-                                            "title": "Tools",
-                                            "$ref": "#/$defs/validator"
                                         }
                                     },
                                     "additionalProperties": false
@@ -234,6 +229,11 @@
                                             },
                                             "required": [ "store" ],
                                             "additionalProperties": false
+                                        },
+                                        "tools":
+                                        {
+                                            "title": "Tools",
+                                            "$ref": "#/$defs/validator"
                                         }
                                     },
                                     "additionalProperties": false

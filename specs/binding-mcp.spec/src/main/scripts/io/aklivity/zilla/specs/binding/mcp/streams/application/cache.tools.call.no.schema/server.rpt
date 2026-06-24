@@ -13,12 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property authorization 0L
+property serverAddress "zilla://streams/app0"
 
-accept "zilla://streams/app0"
+accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
 
 accepted
 
@@ -33,7 +32,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
+                               .sessionId("agent-1")
                                .build()
                            .build()}
 write flush
@@ -43,16 +42,16 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
-                              .sessionId("session-1")
-                              .name("get_weather")
-                              .contentLength(59)
+                              .sessionId("agent-1")
+                              .name("get_forecast")
+                              .contentLength(60)
                               .build()
                           .build()}
 
 connected
 
 read  '{'
-        '"name":"get_weather",'
+        '"name":"get_forecast",'
         '"arguments":'
         '{'
           '"location": "New York"'

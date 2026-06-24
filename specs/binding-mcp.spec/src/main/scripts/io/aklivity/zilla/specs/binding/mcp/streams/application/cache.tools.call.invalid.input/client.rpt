@@ -13,12 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property authorization 0L
-
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
-        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
@@ -31,7 +28,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
+                              .sessionId("agent-1")
                               .build()
                           .build()}
 
@@ -41,14 +38,13 @@ connect await LIFECYCLE_INITIALIZED
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
-        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
-                               .sessionId("session-1")
+                               .sessionId("agent-1")
                                .name("get_weather")
-                               .contentLength(59)
+                               .contentLength(52)
                                .build()
                            .build()}
 
@@ -58,20 +54,16 @@ write '{'
         '"name":"get_weather",'
         '"arguments":'
         '{'
-          '"location": "New York"'
+          '"location": 123'
         '}'
       '}'
 
-read  '{'
-        '"content":'
-        '['
-          '{'
-            '"type": "text",'
-            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-          '}'
-        '],'
-        '"isError": false'
-      '}'
-read closed
+read zilla:reset.ext ${mcp:matchResetEx()
+                          .typeId(zilla:id("mcp"))
+                          .error()
+                              .code(-32602)
+                              .message("Invalid params")
+                              .build()
+                          .build()}
 
-write close
+write aborted

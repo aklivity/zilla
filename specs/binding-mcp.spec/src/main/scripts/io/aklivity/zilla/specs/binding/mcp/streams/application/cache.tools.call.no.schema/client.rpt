@@ -28,7 +28,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1")
+                              .sessionId("agent-1")
                               .build()
                           .build()}
 
@@ -41,31 +41,32 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("session-1")
+                           .toolsCall()
+                               .sessionId("agent-1")
+                               .name("get_forecast")
+                               .contentLength(60)
                                .build()
                            .build()}
 
 connected
 
-read  '{"tools":'
+write '{'
+        '"name":"get_forecast",'
+        '"arguments":'
+        '{'
+          '"location": "New York"'
+        '}'
+      '}'
+
+read  '{'
+        '"content":'
         '['
           '{'
-            '"name": "get_weather",'
-            '"title": "Weather Information Provider",'
-            '"description": "Get current weather information for a location",'
-            '"inputSchema": {'
-              '"type": "object",'
-              '"properties": {'
-                '"location": {'
-                  '"type": "string",'
-                  '"description": "City name or zip code"'
-                '}'
-              '},'
-              '"required": ["location"]'
-            '}'
+            '"type": "text",'
+            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
           '}'
-        ']'
+        '],'
+        '"isError": false'
       '}'
 read closed
 
