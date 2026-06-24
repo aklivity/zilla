@@ -1341,7 +1341,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 offsetCommitSeeded = false;
                 doCreateSessionStream(traceId, authorization);
             }
-            else
+            else if (!unackedPacketIds.isEmpty())
             {
                 final int packetId = unackedPacketIds.remove();
                 if (metadata.partitions.containsKey(packetId))
