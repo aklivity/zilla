@@ -15,10 +15,12 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 /**
- * Thrown when the input bytes cannot be parsed into a structured form at all — for example malformed or
- * non-JSON input under {@code view: json}, or a truncated wire frame. Distinct from
- * {@link ProtobufValidationException}, which signals input that parsed successfully but violates the
- * descriptor. Both share the {@link ProtobufException} base so a pipeline rejects either with a single
+ * Thrown when the input cannot be parsed into a valid value — whether because the bytes are malformed (for
+ * example non-JSON input under {@code view: json} or a truncated wire frame) or because they are
+ * structurally non-conformant to the descriptor (for example an unknown message, an unknown field, an
+ * unknown enum value, or an unsupported scalar type). In every case no valid value could be produced.
+ * Distinct from {@link ProtobufValidationException}, which signals a structurally-valid value that violates
+ * a semantic rule. Both share the {@link ProtobufException} base so a pipeline rejects either with a single
  * catch.
  */
 public class ProtobufParsingException extends ProtobufException

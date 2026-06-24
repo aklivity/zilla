@@ -30,7 +30,6 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParsingException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufValidationException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
@@ -178,7 +177,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     {
         if (schema.message(messageName) == null)
         {
-            throw new ProtobufValidationException("unknown message " + messageName);
+            throw new ProtobufParsingException("unknown message " + messageName);
         }
         this.last = last;
         depth = -1;
@@ -428,7 +427,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 {
                     if (rejectUnknownFields)
                     {
-                        throw new ProtobufValidationException("unknown field " + parser.getStringView());
+                        throw new ProtobufParsingException("unknown field " + parser.getStringView());
                     }
                     beginSkip();
                 }
@@ -788,7 +787,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 : parseLong(parser.getStringView());
             break;
         default:
-            throw new ProtobufValidationException("unsupported scalar type " + field.type());
+            throw new ProtobufParsingException("unsupported scalar type " + field.type());
         }
     }
 
@@ -1076,7 +1075,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         Integer number = field.enumeration() != null ? field.enumeration().number(name) : null;
         if (number == null)
         {
-            throw new ProtobufValidationException("unknown enum value " + name);
+            throw new ProtobufParsingException("unknown enum value " + name);
         }
         return number;
     }

@@ -15,9 +15,13 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 /**
- * Thrown when the input bytes cannot be parsed into a structured form at all — for example malformed or
- * non-JSON input under {@code view: json}, or a truncated Avro binary datum. Distinct from
- * {@link AvroValidationException}, which signals input that parsed successfully but violates the schema.
+ * Thrown when the input cannot be parsed into a valid value — whether because the bytes are malformed (for
+ * example non-JSON input under {@code view: json}, a truncated Avro binary datum, or a malformed schema
+ * document) or because they are structurally non-conformant to the schema (for example a wrong scalar type,
+ * an unexpected field key, an unknown union branch, or a {@code fixed} of the wrong size). In every case no
+ * valid value could be produced. Distinct from {@link AvroValidationException}, which signals a
+ * structurally-valid value that violates a semantic rule. Both share the {@link AvroException} base so a
+ * pipeline rejects either with a single catch.
  */
 public class AvroParsingException extends AvroException
 {

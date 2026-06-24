@@ -31,7 +31,6 @@ import io.aklivity.zilla.runtime.common.avro.AvroParser;
 import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
-import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.lang.Numbers;
@@ -59,7 +58,7 @@ import io.aklivity.zilla.runtime.common.lang.Numbers;
  * both of which materialize, matching the floating-point cost on the Avro → JSON side.
  * <p>
  * JSON that does not match the schema (wrong scalar type, an unexpected field key, an unknown union branch, a
- * {@code fixed} of the wrong size) raises {@link AvroValidationException}, reported as a clean reject. Reuse
+ * {@code fixed} of the wrong size) raises {@link AvroParsingException}, reported as a clean reject. Reuse
  * a single instance per worker thread; not thread-safe.
  */
 public final class AvroJsonParserImpl implements AvroParser
@@ -826,10 +825,10 @@ public final class AvroJsonParserImpl implements AvroParser
         }
     }
 
-    private AvroValidationException reject(
+    private AvroParsingException reject(
         String message)
     {
-        return new AvroValidationException(message);
+        return new AvroParsingException(message);
     }
 
     private List<AvroField> fields(

@@ -15,10 +15,12 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 /**
- * Thrown when an event stream that parsed successfully nevertheless violates its Avro schema — for
- * example an out-of-range union branch or enum ordinal, a wrong scalar type, or an unexpected field
- * key. A parse failure (bytes that cannot be parsed at all) is an {@link AvroParsingException} instead;
- * both share the {@link AvroException} base so a pipeline rejects either with a single catch.
+ * Reserved for a structurally-valid value that violates a semantic rule beyond the schema's structure — for
+ * example a logical-type constraint (a decimal out of its precision/scale, an out-of-range date) or a data
+ * contract. A failure to produce a valid value at all — malformed bytes or structural schema
+ * non-conformance — is an {@link AvroParsingException} instead; both share the {@link AvroException} base so
+ * a pipeline rejects either with a single catch. Currently unused: there is no semantic-validation stage
+ * yet, so nothing throws this; it is the seam where logical-type and data-contract enforcement will live.
  */
 public class AvroValidationException extends AvroException
 {
