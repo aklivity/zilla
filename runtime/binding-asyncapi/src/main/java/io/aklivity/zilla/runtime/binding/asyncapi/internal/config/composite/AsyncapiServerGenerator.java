@@ -539,14 +539,11 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             {
                 final MqttOptionsConfig mqttOptions = config.options.mqtt;
                 final String store = mqttOptions != null && mqttOptions.store != null
-                    ? mqttOptions.store
+                    ? config.supplyQName.apply(config.resolveId.applyAsLong(mqttOptions.store))
                     : "mqtt_store0";
 
                 return namespace
-                        .store()
-                            .name(store)
-                            .type("memory")
-                            .build()
+                        .inject(this::injectMqttStore)
                         .binding()
                             .name("mqtt_server0")
                             .type("mqtt")
@@ -559,6 +556,21 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                             .inject(this::injectMqttRoutes)
                             .inject(this::injectMetrics)
                             .build();
+            }
+
+            private <C> NamespaceConfigBuilder<C> injectMqttStore(
+                NamespaceConfigBuilder<C> namespace)
+            {
+                final MqttOptionsConfig mqttOptions = config.options.mqtt;
+                if (mqttOptions == null || mqttOptions.store == null)
+                {
+                    namespace.store()
+                        .name("mqtt_store0")
+                        .type("memory")
+                        .build();
+                }
+
+                return namespace;
             }
 
             private <C> MqttOptionsConfigBuilder<C> injectMqttAuthorization(

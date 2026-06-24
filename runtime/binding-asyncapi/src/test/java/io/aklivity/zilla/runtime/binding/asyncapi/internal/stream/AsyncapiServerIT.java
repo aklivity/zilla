@@ -64,6 +64,17 @@ public class AsyncapiServerIT
     }
 
     @Test
+    @Configuration("server.mqtt.store.yaml")
+    @Specification({
+        "${composite}/mqtt/publish.and.subscribe/client",
+        "${asyncapi}/mqtt/publish.and.subscribe/server"
+    })
+    public void shouldPublishAndSubscribeWithStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.http.yaml")
     @Specification({
         "${composite}/http/create.pet/client",
