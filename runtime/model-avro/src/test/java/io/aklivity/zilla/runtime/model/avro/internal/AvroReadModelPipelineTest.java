@@ -49,6 +49,12 @@ public class AvroReadModelPipelineTest
         "{\"name\":\"status\",\"type\":\"string\"}]," +
         "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
+    private static final String SCALARS_SCHEMA = "{\"fields\":[{\"name\":\"i\",\"type\":\"int\"}," +
+        "{\"name\":\"l\",\"type\":\"long\"},{\"name\":\"f\",\"type\":\"float\"}," +
+        "{\"name\":\"d\",\"type\":\"double\"},{\"name\":\"b\",\"type\":\"boolean\"}," +
+        "{\"name\":\"e\",\"type\":{\"type\":\"enum\",\"name\":\"Kind\",\"symbols\":[\"LOW\",\"HIGH\"]}}]," +
+        "\"name\":\"Scalars\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+
     // id="id0" (len 3) then status="positive" (len 8)
     private static final byte[] AVRO = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
     private static final String JSON = "{\"id\":\"id0\",\"status\":\"positive\"}";
@@ -136,6 +142,45 @@ public class AvroReadModelPipelineTest
     }
 
     @Test
+    public void shouldExtractScalarFields()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA);
+        handler.extract("$.i");
+        handler.extract("$.l");
+        handler.extract("$.f");
+        handler.extract("$.d");
+        handler.extract("$.b");
+        handler.extract("$.e");
+
+        Map<String, String> extracted = new HashMap<>();
+        ModelVisitor visitor = (path, buffer, index, length) ->
+            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
+        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+
+        // i=5, l=7, f=1.5, d=2.5, b=true, e=index 1
+        byte[] scalars =
+        {
+            0x0a,
+            0x0e,
+            0x00, 0x00, (byte) 0xc0, 0x3f,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x40,
+            0x01,
+            0x02
+        };
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(scalars), 0, scalars.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals("5", extracted.get("$.i"));
+        assertEquals("7", extracted.get("$.l"));
+        assertEquals("1.5", extracted.get("$.f"));
+        assertEquals("2.5", extracted.get("$.d"));
+        assertEquals("true", extracted.get("$.b"));
+        assertEquals("1", extracted.get("$.e"));
+    }
+
+    @Test
     public void shouldRejectInvalid()
     {
         when(context.clock()).thenReturn(Clock.systemUTC());
@@ -163,13 +208,19 @@ public class AvroReadModelPipelineTest
 
     private AvroModelHandlerImpl newHandler()
     {
+        return newHandler(SCHEMA);
+    }
+
+    private AvroModelHandlerImpl newHandler(
+        String schema)
+    {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
-                .schema(SCHEMA)
+                .schema(schema)
                 .build()
             .build();
         AvroModelConfig model = AvroModelConfig.builder()

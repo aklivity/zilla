@@ -184,11 +184,21 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         AvroReporter reporter)
     {
         AvroSchema schema = supplySchema(schemaId);
-        return schema != null
-            ? AvroJson.stream(schema, JsonEx.createParser(), true)
-                .reporting(reporter)
-                .into(Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0))
-            : null;
+        AvroPipeline pipeline = null;
+        if (schema != null)
+        {
+            // a json view parses JSON input and re-encodes it as Avro binary; any other view validates
+            // Avro binary input and reproduces it, so a malformed datum yields a binary "truncated datum"
+            // diagnostic rather than a JSON parse failure
+            pipeline = VIEW_JSON.equals(view)
+                ? AvroJson.stream(schema, JsonEx.createParser(), true)
+                    .reporting(reporter)
+                    .into(Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0))
+                : Avro.stream(Avro.parser(schema))
+                    .reporting(reporter)
+                    .into(Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0));
+        }
+        return pipeline;
     }
 
     void validationFailure(

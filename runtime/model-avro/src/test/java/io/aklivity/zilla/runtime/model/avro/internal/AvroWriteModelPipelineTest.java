@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfigBuilder;
 
 public class AvroWriteModelPipelineTest
 {
@@ -145,7 +146,47 @@ public class AvroWriteModelPipelineTest
         assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
     }
 
+    @Test
+    public void shouldValidateBinaryWholeValue()
+    {
+        AvroModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals(AVRO.length, result.consumed());
+        byte[] out = new byte[result.produced()];
+        dst.getBytes(0, out);
+        assertArrayEquals(AVRO, out);
+    }
+
+    @Test
+    public void shouldRejectBinaryTruncated()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        AvroModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        // id length prefix promises 3 bytes, then status length prefix 8 with no payload -> truncated datum
+        byte[] truncated = {0x06, 0x69, 0x64, 0x30, 0x10};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(truncated), 0, truncated.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
     private AvroModelHandlerImpl newHandler()
+    {
+        return newHandler("json");
+    }
+
+    private AvroModelHandlerImpl newHandler(
+        String view)
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -156,8 +197,12 @@ public class AvroWriteModelPipelineTest
                 .schema(SCHEMA)
                 .build()
             .build();
-        AvroModelConfig model = AvroModelConfig.builder()
-            .view("json")
+        AvroModelConfigBuilder<AvroModelConfig> builder = AvroModelConfig.builder();
+        if (view != null)
+        {
+            builder.view(view);
+        }
+        AvroModelConfig model = builder
             .catalog()
                 .name("test0")
                     .schema()
