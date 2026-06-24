@@ -210,6 +210,8 @@ public class SessionIT
 
     @Test
     @Configuration("server.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Specification({
         "${net}/session.exists.clean.start/client",
         "${app}/session.exists.clean.start/server"})
@@ -230,6 +232,8 @@ public class SessionIT
 
     @Test
     @Configuration("server.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Specification({
         "${net}/session.client.takeover/client",
         "${app}/session.client.takeover/server"})

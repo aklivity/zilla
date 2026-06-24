@@ -16,6 +16,9 @@
 
 ---
 name: test
+stores:
+  test0:
+    type: test
 catalogs:
   test0:
     type: test
@@ -41,6 +44,7 @@ bindings:
     type: mqtt
     kind: server
     options:
+      store: test0
       topics:
         - name: sensor/one
           content:
