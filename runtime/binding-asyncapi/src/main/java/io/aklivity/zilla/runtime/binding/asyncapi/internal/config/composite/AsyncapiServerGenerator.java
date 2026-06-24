@@ -538,11 +538,16 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
+                        .store()
+                            .name("mqtt_store0")
+                            .type("memory")
+                            .build()
                         .binding()
                             .name("mqtt_server0")
                             .type("mqtt")
                             .kind(SERVER)
                             .options(MqttOptionsConfig::builder)
+                                .store("mqtt_store0")
                                 .inject(this::injectMqttAuthorization)
                                 .inject(this::injectMqttTopicsOptions)
                                 .build()
