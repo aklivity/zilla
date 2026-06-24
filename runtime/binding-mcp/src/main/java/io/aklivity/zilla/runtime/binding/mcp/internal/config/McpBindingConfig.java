@@ -27,8 +27,11 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -42,7 +45,10 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class McpBindingConfig
@@ -71,8 +77,9 @@ public final class McpBindingConfig
     private final String serverPath;
     private final CatalogHandler toolsCatalog;
     private final ModelConfig toolsModel;
-    private final Function<ModelConfig, ValidatorHandler> supplyValidator;
-    private final Int2ObjectHashMap<ValidatorHandler> validatorsBySchemaId;
+    private final Function<ModelConfig, ModelHandler> supplyModel;
+    private final Int2ObjectHashMap<ModelPipeline> decodersBySchemaId;
+    private final MutableDirectBuffer scratch;
 
     public McpBindingConfig(
         BindingConfig binding,
@@ -138,8 +145,9 @@ public final class McpBindingConfig
         this.toolsCatalog = toolsModel != null && !toolsModel.cataloged.isEmpty()
             ? context.supplyCatalog(toolsModel.cataloged.get(0).id)
             : null;
-        this.supplyValidator = context::supplyValidator;
-        this.validatorsBySchemaId = new Int2ObjectHashMap<>();
+        this.supplyModel = context::supplyModel;
+        this.decodersBySchemaId = new Int2ObjectHashMap<>();
+        this.scratch = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
     }
 
     public boolean validatesTools()
@@ -163,15 +171,60 @@ public final class McpBindingConfig
         }
     }
 
-    public ValidatorHandler resolveToolValidator(
+    public boolean validatesTool(
         int schemaId)
     {
-        return toolsCatalog != null && schemaId != NO_SCHEMA_ID
-            ? validatorsBySchemaId.computeIfAbsent(schemaId, this::newToolValidator)
-            : null;
+        return toolsCatalog != null && schemaId != NO_SCHEMA_ID;
     }
 
-    private ValidatorHandler newToolValidator(
+    public boolean validateToolArgs(
+        int schemaId,
+        long traceId,
+        long bindingId,
+        DirectBuffer data,
+        int index,
+        int limit)
+    {
+        boolean valid = true;
+        final ModelPipeline decoder = toolsCatalog != null && schemaId != NO_SCHEMA_ID
+            ? decodersBySchemaId.computeIfAbsent(schemaId, this::newToolDecoder)
+            : null;
+        if (decoder != null)
+        {
+            int srcAt = index;
+            int produced = 0;
+            int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
+            boolean done = false;
+            while (!done)
+            {
+                final ModelPipelineResult result = decoder.transform(traceId, bindingId, flags,
+                    data, srcAt, limit, scratch, produced, scratch.capacity());
+                final ModelStatus status = result.status();
+                if (status == ModelStatus.REJECTED)
+                {
+                    valid = false;
+                    done = true;
+                }
+                else
+                {
+                    produced += result.produced();
+                    if (status == ModelStatus.COMPLETE)
+                    {
+                        done = true;
+                    }
+                    else
+                    {
+                        srcAt += result.consumed();
+                        flags = ModelPipeline.FLAGS_FIN;
+                    }
+                }
+            }
+            decoder.reset();
+        }
+        return valid;
+    }
+
+    private ModelPipeline newToolDecoder(
         int schemaId)
     {
         final CatalogedConfig template = toolsModel.cataloged.get(0);
@@ -185,7 +238,8 @@ public final class McpBindingConfig
         final ModelConfig model = JsonModelConfig.builder()
             .catalog(cataloged)
             .build();
-        return supplyValidator.apply(model);
+        final ModelHandler handler = supplyModel.apply(model);
+        return handler != null ? handler.supplyDecoder() : null;
     }
 
     public void injectHeaders(

@@ -91,8 +91,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
@@ -1592,7 +1590,7 @@ public final class McpServerFactory implements McpStreamFactory
                 stream != null &&
                 stream.elicitationId == null)
             {
-                if (stream.validator != null && !stream.argsValidated)
+                if (stream.toolSchemaId != NO_SCHEMA_ID && !stream.argsValidated)
                 {
                     stream.validateArgs(traceId, authorization);
                 }
@@ -2161,10 +2159,9 @@ public final class McpServerFactory implements McpStreamFactory
             stream = new McpRequestStream(session, this);
 
             final int schemaId = session.toolSchemaIds.getValue(name);
-            final ValidatorHandler validator = binding.resolveToolValidator(schemaId);
-            if (validator != null)
+            if (binding.validatesTool(schemaId))
             {
-                stream.validator = validator;
+                stream.toolSchemaId = schemaId;
                 stream.toolName = name;
                 stream.argsExpected = paramsLength;
             }
@@ -2292,7 +2289,7 @@ public final class McpServerFactory implements McpStreamFactory
             int progress = offset;
             if (stream != null)
             {
-                progress = stream.validator != null
+                progress = stream.toolSchemaId != NO_SCHEMA_ID
                     ? stream.bufferArgs(traceId, authorization, buffer, offset, limit)
                     : stream.doAppData(traceId, authorization, buffer, offset, limit);
             }
@@ -4639,7 +4636,7 @@ public final class McpServerFactory implements McpStreamFactory
         private ExpandableDirectByteBuffer captureBuffer;
         private int captureProgress;
 
-        private ValidatorHandler validator;
+        private int toolSchemaId = NO_SCHEMA_ID;
         private String toolName;
         private int argsExpected;
         private ExpandableDirectByteBuffer argsBuffer;
@@ -4745,8 +4742,7 @@ public final class McpServerFactory implements McpStreamFactory
             if (arguments != null)
             {
                 final int length = codecBuffer.putStringWithoutLengthUtf8(0, arguments);
-                valid = validator.validate(traceId, originId, ValidatorHandler.FLAGS_COMPLETE,
-                    codecBuffer, 0, length, ValueConsumer.NOP);
+                valid = server.binding.validateToolArgs(toolSchemaId, traceId, originId, codecBuffer, 0, length);
             }
 
             if (valid)
@@ -5404,7 +5400,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             server.decodeNet(traceId, authorization, budgetId);
 
-            if (validator != null && argsValidated)
+            if (toolSchemaId != NO_SCHEMA_ID && argsValidated)
             {
                 flushArgs(traceId, authorization);
             }
