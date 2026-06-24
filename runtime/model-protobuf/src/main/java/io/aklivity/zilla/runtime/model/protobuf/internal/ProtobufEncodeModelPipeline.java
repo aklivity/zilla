@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,32 +28,26 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
-// Per-stream read transform session vended by ProtobufModelHandlerImpl: owns its own extractor and
-// message-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
-// strips the catalog framing and the message-index prefix on the first fragment, drives the common-protobuf
-// transform into the caller's destination (re-encoding the wire message as JSON or canonical wire), and
-// surfaces extracted fields to the ModelVisitor when a value completes.
-final class ProtobufReadModelPipeline implements ModelPipeline
+// Per-stream write transform session vended by ProtobufModelHandlerImpl: owns its own message-keyed
+// pipeline cache. transform emits the catalog framing then the message-index prefix into the destination on
+// the first fragment, then drives the common-protobuf transform (JSON or wire in, wire out) into the
+// destination after them.
+final class ProtobufEncodeModelPipeline implements ModelPipeline
 {
     private final ProtobufModelHandlerImpl handler;
-    private final ModelVisitor visitor;
-    private final ProtobufExtractor extractor;
     private final Map<String, ProtobufPipeline> pipelines;
     private final ModelPipelineResult result;
 
     private ProtobufPipeline active;
     private String diagnostic;
+    private MutableDirectBuffer prefixBuffer;
+    private int prefixAt;
 
-    ProtobufReadModelPipeline(
-        ProtobufModelHandlerImpl handler,
-        ModelVisitor visitor)
+    ProtobufEncodeModelPipeline(
+        ProtobufModelHandlerImpl handler)
     {
         this.handler = handler;
-        this.visitor = visitor;
-        // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
-        this.extractor = visitor != ModelVisitor.NONE ? new ProtobufExtractor() : null;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
     }
@@ -77,19 +69,18 @@ final class ProtobufReadModelPipeline implements ModelPipeline
         int prefix = 0;
         if ((flags & FLAGS_INIT) != 0)
         {
-            // the catalog framing then the message-index prefix sit at the value start; strip both once on the
-            // first fragment and select the schema-bound pipeline, then later fragments stream straight through
-            int catalogPrefix = handler.prefix(src, srcIndex, srcLength);
-            int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
-            int indexProgress = handler.messageProgress(src, srcIndex + catalogPrefix, srcLength - catalogPrefix);
-            ProtobufMessage message = handler.message(schemaId);
-            prefix = catalogPrefix + indexProgress;
-            active = schemaId != NO_SCHEMA_ID && message != null ? supplyPipeline(schemaId, message.name()) : null;
+            int schemaId = handler.resolveSchemaId();
+            int[] path = handler.messagePath(schemaId);
+            ProtobufMessage message = handler.message(schemaId, path);
+            diagnostic = null;
+            active = message != null ? supplyPipeline(schemaId, message.name()) : null;
             if (active != null)
             {
                 active.reset();
+                // the catalog framing and the message-index prefix are emitted once into the destination ahead
+                // of the value
+                prefix = writeFraming(traceId, bindingId, schemaId, path, src, srcIndex, srcLength, dst, dstIndex);
             }
-            diagnostic = null;
         }
 
         ModelStatus status;
@@ -106,15 +97,11 @@ final class ProtobufReadModelPipeline implements ModelPipeline
         {
             boolean last = (flags & FLAGS_FIN) != 0;
             ProtobufPipelineResult proto =
-                active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
+                active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
             status = map(proto.status());
-            consumed = prefix + proto.consumed();
-            produced = proto.produced();
-            if (status == ModelStatus.COMPLETE && extractor != null)
-            {
-                visitExtracted();
-            }
-            else if (status == ModelStatus.REJECTED)
+            consumed = proto.consumed();
+            produced = prefix + proto.produced();
+            if (status == ModelStatus.REJECTED)
             {
                 handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : ProtobufModel.NAME);
             }
@@ -128,7 +115,7 @@ final class ProtobufReadModelPipeline implements ModelPipeline
         int index,
         int length)
     {
-        return handler.decodePadding(data, index, length);
+        return handler.encodePadding(length);
     }
 
     @Override
@@ -142,20 +129,40 @@ final class ProtobufReadModelPipeline implements ModelPipeline
         diagnostic = null;
     }
 
-    private void visitExtracted()
+    private int writeFraming(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        int[] path,
+        DirectBuffer src,
+        int srcIndex,
+        int srcLength,
+        MutableDirectBuffer dst,
+        int dstIndex)
     {
-        for (int i = 0; i < extractor.captured(); i++)
-        {
-            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
-        }
+        prefixBuffer = dst;
+        prefixAt = dstIndex;
+        handler.encodePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, this::putPrefix);
+        byte[] framing = handler.indexFraming(path);
+        prefixBuffer.putBytes(prefixAt, framing, 0, framing.length);
+        prefixAt += framing.length;
+        return prefixAt - dstIndex;
+    }
+
+    private void putPrefix(
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        prefixBuffer.putBytes(prefixAt, buffer, index, length);
+        prefixAt += length;
     }
 
     private ProtobufPipeline supplyPipeline(
         int schemaId,
         String messageName)
     {
-        return pipelines.computeIfAbsent(messageName,
-            name -> handler.newPipeline(schemaId, name, extractor, this::onRejected));
+        return pipelines.computeIfAbsent(messageName, name -> handler.newPipeline(schemaId, name, this::onRejected));
     }
 
     private void onRejected(

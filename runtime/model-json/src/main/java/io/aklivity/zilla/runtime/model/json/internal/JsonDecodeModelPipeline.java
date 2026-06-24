@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
@@ -27,27 +29,33 @@ import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
-// Per-stream write transform session vended by JsonModelHandlerImpl: owns its own generator and
-// schema-keyed pipeline cache. transform emits the catalog framing prefix into the destination on the
-// first fragment, then drives the common-json transform into the destination after it.
-final class JsonWriteModelPipeline implements ModelPipeline
+// Per-stream read transform session vended by JsonModelHandlerImpl: owns its own generator, extractor and
+// schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
+// strips the catalog framing on the first fragment, drives the common-json transform into the caller's
+// destination, and surfaces extracted fields to the ModelVisitor when a value completes.
+final class JsonDecodeModelPipeline implements ModelPipeline
 {
     private final JsonModelHandlerImpl handler;
+    private final ModelVisitor visitor;
     private final JsonGeneratorEx generator;
+    private final JsonExtractor extractor;
     private final Int2ObjectCache<JsonPipeline> pipelines;
     private final ModelPipelineResult result;
 
     private JsonPipeline active;
     private String diagnostic;
-    private MutableDirectBuffer prefixBuffer;
-    private int prefixAt;
 
-    JsonWriteModelPipeline(
-        JsonModelHandlerImpl handler)
+    JsonDecodeModelPipeline(
+        JsonModelHandlerImpl handler,
+        ModelVisitor visitor)
     {
         this.handler = handler;
+        this.visitor = visitor;
         this.generator = JsonEx.createGenerator();
+        // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
+        this.extractor = visitor != ModelVisitor.NONE ? new JsonExtractor() : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -69,15 +77,16 @@ final class JsonWriteModelPipeline implements ModelPipeline
         int prefix = 0;
         if ((flags & FLAGS_INIT) != 0)
         {
-            int schemaId = handler.resolveSchemaId();
-            active = supplyPipeline(schemaId);
-            diagnostic = null;
+            // the catalog framing sits at the value start; strip it once on the first fragment and select
+            // the schema-bound pipeline, then later fragments stream straight through
+            int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
+            prefix = handler.decodePadding(src, srcIndex, srcLength);
+            active = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
             if (active != null)
             {
                 active.reset();
-                // the schema framing prefix is emitted once into the destination ahead of the value
-                prefix = writePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, dst, dstIndex);
             }
+            diagnostic = null;
         }
 
         ModelStatus status;
@@ -94,11 +103,15 @@ final class JsonWriteModelPipeline implements ModelPipeline
         {
             boolean last = (flags & FLAGS_FIN) != 0;
             JsonPipelineResult json =
-                active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
+                active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
             status = map(json.status());
-            consumed = json.consumed();
-            produced = prefix + json.produced();
-            if (status == ModelStatus.REJECTED)
+            consumed = prefix + json.consumed();
+            produced = json.produced();
+            if (status == ModelStatus.COMPLETE && extractor != null)
+            {
+                visitExtracted();
+            }
+            else if (status == ModelStatus.REJECTED)
             {
                 handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
             }
@@ -112,7 +125,7 @@ final class JsonWriteModelPipeline implements ModelPipeline
         int index,
         int length)
     {
-        return handler.encodePadding(length);
+        return handler.decodePadding(data, index, length);
     }
 
     @Override
@@ -126,35 +139,20 @@ final class JsonWriteModelPipeline implements ModelPipeline
         diagnostic = null;
     }
 
-    private int writePrefix(
-        long traceId,
-        long bindingId,
-        int schemaId,
-        DirectBuffer src,
-        int srcIndex,
-        int srcLength,
-        MutableDirectBuffer dst,
-        int dstIndex)
+    private void visitExtracted()
     {
-        prefixBuffer = dst;
-        prefixAt = dstIndex;
-        handler.encodePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, this::putPrefix);
-        return prefixAt - dstIndex;
-    }
-
-    private void putPrefix(
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        prefixBuffer.putBytes(prefixAt, buffer, index, length);
-        prefixAt += length;
+        for (int i = 0; i < extractor.captured(); i++)
+        {
+            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
+        }
     }
 
     private JsonPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, generator, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId, id -> extractor != null
+            ? handler.newPipeline(id, generator, extractor, this::onRejected)
+            : handler.newPipeline(id, generator, this::onRejected));
     }
 
     private void onRejected(
