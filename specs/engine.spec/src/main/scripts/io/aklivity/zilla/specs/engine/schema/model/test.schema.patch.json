@@ -47,6 +47,14 @@
                     {
                         "type": "string"
                     },
+                    "fields":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "string"
+                        }
+                    },
                     "catalog":
                     {
                         "type": "object",
@@ -173,6 +181,14 @@
                     "capability":
                     {
                         "type": "string"
+                    },
+                    "fields":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "string"
+                        }
                     },
                     "catalog":
                     {

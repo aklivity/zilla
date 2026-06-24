@@ -16,12 +16,13 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -114,13 +115,12 @@ public class JsonReadModelPipelineTest
     public void shouldExtractField()
     {
         JsonModelHandlerImpl handler = newHandler();
-        handler.extract("$.id");
-        String[] captured = new String[1];
+        Map<String, String> extracted = new HashMap<>();
         ModelVisitor visitor = (path, buffer, index, length) ->
         {
             byte[] bytes = new byte[length];
             buffer.getBytes(index, bytes);
-            captured[0] = new String(bytes, UTF_8);
+            extracted.put(path, new String(bytes, UTF_8));
         };
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
@@ -130,8 +130,8 @@ public class JsonReadModelPipelineTest
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
-        assertNotNull(captured[0]);
-        assertTrue(captured[0].contains("123"));
+        assertEquals("123", extracted.get("$.id"));
+        assertEquals("OK", extracted.get("$.status"));
     }
 
     @Test

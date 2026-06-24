@@ -21,6 +21,7 @@ import java.util.List;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -38,6 +39,7 @@ public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapt
     private static final String CAPABILITY = "capability";
     private static final String READ = "read";
     private static final String CATALOG_NAME = "catalog";
+    private static final String FIELDS = "fields";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
@@ -90,6 +92,16 @@ public class TestModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapt
             }
         }
 
-        return new TestModelConfig(length, catalogs, read, transformLength);
+        List<String> fields = null;
+        if (object.containsKey(FIELDS))
+        {
+            fields = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(FIELDS))
+            {
+                fields.add(((JsonString) item).getString());
+            }
+        }
+
+        return new TestModelConfig(length, catalogs, read, transformLength, fields);
     }
 }

@@ -16,11 +16,6 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -46,16 +41,9 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 // state (catalog, schema cache, extraction paths) is shared; in-flight state lives on each pipeline.
 public final class AvroModelHandlerImpl extends AvroModelHandler implements ModelHandler
 {
-    private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
-    private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-
     // a no-op encoder so encode() emits only the catalog framing into the destination, never the body
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
-
-    private final Matcher matcher;
-    private final List<String> paths;
-    private final List<String> names;
 
     public AvroModelHandlerImpl(
         AvroModelConfiguration config,
@@ -63,27 +51,13 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         EngineContext context)
     {
         super(config, options, context);
-        this.matcher = PATH_PATTERN.matcher("");
-        this.paths = new ArrayList<>();
-        this.names = new ArrayList<>();
-    }
-
-    @Override
-    public void extract(
-        String path)
-    {
-        if (matcher.reset(path).matches() && !paths.contains(path))
-        {
-            paths.add(path);
-            names.add(matcher.group(1));
-        }
     }
 
     @Override
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new AvroReadModelPipeline(this, paths, names, visitor);
+        return new AvroReadModelPipeline(this, visitor);
     }
 
     @Override
@@ -173,6 +147,27 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
                 : Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0);
             pipeline = Avro.stream(Avro.parser(schema))
                 .transform(extractor)
+                .reporting(reporter)
+                .into(generator);
+        }
+        return pipeline;
+    }
+
+    // read-direction pipeline without the extractor stage, used when no field extraction is requested so the
+    // verbatim/SEGMENTED fast path stays in effect
+    AvroPipeline newPipeline(
+        int schemaId,
+        JsonGeneratorEx json,
+        AvroReporter reporter)
+    {
+        AvroSchema schema = supplySchema(schemaId);
+        AvroPipeline pipeline = null;
+        if (schema != null)
+        {
+            AvroGenerator generator = VIEW_JSON.equals(view)
+                ? AvroJson.generator(schema, json, true)
+                : Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0);
+            pipeline = Avro.stream(Avro.parser(schema))
                 .reporting(reporter)
                 .into(generator);
         }

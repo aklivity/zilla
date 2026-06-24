@@ -16,11 +16,6 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -43,43 +38,22 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 // state (catalog, schema cache, extraction paths) is shared; in-flight state lives on each pipeline.
 public final class JsonModelHandlerImpl extends JsonModelHandler implements ModelHandler
 {
-    private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
-    private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-
     // a no-op encoder so encode() emits only the catalog framing into the destination, never the body
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
-
-    private final Matcher matcher;
-    private final List<String> paths;
-    private final List<String> names;
 
     public JsonModelHandlerImpl(
         JsonModelConfig config,
         EngineContext context)
     {
         super(config, context);
-        this.matcher = PATH_PATTERN.matcher("");
-        this.paths = new ArrayList<>();
-        this.names = new ArrayList<>();
-    }
-
-    @Override
-    public void extract(
-        String path)
-    {
-        if (matcher.reset(path).matches() && !paths.contains(path))
-        {
-            paths.add(path);
-            names.add(matcher.group(1));
-        }
     }
 
     @Override
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new JsonReadModelPipeline(this, paths, names, visitor);
+        return new JsonReadModelPipeline(this, visitor);
     }
 
     @Override

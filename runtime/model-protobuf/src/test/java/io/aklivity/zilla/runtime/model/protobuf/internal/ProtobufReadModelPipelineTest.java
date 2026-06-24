@@ -171,8 +171,6 @@ public class ProtobufReadModelPipelineTest
     public void shouldExtractField()
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
-        handler.extract("$.content");
-        handler.extract("$.date_time");
 
         Map<String, String> extracted = new HashMap<>();
         ModelVisitor visitor = (path, buffer, index, length) ->
@@ -212,15 +210,6 @@ public class ProtobufReadModelPipelineTest
                 .build()
             .build();
         ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, context);
-        handler.extract("$.field_string");
-        handler.extract("$.field_float");
-        handler.extract("$.field_int64");
-        handler.extract("$.field_int32");
-        handler.extract("$.field_double");
-        handler.extract("$.field_sfixed32");
-        handler.extract("$.field_sint64");
-        handler.extract("$.field_fixed64");
-        handler.extract("$.field_sint32");
 
         Map<String, String> extracted = new HashMap<>();
         ModelVisitor visitor = (path, buffer, index, length) ->

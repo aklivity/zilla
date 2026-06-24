@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import java.util.List;
-
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
@@ -40,8 +38,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 final class JsonReadModelPipeline implements ModelPipeline
 {
     private final JsonModelHandlerImpl handler;
-    private final List<String> paths;
-    private final List<String> names;
     private final ModelVisitor visitor;
     private final JsonGeneratorEx generator;
     private final JsonExtractor extractor;
@@ -53,20 +49,13 @@ final class JsonReadModelPipeline implements ModelPipeline
 
     JsonReadModelPipeline(
         JsonModelHandlerImpl handler,
-        List<String> paths,
-        List<String> names,
         ModelVisitor visitor)
     {
         this.handler = handler;
-        this.paths = paths;
-        this.names = names;
         this.visitor = visitor;
         this.generator = JsonEx.createGenerator();
-        this.extractor = new JsonExtractor();
-        for (int i = 0; i < names.size(); i++)
-        {
-            extractor.register(names.get(i));
-        }
+        // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
+        this.extractor = visitor != ModelVisitor.NONE ? new JsonExtractor() : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -118,7 +107,7 @@ final class JsonReadModelPipeline implements ModelPipeline
             status = map(json.status());
             consumed = prefix + json.consumed();
             produced = json.produced();
-            if (status == ModelStatus.COMPLETE)
+            if (status == ModelStatus.COMPLETE && extractor != null)
             {
                 visitExtracted();
             }
@@ -152,20 +141,18 @@ final class JsonReadModelPipeline implements ModelPipeline
 
     private void visitExtracted()
     {
-        for (int i = 0; i < names.size(); i++)
+        for (int i = 0; i < extractor.captured(); i++)
         {
-            int length = extractor.length(names.get(i));
-            if (length != 0)
-            {
-                visitor.onField(paths.get(i), extractor.value(names.get(i)), 0, length);
-            }
+            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
         }
     }
 
     private JsonPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, generator, extractor, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId, id -> extractor != null
+            ? handler.newPipeline(id, generator, extractor, this::onRejected)
+            : handler.newPipeline(id, generator, this::onRejected));
     }
 
     private void onRejected(

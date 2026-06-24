@@ -28,24 +28,37 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-// Transparent pipeline stage that forwards every event unchanged while capturing the value of each
-// registered top-level field as a side-effect, making it available to the converter after the value
-// completes. Capture is char-view based, so it sees the decoded scalar (string content or number lexeme).
+// Transparent pipeline stage that forwards every event unchanged while capturing the value of every
+// top-level field as a side-effect, making it available to the converter after the value completes. Capture
+// is char-view based, so it sees the decoded scalar (string content or number lexeme).
 final class JsonExtractor implements JsonTransform
 {
     private final List<Field> fields;
     private final JsonController mediator;
+    private final StringBuilder pendingKey;
 
     private JsonController upstreamControl;
     private boolean downstreamVerbatim;
+    private int captured;
     private int depth;
-    private int armed;
+    private boolean armed;
 
     JsonExtractor()
     {
         this.fields = new ArrayList<>();
         this.mediator = new Mediator();
-        this.armed = -1;
+        this.pendingKey = new StringBuilder();
+    }
+
+    int captured()
+    {
+        return captured;
+    }
+
+    String name(
+        int index)
+    {
+        return fields.get(index).name;
     }
 
     // Extraction reads the decoded structured events, so this stage must keep receiving them: it intercepts the
@@ -73,27 +86,16 @@ final class JsonExtractor implements JsonTransform
         }
     }
 
-    void register(
-        String name)
-    {
-        if (find(name) == null)
-        {
-            fields.add(new Field(name));
-        }
-    }
-
     int length(
-        String name)
+        int index)
     {
-        Field field = find(name);
-        return field != null ? field.length : 0;
+        return fields.get(index).length;
     }
 
     DirectBuffer value(
-        String name)
+        int index)
     {
-        Field field = find(name);
-        return field != null ? field.value : null;
+        return fields.get(index).value;
     }
 
     @Override
@@ -104,12 +106,9 @@ final class JsonExtractor implements JsonTransform
         JsonSink sink)
     {
         upstreamControl = control;
-        if (!fields.isEmpty())
-        {
-            // observe the structured event (the upstream keeps delivering it because this stage intercepts the
-            // byte-delivery opt-ins) before re-asserting verbatim toward the sink
-            observe(source, event);
-        }
+        // observe the structured event (the upstream keeps delivering it because this stage intercepts the
+        // byte-delivery opt-ins) before re-asserting verbatim toward the sink
+        observe(source, event);
         return sink.transform(mediator, source, forward(event));
     }
 
@@ -138,12 +137,9 @@ final class JsonExtractor implements JsonTransform
     public void reset()
     {
         depth = 0;
-        armed = -1;
+        armed = false;
+        captured = 0;
         downstreamVerbatim = false;
-        for (int i = 0; i < fields.size(); i++)
-        {
-            fields.get(i).length = 0;
-        }
     }
 
     // Re-asserts verbatim downstream: once the sink has opted in, a body event (scalar, key, or structural —
@@ -165,50 +161,67 @@ final class JsonExtractor implements JsonTransform
         case START_OBJECT:
         case START_ARRAY:
             depth++;
-            armed = -1;
+            armed = false;
             break;
         case END_OBJECT:
         case END_ARRAY:
             depth--;
-            armed = -1;
+            armed = false;
             break;
         case KEY_NAME:
-            armed = depth == 1 ? indexOf(source.getStringView()) : -1;
+            armed = depth == 1;
+            if (armed)
+            {
+                pendingKey.setLength(0);
+                pendingKey.append(source.getStringView());
+            }
             break;
         case VALUE_STRING:
         case VALUE_NUMBER:
-            if (depth == 1 && armed >= 0)
+            if (depth == 1 && armed)
             {
-                capture(armed, source.getStringView());
+                capture(pendingKey, source.getStringView());
             }
-            armed = -1;
+            armed = false;
             break;
         default:
-            armed = -1;
+            armed = false;
             break;
         }
     }
 
+    // surfaces only scalar top-level fields: a field is captured on its scalar value, so a top-level key whose
+    // value is an object or array is never counted
     private void capture(
-        int index,
+        CharSequence key,
         CharSequence view)
     {
-        Field field = fields.get(index);
+        Field field = supplyField(key);
         field.length = field.value.putStringWithoutLengthUtf8(0, view.toString());
     }
 
-    private int indexOf(
+    private Field supplyField(
         CharSequence key)
     {
-        int match = -1;
-        for (int i = 0; match < 0 && i < fields.size(); i++)
+        Field result = null;
+        for (int i = 0; result == null && i < captured; i++)
         {
             if (charsEqual(fields.get(i).name, key))
             {
-                match = i;
+                result = fields.get(i);
             }
         }
-        return match;
+        if (result == null)
+        {
+            if (captured == fields.size())
+            {
+                fields.add(new Field());
+            }
+            result = fields.get(captured);
+            result.name = key.toString();
+            captured++;
+        }
+        return result;
     }
 
     private static boolean charsEqual(
@@ -223,31 +236,15 @@ final class JsonExtractor implements JsonTransform
         return matches;
     }
 
-    private Field find(
-        String name)
-    {
-        Field result = null;
-        for (int i = 0; result == null && i < fields.size(); i++)
-        {
-            if (fields.get(i).name.equals(name))
-            {
-                result = fields.get(i);
-            }
-        }
-        return result;
-    }
-
     private static final class Field
     {
-        private final String name;
         private final MutableDirectBuffer value;
 
+        private String name;
         private int length;
 
-        private Field(
-            String name)
+        private Field()
         {
-            this.name = name;
             this.value = new ExpandableDirectByteBuffer();
         }
     }

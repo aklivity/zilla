@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import java.util.Set;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
@@ -43,13 +45,21 @@ public final class KafkaCacheModel
 
     public static KafkaCacheModel decoder(
         ModelHandler handler,
+        Set<String> extractPaths,
         MutableDirectBuffer scratch)
     {
         KafkaCacheModel model = NONE;
         if (handler != null)
         {
-            KafkaExtractor extractor = new KafkaExtractor();
-            model = new KafkaCacheModel(handler.supplyDecoder(extractor), extractor, scratch);
+            if (extractPaths != null && !extractPaths.isEmpty())
+            {
+                KafkaExtractor extractor = new KafkaExtractor(extractPaths);
+                model = new KafkaCacheModel(handler.supplyDecoder(extractor), extractor, scratch);
+            }
+            else
+            {
+                model = new KafkaCacheModel(handler.supplyDecoder(), null, scratch);
+            }
         }
         return model;
     }

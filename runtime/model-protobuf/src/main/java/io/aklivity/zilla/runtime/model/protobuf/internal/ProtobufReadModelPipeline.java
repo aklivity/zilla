@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.agrona.DirectBuffer;
@@ -41,8 +40,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 final class ProtobufReadModelPipeline implements ModelPipeline
 {
     private final ProtobufModelHandlerImpl handler;
-    private final List<String> paths;
-    private final List<String> names;
     private final ModelVisitor visitor;
     private final ProtobufExtractor extractor;
     private final Map<String, ProtobufPipeline> pipelines;
@@ -53,19 +50,12 @@ final class ProtobufReadModelPipeline implements ModelPipeline
 
     ProtobufReadModelPipeline(
         ProtobufModelHandlerImpl handler,
-        List<String> paths,
-        List<String> names,
         ModelVisitor visitor)
     {
         this.handler = handler;
-        this.paths = paths;
-        this.names = names;
         this.visitor = visitor;
-        this.extractor = new ProtobufExtractor();
-        for (int i = 0; i < names.size(); i++)
-        {
-            extractor.register(names.get(i));
-        }
+        // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
+        this.extractor = visitor != ModelVisitor.NONE ? new ProtobufExtractor() : null;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
     }
@@ -120,7 +110,7 @@ final class ProtobufReadModelPipeline implements ModelPipeline
             status = map(proto.status());
             consumed = prefix + proto.consumed();
             produced = proto.produced();
-            if (status == ModelStatus.COMPLETE)
+            if (status == ModelStatus.COMPLETE && extractor != null)
             {
                 visitExtracted();
             }
@@ -154,13 +144,9 @@ final class ProtobufReadModelPipeline implements ModelPipeline
 
     private void visitExtracted()
     {
-        for (int i = 0; i < names.size(); i++)
+        for (int i = 0; i < extractor.captured(); i++)
         {
-            int length = extractor.length(names.get(i));
-            if (length != 0)
-            {
-                visitor.onField(paths.get(i), extractor.value(names.get(i)), 0, length);
-            }
+            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
         }
     }
 

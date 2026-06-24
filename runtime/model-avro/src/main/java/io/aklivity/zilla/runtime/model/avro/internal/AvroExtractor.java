@@ -28,16 +28,17 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 
-// Transparent pipeline stage that forwards every event unchanged while capturing the value of each
-// registered top-level field as a side-effect, making it available to the read pipeline once the value
-// completes. A length-delimited value (string/bytes/fixed) split across input windows arrives as a leading
-// event with deferred bytes followed by SEGMENT continuations; those are coalesced into the field buffer
-// until no bytes remain deferred. Numeric and boolean values render to their ASCII text, matching the
-// extraction surfaced by the legacy converter.
+// Transparent pipeline stage that forwards every event unchanged while capturing the value of every
+// top-level field as a side-effect, making it available to the read pipeline once the value completes.
+// A length-delimited value (string/bytes/fixed) split across input windows arrives as a leading event with
+// deferred bytes followed by SEGMENT continuations; those are coalesced into the field buffer until no bytes
+// remain deferred. Numeric and boolean values render to their ASCII text, matching the extraction surfaced
+// by the legacy converter.
 final class AvroExtractor implements AvroTransform
 {
     private final List<Field> fields;
 
+    private int captured;
     private int depth;
     private Field current;
 
@@ -46,27 +47,27 @@ final class AvroExtractor implements AvroTransform
         this.fields = new ArrayList<>();
     }
 
-    void register(
-        String name)
+    int captured()
     {
-        if (find(name) == null)
-        {
-            fields.add(new Field(name));
-        }
+        return captured;
+    }
+
+    String name(
+        int index)
+    {
+        return fields.get(index).name;
     }
 
     int length(
-        String name)
+        int index)
     {
-        Field field = find(name);
-        return field != null ? field.length : 0;
+        return fields.get(index).length;
     }
 
     DirectBuffer value(
-        String name)
+        int index)
     {
-        Field field = find(name);
-        return field != null ? field.value : null;
+        return fields.get(index).value;
     }
 
     @Override
@@ -76,10 +77,7 @@ final class AvroExtractor implements AvroTransform
         AvroEvent event,
         AvroSink sink)
     {
-        if (!fields.isEmpty())
-        {
-            observe(source, event);
-        }
+        observe(source, event);
         return sink.transform(control, source, event);
     }
 
@@ -87,11 +85,8 @@ final class AvroExtractor implements AvroTransform
     public void reset()
     {
         depth = 0;
+        captured = 0;
         current = null;
-        for (int i = 0; i < fields.size(); i++)
-        {
-            fields.get(i).length = 0;
-        }
     }
 
     private void observe(
@@ -113,7 +108,7 @@ final class AvroExtractor implements AvroTransform
             current = null;
             break;
         case FIELD_NAME:
-            current = depth == 1 ? find(source.getField()) : null;
+            current = depth == 1 ? supplyField(source.getField()) : null;
             if (current != null)
             {
                 current.length = 0;
@@ -188,31 +183,39 @@ final class AvroExtractor implements AvroTransform
         }
     }
 
-    private Field find(
+    private Field supplyField(
         String name)
     {
         Field result = null;
-        for (int i = 0; result == null && i < fields.size(); i++)
+        for (int i = 0; result == null && i < captured; i++)
         {
             if (fields.get(i).name.equals(name))
             {
                 result = fields.get(i);
             }
         }
+        if (result == null)
+        {
+            if (captured == fields.size())
+            {
+                fields.add(new Field());
+            }
+            result = fields.get(captured);
+            result.name = name;
+            captured++;
+        }
         return result;
     }
 
     private static final class Field
     {
-        private final String name;
         private final MutableDirectBuffer value;
 
+        private String name;
         private int length;
 
-        private Field(
-            String name)
+        private Field()
         {
-            this.name = name;
             this.value = new ExpandableDirectByteBuffer();
         }
     }

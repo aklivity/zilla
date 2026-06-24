@@ -124,8 +124,6 @@ public class AvroReadModelPipelineTest
     public void shouldExtractField()
     {
         AvroModelHandlerImpl handler = newHandler();
-        handler.extract("$.id");
-        handler.extract("$.status");
 
         Map<String, String> extracted = new HashMap<>();
         ModelVisitor visitor = (path, buffer, index, length) ->
@@ -145,12 +143,6 @@ public class AvroReadModelPipelineTest
     public void shouldExtractScalarFields()
     {
         AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA);
-        handler.extract("$.i");
-        handler.extract("$.l");
-        handler.extract("$.f");
-        handler.extract("$.d");
-        handler.extract("$.b");
-        handler.extract("$.e");
 
         Map<String, String> extracted = new HashMap<>();
         ModelVisitor visitor = (path, buffer, index, length) ->

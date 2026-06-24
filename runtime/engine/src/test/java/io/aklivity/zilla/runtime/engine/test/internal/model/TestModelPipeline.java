@@ -31,16 +31,16 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 // Per-stream transform mirroring the test model's whole-value length check: the value is accepted only when
 // the total length across fragments equals the configured length. By default the value bytes are copied
 // through into dst unchanged (identity); when a transformed length is configured, the whole value is padded
-// or truncated to that length so a non-identity, length-changing transform can be exercised. Registered
-// extraction paths surface a fixed token to the visitor when a value completes. State lives on the pipeline
-// so interleaved streams stay isolated.
+// or truncated to that length so a non-identity, length-changing transform can be exercised. When a real
+// visitor is wired, every configured top-level field surfaces a fixed token to the visitor as its value when
+// a value completes. State lives on the pipeline so interleaved streams stay isolated.
 final class TestModelPipeline implements ModelPipeline
 {
     private final DirectBuffer extractedValue = new UnsafeBuffer("1234".getBytes(UTF_8));
 
     private final int length;
     private final int transformLength;
-    private final List<String> paths;
+    private final List<String> fields;
     private final ModelVisitor visitor;
     private final ModelPipelineResult result;
 
@@ -49,12 +49,12 @@ final class TestModelPipeline implements ModelPipeline
     TestModelPipeline(
         int length,
         int transformLength,
-        List<String> paths,
+        List<String> fields,
         ModelVisitor visitor)
     {
         this.length = length;
         this.transformLength = transformLength;
-        this.paths = paths;
+        this.fields = fields;
         this.visitor = visitor;
         this.result = new ModelPipelineResult();
     }
@@ -107,10 +107,7 @@ final class TestModelPipeline implements ModelPipeline
             consumed = available;
             produced = transformLength;
             status = ModelStatus.COMPLETE;
-            for (int i = 0; i < paths.size(); i++)
-            {
-                visitor.onField(paths.get(i), extractedValue, 0, extractedValue.capacity());
-            }
+            visitExtracted();
         }
         else
         {
@@ -125,10 +122,7 @@ final class TestModelPipeline implements ModelPipeline
             else if (tail)
             {
                 status = ModelStatus.COMPLETE;
-                for (int i = 0; i < paths.size(); i++)
-                {
-                    visitor.onField(paths.get(i), extractedValue, 0, extractedValue.capacity());
-                }
+                visitExtracted();
             }
             else
             {
@@ -142,5 +136,16 @@ final class TestModelPipeline implements ModelPipeline
     public void reset()
     {
         processed = 0;
+    }
+
+    private void visitExtracted()
+    {
+        if (visitor != ModelVisitor.NONE)
+        {
+            for (int i = 0; i < fields.size(); i++)
+            {
+                visitor.onField("$." + fields.get(i), extractedValue, 0, extractedValue.capacity());
+            }
+        }
     }
 }
