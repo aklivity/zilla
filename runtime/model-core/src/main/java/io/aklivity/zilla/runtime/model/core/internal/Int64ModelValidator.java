@@ -50,7 +50,7 @@ final class Int64ModelValidator implements CoreModelValidator
     }
 
     @Override
-    public boolean validate(
+    public Validity validate(
         int flags,
         DirectBuffer data,
         int index,
@@ -62,12 +62,13 @@ final class Int64ModelValidator implements CoreModelValidator
             state.processed = 0;
         }
         int progress = format.decode(state, flags, data, index, length);
-        boolean valid = progress != Int64Format.INVALID_INDEX;
-        if ((flags & FLAGS_FIN) != 0x00 && valid)
+        Validity validity = progress != Int64Format.INVALID_INDEX ? Validity.VALID : Validity.MALFORMED;
+        if ((flags & FLAGS_FIN) != 0x00 && validity == Validity.VALID)
         {
-            valid &= format.valid(state);
-            valid &= check.test(state.decoded);
+            validity = !format.valid(state) ? Validity.MALFORMED
+                : !check.test(state.decoded) ? Validity.INVALID
+                : Validity.VALID;
         }
-        return valid;
+        return validity;
     }
 }

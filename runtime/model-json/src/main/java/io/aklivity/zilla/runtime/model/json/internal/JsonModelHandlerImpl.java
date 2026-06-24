@@ -114,6 +114,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
 
     JsonPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         JsonGeneratorEx generator,
         JsonTransform extractor,
         JsonReporter reporter)
@@ -121,8 +122,9 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         JsonSchema schema = supplySchema(schemaId);
         return schema != null
             ? JsonEx.stream(JsonEx.createParser())
-                .transform(schema.validator())
+                .transform(schema.validator(lenient))
                 .transform(extractor)
+                .lenient(lenient)
                 .reporting(reporter)
                 .into(generator)
             : null;
@@ -130,13 +132,15 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
 
     JsonPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         JsonGeneratorEx generator,
         JsonReporter reporter)
     {
         JsonSchema schema = supplySchema(schemaId);
         return schema != null
             ? JsonEx.stream(JsonEx.createParser())
-                .transform(schema.validator())
+                .transform(schema.validator(lenient))
+                .lenient(lenient)
                 .reporting(reporter)
                 .into(generator)
             : null;

@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelHandler
@@ -47,6 +48,10 @@ public class ProtobufModelHandler
     protected final String view;
     protected final List<Integer> indexes;
     protected final ProtobufModelEventContext event;
+    // LENIENT per direction: a semantic-validation failure passes through (inert today — no protobuf
+    // semantic validation stage throws yet, so the wired branch is unreached)
+    protected final boolean decodeLenient;
+    protected final boolean encodeLenient;
 
     private final Int2ObjectCache<ProtobufSchema> schemas;
     private final Int2IntHashMap paddings;
@@ -62,6 +67,8 @@ public class ProtobufModelHandler
                 ? catalog.subject
                 : config.subject;
         this.view = config.view;
+        this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
+        this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);

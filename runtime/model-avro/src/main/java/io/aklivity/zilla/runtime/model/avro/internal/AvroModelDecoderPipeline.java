@@ -158,8 +158,8 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId, id -> extractor != null
-            ? handler.newPipeline(id, generator, extractor, this::onRejected)
-            : handler.newPipeline(id, generator, this::onRejected));
+            ? handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected)
+            : handler.newPipeline(id, handler.decodeLenient, generator, this::onRejected));
     }
 
     private void onRejected(

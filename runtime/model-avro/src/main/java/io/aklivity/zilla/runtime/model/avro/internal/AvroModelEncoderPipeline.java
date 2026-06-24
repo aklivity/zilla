@@ -156,7 +156,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     private AvroPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, handler.encodeLenient, this::onRejected));
     }
 
     private void onRejected(

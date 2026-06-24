@@ -161,7 +161,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         String messageName)
     {
         return pipelines.computeIfAbsent(messageName,
-            name -> handler.newPipeline(schemaId, name, extractor, this::onRejected));
+            name -> handler.newPipeline(schemaId, handler.decodeLenient, name, extractor, this::onRejected));
     }
 
     private void onRejected(

@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 
 import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
+import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -33,6 +34,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
@@ -52,6 +54,9 @@ public final class JsonPipelineImpl implements JsonPipeline
     // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
     private final JsonGeneratorEx generator;
     private final JsonPipelineResult result;
+    // LENIENT: a schema-validation failure is reported then the original document passes through, rather
+    // than rejecting; a parse failure always rejects regardless of this setting
+    private final boolean lenient;
 
     private boolean suspended;
     // the value event in flight across a suspend, handed to root.resume() so no stage stores it
@@ -61,7 +66,8 @@ public final class JsonPipelineImpl implements JsonPipeline
         JsonParserEx parser,
         JsonSink root,
         JsonReporter reporter,
-        JsonGeneratorEx generator)
+        JsonGeneratorEx generator,
+        boolean lenient)
     {
         this.parser = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
@@ -71,6 +77,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
         this.generator = generator;
+        this.lenient = lenient;
         this.result = new JsonPipelineResult();
     }
 
@@ -160,6 +167,25 @@ public final class JsonPipelineImpl implements JsonPipeline
                 }
             }
         }
+        catch (JsonValidationException ex)
+        {
+            // a structurally well-formed document that violates a schema constraint: report it either way.
+            // Under LENIENT the validator deferred this throw to the value boundary, so the whole document
+            // has already flowed through the sink — the produced bytes are complete and the value completes;
+            // under STRICT the value is rejected and the produced bytes abandoned.
+            diagnostic.message = ex.getMessage();
+            if (reporter != null)
+            {
+                reporter.rejected(diagnostic);
+            }
+            status = lenient ? Status.COMPLETED : Status.REJECTED;
+        }
+        catch (JsonParsingException ex)
+        {
+            // malformed or truncated input: no valid value could be produced, so always reject
+            status = Status.REJECTED;
+            diagnostic.message = ex.getMessage();
+        }
         catch (JsonException ex)
         {
             status = Status.REJECTED;
@@ -190,6 +216,9 @@ public final class JsonPipelineImpl implements JsonPipeline
         generator.wrap(dst, dstOffset, dstLimit);
         Status status = transform(src, offset, limit, last);
         boolean rejected = status == Status.REJECTED;
+        // a LENIENT schema-validation failure completes with the bytes the pipeline already produced into
+        // dst (the validator forwarded the whole document before surfacing the failure), so the normal
+        // produced/consumed accounting applies — there is no out-of-band copy of the original input
         int produced = rejected ? 0 : generator.length();
         // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
         // advanced by all but the unconsumed tail the caller re-presents at the front of the next window

@@ -35,6 +35,7 @@ public final class AvroStreamImpl implements AvroStream
     private final List<AvroTransform> transforms;
 
     private AvroReporter reporter;
+    private boolean lenient;
 
     public AvroStreamImpl(
         AvroParser driver)
@@ -52,6 +53,14 @@ public final class AvroStreamImpl implements AvroStream
     }
 
     @Override
+    public AvroStream lenient(
+        boolean lenient)
+    {
+        this.lenient = lenient;
+        return this;
+    }
+
+    @Override
     public AvroStream reporting(
         AvroReporter reporter)
     {
@@ -63,7 +72,7 @@ public final class AvroStreamImpl implements AvroStream
     public AvroPipeline into(
         AvroSink sink)
     {
-        return new AvroPipelineImpl(driver, bind(sink), reporter, null);
+        return new AvroPipelineImpl(driver, bind(sink), reporter, null, lenient);
     }
 
     @Override
@@ -71,7 +80,7 @@ public final class AvroStreamImpl implements AvroStream
         AvroGenerator generator)
     {
         // the pipeline owns the generator and re-targets it at the caller's destination per transform call
-        return new AvroPipelineImpl(driver, bind(new AvroSinkImpl(generator)), reporter, generator);
+        return new AvroPipelineImpl(driver, bind(new AvroSinkImpl(generator)), reporter, generator, lenient);
     }
 
     private AvroSink bind(

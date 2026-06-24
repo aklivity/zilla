@@ -27,12 +27,14 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufParsingException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufReporter;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufValidationException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
@@ -53,6 +55,9 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
     private final ProtobufGenerator generator;
     private final ProtobufPipelineResult result;
+    // LENIENT: a semantic-validation failure is reported then the already-produced structurally-valid value
+    // passes through, rather than rejecting; a parse failure always rejects. Inert today (throwerless seam).
+    private final boolean lenient;
 
     private boolean suspended;
     private boolean starved;
@@ -64,12 +69,14 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         List<ProtobufTransform> transforms,
         ProtobufSink sink,
         ProtobufReporter reporter,
-        ProtobufGenerator generator)
+        ProtobufGenerator generator,
+        boolean lenient)
     {
         this.parser = parser;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
         this.generator = generator;
+        this.lenient = lenient;
         this.result = new ProtobufPipelineResult();
         // the per-edge handles the stages see: a read-only source view of the parser, and a control handle
         // that records a stage's segment request which the pump turns into the SEGMENTED mode on the next pull
@@ -152,8 +159,29 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             suspended = status == Status.SUSPENDED;
             starved = status == Status.STARVED;
         }
+        catch (ProtobufValidationException ex)
+        {
+            // a structurally well-formed value that violates a semantic rule: report it either way, then
+            // LENIENT lets the already-produced value flow (COMPLETED) while STRICT rejects. Inert today —
+            // no stage throws this yet; the branch is wired for when semantic validation lands.
+            diagnostic.message = ex.getMessage();
+            if (reporter != null)
+            {
+                reporter.rejected(diagnostic);
+            }
+            status = lenient ? Status.COMPLETED : Status.REJECTED;
+            suspended = false;
+            starved = false;
+        }
+        catch (ProtobufParsingException ex)
+        {
+            // malformed or truncated input: no valid value could be produced, so always reject
+            status = Status.REJECTED;
+            diagnostic.message = ex.getMessage();
+        }
         catch (ProtobufException ex)
         {
+            // any other pipeline failure rejects, preserving the single-catch reject contract
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
         }

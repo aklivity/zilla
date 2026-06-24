@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public abstract class JsonModelHandler
@@ -29,6 +30,9 @@ public abstract class JsonModelHandler
     protected final CatalogHandler handler;
     protected final String subject;
     protected final JsonModelEventContext event;
+    // LENIENT per direction: a schema-validation failure on a structurally valid document passes through
+    protected final boolean decodeLenient;
+    protected final boolean encodeLenient;
 
     private final Int2ObjectCache<JsonSchema> schemas;
 
@@ -42,6 +46,8 @@ public abstract class JsonModelHandler
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;
+        this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
+        this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.event = new JsonModelEventContext(context);
     }

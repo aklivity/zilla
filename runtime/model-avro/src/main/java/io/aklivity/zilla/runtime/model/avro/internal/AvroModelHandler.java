@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public abstract class AvroModelHandler
@@ -43,6 +44,10 @@ public abstract class AvroModelHandler
     protected final String subject;
     protected final String view;
     protected final AvroModelEventContext event;
+    // LENIENT per direction: a semantic-validation failure passes through (inert today — no avro semantic
+    // validation stage throws yet, so the wired branch is unreached)
+    protected final boolean decodeLenient;
+    protected final boolean encodeLenient;
 
     private final Int2ObjectCache<AvroSchema> schemas;
     private final Int2IntHashMap paddings;
@@ -60,6 +65,8 @@ public abstract class AvroModelHandler
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : options.subject;
+        this.decodeLenient = options.validate.decode == ValidateMode.LENIENT;
+        this.encodeLenient = options.validate.encode == ValidateMode.LENIENT;
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.paddings = new Int2IntHashMap(-1);
         this.event = new AvroModelEventContext(context);

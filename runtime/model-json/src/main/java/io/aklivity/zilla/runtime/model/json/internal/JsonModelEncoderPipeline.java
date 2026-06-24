@@ -42,6 +42,10 @@ final class JsonModelEncoderPipeline implements ModelPipeline
     private String diagnostic;
     private MutableDirectBuffer prefixBuffer;
     private int prefixAt;
+    // captured per transform call so the JsonReporter callback can fire the validation-failed event with
+    // the right trace and binding even when the value is tolerated (LENIENT) rather than rejected
+    private long traceId;
+    private long bindingId;
 
     JsonModelEncoderPipeline(
         JsonModelHandlerImpl handler)
@@ -64,6 +68,8 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
+        this.traceId = traceId;
+        this.bindingId = bindingId;
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
@@ -85,6 +91,8 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         int produced;
         if (active == null)
         {
+            // no schema resolved: the value cannot be validated at all, so reject (the JsonReporter never
+            // fires here, so emit the event directly)
             handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
             status = ModelStatus.REJECTED;
             consumed = 0;
@@ -98,10 +106,8 @@ final class JsonModelEncoderPipeline implements ModelPipeline
             status = map(json.status());
             consumed = json.consumed();
             produced = prefix + json.produced();
-            if (status == ModelStatus.REJECTED)
-            {
-                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
-            }
+            // a parse or schema-validation failure already fired the validation-failed event via onRejected;
+            // under LENIENT the value still completes (original bytes passed through) and the event still fired
         }
         return result.set(status, consumed, produced);
     }
@@ -160,13 +166,17 @@ final class JsonModelEncoderPipeline implements ModelPipeline
     private JsonPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, generator, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId,
+            id -> handler.newPipeline(id, handler.encodeLenient, generator, this::onRejected));
     }
 
     private void onRejected(
         JsonDiagnostic diagnostic)
     {
+        // fires once per parse or schema-validation failure, at the value boundary, in both STRICT and
+        // LENIENT — so the validation-failed event is always emitted even when LENIENT tolerates the value
         this.diagnostic = diagnostic.message();
+        handler.validationFailure(traceId, bindingId, this.diagnostic != null ? this.diagnostic : JsonModel.NAME);
     }
 
     private static ModelStatus map(

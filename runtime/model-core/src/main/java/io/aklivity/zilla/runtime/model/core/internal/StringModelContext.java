@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
@@ -41,6 +42,8 @@ public class StringModelContext implements ModelContext
         ModelConfig config)
     {
         return new CoreModelHandler(context, StringModel.NAME,
-            StringModelValidator.supplier(StringModelConfig.class.cast(config)));
+            StringModelValidator.supplier(StringModelConfig.class.cast(config)),
+            config.validate.decode == ValidateMode.LENIENT,
+            config.validate.encode == ValidateMode.LENIENT);
     }
 }

@@ -132,6 +132,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     AvroPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         JsonGeneratorEx json,
         AvroExtractor extractor,
         AvroReporter reporter)
@@ -147,6 +148,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
                 : Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0);
             pipeline = Avro.stream(Avro.parser(schema))
                 .transform(extractor)
+                .lenient(lenient)
                 .reporting(reporter)
                 .into(generator);
         }
@@ -157,6 +159,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     // verbatim/SEGMENTED fast path stays in effect
     AvroPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         JsonGeneratorEx json,
         AvroReporter reporter)
     {
@@ -168,6 +171,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
                 ? AvroJson.generator(schema, json, true)
                 : Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0);
             pipeline = Avro.stream(Avro.parser(schema))
+                .lenient(lenient)
                 .reporting(reporter)
                 .into(generator);
         }
@@ -176,6 +180,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     AvroPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         AvroReporter reporter)
     {
         AvroSchema schema = supplySchema(schemaId);
@@ -187,9 +192,11 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             // diagnostic rather than a JSON parse failure
             pipeline = VIEW_JSON.equals(view)
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
+                    .lenient(lenient)
                     .reporting(reporter)
                     .into(Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0))
                 : Avro.stream(Avro.parser(schema))
+                    .lenient(lenient)
                     .reporting(reporter)
                     .into(Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0));
         }

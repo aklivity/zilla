@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro.internal;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.ADVANCED;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.STARVED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
@@ -29,12 +30,14 @@ import io.aklivity.zilla.runtime.common.avro.AvroException;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
+import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
 import io.aklivity.zilla.runtime.common.avro.AvroReporter;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
+import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 /**
  * Backs {@link AvroPipeline}: a thin pump that re-targets the {@link AvroParser} cursor at the frame
@@ -58,6 +61,9 @@ final class AvroPipelineImpl implements AvroPipeline
     // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
     private final AvroGenerator generator;
     private final AvroPipelineResult result;
+    // LENIENT: a semantic-validation failure is reported then the already-produced structurally-valid value
+    // passes through, rather than rejecting; a parse failure always rejects. Inert today (throwerless seam).
+    private final boolean lenient;
 
     private boolean suspended;
     private AvroEvent suspendedEvent;
@@ -66,7 +72,8 @@ final class AvroPipelineImpl implements AvroPipeline
         AvroParser parser,
         AvroSink root,
         AvroReporter reporter,
-        AvroGenerator generator)
+        AvroGenerator generator,
+        boolean lenient)
     {
         this.parser = parser;
         this.source = new Source(parser);
@@ -75,6 +82,7 @@ final class AvroPipelineImpl implements AvroPipeline
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
         this.generator = generator;
+        this.lenient = lenient;
         this.result = new AvroPipelineResult();
     }
 
@@ -134,8 +142,27 @@ final class AvroPipelineImpl implements AvroPipeline
                 status = STARVED;
             }
         }
+        catch (AvroValidationException ex)
+        {
+            // a structurally well-formed value that violates a semantic rule: report it either way, then
+            // LENIENT lets the already-produced value flow (COMPLETED) while STRICT rejects. Inert today —
+            // no stage throws this yet; the branch is wired for when semantic validation lands.
+            diagnostic.message = ex.getMessage();
+            if (reporter != null)
+            {
+                reporter.rejected(diagnostic);
+            }
+            status = lenient ? COMPLETED : REJECTED;
+        }
+        catch (AvroParsingException ex)
+        {
+            // malformed or truncated input: no valid value could be produced, so always reject
+            status = REJECTED;
+            diagnostic.message = ex.getMessage();
+        }
         catch (AvroException ex)
         {
+            // any other pipeline failure rejects, preserving the single-catch reject contract
             status = REJECTED;
             diagnostic.message = ex.getMessage();
         }

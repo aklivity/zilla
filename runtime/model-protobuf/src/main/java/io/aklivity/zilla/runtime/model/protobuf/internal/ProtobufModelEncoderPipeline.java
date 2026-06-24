@@ -168,7 +168,8 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         int schemaId,
         String messageName)
     {
-        return pipelines.computeIfAbsent(messageName, name -> handler.newPipeline(schemaId, name, this::onRejected));
+        return pipelines.computeIfAbsent(messageName,
+            name -> handler.newPipeline(schemaId, handler.encodeLenient, name, this::onRejected));
     }
 
     private void onRejected(

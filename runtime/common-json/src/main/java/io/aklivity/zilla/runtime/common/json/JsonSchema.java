@@ -123,6 +123,17 @@ public interface JsonSchema
     JsonTransform validator();
 
     /**
+     * Variant of {@link #validator()} whose handling of a schema-validation failure on a structurally
+     * well-formed document depends on {@code lenient}. When {@code lenient} is {@code false} (as
+     * {@link #validator()}) the stage rejects at the point of detection. When {@code true} the stage
+     * forwards the complete document to the downstream sink — so the sink produces the whole value — and
+     * surfaces the collected diagnostics only at the value boundary, letting a lenient pipeline report the
+     * failure and complete with the produced bytes rather than reject.
+     */
+    JsonTransform validator(
+        boolean lenient);
+
+    /**
      * Returns the RFC 6901 JSON Pointers to retain when projecting an instance of this schema — the
      * union of paths declared across all branches of the schema. Suitable for {@link
      * JsonEx#projector(java.util.List)}.

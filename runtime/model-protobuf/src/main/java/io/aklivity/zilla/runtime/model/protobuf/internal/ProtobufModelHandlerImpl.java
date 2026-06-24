@@ -193,6 +193,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     // fast path stays in effect for a decode with no field extraction
     ProtobufPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         String messageName,
         ProtobufExtractor extractor,
         ProtobufReporter reporter)
@@ -209,9 +210,11 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
             pipeline = extractor != null
                 ? Protobuf.stream(Protobuf.parser(schema, messageName))
                     .transform(extractor)
+                    .lenient(lenient)
                     .reporting(reporter)
                     .into(generator, schema, messageName)
                 : Protobuf.stream(Protobuf.parser(schema, messageName))
+                    .lenient(lenient)
                     .reporting(reporter)
                     .into(generator, schema, messageName);
         }
@@ -220,6 +223,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
 
     ProtobufPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         String messageName,
         ProtobufReporter reporter)
     {
@@ -234,6 +238,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
                     Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE))
                 : Protobuf.parser(schema, messageName);
             pipeline = Protobuf.stream(parser)
+                .lenient(lenient)
                 .reporting(reporter)
                 .into(Protobuf.generator(), schema, messageName);
         }
