@@ -71,24 +71,24 @@ public class AvroModelConfigAdapterTest
             }""";
 
         // WHEN
-        AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
+        AvroModelConfig model = jsonb.fromJson(json, AvroModelConfig.class);
 
         // THEN
-        assertThat(converter, not(nullValue()));
-        assertThat(converter.view, equalTo("json"));
-        assertThat(converter.model, equalTo("avro"));
-        assertThat(converter.cataloged.size(), equalTo(1));
-        assertThat(converter.cataloged.get(0).name, equalTo("test0"));
-        assertThat(converter.cataloged.get(0).schemas.get(0).strategy, equalTo("topic"));
-        assertThat(converter.cataloged.get(0).schemas.get(0).version, equalTo("latest"));
-        assertThat(converter.cataloged.get(0).schemas.get(0).id, equalTo(0));
-        assertThat(converter.cataloged.get(0).schemas.get(1).subject, equalTo("cat"));
-        assertThat(converter.cataloged.get(0).schemas.get(1).strategy, nullValue());
-        assertThat(converter.cataloged.get(0).schemas.get(1).version, equalTo("latest"));
-        assertThat(converter.cataloged.get(0).schemas.get(1).id, equalTo(0));
-        assertThat(converter.cataloged.get(0).schemas.get(2).strategy, nullValue());
-        assertThat(converter.cataloged.get(0).schemas.get(2).version, nullValue());
-        assertThat(converter.cataloged.get(0).schemas.get(2).id, equalTo(42));
+        assertThat(model, not(nullValue()));
+        assertThat(model.view, equalTo("json"));
+        assertThat(model.model, equalTo("avro"));
+        assertThat(model.cataloged.size(), equalTo(1));
+        assertThat(model.cataloged.get(0).name, equalTo("test0"));
+        assertThat(model.cataloged.get(0).schemas.get(0).strategy, equalTo("topic"));
+        assertThat(model.cataloged.get(0).schemas.get(0).version, equalTo("latest"));
+        assertThat(model.cataloged.get(0).schemas.get(0).id, equalTo(0));
+        assertThat(model.cataloged.get(0).schemas.get(1).subject, equalTo("cat"));
+        assertThat(model.cataloged.get(0).schemas.get(1).strategy, nullValue());
+        assertThat(model.cataloged.get(0).schemas.get(1).version, equalTo("latest"));
+        assertThat(model.cataloged.get(0).schemas.get(1).id, equalTo(0));
+        assertThat(model.cataloged.get(0).schemas.get(2).strategy, nullValue());
+        assertThat(model.cataloged.get(0).schemas.get(2).version, nullValue());
+        assertThat(model.cataloged.get(0).schemas.get(2).id, equalTo(42));
     }
 
     @Test
@@ -117,7 +117,7 @@ public class AvroModelConfigAdapterTest
                     "]" +
                 "}" +
             "}";
-        AvroModelConfig converter = AvroModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .view("json")
             .catalog()
                 .name("test0")
@@ -136,7 +136,7 @@ public class AvroModelConfigAdapterTest
             .build();
 
         // WHEN
-        String json = jsonb.toJson(converter);
+        String json = jsonb.toJson(model);
 
         // THEN
         assertThat(json, not(nullValue()));
@@ -163,12 +163,12 @@ public class AvroModelConfigAdapterTest
             }""";
 
         // WHEN
-        AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
+        AvroModelConfig model = jsonb.fromJson(json, AvroModelConfig.class);
 
         // THEN
-        assertThat(converter.validate, not(nullValue()));
-        assertThat(converter.validate.decode, equalTo(ValidateMode.STRICT));
-        assertThat(converter.validate.encode, equalTo(ValidateMode.STRICT));
+        assertThat(model.validate, not(nullValue()));
+        assertThat(model.validate.decode, equalTo(ValidateMode.STRICT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.STRICT));
     }
 
     @Test
@@ -192,11 +192,11 @@ public class AvroModelConfigAdapterTest
             }""";
 
         // WHEN
-        AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
+        AvroModelConfig model = jsonb.fromJson(json, AvroModelConfig.class);
 
         // THEN
-        assertThat(converter.validate.decode, equalTo(ValidateMode.LENIENT));
-        assertThat(converter.validate.encode, equalTo(ValidateMode.LENIENT));
+        assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.LENIENT));
     }
 
     @Test
@@ -224,11 +224,11 @@ public class AvroModelConfigAdapterTest
             }""";
 
         // WHEN
-        AvroModelConfig converter = jsonb.fromJson(json, AvroModelConfig.class);
+        AvroModelConfig model = jsonb.fromJson(json, AvroModelConfig.class);
 
         // THEN
-        assertThat(converter.validate.decode, equalTo(ValidateMode.LENIENT));
-        assertThat(converter.validate.encode, equalTo(ValidateMode.STRICT));
+        assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.STRICT));
     }
 
     @Test
@@ -250,7 +250,7 @@ public class AvroModelConfigAdapterTest
                 "}," +
                 "\"validate\":\"lenient\"" +
             "}";
-        AvroModelConfig converter = AvroModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
             .catalog()
                 .name("test0")
@@ -262,7 +262,7 @@ public class AvroModelConfigAdapterTest
             .build();
 
         // WHEN
-        String json = jsonb.toJson(converter);
+        String json = jsonb.toJson(model);
 
         // THEN
         assertThat(json, equalTo(expectedJson));
@@ -291,7 +291,7 @@ public class AvroModelConfigAdapterTest
                     "\"encode\":\"strict\"" +
                 "}" +
             "}";
-        AvroModelConfig converter = AvroModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT))
             .catalog()
                 .name("test0")
@@ -303,7 +303,7 @@ public class AvroModelConfigAdapterTest
             .build();
 
         // WHEN
-        String json = jsonb.toJson(converter);
+        String json = jsonb.toJson(model);
 
         // THEN
         assertThat(json, equalTo(expectedJson));
@@ -313,7 +313,7 @@ public class AvroModelConfigAdapterTest
     public void shouldOmitValidateWhenStrict()
     {
         // GIVEN
-        AvroModelConfig converter = AvroModelConfig.builder()
+        AvroModelConfig model = AvroModelConfig.builder()
             .catalog()
                 .name("test0")
                     .schema()
@@ -324,7 +324,7 @@ public class AvroModelConfigAdapterTest
             .build();
 
         // WHEN
-        String json = jsonb.toJson(converter);
+        String json = jsonb.toJson(model);
 
         // THEN
         assertThat(json, not(containsString("validate")));

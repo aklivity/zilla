@@ -26,7 +26,7 @@ public final class AvroModelConfig extends ModelConfig
     public final String subject;
     public final String view;
 
-    public AvroModelConfig(
+    AvroModelConfig(
         List<CatalogedConfig> cataloged,
         String subject,
         String view,

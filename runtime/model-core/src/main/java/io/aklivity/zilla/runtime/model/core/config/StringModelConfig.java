@@ -26,14 +26,14 @@ public final class StringModelConfig extends ModelConfig
     public final int maxLength;
     public final int minLength;
 
-    public StringModelConfig(
+    StringModelConfig(
         String encoding,
         String pattern,
         int maxLength,
         int minLength,
         ValidateConfig validate)
     {
-        super("string", validate);
+        super("string", null, validate);
         this.encoding = encoding;
         this.pattern = pattern;
         this.maxLength = maxLength;

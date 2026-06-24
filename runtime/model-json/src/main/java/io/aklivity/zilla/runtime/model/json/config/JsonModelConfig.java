@@ -25,7 +25,7 @@ public final class JsonModelConfig extends ModelConfig
 {
     public final String subject;
 
-    public JsonModelConfig(
+    JsonModelConfig(
         List<CatalogedConfig> cataloged,
         String subject,
         ValidateConfig validate)

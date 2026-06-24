@@ -27,6 +27,8 @@ package io.aklivity.zilla.runtime.common.protobuf;
 @FunctionalInterface
 public interface ProtobufReporter
 {
+    ProtobufReporter NONE = diagnostic -> {};
+
     void rejected(
         ProtobufDiagnostic diagnostic);
 }

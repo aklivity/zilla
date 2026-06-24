@@ -46,23 +46,23 @@ public final class ModelFactory
     {
         requireNonNull(name, "name");
 
-        ModelFactorySpi converterSpi = requireNonNull(modelSpis.get(name), () -> "Unrecognized Model name: " + name);
+        ModelFactorySpi modelSpi = requireNonNull(modelSpis.get(name), () -> "Unrecognized Model name: " + name);
 
-        return converterSpi.create(config);
+        return modelSpi.create(config);
     }
 
-    public Collection<ModelFactorySpi> converterSpis()
+    public Collection<ModelFactorySpi> modelSpis()
     {
         return modelSpis.values();
     }
 
     private static ModelFactory instantiate(
-        ServiceLoader<ModelFactorySpi> converters)
+        ServiceLoader<ModelFactorySpi> models)
     {
-        Map<String, ModelFactorySpi> converterSpisByName = new TreeMap<>();
-        converters.forEach(converterSpi -> converterSpisByName.put(converterSpi.type(), converterSpi));
+        Map<String, ModelFactorySpi> modelSpisByName = new TreeMap<>();
+        models.forEach(modelSpi -> modelSpisByName.put(modelSpi.type(), modelSpi));
 
-        return new ModelFactory(unmodifiableMap(converterSpisByName));
+        return new ModelFactory(unmodifiableMap(modelSpisByName));
     }
 
     private ModelFactory(

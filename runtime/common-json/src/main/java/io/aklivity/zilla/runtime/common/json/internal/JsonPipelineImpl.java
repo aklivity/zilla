@@ -168,10 +168,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         catch (JsonValidationException ex)
         {
             diagnostic.message = ex.getMessage();
-            if (reporter != null)
-            {
-                reporter.rejected(diagnostic);
-            }
+            reporter.rejected(diagnostic);
             status = lenient ? Status.COMPLETED : Status.REJECTED;
         }
         catch (JsonParsingException ex)
@@ -184,7 +181,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
         }
-        if (status == Status.REJECTED && reporter != null)
+        if (status == Status.REJECTED)
         {
             // terminal failure only — never STARVED/SUSPENDED back-pressure; the diagnostic is a reused,
             // call-scoped view, so the reporter must copy out anything it needs before returning

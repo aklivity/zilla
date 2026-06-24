@@ -26,7 +26,7 @@ public final class ProtobufModelConfig extends ModelConfig
     public final String subject;
     public final String view;
 
-    public ProtobufModelConfig(
+    ProtobufModelConfig(
         List<CatalogedConfig> cataloged,
         String subject,
         String view,

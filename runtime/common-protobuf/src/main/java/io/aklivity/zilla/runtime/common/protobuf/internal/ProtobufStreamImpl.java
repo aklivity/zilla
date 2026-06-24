@@ -35,7 +35,7 @@ public final class ProtobufStreamImpl implements ProtobufStream
     private final ProtobufParser parser;
     private final List<ProtobufTransform> transforms;
 
-    private ProtobufReporter reporter;
+    private ProtobufReporter reporter = ProtobufReporter.NONE;
     private boolean lenient;
 
     public ProtobufStreamImpl(
@@ -65,7 +65,7 @@ public final class ProtobufStreamImpl implements ProtobufStream
     public ProtobufStream reporting(
         ProtobufReporter reporter)
     {
-        this.reporter = reporter;
+        this.reporter = reporter != null ? reporter : ProtobufReporter.NONE;
         return this;
     }
 

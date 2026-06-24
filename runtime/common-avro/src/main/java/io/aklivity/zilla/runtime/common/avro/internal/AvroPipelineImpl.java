@@ -144,10 +144,7 @@ final class AvroPipelineImpl implements AvroPipeline
         {
             // inert today — no stage throws this yet; wired for when semantic validation lands
             diagnostic.message = ex.getMessage();
-            if (reporter != null)
-            {
-                reporter.rejected(diagnostic);
-            }
+            reporter.rejected(diagnostic);
             status = lenient ? COMPLETED : REJECTED;
         }
         catch (AvroParsingException ex)
@@ -160,7 +157,7 @@ final class AvroPipelineImpl implements AvroPipeline
             status = REJECTED;
             diagnostic.message = ex.getMessage();
         }
-        if (status == REJECTED && reporter != null)
+        if (status == REJECTED)
         {
             // terminal failure only — never STARVED/SUSPENDED back-pressure; the diagnostic is a reused,
             // call-scoped view, so the reporter must copy out anything it needs before returning

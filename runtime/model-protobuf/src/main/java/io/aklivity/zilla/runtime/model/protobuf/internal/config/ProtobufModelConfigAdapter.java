@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
+import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfigBuilder;
 
 public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
@@ -56,19 +57,19 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
     public JsonValue adaptToJson(
         ModelConfig config)
     {
-        ProtobufModelConfig protobufConfig = (ProtobufModelConfig) config;
-        JsonObjectBuilder converter = Json.createObjectBuilder();
-        converter.add(MODEL_NAME, PROTOBUF);
+        ProtobufModelConfig model = (ProtobufModelConfig) config;
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        builder.add(MODEL_NAME, PROTOBUF);
 
-        if (protobufConfig.view != null)
+        if (model.view != null)
         {
-            converter.add(VIEW, protobufConfig.view);
+            builder.add(VIEW, model.view);
         }
 
-        if (protobufConfig.cataloged != null && !protobufConfig.cataloged.isEmpty())
+        if (model.cataloged != null && !model.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            for (CatalogedConfig catalog : protobufConfig.cataloged)
+            for (CatalogedConfig catalog : model.cataloged)
             {
                 JsonArrayBuilder array = Json.createArrayBuilder();
                 for (SchemaConfig schemaItem: catalog.schemas)
@@ -77,16 +78,16 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
                 }
                 catalogs.add(catalog.name, array);
             }
-            converter.add(CATALOG_NAME, catalogs);
+            builder.add(CATALOG_NAME, catalogs);
         }
 
-        JsonValue validateJson = validate.adaptToJson(protobufConfig.validate);
+        JsonValue validateJson = validate.adaptToJson(model.validate);
         if (validateJson != null)
         {
-            converter.add(VALIDATE_NAME, validateJson);
+            builder.add(VALIDATE_NAME, validateJson);
         }
 
-        return converter.build();
+        return builder.build();
     }
 
     @Override
@@ -122,6 +123,12 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
 
         ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
 
-        return new ProtobufModelConfig(catalogs, subject, view, validateConfig);
+        ProtobufModelConfigBuilder<ProtobufModelConfig> builder = ProtobufModelConfig.builder()
+            .subject(subject)
+            .view(view)
+            .validate(validateConfig);
+        catalogs.forEach(builder::catalog);
+
+        return builder.build();
     }
 }

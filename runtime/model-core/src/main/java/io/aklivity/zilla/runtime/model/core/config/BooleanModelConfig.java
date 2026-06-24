@@ -23,10 +23,10 @@ public class BooleanModelConfig extends ModelConfig
 {
     public static final String BOOLEAN = "boolean";
 
-    public BooleanModelConfig(
+    BooleanModelConfig(
         ValidateConfig validate)
     {
-        super(BOOLEAN, validate);
+        super(BOOLEAN, null, validate);
     }
 
     public static <T> BooleanModelConfigBuilder<T> builder(

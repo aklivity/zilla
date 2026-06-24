@@ -30,7 +30,7 @@ public class Int64ModelConfig extends ModelConfig
     public final boolean exclusiveMax;
     public final boolean exclusiveMin;
 
-    public Int64ModelConfig(
+    Int64ModelConfig(
         String format,
         long max,
         long min,
@@ -39,7 +39,7 @@ public class Int64ModelConfig extends ModelConfig
         long multiple,
         ValidateConfig validate)
     {
-        super(INT_64, validate);
+        super(INT_64, null, validate);
         this.format = format;
         this.max = max;
         this.min = min;

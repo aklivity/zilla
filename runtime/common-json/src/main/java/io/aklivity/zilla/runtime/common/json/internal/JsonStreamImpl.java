@@ -40,7 +40,7 @@ public final class JsonStreamImpl implements JsonStream
     private final JsonParserEx parser;
     private final List<JsonTransform> transforms;
 
-    private JsonReporter reporter;
+    private JsonReporter reporter = JsonReporter.NONE;
     private boolean lenient;
 
     public JsonStreamImpl(
@@ -70,7 +70,7 @@ public final class JsonStreamImpl implements JsonStream
     public JsonStream reporting(
         JsonReporter reporter)
     {
-        this.reporter = reporter;
+        this.reporter = reporter != null ? reporter : JsonReporter.NONE;
         return this;
     }
 

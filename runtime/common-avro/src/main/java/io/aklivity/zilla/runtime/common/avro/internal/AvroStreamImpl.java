@@ -34,7 +34,7 @@ public final class AvroStreamImpl implements AvroStream
     private final AvroParser driver;
     private final List<AvroTransform> transforms;
 
-    private AvroReporter reporter;
+    private AvroReporter reporter = AvroReporter.NONE;
     private boolean lenient;
 
     public AvroStreamImpl(
@@ -64,7 +64,7 @@ public final class AvroStreamImpl implements AvroStream
     public AvroStream reporting(
         AvroReporter reporter)
     {
-        this.reporter = reporter;
+        this.reporter = reporter != null ? reporter : AvroReporter.NONE;
         return this;
     }
 

@@ -30,7 +30,7 @@ public class DoubleModelConfig extends ModelConfig
     public final boolean exclusiveMax;
     public final boolean exclusiveMin;
 
-    public DoubleModelConfig(
+    DoubleModelConfig(
         String format,
         double max,
         double min,
@@ -39,7 +39,7 @@ public class DoubleModelConfig extends ModelConfig
         Double multiple,
         ValidateConfig validate)
     {
-        super(DOUBLE, validate);
+        super(DOUBLE, null, validate);
         this.format = format;
         this.max = max;
         this.min = min;

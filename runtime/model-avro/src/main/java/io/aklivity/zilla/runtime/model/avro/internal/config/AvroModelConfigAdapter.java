@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
+import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfigBuilder;
 
 public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
@@ -56,19 +57,19 @@ public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, Json
     public JsonValue adaptToJson(
         ModelConfig config)
     {
-        AvroModelConfig converterConfig = (AvroModelConfig) config;
-        JsonObjectBuilder converter = Json.createObjectBuilder();
+        AvroModelConfig model = (AvroModelConfig) config;
+        JsonObjectBuilder builder = Json.createObjectBuilder();
 
-        if (converterConfig.view != null)
+        if (model.view != null)
         {
-            converter.add(VIEW, converterConfig.view);
+            builder.add(VIEW, model.view);
         }
 
-        converter.add(MODEL_NAME, AVRO);
-        if (converterConfig.cataloged != null && !converterConfig.cataloged.isEmpty())
+        builder.add(MODEL_NAME, AVRO);
+        if (model.cataloged != null && !model.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            for (CatalogedConfig catalog : converterConfig.cataloged)
+            for (CatalogedConfig catalog : model.cataloged)
             {
                 JsonArrayBuilder array = Json.createArrayBuilder();
                 for (SchemaConfig schemaItem: catalog.schemas)
@@ -77,16 +78,16 @@ public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, Json
                 }
                 catalogs.add(catalog.name, array);
             }
-            converter.add(CATALOG_NAME, catalogs);
+            builder.add(CATALOG_NAME, catalogs);
         }
 
-        JsonValue validateJson = validate.adaptToJson(converterConfig.validate);
+        JsonValue validateJson = validate.adaptToJson(model.validate);
         if (validateJson != null)
         {
-            converter.add(VALIDATE_NAME, validateJson);
+            builder.add(VALIDATE_NAME, validateJson);
         }
 
-        return converter.build();
+        return builder.build();
     }
 
     @Override
@@ -122,6 +123,12 @@ public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, Json
 
         ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
 
-        return new AvroModelConfig(catalogs, subject, view, validateConfig);
+        AvroModelConfigBuilder<AvroModelConfig> builder = AvroModelConfig.builder()
+            .subject(subject)
+            .view(view)
+            .validate(validateConfig);
+        catalogs.forEach(builder::catalog);
+
+        return builder.build();
     }
 }

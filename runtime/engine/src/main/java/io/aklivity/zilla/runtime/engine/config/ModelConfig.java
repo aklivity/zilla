@@ -23,27 +23,7 @@ public abstract class ModelConfig
     public final List<CatalogedConfig> cataloged;
     public final ValidateConfig validate;
 
-    public ModelConfig(
-        String model)
-    {
-        this(model, null, ValidateConfig.STRICT);
-    }
-
-    public ModelConfig(
-        String model,
-        List<CatalogedConfig> cataloged)
-    {
-        this(model, cataloged, ValidateConfig.STRICT);
-    }
-
-    public ModelConfig(
-        String model,
-        ValidateConfig validate)
-    {
-        this(model, null, validate);
-    }
-
-    public ModelConfig(
+    protected ModelConfig(
         String model,
         List<CatalogedConfig> cataloged,
         ValidateConfig validate)

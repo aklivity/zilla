@@ -30,7 +30,7 @@ public class FloatModelConfig extends ModelConfig
     public final boolean exclusiveMax;
     public final boolean exclusiveMin;
 
-    public FloatModelConfig(
+    FloatModelConfig(
         String format,
         float max,
         float min,
@@ -39,7 +39,7 @@ public class FloatModelConfig extends ModelConfig
         Float multiple,
         ValidateConfig validate)
     {
-        super(FLOAT, validate);
+        super(FLOAT, null, validate);
         this.format = format;
         this.max = max;
         this.min = min;

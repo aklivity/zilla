@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
  * <p>
  * A {@code Model} provides payload conversion and validation for a specific data format such as
  * Avro, Protobuf, or JSON. When a binding is configured with a model, inbound and outbound
- * payloads are passed through the model's converter and validator handlers on the hot path.
+ * payloads are passed through the model's conversion and validation handlers on the hot path.
  * </p>
  * <p>
  * Built-in implementations include {@code model-avro}, {@code model-protobuf}, {@code model-json},
