@@ -338,6 +338,17 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/publish.qos2.no.prior.offsets/client",
+        "${kafka}/publish.qos2.no.prior.offsets/server"})
+    public void shouldSendMessageQos2NoPriorOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/publish.qos2.retained/client",
         "${kafka}/publish.qos2.retained/server"})
     public void shouldSendMessageQos2Retained() throws Exception

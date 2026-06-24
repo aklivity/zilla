@@ -37,10 +37,11 @@ final class MqttBindingContext implements BindingContext
 
     MqttBindingContext(
         MqttConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        InstanceId instanceId)
     {
         final EnumMap<KindConfig, MqttStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new MqttServerFactory(config, context));
+        factories.put(SERVER, new MqttServerFactory(config, context, instanceId));
         factories.put(CLIENT, new MqttClientFactory(config, context));
         this.factories = factories;
     }

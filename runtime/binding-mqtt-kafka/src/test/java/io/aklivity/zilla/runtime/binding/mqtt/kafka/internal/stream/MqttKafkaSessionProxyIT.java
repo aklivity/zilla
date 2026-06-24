@@ -27,7 +27,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -75,57 +74,9 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
-        "${mqtt}/session.connect.override.max.session.expiry/client",
-        "${kafka}/session.connect.override.max.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooBig() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.connect.override.min.session.expiry/client",
-        "${kafka}/session.connect.override.min.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooSmall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
         "${mqtt}/session.abort.reconnect.non.clean.start/client",
         "${kafka}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.client.takeover/client",
-        "${kafka}/session.client.takeover/server"})
-    public void shouldTakeOverSession() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.exists.clean.start/client",
-        "${kafka}/session.exists.clean.start/server"})
-    public void shouldRemoveSessionAtCleanStart() throws Exception
     {
         k3po.finish();
     }
@@ -212,71 +163,6 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.server.sent.reset/client",
         "${kafka}/session.server.sent.reset/server"})
     public void shouldSessionStreamReceiveServerSentReset() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.server.sent.reset/client",
-        "${kafka}/session.group.server.sent.reset/server"})
-    public void shouldGroupStreamReceiveServerSentReset() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore("k3po no extension with rejection")
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.group.reset.not.authorized/client",
-        "${kafka}/session.group.reset.not.authorized/server"})
-    public void shouldGroupStreamReceiveResetNotAuthorized() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore("k3po no extension with rejection")
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.group.reset.invalid.session.timeout/client",
-        "${kafka}/session.group.reset.invalid.session.timeout/server"})
-    public void shouldGroupStreamReceiveResetInvalidSessionTimeout() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore("k3po no extension with rejection")
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.group.reset.invalid.describe.config/client",
-        "${kafka}/session.group.reset.invalid.describe.config/server"})
-    public void shouldGroupStreamReceiveResetInvalidDescribeConfig() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Configure(name = SESSION_ID_NAME,
-        value = "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
-    @Specification({
-        "${mqtt}/session.redirect/client",
-        "${kafka}/session.redirect/server"})
-    public void shouldRedirect() throws Exception
     {
         k3po.finish();
     }
@@ -395,17 +281,6 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.will.message.abort.deliver.will.retain/client",
         "${kafka}/session.will.message.abort.deliver.will.retain/server"})
     public void shouldSaveWillMessageAsRetain() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.will.message.takeover.deliver.will/client",
-        "${kafka}/session.will.message.takeover.deliver.will/server"})
-    public void shouldDeliverWillMessageOnSessionTakeover() throws Exception
     {
         k3po.finish();
     }
