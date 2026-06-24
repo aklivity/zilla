@@ -12,25 +12,26 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.avro;
+package io.aklivity.zilla.runtime.common.protobuf;
 
 /**
- * Thrown when an event stream that parsed successfully nevertheless violates its Avro schema — for
- * example an out-of-range union branch or enum ordinal, a wrong scalar type, or an unexpected field
- * key. A parse failure (bytes that cannot be parsed at all) is an {@link AvroParsingException} instead;
- * both share the {@link AvroException} base so a pipeline rejects either with a single catch.
+ * Thrown when the input bytes cannot be parsed into a structured form at all — for example malformed or
+ * non-JSON input under {@code view: json}, or a truncated wire frame. Distinct from
+ * {@link ProtobufValidationException}, which signals input that parsed successfully but violates the
+ * descriptor. Both share the {@link ProtobufException} base so a pipeline rejects either with a single
+ * catch.
  */
-public class AvroValidationException extends AvroException
+public class ProtobufParsingException extends ProtobufException
 {
     private static final long serialVersionUID = 1L;
 
-    public AvroValidationException(
+    public ProtobufParsingException(
         String message)
     {
         super(message);
     }
 
-    public AvroValidationException(
+    public ProtobufParsingException(
         String message,
         Throwable cause)
     {

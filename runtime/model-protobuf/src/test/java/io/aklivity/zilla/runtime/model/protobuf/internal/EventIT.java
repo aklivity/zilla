@@ -56,4 +56,15 @@ public class EventIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("event.binary.yaml")
+    @Specification({
+        "${net}/client.sent.protobuf.binary.invalid/client",
+        "${app}/client.sent.protobuf.binary.invalid/server"
+    })
+    public void shouldLogEventsWhenBinaryTruncated() throws Exception
+    {
+        k3po.finish();
+    }
 }

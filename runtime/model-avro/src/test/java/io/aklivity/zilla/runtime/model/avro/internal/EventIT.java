@@ -56,4 +56,15 @@ public class EventIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("event.view.json.yaml")
+    @Specification({
+        "${net}/client.sent.avro.json.invalid/client",
+        "${app}/client.sent.avro.json.invalid/server"
+    })
+    public void shouldLogEventsWhenJsonViewRejectsNonJson() throws Exception
+    {
+        k3po.finish();
+    }
 }

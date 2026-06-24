@@ -15,22 +15,22 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 /**
- * Thrown when an event stream that parsed successfully nevertheless violates its Avro schema — for
- * example an out-of-range union branch or enum ordinal, a wrong scalar type, or an unexpected field
- * key. A parse failure (bytes that cannot be parsed at all) is an {@link AvroParsingException} instead;
- * both share the {@link AvroException} base so a pipeline rejects either with a single catch.
+ * The base of the Avro pipeline's failure hierarchy. A pipeline catches this single type so that both a
+ * parse failure (the input bytes cannot be parsed) and a validation failure (the input parses but violates
+ * the schema) map to a clean reject. Mirrors the {@code jakarta.json} convention where
+ * {@code JsonParsingException} is a {@code JsonException}.
  */
-public class AvroValidationException extends AvroException
+public class AvroException extends RuntimeException
 {
     private static final long serialVersionUID = 1L;
 
-    public AvroValidationException(
+    public AvroException(
         String message)
     {
         super(message);
     }
 
-    public AvroValidationException(
+    public AvroException(
         String message,
         Throwable cause)
     {

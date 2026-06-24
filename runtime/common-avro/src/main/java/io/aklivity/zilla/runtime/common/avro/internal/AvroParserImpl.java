@@ -46,6 +46,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
+import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
@@ -282,7 +283,7 @@ public final class AvroParserImpl implements AvroParser
         }
         if (pending == null && !done && last)
         {
-            throw new AvroValidationException("truncated datum");
+            throw new AvroParsingException("truncated datum");
         }
     }
 

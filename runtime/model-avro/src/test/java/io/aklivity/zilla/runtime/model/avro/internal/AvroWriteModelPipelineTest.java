@@ -137,6 +137,24 @@ public class AvroWriteModelPipelineTest
     }
 
     @Test
+    public void shouldRejectMalformedJson()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        // raw protobuf-style binary, not valid JSON, fed under view: json -> the underlying JSON parser would
+        // throw a JsonParsingException; the parser boundary must translate it to a clean REJECTED, not crash
+        byte[] in = {0x0a, 0x02, 0x69, 0x64};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
     public void shouldReportEncodePadding()
     {
         AvroModelHandlerImpl handler = newHandler();

@@ -25,6 +25,7 @@ import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroException;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
@@ -34,7 +35,6 @@ import io.aklivity.zilla.runtime.common.avro.AvroReporter;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
-import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 /**
  * Backs {@link AvroPipeline}: a thin pump that re-targets the {@link AvroParser} cursor at the frame
@@ -128,7 +128,7 @@ final class AvroPipelineImpl implements AvroPipeline
                 status = STARVED;
             }
         }
-        catch (AvroValidationException ex)
+        catch (AvroException ex)
         {
             status = REJECTED;
             diagnostic.message = ex.getMessage();
