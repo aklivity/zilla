@@ -30,6 +30,9 @@ public final class KafkaCacheModel
 {
     public static final KafkaCacheModel NONE = new KafkaCacheModel();
 
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     @FunctionalInterface
     public interface Output
     {
@@ -114,7 +117,7 @@ public final class KafkaCacheModel
 
             total = 0;
             int srcAt = index;
-            int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
+            int flags = FLAGS_INIT | FLAGS_FIN;
             boolean done = false;
             while (!done)
             {
@@ -144,7 +147,7 @@ public final class KafkaCacheModel
                     else
                     {
                         srcAt += consumed;
-                        flags = ModelPipeline.FLAGS_FIN;
+                        flags = FLAGS_FIN;
                     }
                 }
             }

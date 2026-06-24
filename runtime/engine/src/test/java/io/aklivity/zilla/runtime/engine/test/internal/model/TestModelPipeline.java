@@ -38,6 +38,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 // value when an accepted value completes. State lives on the pipeline so interleaved streams stay isolated.
 final class TestModelPipeline implements ModelPipeline
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final DirectBuffer extractedValue = new UnsafeBuffer("1234".getBytes(UTF_8));
 
     private final int length;

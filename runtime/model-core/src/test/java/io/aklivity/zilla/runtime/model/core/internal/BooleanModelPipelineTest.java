@@ -36,6 +36,8 @@ import io.aklivity.zilla.runtime.model.core.config.BooleanModelConfig;
 
 public class BooleanModelPipelineTest
 {
+    private static final int FLAGS_COMPLETE = 0x03;
+
     private EngineContext context;
 
     @Before
@@ -54,7 +56,7 @@ public class BooleanModelPipelineTest
 
         byte[] bytes = {0x01};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[8]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -69,7 +71,7 @@ public class BooleanModelPipelineTest
 
         byte[] bytes = {0x05};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[8]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -83,7 +85,7 @@ public class BooleanModelPipelineTest
 
         byte[] bytes = {0x00};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[8]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -98,7 +100,7 @@ public class BooleanModelPipelineTest
 
         byte[] bytes = {0x01, 0x00};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[8]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());

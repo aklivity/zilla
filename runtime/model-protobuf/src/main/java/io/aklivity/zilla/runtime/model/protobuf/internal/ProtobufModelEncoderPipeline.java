@@ -35,6 +35,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // destination after them.
 final class ProtobufModelEncoderPipeline implements ModelPipeline
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final ProtobufModelHandlerImpl handler;
     private final Map<String, ProtobufPipeline> pipelines;
     private final ModelPipelineResult result;

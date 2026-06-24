@@ -26,6 +26,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // on the supplied CoreModelValidator, so interleaved streams on one worker never corrupt each other.
 final class CoreModelPipeline implements ModelPipeline
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final CoreModelHandler handler;
     private final CoreModelValidator validator;
     // LENIENT: a structurally-valid value that violates a semantic constraint (INVALID) is reported then

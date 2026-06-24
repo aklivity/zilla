@@ -37,6 +37,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 // destination, and surfaces extracted fields to the ModelVisitor when a value completes.
 final class JsonModelDecoderPipeline implements ModelPipeline
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final JsonModelHandlerImpl handler;
     private final ModelVisitor visitor;
     private final JsonGeneratorEx generator;

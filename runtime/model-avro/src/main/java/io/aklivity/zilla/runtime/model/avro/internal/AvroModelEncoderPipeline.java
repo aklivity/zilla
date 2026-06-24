@@ -31,6 +31,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // the common-avro transform (JSON in, Avro binary out) into the destination after it.
 final class AvroModelEncoderPipeline implements ModelPipeline
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final AvroModelHandlerImpl handler;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;

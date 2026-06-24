@@ -41,6 +41,8 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonModelEncoderPipelineTest
 {
+    private static final int FLAGS_COMPLETE = 0x03;
+
     private static final String OBJECT_SCHEMA = """
         {
             "type": "object",
@@ -69,7 +71,7 @@ public class JsonModelEncoderPipelineTest
         // the test catalog adds no framing prefix, so the output is the validated value itself
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -88,7 +90,7 @@ public class JsonModelEncoderPipelineTest
         // missing required "status"
         byte[] in = "{\"id\":\"123\"}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());

@@ -42,6 +42,10 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelEncoderPipelineTest
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+    private static final int FLAGS_COMPLETE = 0x03;
+
     private static final String SCHEMA = """
                                             syntax = "proto3";
                                             package io.aklivity.examples.clients.proto;
@@ -72,7 +76,7 @@ public class ProtobufModelEncoderPipelineTest
 
         byte[] in = JSON.getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -83,7 +87,7 @@ public class ProtobufModelEncoderPipelineTest
 
         // reset and reuse the same pipeline for the next value
         pipeline.reset();
-        ModelPipelineResult reused = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult reused = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, reused.status());
         byte[] outReused = new byte[reused.produced()];
@@ -105,14 +109,14 @@ public class ProtobufModelEncoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBuffer(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
         byte[] bIn = JSON.getBytes(UTF_8);
-        ModelPipelineResult rb = b.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bIn), 0, bIn.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
@@ -121,7 +125,7 @@ public class ProtobufModelEncoderPipelineTest
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBuffer(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -141,14 +145,14 @@ public class ProtobufModelEncoderPipelineTest
         byte[] in = ("{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}").getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[512]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        int flags = ModelPipeline.FLAGS_COMPLETE;
+        int flags = FLAGS_COMPLETE;
         ModelPipelineResult result;
         int guard = 0;
         do
         {
             result = pipeline.transform(0L, 0L, flags, new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
             drain(dst, result.produced(), out);
-            flags = ModelPipeline.FLAGS_FIN;
+            flags = FLAGS_FIN;
             guard++;
         }
         while (result.status() == ModelStatus.OVERFLOW && guard < 1000);
@@ -170,7 +174,7 @@ public class ProtobufModelEncoderPipelineTest
 
         byte[] in = JSON.getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -187,7 +191,7 @@ public class ProtobufModelEncoderPipelineTest
         // an unknown field is rejected by the strict JSON parser
         byte[] in = "{\"content\":\"OK\",\"unexpected\":\"value\"}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());

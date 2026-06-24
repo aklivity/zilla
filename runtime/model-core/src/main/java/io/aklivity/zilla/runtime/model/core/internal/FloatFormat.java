@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import static io.aklivity.zilla.runtime.engine.model.ModelPipeline.FLAGS_FIN;
-
 import org.agrona.DirectBuffer;
 
 public enum FloatFormat
@@ -172,6 +170,8 @@ public enum FloatFormat
             return state.processed == FLOAT_SIZE;
         }
     };
+
+    private static final int FLAGS_FIN = 0x01;
 
     public static final int INVALID_INDEX = -1;
 

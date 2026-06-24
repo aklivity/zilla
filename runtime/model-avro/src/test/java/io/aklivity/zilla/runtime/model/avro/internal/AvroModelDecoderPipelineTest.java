@@ -46,6 +46,10 @@ import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroModelDecoderPipelineTest
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+    private static final int FLAGS_COMPLETE = 0x03;
+
     private static final String SCHEMA = """
         {
             "fields":
@@ -95,7 +99,7 @@ public class AvroModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -118,20 +122,20 @@ public class AvroModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBuffer(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        ModelPipelineResult rb = b.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         assertEquals(JSON, text(dst, rb.produced()));
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBuffer(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -150,7 +154,7 @@ public class AvroModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -179,7 +183,7 @@ public class AvroModelDecoderPipelineTest
             0x02
         };
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(scalars), 0, scalars.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -202,7 +206,7 @@ public class AvroModelDecoderPipelineTest
         // truncated: id length prefix promises 3 bytes but the status field is missing under FLAGS_FIN
         byte[] invalid = {0x06, 0x69, 0x64, 0x30, 0x10};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(invalid), 0, invalid.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -226,7 +230,7 @@ public class AvroModelDecoderPipelineTest
         assertFalse(pipeline.identity());
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
@@ -239,7 +243,7 @@ public class AvroModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());

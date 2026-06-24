@@ -48,6 +48,8 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonModelLenientTest
 {
+    private static final int FLAGS_COMPLETE = 0x03;
+
     // id must be a string; a numeric id is a schema-constraint violation on structurally well-formed JSON
     private static final String OBJECT_SCHEMA = "{" +
         "\"type\": \"object\"," +
@@ -75,7 +77,7 @@ public class JsonModelLenientTest
 
         byte[] in = "{\"id\":123}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -90,7 +92,7 @@ public class JsonModelLenientTest
 
         byte[] in = "{\"id\":123}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -106,7 +108,7 @@ public class JsonModelLenientTest
 
         byte[] in = "{\"id\" 123}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -119,7 +121,7 @@ public class JsonModelLenientTest
 
         byte[] in = "{\"id\" 123}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -136,13 +138,13 @@ public class JsonModelLenientTest
 
         ModelPipeline decoder = handler.supplyDecoder(ModelVisitor.NONE);
         MutableDirectBuffer decodeDst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult decoded = decoder.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult decoded = decoder.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
         ModelPipeline encoder = handler.supplyEncoder(ModelVisitor.NONE);
         MutableDirectBuffer encodeDst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult encoded = encoder.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult encoded = encoder.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, encodeDst, 0, encodeDst.capacity());
         assertEquals(ModelStatus.REJECTED, encoded.status());
     }
@@ -155,7 +157,7 @@ public class JsonModelLenientTest
 
         byte[] in = "{\"id\":\"abc\"}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());

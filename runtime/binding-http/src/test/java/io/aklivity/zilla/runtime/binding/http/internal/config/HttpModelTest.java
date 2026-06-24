@@ -15,9 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.model.ModelPipeline.FLAGS_COMPLETE;
-import static io.aklivity.zilla.runtime.engine.model.ModelPipeline.FLAGS_FIN;
-import static io.aklivity.zilla.runtime.engine.model.ModelPipeline.FLAGS_INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
@@ -32,6 +29,10 @@ import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConf
 
 public class HttpModelTest
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+    private static final int FLAGS_COMPLETE = 0x03;
+
     private final MutableDirectBuffer value = new UnsafeBuffer(new byte[256]);
 
     @Test

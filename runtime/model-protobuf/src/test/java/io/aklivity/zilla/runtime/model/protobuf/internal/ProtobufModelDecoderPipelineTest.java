@@ -46,6 +46,10 @@ import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelDecoderPipelineTest
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+    private static final int FLAGS_COMPLETE = 0x03;
+
     private static final String SCHEMA = """
                                             syntax = "proto3";
                                             package io.aklivity.examples.clients.proto;
@@ -99,7 +103,7 @@ public class ProtobufModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -108,7 +112,7 @@ public class ProtobufModelDecoderPipelineTest
 
         // reset and reuse the same pipeline for the next value
         pipeline.reset();
-        ModelPipelineResult reused = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult reused = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, reused.status());
         assertEquals(JSON, text(dst, reused.produced()));
@@ -121,7 +125,7 @@ public class ProtobufModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -146,13 +150,13 @@ public class ProtobufModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBuffer(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        ModelPipelineResult rb = b.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
@@ -161,7 +165,7 @@ public class ProtobufModelDecoderPipelineTest
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBuffer(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -180,7 +184,7 @@ public class ProtobufModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -224,7 +228,7 @@ public class ProtobufModelDecoderPipelineTest
             117, 109, 109, 121, 32, 115, 116, 114, 105, 110, 103, 74, 5, 1, 2, 3, 4, 5, 80, -78, -110, 4, 101, 57,
             48, 0, 0, 105, 21, -51, 91, 7, 0, 0, 0, 0, 112, -28, -92, 8, 120, -30, -94, -13, -83, 7};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(wire), 0, wire.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -262,14 +266,14 @@ public class ProtobufModelDecoderPipelineTest
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[512]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        int flags = ModelPipeline.FLAGS_COMPLETE;
+        int flags = FLAGS_COMPLETE;
         ModelPipelineResult result;
         int guard = 0;
         do
         {
             result = pipeline.transform(0L, 0L, flags, new UnsafeBuffer(wire), 0, p, dst, 0, dst.capacity());
             drain(dst, result.produced(), out);
-            flags = ModelPipeline.FLAGS_FIN;
+            flags = FLAGS_FIN;
             guard++;
         }
         while (result.status() == ModelStatus.OVERFLOW && guard < 1000);
@@ -290,7 +294,7 @@ public class ProtobufModelDecoderPipelineTest
         // index byte, then content length prefix promises 8 bytes but only "OK" follows under FLAGS_COMPLETE
         byte[] invalid = {0x00, 0x0a, 0x08, 0x4f, 0x4b};
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(invalid), 0, invalid.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -305,7 +309,7 @@ public class ProtobufModelDecoderPipelineTest
         assertFalse(pipeline.identity());
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
@@ -318,7 +322,7 @@ public class ProtobufModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());

@@ -39,6 +39,8 @@ import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class CoreModelLenientTest
 {
+    private static final int FLAGS_COMPLETE = 0x03;
+
     private static final ValidateConfig LENIENT =
         new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT);
     private static final ValidateConfig STRICT =
@@ -66,7 +68,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "42".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -82,7 +84,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "42".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -100,7 +102,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "12x".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -115,7 +117,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "12x".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -132,13 +134,13 @@ public class CoreModelLenientTest
 
         ModelPipeline decoder = handler.supplyDecoder(ModelVisitor.NONE);
         MutableDirectBuffer decodeDst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult decoded = decoder.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult decoded = decoder.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
         ModelPipeline encoder = handler.supplyEncoder(ModelVisitor.NONE);
         MutableDirectBuffer encodeDst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult encoded = encoder.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult encoded = encoder.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
         assertEquals(ModelStatus.REJECTED, encoded.status());
     }
@@ -154,7 +156,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "hello".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -169,7 +171,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "hello".getBytes();
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());

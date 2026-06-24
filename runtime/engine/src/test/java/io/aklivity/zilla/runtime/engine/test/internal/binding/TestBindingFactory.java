@@ -75,6 +75,9 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 final class TestBindingFactory implements BindingHandler
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final BeginFW beginRO = new BeginFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
 
@@ -904,7 +907,7 @@ final class TestBindingFactory implements BindingHandler
         {
             int total = 0;
             int srcAt = index;
-            int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
+            int flags = FLAGS_INIT | FLAGS_FIN;
             boolean done = false;
             while (!done)
             {
@@ -928,7 +931,7 @@ final class TestBindingFactory implements BindingHandler
                     else
                     {
                         srcAt += result.consumed();
-                        flags = ModelPipeline.FLAGS_FIN;
+                        flags = FLAGS_FIN;
                     }
                 }
             }

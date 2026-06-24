@@ -33,6 +33,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // first fragment, then drives the common-json transform into the destination after it.
 final class JsonModelEncoderPipeline implements ModelPipeline
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final JsonModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
     private final Int2ObjectCache<JsonPipeline> pipelines;
