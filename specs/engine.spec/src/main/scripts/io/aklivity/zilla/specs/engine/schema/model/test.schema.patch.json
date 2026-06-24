@@ -27,6 +27,33 @@
                     {
                         "const": "test"
                     },
+                    "validate":
+                    {
+                        "oneOf":
+                        [
+                            {
+                                "type": "string",
+                                "enum": [ "strict", "lenient" ]
+                            },
+                            {
+                                "type": "object",
+                                "properties":
+                                {
+                                    "decode":
+                                    {
+                                        "type": "string",
+                                        "enum": [ "strict", "lenient" ]
+                                    },
+                                    "encode":
+                                    {
+                                        "type": "string",
+                                        "enum": [ "strict", "lenient" ]
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        ]
+                    },
                     "length":
                     {
                         "type": "integer"
@@ -161,6 +188,33 @@
                     "model":
                     {
                         "const": "test"
+                    },
+                    "validate":
+                    {
+                        "oneOf":
+                        [
+                            {
+                                "type": "string",
+                                "enum": [ "strict", "lenient" ]
+                            },
+                            {
+                                "type": "object",
+                                "properties":
+                                {
+                                    "decode":
+                                    {
+                                        "type": "string",
+                                        "enum": [ "strict", "lenient" ]
+                                    },
+                                    "encode":
+                                    {
+                                        "type": "string",
+                                        "enum": [ "strict", "lenient" ]
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        ]
                     },
                     "length":
                     {

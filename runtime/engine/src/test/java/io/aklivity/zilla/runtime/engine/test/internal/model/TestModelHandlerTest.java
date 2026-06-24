@@ -25,6 +25,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -62,6 +64,45 @@ public class TestModelHandlerTest
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldForwardWrongLengthUnderLenientDecode()
+    {
+        ModelPipeline pipeline = lenientReadPipeline(4);
+
+        byte[] bytes = {1, 2, 3};
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals(3, result.consumed());
+        assertEquals(3, result.produced());
+    }
+
+    @Test
+    public void shouldRejectWrongLengthUnderStrictEncodeWhenDecodeLenient()
+    {
+        TestModelConfig config = TestModelConfig.builder()
+            .length(4)
+            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT))
+            .build();
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config);
+
+        byte[] bytes = {1, 2, 3};
+
+        ModelPipeline decoder = handler.supplyDecoder(ModelVisitor.NONE);
+        MutableDirectBuffer decodeDst = new UnsafeBuffer(new byte[16]);
+        ModelPipelineResult decoded = decoder.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
+        assertEquals(ModelStatus.COMPLETE, decoded.status());
+
+        ModelPipeline encoder = handler.supplyEncoder(ModelVisitor.NONE);
+        MutableDirectBuffer encodeDst = new UnsafeBuffer(new byte[16]);
+        ModelPipelineResult encoded = encoder.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
+        assertEquals(ModelStatus.REJECTED, encoded.status());
     }
 
     @Test
@@ -171,6 +212,17 @@ public class TestModelHandlerTest
     {
         ModelHandler handler = new TestModelContext(context).supplyHandler(config(length));
         return handler.supplyEncoder();
+    }
+
+    private ModelPipeline lenientReadPipeline(
+        int length)
+    {
+        TestModelConfig config = TestModelConfig.builder()
+            .length(length)
+            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .build();
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config);
+        return handler.supplyDecoder(ModelVisitor.NONE);
     }
 
     private static TestModelConfig config(

@@ -19,6 +19,7 @@ import static java.util.Collections.emptyList;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
@@ -29,6 +30,8 @@ public class TestModelHandler implements ModelHandler
     private final int length;
     private final int transformLength;
     private final List<String> fields;
+    private final boolean decodeLenient;
+    private final boolean encodeLenient;
 
     public TestModelHandler(
         TestModelConfig config)
@@ -36,19 +39,21 @@ public class TestModelHandler implements ModelHandler
         this.length = config.length;
         this.transformLength = config.transformLength;
         this.fields = config.fields != null ? config.fields : emptyList();
+        this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
+        this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
     }
 
     @Override
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new TestModelPipeline(length, transformLength, fields, visitor);
+        return new TestModelPipeline(length, transformLength, fields, decodeLenient, visitor);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
-        return new TestModelPipeline(length, transformLength, fields, visitor);
+        return new TestModelPipeline(length, transformLength, fields, encodeLenient, visitor);
     }
 }
