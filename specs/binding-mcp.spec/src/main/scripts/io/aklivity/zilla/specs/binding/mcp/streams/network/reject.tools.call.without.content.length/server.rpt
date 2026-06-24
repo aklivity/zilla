@@ -90,8 +90,11 @@ read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "400")
+                            .header(":status", "200")
                             .build()}
+write flush
+
+write '{"jsonrpc":"2.0","id":2,"error":{"code":-32600,"message":"Invalid request"}}'
 write flush
 
 write close

@@ -2330,7 +2330,7 @@ public final class McpServerFactory implements McpStreamFactory
             doEncodeResponseError(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
-                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                     .inject(this::injectAltSvc)
                     .build(),
                 -32700,
@@ -2344,7 +2344,7 @@ public final class McpServerFactory implements McpStreamFactory
             doEncodeResponseError(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
-                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                     .inject(this::injectAltSvc)
                     .build(),
                 -32600,
