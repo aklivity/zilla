@@ -265,6 +265,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int CONNECT_TIMEOUT_SIGNAL = 3;
     private static final int SIGNAL_RENEW_SESSION_OWNERSHIP = 4;
     private static final int SIGNAL_STEAL_SESSION_OWNERSHIP = 5;
+    private static final int SIGNAL_ACQUIRE_SESSION_OWNERSHIP = 6;
 
     private static final String OWNER_KEY_POSTFIX = "#owner";
 
@@ -2540,6 +2541,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private String ownerToken;
         private long renewAt = NO_CANCEL_ID;
         private long stealAt = NO_CANCEL_ID;
+        private long acquireAt = NO_CANCEL_ID;
+        private long pendingOwnershipAuth;
         private boolean owns;
         private boolean claimed;
         private boolean ownershipResolved;
@@ -2881,6 +2884,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             case SIGNAL_STEAL_SESSION_OWNERSHIP:
                 onStealOwnership(signal.traceId(), signal.authorization());
                 break;
+            case SIGNAL_ACQUIRE_SESSION_OWNERSHIP:
+                onAcquireOwnership(signal.traceId());
+                break;
             default:
                 break;
             }
@@ -3102,8 +3108,16 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (store != null && !ownershipResolved)
                 {
-                    doAcquireOwnership(traceId, authorization);
                     decoder = decodeAwaitOwnership;
+
+                    if (!willFlagSet)
+                    {
+                        progress = connectPayloadLimit;
+                    }
+
+                    pendingOwnershipAuth = authorization;
+                    acquireAt = signaler.signalAt(currentTimeMillis(),
+                        originId, routedId, replyId, traceId, SIGNAL_ACQUIRE_SESSION_OWNERSHIP, 0);
                 }
                 else
                 {
@@ -3165,6 +3179,17 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .clientId(clientId));
 
             session.doSessionBegin(traceId, affinity, builder.build());
+        }
+
+        private void onAcquireOwnership(
+            long traceId)
+        {
+            acquireAt = NO_CANCEL_ID;
+
+            if (!MqttState.initialClosed(state) && !MqttState.replyClosed(state))
+            {
+                doAcquireOwnership(traceId, pendingOwnershipAuth);
+            }
         }
 
         private void doAcquireOwnership(
@@ -3380,6 +3405,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void doReleaseOwnership(
             long traceId)
         {
+            if (acquireAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(acquireAt);
+                acquireAt = NO_CANCEL_ID;
+            }
+
             if (renewAt != NO_CANCEL_ID)
             {
                 signaler.cancel(renewAt);
