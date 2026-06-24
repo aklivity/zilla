@@ -36,6 +36,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config");
 
     @Test
@@ -112,6 +113,12 @@ public class SchemaTest
         JsonObject config = schema.validate("server.store.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithoutStore()
+    {
+        schema.validate("server.without.store.yaml");
     }
 
     @Test

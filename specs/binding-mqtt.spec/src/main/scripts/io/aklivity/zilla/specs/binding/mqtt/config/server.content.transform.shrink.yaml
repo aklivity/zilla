@@ -16,11 +16,15 @@
 
 ---
 name: test
+stores:
+  test0:
+    type: test
 bindings:
   net0:
     type: mqtt
     kind: server
     options:
+      store: test0
       topics:
         - name: sensor/one
           content:

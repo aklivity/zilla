@@ -198,7 +198,6 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -565,13 +564,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     {
         MqttBindingConfig mqttBinding = new MqttBindingConfig(binding, context);
         bindings.put(binding.id, mqttBinding);
-
-        if (mqttBinding.kind == KindConfig.SERVER &&
-            context.index() == 0 &&
-            (mqttBinding.options == null || mqttBinding.options.store == null))
-        {
-            warnSessionOwnershipDeprecated(mqttBinding.name);
-        }
     }
 
     @Override
@@ -579,24 +571,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         long bindingId)
     {
         bindings.remove(bindingId);
-    }
-
-    private void warnSessionOwnershipDeprecated(
-        String bindingName)
-    {
-        System.out.printf(
-            "WARN [%s] MQTT session ownership will require the 'store' option in an upcoming release. " +
-            "To prepare, configure a store reference on this binding:%n" +
-            "%n" +
-            "  stores:%n" +
-            "    memory0:%n" +
-            "      type: memory%n" +
-            "%n" +
-            "  bindings:%n" +
-            "    %s:%n" +
-            "      options:%n" +
-            "        store: memory0%n",
-            bindingName, bindingName);
     }
 
     @Override

@@ -16,14 +16,9 @@
 
 ---
 name: test
-stores:
-    test0:
-        type: test
 bindings:
     net0:
         type: mqtt
         kind: server
-        options:
-            store: test0
         routes:
             - exit: app0
