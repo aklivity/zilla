@@ -41,7 +41,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
-public class JsonDecodeModelPipelineTest
+public class JsonModelDecoderPipelineTest
 {
     private static final String OBJECT_SCHEMA = "{" +
         "\"type\": \"object\"," +

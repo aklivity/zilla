@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.avro.internal;
+package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -28,18 +28,18 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class EventIT
+public class ProtobufModelEventIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/model/avro/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/model/avro/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/model/protobuf/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/model/protobuf/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
-        .configurationRoot("io/aklivity/zilla/specs/model/avro/config")
+        .configurationRoot("io/aklivity/zilla/specs/model/protobuf/config")
         .external("app0")
         .clean();
 
@@ -49,8 +49,8 @@ public class EventIT
     @Test
     @Configuration("event.yaml")
     @Specification({
-        "${net}/client.sent.avro.invalid/client",
-        "${app}/client.sent.avro.invalid/server"
+        "${net}/client.sent.protobuf.invalid/client",
+        "${app}/client.sent.protobuf.invalid/server"
     })
     public void shouldLogEvents() throws Exception
     {
@@ -58,12 +58,12 @@ public class EventIT
     }
 
     @Test
-    @Configuration("event.view.json.yaml")
+    @Configuration("event.binary.yaml")
     @Specification({
-        "${net}/client.sent.avro.json.invalid/client",
-        "${app}/client.sent.avro.json.invalid/server"
+        "${net}/client.sent.protobuf.binary.invalid/client",
+        "${app}/client.sent.protobuf.binary.invalid/server"
     })
-    public void shouldLogEventsWhenJsonViewRejectsNonJson() throws Exception
+    public void shouldLogEventsWhenBinaryTruncated() throws Exception
     {
         k3po.finish();
     }

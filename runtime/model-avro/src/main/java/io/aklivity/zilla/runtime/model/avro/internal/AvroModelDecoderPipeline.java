@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.json.internal;
+package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
@@ -20,42 +20,43 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 
-import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
+import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
+import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
-// Per-stream read transform session vended by JsonModelHandlerImpl: owns its own generator, extractor and
-// schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
-// strips the catalog framing on the first fragment, drives the common-json transform into the caller's
-// destination, and surfaces extracted fields to the ModelVisitor when a value completes.
-final class JsonDecodeModelPipeline implements ModelPipeline
+// Per-stream read transform session vended by AvroModelHandlerImpl: owns its own JSON generator, extractor
+// and schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
+// strips the catalog framing on the first fragment, drives the common-avro transform into the caller's
+// destination (re-encoding Avro as JSON or canonical Avro), and surfaces extracted fields to the
+// ModelVisitor when a value completes.
+final class AvroModelDecoderPipeline implements ModelPipeline
 {
-    private final JsonModelHandlerImpl handler;
+    private final AvroModelHandlerImpl handler;
     private final ModelVisitor visitor;
     private final JsonGeneratorEx generator;
-    private final JsonExtractor extractor;
-    private final Int2ObjectCache<JsonPipeline> pipelines;
+    private final AvroExtractor extractor;
+    private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
 
-    private JsonPipeline active;
+    private AvroPipeline active;
     private String diagnostic;
 
-    JsonDecodeModelPipeline(
-        JsonModelHandlerImpl handler,
+    AvroModelDecoderPipeline(
+        AvroModelHandlerImpl handler,
         ModelVisitor visitor)
     {
         this.handler = handler;
         this.visitor = visitor;
         this.generator = JsonEx.createGenerator();
         // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
-        this.extractor = visitor != ModelVisitor.NONE ? new JsonExtractor() : null;
+        this.extractor = visitor != ModelVisitor.NONE ? new AvroExtractor() : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -80,7 +81,7 @@ final class JsonDecodeModelPipeline implements ModelPipeline
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
             int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
-            prefix = handler.decodePadding(src, srcIndex, srcLength);
+            prefix = handler.prefix(src, srcIndex, srcLength);
             active = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
             if (active != null)
             {
@@ -94,7 +95,7 @@ final class JsonDecodeModelPipeline implements ModelPipeline
         int produced;
         if (active == null)
         {
-            handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
+            handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : AvroModel.NAME);
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;
@@ -102,18 +103,18 @@ final class JsonDecodeModelPipeline implements ModelPipeline
         else
         {
             boolean last = (flags & FLAGS_FIN) != 0;
-            JsonPipelineResult json =
+            AvroPipelineResult avro =
                 active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
-            status = map(json.status());
-            consumed = prefix + json.consumed();
-            produced = json.produced();
+            status = map(avro.status());
+            consumed = prefix + avro.consumed();
+            produced = avro.produced();
             if (status == ModelStatus.COMPLETE && extractor != null)
             {
                 visitExtracted();
             }
             else if (status == ModelStatus.REJECTED)
             {
-                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
+                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : AvroModel.NAME);
             }
         }
         return result.set(status, consumed, produced);
@@ -153,7 +154,7 @@ final class JsonDecodeModelPipeline implements ModelPipeline
         }
     }
 
-    private JsonPipeline supplyPipeline(
+    private AvroPipeline supplyPipeline(
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId, id -> extractor != null
@@ -162,7 +163,7 @@ final class JsonDecodeModelPipeline implements ModelPipeline
     }
 
     private void onRejected(
-        JsonDiagnostic diagnostic)
+        AvroDiagnostic diagnostic)
     {
         this.diagnostic = diagnostic.message();
     }

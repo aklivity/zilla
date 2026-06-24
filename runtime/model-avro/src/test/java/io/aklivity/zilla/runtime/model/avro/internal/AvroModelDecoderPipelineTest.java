@@ -44,7 +44,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalog
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
-public class AvroDecodeModelPipelineTest
+public class AvroModelDecoderPipelineTest
 {
     private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
         "{\"name\":\"status\",\"type\":\"string\"}]," +

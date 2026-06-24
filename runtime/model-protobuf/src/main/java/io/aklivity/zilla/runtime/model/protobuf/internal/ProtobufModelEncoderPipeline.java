@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // pipeline cache. transform emits the catalog framing then the message-index prefix into the destination on
 // the first fragment, then drives the common-protobuf transform (JSON or wire in, wire out) into the
 // destination after them.
-final class ProtobufEncodeModelPipeline implements ModelPipeline
+final class ProtobufModelEncoderPipeline implements ModelPipeline
 {
     private final ProtobufModelHandlerImpl handler;
     private final Map<String, ProtobufPipeline> pipelines;
@@ -44,7 +44,7 @@ final class ProtobufEncodeModelPipeline implements ModelPipeline
     private MutableDirectBuffer prefixBuffer;
     private int prefixAt;
 
-    ProtobufEncodeModelPipeline(
+    ProtobufModelEncoderPipeline(
         ProtobufModelHandlerImpl handler)
     {
         this.handler = handler;

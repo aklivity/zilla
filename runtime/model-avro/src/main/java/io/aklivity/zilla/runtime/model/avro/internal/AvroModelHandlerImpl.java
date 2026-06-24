@@ -36,8 +36,8 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 // Per-worker factory for an Avro model. One handler serves both directions: supplyDecoder vends a
-// per-stream AvroDecodeModelPipeline (catalog framing stripped, value validated and re-encoded) and supplyEncoder
-// vends a per-stream AvroEncodeModelPipeline (catalog framing emitted, value validated). Configuration-derived
+// per-stream AvroModelDecoderPipeline (catalog framing stripped, value validated and re-encoded) and supplyEncoder
+// vends a per-stream AvroModelEncoderPipeline (catalog framing emitted, value validated). Configuration-derived
 // state (catalog, schema cache, extraction paths) is shared; in-flight state lives on each pipeline.
 public final class AvroModelHandlerImpl extends AvroModelHandler implements ModelHandler
 {
@@ -57,14 +57,14 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new AvroDecodeModelPipeline(this, visitor);
+        return new AvroModelDecoderPipeline(this, visitor);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
-        return new AvroEncodeModelPipeline(this);
+        return new AvroModelEncoderPipeline(this);
     }
 
     int decodePadding(

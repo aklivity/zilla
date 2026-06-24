@@ -33,8 +33,8 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 // Per-worker factory for a JSON model. One handler serves both directions: supplyDecoder vends a
-// per-stream JsonDecodeModelPipeline (catalog framing stripped, value validated) and supplyEncoder vends a
-// per-stream JsonEncodeModelPipeline (catalog framing emitted, value validated). Configuration-derived
+// per-stream JsonModelDecoderPipeline (catalog framing stripped, value validated) and supplyEncoder vends a
+// per-stream JsonModelEncoderPipeline (catalog framing emitted, value validated). Configuration-derived
 // state (catalog, schema cache, extraction paths) is shared; in-flight state lives on each pipeline.
 public final class JsonModelHandlerImpl extends JsonModelHandler implements ModelHandler
 {
@@ -53,14 +53,14 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new JsonDecodeModelPipeline(this, visitor);
+        return new JsonModelDecoderPipeline(this, visitor);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
-        return new JsonEncodeModelPipeline(this);
+        return new JsonModelEncoderPipeline(this);
     }
 
     int decodePadding(

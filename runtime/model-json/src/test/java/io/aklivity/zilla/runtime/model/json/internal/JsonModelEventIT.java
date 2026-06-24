@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.protobuf.internal;
+package io.aklivity.zilla.runtime.model.json.internal;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -28,18 +28,18 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class EventIT
+public class JsonModelEventIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/model/protobuf/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/model/protobuf/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/model/json/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/model/json/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
-        .configurationRoot("io/aklivity/zilla/specs/model/protobuf/config")
+        .configurationRoot("io/aklivity/zilla/specs/model/json/config")
         .external("app0")
         .clean();
 
@@ -49,21 +49,10 @@ public class EventIT
     @Test
     @Configuration("event.yaml")
     @Specification({
-        "${net}/client.sent.protobuf.invalid/client",
-        "${app}/client.sent.protobuf.invalid/server"
+        "${net}/client.sent.json.invalid/client",
+        "${app}/client.sent.json.invalid/server"
     })
     public void shouldLogEvents() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("event.binary.yaml")
-    @Specification({
-        "${net}/client.sent.protobuf.binary.invalid/client",
-        "${app}/client.sent.protobuf.binary.invalid/server"
-    })
-    public void shouldLogEventsWhenBinaryTruncated() throws Exception
     {
         k3po.finish();
     }

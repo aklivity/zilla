@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.json.internal;
+package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -28,18 +28,18 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class EventIT
+public class AvroModelEventIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/model/json/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/model/json/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/model/avro/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/model/avro/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
-        .configurationRoot("io/aklivity/zilla/specs/model/json/config")
+        .configurationRoot("io/aklivity/zilla/specs/model/avro/config")
         .external("app0")
         .clean();
 
@@ -49,10 +49,21 @@ public class EventIT
     @Test
     @Configuration("event.yaml")
     @Specification({
-        "${net}/client.sent.json.invalid/client",
-        "${app}/client.sent.json.invalid/server"
+        "${net}/client.sent.avro.invalid/client",
+        "${app}/client.sent.avro.invalid/server"
     })
     public void shouldLogEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("event.view.json.yaml")
+    @Specification({
+        "${net}/client.sent.avro.json.invalid/client",
+        "${app}/client.sent.avro.json.invalid/server"
+    })
+    public void shouldLogEventsWhenJsonViewRejectsNonJson() throws Exception
     {
         k3po.finish();
     }

@@ -12,38 +12,42 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.avro.internal;
+package io.aklivity.zilla.runtime.model.json.internal;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 
-import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
-import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
-import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
-import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
-// Per-stream write transform session vended by AvroModelHandlerImpl: owns its own schema-keyed pipeline
-// cache. transform emits the catalog framing prefix into the destination on the first fragment, then drives
-// the common-avro transform (JSON in, Avro binary out) into the destination after it.
-final class AvroEncodeModelPipeline implements ModelPipeline
+// Per-stream write transform session vended by JsonModelHandlerImpl: owns its own generator and
+// schema-keyed pipeline cache. transform emits the catalog framing prefix into the destination on the
+// first fragment, then drives the common-json transform into the destination after it.
+final class JsonModelEncoderPipeline implements ModelPipeline
 {
-    private final AvroModelHandlerImpl handler;
-    private final Int2ObjectCache<AvroPipeline> pipelines;
+    private final JsonModelHandlerImpl handler;
+    private final JsonGeneratorEx generator;
+    private final Int2ObjectCache<JsonPipeline> pipelines;
     private final ModelPipelineResult result;
 
-    private AvroPipeline active;
+    private JsonPipeline active;
     private String diagnostic;
     private MutableDirectBuffer prefixBuffer;
     private int prefixAt;
 
-    AvroEncodeModelPipeline(
-        AvroModelHandlerImpl handler)
+    JsonModelEncoderPipeline(
+        JsonModelHandlerImpl handler)
     {
         this.handler = handler;
+        this.generator = JsonEx.createGenerator();
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -81,7 +85,7 @@ final class AvroEncodeModelPipeline implements ModelPipeline
         int produced;
         if (active == null)
         {
-            handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : AvroModel.NAME);
+            handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;
@@ -89,14 +93,14 @@ final class AvroEncodeModelPipeline implements ModelPipeline
         else
         {
             boolean last = (flags & FLAGS_FIN) != 0;
-            AvroPipelineResult avro =
+            JsonPipelineResult json =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
-            status = map(avro.status());
-            consumed = avro.consumed();
-            produced = prefix + avro.produced();
+            status = map(json.status());
+            consumed = json.consumed();
+            produced = prefix + json.produced();
             if (status == ModelStatus.REJECTED)
             {
-                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : AvroModel.NAME);
+                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : JsonModel.NAME);
             }
         }
         return result.set(status, consumed, produced);
@@ -153,14 +157,14 @@ final class AvroEncodeModelPipeline implements ModelPipeline
         prefixAt += length;
     }
 
-    private AvroPipeline supplyPipeline(
+    private JsonPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, generator, this::onRejected));
     }
 
     private void onRejected(
-        AvroDiagnostic diagnostic)
+        JsonDiagnostic diagnostic)
     {
         this.diagnostic = diagnostic.message();
     }

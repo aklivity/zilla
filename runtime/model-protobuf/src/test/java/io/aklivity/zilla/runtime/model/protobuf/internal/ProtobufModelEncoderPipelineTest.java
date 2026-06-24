@@ -12,12 +12,11 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.avro.internal;
+package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +28,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -40,33 +38,36 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
-import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfigBuilder;
+import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
-public class AvroEncodeModelPipelineTest
+public class ProtobufModelEncoderPipelineTest
 {
-    private static final String SCHEMA = "{\"fields\":[{\"name\":\"id\",\"type\":\"string\"}," +
-        "{\"name\":\"status\",\"type\":\"string\"}]," +
-        "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
+    private static final String SCHEMA = """
+                                            syntax = "proto3";
+                                            package io.aklivity.examples.clients.proto;
+                                            message SimpleMessage {
+                                                string content = 1;
+                                                optional string date_time = 2;
+                                            }
+                                            """;
 
-    private static final String JSON = "{\"id\":\"id0\",\"status\":\"positive\"}";
-    // id="id0" (len 3) then status="positive" (len 8); the TestCatalog adds no framing prefix
-    private static final byte[] AVRO = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
+    private static final String JSON = "{\"content\":\"OK\",\"date_time\":\"01012024\"}";
+    // single zero index byte for the first top-level message, then content="OK" and date_time="01012024"
+    private static final byte[] WIRE =
+        {0x00, 0x0a, 0x02, 0x4f, 0x4b, 0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
 
     private EngineContext context;
-    private AvroModelConfiguration config;
 
     @Before
     public void init()
     {
-        config = new AvroModelConfiguration(new Configuration());
         context = mock(EngineContext.class);
     }
 
     @Test
     public void shouldTransformWholeValue()
     {
-        AvroModelHandlerImpl handler = newHandler();
+        ProtobufModelHandlerImpl handler = newHandler();
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] in = JSON.getBytes(UTF_8);
@@ -78,19 +79,28 @@ public class AvroEncodeModelPipelineTest
         assertEquals(in.length, result.consumed());
         byte[] out = new byte[result.produced()];
         dst.getBytes(0, out);
-        assertArrayEquals(AVRO, out);
+        assertArrayEquals(WIRE, out);
+
+        // reset and reuse the same pipeline for the next value
+        pipeline.reset();
+        ModelPipelineResult reused = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
+        assertEquals(ModelStatus.COMPLETE, reused.status());
+        byte[] outReused = new byte[reused.produced()];
+        dst.getBytes(0, outReused);
+        assertArrayEquals(WIRE, outReused);
     }
 
     @Test
     public void shouldIsolateInterleavedStreams()
     {
-        AvroModelHandlerImpl handler = newHandler();
+        ProtobufModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
         ModelPipeline a = handler.supplyEncoder(ModelVisitor.NONE);
         ModelPipeline b = handler.supplyEncoder(ModelVisitor.NONE);
 
-        byte[] a1 = "{\"id\":\"id0\",".getBytes(UTF_8);
-        byte[] a2tail = "\"status\":\"positive\"}".getBytes(UTF_8);
+        byte[] a1 = "{\"content\":\"OK\",".getBytes(UTF_8);
+        byte[] a2tail = "\"date_time\":\"01012024\"}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
@@ -107,7 +117,7 @@ public class AvroEncodeModelPipelineTest
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
         dst.getBytes(0, outB);
-        assertArrayEquals(AVRO, outB);
+        assertArrayEquals(WIRE, outB);
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
@@ -116,7 +126,54 @@ public class AvroEncodeModelPipelineTest
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
-        assertArrayEquals(AVRO, outA.toByteArray());
+        assertArrayEquals(WIRE, outA.toByteArray());
+    }
+
+    @Test
+    public void shouldDrainOnOverflow()
+    {
+        ProtobufModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        // a 2000-byte content value forces the wire output past a small destination window, exercising the
+        // bounded-chunk OVERFLOW drain across re-transforms (INIT cleared on every re-call after the first)
+        String content = "A".repeat(2000);
+        byte[] in = ("{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}").getBytes(UTF_8);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[512]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int flags = ModelPipeline.FLAGS_COMPLETE;
+        ModelPipelineResult result;
+        int guard = 0;
+        do
+        {
+            result = pipeline.transform(0L, 0L, flags, new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
+            drain(dst, result.produced(), out);
+            flags = ModelPipeline.FLAGS_FIN;
+            guard++;
+        }
+        while (result.status() == ModelStatus.OVERFLOW && guard < 1000);
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        byte[] wire = out.toByteArray();
+        // the single zero index byte then a content field longer than the destination window
+        assertEquals(0x00, wire[0]);
+        org.junit.Assert.assertTrue(wire.length > 2000);
+    }
+
+    @Test
+    public void shouldRejectUnknownRecord()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        ProtobufModelHandlerImpl handler = newHandler("Nonexistent");
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        byte[] in = JSON.getBytes(UTF_8);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
     }
 
     @Test
@@ -124,11 +181,11 @@ public class AvroEncodeModelPipelineTest
     {
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroModelHandlerImpl handler = newHandler();
+        ProtobufModelHandlerImpl handler = newHandler();
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
-        // id must be a string, not a number
-        byte[] in = "{\"id\":123,\"status\":\"positive\"}".getBytes(UTF_8);
+        // an unknown field is rejected by the strict JSON parser
+        byte[] in = "{\"content\":\"OK\",\"unexpected\":\"value\"}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
@@ -136,102 +193,37 @@ public class AvroEncodeModelPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
-    @Test
-    public void shouldRejectMalformedJson()
+    private ProtobufModelHandlerImpl newHandler()
     {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // raw protobuf-style binary, not valid JSON, fed under view: json -> the underlying JSON parser would
-        // throw a JsonParsingException; the parser boundary must translate it to a clean REJECTED, not crash
-        byte[] in = {0x0a, 0x02, 0x69, 0x64};
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
+        return newHandler("SimpleMessage");
     }
 
-    @Test
-    public void shouldReportEncodePadding()
-    {
-        AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        byte[] in = JSON.getBytes(UTF_8);
-        assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
-    }
-
-    @Test
-    public void shouldValidateBinaryWholeValue()
-    {
-        AvroModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(AVRO.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertArrayEquals(AVRO, out);
-    }
-
-    @Test
-    public void shouldRejectBinaryTruncated()
-    {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // id length prefix promises 3 bytes, then status length prefix 8 with no payload -> truncated datum
-        byte[] truncated = {0x06, 0x69, 0x64, 0x30, 0x10};
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBuffer(truncated), 0, truncated.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    private AvroModelHandlerImpl newHandler()
-    {
-        return newHandler("json");
-    }
-
-    private AvroModelHandlerImpl newHandler(
-        String view)
+    private ProtobufModelHandlerImpl newHandler(
+        String record)
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
-                .id(9)
+                .id(1)
                 .schema(SCHEMA)
                 .build()
             .build();
-        AvroModelConfigBuilder<AvroModelConfig> builder = AvroModelConfig.builder();
-        if (view != null)
-        {
-            builder.view(view);
-        }
-        AvroModelConfig model = builder
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .view("json")
             .catalog()
                 .name("test0")
-                    .schema()
-                        .strategy("topic")
-                        .version("latest")
-                        .subject("test-value")
-                        .build()
+                .schema()
+                    .strategy("topic")
+                    .version("latest")
+                    .subject("test-value")
+                    .record(record)
+                    .build()
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new AvroModelHandlerImpl(config, model, context);
+        return new ProtobufModelHandlerImpl(model, context);
     }
 
     private static byte[] concat(
