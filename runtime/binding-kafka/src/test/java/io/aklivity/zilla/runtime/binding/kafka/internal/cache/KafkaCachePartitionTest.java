@@ -434,6 +434,12 @@ public class KafkaCachePartitionTest
         }
 
         @Override
+        public boolean identity()
+        {
+            return false;
+        }
+
+        @Override
         public void reset()
         {
         }

@@ -147,6 +147,12 @@ public final class AvroJsonParserImpl implements AvroParser
     }
 
     @Override
+    public boolean identity()
+    {
+        return false;
+    }
+
+    @Override
     public void wrap(
         DirectBuffer buffer,
         int offset,

@@ -199,6 +199,12 @@ public final class AvroParserImpl implements AvroParser
     }
 
     @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
+    @Override
     public int remaining()
     {
         return limit - progress;

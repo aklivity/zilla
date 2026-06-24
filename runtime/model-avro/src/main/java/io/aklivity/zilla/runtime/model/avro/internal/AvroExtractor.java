@@ -89,6 +89,12 @@ final class AvroExtractor implements AvroTransform
         current = null;
     }
 
+    @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
     private void observe(
         AvroSource source,
         AvroEvent event)

@@ -88,4 +88,9 @@ public interface JsonSink
     default void reset()
     {
     }
+
+    /**
+     * Whether this sink, together with everything downstream of it, leaves the bytes unchanged.
+     */
+    boolean identity();
 }

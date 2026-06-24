@@ -103,6 +103,12 @@ final class AvroEncodeModelPipeline implements ModelPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        return false;
+    }
+
+    @Override
     public int padding(
         DirectBuffer data,
         int index,

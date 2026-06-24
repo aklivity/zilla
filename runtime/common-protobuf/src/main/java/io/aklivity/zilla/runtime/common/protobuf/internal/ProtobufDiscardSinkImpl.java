@@ -52,6 +52,12 @@ public final class ProtobufDiscardSinkImpl implements ProtobufSink
     }
 
     @Override
+    public boolean identity()
+    {
+        return false;
+    }
+
+    @Override
     public void reset()
     {
         depth = 0;

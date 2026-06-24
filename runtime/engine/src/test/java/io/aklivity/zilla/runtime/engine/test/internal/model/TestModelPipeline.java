@@ -133,6 +133,12 @@ final class TestModelPipeline implements ModelPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        return transformLength < 0;
+    }
+
+    @Override
     public void reset()
     {
         processed = 0;

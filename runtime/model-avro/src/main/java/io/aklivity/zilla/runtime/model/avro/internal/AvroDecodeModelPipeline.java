@@ -121,6 +121,12 @@ final class AvroDecodeModelPipeline implements ModelPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        return active != null && active.identity();
+    }
+
+    @Override
     public int padding(
         DirectBuffer data,
         int index,

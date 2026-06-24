@@ -142,6 +142,12 @@ final class JsonExtractor implements JsonTransform
         downstreamVerbatim = false;
     }
 
+    @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
     // Re-asserts verbatim downstream: once the sink has opted in, a body event (scalar, key, or structural —
     // not document framing or a segment) is forwarded as a VERBATIM event so the sink copies the original
     // bytes; the structured event was already observed above for extraction.

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.avro.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayOutputStream;
@@ -37,6 +38,17 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
 public class AvroJsonTest
 {
+    @Test
+    public void shouldNotReportIdentityForJsonGeneratorPipeline()
+    {
+        AvroSchema schema = Avro.schema("\"string\"");
+        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        AvroGenerator generator = AvroJson.generator(schema, JsonEx.createGenerator(), true).wrap(out, 0, out.capacity());
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
+
+        assertFalse(pipeline.identity());
+    }
+
     @Test
     public void shouldEncodeAndRoundTripPrimitives()
     {

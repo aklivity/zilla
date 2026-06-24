@@ -279,5 +279,11 @@ public class AvroPipelineBM
         {
             return Status.ADVANCED;
         }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
     }
 }

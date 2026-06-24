@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -142,7 +143,7 @@ public class AvroDecodeModelPipelineTest
     @Test
     public void shouldExtractScalarFields()
     {
-        AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA);
+        AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA, "json");
 
         Map<String, String> extracted = new HashMap<>();
         ModelVisitor visitor = (path, buffer, index, length) ->
@@ -198,13 +199,42 @@ public class AvroDecodeModelPipelineTest
         assertTrue(pipeline.padding(new UnsafeBuffer(AVRO), 0, AVRO.length) >= 0);
     }
 
+    @Test
+    public void shouldReportIdentityWhenNoView()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        assertFalse(pipeline.identity());
+
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenJsonView()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
+            new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+
+        assertFalse(pipeline.identity());
+    }
+
     private AvroModelHandlerImpl newHandler()
     {
-        return newHandler(SCHEMA);
+        return newHandler(SCHEMA, "json");
     }
 
     private AvroModelHandlerImpl newHandler(
-        String schema)
+        String schema,
+        String view)
     {
         TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -216,7 +246,7 @@ public class AvroDecodeModelPipelineTest
                 .build()
             .build();
         AvroModelConfig model = AvroModelConfig.builder()
-            .view("json")
+            .view(view)
             .catalog()
                 .name("test0")
                     .schema()

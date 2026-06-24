@@ -74,6 +74,9 @@ public final class JsonParserImpl implements JsonParserEx
     private int segmentConsumed;
     private int segmentDepth;
     private boolean armNextValue;
+    // whether the current window is the final one of the feed; END_DOCUMENT is held until this is known so a
+    // non-final window starves before the boundary rather than swallowing a following document's leading bytes
+    private boolean windowLast = true;
     // running char cursor into the decoded chars of the current canonical value-string: getStringView()
     // exposes the unconsumed remainder from here and consumed() advances it, so a resumed bounded write
     // continues where the output bound left off
@@ -163,6 +166,7 @@ public final class JsonParserImpl implements JsonParserEx
         frameBaseStreamOffset = tokenizer.streamOffset();
         tokenizer.window(limit - offset);
         ownedInput.wrap(buffer, offset, limit - offset);
+        windowLast = true;
         return this;
     }
 
@@ -177,7 +181,9 @@ public final class JsonParserImpl implements JsonParserEx
         boolean last)
     {
         tokenizer.terminal(last);
-        return wrap(buffer, offset, limit);
+        wrap(buffer, offset, limit);
+        windowLast = last;
+        return this;
     }
 
     @Override
@@ -194,6 +200,7 @@ public final class JsonParserImpl implements JsonParserEx
         segmentDepth = 0;
         segmentConsumed = 0;
         armNextValue = false;
+        windowLast = true;
         stringViewOffset = 0;
         verbatimCursor = 0;
         trimLeadingSeparator = false;
@@ -202,6 +209,12 @@ public final class JsonParserImpl implements JsonParserEx
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return true;
     }
 
     @Override
@@ -310,9 +323,13 @@ public final class JsonParserImpl implements JsonParserEx
             docState = DocState.STARTED;
             event = JsonEvent.START_DOCUMENT;
         }
-        else if (segmentState == SegmentState.NONE && !tokenizerHasNext() && tokenizer.done())
+        else if (segmentState == SegmentState.NONE && !tokenizerHasNext() && tokenizer.done() && windowLast)
         {
             docState = DocState.ENDED;
+            final long documentEnd = tokenizer.documentEndOffset();
+            segmentSliceOffset = bufferOffset(documentEnd);
+            segmentSliceLength = (int) (tokenizer.streamOffset() - documentEnd);
+            segmentConsumed = 0;
             event = JsonEvent.END_DOCUMENT;
         }
         else
@@ -328,9 +345,20 @@ public final class JsonParserImpl implements JsonParserEx
             currentEvent = toEvent(event);
             if (isBodyEvent(event))
             {
-                // record the run's structural step for getVerbatim(); framing and
-                // segment events are not verbatim steps, and skipValue()'s internal next() never reaches here
+                // record the run's structural step for getVerbatim(); segment events are not verbatim steps,
+                // and skipValue()'s internal next() never reaches here
                 appendStep(event);
+            }
+            else if (mode == Mode.SEGMENTED && event == JsonEvent.START_DOCUMENT)
+            {
+                appendFraming(toStep(event));
+            }
+            else if (event == JsonEvent.END_DOCUMENT)
+            {
+                // align the verbatim cursor to the top-level close so the END_DOCUMENT block is exactly the
+                // trailing [documentEnd, frontier) range whether the body rode as VERBATIM or as a SEGMENT run
+                verbatimCursor = Math.max(verbatimCursor, tokenizer.documentEndOffset());
+                appendFraming(toStep(event));
             }
         }
         return event;
@@ -377,7 +405,9 @@ public final class JsonParserImpl implements JsonParserEx
         }
         else
         {
-            result = tokenizer.done();
+            // a completed document yields END_DOCUMENT only once the boundary is known; on a non-terminal window
+            // the trailing bytes are still ambiguous, so starve until the boundary is decidable
+            result = tokenizer.done() && windowLast;
         }
         return result;
     }
@@ -620,7 +650,7 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public DirectBuffer getSegment()
     {
-        assert lastEvent != null && lastEvent.segmented();
+        assert lastEvent != null && (lastEvent.segmented() || lastEvent == JsonEvent.END_DOCUMENT);
         // re-expose the unconsumed remainder of the segment slice after consumed() pushback, append-only
         segmentView.wrap(ownedInput.buffer(), segmentSliceOffset + segmentConsumed, segmentSliceLength - segmentConsumed);
         return segmentView;
@@ -759,6 +789,19 @@ public final class JsonParserImpl implements JsonParserEx
         append(toStep(kind), end);
     }
 
+    // records a framing step (no separator, no occupancy) at the current frontier; for END_DOCUMENT this makes
+    // its byte range the document's trailing bytes, for START_DOCUMENT a zero-width step getVerbatim() bounds
+    private void appendFraming(
+        JsonStep step)
+    {
+        if (stepHead == stepCount)
+        {
+            stepCount = 0;
+            stepHead = 0;
+        }
+        append(step, tokenizer.streamOffset());
+    }
+
     private void append(
         JsonStep step,
         long end)
@@ -778,6 +821,8 @@ public final class JsonParserImpl implements JsonParserEx
     {
         return switch (kind)
         {
+        case START_DOCUMENT -> JsonStep.START_DOCUMENT;
+        case END_DOCUMENT -> JsonStep.END_DOCUMENT;
         case START_OBJECT -> JsonStep.START_OBJECT;
         case END_OBJECT -> JsonStep.END_OBJECT;
         case START_ARRAY -> JsonStep.START_ARRAY;

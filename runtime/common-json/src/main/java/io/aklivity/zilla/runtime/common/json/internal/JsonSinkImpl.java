@@ -128,6 +128,7 @@ public final class JsonSinkImpl implements JsonSink
             }
             break;
         case END_DOCUMENT:
+            status = writeDocumentEnd(source);
             break;
         default:
             break;
@@ -143,7 +144,11 @@ public final class JsonSinkImpl implements JsonSink
         JsonEvent event)
     {
         Status status;
-        if (event != null && event.isVerbatim())
+        if (event == JsonEvent.END_DOCUMENT)
+        {
+            status = writeDocumentEnd(source);
+        }
+        else if (event != null && event.isVerbatim())
         {
             verbatimSeen = true;
             status = writeVerbatim(source);
@@ -179,6 +184,12 @@ public final class JsonSinkImpl implements JsonSink
         depth = 0;
         verbatimSeen = false;
         generator.reset();
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return generator.identity();
     }
 
     // Whether the suspended event still has value bytes/chars left to write, read from the source cursor —
@@ -354,6 +365,14 @@ public final class JsonSinkImpl implements JsonSink
         // means the output capped the run, so suspend and resume against a freshly drained buffer. An empty
         // block (drained, or no token fit) is shorter than the bound, so it advances.
         return length < free ? Status.ADVANCED : Status.SUSPENDED;
+    }
+
+    // a byte-preserving sink splices the END_DOCUMENT verbatim block (the document's trailing bytes) through
+    // writeVerbatim; a canonical sink re-rendered every value and writes nothing here, dropping the trailing bytes
+    private Status writeDocumentEnd(
+        JsonSource source)
+    {
+        return canonical ? Status.ADVANCED : writeVerbatim(source);
     }
 
     // Suspends at an event boundary once the bounded output nears its limit, so the next event's write

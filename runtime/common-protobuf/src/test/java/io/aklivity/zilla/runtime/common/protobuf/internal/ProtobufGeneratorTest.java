@@ -266,6 +266,12 @@ public class ProtobufGeneratorTest
             depth = 0;
         }
 
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
+
         private static String value(
             ProtobufSource source)
         {
@@ -348,6 +354,12 @@ public class ProtobufGeneratorTest
         {
             depth = 0;
             pending = null;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
         }
 
         private void writeValue(

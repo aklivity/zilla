@@ -52,6 +52,12 @@ public final class AvroGeneratorImpl implements AvroGenerator
     }
 
     @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
+    @Override
     public AvroGenerator wrap(
         MutableDirectBuffer buffer,
         int offset,

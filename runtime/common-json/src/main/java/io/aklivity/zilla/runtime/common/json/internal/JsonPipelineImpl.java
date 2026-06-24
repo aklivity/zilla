@@ -85,6 +85,12 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
+    public boolean identity()
+    {
+        return parser.identity() && root.identity();
+    }
+
+    @Override
     public int remaining()
     {
         return parser.remaining();
@@ -100,13 +106,19 @@ public final class JsonPipelineImpl implements JsonPipeline
         Status status = Status.ADVANCED;
         try
         {
+            boolean resumingDocumentEnd = false;
             if (suspended)
             {
+                resumingDocumentEnd = resumeEvent == JsonEvent.END_DOCUMENT;
                 status = root.resume(control, source, resumeEvent);
             }
             else
             {
                 parser.wrap(buffer, offset, limit, last);
+            }
+            if (resumingDocumentEnd && status == Status.ADVANCED)
+            {
+                status = Status.COMPLETED;
             }
             while (status == Status.ADVANCED)
             {
@@ -124,6 +136,10 @@ public final class JsonPipelineImpl implements JsonPipeline
                     // the pump owns the resume cursor: remember the in-flight event for the next entry
                     resumeEvent = event;
                 }
+            }
+            if (status == Status.COMPLETED)
+            {
+                status = completeDocument(status);
             }
             if (status == Status.ADVANCED || status == Status.STARVED)
             {
@@ -179,6 +195,27 @@ public final class JsonPipelineImpl implements JsonPipeline
         // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
         int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - parser.remaining();
         return result.set(status, consumed, produced);
+    }
+
+    private Status completeDocument(
+        Status completed)
+    {
+        Status status = completed;
+        JsonEvent event = parser.nextEvent(control.mode());
+        while (event != null && status == Status.COMPLETED)
+        {
+            status = root.transform(control, source, event);
+            if (status == Status.SUSPENDED)
+            {
+                resumeEvent = event;
+            }
+            else
+            {
+                status = Status.COMPLETED;
+                event = parser.nextEvent(control.mode());
+            }
+        }
+        return status;
     }
 
     // Adapts the parser to the non-advancing JsonSource view a stage reads off the current event.

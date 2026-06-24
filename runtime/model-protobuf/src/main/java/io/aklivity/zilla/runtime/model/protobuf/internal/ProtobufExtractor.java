@@ -91,6 +91,12 @@ final class ProtobufExtractor implements ProtobufTransform
         current = null;
     }
 
+    @Override
+    public boolean identity()
+    {
+        return true;
+    }
+
     private void observe(
         ProtobufSource source,
         ProtobufEvent event)

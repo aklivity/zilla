@@ -49,4 +49,13 @@ public interface ProtobufTransform
     default void reset()
     {
     }
+
+    /**
+     * Whether this stage forwards every event verbatim, leaving the bytes unchanged. A validating or
+     * observing stage is identity; a stage that substitutes, drops, or rewrites events is not.
+     */
+    default boolean identity()
+    {
+        return false;
+    }
 }

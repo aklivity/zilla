@@ -50,7 +50,7 @@ class JsonPipelineChunkingTest
             .into(JsonEx.createSink(generator));
 
         String json = "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -62,7 +62,7 @@ class JsonPipelineChunkingTest
             .into(JsonEx.createSink(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -75,7 +75,7 @@ class JsonPipelineChunkingTest
             .into(JsonEx.createSink(generator));
 
         String json = "{\"id\":1,\"items\":[10,11,12,13,14,15,16,17,18,19],\"ok\":true}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -88,7 +88,7 @@ class JsonPipelineChunkingTest
             .into(JsonEx.createSink(generator));
 
         String json = "{\"k0\":0,\"k1\":1,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -163,7 +163,7 @@ class JsonPipelineChunkingTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
-        assertEquals("{\"data\":\"aaaaaaaaaabbbbbbbbbb\"}", new String(out, UTF_8));
+        assertEquals("{\"data\":\"aaaaaaaaaabbbbbbbbbb\"} ", new String(out, UTF_8));
     }
 
     @Test
@@ -204,7 +204,7 @@ class JsonPipelineChunkingTest
 
         // a single string property value far larger than BOUND, in structured delivery
         String json = "{\"data\":\"" + "x".repeat(96) + "\"}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -217,7 +217,7 @@ class JsonPipelineChunkingTest
 
         // a single numeric property value far larger than BOUND, in structured delivery
         String json = "{\"data\":" + "1".repeat(96) + "}";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -231,7 +231,7 @@ class JsonPipelineChunkingTest
         // one top-level array whose verbatim form far exceeds BOUND, delivered as a single segment that
         // must be fragmented across many chunks
         String json = "[\"aaaaaaaa\",\"bbbbbbbb\",\"cccccccc\",\"dddddddd\",\"eeeeeeee\",\"ffffffff\"]";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -246,7 +246,7 @@ class JsonPipelineChunkingTest
 
         // the resume cascade must continue the in-flight fragment through the transform stage
         String json = "[\"aaaaaaaa\",\"bbbbbbbb\",\"cccccccc\",\"dddddddd\",\"eeeeeeee\",\"ffffffff\"]";
-        assertEquals(json, chunked(pipeline, generator, output, json));
+        assertEquals(json + " ", chunked(pipeline, generator, output, json));
     }
 
     @Test
@@ -265,7 +265,7 @@ class JsonPipelineChunkingTest
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[generator.length()];
         output.getBytes(0, out);
-        assertEquals("[1,2,3]", new String(out, UTF_8));
+        assertEquals("[1,2,3] ", new String(out, UTF_8));
     }
 
     @Test
