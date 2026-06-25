@@ -1297,22 +1297,22 @@ public class EngineWorker implements EngineContext, Agent
 
     private void onSystemMessage(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
         switch (msgTypeId)
         {
         case FlushFW.TYPE_ID:
-            final FlushFW flush = flushRO.wrap((DirectBufferEx) buffer, index, index + length);
+            final FlushFW flush = flushRO.wrap(buffer, index, index + length);
             onSystemFlush(flush);
             break;
         case WindowFW.TYPE_ID:
-            final WindowFW window = windowRO.wrap((DirectBufferEx) buffer, index, index + length);
+            final WindowFW window = windowRO.wrap(buffer, index, index + length);
             onSystemWindow(window);
             break;
         case SignalFW.TYPE_ID:
-            final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
+            final SignalFW signal = signalRO.wrap(buffer, index, index + length);
             onSystemSignal(signal);
             break;
         }
@@ -1617,7 +1617,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDroppedReadFrame(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1634,13 +1634,13 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDroppedReadData(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
         assert msgTypeId == DataFW.TYPE_ID;
 
-        final DataFW data = dataRO.wrap((DirectBufferEx) buffer, index, index + length);
+        final DataFW data = dataRO.wrap(buffer, index, index + length);
         final long traceId = data.traceId();
         final long budgetId = data.budgetId();
         final int reserved = data.reserved();
@@ -1650,13 +1650,13 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDroppedReadEnd(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
         assert msgTypeId == EndFW.TYPE_ID;
 
-        final EndFW end = endRO.wrap((DirectBufferEx) buffer, index, index + length);
+        final EndFW end = endRO.wrap(buffer, index, index + length);
         final long traceId = end.traceId();
         final long budgetId = end.budgetId();
         final int reserved = end.reserved();
@@ -1836,11 +1836,11 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer handleBeginInitial(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
-        final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
@@ -1858,7 +1858,7 @@ public class EngineWorker implements EngineContext, Agent
             final MessageConsumer replyTo = supplyReplyTo(initialId)
                 .andThen(sentMetricHandler.filter(this::isReplyId))
                 .andThen(receivedMetricHandler.filter(this::isInitialId));
-            newStream = streamFactory.newStream(msgTypeId, (DirectBufferEx) buffer, index, length, replyTo);
+            newStream = streamFactory.newStream(msgTypeId, buffer, index, length, replyTo);
             if (newStream != null)
             {
                 newStream = receivedMetricHandler.filter(this::isInitialId)
@@ -1878,7 +1878,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private boolean isInitialId(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1887,7 +1887,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private boolean isReplyId(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1896,11 +1896,11 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer handleBeginReply(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
-        final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long streamId = begin.streamId();
 
         MessageConsumer newStream = null;
@@ -1916,11 +1916,11 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer handleFlushReply(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
-        final FlushFW flush = flushRO.wrap((DirectBufferEx) buffer, index, index + length);
+        final FlushFW flush = flushRO.wrap(buffer, index, index + length);
         final long streamId = flush.streamId();
 
         MessageConsumer newStream = null;
@@ -1995,12 +1995,12 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
     {
-        final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, length);
+        final FrameFW frame = frameRO.wrap(buffer, index, length);
         final long streamId = frame.streamId();
         assert StreamId.isInitial(streamId);
         throttles[throttleIndex(streamId)].put(instanceId(streamId), sender);

@@ -602,7 +602,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         Flyweight extension)
@@ -618,7 +618,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .payload((DirectBufferEx) buffer, index, length)
+                .payload(buffer, index, length)
                 .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
@@ -739,13 +739,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
         int progress = offset;
 
-        final int endOfHeadersAt = limitOfBytes((DirectBufferEx) buffer, offset, limit, CRLFCRLF_BYTES);
+        final int endOfHeadersAt = limitOfBytes(buffer, offset, limit, CRLFCRLF_BYTES);
 
         decode:
         if (endOfHeadersAt != -1)
@@ -754,7 +754,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .wrap((MutableDirectBufferEx) codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId);
 
-            final int endOfStartAt = limitOfBytes((DirectBufferEx) buffer, offset, limit, CRLF_BYTES);
+            final int endOfStartAt = limitOfBytes(buffer, offset, limit, CRLF_BYTES);
 
             if (endOfStartAt != -1)
             {
@@ -772,14 +772,14 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 final int endOfHeaderLinesAt = endOfHeadersAt - CRLF_BYTES.length;
                 int startOfLineAt = endOfStartAt;
-                for (int endOfLineAt = limitOfBytes((DirectBufferEx) buffer, startOfLineAt, endOfHeaderLinesAt, CRLF_BYTES);
+                for (int endOfLineAt = limitOfBytes(buffer, startOfLineAt, endOfHeaderLinesAt, CRLF_BYTES);
                         endOfLineAt != -1;
                         startOfLineAt = endOfLineAt,
                         endOfLineAt = limitOfBytes(
-                            (DirectBufferEx) buffer, startOfLineAt, endOfHeaderLinesAt, CRLF_BYTES))
+                            buffer, startOfLineAt, endOfHeaderLinesAt, CRLF_BYTES))
                 {
                     final AsciiSequenceView ascii = asciiRO
-                        .wrap((DirectBufferEx) buffer, startOfLineAt, endOfLineAt - startOfLineAt);
+                        .wrap(buffer, startOfLineAt, endOfLineAt - startOfLineAt);
                     if (!headerLine.reset(ascii).matches())
                     {
                         client.onDecodeHttp11HeadersError(traceId, authorization);
@@ -861,7 +861,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     }
 
     private String decodeHttp1StartLine(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -878,7 +878,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -893,16 +893,16 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
         int progress = offset;
 
-        final int chunkHeaderLimit = limitOfBytes((DirectBufferEx) buffer, offset, limit, CRLF_BYTES);
+        final int chunkHeaderLimit = limitOfBytes(buffer, offset, limit, CRLF_BYTES);
         if (chunkHeaderLimit != -1)
         {
-            final int semicolonAt = limitOfBytes((DirectBufferEx) buffer, offset, chunkHeaderLimit, SEMICOLON_BYTES);
+            final int semicolonAt = limitOfBytes(buffer, offset, chunkHeaderLimit, SEMICOLON_BYTES);
             final int chunkSizeLimit = semicolonAt == -1 ? chunkHeaderLimit - 2 : semicolonAt - 1;
             final int chunkSizeLength = chunkSizeLimit - offset;
 
@@ -929,7 +929,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -957,7 +957,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -985,7 +985,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1027,13 +1027,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
         int progress = offset;
 
-        final int endOfTrailersAt = limitOfBytes((DirectBufferEx) buffer, offset, limit, CRLFCRLF_BYTES);
+        final int endOfTrailersAt = limitOfBytes(buffer, offset, limit, CRLFCRLF_BYTES);
         if (endOfTrailersAt != -1)
         {
             // TODO
@@ -1062,7 +1062,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1088,7 +1088,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
     {
@@ -1102,7 +1102,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -1127,7 +1127,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit);
     }

@@ -584,7 +584,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         int length,
         MessageConsumer sender)
     {
-        final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long originId = begin.originId();
         final long routedId = begin.routedId();
 
@@ -695,7 +695,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         Flyweight extension)
@@ -711,7 +711,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             .authorization(authorization)
             .budgetId(budgetId)
             .reserved(reserved)
-            .payload((DirectBufferEx) buffer, index, length)
+            .payload(buffer, index, length)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
@@ -731,7 +731,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         long budgetId,
         int reserved,
         int flags,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         Flyweight extension)
@@ -748,7 +748,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             .flags(flags)
             .budgetId(budgetId)
             .reserved(reserved)
-            .payload((DirectBufferEx) buffer, index, length)
+            .payload(buffer, index, length)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
@@ -901,11 +901,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
-        final MqttPacketHeaderFW packet = mqttPacketHeaderRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+        final MqttPacketHeaderFW packet = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
 
         decode:
         if (packet != null)
@@ -920,7 +920,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 break decode;
             }
 
-            final MqttConnectFW mqttConnect = mqttConnectRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttConnectFW mqttConnect = mqttConnectRO.tryWrap(buffer, offset, limit);
             if (mqttConnect != null)
             {
                 int reasonCode = decodeConnectProtocol(mqttConnect.protocolName(), mqttConnect.protocolVersion());
@@ -949,11 +949,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
-        final MqttPacketHeaderFW packet = mqttPacketHeaderRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+        final MqttPacketHeaderFW packet = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
 
         if (packet != null)
         {
@@ -984,11 +984,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
-        final MqttPacketHeaderFW packet = mqttPacketHeaderRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+        final MqttPacketHeaderFW packet = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
 
         if (packet != null)
         {
@@ -1019,7 +1019,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1031,7 +1031,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttConnectV4FW mqttConnect = mqttConnectV4RO.tryWrap((DirectBufferEx) buffer, progress, limit);
+            final MqttConnectV4FW mqttConnect = mqttConnectV4RO.tryWrap(buffer, progress, limit);
             int flags = 0;
             decode:
             {
@@ -1109,7 +1109,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1121,7 +1121,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttConnectV5FW mqttConnect = mqttConnectV5RO.tryWrap((DirectBufferEx) buffer, progress, limit);
+            final MqttConnectV5FW mqttConnect = mqttConnectV5RO.tryWrap(buffer, progress, limit);
             int flags = 0;
             decode:
             {
@@ -1201,7 +1201,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1222,7 +1222,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1242,7 +1242,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1264,7 +1264,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1276,7 +1276,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         decode:
         if (length >= 0)
         {
-            final MqttPacketHeaderFW publishHeader = mqttPacketHeaderRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttPacketHeaderFW publishHeader = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
             final int typeAndFlags = publishHeader.typeAndFlags();
             final int qos = calculatePublishApplicationQos(typeAndFlags);
 
@@ -1293,7 +1293,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (qos > 0)
             {
                 final MqttPublishQosV4FW publish =
-                    mqttPublishQosV4RO.tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
+                    mqttPublishQosV4RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
                 if (publish == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1309,7 +1309,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             else
             {
                 final MqttPublishV4FW publish = mqttPublishV4RO
-                    .tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
+                    .tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
                 if (publish == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1378,7 +1378,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1390,7 +1390,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         decode:
         if (length >= 0)
         {
-            final MqttPacketHeaderFW publishHeader = mqttPacketHeaderRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttPacketHeaderFW publishHeader = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
             final int typeAndFlags = publishHeader.typeAndFlags();
             final int qos = calculatePublishApplicationQos(typeAndFlags);
 
@@ -1408,7 +1408,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (qos > 0)
             {
                 final MqttPublishQosV5FW publish =
-                    mqttPublishQosV5RO.tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
+                    mqttPublishQosV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
                 if (publish == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1425,7 +1425,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             else
             {
                 final MqttPublishV5FW publish = mqttPublishV5RO
-                    .tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
+                    .tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
                 if (publish == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1518,7 +1518,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1676,7 +1676,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1688,7 +1688,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttPubackV4FW puback = mqttPubackV4RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttPubackV4FW puback = mqttPubackV4RO.tryWrap(buffer, offset, limit);
             decode:
             {
                 if (puback == null)
@@ -1722,7 +1722,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1736,7 +1736,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             decode:
             {
-                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap(buffer, offset, limit);
                 if (ackHeader == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1746,7 +1746,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int remainingLength = ackHeader.remainingLength();
                 if (remainingLength > 2)
                 {
-                    final MqttPubackV5FW puback = mqttPubackV5RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                    final MqttPubackV5FW puback = mqttPubackV5RO.tryWrap(buffer, offset, limit);
                     if (puback == null)
                     {
                         reasonCode = PROTOCOL_ERROR;
@@ -1755,7 +1755,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     pubackLimit = puback.limit();
                     if (remainingLength >= 4)
                     {
-                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap((DirectBufferEx) buffer, pubackLimit, limit);
+                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap(buffer, pubackLimit, limit);
                         if (properties == null)
                         {
                             reasonCode = PROTOCOL_ERROR;
@@ -1791,7 +1791,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1803,7 +1803,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttPubrecV4FW pubrec = mqttPubrecV4RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttPubrecV4FW pubrec = mqttPubrecV4RO.tryWrap(buffer, offset, limit);
             decode:
             {
                 if (pubrec == null)
@@ -1837,7 +1837,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1851,7 +1851,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             decode:
             {
-                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap(buffer, offset, limit);
                 if (ackHeader == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1861,7 +1861,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int remainingLength = ackHeader.remainingLength();
                 if (remainingLength > 2)
                 {
-                    final MqttPubrecV5FW pubrec = mqttPubrecV5RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                    final MqttPubrecV5FW pubrec = mqttPubrecV5RO.tryWrap(buffer, offset, limit);
                     if (pubrec == null)
                     {
                         reasonCode = PROTOCOL_ERROR;
@@ -1870,7 +1870,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     pubrecLimit = pubrec.limit();
                     if (remainingLength >= 4)
                     {
-                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap((DirectBufferEx) buffer, pubrecLimit, limit);
+                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap(buffer, pubrecLimit, limit);
                         if (properties == null)
                         {
                             reasonCode = PROTOCOL_ERROR;
@@ -1906,7 +1906,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1918,7 +1918,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttPubrelV4FW pubrel = mqttPubrelV4RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttPubrelV4FW pubrel = mqttPubrelV4RO.tryWrap(buffer, offset, limit);
             decode:
             {
                 if (pubrel == null)
@@ -1952,7 +1952,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -1966,7 +1966,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             decode:
             {
-                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap(buffer, offset, limit);
                 if (ackHeader == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1976,7 +1976,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int remainingLength = ackHeader.remainingLength();
                 if (remainingLength > 2)
                 {
-                    final MqttPubrelV5FW pubrel = mqttPubrelV5RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                    final MqttPubrelV5FW pubrel = mqttPubrelV5RO.tryWrap(buffer, offset, limit);
                     if (pubrel == null)
                     {
                         reasonCode = PROTOCOL_ERROR;
@@ -1985,7 +1985,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     pubrelLimit = pubrel.limit();
                     if (remainingLength >= 4)
                     {
-                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap((DirectBufferEx) buffer, pubrelLimit, limit);
+                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap(buffer, pubrelLimit, limit);
                         if (properties == null)
                         {
                             reasonCode = PROTOCOL_ERROR;
@@ -2021,7 +2021,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2033,7 +2033,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttPubcompV4FW pubcomp = mqttPubcompV4RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttPubcompV4FW pubcomp = mqttPubcompV4RO.tryWrap(buffer, offset, limit);
             decode:
             {
                 if (pubcomp == null)
@@ -2067,7 +2067,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2081,7 +2081,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             decode:
             {
-                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                final MqttAckHeaderFW ackHeader = mqttAckHeaderRO.tryWrap(buffer, offset, limit);
                 if (ackHeader == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -2091,7 +2091,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int remainingLength = ackHeader.remainingLength();
                 if (remainingLength > 2)
                 {
-                    final MqttPubcompV5FW pubrec = mqttPubcompV5RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                    final MqttPubcompV5FW pubrec = mqttPubcompV5RO.tryWrap(buffer, offset, limit);
                     if (pubrec == null)
                     {
                         reasonCode = PROTOCOL_ERROR;
@@ -2101,7 +2101,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     if (remainingLength >= 4)
                     {
                         final MqttPropertiesFW properties = mqttPropertiesRO
-                            .tryWrap((DirectBufferEx) buffer, pubcompLimit, limit);
+                            .tryWrap(buffer, pubcompLimit, limit);
                         if (properties == null)
                         {
                             reasonCode = PROTOCOL_ERROR;
@@ -2157,7 +2157,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2171,7 +2171,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int reasonCode = SUCCESS;
 
             final MqttSubscribeV4FW subscribeV4 =
-                mqttSubscribeV4RO.tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
+                mqttSubscribeV4RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
             if (subscribeV4 == null)
             {
                 reasonCode = PROTOCOL_ERROR;
@@ -2207,7 +2207,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2221,7 +2221,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int reasonCode = SUCCESS;
 
             final MqttSubscribeV5FW subscribeV5 =
-                mqttSubscribeV5RO.tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
+                mqttSubscribeV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
             if (subscribeV5 == null)
             {
                 reasonCode = PROTOCOL_ERROR;
@@ -2257,7 +2257,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2269,7 +2269,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttUnsubscribeV4FW unsubscribeV4 = mqttUnsubscribeV4RO.tryWrap((DirectBufferEx) buffer, offset,
+            final MqttUnsubscribeV4FW unsubscribeV4 = mqttUnsubscribeV4RO.tryWrap(buffer, offset,
                 offset + server.decodeablePacketBytes);
             if (unsubscribeV4 == null || unsubscribeV4.payload().sizeof() == 0 || unsubscribeV4.packetId() == 0)
             {
@@ -2301,7 +2301,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2313,7 +2313,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = SUCCESS;
 
-            final MqttUnsubscribeV5FW unsubscribeV5 = mqttUnsubscribeV5RO.tryWrap((DirectBufferEx) buffer, offset,
+            final MqttUnsubscribeV5FW unsubscribeV5 = mqttUnsubscribeV5RO.tryWrap(buffer, offset,
                 offset + server.decodeablePacketBytes);
             if (unsubscribeV5 == null || unsubscribeV5.payload().sizeof() == 0 || unsubscribeV5.packetId() == 0)
             {
@@ -2346,7 +2346,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2356,7 +2356,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         if (length > 0)
         {
-            final MqttPingReqFW ping = mqttPingReqRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttPingReqFW ping = mqttPingReqRO.tryWrap(buffer, offset, limit);
             if (ping == null)
             {
                 server.onDecodeError(traceId, authorization, PROTOCOL_ERROR);
@@ -2378,7 +2378,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2390,7 +2390,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             int reasonCode = NORMAL_DISCONNECT;
 
-            final MqttDisconnectV4FW disconnectV4 = mqttDisconnectV4RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttDisconnectV4FW disconnectV4 = mqttDisconnectV4RO.tryWrap(buffer, offset, limit);
             if (disconnectV4 == null)
             {
                 reasonCode = PROTOCOL_ERROR;
@@ -2421,7 +2421,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final long traceId,
         final long authorization,
         final long budgetId,
-        final DirectBuffer buffer,
+        final DirectBufferEx buffer,
         final int offset,
         final int limit)
     {
@@ -2442,7 +2442,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 break decode;
             }
 
-            final MqttDisconnectV5FW disconnectV5 = mqttDisconnectV5RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+            final MqttDisconnectV5FW disconnectV5 = mqttDisconnectV5RO.tryWrap(buffer, offset, limit);
             if (disconnectV5 == null)
             {
                 reasonCode = PROTOCOL_ERROR;
@@ -2473,7 +2473,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -2485,7 +2485,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -2497,7 +2497,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         long traceId,
         long authorization,
         long budgetId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -2514,7 +2514,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit);
     }
@@ -2684,38 +2684,38 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private void onNetwork(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                 onNetworkBegin(begin);
                 break;
             case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap((DirectBufferEx) buffer, index, index + length);
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
                 onNetworkData(data);
                 break;
             case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap((DirectBufferEx) buffer, index, index + length);
+                final EndFW end = endRO.wrap(buffer, index, index + length);
                 onNetworkEnd(end);
                 break;
             case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap((DirectBufferEx) buffer, index, index + length);
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onNetworkAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap((DirectBufferEx) buffer, index, index + length);
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onNetworkWindow(window);
                 break;
             case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap((DirectBufferEx) buffer, index, index + length);
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onNetworkReset(reset);
                 break;
             case SignalFW.TYPE_ID:
-                final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
                 onNetworkSignal(signal);
                 break;
             default:
@@ -3018,7 +3018,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int onDecodeConnect(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int keepAlive,
@@ -3054,7 +3054,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int onDecodeConnectPayload(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit)
         {
@@ -3475,7 +3475,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int onDecodeConnectWillMessage(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit)
         {
@@ -3548,7 +3548,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int onDecodeConnectWillPayload(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -3587,7 +3587,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final int headerSize = willMessageBuilder.sizeof();
                     int payloadSize = Math.min(limit - offset, session.initialBudget() - headerSize);
 
-                    final OctetsFW payload = payloadRO.wrap((DirectBufferEx) buffer, offset, offset + payloadSize);
+                    final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + payloadSize);
 
                     willMessageBuffer.putBytes(will.limit(), payload.buffer(), payload.offset(), payload.limit());
 
@@ -3613,7 +3613,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    final OctetsFW payload = payloadRO.wrap((DirectBufferEx) buffer, offset, limit);
+                    final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
                     assert willPayloadDeferred >= 0;
                     int flags = willPayloadDeferred - payload.sizeof() > 0 ? FLAG_CONT : FLAG_FIN;
 
@@ -3788,7 +3788,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onDecodePuback(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int packetId)
@@ -3801,7 +3801,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onDecodePubrec(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int packetId)
@@ -3814,7 +3814,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onDecodePubrel(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int packetId)
@@ -3826,7 +3826,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onDecodePubcomp(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int progress,
             int limit,
             int packetId)
@@ -4484,7 +4484,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5255,7 +5255,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5329,7 +5329,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             long budgetId,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5599,38 +5599,38 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             private void onSession(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
-                    final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                     onSessionBegin(begin);
                     break;
                 case FlushFW.TYPE_ID:
-                    final FlushFW flush = flushRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final FlushFW flush = flushRO.wrap(buffer, index, index + length);
                     onSessionFlush(flush);
                     break;
                 case DataFW.TYPE_ID:
-                    final DataFW data = dataRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
                     onSessionData(data);
                     break;
                 case EndFW.TYPE_ID:
-                    final EndFW end = endRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final EndFW end = endRO.wrap(buffer, index, index + length);
                     onSessionEnd(end);
                     break;
                 case AbortFW.TYPE_ID:
-                    final AbortFW abort = abortRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                     onSessionAbort(abort);
                     break;
                 case WindowFW.TYPE_ID:
-                    final WindowFW window = windowRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
                     onSessionWindow(window);
                     break;
                 case ResetFW.TYPE_ID:
-                    final ResetFW reset = resetRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                     onSessionReset(reset);
                     break;
                 }
@@ -5819,7 +5819,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final int offset = payload.offset();
                     final int limit = payload.limit();
 
-                    MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                    MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap(buffer, offset, limit);
 
                     byte reasonCode = SUCCESS;
                     if (!connected)
@@ -6014,7 +6014,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private int doSessionData(
                 long traceId,
                 int flags,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int offset,
                 int limit,
                 int minimum,
@@ -6266,38 +6266,38 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             private void onPublish(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
-                    final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                     onPublishBegin(begin);
                     break;
                 case DataFW.TYPE_ID:
-                    final DataFW data = dataRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
                     onPublishData(data);
                     break;
                 case EndFW.TYPE_ID:
-                    final EndFW end = endRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final EndFW end = endRO.wrap(buffer, index, index + length);
                     onPublishEnd(end);
                     break;
                 case AbortFW.TYPE_ID:
-                    final AbortFW abort = abortRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                     onPublishAbort(abort);
                     break;
                 case WindowFW.TYPE_ID:
-                    final WindowFW window = windowRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
                     onPublishWindow(window);
                     break;
                 case ResetFW.TYPE_ID:
-                    final ResetFW reset = resetRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                     onPublishReset(reset);
                     break;
                 case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
                     onPublishSignal(signal);
                     break;
                 }
@@ -6834,38 +6834,38 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             private void onSubscribe(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
-                    final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                     onSubscribeBegin(begin);
                     break;
                 case DataFW.TYPE_ID:
-                    final DataFW data = dataRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
                     onSubscribeData(data);
                     break;
                 case FlushFW.TYPE_ID:
-                    final FlushFW flush = flushRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final FlushFW flush = flushRO.wrap(buffer, index, index + length);
                     onSubscribeFlush(flush);
                     break;
                 case EndFW.TYPE_ID:
-                    final EndFW end = endRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final EndFW end = endRO.wrap(buffer, index, index + length);
                     onSubscribeEnd(end);
                     break;
                 case AbortFW.TYPE_ID:
-                    final AbortFW abort = abortRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                     onSubscribeAbort(abort);
                     break;
                 case WindowFW.TYPE_ID:
-                    final WindowFW window = windowRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
                     onSubscribeWindow(window);
                     break;
                 case ResetFW.TYPE_ID:
-                    final ResetFW reset = resetRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                     onSubscribeReset(reset);
                     break;
                 }
@@ -7350,7 +7350,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         private int decode(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             int flags,
@@ -7364,7 +7364,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     switch (version)
                     {
                     case 4:
-                        final MqttWillV4FW mqttWillV4 = mqttWillV4RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                        final MqttWillV4FW mqttWillV4 = mqttWillV4RO.tryWrap(buffer, offset, limit);
                         if (mqttWillV4 == null)
                         {
                             reasonCode = MALFORMED_PACKET;
@@ -7376,7 +7376,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         progress = mqttWillV4.limit();
                         break;
                     case 5:
-                        final MqttWillV5FW mqttWillV5 = mqttWillV5RO.tryWrap((DirectBufferEx) buffer, offset, limit);
+                        final MqttWillV5FW mqttWillV5 = mqttWillV5RO.tryWrap(buffer, offset, limit);
                         if (mqttWillV5 == null)
                         {
                             reasonCode = MALFORMED_PACKET;
@@ -7400,7 +7400,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (isSetUsername(flags))
                 {
-                    username = usernameRO.tryWrap((DirectBufferEx) buffer, progress, limit);
+                    username = usernameRO.tryWrap(buffer, progress, limit);
                     if (username == null || username.sizeof() == 0)
                     {
                         reasonCode = MALFORMED_PACKET;
@@ -7411,7 +7411,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (isSetPassword(flags))
                 {
-                    password = passwordRO.tryWrap((DirectBufferEx) buffer, progress, limit);
+                    password = passwordRO.tryWrap(buffer, progress, limit);
                     if (password == null || version == 4 && !isSetUsername(flags))
                     {
                         reasonCode = MALFORMED_PACKET;
