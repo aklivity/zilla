@@ -26,11 +26,11 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -78,15 +78,15 @@ public class JsonModelLenientTest
         byte[] in = "{\"id\":123}".getBytes(UTF_8);
 
         ModelPipeline decoder = handler.supplyDecoder(ModelVisitor.NONE);
-        MutableDirectBuffer decodeDst = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx decodeDst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult decoded = decoder.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, decodeDst, 0, decodeDst.capacity());
+            new UnsafeBufferEx(in), 0, in.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
         ModelPipeline encoder = handler.supplyEncoder(ModelVisitor.NONE);
-        MutableDirectBuffer encodeDst = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx encodeDst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult encoded = encoder.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, encodeDst, 0, encodeDst.capacity());
+            new UnsafeBufferEx(in), 0, in.length, encodeDst, 0, encodeDst.capacity());
         assertEquals(ModelStatus.REJECTED, encoded.status());
     }
 
@@ -97,9 +97,9 @@ public class JsonModelLenientTest
         ModelPipeline pipeline = newHandler(lenient()).supplyDecoder(ModelVisitor.NONE);
 
         byte[] in = "{\"id\":\"abc\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("{\"id\":\"abc\"}", text(dst, result.produced()));
@@ -145,7 +145,7 @@ public class JsonModelLenientTest
     }
 
     private static String text(
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int produced)
     {
         byte[] chunk = new byte[produced];

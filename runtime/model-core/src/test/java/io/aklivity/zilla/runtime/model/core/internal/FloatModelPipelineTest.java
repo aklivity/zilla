@@ -20,11 +20,11 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -57,7 +57,7 @@ public class FloatModelPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] bytes = "+10.1119f".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
@@ -72,7 +72,7 @@ public class FloatModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "-.1119f".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
@@ -86,7 +86,7 @@ public class FloatModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "-.11.19f".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
@@ -100,7 +100,7 @@ public class FloatModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "99.99f".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
@@ -118,7 +118,7 @@ public class FloatModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "99.99f".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
@@ -136,7 +136,7 @@ public class FloatModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "10.0".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
@@ -150,7 +150,7 @@ public class FloatModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "25".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
@@ -164,7 +164,7 @@ public class FloatModelPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] bytes = {62, -128, 5, 8};
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
@@ -179,7 +179,7 @@ public class FloatModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "Invalid Float".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[64]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
@@ -194,7 +194,7 @@ public class FloatModelPipelineTest
 
         byte[] head = {62, -128};
         byte[] tail = {5, 8};
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
+        MutableDirectBufferEx dst = new UnsafeBuffer(new byte[16]);
 
         ModelPipelineResult first = pipeline.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBuffer(head), 0, head.length, dst, 0, dst.capacity());
