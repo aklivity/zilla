@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
 import jakarta.json.JsonException;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -170,7 +170,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
 
     @Override
     public ProtobufParser wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -201,7 +201,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
 
     @Override
     public ProtobufParser resume(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -293,9 +293,9 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     @Override
-    public DirectBuffer segment()
+    public DirectBufferEx segment()
     {
-        DirectBuffer segment;
+        DirectBufferEx segment;
         if (currentEvent == ProtobufEvent.START_MESSAGE || currentEvent == ProtobufEvent.START_GROUP)
         {
             segment = estimateView;

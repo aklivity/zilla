@@ -23,6 +23,8 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDE
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
@@ -122,7 +124,7 @@ final class AvroPipelineImpl implements AvroPipeline
             }
             else
             {
-                parser.wrap(buffer, offset, limit, last);
+                parser.wrap((DirectBufferEx) buffer, offset, limit, last);
             }
             while (status == ADVANCED)
             {
@@ -185,7 +187,7 @@ final class AvroPipelineImpl implements AvroPipeline
     {
         // re-target the terminal generator at the caller's output region, preserving structural context
         // across a SUSPENDED drain, then pump the same window the existing feed contract expects
-        generator.wrap(dst, dstOffset, dstLimit);
+        generator.wrap((MutableDirectBufferEx) dst, dstOffset, dstLimit);
         Status status = transform(src, offset, limit, last);
         boolean rejected = status == REJECTED;
         int produced = rejected ? 0 : generator.length();
@@ -256,7 +258,7 @@ final class AvroPipelineImpl implements AvroPipeline
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             return parser.getSegment();
         }

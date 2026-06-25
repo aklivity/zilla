@@ -21,7 +21,7 @@ import java.util.Map;
 
 import jakarta.json.JsonException;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
@@ -153,7 +153,7 @@ public final class AvroJsonParserImpl implements AvroParser
 
     @Override
     public void wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -251,7 +251,7 @@ public final class AvroJsonParserImpl implements AvroParser
     }
 
     @Override
-    public DirectBuffer getSegment()
+    public DirectBufferEx getSegment()
     {
         // expose the unconsumed remainder so a bounded-output suspend on the Avro side resumes correctly
         segmentView.wrap(segment, segmentConsumed, segment.capacity() - segmentConsumed);

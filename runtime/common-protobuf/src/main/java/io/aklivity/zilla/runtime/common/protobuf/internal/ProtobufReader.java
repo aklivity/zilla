@@ -121,6 +121,11 @@ public final class ProtobufReader
         return limit - offset;
     }
 
+    public int remaining()
+    {
+        return limit - offset;
+    }
+
     public boolean hasRemaining()
     {
         return offset < limit;

@@ -14,8 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal.json;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import org.agrona.DirectBuffer;
 
 /**
  * A reusable {@link CharSequence} backed by a growable {@code char[]}, filled in place by decoding raw
@@ -29,8 +28,6 @@ final class CharText implements CharSequence
     private static final char[] BASE64 =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
 
-    private final UnsafeBufferEx wrapper;
-
     private char[] chars;
     private int length;
 
@@ -38,19 +35,10 @@ final class CharText implements CharSequence
         int initialCapacity)
     {
         this.chars = new char[initialCapacity];
-        this.wrapper = new UnsafeBufferEx(0, 0);
     }
 
     void utf8(
-        byte[] source,
-        int length)
-    {
-        wrapper.wrap(source, 0, length);
-        utf8(wrapper, 0, length);
-    }
-
-    void utf8(
-        DirectBufferEx source,
+        DirectBuffer source,
         int offset,
         int length)
     {
@@ -131,25 +119,28 @@ final class CharText implements CharSequence
     }
 
     void base64(
-        byte[] source,
+        DirectBuffer source,
+        int offset,
         int length)
     {
         ensure(4 * ((length + 2) / 3));
         int count = 0;
-        int index = 0;
-        while (index + 3 <= length)
+        int index = offset;
+        int limit = offset + length;
+        while (index + 3 <= limit)
         {
-            int word = ((source[index] & 0xff) << 16) | ((source[index + 1] & 0xff) << 8) | (source[index + 2] & 0xff);
+            int word = ((source.getByte(index) & 0xff) << 16) | ((source.getByte(index + 1) & 0xff) << 8) |
+                (source.getByte(index + 2) & 0xff);
             index += 3;
             chars[count++] = BASE64[(word >> 18) & 0x3f];
             chars[count++] = BASE64[(word >> 12) & 0x3f];
             chars[count++] = BASE64[(word >> 6) & 0x3f];
             chars[count++] = BASE64[word & 0x3f];
         }
-        int remaining = length - index;
+        int remaining = limit - index;
         if (remaining == 1)
         {
-            int word = (source[index] & 0xff) << 16;
+            int word = (source.getByte(index) & 0xff) << 16;
             chars[count++] = BASE64[(word >> 18) & 0x3f];
             chars[count++] = BASE64[(word >> 12) & 0x3f];
             chars[count++] = '=';
@@ -157,7 +148,7 @@ final class CharText implements CharSequence
         }
         else if (remaining == 2)
         {
-            int word = ((source[index] & 0xff) << 16) | ((source[index + 1] & 0xff) << 8);
+            int word = ((source.getByte(index) & 0xff) << 16) | ((source.getByte(index + 1) & 0xff) << 8);
             chars[count++] = BASE64[(word >> 18) & 0x3f];
             chars[count++] = BASE64[(word >> 12) & 0x3f];
             chars[count++] = BASE64[(word >> 6) & 0x3f];

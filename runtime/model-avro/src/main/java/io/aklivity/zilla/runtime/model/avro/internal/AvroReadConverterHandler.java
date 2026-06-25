@@ -19,8 +19,9 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.common.avro.Avro;
@@ -43,7 +44,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 {
     private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
     private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
 
     private final Matcher matcher;
     private final Int2ObjectCache<AvroToJson> pipelines;
@@ -62,7 +63,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -101,7 +102,7 @@ public class AvroReadConverterHandler extends AvroModelHandler implements Conver
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
