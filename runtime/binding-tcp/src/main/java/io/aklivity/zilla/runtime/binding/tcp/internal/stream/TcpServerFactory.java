@@ -106,7 +106,7 @@ public class TcpServerFactory implements TcpStreamFactory
         TcpUsageTracker usage)
     {
         this.event = new TcpEventContext(context);
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.usage = usage;
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
         this.bufferPool = context.bufferPool();

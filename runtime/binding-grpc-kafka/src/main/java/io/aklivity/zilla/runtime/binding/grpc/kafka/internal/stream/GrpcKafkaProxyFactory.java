@@ -153,7 +153,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         GrpcKafkaConfiguration config,
         EngineContext context)
     {
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.progressBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.metaBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);

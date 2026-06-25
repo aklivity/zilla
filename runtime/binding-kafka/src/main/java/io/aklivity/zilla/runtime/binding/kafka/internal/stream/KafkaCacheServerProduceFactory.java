@@ -155,7 +155,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();

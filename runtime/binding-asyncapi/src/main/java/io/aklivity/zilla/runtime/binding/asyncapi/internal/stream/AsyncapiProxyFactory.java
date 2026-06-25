@@ -90,7 +90,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         EngineContext context)
     {
         this.context = context;
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;

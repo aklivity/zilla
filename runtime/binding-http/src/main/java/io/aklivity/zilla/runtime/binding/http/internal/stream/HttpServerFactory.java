@@ -7107,11 +7107,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (hpackLiteral.literalType() == INCREMENTAL_INDEXING)
                 {
                     // make a copy for name and value as they go into dynamic table (outlives current frame)
-                    MutableDirectBuffer nameCopy = new UnsafeBufferEx(new byte[name.capacity()]);
+                    MutableDirectBufferEx nameCopy = new UnsafeBufferEx(new byte[name.capacity()]);
                     nameCopy.putBytes(0, name, 0, name.capacity());
-                    MutableDirectBuffer valueCopy = new UnsafeBufferEx(new byte[value.capacity()]);
+                    MutableDirectBufferEx valueCopy = new UnsafeBufferEx(new byte[value.capacity()]);
                     valueCopy.putBytes(0, value, 0, value.capacity());
-                    context.add((DirectBufferEx) nameCopy, (DirectBufferEx) valueCopy);
+                    context.add(nameCopy, valueCopy);
                 }
                 break;
             default:
@@ -7321,20 +7321,20 @@ public final class HttpServerFactory implements HttpStreamFactory
         private void encodeLiteral(
             HpackLiteralHeaderFieldFW.Builder builder,
             HpackContext hpackContext,
-            DirectBuffer nameBuffer,
-            DirectBuffer valueBuffer)
+            DirectBufferEx nameBuffer,
+            DirectBufferEx valueBuffer)
         {
             builder.type(WITHOUT_INDEXING);
-            final int nameIndex = hpackContext.index((DirectBufferEx) nameBuffer);
+            final int nameIndex = hpackContext.index(nameBuffer);
             if (nameIndex != -1)
             {
                 builder.name(nameIndex);
             }
             else
             {
-                builder.name((DirectBufferEx) nameBuffer, 0, nameBuffer.capacity());
+                builder.name(nameBuffer, 0, nameBuffer.capacity());
             }
-            builder.value((DirectBufferEx) valueBuffer, 0, valueBuffer.capacity());
+            builder.value(valueBuffer, 0, valueBuffer.capacity());
         }
     }
 

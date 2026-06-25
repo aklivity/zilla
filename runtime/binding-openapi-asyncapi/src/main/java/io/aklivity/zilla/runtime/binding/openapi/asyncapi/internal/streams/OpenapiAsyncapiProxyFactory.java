@@ -94,7 +94,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         EngineContext context)
     {
         this.generator = new OpenapiAsyncapiProxyGenerator();
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.context = context;
         this.streamFactory = context.streamFactory();

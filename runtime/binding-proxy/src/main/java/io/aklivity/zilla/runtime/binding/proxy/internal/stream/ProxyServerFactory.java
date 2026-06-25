@@ -146,7 +146,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         EngineContext context)
     {
         this.router = new ProxyRouter(context.supplyTypeId(ProxyBinding.NAME));
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.decodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -343,7 +343,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             }
             else
             {
-                MutableDirectBufferEx buffer = (MutableDirectBufferEx) payload.buffer();
+                DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
                 int limit = payload.limit();
                 int reserved = data.reserved();
@@ -610,7 +610,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             int flags,
             long budgetId,
             int reserved,
-            MutableDirectBufferEx buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -1936,7 +1936,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         int flags,
         long budgetId,
         int reserved,
-        MutableDirectBufferEx buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1955,7 +1955,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
 
             net.decodedCrc32c = tlv.value().value().getInt(0, BIG_ENDIAN) & 0xffff_ffffL;
 
-            buffer.putInt(tlv.offset() + ProxyTlvFW.FIELD_OFFSET_VALUE, 0);
+            ((MutableDirectBufferEx) buffer).putInt(tlv.offset() + ProxyTlvFW.FIELD_OFFSET_VALUE, 0);
             updateCRC32C(net.crc32c, tlv.buffer(), tlv.offset(), tlv.sizeof());
 
             net.decodableBytes -= tlv.sizeof();
@@ -2483,7 +2483,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             int flags,
             long budgetId,
             int reserved,
-            MutableDirectBufferEx buffer,
+            DirectBufferEx buffer,
             int offset,
             int progress,
             int limit);

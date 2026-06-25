@@ -77,10 +77,8 @@ import java.util.function.Supplier;
 
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
-import org.agrona.DirectBuffer;
 import org.agrona.ErrorHandler;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
@@ -90,13 +88,14 @@ import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.MessageHandler;
-import org.agrona.concurrent.ringbuffer.RingBuffer;
+
 import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -218,7 +217,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Map<String, MetricGroup> metricGroupsByName;
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
-    private final RingBuffer streamsBuffer;
+    private final RingBufferEx streamsBuffer;
     private final MutableDirectBufferEx writeBuffer;
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
@@ -227,7 +226,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Int2ObjectHashMap<Target> targetsByIndex;
     private final BufferPool bufferPool;
     private final long mask;
-    private final MessageHandler readHandler;
+    private final MessageHandlerEx readHandler;
     private final TimerHandler expireHandler;
     private final int readLimit;
     private final int expireLimit;

@@ -359,7 +359,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         MqttConfiguration config,
         EngineContext context)
     {
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.dataExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.sessionStateBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);

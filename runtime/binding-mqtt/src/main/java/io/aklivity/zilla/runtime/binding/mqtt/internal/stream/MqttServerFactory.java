@@ -100,9 +100,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
@@ -2763,14 +2761,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long budgetId = data.budgetId();
                 final OctetsFW payload = data.payload();
 
-                DirectBuffer buffer = payload.buffer();
+                DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
                 int limit = payload.limit();
                 int reserved = data.reserved();
 
                 if (decodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -2842,7 +2840,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = bufferPool.buffer(encodeSlot);
                 final int offset = 0;
                 final int limit = encodeSlotOffset;
 
@@ -4490,7 +4488,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = bufferPool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -5291,7 +5289,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = bufferPool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + length, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -5315,7 +5313,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long authorization = 0L; // TODO;
                 final long budgetId = 0L; // TODO
 
-                final DirectBuffer buffer = bufferPool.buffer(decodeSlot);
+                final DirectBufferEx buffer = bufferPool.buffer(decodeSlot);
                 final int offset = 0;
                 final int limit = decodeSlotOffset;
                 final int reserved = decodeSlotReserved;
@@ -5354,7 +5352,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
                     slotBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -5815,7 +5813,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    final DirectBuffer buffer = payload.buffer();
+                    final DirectBufferEx buffer = payload.buffer();
                     final int offset = payload.offset();
                     final int limit = payload.limit();
 
@@ -5993,7 +5991,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 assert MqttState.initialOpening(state);
 
-                final DirectBuffer buffer = payload.buffer();
+                final DirectBufferEx buffer = payload.buffer();
                 final int offset = payload.offset();
                 final int limit = payload.limit();
                 final int length = limit - offset;
@@ -6229,7 +6227,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 assert MqttState.initialOpening(state);
 
-                final DirectBuffer buffer = payload.buffer();
+                final DirectBufferEx buffer = payload.buffer();
                 final int length = limit - offset;
                 assert reserved >= length + initialPad;
 

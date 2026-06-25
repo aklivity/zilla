@@ -37,7 +37,7 @@ public class TestCatalogHandler implements CatalogHandler
 
     private final String schema;
     private final int id;
-    private final DirectBuffer prefix;
+    private final DirectBufferEx prefix;
     private final String url;
     private final Int2ObjectHashMap<String> schemasById;
     private final Object2IntHashMap<String> schemaIdsBySubject;
@@ -158,7 +158,7 @@ public class TestCatalogHandler implements CatalogHandler
     {
         if (prefix != null)
         {
-            next.accept((DirectBufferEx) prefix, 0, prefix.capacity());
+            next.accept(prefix, 0, prefix.capacity());
         }
         int valLength = encoder.accept(traceId, bindingId, schemaId, data, index, length, next);
         int prefixLen = prefix != null ? prefix.capacity() : 0;

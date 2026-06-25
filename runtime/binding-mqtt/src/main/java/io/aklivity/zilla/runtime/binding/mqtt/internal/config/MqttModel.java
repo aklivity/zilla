@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
  * Per-stream driver around a decode {@link ModelPipeline} for the mqtt binding.
  * <p>
  * A publish payload or user-property value is transformed whole-value via
- * {@link #transform(long, long, DirectBuffer, int, int)}: the value is driven through the pipeline and the
+ * {@link #transform(long, long, DirectBufferEx, int, int)}: the value is driven through the pipeline and the
  * produced (possibly changed) bytes are exposed via {@link #buffer} for the caller to forward downstream, or
  * {@code -1} signals the model rejected it.
  * </p>

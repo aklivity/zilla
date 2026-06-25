@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
@@ -64,7 +64,7 @@ final class AvroExtractor implements AvroTransform
         return fields.get(index).length;
     }
 
-    DirectBuffer value(
+    DirectBufferEx value(
         int index)
     {
         return fields.get(index).value;
@@ -215,7 +215,7 @@ final class AvroExtractor implements AvroTransform
 
     private static final class Field
     {
-        private final MutableDirectBuffer value;
+        private final MutableDirectBufferEx value;
 
         private String name;
         private int length;
