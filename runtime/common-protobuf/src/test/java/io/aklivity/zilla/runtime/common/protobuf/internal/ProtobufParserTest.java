@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.agrona.ExpandableArrayBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
@@ -318,9 +318,9 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int consumed = (int) (parser.position() - committed);
+                int consumed = (int) (parser.getLocation().getStreamOffset() - committed);
                 retained = Arrays.copyOfRange(feed, consumed, feed.length);
-                committed = parser.position();
+                committed = parser.getLocation().getStreamOffset();
             }
             else
             {
@@ -527,9 +527,9 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int consumed = (int) (parser.position() - committed);
+                int consumed = (int) (parser.getLocation().getStreamOffset() - committed);
                 retained = Arrays.copyOfRange(feed, consumed, feed.length);
-                committed = parser.position();
+                committed = parser.getLocation().getStreamOffset();
             }
             else
             {
@@ -574,7 +574,7 @@ public class ProtobufParserTest
     private static byte[] wire(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
+        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];

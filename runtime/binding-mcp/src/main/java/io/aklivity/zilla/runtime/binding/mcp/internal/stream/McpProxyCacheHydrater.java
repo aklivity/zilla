@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
@@ -45,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
@@ -397,7 +397,7 @@ public final class McpProxyCacheHydrater
     {
         private final McpListKindHydrater kind;
         private final String prefix;
-        private final ExpandableArrayBuffer bodyBuffer;
+        private final ExpandableArrayBufferEx bodyBuffer;
 
         private MessageConsumer server;
         private int bodyLen;
@@ -410,7 +410,7 @@ public final class McpProxyCacheHydrater
         {
             this.kind = kind;
             this.prefix = prefix;
-            this.bodyBuffer = new ExpandableArrayBuffer();
+            this.bodyBuffer = new ExpandableArrayBufferEx();
         }
 
         private void onMessage(
