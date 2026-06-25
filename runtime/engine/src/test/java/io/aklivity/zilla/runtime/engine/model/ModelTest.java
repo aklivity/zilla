@@ -17,15 +17,13 @@ package io.aklivity.zilla.runtime.engine.model;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelContext;
+import io.aklivity.zilla.runtime.engine.test.internal.model.TestValidatorHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class ModelTest
@@ -45,8 +43,7 @@ public class ModelTest
         TestModelConfig modelConfig = TestModelConfig.builder()
             .length(4)
             .build();
-        ModelContext context = new TestModelContext(mock(EngineContext.class));
-        ValidatorHandler handler = context.supplyValidatorHandler(modelConfig);
+        ValidatorHandler handler = new TestValidatorHandler(modelConfig);
 
         DirectBufferEx data = new UnsafeBufferEx();
 

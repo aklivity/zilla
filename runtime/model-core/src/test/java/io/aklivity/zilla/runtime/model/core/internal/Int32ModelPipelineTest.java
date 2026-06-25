@@ -56,17 +56,10 @@ public class Int32ModelPipelineTest
         ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
-<<<<<<< HEAD
-        byte[] bytes = "42".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-=======
         byte[] bytes = "+8449999".getBytes();
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.COMPLETE, result.status());
     }
@@ -77,12 +70,6 @@ public class Int32ModelPipelineTest
         ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-<<<<<<< HEAD
-        byte[] bytes = "12x".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-=======
         byte[] bytes = "-125".getBytes();
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
@@ -105,7 +92,6 @@ public class Int32ModelPipelineTest
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
@@ -120,17 +106,10 @@ public class Int32ModelPipelineTest
             .build());
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-<<<<<<< HEAD
-        byte[] bytes = "42".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-=======
         byte[] bytes = "999".getBytes();
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
@@ -193,15 +172,6 @@ public class Int32ModelPipelineTest
         byte[] tail = {0x00, 0x2a};
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
 
-<<<<<<< HEAD
-        ModelPipelineResult first = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
-            new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
-        assertEquals(ModelStatus.UNDERFLOW, first.status());
-        assertEquals(head.length, first.consumed());
-
-        ModelPipelineResult second = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
-            new UnsafeBufferEx(tail), 0, tail.length, dst, head.length, dst.capacity());
-=======
         ModelPipelineResult first = pipeline.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, first.status());
@@ -209,7 +179,6 @@ public class Int32ModelPipelineTest
 
         ModelPipelineResult second = pipeline.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(tail), 0, tail.length, dst, head.length, dst.capacity());
->>>>>>> origin/develop
         assertEquals(ModelStatus.COMPLETE, second.status());
         assertEquals(tail.length, second.consumed());
     }

@@ -21,9 +21,9 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 import io.aklivity.zilla.runtime.engine.config.ValidateMode;
@@ -48,15 +48,9 @@ public class TestModelHandlerTest
         ModelPipeline pipeline = readPipeline(4);
 
         byte[] bytes = {1, 2, 3, 4};
-<<<<<<< HEAD
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals(4, result.consumed());
@@ -69,15 +63,9 @@ public class TestModelHandlerTest
         ModelPipeline pipeline = readPipeline(4);
 
         byte[] bytes = {1, 2, 3};
-<<<<<<< HEAD
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
@@ -147,15 +135,9 @@ public class TestModelHandlerTest
         ModelPipeline pipeline = readPipeline(4);
 
         byte[] head = {1, 2};
-<<<<<<< HEAD
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
-            new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.UNDERFLOW, result.status());
         assertEquals(2, result.consumed());
@@ -167,15 +149,9 @@ public class TestModelHandlerTest
         ModelPipeline pipeline = readPipeline(4);
 
         byte[] bytes = {1, 2, 3, 4};
-<<<<<<< HEAD
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[0]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, 0);
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[0]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, 0);
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.OVERFLOW, result.status());
         assertEquals(0, result.consumed());
@@ -197,15 +173,6 @@ public class TestModelHandlerTest
         ModelPipeline pipeline = readPipeline(4);
 
         byte[] bytes = {1, 2, 3, 4};
-<<<<<<< HEAD
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-        pipeline.reset();
-
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
@@ -213,7 +180,6 @@ public class TestModelHandlerTest
 
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
         assertEquals(ModelStatus.COMPLETE, result.status());
     }
 

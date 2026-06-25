@@ -22,10 +22,6 @@ import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
-<<<<<<< HEAD
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-=======
->>>>>>> origin/develop
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -76,10 +72,6 @@ public class ProtobufModelHandler
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
-<<<<<<< HEAD
-        this.out = new UnsafeBufferEx(new byte[OUT_WINDOW]);
-=======
->>>>>>> origin/develop
         this.event = new ProtobufModelEventContext(context);
     }
 

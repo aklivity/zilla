@@ -51,59 +51,6 @@ public class StringModelPipelineTest
     }
 
     @Test
-<<<<<<< HEAD
-    public void shouldTransformWholeValue()
-    {
-        ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "Valid String".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[64]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(bytes.length, result.consumed());
-        assertEquals(bytes.length, result.produced());
-        assertEquals("Valid String", dst.getStringWithoutLengthUtf8(0, result.produced()));
-    }
-
-    @Test
-    public void shouldRejectInvalidEncoding()
-    {
-        ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = {(byte) 0xc0};
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[64]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-        assertEquals(0, result.consumed());
-        assertEquals(0, result.produced());
-    }
-
-    @Test
-    public void shouldRejectInvalidPattern()
-    {
-        ModelHandler handler = handler(StringModelConfig.builder()
-            .encoding("utf_8")
-            .pattern("^[a-zA-Z\\s]+$")
-            .build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "Hello123".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[64]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
-=======
->>>>>>> origin/develop
     public void shouldOverflowBoundedDestination()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
@@ -137,15 +84,9 @@ public class StringModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "Valid String".getBytes();
-<<<<<<< HEAD
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[0]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, 0);
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[0]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, 0);
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.OVERFLOW, result.status());
         assertEquals(0, result.consumed());
@@ -165,18 +106,6 @@ public class StringModelPipelineTest
         byte[] whole = "Other Value".getBytes();
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[64]);
 
-<<<<<<< HEAD
-        ModelPipelineResult ra1 = a.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
-            new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
-        assertEquals(ModelStatus.UNDERFLOW, ra1.status());
-
-        ModelPipelineResult rb = b.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(whole), 0, whole.length, dst, 0, dst.capacity());
-        assertEquals(ModelStatus.COMPLETE, rb.status());
-
-        ModelPipelineResult ra2 = a.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
-            new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
@@ -187,7 +116,6 @@ public class StringModelPipelineTest
 
         ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
         assertEquals(ModelStatus.COMPLETE, ra2.status());
     }
 
@@ -198,15 +126,6 @@ public class StringModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "abc".getBytes();
-<<<<<<< HEAD
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-        pipeline.reset();
-
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
@@ -214,7 +133,6 @@ public class StringModelPipelineTest
 
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals(bytes.length, result.produced());
     }

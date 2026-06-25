@@ -69,36 +69,6 @@ public class ProtobufModelEncoderPipelineTest
     }
 
     @Test
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufEncodeModelPipelineTest.java
-    public void shouldTransformWholeValue()
-    {
-        ProtobufModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        byte[] in = JSON.getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertArrayEquals(WIRE, out);
-
-        // reset and reuse the same pipeline for the next value
-        pipeline.reset();
-        ModelPipelineResult reused = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-        assertEquals(ModelStatus.COMPLETE, reused.status());
-        byte[] outReused = new byte[reused.produced()];
-        dst.getBytes(0, outReused);
-        assertArrayEquals(WIRE, outReused);
-    }
-
-    @Test
-=======
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelEncoderPipelineTest.java
     public void shouldIsolateInterleavedStreams()
     {
         ProtobufModelHandlerImpl handler = newHandler();
@@ -112,25 +82,15 @@ public class ProtobufModelEncoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufEncodeModelPipelineTest.java
-        ModelPipelineResult ra1 = a.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
-            new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelEncoderPipelineTest.java
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
         byte[] bIn = JSON.getBytes(UTF_8);
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufEncodeModelPipelineTest.java
-        ModelPipelineResult rb = b.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bIn), 0, bIn.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bIn), 0, bIn.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelEncoderPipelineTest.java
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
         dst.getBytes(0, outB);
@@ -138,13 +98,8 @@ public class ProtobufModelEncoderPipelineTest
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufEncodeModelPipelineTest.java
-        ModelPipelineResult ra2 = a.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
-            new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelEncoderPipelineTest.java
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
@@ -191,32 +146,9 @@ public class ProtobufModelEncoderPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] in = JSON.getBytes(UTF_8);
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufEncodeModelPipelineTest.java
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
-    public void shouldRejectInvalid()
-    {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        ProtobufModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // an unknown field is rejected by the strict JSON parser
-        byte[] in = "{\"content\":\"OK\",\"unexpected\":\"value\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelEncoderPipelineTest.java
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }

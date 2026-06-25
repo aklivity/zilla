@@ -22,7 +22,8 @@ import java.time.Clock;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import org.agrona.MutableDirectBuffer;
+
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
@@ -320,7 +321,7 @@ public interface EngineContext
      *
      * @return the mutable write buffer
      */
-    MutableDirectBufferEx writeBuffer();
+    MutableDirectBuffer writeBuffer();
 
     /**
      * Returns the shared {@link BufferPool} for this thread, used to temporarily hold

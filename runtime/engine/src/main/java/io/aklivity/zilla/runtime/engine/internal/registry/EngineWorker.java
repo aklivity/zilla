@@ -41,16 +41,17 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toMap;
 import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
-import java.lang.foreign.Arena;
 import java.net.InetAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Deque;
@@ -76,8 +77,10 @@ import java.util.function.Supplier;
 
 import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
+import org.agrona.DirectBuffer;
 import org.agrona.ErrorHandler;
 import org.agrona.LangUtil;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
@@ -87,13 +90,13 @@ import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
+import org.agrona.concurrent.MessageHandler;
+import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
-import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -115,6 +118,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -151,6 +155,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
@@ -163,6 +168,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.router.Router;
+import io.aklivity.zilla.runtime.engine.router.RouterContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -198,19 +205,29 @@ public class EngineWorker implements EngineContext, Agent
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
     private final Object2ObjectHashMap<Metric.Kind, LongIntIntFunction<LongConsumer>> metricWriterSuppliers;
-    private Map<String, MetricGroup> metricGroupsByName;
-    private StreamsLayout streamsLayout;
-    private BufferPoolLayout bufferPoolLayout;
-    private RingBufferEx streamsBuffer;
-    private MutableDirectBufferEx writeBuffer;
+    private final Collection<Binding> bindings;
+    private final Collection<Exporter> exporters;
+    private final Collection<Guard> guards;
+    private final Collection<Vault> vaults;
+    private final Collection<Catalog> catalogs;
+    private final Collection<Model> models;
+    private final Collection<MetricGroup> metricGroups;
+    private final Collection<Store> stores;
+    private final Collector collector;
+    private final Consumer<NamespaceConfig> process;
+    private final Map<String, MetricGroup> metricGroupsByName;
+    private final StreamsLayout streamsLayout;
+    private final BufferPoolLayout bufferPoolLayout;
+    private final RingBuffer streamsBuffer;
+    private final MutableDirectBuffer writeBuffer;
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final Int2ObjectHashMap<MessageConsumer> writersByIndex;
     private final Int2ObjectHashMap<Target> targetsByIndex;
-    private BufferPool bufferPool;
+    private final BufferPool bufferPool;
     private final long mask;
-    private final MessageHandlerEx readHandler;
+    private final MessageHandler readHandler;
     private final TimerHandler expireHandler;
     private final int readLimit;
     private final int expireLimit;
@@ -220,7 +237,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private final Poller poller;
 
-    private DefaultBudgetCreditor creditor;
+    private final DefaultBudgetCreditor creditor;
     private final Int2ObjectHashMap<DefaultBudgetDebitor> debitorsByIndex;
     private final BudgetHandleRegistry budgetHandles;
 
@@ -232,10 +249,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Long2ObjectHashMap<AgentRunner> exportersById;
-    private Map<String, ModelContext> modelsByType;
 
-    private EngineRegistry registry;
-    private final CountDownLatch startedLatch;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final Path configPath;
@@ -246,29 +260,19 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineBoss boss;
     private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
-    private CountersLayout countersLayout;
-    private GaugesLayout gaugesLayout;
-    private HistogramsLayout histogramsLayout;
-    private EventWriter eventWriter;
+    private final CountersLayout countersLayout;
+    private final GaugesLayout gaugesLayout;
+    private final HistogramsLayout histogramsLayout;
+    private final EventWriter eventWriter;
     private final Int2ObjectHashMap<String> eventNames;
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
-    private LongSupplier usageMetric;
+    private final LongSupplier usageMetric;
     private final boolean readonly;
     private final int maxIdleCount;
 
-    private final Collection<Binding> bindings;
-    private final Collection<Exporter> exporters;
-    private final Collection<Guard> guards;
-    private final Collection<Vault> vaults;
-    private final Collection<Catalog> catalogs;
-    private final Collection<Model> models;
-    private final Collection<MetricGroup> metricGroups;
-    private final Collection<Store> stores;
-    private final Collector collector;
-    private final Consumer<NamespaceConfig> process;
-
-    private Arena arena;
+    private final RouterContext router;
+    private final RouterConfig routerConfig;
 
     private long initialId;
     private long promiseId;
@@ -277,10 +281,14 @@ public class EngineWorker implements EngineContext, Agent
     private long authorizedId;
 
     private long lastReadStreamId;
-
     private int idleCount;
-
     private volatile Thread thread;
+
+    private final CountDownLatch started = new CountDownLatch(1);
+
+    private Map<String, ModelContext> modelsByType;
+    private EngineRegistry registry;
+    private BindingHandler streamFactory;
 
     public EngineWorker(
         EngineConfiguration config,
@@ -296,6 +304,8 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
+        Router router,
+        RouterConfig routerConfig,
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
         EventFormatterFactory eventFormatterFactory,
@@ -323,17 +333,61 @@ public class EngineWorker implements EngineContext, Agent
         this.maxIdleCount = config.maxIdleCount();
         this.boss = boss;
 
-        this.metricWriterSuppliers = new Object2ObjectHashMap<>();
+        this.countersLayout = new CountersLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/counters%d", index)))
+                .capacity(config.countersBufferCapacity())
+                .readonly(readonly)
+                .label("counters")
+                .build();
+
+        this.gaugesLayout = new GaugesLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
+                .capacity(config.countersBufferCapacity())
+                .readonly(readonly)
+                .label("gauges")
+                .build();
+
+        this.histogramsLayout = new HistogramsLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
+                .capacity(config.countersBufferCapacity())
+                .readonly(readonly)
+                .build();
+
+        metricWriterSuppliers = new Object2ObjectHashMap<>();
+        metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
+        metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
+        metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
+
+        final StreamsLayout streamsLayout = new StreamsLayout.Builder()
+                .path(config.directory().resolve(String.format("data%d", index)))
+                .streamsCapacity(config.streamsBufferCapacity())
+                .readonly(readonly)
+                .build();
+
+        final BufferPoolLayout bufferPoolLayout = new BufferPoolLayout.Builder()
+                .path(config.directory().resolve(String.format("buffers%d", index)))
+                .slotCapacity(config.bufferSlotCapacity())
+                .slotCount(config.bufferPoolCapacity() / config.bufferSlotCapacity())
+                .readonly(readonly)
+                .build();
+
+        this.eventWriter = new EventWriter(
+                config.directory().resolve(String.format("events%d", index)),
+                config.eventsBufferCapacity());
 
         this.eventNames = new Int2ObjectHashMap<>();
 
         this.agentName = String.format("engine/worker#%d", index);
+        this.streamsLayout = streamsLayout;
+        this.bufferPoolLayout = bufferPoolLayout;
         this.runner = new AgentRunner(supplyIdleStrategy.apply(TRUE), errorHandler, null, this);
 
         this.resolveHost = config.hostResolver();
         this.timestamps = config.timestamps();
         this.readLimit = config.maximumMessagesPerRead();
         this.expireLimit = config.maximumExpirationsPerPoll();
+        this.streamsBuffer = streamsLayout.streamsBuffer();
+        this.writeBuffer = new UnsafeBufferEx(new byte[config.bufferSlotCapacity() + 1024]);
         this.streamSets = new Long2ObjectHashMap<>();
         this.streams = initDispatcher();
         this.throttles = initDispatcher();
@@ -353,18 +407,34 @@ public class EngineWorker implements EngineContext, Agent
 
         this.poller = new Poller();
 
+        final BufferPool bufferPool = bufferPoolLayout.bufferPool();
+
         final long initial = ((long) index) << SHIFT_SIZE;
         final long mask = initial | (-1L >>> RESERVED_SIZE);
 
         this.mask = mask;
+        this.bufferPool = bufferPool;
         this.initialId = initial;
         this.promiseId = initial;
         this.traceId = initial;
         this.budgetId = initial;
         this.authorizedId = initial;
 
+        final BudgetsLayout budgetsLayout = new BudgetsLayout.Builder()
+                .path(config.directory().resolve(String.format("budgets%d", index)))
+                .capacity(config.budgetsBufferCapacity())
+                .owner(true)
+                .build();
+
+        this.creditor = new DefaultBudgetCreditor(index, budgetsLayout, this::doSystemFlush, this::supplyBudgetId,
+            signaler::executeTaskAt, config.childCleanupLingerMillis());
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
         this.budgetHandles = new BudgetHandleRegistry();
+
+        this.routerConfig = routerConfig;
+        EngineRouteable routeable = new EngineRouteable(config, this::newStream,
+            this::attachComposite, this::detachComposite);
+        this.router = router.supply(routeable);
 
         this.bindings = bindings;
         this.exporters = exporters;
@@ -377,7 +447,6 @@ public class EngineWorker implements EngineContext, Agent
         this.collector = collector;
         this.process = process;
 
-        this.startedLatch = new CountDownLatch(1);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
         this.reporter = config.errorReporter();
@@ -385,6 +454,14 @@ public class EngineWorker implements EngineContext, Agent
         this.exportersById = new Long2ObjectHashMap<>();
         this.supplyEventReader = supplyEventReader;
         this.eventFormatterFactory = eventFormatterFactory;
+
+        Map<String, MetricGroup> metricGroupsByName = new Object2ObjectHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            metricGroupsByName.put(metricGroup.name(), metricGroup);
+        }
+        this.metricGroupsByName = metricGroupsByName;
+        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
     }
 
     public static int indexOfId(
@@ -459,6 +536,28 @@ public class EngineWorker implements EngineContext, Agent
 
         return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
                (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
+    }
+
+    @Override
+    public long supplyInitialId(
+        long bindingId,
+        int hash)
+    {
+        final int remoteIndex = resolveRemoteIndex(bindingId, hash);
+
+        initialId += 2L;
+        initialId &= mask;
+
+        return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
+               (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
+    }
+
+    @Override
+    public boolean isLocalIndex(
+        long bindingId,
+        int hash)
+    {
+        return localIndex == resolveRemoteIndex(bindingId, hash);
     }
 
     @Override
@@ -588,7 +687,7 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public MutableDirectBufferEx writeBuffer()
+    public MutableDirectBuffer writeBuffer()
     {
         return writeBuffer;
     }
@@ -681,7 +780,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public BindingHandler streamFactory()
     {
-        return this::newStream;
+        return streamFactory;
     }
 
     @Override
@@ -797,7 +896,16 @@ public class EngineWorker implements EngineContext, Agent
     public void doStart()
     {
         thread = startOnThread(runner, Thread::new);
-        awaitStarted();
+
+        try
+        {
+            started.await();
+        }
+        catch (InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+            rethrowUnchecked(ex);
+        }
     }
 
     public void doClose()
@@ -809,6 +917,12 @@ public class EngineWorker implements EngineContext, Agent
         }
         finally
         {
+            targetsByIndex.forEach((k, v) -> quietClose(v));
+            quietClose(streamsLayout);
+            quietClose(bufferPoolLayout);
+            debitorsByIndex.forEach((k, v) -> quietClose(v));
+            quietClose(creditor);
+            quietClose(eventWriter);
             thread = null;
         }
     }
@@ -835,7 +949,7 @@ public class EngineWorker implements EngineContext, Agent
                 }
             }
 
-            workDone += streamsBuffer.readEx(readHandler, readLimit);
+            workDone += streamsBuffer.read(readHandler, readLimit);
 
             if (workDone == 0 &&
                 maxSelectMillis != 0 &&
@@ -858,82 +972,28 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public void onStart()
     {
-        this.arena = Arena.ofConfined();
-
-        this.countersLayout = new CountersLayout.Builder()
-                .path(config.directory().resolve(String.format("metrics/counters%d", localIndex)))
-                .capacity(config.countersBufferCapacity())
-                .readonly(readonly)
-                .label("counters")
-                .build();
-
-        this.gaugesLayout = new GaugesLayout.Builder()
-                .path(config.directory().resolve(String.format("metrics/gauges%d", localIndex)))
-                .capacity(config.countersBufferCapacity())
-                .readonly(readonly)
-                .label("gauges")
-                .build();
-
-        this.histogramsLayout = new HistogramsLayout.Builder()
-                .path(config.directory().resolve(String.format("metrics/histograms%d", localIndex)))
-                .capacity(config.countersBufferCapacity())
-                .readonly(readonly)
-                .build();
-
-        metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
-        metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
-        metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
-
-        this.streamsLayout = new StreamsLayout.Builder()
-                .path(config.directory().resolve(String.format("data%d", localIndex)))
-                .streamsCapacity(config.streamsBufferCapacity())
-                .readonly(readonly)
-                .build();
-
-        this.bufferPoolLayout = new BufferPoolLayout.Builder()
-                .path(config.directory().resolve(String.format("buffers%d", localIndex)))
-                .slotCapacity(config.bufferSlotCapacity())
-                .slotCount(config.bufferPoolCapacity() / config.bufferSlotCapacity())
-                .readonly(readonly)
-                .build();
-
-        this.eventWriter = new EventWriter(
-                config.directory().resolve(String.format("events%d", localIndex)),
-                config.eventsBufferCapacity());
-
-        this.streamsBuffer = streamsLayout.streamsBuffer();
-        this.writeBuffer = new UnsafeBufferEx(new byte[config.bufferSlotCapacity() + 1024]);
-        this.bufferPool = bufferPoolLayout.bufferPool();
-
-        final BudgetsLayout budgetsLayout = new BudgetsLayout.Builder()
-                .path(config.directory().resolve(String.format("budgets%d", localIndex)))
-                .capacity(config.budgetsBufferCapacity())
-                .owner(true)
-                .build();
-
-        this.creditor = new DefaultBudgetCreditor(localIndex, budgetsLayout, this::doSystemFlush, this::supplyBudgetId,
-            signaler::executeTaskAt, config.childCleanupLingerMillis());
-
-        Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
-        for (Binding binding : bindings)
+        try
         {
-            String type = binding.name();
-            bindingsByType.put(type, binding.supply(this));
+            doInit();
         }
-
-        Map<String, ExporterContext> exportersByType = new LinkedHashMap<>();
-        for (Exporter exporter : exporters)
+        finally
         {
-            String type = exporter.name();
-            exportersByType.put(type, exporter.supply(this));
+            started.countDown();
         }
+    }
 
-        Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
-        for (Guard guard : guards)
-        {
-            String type = guard.name();
-            guardsByType.put(type, guard.supply(this));
-        }
+    private void doInit()
+    {
+        this.streamFactory = router.attach(routerConfig);
+
+        Map<String, BindingContext> bindingsByType = bindings.stream()
+            .collect(toMap(Binding::name, b -> b.supply(this), (a, b) -> a, LinkedHashMap::new));
+
+        Map<String, ExporterContext> exportersByType = exporters.stream()
+            .collect(toMap(Exporter::name, e -> e.supply(this), (a, b) -> a, LinkedHashMap::new));
+
+        Map<String, GuardContext> guardsByType = guards.stream()
+            .collect(toMap(Guard::name, g -> g.supply(this), (a, b) -> a, LinkedHashMap::new));
 
         Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
         for (Vault vault : vaults)
@@ -965,20 +1025,11 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
-        Map<String, StoreContext> storesByType = new LinkedHashMap<>();
-        for (Store store : stores)
-        {
-            String type = store.name();
-            storesByType.put(type, store.supply(this));
-        }
+        Map<String, StoreContext> storesByType = stores.stream()
+            .collect(toMap(Store::name, s -> s.supply(this), (a, b) -> a, LinkedHashMap::new));
 
-        Map<String, ModelContext> modelsByType = new LinkedHashMap<>();
-        for (Model model : models)
-        {
-            String type = model.name();
-            modelsByType.put(type, model.supply(this));
-        }
-        this.modelsByType = modelsByType;
+        this.modelsByType = models.stream()
+            .collect(toMap(Model::name, m -> m.supply(this), (a, b) -> a, LinkedHashMap::new));
 
         Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
         for (MetricGroup metricGroup : metricGroups)
@@ -990,18 +1041,10 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
-        this.metricGroupsByName = new Object2ObjectHashMap<>();
-        for (MetricGroup metricGroup : metricGroups)
-        {
-            metricGroupsByName.put(metricGroup.name(), metricGroup);
-        }
-
         this.registry = new EngineRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
                 exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
                 this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
-
-        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
 
         if (!readonly)
         {
@@ -1018,8 +1061,6 @@ public class EngineWorker implements EngineContext, Agent
             recordCapacity.accept(ENGINE_WORKER_CAPACITY_LIMIT.getAsInt(config));
             recordUtilization.accept(0);
         }
-
-        startedLatch.countDown();
     }
 
     @Override
@@ -1029,6 +1070,8 @@ public class EngineWorker implements EngineContext, Agent
         {
             registry.detachAll();
         }
+
+        router.detach(routerConfig.id);
 
         poller.onClose();
 
@@ -1059,15 +1102,6 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         targetsByIndex.forEach((k, v) -> v.detach());
-        targetsByIndex.forEach((k, v) -> quietClose(v));
-
-        quietClose(streamsLayout);
-        quietClose(bufferPoolLayout);
-
-        debitorsByIndex.forEach((k, v) -> quietClose(v));
-        quietClose(creditor);
-        quietClose(eventWriter);
-        arena.close();
 
         if (acquiredBuffers != 0 || acquiredCreditors != 0 || acquiredDebitors != 0L)
         {
@@ -1137,19 +1171,6 @@ public class EngineWorker implements EngineContext, Agent
             writeBindingTypes(registry);
         }
         return detachTask.future();
-    }
-
-    private void awaitStarted()
-    {
-        try
-        {
-            startedLatch.await();
-        }
-        catch (InterruptedException ex)
-        {
-            Thread.currentThread().interrupt();
-            LangUtil.rethrowUnchecked(ex);
-        }
     }
 
     public AgentRunner runner()
@@ -1276,22 +1297,22 @@ public class EngineWorker implements EngineContext, Agent
 
     private void onSystemMessage(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {
         switch (msgTypeId)
         {
         case FlushFW.TYPE_ID:
-            final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+            final FlushFW flush = flushRO.wrap((DirectBufferEx) buffer, index, index + length);
             onSystemFlush(flush);
             break;
         case WindowFW.TYPE_ID:
-            final WindowFW window = windowRO.wrap(buffer, index, index + length);
+            final WindowFW window = windowRO.wrap((DirectBufferEx) buffer, index, index + length);
             onSystemWindow(window);
             break;
         case SignalFW.TYPE_ID:
-            final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+            final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
             onSystemSignal(signal);
             break;
         }
@@ -1367,7 +1388,7 @@ public class EngineWorker implements EngineContext, Agent
                 }
 
                 final MessageConsumer writer = supplyWriter(watcherIndex);
-                final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                final FlushFW flush = flushRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
                         .originId(0L)
                         .routedId(0L)
                         .streamId(0L)
@@ -1397,7 +1418,7 @@ public class EngineWorker implements EngineContext, Agent
 
         final int targetIndex = ownerIndex(budgetId);
         final MessageConsumer writer = supplyWriter(targetIndex);
-        final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        final WindowFW window = windowRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
             .originId(0L)
             .routedId(0L)
             .streamId(0L)
@@ -1426,11 +1447,11 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleRead(
         int msgTypeId,
-        MutableDirectBufferEx buffer,
+        MutableDirectBuffer buffer,
         int index,
         int length)
     {
-        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+        final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, index + length);
         final long originId = frame.originId();
         final long routedId = frame.routedId();
         final long streamId = frame.streamId();
@@ -1462,7 +1483,7 @@ public class EngineWorker implements EngineContext, Agent
         long acknowledge,
         int maximum,
         int msgTypeId,
-        MutableDirectBufferEx buffer,
+        MutableDirectBuffer buffer,
         int index, int length)
     {
         final int instanceId = instanceId(streamId);
@@ -1476,23 +1497,23 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 case DataFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 case EndFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case AbortFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case FlushFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 default:
                     doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
@@ -1513,32 +1534,30 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case WindowFW.TYPE_ID:
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 case ResetFW.TYPE_ID:
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                    final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
                     final long cancelId = signal.cancelId();
                     if (cancelId != NO_CANCEL_ID)
                     {
                         futuresById.remove(cancelId);
                     }
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 case ChallengeFW.TYPE_ID:
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
-
                 case RedirectFW.TYPE_ID:
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
-
                 default:
                     break;
                 }
@@ -1548,7 +1567,7 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                    final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
                     final long cancelId = signal.cancelId();
                     if (cancelId != NO_CANCEL_ID)
                     {
@@ -1562,7 +1581,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDefaultReadInitial(
         int msgTypeId,
-        MutableDirectBufferEx buffer,
+        MutableDirectBuffer buffer,
         int index,
         int length)
     {
@@ -1572,11 +1591,11 @@ public class EngineWorker implements EngineContext, Agent
             final MessageConsumer newHandler = handleBeginInitial(msgTypeId, buffer, index, length);
             if (newHandler != null)
             {
-                newHandler.accept(msgTypeId, buffer, index, length);
+                newHandler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
             }
             else
             {
-                final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+                final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, index + length);
                 final long originId = frame.originId();
                 final long routedId = frame.routedId();
                 final long streamId = frame.streamId();
@@ -1598,7 +1617,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDroppedReadFrame(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {
@@ -1615,13 +1634,13 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDroppedReadData(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {
         assert msgTypeId == DataFW.TYPE_ID;
 
-        final DataFW data = dataRO.wrap(buffer, index, index + length);
+        final DataFW data = dataRO.wrap((DirectBufferEx) buffer, index, index + length);
         final long traceId = data.traceId();
         final long budgetId = data.budgetId();
         final int reserved = data.reserved();
@@ -1631,13 +1650,13 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDroppedReadEnd(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {
         assert msgTypeId == EndFW.TYPE_ID;
 
-        final EndFW end = endRO.wrap(buffer, index, index + length);
+        final EndFW end = endRO.wrap((DirectBufferEx) buffer, index, index + length);
         final long traceId = end.traceId();
         final long budgetId = end.budgetId();
         final int reserved = end.reserved();
@@ -1664,7 +1683,7 @@ public class EngineWorker implements EngineContext, Agent
         long acknowledge,
         int maximum,
         int msgTypeId,
-        MutableDirectBufferEx buffer,
+        MutableDirectBuffer buffer,
         int index, int length)
     {
         final int instanceId = instanceId(streamId);
@@ -1678,23 +1697,23 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 case DataFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 case EndFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case AbortFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case FlushFW.TYPE_ID:
-                    handler.accept(msgTypeId, buffer, index, length);
+                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 default:
                     doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
@@ -1715,32 +1734,30 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case WindowFW.TYPE_ID:
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 case ResetFW.TYPE_ID:
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                    final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
                     final long cancelId = signal.cancelId();
                     if (cancelId != NO_CANCEL_ID)
                     {
                         futuresById.remove(cancelId);
                     }
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
                 case ChallengeFW.TYPE_ID:
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     break;
-
                 case RedirectFW.TYPE_ID:
-                    throttle.accept(msgTypeId, buffer, index, length);
+                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
-
                 default:
                     break;
                 }
@@ -1750,7 +1767,7 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                    final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
                     final long cancelId = signal.cancelId();
                     if (cancelId != NO_CANCEL_ID)
                     {
@@ -1764,13 +1781,13 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDefaultReadReply(
         int msgTypeId,
-        MutableDirectBufferEx buffer,
+        MutableDirectBuffer buffer,
         int index,
         int length)
     {
         if (msgTypeId == BeginFW.TYPE_ID)
         {
-            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, index + length);
             final long originId = frame.originId();
             final long routedId = frame.routedId();
             final long streamId = frame.streamId();
@@ -1780,7 +1797,7 @@ public class EngineWorker implements EngineContext, Agent
             final MessageConsumer newHandler = handleBeginReply(msgTypeId, buffer, index, length);
             if (newHandler != null)
             {
-                newHandler.accept(msgTypeId, buffer, index, length);
+                newHandler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
             }
             else
             {
@@ -1797,7 +1814,7 @@ public class EngineWorker implements EngineContext, Agent
         }
         else if (msgTypeId == FlushFW.TYPE_ID)
         {
-            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, index + length);
             final long originId = frame.originId();
             final long routedId = frame.routedId();
             final long streamId = frame.streamId();
@@ -1808,7 +1825,7 @@ public class EngineWorker implements EngineContext, Agent
             final MessageConsumer newHandler = handleFlushReply(msgTypeId, buffer, index, length);
             if (newHandler != null)
             {
-                newHandler.accept(msgTypeId, buffer, index, length);
+                newHandler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
             }
             else
             {
@@ -1819,11 +1836,11 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer handleBeginInitial(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {
-        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+        final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
         final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
@@ -1841,7 +1858,7 @@ public class EngineWorker implements EngineContext, Agent
             final MessageConsumer replyTo = supplyReplyTo(initialId)
                 .andThen(sentMetricHandler.filter(this::isReplyId))
                 .andThen(receivedMetricHandler.filter(this::isInitialId));
-            newStream = streamFactory.newStream(msgTypeId, buffer, index, length, replyTo);
+            newStream = streamFactory.newStream(msgTypeId, (DirectBufferEx) buffer, index, length, replyTo);
             if (newStream != null)
             {
                 newStream = receivedMetricHandler.filter(this::isInitialId)
@@ -1861,7 +1878,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private boolean isInitialId(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {
@@ -1870,7 +1887,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private boolean isReplyId(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {
@@ -1879,11 +1896,11 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer handleBeginReply(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {
-        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+        final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
         final long streamId = begin.streamId();
 
         MessageConsumer newStream = null;
@@ -1899,11 +1916,11 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer handleFlushReply(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {
-        final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+        final FlushFW flush = flushRO.wrap((DirectBufferEx) buffer, index, index + length);
         final long streamId = flush.streamId();
 
         MessageConsumer newStream = null;
@@ -1920,7 +1937,7 @@ public class EngineWorker implements EngineContext, Agent
         final long sequence,
         final long acknowledge, final int maximum)
     {
-        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        final ResetFW reset = resetRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1939,7 +1956,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         final long syntheticId = 0L;
 
-        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        final ResetFW reset = resetRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
             .originId(syntheticId)
             .routedId(syntheticId)
             .streamId(streamId)
@@ -1957,7 +1974,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         final long syntheticId = 0L;
 
-        final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        final AbortFW abort = abortRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
             .originId(syntheticId)
             .routedId(syntheticId)
             .streamId(streamId)
@@ -1978,12 +1995,12 @@ public class EngineWorker implements EngineContext, Agent
 
     private MessageConsumer newStream(
         int msgTypeId,
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length,
         MessageConsumer sender)
     {
-        final FrameFW frame = frameRO.wrap(buffer, index, length);
+        final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, length);
         final long streamId = frame.streamId();
         assert StreamId.isInitial(streamId);
         throttles[throttleIndex(streamId)].put(instanceId(streamId), sender);
@@ -2107,7 +2124,7 @@ public class EngineWorker implements EngineContext, Agent
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles);
+        return new Target(config, index, (MutableDirectBufferEx) writeBuffer, correlations, streams, streamSets, throttles);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(
@@ -2143,6 +2160,26 @@ public class EngineWorker implements EngineContext, Agent
         return remoteIndex;
     }
 
+    private int resolveRemoteIndex(
+        long bindingId,
+        int hash)
+    {
+        final Affinity affinity = supplyAffinity(bindingId);
+        final BitSet mask = affinity.mask;
+        final int cardinality = mask.cardinality();
+
+        assert cardinality != 0;
+
+        // pick the n-th set bit of the mask, where n = floorMod(hash, cardinality)
+        int slot = Math.floorMod(hash, cardinality);
+        int remoteIndex = mask.nextSetBit(0);
+        while (slot-- > 0)
+        {
+            remoteIndex = mask.nextSetBit(remoteIndex + 1);
+        }
+        return remoteIndex;
+    }
+
     private Affinity supplyAffinity(
         long bindingId)
     {
@@ -2174,8 +2211,8 @@ public class EngineWorker implements EngineContext, Agent
     private static SignalFW.Builder newSignalRW(
         int capacity)
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[capacity]);
-        return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[capacity]);
+        return new SignalFW.Builder().wrap((MutableDirectBufferEx) buffer, 0, buffer.capacity());
     }
 
     private Int2ObjectHashMap<MessageConsumer>[] initDispatcher()
@@ -2231,6 +2268,15 @@ public class EngineWorker implements EngineContext, Agent
 
         @Override
         public long signalAt(
+            Instant time,
+            int signalId,
+            IntConsumer handler)
+        {
+            return signalAt(time.toEpochMilli(), signalId, handler);
+        }
+
+        @Override
+        public long signalAt(
             long timeMillis,
             long originId,
             long routedId,
@@ -2246,6 +2292,19 @@ public class EngineWorker implements EngineContext, Agent
             assert oldTask == null;
             assert timerId >= 0L;
             return timerId;
+        }
+
+        @Override
+        public long signalAt(
+            Instant time,
+            long originId,
+            long routedId,
+            long streamId,
+            long traceId,
+            int signalId,
+            int contextId)
+        {
+            return signalAt(time.toEpochMilli(), originId, routedId, streamId, traceId, signalId, contextId);
         }
 
         @Override
@@ -2303,7 +2362,7 @@ public class EngineWorker implements EngineContext, Agent
             long traceId,
             int signalId,
             int contextId,
-            DirectBufferEx buffer,
+            DirectBuffer buffer,
             int offset,
             int length)
         {
@@ -2396,7 +2455,7 @@ public class EngineWorker implements EngineContext, Agent
             long cancelId,
             int signalId,
             int contextId,
-            DirectBufferEx buffer,
+            DirectBuffer buffer,
             int offset,
             int length)
         {
@@ -2415,7 +2474,7 @@ public class EngineWorker implements EngineContext, Agent
                                             .cancelId(cancelId)
                                             .signalId(signalId)
                                             .contextId(contextId)
-                                            .payload(buffer, offset, length)
+                                            .payload((DirectBufferEx) buffer, offset, length)
                                             .build();
 
             streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());

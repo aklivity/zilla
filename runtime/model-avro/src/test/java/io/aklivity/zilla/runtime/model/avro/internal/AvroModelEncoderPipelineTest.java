@@ -76,27 +76,6 @@ public class AvroModelEncoderPipelineTest
     }
 
     @Test
-<<<<<<< HEAD:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroEncodeModelPipelineTest.java
-    public void shouldTransformWholeValue()
-    {
-        AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        byte[] in = JSON.getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertArrayEquals(AVRO, out);
-    }
-
-    @Test
-=======
->>>>>>> origin/develop:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroModelEncoderPipelineTest.java
     public void shouldIsolateInterleavedStreams()
     {
         AvroModelHandlerImpl handler = newHandler();
@@ -110,25 +89,15 @@ public class AvroModelEncoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-<<<<<<< HEAD:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroEncodeModelPipelineTest.java
-        ModelPipelineResult ra1 = a.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
-            new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroModelEncoderPipelineTest.java
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
         byte[] bIn = JSON.getBytes(UTF_8);
-<<<<<<< HEAD:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroEncodeModelPipelineTest.java
-        ModelPipelineResult rb = b.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bIn), 0, bIn.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bIn), 0, bIn.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroModelEncoderPipelineTest.java
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
         dst.getBytes(0, outB);
@@ -136,13 +105,8 @@ public class AvroModelEncoderPipelineTest
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-<<<<<<< HEAD:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroEncodeModelPipelineTest.java
-        ModelPipelineResult ra2 = a.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
-            new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroModelEncoderPipelineTest.java
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
@@ -157,20 +121,12 @@ public class AvroModelEncoderPipelineTest
         AvroModelHandlerImpl handler = newHandler();
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
-<<<<<<< HEAD:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroEncodeModelPipelineTest.java
-        // id must be a string, not a number
-        byte[] in = "{\"id\":123,\"status\":\"positive\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-=======
         // raw protobuf-style binary, not valid JSON, fed under view: json -> the underlying JSON parser would
         // throw a JsonParsingException; the parser boundary must translate it to a clean REJECTED, not crash
         byte[] in = {0x0a, 0x02, 0x69, 0x64};
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-avro/src/test/java/io/aklivity/zilla/runtime/model/avro/internal/AvroModelEncoderPipelineTest.java
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }

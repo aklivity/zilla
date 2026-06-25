@@ -184,13 +184,6 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         AvroReporter reporter)
     {
         AvroSchema schema = supplySchema(schemaId);
-<<<<<<< HEAD
-        return schema != null
-            ? AvroJson.stream(schema, JsonEx.createParser(), true)
-                .reporting(reporter)
-                .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0))
-            : null;
-=======
         AvroPipeline pipeline = null;
         if (schema != null)
         {
@@ -208,7 +201,6 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
                     .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0));
         }
         return pipeline;
->>>>>>> origin/develop
     }
 
     void validationFailure(

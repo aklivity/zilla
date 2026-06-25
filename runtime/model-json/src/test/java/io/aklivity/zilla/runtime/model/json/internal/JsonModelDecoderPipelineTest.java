@@ -67,25 +67,6 @@ public class JsonModelDecoderPipelineTest
     }
 
     @Test
-<<<<<<< HEAD:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonDecodeModelPipelineTest.java
-    public void shouldTransformWholeValue()
-    {
-        JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        assertEquals("{\"id\":\"123\",\"status\":\"OK\"}", text(dst, result.produced()));
-    }
-
-    @Test
-=======
->>>>>>> origin/develop:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonModelDecoderPipelineTest.java
     public void shouldIsolateInterleavedStreams()
     {
         JsonModelHandlerImpl handler = newHandler();
@@ -100,36 +81,21 @@ public class JsonModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-<<<<<<< HEAD:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonDecodeModelPipelineTest.java
-        ModelPipelineResult ra1 = a.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
-            new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonModelDecoderPipelineTest.java
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-<<<<<<< HEAD:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonDecodeModelPipelineTest.java
-        ModelPipelineResult rb = b.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bWhole), 0, bWhole.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bWhole), 0, bWhole.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonModelDecoderPipelineTest.java
         assertEquals(ModelStatus.COMPLETE, rb.status());
         assertEquals("{\"id\":\"B\",\"status\":\"NO\"}", text(dst, rb.produced()));
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-<<<<<<< HEAD:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonDecodeModelPipelineTest.java
-        ModelPipelineResult ra2 = a.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
-            new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonModelDecoderPipelineTest.java
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
@@ -150,15 +116,9 @@ public class JsonModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-<<<<<<< HEAD:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonDecodeModelPipelineTest.java
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonModelDecoderPipelineTest.java
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("123", extracted.get("$.id"));
@@ -184,15 +144,9 @@ public class JsonModelDecoderPipelineTest
         assertFalse(pipeline.identity());
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-<<<<<<< HEAD:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonDecodeModelPipelineTest.java
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonModelDecoderPipelineTest.java
 
         assertTrue(pipeline.identity());
     }

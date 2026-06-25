@@ -21,8 +21,8 @@ import java.util.List;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
@@ -38,14 +38,10 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 // value when an accepted value completes. State lives on the pipeline so interleaved streams stay isolated.
 final class TestModelPipeline implements ModelPipeline
 {
-<<<<<<< HEAD
-    private final DirectBuffer extractedValue = new UnsafeBufferEx("1234".getBytes(UTF_8));
-=======
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
     private final DirectBuffer extractedValue = new UnsafeBufferEx("1234".getBytes(UTF_8));
->>>>>>> origin/develop
 
     private final int length;
     private final int transformLength;

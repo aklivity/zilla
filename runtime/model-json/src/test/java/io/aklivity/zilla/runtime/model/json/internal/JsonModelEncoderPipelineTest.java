@@ -21,12 +21,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
-<<<<<<< HEAD:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonEncodeModelPipelineTest.java
-import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-=======
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
->>>>>>> origin/develop:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonModelEncoderPipelineTest.java
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,43 +59,6 @@ public class JsonModelEncoderPipelineTest
     }
 
     @Test
-<<<<<<< HEAD:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonEncodeModelPipelineTest.java
-    public void shouldTransformWholeValue()
-    {
-        JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // the test catalog adds no framing prefix, so the output is the validated value itself
-        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertEquals("{\"id\":\"123\",\"status\":\"OK\"}", new String(out, UTF_8));
-    }
-
-    @Test
-    public void shouldRejectInvalidValue()
-    {
-        JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // missing required "status"
-        byte[] in = "{\"id\":\"123\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
-=======
->>>>>>> origin/develop:runtime/model-json/src/test/java/io/aklivity/zilla/runtime/model/json/internal/JsonModelEncoderPipelineTest.java
     public void shouldReportEncodePadding()
     {
         JsonModelHandlerImpl handler = newHandler();

@@ -56,17 +56,10 @@ public class Int64ModelPipelineTest
         ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
-<<<<<<< HEAD
-        byte[] bytes = "1234567890".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-=======
         byte[] bytes = "+8449999L".getBytes();
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals(bytes.length, result.produced());
@@ -78,12 +71,6 @@ public class Int64ModelPipelineTest
         ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-<<<<<<< HEAD
-        byte[] bytes = "12x".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-=======
         byte[] bytes = "-125".getBytes();
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
@@ -102,7 +89,6 @@ public class Int64ModelPipelineTest
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
->>>>>>> origin/develop
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }

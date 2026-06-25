@@ -95,48 +95,6 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufDecodeModelPipelineTest.java
-    public void shouldTransformWholeValueToJson()
-    {
-        ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(WIRE.length, result.consumed());
-        assertEquals(JSON, text(dst, result.produced()));
-
-        // reset and reuse the same pipeline for the next value
-        pipeline.reset();
-        ModelPipelineResult reused = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-        assertEquals(ModelStatus.COMPLETE, reused.status());
-        assertEquals(JSON, text(dst, reused.produced()));
-    }
-
-    @Test
-    public void shouldTransformWholeValueToWire()
-    {
-        ProtobufModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(WIRE.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertArrayEquals(PAYLOAD, out);
-    }
-
-    @Test
-=======
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelDecoderPipelineTest.java
     public void shouldIsolateInterleavedStreams()
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
@@ -151,24 +109,14 @@ public class ProtobufModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufDecodeModelPipelineTest.java
-        ModelPipelineResult ra1 = a.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
-            new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelDecoderPipelineTest.java
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufDecodeModelPipelineTest.java
-        ModelPipelineResult rb = b.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelDecoderPipelineTest.java
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
         dst.getBytes(0, outB);
@@ -176,13 +124,8 @@ public class ProtobufModelDecoderPipelineTest
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufDecodeModelPipelineTest.java
-        ModelPipelineResult ra2 = a.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
-            new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
-=======
         ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelDecoderPipelineTest.java
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
@@ -199,15 +142,9 @@ public class ProtobufModelDecoderPipelineTest
             extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufDecodeModelPipelineTest.java
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelDecoderPipelineTest.java
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("OK", extracted.get("$.content"));
@@ -249,15 +186,9 @@ public class ProtobufModelDecoderPipelineTest
             32, -79, -47, -7, -42, 3, 40, -71, 96, 49, 21, -51, 91, 7, 0, 0, 0, 0, 61, 57, 48, 0, 0, 66, 12, 100,
             117, 109, 109, 121, 32, 115, 116, 114, 105, 110, 103, 74, 5, 1, 2, 3, 4, 5, 80, -78, -110, 4, 101, 57,
             48, 0, 0, 105, 21, -51, 91, 7, 0, 0, 0, 0, 112, -28, -92, 8, 120, -30, -94, -13, -83, 7};
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufDecodeModelPipelineTest.java
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(wire), 0, wire.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(wire), 0, wire.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelDecoderPipelineTest.java
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("dummy string", extracted.get("$.field_string"));
@@ -312,26 +243,6 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufDecodeModelPipelineTest.java
-    public void shouldRejectInvalid()
-    {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        ProtobufModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        // index byte, then content length prefix promises 8 bytes but only "OK" follows under FLAGS_COMPLETE
-        byte[] invalid = {0x00, 0x0a, 0x08, 0x4f, 0x4b};
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(invalid), 0, invalid.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
-=======
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelDecoderPipelineTest.java
     public void shouldReportIdentityWhenNoView()
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
@@ -339,15 +250,9 @@ public class ProtobufModelDecoderPipelineTest
 
         assertFalse(pipeline.identity());
 
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufDecodeModelPipelineTest.java
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelDecoderPipelineTest.java
 
         assertTrue(pipeline.identity());
     }
@@ -358,15 +263,9 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl handler = newHandler("json");
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-<<<<<<< HEAD:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufDecodeModelPipelineTest.java
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-=======
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
->>>>>>> origin/develop:runtime/model-protobuf/src/test/java/io/aklivity/zilla/runtime/model/protobuf/internal/ProtobufModelDecoderPipelineTest.java
 
         assertFalse(pipeline.identity());
     }

@@ -29,15 +29,11 @@ import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConf
 
 public class HttpModelTest
 {
-<<<<<<< HEAD
-    private final MutableDirectBuffer value = new UnsafeBufferEx(new byte[256]);
-=======
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMPLETE = 0x03;
 
     private final MutableDirectBuffer value = new UnsafeBufferEx(new byte[256]);
->>>>>>> origin/develop
 
     @Test
     public void shouldTransformWholeValue()
