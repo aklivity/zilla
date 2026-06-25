@@ -36,11 +36,14 @@ import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.agrona.collections.IntObjectToObjectFunction;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.Object2ObjectHashMap;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -106,15 +109,13 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -155,7 +156,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final String GROUP_MAX_SESSION_TIMEOUT = "group.max.session.timeout.ms";
     private static final String GROUP_INITIAL_REBALANCE_DELAY = "group.initial.rebalance.delay.ms";
     private static final byte GROUP_KEY_TYPE = 0x00;
-    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -298,7 +299,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final int proxyTypeId;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final MutableDirectBufferEx userdataBuffer;
+    private final MutableDirectBuffer userdataBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final IntFunction<Signaler> supplySignaler;
@@ -413,7 +414,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         timeout,
                         groupMembership,
                         servers,
-                        delay -> resolveSasl.apply(delay, sasl));
+                        delay -> resolveSasl.apply(delay, sasl),
+                        binding.guard);
                     newStream = newGroup::onStream;
 
                     groupStreams.put(groupId, newGroup);
@@ -513,7 +515,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBufferEx payload,
+        DirectBuffer payload,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -1312,12 +1314,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private final String groupId;
         private final String protocol;
         private final IntFunction<KafkaSaslConfig> resolveSasl;
+        private final GuardHandler guard;
 
         private KafkaGroupClient client;
         private MessageConsumer sender;
         private String nodeId;
         private int timeout;
-        private MutableDirectBufferEx metadataBuffer;
+        private MutableDirectBuffer metadataBuffer;
 
         private int state;
 
@@ -1351,7 +1354,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             int timeout,
             GroupMembership groupMembership,
             List<KafkaServerConfig> servers,
-            IntFunction<KafkaSaslConfig> resolveSasl)
+            IntFunction<KafkaSaslConfig> resolveSasl,
+            GuardHandler guard)
         {
             this.sender = sender;
             this.originId = originId;
@@ -1364,6 +1368,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.timeout = timeout;
             this.groupMembership = groupMembership;
             this.resolveSasl = resolveSasl;
+            this.guard = guard;
             this.cluster = new ClusterClient(routedId, resolvedId, servers, this);
             this.client = cluster;
             this.metadataBuffer = new UnsafeBufferEx(new byte[2048]);
@@ -1758,10 +1763,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         protected KafkaGroupClient(
             KafkaServerConfig server,
             KafkaSaslConfig sasl,
+            GuardHandler guard,
             long originId,
             long routedId)
         {
-            super(server, sasl, originId, routedId);
+            super(server, sasl, guard, originId, routedId);
         }
 
         protected abstract void doNetworkBegin(
@@ -1778,10 +1784,11 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         protected KafkaGroupClient(
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
+            GuardHandler guard,
             long originId,
             long routedId)
         {
-            super(servers, sasl, originId, routedId);
+            super(servers, sasl, guard, originId, routedId);
         }
 
         protected void onStreamMigrate(
@@ -1861,7 +1868,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             List<KafkaServerConfig> servers,
             KafkaGroupStream delegate)
         {
-            super(servers, delegate.resolveSasl.apply(NO_DELAY), originId, routedId);
+            super(servers, delegate.resolveSasl.apply(NO_DELAY), delegate.guard, originId, routedId);
 
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeFindCoordinatorRequest;
             this.delegate = delegate;
@@ -2369,7 +2376,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -2605,7 +2612,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             KafkaServerConfig server,
             KafkaGroupStream delegate)
         {
-            super(server, delegate.resolveSasl.apply(NO_DELAY), originId, routedId);
+            super(server, delegate.resolveSasl.apply(NO_DELAY), delegate.guard, originId, routedId);
             this.configs = new LinkedHashMap<>();
             this.delegate = delegate;
             this.signaler = supplySignaler.apply(NO_DELAY);
@@ -3155,7 +3162,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -3388,7 +3395,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             KafkaServerConfig server,
             KafkaGroupStream delegate)
         {
-            super(server, delegate.resolveSasl.apply(rebalanceDelay), originId, routedId);
+            super(server, delegate.resolveSasl.apply(rebalanceDelay), delegate.guard, originId, routedId);
 
             this.rebalanceDelay = rebalanceDelay;
             this.delegate = delegate;
@@ -4020,7 +4027,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -4311,7 +4318,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             JoinGroupClient joinGroup,
             KafkaGroupStream delegate)
         {
-            super(server, delegate.resolveSasl.apply(NO_DELAY), originId, routedId);
+            super(server, delegate.resolveSasl.apply(NO_DELAY), delegate.guard, originId, routedId);
 
             this.joinGroup = joinGroup;
             this.delegate = delegate;
@@ -4689,6 +4696,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
         }
 
+
         @Override
         protected void onStreamMigrate(
             long traceId)
@@ -4870,6 +4878,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 });
             }
 
+
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress.get() - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
 
@@ -5001,6 +5010,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 buffer, offset, sizeof);
         }
 
+
         private void doHeartbeatRequest(
             long traceId)
         {
@@ -5125,7 +5135,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);

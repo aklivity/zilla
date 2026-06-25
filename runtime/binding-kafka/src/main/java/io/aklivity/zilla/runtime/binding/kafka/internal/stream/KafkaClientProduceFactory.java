@@ -32,7 +32,10 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.zip.CRC32C;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.agrona.collections.LongLongConsumer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -74,14 +77,12 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -108,7 +109,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final Array32FW<KafkaHeaderFW> EMPTY_HEADERS =
@@ -269,7 +270,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         topicName,
                         partitionId,
                         server,
-                        sasl)::onApplication;
+                        sasl,
+                        binding.guard)::onApplication;
             }
         }
 
@@ -351,7 +353,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         long authorization,
         long budgetId,
         int reserved,
-        DirectBufferEx payload,
+        DirectBuffer payload,
         int offset,
         int length,
         Flyweight extension)
@@ -627,6 +629,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     {
         return limit;
     }
+
 
     @FunctionalInterface
     private interface KafkaProduceClientDecoder
@@ -922,7 +925,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             String topic,
             int partitionId,
             KafkaServerConfig server,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -930,7 +934,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, server, sasl);
+            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, server, sasl, guard);
         }
 
         private void onApplication(
@@ -1258,9 +1262,10 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 String topic,
                 int partitionId,
                 KafkaServerConfig server,
-                KafkaSaslConfig sasl)
+                KafkaSaslConfig sasl,
+                GuardHandler guard)
             {
-                super(server, sasl, stream.routedId, resolvedId);
+                super(server, sasl, guard, stream.routedId, resolvedId);
                 this.stream = stream;
                 this.clientRoute = supplyClientRoute.apply(resolvedId);
                 this.topic = requireNonNull(topic);
@@ -1484,7 +1489,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 long authorization,
                 long affinity)
             {
-                this.authorization = authorization;
+                saslAuthorization = authorization;
                 state = KafkaState.openingInitial(state);
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
@@ -1655,7 +1660,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 assert encodeSlot != NO_SLOT;
                 final int maxLimit = encodePool.slotCapacity();
-                final MutableDirectBufferEx encodeSlotBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
                 RecordBatchFW encodeableRecordBatch = recordBatchRO.tryWrap(
                     encodeSlotBuffer, encodeableRecordBatchSlotOffset, encodeSlotLimit);
@@ -1768,7 +1773,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     }
 
                     assert encodeSlot != NO_SLOT;
-                    final MutableDirectBufferEx encodeSlotBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
                     encodeSlotBuffer.putBytes(encodeSlotLimit,  value.buffer(), value.offset(), length);
                     encodeSlotLimit += length;
@@ -1786,7 +1791,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 Array32FW<KafkaHeaderFW> headers)
             {
                 assert encodeSlot != NO_SLOT;
-                final MutableDirectBufferEx encodeSlotBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
                 final MutableDirectBufferEx encodeBuffer = writeBuffer;
                 final int encodeLimit = writeBuffer.capacity();
@@ -1801,7 +1806,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (headersCount > 0)
                 {
-                    final DirectBufferEx headerItems = headers.items();
+                    final DirectBuffer headerItems = headers.items();
                     final int headerItemsSize = headerItems.capacity();
 
                     encodeBuffer.putBytes(encodeProgress, headerItems, 0, headerItemsSize);
@@ -1903,7 +1908,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 encodeProgress = topicRequest.limit();
 
                 assert encodeSlot != NO_SLOT;
-                final MutableDirectBufferEx encodeSlotBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
                 final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeSlotOffset, encodeSlotLimit);
                 final int recordBatchLength = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH + recordBatch.length();
@@ -1964,7 +1969,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (headersCount > 0)
                 {
-                    final DirectBufferEx headerItems = headers.items();
+                    final DirectBuffer headerItems = headers.items();
                     final int headerItemsSize = headerItems.capacity();
 
                     encodeBuffer.putBytes(encodeProgress, headerItems, 0, headerItemsSize);
@@ -1981,7 +1986,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             private void encodeCrc()
             {
-                final MutableDirectBufferEx encodeSlotBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
                 final int encodeLimit = encodeSlotLimit;
                 int encodeProgress = encodeSlotOffset;
@@ -2146,7 +2151,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     }
                     else
                     {
-                        final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                        final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
                         decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                         decodeSlotOffset = limit - progress;
                         decodeSlotReserved = (limit - progress) * reserved / (limit - offset);

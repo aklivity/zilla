@@ -28,12 +28,15 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.LongHashSet;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.Object2ObjectHashMap;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -54,14 +57,12 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 {
@@ -115,6 +116,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private final KafkaConnectionClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
     private final KafkaConnectionClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaConnectionClientDecoder decodeReject = this::decodeReject;
+
 
     private final MergedBudgetCreditor creditor;
     private final int proxyTypeId;
@@ -246,7 +248,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         final List<KafkaServerConfig> servers = binding.servers();
         final KafkaSaslConfig sasl = binding.sasl();
 
-        return new KafkaClientConnection(originId, routedId, authorization, servers, sasl);
+        return new KafkaClientConnection(originId, routedId, authorization, servers, sasl, binding.guard);
     }
 
     private MessageConsumer newNetworkStream(
@@ -324,7 +326,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBufferEx payload,
+        DirectBuffer payload,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -395,7 +397,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         int flags,
         long budgetId,
         int reserved,
-        DirectBufferEx payload,
+        DirectBuffer payload,
         int offset,
         int length,
         Flyweight extension)
@@ -723,6 +725,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
         private int state;
 
+
         private KafkaClientStream(
             KafkaClientConnection connection,
             MessageConsumer sender,
@@ -785,6 +788,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             connection.doConnectionBegin(traceId, extension);
         }
+
 
         private void onStreamBegin(
             BeginFW begin)
@@ -957,7 +961,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long traceId,
             int flags,
             int reserved,
-            DirectBufferEx payload,
+            DirectBuffer payload,
             int offset,
             int length,
             Flyweight extension)
@@ -1117,6 +1121,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             connection.doConnectionSignalNow(initialId, traceId, signalId, buffer, offset, length);
         }
 
+
         private long doStreamSignalAt(
             long traceId,
             long timeMillis,
@@ -1247,10 +1252,12 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long routedId,
             long authorization,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
-            super(servers, sasl, originId, routedId);
+            super(servers, sasl, guard, originId, routedId);
 
+            this.saslAuthorization = authorization;
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
@@ -1824,6 +1831,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 SIGNAL_CONNECTION_CLEANUP, this::onStreamCleanupSignal);
         }
 
+
         private void onStreamCleanupSignal(
             int signalId)
         {
@@ -2002,7 +2010,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 }
                 else
                 {
-                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);

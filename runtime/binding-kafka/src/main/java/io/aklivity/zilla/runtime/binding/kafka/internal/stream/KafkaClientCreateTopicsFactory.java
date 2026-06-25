@@ -26,7 +26,10 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.agrona.collections.LongLongConsumer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -59,22 +62,20 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int ERROR_NONE = 0;
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -222,7 +223,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                     resolvedId,
                     request,
                     binding.servers(),
-                    sasl)::onApplication;
+                    sasl,
+                    binding.guard)::onApplication;
         }
 
         return newStream;
@@ -303,7 +305,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         long authorization,
         long budgetId,
         int reserved,
-        DirectBufferEx payload,
+        DirectBuffer payload,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -338,7 +340,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         long authorization,
         long budgetId,
         int reserved,
-        DirectBufferEx payload,
+        DirectBuffer payload,
         int offset,
         int length,
         Flyweight extension)
@@ -605,7 +607,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long resolvedId,
             CreateTopicsRequestInfo request,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
             this.application = application;
             this.originId = originId;
@@ -613,7 +616,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaCreateTopicsClient(this, routedId, resolvedId, request, servers, sasl);
+            this.client = new KafkaCreateTopicsClient(this, routedId, resolvedId, request, servers, sasl, guard);
         }
 
         private void onApplication(
@@ -761,6 +764,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             }
         }
 
+
         private void doApplicationEnd(
             long traceId)
         {
@@ -882,9 +886,10 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long routedId,
             CreateTopicsRequestInfo request,
             List<KafkaServerConfig> servers,
-            KafkaSaslConfig sasl)
+            KafkaSaslConfig sasl,
+            GuardHandler guard)
         {
-            super(servers, sasl, originId, routedId);
+            super(servers, sasl, guard, originId, routedId);
             this.delegate = delegate;
             this.request = request;
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeCreateTopicsRequest;
@@ -1415,7 +1420,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                 }
                 else
                 {
-                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
