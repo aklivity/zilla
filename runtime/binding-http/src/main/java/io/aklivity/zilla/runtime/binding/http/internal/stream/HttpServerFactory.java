@@ -648,7 +648,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer network)
@@ -804,7 +804,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .payload(buffer, index, length)
+                .payload((DirectBufferEx) buffer, index, length)
                 .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
@@ -841,7 +841,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .flags(flags)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .payload(buffer, index, length)
+                .payload((DirectBufferEx) buffer, index, length)
                 .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
@@ -5788,7 +5788,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             final Http2PingFW http2Ping = http2PingRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
                     .ack()
-                    .payload(payload)
+                    .payload((DirectBufferEx) payload)
                     .build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2Ping);
@@ -5854,7 +5854,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final int length = Math.min(limit - progress, remoteSettings.maxFrameSize);
                 final boolean markEndResponse = endResponse && limit - progress < remoteSettings.maxFrameSize;
-                final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
+                final Http2DataFW http2Data = http2DataRW.wrap((MutableDirectBufferEx) frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
                         .endStream(markEndResponse)
                         .payload(buffer, progress, length)
@@ -5876,7 +5876,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             if (trailers.isEmpty())
             {
-                final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                final Http2DataFW http2Data = http2DataRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
                         .streamId(streamId)
                         .endStream()
                         .build();
@@ -5885,7 +5885,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
-                final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                final Http2HeadersFW http2Headers = http2HeadersRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
                         .streamId(streamId)
                         .headers(hb -> headersEncoder.encodeTrailers(encodeContext, trailers, hb))
                         .endHeaders()
@@ -5903,7 +5903,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             int promiseId,
             Array32FW<HttpHeaderFW> promise)
         {
-            final Http2PushPromiseFW http2PushPromise = http2PushPromiseRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            final Http2PushPromiseFW http2PushPromise = http2PushPromiseRW
+                    .wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
                     .promisedStreamId(promiseId)
                     .headers(hb -> headersEncoder.encodePromise(encodeContext, promise, hb))
@@ -5918,7 +5919,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             int streamId,
             Http2ErrorCode error)
         {
-            final Http2RstStreamFW http2RstStream = http2RstStreamRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            final Http2RstStreamFW http2RstStream = http2RstStreamRW
+                    .wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
                     .errorCode(error)
                     .build();
@@ -5932,13 +5934,13 @@ public final class HttpServerFactory implements HttpStreamFactory
             int streamId,
             int size)
         {
-            final int frameOffset = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            final int frameOffset = http2WindowUpdateRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
                     .size(size)
                     .build()
                     .limit();
 
-            final int frameLimit = http2WindowUpdateRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
+            final int frameLimit = http2WindowUpdateRW.wrap((MutableDirectBufferEx) frameBuffer, frameOffset, frameBuffer.capacity())
                     .streamId(streamId)
                     .size(size)
                     .build()

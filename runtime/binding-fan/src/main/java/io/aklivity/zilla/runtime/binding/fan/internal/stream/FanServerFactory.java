@@ -81,7 +81,7 @@ public final class FanServerFactory implements FanStreamFactory
         FanConfiguration config,
         EngineContext context)
     {
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.streamFactory = context.streamFactory();
         this.context = context;
         this.supplyInitialId = context::supplyInitialId;

@@ -2459,7 +2459,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long authorization,
                 long affinity)
             {
-                client.saslAuthorization = authorization;
+                client.authorization = authorization;
                 state = KafkaState.openingInitial(state);
 
                 if (client.sasl != null)

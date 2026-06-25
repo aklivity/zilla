@@ -28,6 +28,7 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
+import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongArrayQueue;
@@ -628,14 +629,14 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long traceId,
             int signalId,
             int contextId,
-            DirectBufferEx buffer,
+            DirectBuffer buffer,
             int offset,
             int length)
         {
             assert contextId == 0;
 
             KafkaClientStream stream = streamsByInitialId.get(streamId);
-            stream.doStreamSignalNow(traceId, signalId, buffer, offset, length);
+            stream.doStreamSignalNow(traceId, signalId, (DirectBufferEx) buffer, offset, length);
         }
         @Override
         public long signalAt(
@@ -1251,7 +1252,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             super(servers, sasl, originId, routedId);
 
-            this.saslAuthorization = authorization;
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;

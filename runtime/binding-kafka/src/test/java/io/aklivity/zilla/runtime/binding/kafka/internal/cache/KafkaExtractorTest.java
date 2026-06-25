@@ -24,13 +24,14 @@ import static org.junit.Assert.assertTrue;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class KafkaExtractorTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[256]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
 
     @Test
     public void shouldCaptureSingleField()

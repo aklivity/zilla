@@ -24,18 +24,18 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.MutableInteger;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class KafkaCacheModelTest
 {
-    private final MutableDirectBuffer value = new UnsafeBufferEx(new byte[256]);
-    private final MutableDirectBuffer output = new UnsafeBufferEx(new byte[256]);
+    private final MutableDirectBufferEx value = new UnsafeBufferEx(new byte[256]);
+    private final MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
     private final MutableInteger outputLength = new MutableInteger();
 
     private final KafkaCacheModel.Output sink = (buffer, index, length) ->
@@ -193,7 +193,7 @@ public class KafkaCacheModelTest
         return new TestModelHandler(new TestModelConfig(length, emptyList(), true, -1, singletonList(field)));
     }
 
-    private MutableDirectBuffer value(
+    private MutableDirectBufferEx value(
         String text)
     {
         value.putBytes(0, text.getBytes(UTF_8));

@@ -68,7 +68,7 @@ public class KafkaCacheServerAddressFactory
         LongFunction<KafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.streamFactory = context.streamFactory();
         this.supplyTraceId = context::supplyTraceId;
         this.supplyInitialId = context::supplyInitialId;
