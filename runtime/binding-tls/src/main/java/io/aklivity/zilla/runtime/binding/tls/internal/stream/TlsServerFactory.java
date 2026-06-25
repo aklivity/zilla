@@ -174,7 +174,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.streamFactory = context.streamFactory();
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();

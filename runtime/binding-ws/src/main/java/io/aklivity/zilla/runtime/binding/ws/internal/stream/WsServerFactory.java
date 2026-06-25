@@ -134,7 +134,7 @@ public final class WsServerFactory implements WsStreamFactory
         WsConfiguration config,
         EngineContext context)
     {
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;

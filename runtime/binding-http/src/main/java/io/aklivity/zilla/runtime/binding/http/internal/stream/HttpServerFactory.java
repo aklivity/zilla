@@ -7022,8 +7022,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             BiConsumer<DirectBufferEx, DirectBufferEx> nameValue)
         {
             int index;
-            DirectBuffer name = null;
-            DirectBuffer value = null;
+            DirectBufferEx name = null;
+            DirectBufferEx value = null;
 
             switch (hf.type())
             {
@@ -7064,7 +7064,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (hpackValue.huffman())
                     {
                         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode((DirectBufferEx) value, dst);
+                        int length = HpackHuffman.decode(value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
@@ -7080,7 +7080,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (hpackName.huffman())
                     {
                         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode((DirectBufferEx) name, dst);
+                        int length = HpackHuffman.decode(name, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
@@ -7093,7 +7093,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (hpackValue.huffman())
                     {
                         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode((DirectBufferEx) value, dst);
+                        int length = HpackHuffman.decode(value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
