@@ -14,7 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.model.json.internal.types.StringFW;
@@ -33,7 +34,7 @@ public final class JsonModelEventFormatter implements EventFormatterSpi
     }
 
     public String format(
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {

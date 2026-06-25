@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,9 +67,9 @@ public class CoreModelLenientTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "12x".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
@@ -82,9 +82,9 @@ public class CoreModelLenientTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "12x".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
@@ -99,15 +99,15 @@ public class CoreModelLenientTest
         byte[] bytes = "42".getBytes();
 
         ModelPipeline decoder = handler.supplyDecoder(ModelVisitor.NONE);
-        MutableDirectBuffer decodeDst = new UnsafeBufferEx(new byte[16]);
+        MutableDirectBuffer decodeDst = new UnsafeBuffer(new byte[16]);
         ModelPipelineResult decoded = decoder.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
+            new UnsafeBuffer(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
         ModelPipeline encoder = handler.supplyEncoder(ModelVisitor.NONE);
-        MutableDirectBuffer encodeDst = new UnsafeBufferEx(new byte[16]);
+        MutableDirectBuffer encodeDst = new UnsafeBuffer(new byte[16]);
         ModelPipelineResult encoded = encoder.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
+            new UnsafeBuffer(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
         assertEquals(ModelStatus.REJECTED, encoded.status());
     }
 
@@ -121,9 +121,9 @@ public class CoreModelLenientTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "hello".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
@@ -136,9 +136,9 @@ public class CoreModelLenientTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] bytes = "hello".getBytes();
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("hello", dst.getStringWithoutLengthUtf8(0, result.produced()));

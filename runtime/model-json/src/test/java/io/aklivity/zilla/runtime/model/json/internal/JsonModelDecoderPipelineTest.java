@@ -26,10 +26,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -77,25 +77,25 @@ public class JsonModelDecoderPipelineTest
         byte[] a1 = "{\"id\":\"A\",".getBytes(UTF_8);
         byte[] a2tail = "\"status\":\"OK\"}".getBytes(UTF_8);
         byte[] bWhole = "{\"id\":\"B\",\"status\":\"NO\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
         ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
-            new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
         ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(bWhole), 0, bWhole.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(bWhole), 0, bWhole.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         assertEquals("{\"id\":\"B\",\"status\":\"NO\"}", text(dst, rb.produced()));
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
         ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
-            new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
@@ -116,9 +116,9 @@ public class JsonModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("123", extracted.get("$.id"));
@@ -132,7 +132,7 @@ public class JsonModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        assertTrue(pipeline.padding(new UnsafeBufferEx(in), 0, in.length) >= 0);
+        assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
     }
 
     @Test
@@ -144,9 +144,9 @@ public class JsonModelDecoderPipelineTest
         assertFalse(pipeline.identity());
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
     }

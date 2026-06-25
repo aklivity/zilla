@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -105,18 +105,18 @@ public class ProtobufModelDecoderPipelineTest
         // stream A split at the field boundary: index byte + content field first, date_time on the final fragment
         byte[] a1 = {0x00, 0x0a, 0x02, 0x4f, 0x4b};
         byte[] a2tail = {0x12, 0x08, 0x30, 0x31, 0x30, 0x31, 0x32, 0x30, 0x32, 0x34};
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
         ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
-            new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
         ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
         dst.getBytes(0, outB);
@@ -125,7 +125,7 @@ public class ProtobufModelDecoderPipelineTest
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
         ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
-            new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
@@ -142,9 +142,9 @@ public class ProtobufModelDecoderPipelineTest
             extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("OK", extracted.get("$.content"));
@@ -186,9 +186,9 @@ public class ProtobufModelDecoderPipelineTest
             32, -79, -47, -7, -42, 3, 40, -71, 96, 49, 21, -51, 91, 7, 0, 0, 0, 0, 61, 57, 48, 0, 0, 66, 12, 100,
             117, 109, 109, 121, 32, 115, 116, 114, 105, 110, 103, 74, 5, 1, 2, 3, 4, 5, 80, -78, -110, 4, 101, 57,
             48, 0, 0, 105, 21, -51, 91, 7, 0, 0, 0, 0, 112, -28, -92, 8, 120, -30, -94, -13, -83, 7};
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(wire), 0, wire.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(wire), 0, wire.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("dummy string", extracted.get("$.field_string"));
@@ -210,7 +210,7 @@ public class ProtobufModelDecoderPipelineTest
         byte[] contentBytes = content.getBytes(UTF_8);
         byte[] dateBytes = "01012024".getBytes(UTF_8);
         byte[] wire = new byte[contentBytes.length + 16];
-        MutableDirectBuffer builder = new UnsafeBufferEx(wire);
+        MutableDirectBuffer builder = new UnsafeBuffer(wire);
         int p = 0;
         builder.putByte(p++, (byte) 0x00);                  // message index 0
         builder.putByte(p++, (byte) 0x0a);                  // field 1 (content), wire type LEN
@@ -223,14 +223,14 @@ public class ProtobufModelDecoderPipelineTest
         builder.putBytes(p, dateBytes);
         p += dateBytes.length;
 
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[512]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[512]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int flags = FLAGS_COMPLETE;
         ModelPipelineResult result;
         int guard = 0;
         do
         {
-            result = pipeline.transform(0L, 0L, flags, new UnsafeBufferEx(wire), 0, p, dst, 0, dst.capacity());
+            result = pipeline.transform(0L, 0L, flags, new UnsafeBuffer(wire), 0, p, dst, 0, dst.capacity());
             drain(dst, result.produced(), out);
             flags = FLAGS_FIN;
             guard++;
@@ -250,9 +250,9 @@ public class ProtobufModelDecoderPipelineTest
 
         assertFalse(pipeline.identity());
 
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
     }
@@ -263,9 +263,9 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl handler = newHandler("json");
         ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+            new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
     }

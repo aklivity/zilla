@@ -18,7 +18,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -154,12 +153,12 @@ final class JsonModelEncoderPipeline implements ModelPipeline
     {
         prefixBuffer = dst;
         prefixAt = dstIndex;
-        handler.encodePrefix(traceId, bindingId, schemaId, (DirectBufferEx) src, srcIndex, srcLength, this::putPrefix);
+        handler.encodePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, this::putPrefix);
         return prefixAt - dstIndex;
     }
 
     private void putPrefix(
-        DirectBufferEx buffer,
+        DirectBuffer buffer,
         int index,
         int length)
     {

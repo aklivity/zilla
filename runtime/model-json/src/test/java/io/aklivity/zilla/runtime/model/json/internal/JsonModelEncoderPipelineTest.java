@@ -21,10 +21,10 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -65,7 +65,7 @@ public class JsonModelEncoderPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        assertTrue(pipeline.padding(new UnsafeBufferEx(in), 0, in.length) >= 0);
+        assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
     }
 
     private JsonModelHandlerImpl newHandler()

@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import org.agrona.DirectBuffer;
 
 public enum StringValidatorEncoding
 {
@@ -24,7 +24,7 @@ public enum StringValidatorEncoding
         public boolean validate(
             StringState state,
             int flags,
-            DirectBufferEx data,
+            DirectBuffer data,
             int index,
             int length)
         {
@@ -68,7 +68,7 @@ public enum StringValidatorEncoding
     public abstract boolean validate(
         StringState state,
         int flags,
-        DirectBufferEx data,
+        DirectBuffer data,
         int index,
         int length);
 

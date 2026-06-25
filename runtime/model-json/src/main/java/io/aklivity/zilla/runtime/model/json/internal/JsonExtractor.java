@@ -17,8 +17,10 @@ package io.aklivity.zilla.runtime.model.json.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
+import org.agrona.MutableDirectBuffer;
+
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
@@ -46,12 +48,6 @@ final class JsonExtractor implements JsonTransform
         this.fields = new ArrayList<>();
         this.mediator = new Mediator();
         this.pendingKey = new StringBuilder();
-    }
-
-    void register(
-        String name)
-    {
-        supplyField(name);
     }
 
     int captured()
@@ -96,36 +92,10 @@ final class JsonExtractor implements JsonTransform
         return fields.get(index).length;
     }
 
-    int length(
-        String name)
-    {
-        for (int i = 0; i < captured; i++)
-        {
-            if (charsEqual(fields.get(i).name, name))
-            {
-                return fields.get(i).length;
-            }
-        }
-        return 0;
-    }
-
-    DirectBufferEx value(
+    DirectBuffer value(
         int index)
     {
         return fields.get(index).value;
-    }
-
-    DirectBufferEx value(
-        String name)
-    {
-        for (int i = 0; i < captured; i++)
-        {
-            if (charsEqual(fields.get(i).name, name))
-            {
-                return fields.get(i).value;
-            }
-        }
-        return null;
     }
 
     @Override
@@ -274,14 +244,14 @@ final class JsonExtractor implements JsonTransform
 
     private static final class Field
     {
-        private final ExpandableDirectByteBufferEx value;
+        private final MutableDirectBuffer value;
 
         private String name;
         private int length;
 
         private Field()
         {
-            this.value = new ExpandableDirectByteBufferEx();
+            this.value = new ExpandableDirectByteBuffer();
         }
     }
 }

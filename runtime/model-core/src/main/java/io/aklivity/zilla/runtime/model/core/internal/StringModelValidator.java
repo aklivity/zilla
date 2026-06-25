@@ -21,7 +21,6 @@ import java.util.regex.Pattern;
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 final class StringModelValidator implements CoreModelValidator
@@ -77,7 +76,7 @@ final class StringModelValidator implements CoreModelValidator
 
         // an encoding failure (bad UTF-8/16, or a value left partially decoded across the boundary) is a
         // structural decode failure: MALFORMED, never relaxed
-        boolean decoded = encoding.validate(state, flags, (DirectBufferEx) data, index, length);
+        boolean decoded = encoding.validate(state, flags, data, index, length);
         Validity validity = decoded ? Validity.VALID : Validity.MALFORMED;
 
         if ((flags & FLAGS_FIN) != 0x00 && validity == Validity.VALID)
