@@ -91,7 +91,7 @@ public interface MessageConsumer extends MessageHandlerEx, AutoCloseable
      */
     void accept(
         int msgTypeId,
-        DirectBufferEx buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length);
 
