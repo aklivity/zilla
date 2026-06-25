@@ -543,7 +543,7 @@ public class McpFunctionsTest
     public void shouldWrapAndReadAbortEx()
     {
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer buffer = new UnsafeBufferEx(byteBuf);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(byteBuf);
 
         new McpAbortExFW.Builder()
             .wrap(buffer, 0, buffer.capacity())
@@ -570,7 +570,7 @@ public class McpFunctionsTest
             .build();
 
         ByteBuffer dstBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer dstBuffer = new UnsafeBufferEx(dstBuf);
+        final UnsafeBufferEx dstBuffer = new UnsafeBufferEx(dstBuf);
 
         final McpAbortExFW copy = new McpAbortExFW.Builder()
             .wrap(dstBuffer, 0, dstBuffer.capacity())
