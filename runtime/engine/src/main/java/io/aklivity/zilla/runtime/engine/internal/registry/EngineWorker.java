@@ -219,7 +219,7 @@ public class EngineWorker implements EngineContext, Agent
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
     private final RingBuffer streamsBuffer;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
@@ -687,7 +687,7 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
-    public MutableDirectBuffer writeBuffer()
+    public MutableDirectBufferEx writeBuffer()
     {
         return writeBuffer;
     }

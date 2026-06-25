@@ -181,7 +181,7 @@ final class ZillaPartition implements AutoCloseable
         {
         case BeginFW.TYPE_ID:
             final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-            handleBegin(begin);
+            handleBegin(begin, buffer);
             break;
         case DataFW.TYPE_ID:
             final DataFW data = dataRO.wrap(buffer, index, index + length);
@@ -198,13 +198,14 @@ final class ZillaPartition implements AutoCloseable
             break;
         case FlushFW.TYPE_ID:
             final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-            handleFlush(flush);
+            handleFlush(flush, buffer);
             break;
         }
     }
 
     private void handleBegin(
-        BeginFW begin)
+        BeginFW begin,
+        MutableDirectBufferEx buffer)
     {
         final long originId = begin.originId();
         final long routedId = begin.routedId();
@@ -220,7 +221,7 @@ final class ZillaPartition implements AutoCloseable
             final ZillaServerChannel server = lookupServer.apply(routedId, authorization);
             if (server != null)
             {
-                handleBeginInitial(begin, server);
+                handleBeginInitial(begin, server, buffer);
             }
             else
             {
@@ -230,13 +231,14 @@ final class ZillaPartition implements AutoCloseable
         }
         else
         {
-            handleBeginReply(begin);
+            handleBeginReply(begin, buffer);
         }
     }
 
     private void handleBeginInitial(
         final BeginFW begin,
-        final ZillaServerChannel server)
+        final ZillaServerChannel server,
+        final MutableDirectBufferEx buffer)
     {
         final long originId = begin.originId();
         final long routedId = begin.routedId();
@@ -300,7 +302,7 @@ final class ZillaPartition implements AutoCloseable
 
             final MessageHandlerEx newStream = streamFactory.newStream(childChannel, sender, beginFuture);
             registerStream.accept(initialId, newStream);
-            newStream.onMessage(begin.typeId(), (MutableDirectBufferEx) begin.buffer(), begin.offset(), begin.sizeof());
+            newStream.onMessage(begin.typeId(), buffer, begin.offset(), begin.sizeof());
 
             ChannelFuture handshakeFuture = beginFuture;
 
@@ -317,7 +319,8 @@ final class ZillaPartition implements AutoCloseable
     }
 
     private void handleBeginReply(
-        final BeginFW begin)
+        final BeginFW begin,
+        final MutableDirectBufferEx buffer)
     {
         final long originId = begin.originId();
         final long routedId = begin.routedId();
@@ -337,7 +340,7 @@ final class ZillaPartition implements AutoCloseable
             final MessageHandlerEx newStream = streamFactory.newStream(clientChannel, sender, beginFuture);
             registerStream.accept(replyId, newStream);
 
-            newStream.onMessage(begin.typeId(), (MutableDirectBufferEx) begin.buffer(), begin.offset(), begin.sizeof());
+            newStream.onMessage(begin.typeId(), buffer, begin.offset(), begin.sizeof());
         }
         else
         {
@@ -346,18 +349,20 @@ final class ZillaPartition implements AutoCloseable
     }
 
     private void handleFlush(
-        FlushFW flush)
+        FlushFW flush,
+        MutableDirectBufferEx buffer)
     {
         final long streamId = flush.streamId();
 
         if ((streamId & 0x0000_0000_0000_0001L) == 0L)
         {
-            handleFlushReply(flush);
+            handleFlushReply(flush, buffer);
         }
     }
 
     private void handleFlushReply(
-        final FlushFW flush)
+        final FlushFW flush,
+        final MutableDirectBufferEx buffer)
     {
         final long originId = flush.originId();
         final long routedId = flush.routedId();
@@ -377,7 +382,7 @@ final class ZillaPartition implements AutoCloseable
             final MessageHandlerEx newStream = streamFactory.newStream(clientChannel, sender, beginFuture);
             registerStream.accept(replyId, newStream);
 
-            newStream.onMessage(flush.typeId(), (MutableDirectBufferEx) flush.buffer(), flush.offset(), flush.sizeof());
+            newStream.onMessage(flush.typeId(), buffer, flush.offset(), flush.sizeof());
         }
         else
         {

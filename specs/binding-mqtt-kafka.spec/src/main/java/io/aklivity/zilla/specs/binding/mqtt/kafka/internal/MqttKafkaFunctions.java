@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.PrimitiveIterator;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntArrayList;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
@@ -71,11 +69,11 @@ public final class MqttKafkaFunctions
             new MqttSubscribeOffsetMetadataFW.Builder();
 
         private final MqttSubscribeOffsetMetadataFW offsetMetadataRO = new MqttSubscribeOffsetMetadataFW();
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private MqttSubscribeOffsetMetadataBuilder()
         {
-            offsetMetadataRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity());
+            offsetMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
         public MqttSubscribeOffsetMetadataV1Builder v1()
@@ -103,7 +101,7 @@ public final class MqttKafkaFunctions
 
             private MqttSubscribeOffsetMetadataV1Builder()
             {
-                offsetMetadataV1RW.wrap((MutableDirectBufferEx) writeBuffer, 1, writeBuffer.capacity());
+                offsetMetadataV1RW.wrap(writeBuffer, 1, writeBuffer.capacity());
             }
 
             public MqttSubscribeOffsetMetadataV1Builder metadata(
@@ -116,7 +114,7 @@ public final class MqttKafkaFunctions
             public MqttSubscribeOffsetMetadataBuilder build()
             {
                 final MqttSubscribeOffsetMetadataV1FW offsetMetadataV1 = offsetMetadataV1RW.build();
-                offsetMetadataRO.wrap((DirectBufferEx) writeBuffer, 0, offsetMetadataV1.limit());
+                offsetMetadataRO.wrap(writeBuffer, 0, offsetMetadataV1.limit());
                 return MqttSubscribeOffsetMetadataBuilder.this;
             }
         }
@@ -128,7 +126,7 @@ public final class MqttKafkaFunctions
 
             private MqttSubscribeOffsetMetadataV2Builder()
             {
-                offsetMetadataV2RW.wrap((MutableDirectBufferEx) writeBuffer, 1, writeBuffer.capacity());
+                offsetMetadataV2RW.wrap(writeBuffer, 1, writeBuffer.capacity());
             }
 
             public MqttSubscribeOffsetMetadataV2Builder metadata(
@@ -141,7 +139,7 @@ public final class MqttKafkaFunctions
             public MqttSubscribeOffsetMetadataBuilder build()
             {
                 final MqttSubscribeOffsetMetadataV2FW offsetMetadataV2 = offsetMetadataV2RW.build();
-                offsetMetadataRO.wrap((DirectBufferEx) writeBuffer, 0, offsetMetadataV2.limit());
+                offsetMetadataRO.wrap(writeBuffer, 0, offsetMetadataV2.limit());
                 return MqttSubscribeOffsetMetadataBuilder.this;
             }
         }
@@ -156,8 +154,8 @@ public final class MqttKafkaFunctions
 
         private MqttPublishOffsetMetadataBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
-            offsetMetadataRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity());
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            offsetMetadataRW.wrap(writeBuffer, 0, writeBuffer.capacity());
             offsetMetadataRW.version(version);
         }
 
@@ -186,7 +184,7 @@ public final class MqttKafkaFunctions
     public static final class MqttKafkaSessionOffsetsBuilder
     {
         private final MqttKafkaSessionOffsetsFW.Builder sessionOffsetsRW = new MqttKafkaSessionOffsetsFW.Builder();
-        private final MutableDirectBuffer writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
         private final List<SessionOffsetEntry> entries = new ArrayList<>();
 
@@ -225,7 +223,7 @@ public final class MqttKafkaFunctions
         public byte[] build()
         {
             MqttKafkaSessionOffsetsFW.Builder builder = sessionOffsetsRW
-                .wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+                .wrap(writeBuffer, 0, writeBuffer.capacity())
                 .version(version);
             for (SessionOffsetEntry entry : entries)
             {
@@ -277,7 +275,7 @@ public final class MqttKafkaFunctions
 
     public static final class MqttKafkaSessionOffsetsMatcher implements BytesMatcher
     {
-        private final DirectBuffer bufferRO = new UnsafeBufferEx();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
         private final MqttKafkaSessionOffsetsFW sessionOffsetsRO = new MqttKafkaSessionOffsetsFW();
 
         private final List<SessionOffsetEntryMatcher> entries = new ArrayList<>();
@@ -334,7 +332,7 @@ public final class MqttKafkaFunctions
             if (byteBuf.hasRemaining())
             {
                 bufferRO.wrap(byteBuf);
-                MqttKafkaSessionOffsetsFW sessionOffsets = sessionOffsetsRO.tryWrap((DirectBufferEx) bufferRO, byteBuf.position(),
+                MqttKafkaSessionOffsetsFW sessionOffsets = sessionOffsetsRO.tryWrap(bufferRO, byteBuf.position(),
                     byteBuf.capacity());
 
                 if (sessionOffsets != null && matchVersion(sessionOffsets) && matchEntries(sessionOffsets))
@@ -369,7 +367,7 @@ public final class MqttKafkaFunctions
                 sessionOffsets.entries().forEach(entry ->
                 {
                     MqttKafkaSessionOffsetMetadataFW copy = new MqttKafkaSessionOffsetMetadataFW();
-                    copy.wrap((DirectBufferEx) entry.buffer(), entry.offset(), entry.limit());
+                    copy.wrap(entry.buffer(), entry.offset(), entry.limit());
                     actual.add(copy);
                 });
 

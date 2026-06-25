@@ -299,7 +299,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final MutableInteger payloadRemaining = new MutableInteger(0);
 
     private final MutableDirectBuffer modelBuffer;
-    private final MutableDirectBuffer modelBeginExBuffer;
+    private final MutableDirectBufferEx modelBeginExBuffer;
     private final MutableBoolean modelValid = new MutableBoolean();
 
     private final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType;
@@ -324,12 +324,12 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final EngineContext context;
     private final boolean verbose;
     private final Http2Settings initialSettings;
-    private final MutableDirectBuffer frameBuffer;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer codecBuffer;
+    private final MutableDirectBufferEx frameBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx codecBuffer;
     private final BufferPool bufferPool;
     private final BufferPool headersPool;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -395,7 +395,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.verbose = config.verbose();
 
         final byte[] settingsPayload = new byte[12];
-        http2SettingsRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+        http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                 .maxConcurrentStreams(initialSettings.maxConcurrentStreams)
                 .initialWindowSize(initialSettings.initialWindowSize);
         frameBuffer.getBytes(9, settingsPayload);
@@ -478,7 +478,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long affinity,
         Flyweight extension)
     {
-        final BeginFW begin = beginRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -512,7 +512,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long affinity,
         Flyweight extension)
     {
-        final BeginFW begin = beginRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -542,7 +542,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         int reserved,
         Consumer<OctetsFW.Builder> extension)
     {
-        final FlushFW flush = flushRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -573,7 +573,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         int reserved,
         OctetsFW extension)
     {
-        final FlushFW flush = flushRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -607,7 +607,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         int length,
         Flyweight extension)
     {
-        final DataFW data = dataRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -637,7 +637,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         Flyweight extension)
     {
-        final EndFW end = endRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -664,7 +664,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization,
         Flyweight extension)
     {
-        final AbortFW abort = abortRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -690,7 +690,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long traceId,
         long authorization)
     {
-        final ResetFW reset = resetRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -717,7 +717,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long budgetId,
         int padding)
     {
-        final WindowFW window = windowRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -751,7 +751,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (endOfHeadersAt != -1)
         {
             final HttpBeginExFW.Builder httpBeginEx = beginExRW
-                    .wrap((MutableDirectBufferEx) codecBuffer, 0, codecBuffer.capacity())
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId);
 
             final int endOfStartAt = limitOfBytes(buffer, offset, limit, CRLF_BYTES);
@@ -1037,7 +1037,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (endOfTrailersAt != -1)
         {
             // TODO
-            final HttpEndExFW httpEndEx = endExRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+            final HttpEndExFW httpEndEx = endExRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                                                  .typeId(httpTypeId)
                                                  .build();
 
@@ -2145,7 +2145,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             doWindow(sender, originId, routedId, initialId, 0, 0, 0, traceId, authorization, 0L, 0);
 
-            HttpBeginExFW beginEx = beginExRW.wrap((MutableDirectBufferEx) codecBuffer, 0, codecBuffer.capacity())
+            HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headers(headers)
                     .build();
@@ -2602,7 +2602,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     final String host = authorityPart.group("host");
                     final int port = parseInt(authorityPart.group("port"));
 
-                    extension = proxyBeginExRW.wrap((MutableDirectBufferEx) extBuffer, 0, extBuffer.capacity())
+                    extension = proxyBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(proxyTypeId)
                         .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                                    .source("0.0.0.0")
@@ -3233,7 +3233,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization)
         {
             final Http2PrefaceFW http2Preface = http2PrefaceRW
-                    .wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+                    .wrap(frameBuffer, 0, frameBuffer.capacity())
                     .preface()
                     .build();
 
@@ -3245,7 +3245,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             DirectBuffer payload)
         {
-            final Http2PingFW http2Ping = http2PingRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+            final Http2PingFW http2Ping = http2PingRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
                     .ack()
                     .payload((DirectBufferEx) payload)
@@ -3259,7 +3259,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization)
         {
             final Http2SettingsFW.Builder http2SettingsBuilder = http2SettingsRW
-                    .wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+                    .wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
                     .maxConcurrentStreams(initialSettings.maxConcurrentStreams)
                     .initialWindowSize(initialSettings.initialWindowSize);
@@ -3274,7 +3274,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization)
         {
             final Http2SettingsFW http2Settings = http2SettingsRW
-                    .wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+                    .wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
                     .ack()
                     .build();
@@ -3288,14 +3288,14 @@ public final class HttpClientFactory implements HttpStreamFactory
                 int streamId,
                 int size)
         {
-            final int frameOffset = http2WindowUpdateRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+            final int frameOffset = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
                     .size(size)
                     .build()
                     .limit();
 
             final int frameLimit = http2WindowUpdateRW
-                    .wrap((MutableDirectBufferEx) frameBuffer, frameOffset, frameBuffer.capacity())
+                    .wrap(frameBuffer, frameOffset, frameBuffer.capacity())
                     .streamId(streamId)
                     .size(size)
                     .build()
@@ -3489,7 +3489,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final HttpExchange exchange = exchanges.get(streamId);
                 exchange.responseContentLength = headersDecoder.contentLength;
 
-                final HttpBeginExFW beginEx = beginExRW.wrap((MutableDirectBufferEx) extBuffer, 0, extBuffer.capacity())
+                final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
                         .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                         .build();
@@ -3609,7 +3609,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 else
                 {
                     final Map<String, String> trailers = headersDecoder.headers;
-                    final HttpEndExFW endEx = endExRW.wrap((MutableDirectBufferEx) extBuffer, 0, extBuffer.capacity())
+                    final HttpEndExFW endEx = endExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(httpTypeId)
                             .trailers(ts -> trailers.forEach((n, v) -> ts.item(t -> t.name(n).value(v))))
                             .build();
@@ -3974,7 +3974,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 long traceId,
                 long authorization)
         {
-            final Http2GoawayFW http2Goaway = http2GoawayRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+            final Http2GoawayFW http2Goaway = http2GoawayRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
                     .lastStreamId(0)
                     .errorCode(decodeError)
@@ -3990,7 +3990,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Http2ErrorCode error)
         {
             final Http2RstStreamFW http2RstStream = http2RstStreamRW
-                    .wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+                    .wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
                     .errorCode(error)
                     .build();
@@ -4021,7 +4021,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             boolean endRequest)
         {
             final Http2HeadersFW http2Headers = http2HeadersRW
-                    .wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+                    .wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
                     .headers(hb -> headersEncoder.encodeHeaders(encodeContext, headers, overrides, hb))
                     .endHeaders()
@@ -4077,7 +4077,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 final int length = Math.min(limit - progress, remoteSettings.maxFrameSize);
                 final Http2DataFW http2Data = http2DataRW
-                        .wrap((MutableDirectBufferEx) frameBuffer, frameOffset, frameBuffer.capacity())
+                        .wrap(frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
                         .endStream(endRequest && progress + length >= limit)
                         .payload((DirectBufferEx) buffer, progress, length)
@@ -4100,7 +4100,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             if (trailers.isEmpty())
             {
-                final Http2DataFW http2Data = http2DataRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+                final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(exchange.streamId)
                     .endStream()
                     .build();
@@ -4110,7 +4110,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             else
             {
                 final Http2HeadersFW http2Headers = http2HeadersRW
-                    .wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+                    .wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(exchange.streamId)
                     .headers(hb -> headersEncoder.encodeTrailers(encodeContext, trailers, hb))
                     .endHeaders()
@@ -4438,9 +4438,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             dequeue:
             while (httpQueueSlotOffset != httpQueueSlotLimit)
             {
-                final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(httpQueueSlot);
+                final MutableDirectBufferEx httpQueueBuffer = bufferPool.buffer(httpQueueSlot);
                 final HttpQueueEntryFW queueEntry = queueEntryRO
-                    .wrap((MutableDirectBufferEx) httpQueueBuffer, httpQueueSlotOffset, httpQueueSlotLimit);
+                    .wrap(httpQueueBuffer, httpQueueSlotOffset, httpQueueSlotLimit);
                 final int streamId = queueEntry.streamId();
                 final long traceId = queueEntry.traceId();
                 final long authorization = queueEntry.authorization();
@@ -4743,10 +4743,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                 else
                 {
                     client.acquireQueueSlotIfNecessary();
-                    final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(client.httpQueueSlot);
+                    final MutableDirectBufferEx httpQueueBuffer = bufferPool.buffer(client.httpQueueSlot);
                     final int headerSlotLimit = client.httpQueueSlotLimit;
                     final HttpQueueEntryFW queueEntry = queueEntryRW
-                            .wrap((MutableDirectBufferEx) httpQueueBuffer, headerSlotLimit, httpQueueBuffer.capacity())
+                            .wrap(httpQueueBuffer, headerSlotLimit, httpQueueBuffer.capacity())
                             .streamId(streamId)
                             .traceId(traceId)
                             .authorization(authorization)
@@ -5079,7 +5079,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    HttpBeginExFW beginEx = beginExRW.wrap((MutableDirectBufferEx) codecBuffer, 0, codecBuffer.capacity())
+                    HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                             .typeId(httpTypeId)
                             .headers(HEADERS_503_RETRY_AFTER)
                             .build();
@@ -5244,7 +5244,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 final long traceId = supplyTraceId.getAsLong();
                 final HttpBeginExFW.Builder builder =
-                    modelBeginExRW.wrap((MutableDirectBufferEx) modelBeginExBuffer, 0, modelBeginExBuffer.capacity())
+                    modelBeginExRW.wrap(modelBeginExBuffer, 0, modelBeginExBuffer.capacity())
                         .compositeId(beginEx.compositeId())
                         .typeId(beginEx.typeId());
 

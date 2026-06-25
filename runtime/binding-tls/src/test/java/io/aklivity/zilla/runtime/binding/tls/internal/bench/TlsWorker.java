@@ -29,7 +29,6 @@ import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.zip.CRC32C;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
@@ -530,19 +529,18 @@ public class TlsWorker implements EngineContext
 
     private void handleRead(
         int msgTypeId,
-        org.agrona.MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
-        final DirectBufferEx bufferEx = (DirectBufferEx) buffer;
-        final FrameFW frame = frameRO.wrap(bufferEx, index, index + length);
+        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
         final long streamId = frame.streamId();
 
         final MessageConsumer stream = StreamId.isThrottle(msgTypeId)
             ? throtllesById.get(streamId)
             : streamsById.get(streamId);
 
-        stream.accept(msgTypeId, bufferEx, index, length);
+        stream.accept(msgTypeId, buffer, index, length);
     }
 
     private MessageConsumer newStream(
@@ -739,12 +737,12 @@ public class TlsWorker implements EngineContext
             long traceId,
             int signalId,
             int contextId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
             signal(originId, routedId, streamId, 0L, 0L, traceId, NO_CANCEL_ID, signalId, contextId,
-                (DirectBufferEx) buffer, offset, length);
+                buffer, offset, length);
         }
 
         @Override

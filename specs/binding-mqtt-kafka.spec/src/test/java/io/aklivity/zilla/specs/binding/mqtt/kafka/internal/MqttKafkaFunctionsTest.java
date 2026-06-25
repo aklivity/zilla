@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.collections.IntArrayList;
 import org.junit.Test;
 
@@ -92,9 +91,9 @@ public class MqttKafkaFunctionsTest
             .packetId(1)
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(BitUtil.fromHex(state));
+        DirectBufferEx buffer = new UnsafeBufferEx(BitUtil.fromHex(state));
         MqttPublishOffsetMetadataFW offsetMetadata =
-            new MqttPublishOffsetMetadataFW().wrap((DirectBufferEx) buffer, 0, buffer.capacity());
+            new MqttPublishOffsetMetadataFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(1, offsetMetadata.version());
         assertEquals(1, offsetMetadata.packetIds().nextInt());
@@ -113,9 +112,9 @@ public class MqttKafkaFunctionsTest
             .entry("sensor/two", 2, 200L, 43L, 8, 4)
             .build();
 
-        DirectBuffer buffer = new UnsafeBufferEx(bytes);
+        DirectBufferEx buffer = new UnsafeBufferEx(bytes);
         MqttKafkaSessionOffsetsFW sessionOffsets =
-            new MqttKafkaSessionOffsetsFW().wrap((DirectBufferEx) buffer, 0, buffer.capacity());
+            new MqttKafkaSessionOffsetsFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(1, sessionOffsets.version());
 

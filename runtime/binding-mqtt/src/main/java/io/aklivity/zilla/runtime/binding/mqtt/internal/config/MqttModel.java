@@ -15,9 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -40,11 +39,11 @@ public final class MqttModel
     private static final int FLAGS_FIN = 0x01;
 
     private final ModelPipeline pipeline;
-    private final MutableDirectBuffer scratch;
+    private final MutableDirectBufferEx scratch;
 
     public static MqttModel decoder(
         ModelHandler handler,
-        MutableDirectBuffer scratch)
+        MutableDirectBufferEx scratch)
     {
         return handler != null
             ? new MqttModel(handler.supplyDecoder(), scratch)
@@ -59,7 +58,7 @@ public final class MqttModel
 
     MqttModel(
         ModelPipeline pipeline,
-        MutableDirectBuffer scratch)
+        MutableDirectBufferEx scratch)
     {
         this.pipeline = pipeline;
         this.scratch = scratch;
@@ -78,7 +77,7 @@ public final class MqttModel
     public int transform(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int limit)
     {
@@ -122,7 +121,7 @@ public final class MqttModel
         long bindingId,
         boolean first,
         boolean last,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int limit)
     {

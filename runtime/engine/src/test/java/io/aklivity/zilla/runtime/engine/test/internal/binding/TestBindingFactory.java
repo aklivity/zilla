@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongConsumer;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
 
@@ -249,7 +247,7 @@ final class TestBindingFactory implements BindingHandler
         int length,
         MessageConsumer source)
     {
-        BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+        BeginFW begin = beginRO.wrap(buffer, index, index + length);
         long originId = begin.originId();
         long routedId = begin.routedId();
         long initialId = begin.streamId();
@@ -457,42 +455,42 @@ final class TestBindingFactory implements BindingHandler
 
         private void onMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+                BeginFW begin = beginRO.wrap(buffer, index, index + length);
                 onInitialBegin(begin);
                 break;
             case DataFW.TYPE_ID:
-                DataFW data = dataRO.wrap((DirectBufferEx) buffer, index, index + length);
+                DataFW data = dataRO.wrap(buffer, index, index + length);
                 onInitialData(data);
                 break;
             case EndFW.TYPE_ID:
-                EndFW end = endRO.wrap((DirectBufferEx) buffer, index, index + length);
+                EndFW end = endRO.wrap(buffer, index, index + length);
                 onInitialEnd(end);
                 break;
             case AbortFW.TYPE_ID:
-                AbortFW abort = abortRO.wrap((DirectBufferEx) buffer, index, index + length);
+                AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onInitialAbort(abort);
                 break;
             case FlushFW.TYPE_ID:
-                FlushFW flush = flushRO.wrap((DirectBufferEx) buffer, index, index + length);
+                FlushFW flush = flushRO.wrap(buffer, index, index + length);
                 onInitialFlush(flush);
                 break;
             case ResetFW.TYPE_ID:
-                ResetFW reset = resetRO.wrap((DirectBufferEx) buffer, index, index + length);
+                ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onReplyReset(reset);
                 break;
             case WindowFW.TYPE_ID:
-                WindowFW window = windowRO.wrap((DirectBufferEx) buffer, index, index + length);
+                WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onReplyWindow(window);
                 break;
             case ChallengeFW.TYPE_ID:
-                ChallengeFW challenge = challengeRO.wrap((DirectBufferEx) buffer, index, index + length);
+                ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
                 onReplyChallenge(challenge);
                 break;
             }
@@ -1105,42 +1103,42 @@ final class TestBindingFactory implements BindingHandler
 
             private void onMessage(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
                 switch (msgTypeId)
                 {
                 case ResetFW.TYPE_ID:
-                    ResetFW reset = resetRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    ResetFW reset = resetRO.wrap(buffer, index, index + length);
                     onInitialReset(reset);
                     break;
                 case WindowFW.TYPE_ID:
-                    WindowFW window = windowRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    WindowFW window = windowRO.wrap(buffer, index, index + length);
                     onInitialWindow(window);
                     break;
                 case ChallengeFW.TYPE_ID:
-                    ChallengeFW challenge = challengeRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
                     onInitialChallenge(challenge);
                     break;
                 case BeginFW.TYPE_ID:
-                    BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    BeginFW begin = beginRO.wrap(buffer, index, index + length);
                     onReplyBegin(begin);
                     break;
                 case DataFW.TYPE_ID:
-                    DataFW data = dataRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    DataFW data = dataRO.wrap(buffer, index, index + length);
                     onReplyData(data);
                     break;
                 case EndFW.TYPE_ID:
-                    EndFW end = endRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    EndFW end = endRO.wrap(buffer, index, index + length);
                     onReplyEnd(end);
                     break;
                 case AbortFW.TYPE_ID:
-                    AbortFW abort = abortRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    AbortFW abort = abortRO.wrap(buffer, index, index + length);
                     onReplyAbort(abort);
                     break;
                 case FlushFW.TYPE_ID:
-                    FlushFW flush = flushRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    FlushFW flush = flushRO.wrap(buffer, index, index + length);
                     onReplyFlush(flush);
                     break;
                 }
@@ -1302,10 +1300,10 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
         BindingHandler streamFactory = context.streamFactory();
 
-        BeginFW begin = beginRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1334,9 +1332,9 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
-        BeginFW begin = beginRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1364,9 +1362,9 @@ final class TestBindingFactory implements BindingHandler
         int reserved,
         OctetsFW payload)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
-        DataFW data = dataRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1393,9 +1391,9 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
-        EndFW end = endRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1418,9 +1416,9 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
-        AbortFW abort = abortRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1445,9 +1443,9 @@ final class TestBindingFactory implements BindingHandler
         long budgetId,
         int reserved)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
-        FlushFW flush = flushRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1472,9 +1470,9 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
-        ResetFW reset = resetRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1500,9 +1498,9 @@ final class TestBindingFactory implements BindingHandler
         int padding,
         int capabilities)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
-        WindowFW window = windowRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1528,9 +1526,9 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBuffer writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
-        ChallengeFW challenge = challengeRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)

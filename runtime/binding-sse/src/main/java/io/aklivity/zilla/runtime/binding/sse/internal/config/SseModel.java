@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;

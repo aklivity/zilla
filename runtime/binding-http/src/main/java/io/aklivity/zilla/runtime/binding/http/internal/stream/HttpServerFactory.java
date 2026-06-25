@@ -67,8 +67,10 @@ import java.util.regex.Pattern;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
+import org.agrona.DirectBufferEx;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.MutableDirectBufferEx;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
@@ -168,8 +170,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private static final int CAPABILITY_CHALLENGE_MASK = 1 << Capability.CHALLENGE.ordinal();
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap((DirectBufferEx) EMPTY_BUFFER, 0, 0);
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
