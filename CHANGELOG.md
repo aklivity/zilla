@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.0.0-alpha-12](https://github.com/aklivity/zilla/tree/2.0.0-alpha-12) (2026-06-25)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-11...2.0.0-alpha-12)
+
+**Implemented enhancements:**
+
+- feat\(binding-mcp\): validate tools/call arguments at the proxy against cached tools/list inputSchema [\#1962](https://github.com/aklivity/zilla/issues/1962)
+
+**Closed issues:**
+
+- Move replica identity from per-binding serverRef to engine-level service config [\#1800](https://github.com/aklivity/zilla/issues/1800)
+- Move MQTT QoS state into mqtt-sessions topic and consolidate session keys [\#1799](https://github.com/aklivity/zilla/issues/1799)
+- Migrate mqtt-kafka session ownership to Store SPI [\#1798](https://github.com/aklivity/zilla/issues/1798)
+
+**Merged pull requests:**
+
+- ci: share one cached image set across examples tests [\#1965](https://github.com/aklivity/zilla/pull/1965) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mqtt\)!: require store on mqtt server binding [\#1964](https://github.com/aklivity/zilla/pull/1964) ([jfallows](https://github.com/jfallows))
+- Enforce store requirement for MQTT server bindings [\#1963](https://github.com/aklivity/zilla/pull/1963) ([jfallows](https://github.com/jfallows))
+- refactor\(engine\): remove legacy ValidatorHandler and ConverterHandler SPI [\#1961](https://github.com/aklivity/zilla/pull/1961) ([jfallows](https://github.com/jfallows))
+- test\(binding-mcp-http\): cover config adapters and prune dead McpHttpState helpers [\#1960](https://github.com/aklivity/zilla/pull/1960) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): validate tools/call arguments at the proxy [\#1877](https://github.com/aklivity/zilla/pull/1877) ([jfallows](https://github.com/jfallows))
+- \[2.0\] Refactor MQTT session management to use store-based persistence [\#1806](https://github.com/aklivity/zilla/pull/1806) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0-alpha-11](https://github.com/aklivity/zilla/tree/2.0.0-alpha-11) (2026-06-23)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-10...2.0.0-alpha-11)
