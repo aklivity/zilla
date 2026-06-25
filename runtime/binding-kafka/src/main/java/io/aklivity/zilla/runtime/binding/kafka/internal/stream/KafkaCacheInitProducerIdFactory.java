@@ -19,6 +19,10 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -33,9 +37,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -107,6 +108,7 @@ public final class KafkaCacheInitProducerIdFactory implements BindingHandler
         assert beginEx != null && beginEx.typeId() == kafkaTypeId;
         final KafkaBeginExFW kafkaBeginEx = extension.get(kafkaBeginExRO::tryWrap);
         assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_INIT_PRODUCER_ID;
+
 
         MessageConsumer newStream = null;
 
@@ -413,6 +415,7 @@ public final class KafkaCacheInitProducerIdFactory implements BindingHandler
             assert initialSeq <= initialAck + initialMax;
         }
 
+
         private void doInitProducerIdInitialEnd(
             long traceId)
         {
@@ -455,6 +458,7 @@ public final class KafkaCacheInitProducerIdFactory implements BindingHandler
 
             delegate.doInitProducerIdInitialReset(traceId, extension);
         }
+
 
         private void onInitProducerIdInitialWindow(
             WindowFW window)
