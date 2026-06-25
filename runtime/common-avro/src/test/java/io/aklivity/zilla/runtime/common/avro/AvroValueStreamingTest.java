@@ -126,7 +126,7 @@ public class AvroValueStreamingTest
         }
         byte[] datum = encode("\"string\"", builder.toString());
 
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[16]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[16]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
 
@@ -270,7 +270,7 @@ public class AvroValueStreamingTest
     }
 
     private static byte[] drain(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int length)
     {
         byte[] bytes = new byte[length];
