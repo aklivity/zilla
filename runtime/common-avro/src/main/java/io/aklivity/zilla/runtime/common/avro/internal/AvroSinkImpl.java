@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;

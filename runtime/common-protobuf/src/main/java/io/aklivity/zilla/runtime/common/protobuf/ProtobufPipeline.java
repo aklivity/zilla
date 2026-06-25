@@ -92,7 +92,7 @@ public interface ProtobufPipeline
     int remaining();
 
     /**
-     * Transforms a whole message in one shot (equivalent to {@link #transform(DirectBufferEx, int, int, boolean)} with
+     * Transforms a whole message in one shot (equivalent to {@link #transform(DirectBuffer, int, int, boolean)} with
      * {@code last == true}), preserving the bounded-buffer contract for callers that reassemble first.
      */
     default Status transform(

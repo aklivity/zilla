@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.function.Consumer;
 
-import org.junit.jupiter.api.Test;
-
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import org.agrona.ExpandableArrayBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import org.junit.jupiter.api.Test;
+
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -206,7 +206,7 @@ public class ProtobufCanonicalizerTest
     private static byte[] wire(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
+        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];

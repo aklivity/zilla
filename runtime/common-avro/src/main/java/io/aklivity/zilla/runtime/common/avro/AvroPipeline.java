@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 /**
  * A runnable, resumable {@code common-avro} pipeline assembled from an {@link AvroStream} description
  * terminated with an {@link AvroSink}. Reuse a single instance per thread: call {@link #reset()}
- * once per top-level datum, then {@link #transform(DirectBufferEx, int, int)} the datum, which may arrive
+ * once per top-level datum, then {@link #transform(DirectBuffer, int, int)} the datum, which may arrive
  * whole or as successive input windows.
  * <p>
  * Back-pressure has two independent axes, each with its own non-terminal "call {@code transform} again"

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+
 import io.aklivity.zilla.runtime.common.avro.internal.AvroGeneratorImpl;
 import io.aklivity.zilla.runtime.common.avro.internal.AvroParserImpl;
 import io.aklivity.zilla.runtime.common.avro.internal.AvroSchemaImpl;

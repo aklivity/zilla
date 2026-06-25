@@ -19,6 +19,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.function.Consumer;
 
+import org.agrona.ExpandableArrayBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -35,9 +38,6 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -188,7 +188,7 @@ public class ProtobufPipelineBM
     private static byte[] wire(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
+        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];

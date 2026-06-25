@@ -19,15 +19,16 @@ import java.nio.ByteOrder;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
- * A reusable encode cursor over a {@link MutableDirectBufferEx}. All writes advance the cursor;
- * {@link #length()} reports the bytes written since {@link #wrap(MutableDirectBufferEx, int)}. The usable
+ * A reusable encode cursor over a {@link MutableDirectBuffer}. All writes advance the cursor;
+ * {@link #length()} reports the bytes written since {@link #wrap(MutableDirectBuffer, int)}. The usable
  * region is {@code [offset, limit)} — a write that would cross {@code limit} throws a
  * {@link ProtobufException}, so {@code limit} is a hard bound, never overshot. The two-argument
- * {@link #wrap(MutableDirectBufferEx, int)} leaves the cursor unbounded (suited to an expandable buffer).
+ * {@link #wrap(MutableDirectBuffer, int)} leaves the cursor unbounded (suited to an expandable buffer).
  */
 public final class ProtobufWriter
 {

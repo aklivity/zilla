@@ -25,9 +25,8 @@ import jakarta.json.JsonNumber;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-import org.junit.jupiter.api.Test;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import org.junit.jupiter.api.Test;
 
 public class AvroTypeTest
 {

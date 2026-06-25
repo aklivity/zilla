@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.nio.ByteOrder;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
@@ -37,9 +38,9 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 public final class ProtobufReader
 {
     private DirectBufferEx buffer;
-    private int base;
-    private long positionBase;
     private int offset;
+    private long start;
+    private int progress;
     private int limit;
     private int mark;
     private boolean last;
@@ -48,22 +49,22 @@ public final class ProtobufReader
     public ProtobufReader wrap(
         DirectBufferEx buffer,
         int offset,
-        int length)
+        int limit)
     {
-        return wrap(buffer, offset, length, true);
+        return wrap(buffer, offset, limit, true);
     }
 
     public ProtobufReader wrap(
         DirectBufferEx buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         this.buffer = buffer;
-        this.base = offset;
-        this.positionBase = 0L;
         this.offset = offset;
-        this.limit = offset + length;
+        this.start = 0L;
+        this.progress = offset;
+        this.limit = limit;
         this.mark = offset;
         this.last = last;
         this.starved = false;
@@ -73,17 +74,17 @@ public final class ProtobufReader
     public ProtobufReader resume(
         DirectBufferEx buffer,
         int offset,
-        int length,
+        int limit,
         boolean last)
     {
         // the driver re-presents everything not yet consumed at the front of this window, so the cursor
         // simply continues from its committed position against the new, contiguous bytes
         long position = position();
         this.buffer = buffer;
-        this.base = offset;
-        this.positionBase = position;
         this.offset = offset;
-        this.limit = offset + length;
+        this.start = position;
+        this.progress = offset;
+        this.limit = limit;
         this.mark = offset;
         this.last = last;
         this.starved = false;
@@ -92,7 +93,7 @@ public final class ProtobufReader
 
     public int offset()
     {
-        return offset;
+        return progress;
     }
 
     public int limit()
@@ -102,7 +103,12 @@ public final class ProtobufReader
 
     public long position()
     {
-        return positionBase + (offset - base);
+        return start + (progress - offset);
+    }
+
+    public int remaining()
+    {
+        return limit - progress;
     }
 
     public boolean last()
@@ -117,28 +123,23 @@ public final class ProtobufReader
 
     public int available()
     {
-        return limit - offset;
-    }
-
-    public int remaining()
-    {
-        return limit - offset;
+        return limit - progress;
     }
 
     public boolean hasRemaining()
     {
-        return offset < limit;
+        return progress < limit;
     }
 
     public void mark()
     {
-        this.mark = offset;
+        this.mark = progress;
         this.starved = false;
     }
 
     public void rewind()
     {
-        this.offset = mark;
+        this.progress = mark;
     }
 
     public int readVarint32()
@@ -153,7 +154,7 @@ public final class ProtobufReader
         boolean complete = false;
         while (shift < 64)
         {
-            if (offset >= limit)
+            if (progress >= limit)
             {
                 if (last)
                 {
@@ -162,7 +163,7 @@ public final class ProtobufReader
                 starved = true;
                 break;
             }
-            int b = buffer.getByte(offset++) & 0xff;
+            int b = buffer.getByte(progress++) & 0xff;
             value |= (long) (b & 0x7f) << shift;
             if ((b & 0x80) == 0)
             {
@@ -195,8 +196,8 @@ public final class ProtobufReader
         int value = 0;
         if (require(4))
         {
-            value = buffer.getInt(offset, ByteOrder.LITTLE_ENDIAN);
-            offset += 4;
+            value = buffer.getInt(progress, ByteOrder.LITTLE_ENDIAN);
+            progress += 4;
         }
         return value;
     }
@@ -206,8 +207,8 @@ public final class ProtobufReader
         long value = 0L;
         if (require(8))
         {
-            value = buffer.getLong(offset, ByteOrder.LITTLE_ENDIAN);
-            offset += 8;
+            value = buffer.getLong(progress, ByteOrder.LITTLE_ENDIAN);
+            progress += 8;
         }
         return value;
     }
@@ -236,7 +237,7 @@ public final class ProtobufReader
     {
         if (require(length))
         {
-            offset += length;
+            progress += length;
         }
     }
 
@@ -288,17 +289,17 @@ public final class ProtobufReader
         int end = -1;
         while (end < 0)
         {
-            if (offset >= limit)
+            if (progress >= limit)
             {
                 if (last)
                 {
                     throw new ProtobufException("unterminated group " + number);
                 }
                 starved = true;
-                end = offset;
+                end = progress;
                 break;
             }
-            int tagOffset = offset;
+            int tagOffset = progress;
             int tag = readVarint32();
             if (starved)
             {
@@ -331,7 +332,7 @@ public final class ProtobufReader
     private boolean require(
         int length)
     {
-        boolean available = offset + length <= limit;
+        boolean available = progress + length <= limit;
         if (!available)
         {
             if (last)

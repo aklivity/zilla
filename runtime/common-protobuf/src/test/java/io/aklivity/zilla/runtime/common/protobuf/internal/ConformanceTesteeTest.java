@@ -21,10 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.function.Consumer;
 
+import org.agrona.ExpandableArrayBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
@@ -149,7 +149,7 @@ public class ConformanceTesteeTest
     private static byte[] wire(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
+        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];
