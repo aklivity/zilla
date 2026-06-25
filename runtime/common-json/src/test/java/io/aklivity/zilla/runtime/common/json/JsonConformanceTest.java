@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;

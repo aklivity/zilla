@@ -14,15 +14,19 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.function.Consumer;
 
 import jakarta.json.JsonValue;
 
+import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 
@@ -177,7 +181,7 @@ class JsonGeneratorExTest
     @Test
     void shouldWriteRawValueVerbatim()
     {
-        MutableDirectBufferEx source = new UnsafeBufferEx("42".getBytes(UTF_8));
+        MutableDirectBuffer source = new UnsafeBufferEx("42".getBytes(UTF_8));
         assertEquals("[42]", generate(g -> g
             .writeStartArray()
             .writeRaw(source, 0, 2)
@@ -187,7 +191,7 @@ class JsonGeneratorExTest
     @Test
     void shouldReportLength()
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[64]);
         JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         generator.writeStartObject().writeKey("a").writeNumber("1").writeEnd();
         assertEquals("{\"a\":1}".length(), generator.length());
@@ -196,7 +200,7 @@ class JsonGeneratorExTest
     @Test
     void shouldReportRemainingWithinBound()
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[64]);
         JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 0, 16);
         assertEquals(16, generator.remaining());
         generator.writeStartArray().writeNumber("1");
@@ -207,8 +211,8 @@ class JsonGeneratorExTest
     @Test
     void shouldPreserveContextAcrossBoundedRewrap()
     {
-        MutableDirectBufferEx first = new UnsafeBufferEx(new byte[32]);
-        MutableDirectBufferEx second = new UnsafeBufferEx(new byte[32]);
+        MutableDirectBuffer first = new UnsafeBufferEx(new byte[32]);
+        MutableDirectBuffer second = new UnsafeBufferEx(new byte[32]);
         JsonGeneratorEx generator = JsonEx.createGenerator();
 
         generator.wrap(first, 0, 32).writeStartArray().writeNumber("1");
@@ -223,7 +227,7 @@ class JsonGeneratorExTest
     @Test
     void shouldNotWriteBeyondLimit()
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[64]);
         JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 0, 4);
         // "[1,2" fills the usable region [0,4) exactly; the next write must not spill past the limit
         assertThrows(AssertionError.class, () -> generator
@@ -233,7 +237,7 @@ class JsonGeneratorExTest
     @Test
     void shouldClearContextOnReset()
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[64]);
         JsonGeneratorEx generator = JsonEx.createGenerator();
         generator.wrap(buffer, 0, buffer.capacity()).writeStartArray().writeNumber("1");
         generator.reset();
@@ -244,7 +248,7 @@ class JsonGeneratorExTest
     @Test
     void shouldWriteAtNonZeroOffset()
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[64]);
         JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 8, buffer.capacity());
         generator.writeStartArray().writeNumber("1").writeEnd();
         byte[] out = new byte[generator.length()];
@@ -277,7 +281,7 @@ class JsonGeneratorExTest
     private static String generate(
         Consumer<JsonGeneratorEx> writer)
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[512]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[512]);
         JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         writer.accept(generator);
         return drain(generator, buffer);
@@ -285,7 +289,7 @@ class JsonGeneratorExTest
 
     private static String drain(
         JsonGeneratorEx generator,
-        MutableDirectBufferEx buffer)
+        MutableDirectBuffer buffer)
     {
         byte[] out = new byte[generator.length()];
         buffer.getBytes(0, out);

@@ -14,6 +14,13 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,7 +29,6 @@ import jakarta.json.stream.JsonParser;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-
 class JsonSchemaDiagnosticsTest
 {
     @Test
@@ -236,6 +242,6 @@ class JsonSchemaDiagnosticsTest
         byte[] bytes = text.getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        return StreamingJson.createParser(in);
+        return JsonEx.createParser(in);
     }
 }

@@ -14,6 +14,20 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal.json;
 
+import static jakarta.json.JsonValue.FALSE;
+import static jakarta.json.JsonValue.NULL;
+import static jakarta.json.JsonValue.TRUE;
+import static jakarta.json.stream.JsonParser.Event.END_ARRAY;
+import static jakarta.json.stream.JsonParser.Event.END_OBJECT;
+import static jakarta.json.stream.JsonParser.Event.KEY_NAME;
+import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
+import static jakarta.json.stream.JsonParser.Event.START_OBJECT;
+import static jakarta.json.stream.JsonParser.Event.VALUE_FALSE;
+import static jakarta.json.stream.JsonParser.Event.VALUE_NULL;
+import static jakarta.json.stream.JsonParser.Event.VALUE_NUMBER;
+import static jakarta.json.stream.JsonParser.Event.VALUE_STRING;
+import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.AbstractList;

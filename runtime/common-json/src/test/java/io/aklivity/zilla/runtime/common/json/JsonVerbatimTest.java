@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -22,7 +25,6 @@ import org.agrona.DirectBuffer;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-
 class JsonVerbatimTest
 {
     @Test

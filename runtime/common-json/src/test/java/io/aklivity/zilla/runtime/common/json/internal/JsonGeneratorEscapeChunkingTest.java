@@ -14,25 +14,29 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
 
+import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 
 class JsonGeneratorEscapeChunkingTest
 {
-    private final MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
+    private final MutableDirectBuffer output = new UnsafeBufferEx(new byte[256]);
 
     @Test
     void shouldChunkQuoteHeavyStringThroughTinyWindow()

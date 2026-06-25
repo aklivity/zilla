@@ -14,12 +14,16 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.stream.JsonParser.Event;
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParser.Event;
 
 import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;

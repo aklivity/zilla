@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Map;

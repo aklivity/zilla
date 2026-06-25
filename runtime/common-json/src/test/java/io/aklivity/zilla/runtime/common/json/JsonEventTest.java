@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import jakarta.json.stream.JsonParser.Event;
 
 import org.junit.jupiter.api.Test;

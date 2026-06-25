@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal.json;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.Reader;

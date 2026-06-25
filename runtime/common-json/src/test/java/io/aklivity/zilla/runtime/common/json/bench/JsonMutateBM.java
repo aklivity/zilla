@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.json.bench;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.math.BigDecimal;
 
 import jakarta.json.stream.JsonLocation;

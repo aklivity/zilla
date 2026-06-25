@@ -14,7 +14,6 @@
  */
 module io.aklivity.zilla.runtime.common.json
 {
-    requires transitive io.aklivity.zilla.runtime.common.agrona;
     requires transitive jakarta.json;
     requires transitive org.agrona;
 

@@ -14,21 +14,26 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
+import static jakarta.json.stream.JsonParser.Event.END_ARRAY;
+import static jakarta.json.stream.JsonParser.Event.END_OBJECT;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.stream.JsonParser.Event;
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParser.Event;
+
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 
 /**
- * A minimal, provider-free JSON tree parsed with {@link StreamingJson} so that {@code
+ * A minimal, provider-free JSON tree parsed with {@link JsonEx} so that {@code
  * common-json} can read a schema document using its own parser, without depending on a
  * {@code jakarta.json} provider. Used at schema-compile time only.
  */
@@ -50,7 +55,7 @@ final class JsonNode
         byte[] bytes = (json + " ").getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        JsonParser parser = StreamingJson.createParser(in);
+        JsonParser parser = JsonEx.createParser(in);
         return read(parser, parser.next());
     }
 
