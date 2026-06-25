@@ -116,11 +116,11 @@
                                                 },
                                                 "key":
                                                 {
-                                                    "$ref": "#/$defs/converter"
+                                                    "$ref": "#/$defs/models"
                                                 },
                                                 "value":
                                                 {
-                                                    "$ref": "#/$defs/converter"
+                                                    "$ref": "#/$defs/models"
                                                 }
                                             }
                                         }
@@ -518,11 +518,11 @@
                     },
                     "key":
                     {
-                        "$ref": "#/$defs/converter"
+                        "$ref": "#/$defs/models"
                     },
                     "value":
                     {
-                        "$ref": "#/$defs/converter"
+                        "$ref": "#/$defs/models"
                     }
                 }
             }

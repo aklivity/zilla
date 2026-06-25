@@ -36,6 +36,9 @@ public final class MqttModel
 {
     public static final MqttModel NONE = new MqttModel();
 
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final ModelPipeline pipeline;
     private final MutableDirectBuffer scratch;
 
@@ -81,7 +84,7 @@ public final class MqttModel
     {
         int total = 0;
         int srcAt = index;
-        int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
+        int flags = FLAGS_INIT | FLAGS_FIN;
         boolean done = false;
         while (!done)
         {
@@ -105,7 +108,7 @@ public final class MqttModel
                 else
                 {
                     srcAt += result.consumed();
-                    flags = ModelPipeline.FLAGS_FIN;
+                    flags = FLAGS_FIN;
                 }
             }
         }
@@ -126,11 +129,11 @@ public final class MqttModel
         int flags = 0;
         if (first)
         {
-            flags |= ModelPipeline.FLAGS_INIT;
+            flags |= FLAGS_INIT;
         }
         if (last)
         {
-            flags |= ModelPipeline.FLAGS_FIN;
+            flags |= FLAGS_FIN;
         }
 
         final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,

@@ -11,11 +11,7 @@ specific language governing permissions and limitations under the License.
 
 This project includes:
   agrona under The Apache License, Version 2.0
-  ANTLR 4 Runtime under BSD-3-Clause
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
-  Java Unified Expression Language API under The Apache Software License, Version 2.0
-  Java Unified Expression Language Implementation under The Apache Software License, Version 2.0
-  k3po::runtime::lang under The Apache Software License, Version 2.0
   zilla::runtime::common-json under Aklivity Community License Agreement
   zilla::runtime::common-yaml under Aklivity Community License Agreement
   zilla::specs::engine.spec under The Apache Software License, Version 2.0

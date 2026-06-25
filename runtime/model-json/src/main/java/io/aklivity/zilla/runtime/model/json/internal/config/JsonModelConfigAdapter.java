@@ -30,7 +30,10 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
+import io.aklivity.zilla.runtime.model.json.config.JsonModelConfigBuilder;
 
 public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
@@ -38,8 +41,10 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
     private static final String MODEL_NAME = "model";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
+    private static final String VALIDATE_NAME = "validate";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
+    private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
     @Override
     public String type()
@@ -51,13 +56,13 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
     public JsonValue adaptToJson(
         ModelConfig config)
     {
-        JsonModelConfig jsonConfig = (JsonModelConfig) config;
-        JsonObjectBuilder converter = Json.createObjectBuilder();
-        converter.add(MODEL_NAME, JSON);
-        if (jsonConfig.cataloged != null && !jsonConfig.cataloged.isEmpty())
+        JsonModelConfig model = (JsonModelConfig) config;
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        builder.add(MODEL_NAME, JSON);
+        if (model.cataloged != null && !model.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            for (CatalogedConfig catalog : jsonConfig.cataloged)
+            for (CatalogedConfig catalog : model.cataloged)
             {
                 JsonArrayBuilder array = Json.createArrayBuilder();
                 for (SchemaConfig schemaItem: catalog.schemas)
@@ -66,9 +71,16 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
                 }
                 catalogs.add(catalog.name, array);
             }
-            converter.add(CATALOG_NAME, catalogs);
+            builder.add(CATALOG_NAME, catalogs);
         }
-        return converter.build();
+
+        JsonValue validateJson = validate.adaptToJson(model.validate);
+        if (validateJson != null)
+        {
+            builder.add(VALIDATE_NAME, validateJson);
+        }
+
+        return builder.build();
     }
 
     @Override
@@ -98,6 +110,13 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
                 ? object.getString(SUBJECT_NAME)
                 : null;
 
-        return new JsonModelConfig(catalogs, subject);
+        ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
+
+        JsonModelConfigBuilder<JsonModelConfig> builder = JsonModelConfig.builder()
+            .subject(subject)
+            .validate(validateConfig);
+        catalogs.forEach(builder::catalog);
+
+        return builder.build();
     }
 }

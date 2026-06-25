@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import static io.aklivity.zilla.runtime.engine.model.ValidatorHandler.FLAGS_FIN;
-
 import org.agrona.DirectBuffer;
 
 public enum DoubleFormat
@@ -162,6 +160,8 @@ public enum DoubleFormat
             return state.processed == DOUBLE_SIZE;
         }
     };
+
+    private static final int FLAGS_FIN = 0x01;
 
     public static final int INVALID_INDEX = -1;
 

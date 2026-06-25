@@ -50,7 +50,7 @@ final class Int32ModelValidator implements CoreModelValidator
     }
 
     @Override
-    public boolean validate(
+    public Validity validate(
         int flags,
         DirectBuffer data,
         int index,
@@ -62,12 +62,15 @@ final class Int32ModelValidator implements CoreModelValidator
             state.processed = 0;
         }
         int progress = format.decode(state, data, index, length);
-        boolean valid = progress != Int32Format.INVALID_INDEX;
-        if ((flags & FLAGS_FIN) != 0x00 && valid)
+        Validity validity = progress != Int32Format.INVALID_INDEX ? Validity.VALID : Validity.MALFORMED;
+        if ((flags & FLAGS_FIN) != 0x00 && validity == Validity.VALID)
         {
-            valid &= format.valid(state);
-            valid &= check.test(state.decoded);
+            // a fully-decoded value that fails the format's structural check is MALFORMED; one that decodes
+            // cleanly but violates a range/multiple constraint is INVALID (relaxable under LENIENT)
+            validity = !format.valid(state) ? Validity.MALFORMED
+                : !check.test(state.decoded) ? Validity.INVALID
+                : Validity.VALID;
         }
-        return valid;
+        return validity;
     }
 }

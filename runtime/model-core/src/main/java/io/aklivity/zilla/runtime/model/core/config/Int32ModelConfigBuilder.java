@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.core.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class Int32ModelConfigBuilder<T> extends ConfigBuilder<T, Int32ModelConfigBuilder<T>>
 {
@@ -31,6 +32,7 @@ public class Int32ModelConfigBuilder<T> extends ConfigBuilder<T, Int32ModelConfi
     private Integer multiple;
     private Boolean exclusiveMax;
     private Boolean exclusiveMin;
+    private ValidateConfig validate;
 
     Int32ModelConfigBuilder(
         Function<Int32ModelConfig, T> mapper)
@@ -87,6 +89,13 @@ public class Int32ModelConfigBuilder<T> extends ConfigBuilder<T, Int32ModelConfi
         return this;
     }
 
+    public Int32ModelConfigBuilder<T> validate(
+        ValidateConfig validate)
+    {
+        this.validate = validate;
+        return this;
+    }
+
     @Override
     public T build()
     {
@@ -96,6 +105,6 @@ public class Int32ModelConfigBuilder<T> extends ConfigBuilder<T, Int32ModelConfi
         int multiple = this.multiple != null ? this.multiple : DEFAULT_MULTIPLE;
         boolean exclusiveMax = this.exclusiveMax != null ? this.exclusiveMax : false;
         boolean exclusiveMin = this.exclusiveMin != null ? this.exclusiveMin : false;
-        return mapper.apply(new Int32ModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple));
+        return mapper.apply(new Int32ModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple, validate));
     }
 }

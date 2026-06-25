@@ -38,6 +38,9 @@ public final class HttpModel
 {
     public static final HttpModel NONE = new HttpModel();
 
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final ModelPipeline pipeline;
     private final MutableDirectBuffer scratch;
 
@@ -84,7 +87,7 @@ public final class HttpModel
         {
             total = 0;
             int srcAt = index;
-            int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
+            int flags = FLAGS_INIT | FLAGS_FIN;
             boolean done = false;
             while (!done)
             {
@@ -108,7 +111,7 @@ public final class HttpModel
                     else
                     {
                         srcAt += result.consumed();
-                        flags = ModelPipeline.FLAGS_FIN;
+                        flags = FLAGS_FIN;
                     }
                 }
             }

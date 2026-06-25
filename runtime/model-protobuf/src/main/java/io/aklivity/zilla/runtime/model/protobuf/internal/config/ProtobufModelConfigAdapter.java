@@ -30,7 +30,10 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
+import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfigBuilder;
 
 public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
@@ -39,8 +42,10 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VIEW = "view";
+    private static final String VALIDATE_NAME = "validate";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
+    private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
     @Override
     public String type()
@@ -52,19 +57,19 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
     public JsonValue adaptToJson(
         ModelConfig config)
     {
-        ProtobufModelConfig protobufConfig = (ProtobufModelConfig) config;
-        JsonObjectBuilder converter = Json.createObjectBuilder();
-        converter.add(MODEL_NAME, PROTOBUF);
+        ProtobufModelConfig model = (ProtobufModelConfig) config;
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        builder.add(MODEL_NAME, PROTOBUF);
 
-        if (protobufConfig.view != null)
+        if (model.view != null)
         {
-            converter.add(VIEW, protobufConfig.view);
+            builder.add(VIEW, model.view);
         }
 
-        if (protobufConfig.cataloged != null && !protobufConfig.cataloged.isEmpty())
+        if (model.cataloged != null && !model.cataloged.isEmpty())
         {
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
-            for (CatalogedConfig catalog : protobufConfig.cataloged)
+            for (CatalogedConfig catalog : model.cataloged)
             {
                 JsonArrayBuilder array = Json.createArrayBuilder();
                 for (SchemaConfig schemaItem: catalog.schemas)
@@ -73,9 +78,16 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
                 }
                 catalogs.add(catalog.name, array);
             }
-            converter.add(CATALOG_NAME, catalogs);
+            builder.add(CATALOG_NAME, catalogs);
         }
-        return converter.build();
+
+        JsonValue validateJson = validate.adaptToJson(model.validate);
+        if (validateJson != null)
+        {
+            builder.add(VALIDATE_NAME, validateJson);
+        }
+
+        return builder.build();
     }
 
     @Override
@@ -109,6 +121,14 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
                 ? object.getString(VIEW)
                 : null;
 
-        return new ProtobufModelConfig(catalogs, subject, view);
+        ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
+
+        ProtobufModelConfigBuilder<ProtobufModelConfig> builder = ProtobufModelConfig.builder()
+            .subject(subject)
+            .view(view)
+            .validate(validateConfig);
+        catalogs.forEach(builder::catalog);
+
+        return builder.build();
     }
 }

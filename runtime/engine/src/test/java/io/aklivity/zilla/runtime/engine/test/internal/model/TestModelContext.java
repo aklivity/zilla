@@ -15,46 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
-import java.util.function.LongFunction;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class TestModelContext implements ModelContext
 {
-    private final LongFunction<CatalogHandler> supplyCatalog;
-
     public TestModelContext(
         EngineContext context)
     {
-        this.supplyCatalog = context::supplyCatalog;
-    }
-
-    @Override
-    public ConverterHandler supplyReadConverterHandler(
-        ModelConfig config)
-    {
-        return new TestConverterHandler(TestModelConfig.class.cast(config), supplyCatalog);
-    }
-
-    @Override
-    public ConverterHandler supplyWriteConverterHandler(
-        ModelConfig config)
-    {
-        return new TestConverterHandler(TestModelConfig.class.cast(config), supplyCatalog);
-    }
-
-    @Override
-    public ValidatorHandler supplyValidatorHandler(
-        ModelConfig config)
-    {
-        return new TestValidatorHandler(TestModelConfig.class.cast(config));
     }
 
     @Override

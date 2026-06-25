@@ -206,7 +206,7 @@
                                             {
                                                 "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                 {
-                                                    "$ref": "#/$defs/validator"
+                                                    "$ref": "#/$defs/models"
                                                 }
                                             }
                                         },
@@ -222,7 +222,7 @@
                                                     {
                                                         "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                         {
-                                                            "$ref": "#/$defs/validator"
+                                                            "$ref": "#/$defs/models"
                                                         }
                                                     }
                                                 },
@@ -233,7 +233,7 @@
                                                     {
                                                         "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                         {
-                                                            "$ref": "#/$defs/validator"
+                                                            "$ref": "#/$defs/models"
                                                         }
                                                     }
                                                 }
@@ -242,7 +242,7 @@
                                         },
                                         "content":
                                         {
-                                            "$ref": "#/$defs/validator"
+                                            "$ref": "#/$defs/models"
                                         },
                                         "responses":
                                         {
@@ -283,13 +283,13 @@
                                                         {
                                                             "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                             {
-                                                                "$ref": "#/$defs/validator"
+                                                                "$ref": "#/$defs/models"
                                                             }
                                                         }
                                                     },
                                                     "content":
                                                     {
-                                                        "$ref": "#/$defs/validator"
+                                                        "$ref": "#/$defs/models"
                                                     }
                                                 },
                                                 "anyOf":

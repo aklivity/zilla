@@ -19,6 +19,8 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER
 import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -220,7 +222,7 @@ public class KafkaCachePartitionTest
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
         OctetsFW value = value(buffer, headers.limit(), "hello");
 
-        KafkaCacheModel transformValue = KafkaCacheModel.decoder(handler(5), scratch);
+        KafkaCacheModel transformValue = KafkaCacheModel.decoder(handler(5), emptySet(), scratch);
 
         partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, transformValue, false, null);
@@ -247,7 +249,7 @@ public class KafkaCachePartitionTest
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
         OctetsFW value = value(buffer, headers.limit(), "hello");
 
-        KafkaCacheModel transformValue = KafkaCacheModel.decoder(handler(99), scratch);
+        KafkaCacheModel transformValue = KafkaCacheModel.decoder(handler(99), emptySet(), scratch);
 
         partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, transformValue, false, null);
@@ -273,10 +275,10 @@ public class KafkaCachePartitionTest
         KafkaTopicTransformsType transforms = new KafkaTopicTransformsType("$.key",
             singletonList(new KafkaTopicHeaderType("region", "$.region")));
 
-        KafkaExtractor keyExtractor = new KafkaExtractor();
+        KafkaExtractor keyExtractor = new KafkaExtractor(singleton("$.key"));
         KafkaCacheModel transformKey =
             new KafkaCacheModel(new ExtractingPipeline(keyExtractor, "$.key"), keyExtractor, scratch);
-        KafkaExtractor valueExtractor = new KafkaExtractor();
+        KafkaExtractor valueExtractor = new KafkaExtractor(singleton("$.region"));
         KafkaCacheModel transformValue =
             new KafkaCacheModel(new ExtractingPipeline(valueExtractor, "$.region"), valueExtractor, scratch);
 
@@ -310,10 +312,10 @@ public class KafkaCachePartitionTest
         KafkaTopicTransformsType transforms = new KafkaTopicTransformsType(null,
             singletonList(new KafkaTopicHeaderType("region", "$.region")));
 
-        KafkaExtractor extractorA = new KafkaExtractor();
+        KafkaExtractor extractorA = new KafkaExtractor(singleton("$.region"));
         KafkaCacheModel modelA =
             new KafkaCacheModel(new ExtractingPipeline(extractorA, "$.region"), extractorA, scratch);
-        KafkaExtractor extractorB = new KafkaExtractor();
+        KafkaExtractor extractorB = new KafkaExtractor(singleton("$.region"));
         KafkaCacheModel modelB =
             new KafkaCacheModel(new ExtractingPipeline(extractorB, "$.region"), extractorB, scratch);
 

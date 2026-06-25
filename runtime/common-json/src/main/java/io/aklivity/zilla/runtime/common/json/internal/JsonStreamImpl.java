@@ -40,7 +40,8 @@ public final class JsonStreamImpl implements JsonStream
     private final JsonParserEx parser;
     private final List<JsonTransform> transforms;
 
-    private JsonReporter reporter;
+    private JsonReporter reporter = JsonReporter.NONE;
+    private boolean lenient;
 
     public JsonStreamImpl(
         JsonParserEx parser)
@@ -58,10 +59,18 @@ public final class JsonStreamImpl implements JsonStream
     }
 
     @Override
+    public JsonStream lenient(
+        boolean lenient)
+    {
+        this.lenient = lenient;
+        return this;
+    }
+
+    @Override
     public JsonStream reporting(
         JsonReporter reporter)
     {
-        this.reporter = reporter;
+        this.reporter = reporter != null ? reporter : JsonReporter.NONE;
         return this;
     }
 
@@ -69,7 +78,7 @@ public final class JsonStreamImpl implements JsonStream
     public JsonPipeline into(
         JsonSink sink)
     {
-        return new JsonPipelineImpl(parser, bind(sink), reporter, null);
+        return new JsonPipelineImpl(parser, bind(sink), reporter, null, lenient);
     }
 
     @Override
@@ -78,7 +87,7 @@ public final class JsonStreamImpl implements JsonStream
     {
         // the generator self-wraps an empty buffer on construction, so it is already in a sink-safe
         // state here; transform re-targets it at the caller's destination per call
-        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator);
+        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator, lenient);
     }
 
     private JsonSink bind(

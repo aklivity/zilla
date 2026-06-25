@@ -1,12 +1,12 @@
 [
     {
         "op": "add",
-        "path": "/$defs/converter/types/enum/-",
+        "path": "/$defs/models/types/enum/-",
         "value": "test"
     },
     {
         "op": "add",
-        "path": "/$defs/converter/model/allOf/-",
+        "path": "/$defs/models/model/allOf/-",
         "value":
         {
             "if":
@@ -27,132 +27,32 @@
                     {
                         "const": "test"
                     },
-                    "length":
+                    "validate":
                     {
-                        "type": "integer"
-                    },
-                    "transform":
-                    {
-                        "type": "object",
-                        "properties":
-                        {
-                            "length":
+                        "oneOf":
+                        [
                             {
-                                "type": "integer"
-                            }
-                        },
-                        "additionalProperties": false
-                    },
-                    "capability":
-                    {
-                        "type": "string"
-                    },
-                    "catalog":
-                    {
-                        "type": "object",
-                        "patternProperties":
-                        {
-                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                "type": "string",
+                                "enum": [ "strict", "lenient" ]
+                            },
                             {
-                                "type": "array",
-                                "items":
+                                "type": "object",
+                                "properties":
                                 {
-                                    "oneOf":
-                                    [
-                                        {
-                                            "type": "object",
-                                            "properties":
-                                            {
-                                                "id":
-                                                {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required":
-                                            [
-                                                "id"
-                                            ],
-                                            "additionalProperties": false
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties":
-                                            {
-                                                "strategy":
-                                                {
-                                                    "type": "string",
-                                                    "enum": [ "topic" ]
-                                                },
-                                                "version":
-                                                {
-                                                    "type": "string",
-                                                    "default": "latest"
-                                                }
-                                            },
-                                            "required":
-                                            [
-                                                "strategy"
-                                            ],
-                                            "additionalProperties": false
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties":
-                                            {
-                                                "subject":
-                                                {
-                                                    "type": "string"
-                                                },
-                                                "version":
-                                                {
-                                                    "type": "string",
-                                                    "default": "latest"
-                                                }
-                                            },
-                                            "required":
-                                            [
-                                                "subject"
-                                            ],
-                                            "additionalProperties": false
-                                        }
-                                    ]
-                                }
+                                    "decode":
+                                    {
+                                        "type": "string",
+                                        "enum": [ "strict", "lenient" ]
+                                    },
+                                    "encode":
+                                    {
+                                        "type": "string",
+                                        "enum": [ "strict", "lenient" ]
+                                    }
+                                },
+                                "additionalProperties": false
                             }
-                        },
-                        "maxProperties": 1
-                    }
-                },
-                "additionalProperties": false
-            }
-        }
-    },
-    {
-        "op": "add",
-        "path": "/$defs/validator/types/enum/-",
-        "value": "test"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/validator/model/allOf/-",
-        "value":
-        {
-            "if":
-            {
-                "properties":
-                {
-                    "model":
-                    {
-                        "const": "test"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
-                {
-                    "model":
-                    {
-                        "const": "test"
+                        ]
                     },
                     "length":
                     {
@@ -173,6 +73,14 @@
                     "capability":
                     {
                         "type": "string"
+                    },
+                    "fields":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "string"
+                        }
                     },
                     "catalog":
                     {

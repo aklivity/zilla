@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro.internal;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.ADVANCED;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.STARVED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
@@ -25,9 +26,11 @@ import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroException;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
+import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
 import io.aklivity.zilla.runtime.common.avro.AvroReporter;
@@ -58,6 +61,7 @@ final class AvroPipelineImpl implements AvroPipeline
     // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
     private final AvroGenerator generator;
     private final AvroPipelineResult result;
+    private final boolean lenient;
 
     private boolean suspended;
     private AvroEvent suspendedEvent;
@@ -66,7 +70,8 @@ final class AvroPipelineImpl implements AvroPipeline
         AvroParser parser,
         AvroSink root,
         AvroReporter reporter,
-        AvroGenerator generator)
+        AvroGenerator generator,
+        boolean lenient)
     {
         this.parser = parser;
         this.source = new Source(parser);
@@ -75,6 +80,7 @@ final class AvroPipelineImpl implements AvroPipeline
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
         this.generator = generator;
+        this.lenient = lenient;
         this.result = new AvroPipelineResult();
     }
 
@@ -136,10 +142,22 @@ final class AvroPipelineImpl implements AvroPipeline
         }
         catch (AvroValidationException ex)
         {
+            // inert today — no stage throws this yet; wired for when semantic validation lands
+            diagnostic.message = ex.getMessage();
+            reporter.rejected(diagnostic);
+            status = lenient ? COMPLETED : REJECTED;
+        }
+        catch (AvroParsingException ex)
+        {
             status = REJECTED;
             diagnostic.message = ex.getMessage();
         }
-        if (status == REJECTED && reporter != null)
+        catch (AvroException ex)
+        {
+            status = REJECTED;
+            diagnostic.message = ex.getMessage();
+        }
+        if (status == REJECTED)
         {
             // terminal failure only — never STARVED/SUSPENDED back-pressure; the diagnostic is a reused,
             // call-scoped view, so the reporter must copy out anything it needs before returning

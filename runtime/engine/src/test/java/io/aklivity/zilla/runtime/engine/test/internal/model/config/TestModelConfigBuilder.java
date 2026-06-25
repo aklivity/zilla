@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigBuilder<T>>
 {
@@ -32,6 +33,8 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private boolean read;
     private int transformLength = -1;
     private List<CatalogedConfig> catalogs;
+    private List<String> fields;
+    private ValidateConfig validate;
 
     TestModelConfigBuilder(
         Function<ModelConfig, T> mapper)
@@ -67,6 +70,17 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> field(
+        String field)
+    {
+        if (fields == null)
+        {
+            fields = new LinkedList<>();
+        }
+        fields.add(field);
+        return this;
+    }
+
     public CatalogedConfigBuilder<TestModelConfigBuilder<T>> catalog()
     {
         return CatalogedConfig.builder(this::catalog);
@@ -83,9 +97,16 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> validate(
+        ValidateConfig validate)
+    {
+        this.validate = validate;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestModelConfig(length, catalogs, read, transformLength));
+        return mapper.apply(new TestModelConfig(length, catalogs, read, transformLength, fields, validate));
     }
 }

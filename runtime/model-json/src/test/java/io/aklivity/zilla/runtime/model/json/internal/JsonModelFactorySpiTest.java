@@ -53,8 +53,6 @@ public class JsonModelFactorySpiTest
 
         assertThat(model, instanceOf(JsonModel.class));
         assertEquals(model.name(), "json");
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(JsonReadConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(JsonWriteConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(JsonValidatorHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(JsonModelHandlerImpl.class));
     }
 }

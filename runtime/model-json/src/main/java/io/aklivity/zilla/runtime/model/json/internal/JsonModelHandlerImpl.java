@@ -16,11 +16,6 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -38,55 +33,34 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 // Per-worker factory for a JSON model. One handler serves both directions: supplyDecoder vends a
-// per-stream JsonDecodeModelPipeline (catalog framing stripped, value validated) and supplyEncoder vends a
-// per-stream JsonEncodeModelPipeline (catalog framing emitted, value validated). Configuration-derived
+// per-stream JsonModelDecoderPipeline (catalog framing stripped, value validated) and supplyEncoder vends a
+// per-stream JsonModelEncoderPipeline (catalog framing emitted, value validated). Configuration-derived
 // state (catalog, schema cache, extraction paths) is shared; in-flight state lives on each pipeline.
 public final class JsonModelHandlerImpl extends JsonModelHandler implements ModelHandler
 {
-    private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
-    private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-
     // a no-op encoder so encode() emits only the catalog framing into the destination, never the body
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
-
-    private final Matcher matcher;
-    private final List<String> paths;
-    private final List<String> names;
 
     public JsonModelHandlerImpl(
         JsonModelConfig config,
         EngineContext context)
     {
         super(config, context);
-        this.matcher = PATH_PATTERN.matcher("");
-        this.paths = new ArrayList<>();
-        this.names = new ArrayList<>();
-    }
-
-    @Override
-    public void extract(
-        String path)
-    {
-        if (matcher.reset(path).matches() && !paths.contains(path))
-        {
-            paths.add(path);
-            names.add(matcher.group(1));
-        }
     }
 
     @Override
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new JsonDecodeModelPipeline(this, paths, names, visitor);
+        return new JsonModelDecoderPipeline(this, visitor);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
-        return new JsonEncodeModelPipeline(this);
+        return new JsonModelEncoderPipeline(this);
     }
 
     int decodePadding(
@@ -140,6 +114,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
 
     JsonPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         JsonGeneratorEx generator,
         JsonTransform extractor,
         JsonReporter reporter)
@@ -147,8 +122,9 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         JsonSchema schema = supplySchema(schemaId);
         return schema != null
             ? JsonEx.stream(JsonEx.createParser())
-                .transform(schema.validator())
+                .transform(schema.validator(lenient))
                 .transform(extractor)
+                .lenient(lenient)
                 .reporting(reporter)
                 .into(generator)
             : null;
@@ -156,13 +132,15 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
 
     JsonPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         JsonGeneratorEx generator,
         JsonReporter reporter)
     {
         JsonSchema schema = supplySchema(schemaId);
         return schema != null
             ? JsonEx.stream(JsonEx.createParser())
-                .transform(schema.validator())
+                .transform(schema.validator(lenient))
+                .lenient(lenient)
                 .reporting(reporter)
                 .into(generator)
             : null;

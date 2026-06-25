@@ -51,7 +51,6 @@ public class ProtobufModelFactorySpiTest
             .build();
 
         assertThat(model, instanceOf(ProtobufModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(ProtobufReadConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(ProtobufWriteConverterHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(ProtobufModelHandlerImpl.class));
     }
 }
