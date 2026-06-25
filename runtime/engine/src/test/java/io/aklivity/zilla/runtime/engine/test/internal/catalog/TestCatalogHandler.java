@@ -66,7 +66,7 @@ public class TestCatalogHandler implements CatalogHandler
         {
             schemaId = this.schema.equals(schema) ? id : NO_VERSION_ID;
         }
-        else if (schema != null)
+        else if (schema != null && subject != null)
         {
             schemaId = generateCRC32C(schema);
             int current = schemaIdsBySubject.getValue(subject);
@@ -92,12 +92,15 @@ public class TestCatalogHandler implements CatalogHandler
     public int[] unregister(
         String subject)
     {
-        int schemaId = schemaIdsBySubject.removeKey(subject);
         int[] removed = NO_SCHEMA_IDS;
-        if (schemaId != NO_SCHEMA_ID)
+        if (subject != null)
         {
-            release(schemaId);
-            removed = new int[] { schemaId };
+            int schemaId = schemaIdsBySubject.removeKey(subject);
+            if (schemaId != NO_SCHEMA_ID)
+            {
+                release(schemaId);
+                removed = new int[] { schemaId };
+            }
         }
         return removed;
     }
@@ -107,9 +110,12 @@ public class TestCatalogHandler implements CatalogHandler
         String subject,
         String version)
     {
-        return schemaIdsBySubject.containsKey(subject)
-            ? schemaIdsBySubject.getValue(subject)
-            : id;
+        int resolved = id;
+        if (subject != null && schemaIdsBySubject.containsKey(subject))
+        {
+            resolved = schemaIdsBySubject.getValue(subject);
+        }
+        return resolved;
     }
 
     @Override
