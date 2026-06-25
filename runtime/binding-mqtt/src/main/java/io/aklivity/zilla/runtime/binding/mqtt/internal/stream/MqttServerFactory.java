@@ -711,7 +711,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             .authorization(authorization)
             .budgetId(budgetId)
             .reserved(reserved)
-            .payload(buffer, index, length)
+            .payload((DirectBufferEx) buffer, index, length)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
@@ -748,7 +748,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             .flags(flags)
             .budgetId(budgetId)
             .reserved(reserved)
-            .payload(buffer, index, length)
+            .payload((DirectBufferEx) buffer, index, length)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
@@ -1308,7 +1308,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                final MqttPublishV4FW publish = mqttPublishV4RO.tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
+                final MqttPublishV4FW publish = mqttPublishV4RO
+                    .tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
                 if (publish == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1423,7 +1424,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                final MqttPublishV5FW publish = mqttPublishV5RO.tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
+                final MqttPublishV5FW publish = mqttPublishV5RO
+                    .tryWrap((DirectBufferEx) buffer, offset, offset + server.decodeablePacketBytes);
                 if (publish == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
@@ -1593,7 +1595,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 int sizeClaimed = valueClaimed - publisher.initialPad;
 
-                final OctetsFW payload = payloadRO.wrap((MutableDirectBufferEx) payloadBuffer, payloadOffset, payloadOffset + sizeClaimed);
+                final OctetsFW payload = payloadRO
+                    .wrap((MutableDirectBufferEx) payloadBuffer, payloadOffset, payloadOffset + sizeClaimed);
 
                 if (canPublish && model.identity() && (sizeClaimed > 0 || server.decodeablePublishPayloadBytes == 0))
                 {
@@ -2097,7 +2100,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     pubcompLimit = pubrec.limit();
                     if (remainingLength >= 4)
                     {
-                        final MqttPropertiesFW properties = mqttPropertiesRO.tryWrap((DirectBufferEx) buffer, pubcompLimit, limit);
+                        final MqttPropertiesFW properties = mqttPropertiesRO
+                            .tryWrap((DirectBufferEx) buffer, pubcompLimit, limit);
                         if (properties == null)
                         {
                             reasonCode = PROTOCOL_ERROR;
@@ -2952,7 +2956,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             decode:
             for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
             {
-                final MqttPropertyFW mqttProperty = mqttPropertyRO.wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                final MqttPropertyFW mqttProperty = mqttPropertyRO
+                    .wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
                 switch (mqttProperty.kind())
                 {
                 case KIND_TOPIC_ALIAS_MAXIMUM:
@@ -3170,7 +3175,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int sessionCapabilities = versions.contains(MqttVersion.V_5) && versions.size() == 1
                 ? REDIRECT_MASK : 0;
 
-            final MqttBeginExFW.Builder builder = mqttSessionBeginExRW.wrap((MutableDirectBufferEx) sessionExtBuffer, 0, sessionExtBuffer.capacity())
+            final MqttBeginExFW.Builder builder = mqttSessionBeginExRW
+                .wrap((MutableDirectBufferEx) sessionExtBuffer, 0, sessionExtBuffer.capacity())
                 .compositeId(pendingSessionCompositeId)
                 .typeId(mqttTypeId)
                 .session(s -> s
@@ -3729,7 +3735,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     if (publishPayloadDeferred == 0)
                     {
                         publishPayloadDeferred = decodeablePublishPayloadBytes - length;
-                        final Flyweight dataEx = mqttPublishDataExRW.wrap((MutableDirectBufferEx) dataExtBuffer, 0, dataExtBuffer.capacity())
+                        final Flyweight dataEx = mqttPublishDataExRW
+                            .wrap((MutableDirectBufferEx) dataExtBuffer, 0, dataExtBuffer.capacity())
                             .typeId(mqttTypeId)
                             .publish(p ->
                             {
@@ -4316,7 +4323,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     doEncodeUnsubackV4(traceId, authorization, packetId);
                     break;
                 case 5:
-                    final OctetsFW encodePayload = octetsRO.wrap((MutableDirectBufferEx) encodeBuffer, encodeOffset, encodeProgress);
+                    final OctetsFW encodePayload = octetsRO
+                        .wrap((MutableDirectBufferEx) encodeBuffer, encodeOffset, encodeProgress);
                     doEncodeUnsubackV5(traceId, authorization, packetId, encodePayload);
                     break;
                 }
@@ -4383,7 +4391,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             decode:
             for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
             {
-                final MqttPropertyFW mqttProperty = mqttPropertyRO.wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                final MqttPropertyFW mqttProperty = mqttPropertyRO
+                    .wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
                 switch (mqttProperty.kind())
                 {
                 case KIND_SESSION_EXPIRY:
@@ -4588,8 +4597,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (qos == 0)
                 {
-                    final MqttPublishV4FW publish =
-                        mqttPublishV4RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                    final MqttPublishV4FW publish = mqttPublishV4RW
+                        .wrap((MutableDirectBufferEx) writeBuffer,
+                            DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                             .typeAndFlags(publishNetworkTypeAndFlags)
                             .remainingLength(2 + topicNameLength + payloadSize + deferred)
                             .topicName(topicName)
@@ -4603,8 +4613,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 else
                 {
                     final int packetId = subscribeDataEx.subscribe().packetId();
-                    final MqttPublishQosV4FW publish =
-                        mqttPublishQosV4RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                    final MqttPublishQosV4FW publish = mqttPublishQosV4RW
+                        .wrap((MutableDirectBufferEx) writeBuffer,
+                            DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                             .typeAndFlags(publishNetworkTypeAndFlags)
                             .remainingLength(4 + topicNameLength + payloadSize + deferred)
                             .topicName(topicName)
@@ -4662,7 +4673,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .filter(subscription -> subscription.id == subscriptionId)
                             .findFirst();
                         retainAsPublished.set(retainAsPublished.value | result.isPresent() && result.get().retainAsPublished());
-                        mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
+                        mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer,
+                            propertiesSize.get(), propertyBuffer.capacity())
                             .subscriptionId(v -> v.set(subscriptionId));
                         propertiesSize.set(mqttPropertyRW.limit());
                     }
@@ -4725,13 +4737,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int propertiesSize0 = propertiesSize.get();
                 if (qos == 0)
                 {
-                    final MqttPublishV5FW publish =
-                        mqttPublishV5RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                    final MqttPublishV5FW publish = mqttPublishV5RW
+                        .wrap((MutableDirectBufferEx) writeBuffer,
+                            DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                             .typeAndFlags(publishNetworkTypeAndFlags)
                             .remainingLength(3 + topicNameLength + propertiesSize.get() + payloadSize + deferred)
                             .topicName(topicName)
                             .properties(p -> p.length(propertiesSize0)
-                                .value(propertyBuffer, 0, propertiesSize0))
+                                .value((MutableDirectBufferEx) propertyBuffer, 0, propertiesSize0))
                             .build();
 
                     int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
@@ -4742,14 +4755,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                 else
                 {
                     final int packetId = subscribeDataEx.subscribe().packetId();
-                    final MqttPublishQosV5FW publish =
-                        mqttPublishQosV5RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                    final MqttPublishQosV5FW publish = mqttPublishQosV5RW
+                        .wrap((MutableDirectBufferEx) writeBuffer,
+                            DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                             .typeAndFlags(publishNetworkTypeAndFlags)
                             .remainingLength(5 + topicNameLength + propertiesSize.get() + payloadSize + deferred)
                             .topicName(topicName)
                             .packetId(packetId)
                             .properties(p -> p.length(propertiesSize0)
-                                .value(propertyBuffer, 0, propertiesSize0))
+                                .value((MutableDirectBufferEx) propertyBuffer, 0, propertiesSize0))
                             .build();
 
                     int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
@@ -4769,7 +4783,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int packetId)
         {
-            final MqttPubackV4FW puback = mqttPubackV4RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttPubackV4FW puback = mqttPubackV4RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBACK_FIXED_HEADER)
                 .remainingLength(2)
                 .packetId(packetId)
@@ -4783,7 +4799,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int packetId)
         {
-            final MqttPubackV5FW puback = mqttPubackV5RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttPubackV5FW puback = mqttPubackV5RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBACK_FIXED_HEADER)
                 .remainingLength(3)
                 .packetId(packetId)
@@ -4798,7 +4816,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int packetId)
         {
-            final MqttPubrecV4FW pubrec = mqttPubrecV4RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttPubrecV4FW pubrec = mqttPubrecV4RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBREC_FIXED_HEADER)
                 .remainingLength(2)
                 .packetId(packetId)
@@ -4812,7 +4832,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int packetId)
         {
-            final MqttPubrecV5FW pubrec = mqttPubrecV5RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttPubrecV5FW pubrec = mqttPubrecV5RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBREC_FIXED_HEADER)
                 .remainingLength(3)
                 .packetId(packetId)
@@ -4827,7 +4849,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int packetId)
         {
-            final MqttPubrelV4FW pubrel = mqttPubrelV4RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttPubrelV4FW pubrel = mqttPubrelV4RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBREL_FIXED_HEADER)
                 .remainingLength(2)
                 .packetId(packetId)
@@ -4841,7 +4865,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int packetId)
         {
-            final MqttPubrelV5FW pubrel = mqttPubrelV5RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttPubrelV5FW pubrel = mqttPubrelV5RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBREL_FIXED_HEADER)
                 .remainingLength(3)
                 .packetId(packetId)
@@ -4856,7 +4882,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int packetId)
         {
-            final MqttPubcompV4FW pubcomp = mqttPubcompV4RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttPubcompV4FW pubcomp = mqttPubcompV4RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBCOMP_FIXED_HEADER)
                 .remainingLength(2)
                 .packetId(packetId)
@@ -4870,7 +4898,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int packetId)
         {
-            final MqttPubcompV5FW pubcomp = mqttPubcompV5RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttPubcompV5FW pubcomp = mqttPubcompV5RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(PUBCOMP_FIXED_HEADER)
                 .remainingLength(3)
                 .packetId(packetId)
@@ -4971,7 +5001,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (connectSessionExpiry != sessionExpiry)
                 {
-                    mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    mqttProperty = mqttPropertyRW
+                        .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .sessionExpiry(sessionExpiry)
                         .build();
                     propertiesSize = mqttProperty.limit();
@@ -4979,7 +5010,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (0 <= subscribeQosMax && subscribeQosMax < 2)
                 {
-                    mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    mqttProperty = mqttPropertyRW
+                        .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .maximumQoS((byte) subscribeQosMax)
                         .build();
                     propertiesSize = mqttProperty.limit();
@@ -4987,7 +5019,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!retainAvailable(capabilities))
                 {
-                    mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    mqttProperty = mqttPropertyRW
+                        .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .retainAvailable((byte) 0)
                         .build();
                     propertiesSize = mqttProperty.limit();
@@ -4995,7 +5028,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (topicAliasMaximum > 0)
                 {
-                    mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    mqttProperty = mqttPropertyRW
+                        .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .topicAliasMaximum(topicAliasMaximum)
                         .build();
                     propertiesSize = mqttProperty.limit();
@@ -5003,7 +5037,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!subscriptionIdsAvailable(capabilities))
                 {
-                    mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    mqttProperty = mqttPropertyRW
+                        .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .subscriptionIdsAvailable((byte) 0)
                         .build();
                     propertiesSize = mqttProperty.limit();
@@ -5011,7 +5046,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!sharedSubscriptionAvailable(capabilities))
                 {
-                    mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    mqttProperty = mqttPropertyRW
+                        .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .sharedSubscriptionAvailable((byte) 0)
                         .build();
                     propertiesSize = mqttProperty.limit();
@@ -5019,7 +5055,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!wildcardAvailable(capabilities))
                 {
-                    mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    mqttProperty = mqttPropertyRW
+                        .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .wildcardSubscriptionAvailable((byte) 0)
                         .build();
                     propertiesSize = mqttProperty.limit();
@@ -5027,7 +5064,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (assignedClientId)
                 {
-                    mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    mqttProperty = mqttPropertyRW
+                        .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .assignedClientId(this.clientId)
                         .build();
                     propertiesSize = mqttProperty.limit();
@@ -5035,7 +5073,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (serverDefinedKeepAlive)
                 {
-                    mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    mqttProperty = mqttPropertyRW
+                        .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .serverKeepAlive(this.keepAlive)
                         .build();
                     propertiesSize = mqttProperty.limit();
@@ -5043,7 +5082,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else if (reason != null && reason.length() != -1)
             {
-                mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                mqttProperty = mqttPropertyRW
+                    .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                     .reasonString(reason)
                     .build();
                 propertiesSize = mqttProperty.limit();
@@ -5051,7 +5091,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (serverReference != null)
             {
-                mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                mqttProperty = mqttPropertyRW
+                    .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                     .serverReference(serverReference)
                     .build();
                 propertiesSize = mqttProperty.limit();
@@ -5067,7 +5108,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .flags(flags)
                     .reasonCode(reasonCode & 0xff)
                     .properties(p -> p.length(propertiesSize0)
-                        .value(propertyBuffer, 0, propertiesSize0))
+                        .value((MutableDirectBufferEx) propertyBuffer, 0, propertiesSize0))
                     .build();
 
             doNetworkData(traceId, authorization, 0L, connack);
@@ -5083,7 +5124,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .put(subscriptions)
                 .build();
 
-            final MqttSubackV4FW suback = mqttSubackV4RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttSubackV4FW suback = mqttSubackV4RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(0x90)
                 .remainingLength(2 + reasonCodes.sizeof())
                 .packetId(packetId)
@@ -5103,7 +5146,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .put(subscriptions)
                 .build();
 
-            final MqttSubackV5FW suback = mqttSubackV5RW.wrap((MutableDirectBufferEx) writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+            final MqttSubackV5FW suback = mqttSubackV5RW
+                .wrap((MutableDirectBufferEx) writeBuffer,
+                    DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                 .typeAndFlags(0x90)
                 .remainingLength(3 + reasonCodes.sizeof())
                 .packetId(packetId)
@@ -5172,14 +5217,16 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttPropertyFW mqttProperty;
             if (reason != null && reason.length() != -1)
             {
-                mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                mqttProperty = mqttPropertyRW
+                    .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                     .reasonString(reason)
                     .build();
                 propertiesSize = mqttProperty.limit();
             }
             else if (serverReference != null)
             {
-                mqttProperty = mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                mqttProperty = mqttPropertyRW
+                    .wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize, propertyBuffer.capacity())
                     .serverReference(serverReference)
                     .build();
                 propertiesSize = mqttProperty.limit();
@@ -5192,7 +5239,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .remainingLength(2 + propertySize0)
                     .reasonCode(reasonCode & 0xff)
                     .properties(p -> p.length(propertySize0)
-                        .value(propertyBuffer, 0, propertySize0))
+                        .value((MutableDirectBufferEx) propertyBuffer, 0, propertySize0))
                     .build();
 
             doNetworkData(traceId, authorization, 0L, disconnect);
@@ -5777,7 +5824,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                             if (isCleanStart(connectFlags))
                             {
                                 final MqttDataExFW.Builder sessionDataExBuilder =
-                                    mqttSessionDataExRW.wrap((MutableDirectBufferEx) sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                                    mqttSessionDataExRW
+                                        .wrap((MutableDirectBufferEx) sessionExtBuffer, 0, sessionExtBuffer.capacity())
                                         .typeId(mqttTypeId)
                                         .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
                                 doSessionData(traceId, 0, sessionDataExBuilder.build(), emptyRO);
@@ -7573,7 +7621,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             {
                                 final String16FW transformed = userPropertyValueRW
                                     .wrap((MutableDirectBufferEx) userPropertyValueBuffer, 0, userPropertyValueBuffer.capacity())
-                                    .set(model.buffer(), 0, produced)
+                                    .set((DirectBufferEx) model.buffer(), 0, produced)
                                     .build();
                                 userPropertiesRW.item(c -> c.key(userPropertyKey).value(transformed));
                             }
