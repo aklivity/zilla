@@ -16,12 +16,12 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -46,8 +46,8 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     // for push-back is to move this per-message state off the shared handler onto the caller's per-stream decode
     // slot, with BufferPool-bounded back-pressure accounting; needs validate() to report consumed bytes (progress)
     // instead of a pass/reject boolean.
-    private final ExpandableDirectByteBuffer carry;
-    private final ExpandableDirectByteBuffer assembly;
+    private final ExpandableDirectByteBufferEx carry;
+    private final ExpandableDirectByteBufferEx assembly;
 
     private Validator active;
     private int carryLength;
@@ -62,8 +62,8 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     {
         super(config, context);
         this.validators = new Int2ObjectCache<>(1, 16, v -> {});
-        this.carry = new ExpandableDirectByteBuffer();
-        this.assembly = new ExpandableDirectByteBuffer();
+        this.carry = new ExpandableDirectByteBufferEx();
+        this.assembly = new ExpandableDirectByteBufferEx();
     }
 
     @Override
@@ -71,7 +71,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -86,7 +86,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -128,7 +128,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -188,7 +188,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -203,14 +203,14 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
         long traceId,
         long bindingId,
         boolean last,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
     {
         boolean valid;
 
-        DirectBuffer buffer;
+        DirectBufferEx buffer;
         int offset;
         int limit;
         if (carryLength == 0)
@@ -253,7 +253,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
     }
 
     private Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last,
@@ -268,7 +268,7 @@ public class JsonValidatorHandler extends JsonModelHandler implements ValidatorH
             int produced = active.generator.length();
             if (produced > 0 && status != Status.REJECTED)
             {
-                next.accept(active.output, 0, produced);
+                next.accept((DirectBufferEx) active.output, 0, produced);
             }
         }
         while (status == Status.SUSPENDED);

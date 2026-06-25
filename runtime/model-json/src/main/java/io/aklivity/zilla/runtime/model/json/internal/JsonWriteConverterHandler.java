@@ -14,11 +14,11 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -52,7 +52,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -63,7 +63,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -79,7 +79,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -101,7 +101,7 @@ public class JsonWriteConverterHandler extends JsonModelHandler implements Conve
                 int chunk = generator.length();
                 if (chunk > 0 && status != Status.REJECTED)
                 {
-                    next.accept(output, 0, chunk);
+                    next.accept((DirectBufferEx) output, 0, chunk);
                     produced += chunk;
                 }
             }

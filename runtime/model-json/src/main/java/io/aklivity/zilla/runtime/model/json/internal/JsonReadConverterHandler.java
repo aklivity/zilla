@@ -19,11 +19,11 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -63,7 +63,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -84,7 +84,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
     public int convert(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -119,7 +119,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -147,7 +147,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
         long traceId,
         long bindingId,
         JsonPipeline pipeline,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -164,7 +164,7 @@ public class JsonReadConverterHandler extends JsonModelHandler implements Conver
             int chunk = generator.length();
             if (chunk > 0 && status != Status.REJECTED)
             {
-                next.accept(output, 0, chunk);
+                next.accept((DirectBufferEx) output, 0, chunk);
                 produced += chunk;
             }
         }

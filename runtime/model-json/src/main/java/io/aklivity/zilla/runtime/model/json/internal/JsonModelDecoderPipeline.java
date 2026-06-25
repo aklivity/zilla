@@ -20,6 +20,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -88,8 +89,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         {
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
-            int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
-            prefix = handler.decodePadding(src, srcIndex, srcLength);
+            int schemaId = handler.resolveSchemaId((DirectBufferEx) src, srcIndex, srcLength);
+            prefix = handler.decodePadding((DirectBufferEx) src, srcIndex, srcLength);
             active = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
             if (active != null)
             {
@@ -140,7 +141,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         int index,
         int length)
     {
-        return handler.decodePadding(data, index, length);
+        return handler.decodePadding((DirectBufferEx) data, index, length);
     }
 
     @Override
