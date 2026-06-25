@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # create schema
@@ -28,11 +30,16 @@ echo INPUT="$INPUT"
 echo EXPECTED="$EXPECTED"
 echo
 
-# send message
-curl -k http://localhost:7114/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d "$INPUT"
-
 # WHEN
-OUTPUT=$(curl -k http://localhost:$PORT/items/1)
+# the producing POST goes through Zilla and can race a cold route; retry the
+# send+read together. The Idempotency-Key makes re-posting collapse to a single
+# record.
+send_then_fetch_valid() {
+  curl -k http://localhost:7114/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d "$INPUT"
+  OUTPUT=$(curl -k http://localhost:$PORT/items/1)
+  [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 10 3 send_then_fetch_valid
 RESULT=$?
 echo RESULT="$RESULT"
 
@@ -61,7 +68,11 @@ echo
 curl -k http://localhost:7114/items -H 'Idempotency-Key: 2'  -H 'Content-Type: application/json' -d "$INPUT"
 
 # WHEN
-OUTPUT=$(curl -w "%{http_code}" http://localhost:$PORT/items/2)
+fetch_invalid() {
+  OUTPUT=$(curl -w "%{http_code}" http://localhost:$PORT/items/2)
+  [ $? -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 10 3 fetch_invalid
 RESULT=$?
 echo RESULT="$RESULT"
 

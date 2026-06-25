@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -13,7 +15,11 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(curl http://localhost:$PORT/items)
+fetch_empty() {
+  OUTPUT=$(curl http://localhost:$PORT/items)
+  [ $? -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 10 3 fetch_empty
 RESULT=$?
 echo RESULT="$RESULT"
 
@@ -47,7 +53,11 @@ echo "$INPUT" | docker compose -p zilla-http-kafka-cache exec -T kafkacat \
     -H "content-type=application/json"
 
 # WHEN
-OUTPUT=$(curl http://localhost:$PORT/items)
+fetch_item() {
+  OUTPUT=$(curl http://localhost:$PORT/items)
+  [ $? -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 10 3 fetch_item
 RESULT=$?
 echo RESULT="$RESULT"
 

@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -30,9 +32,12 @@ echo "$INPUT" |
     -k "1" \
     -H "tag=abc"
 
-sleep 5
 # send request to zilla
-OUTPUT=$(timeout 3s curl -N --http2 -H "Accept:text/event-stream" "http://localhost:$PORT/events/1/abc" | grep "^data:")
+stream_events() {
+  OUTPUT=$(timeout 3s curl -N --http2 -H "Accept:text/event-stream" "http://localhost:$PORT/events/1/abc" | grep "^data:")
+  [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 10 3 stream_events
 
 # THEN
 echo OUTPUT="$OUTPUT"

@@ -10,6 +10,8 @@
 # streamed body / client output rather than asserting exact-string equality.
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 PORT="7114"
 INITIALIZE='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"elicitation":{"url":{}}},"clientInfo":{"name":"zilla-mcp-proxy-test","version":"0.0.1"}}}'
@@ -19,11 +21,16 @@ echo "PORT=$PORT"
 
 # WHEN: a url-elicitation-capable client initializes against the gateway
 # THEN: the gateway negotiates protocol version 2025-11-25 in the response
-INIT_BODY=$(curl -sS -N --max-time 10 \
-    -X POST "http://localhost:$PORT/mcp" \
-    -H "Content-Type: application/json" \
-    -H "Accept: application/json, text/event-stream" \
-    -d "$INITIALIZE")
+# retry until the mcp route is live and negotiates the protocol version
+initialize_mcp() {
+  INIT_BODY=$(curl -sS -N --max-time 10 \
+      -X POST "http://localhost:$PORT/mcp" \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json, text/event-stream" \
+      -d "$INITIALIZE")
+  echo "$INIT_BODY" | grep -q '"protocolVersion":"2025-11-25"'
+}
+retry_until 10 3 initialize_mcp
 echo INIT_BODY="$INIT_BODY"
 if echo "$INIT_BODY" | grep -q '"protocolVersion":"2025-11-25"'; then
   echo ✅ initialize negotiated 2025-11-25
@@ -36,9 +43,13 @@ fi
 #       calls the urlelicit toolkit's authorize tool through the gateway
 # THEN: Zilla relays the mode:url elicitation/create request and the subsequent
 #       notifications/elicitation/complete back to the client
-ELICIT_OUT=$(docker compose run --rm --no-deps \
-    -e MCP_URL="http://zilla:$PORT/mcp" \
-    urlelicit-client 2>&1)
+relay_elicitation() {
+  ELICIT_OUT=$(docker compose run --rm --no-deps \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      urlelicit-client 2>&1)
+  echo "$ELICIT_OUT" | grep -q 'OK url-mode elicitation relayed end-to-end'
+}
+retry_until 10 3 relay_elicitation
 echo "$ELICIT_OUT"
 if echo "$ELICIT_OUT" | grep -q 'OK url-mode elicitation relayed end-to-end'; then
   echo ✅ url-mode elicitation relayed end-to-end

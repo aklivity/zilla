@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -13,10 +15,15 @@ echo INPUT="$INPUT"
 echo EXPECTED="$EXPECTED"
 echo
 
-curl -k -v -X POST http://localhost:$PORT/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d "$INPUT"
-
 # WHEN
-OUTPUT=$(curl -k http://localhost:$PORT/items/1)
+# the POST goes through Zilla and can race a cold route; retry the create+read
+# together. The Idempotency-Key makes re-posting collapse to a single record.
+create_then_fetch() {
+  curl -k -v -X POST http://localhost:$PORT/items -H 'Idempotency-Key: 1'  -H 'Content-Type: application/json' -d "$INPUT"
+  OUTPUT=$(curl -k http://localhost:$PORT/items/1)
+  [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 10 3 create_then_fetch
 RESULT=$?
 echo RESULT="$RESULT"
 
