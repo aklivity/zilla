@@ -57,7 +57,7 @@
                                         },
                                         "content":
                                         {
-                                            "$ref": "#/$defs/validator"
+                                            "$ref": "#/$defs/models"
                                         }
                                     },
                                     "anyOf":
