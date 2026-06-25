@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
@@ -178,7 +179,7 @@ public class MqttKafkaPublishMetadata
         public MqttKafkaSessionOffsetsFW encode(
             List<KafkaOffsetMetadata> entries)
         {
-            sessionOffsetsRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
+            sessionOffsetsRW.wrap((MutableDirectBufferEx) offsetBuffer, 0, offsetBuffer.capacity());
             sessionOffsetsRW.version(SESSION_OFFSETS_VERSION);
             for (int i = 0, size = entries.size(); i < size; i++)
             {
