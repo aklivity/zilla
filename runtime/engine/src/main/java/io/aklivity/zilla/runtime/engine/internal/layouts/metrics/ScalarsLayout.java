@@ -30,7 +30,6 @@ import java.util.function.LongSupplier;
 
 import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -41,7 +40,7 @@ public abstract class ScalarsLayout extends MetricsLayout
     private static final int RECORD_SIZE = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT + BitUtil.SIZE_OF_LONG;
 
     protected ScalarsLayout(
-        AtomicBuffer buffer)
+        AtomicBufferEx buffer)
     {
         super(buffer);
     }
@@ -135,7 +134,7 @@ public abstract class ScalarsLayout extends MetricsLayout
         }
 
         protected final <T extends ScalarsLayout> T build(
-            Function<AtomicBuffer, T> constructor)
+            Function<AtomicBufferEx, T> constructor)
         {
             final File layoutFile = path.toFile();
             if (!readonly)

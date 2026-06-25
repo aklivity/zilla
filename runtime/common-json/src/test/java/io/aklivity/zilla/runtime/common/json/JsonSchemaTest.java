@@ -24,6 +24,7 @@ import jakarta.json.stream.JsonParser;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 class JsonSchemaTest
 {
     @Test

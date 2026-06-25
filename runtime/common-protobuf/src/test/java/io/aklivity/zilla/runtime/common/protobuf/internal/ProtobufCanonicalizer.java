@@ -18,10 +18,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import org.agrona.ExpandableArrayBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;

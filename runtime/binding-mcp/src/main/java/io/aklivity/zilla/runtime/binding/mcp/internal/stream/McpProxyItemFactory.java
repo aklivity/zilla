@@ -19,9 +19,7 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
@@ -42,6 +40,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -78,9 +77,9 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer codecBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx codecBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongIntToLongFunction supplyInitialIdHash;
     private final LongUnaryOperator supplyReplyId;
@@ -336,13 +335,13 @@ abstract class McpProxyItemFactory implements BindingHandler
                 prefixAt = indexOfQuotedPrefix(payload.buffer(), payload.offset(), payload.limit());
             }
 
-            final DirectBuffer strippedBuffer;
+            final DirectBufferEx strippedBuffer;
             final int strippedOffset;
             final int strippedLength;
             final int strippedReserved;
             if (prefixAt >= 0)
             {
-                final DirectBuffer buf = payload.buffer();
+                final DirectBufferEx buf = payload.buffer();
                 final int offset = payload.offset();
                 final int limit = payload.limit();
                 final int head = prefixAt - offset;
@@ -417,7 +416,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         }
 
         private int indexOfQuotedPrefix(
-            DirectBuffer buf,
+            DirectBufferEx buf,
             int offset,
             int limit)
         {
@@ -548,7 +547,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long budgetId,
             int flags,
             int reserved,
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length)
         {
@@ -722,7 +721,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long budgetId,
             int flags,
             int reserved,
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length)
         {
@@ -1103,7 +1102,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length)
     {

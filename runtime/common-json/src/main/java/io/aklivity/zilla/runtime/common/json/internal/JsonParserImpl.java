@@ -35,8 +35,7 @@ import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParsingException;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -159,7 +158,7 @@ public final class JsonParserImpl implements JsonParserEx
 
     @Override
     public JsonParserEx wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -175,7 +174,7 @@ public final class JsonParserImpl implements JsonParserEx
     // than a frame boundary with more bytes to come.
     @Override
     public JsonParserEx wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -648,7 +647,7 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
-    public DirectBuffer getSegment()
+    public DirectBufferEx getSegment()
     {
         assert lastEvent != null && (lastEvent.segmented() || lastEvent == JsonEvent.END_DOCUMENT);
         // re-expose the unconsumed remainder of the segment slice after consumed() pushback, append-only
@@ -750,7 +749,7 @@ public final class JsonParserImpl implements JsonParserEx
     private void trimLeadingSeparator()
     {
         final long frontier = tokenizer.streamOffset();
-        final DirectBuffer buffer = ownedInput.buffer();
+        final DirectBufferEx buffer = ownedInput.buffer();
         while (verbatimCursor < frontier && isWhitespace(buffer.getByte(bufferOffset(verbatimCursor))))
         {
             verbatimCursor++;
@@ -1131,7 +1130,7 @@ public final class JsonParserImpl implements JsonParserEx
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             return verbatimView;
         }

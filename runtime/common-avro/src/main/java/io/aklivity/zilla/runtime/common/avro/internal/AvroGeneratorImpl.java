@@ -19,7 +19,6 @@ import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroParsingException;

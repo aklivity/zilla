@@ -47,8 +47,7 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -1198,7 +1197,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             throw new UnsupportedOperationException();
         }
@@ -1989,7 +1988,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             throw new UnsupportedOperationException();
         }
@@ -2207,7 +2206,7 @@ public final class JsonSchemaImpl implements JsonSchema
         // streaming-over-buffers surface, delegated; validation runs on the next()/getString() pull path
         @Override
         public JsonParserEx wrap(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -2217,7 +2216,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
         @Override
         public JsonParserEx wrap(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             boolean last)
@@ -2252,7 +2251,7 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             return delegateEx.getSegment();
         }

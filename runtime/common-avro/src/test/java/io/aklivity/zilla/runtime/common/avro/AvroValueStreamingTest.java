@@ -30,13 +30,13 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
@@ -330,7 +330,7 @@ public class AvroValueStreamingTest
         {
             if (event == AvroEvent.STRING || event == AvroEvent.BYTES || event == AvroEvent.FIXED)
             {
-                DirectBuffer segment = source.getSegment();
+                DirectBufferEx segment = source.getSegment();
                 byte[] chunk = new byte[segment.capacity()];
                 segment.getBytes(0, chunk);
                 chunks.add(chunk);

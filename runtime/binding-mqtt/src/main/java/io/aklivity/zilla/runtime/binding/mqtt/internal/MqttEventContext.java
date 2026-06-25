@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.MqttEv
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.event.MqttEventExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;

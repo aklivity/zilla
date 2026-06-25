@@ -19,7 +19,6 @@ import java.util.Optional;
 
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
-
 public final class GrpcKafkaWithFetchConfig extends WithConfig
 {
     public final String topic;

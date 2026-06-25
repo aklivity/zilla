@@ -22,7 +22,6 @@ import org.agrona.collections.Object2LongHashMap;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
 final class KafkaExtractor implements ModelVisitor

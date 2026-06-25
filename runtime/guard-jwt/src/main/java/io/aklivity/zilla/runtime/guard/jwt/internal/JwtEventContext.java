@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.guard.jwt.internal.types.event.JwtEventT
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;

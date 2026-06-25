@@ -18,12 +18,12 @@ package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 import java.nio.file.Path;
 import java.util.function.LongConsumer;
 
-import org.agrona.concurrent.AtomicBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 
 public final class GaugesLayout extends ScalarsLayout
 {
     private GaugesLayout(
-        AtomicBuffer buffer)
+        AtomicBufferEx buffer)
     {
         super(buffer);
     }

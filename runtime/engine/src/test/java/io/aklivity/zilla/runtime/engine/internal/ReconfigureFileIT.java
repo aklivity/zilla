@@ -43,7 +43,6 @@ import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
-
 public class ReconfigureFileIT
 {
     private final K3poRule k3po = new K3poRule()

@@ -17,8 +17,7 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import java.util.function.LongPredicate;
 import java.util.function.Supplier;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 
 final class Int64ModelValidator implements CoreModelValidator
@@ -52,7 +51,7 @@ final class Int64ModelValidator implements CoreModelValidator
     @Override
     public Validity validate(
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {

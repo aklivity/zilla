@@ -26,7 +26,6 @@ import java.nio.file.Path;
 
 import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -51,12 +50,12 @@ public final class MetricsLayout extends Layout
     private final AtomicBufferEx labelsBuffer = new UnsafeBufferEx(new byte[0]);
     private final AtomicBufferEx valuesBuffer = new UnsafeBufferEx(new byte[0]);
 
-    public AtomicBuffer labelsBuffer()
+    public AtomicBufferEx labelsBuffer()
     {
         return labelsBuffer;
     }
 
-    public AtomicBuffer valuesBuffer()
+    public AtomicBufferEx valuesBuffer()
     {
         return valuesBuffer;
     }

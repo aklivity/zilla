@@ -20,7 +20,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.MutableDirectBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -37,6 +36,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -90,7 +90,7 @@ public class JsonPipelineBM
     private static final String VALIDATE_DOCUMENT = ROOT_IDENTITY;
     private static final String VALIDATE_SCHEMA = "{\"type\":\"object\"}";
 
-    private final MutableDirectBuffer outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
+    private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
     // structured = the explicit canonical opt-out (re-render); the bare default now prefers bytes
     private final JsonSink structuredSink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.STRUCTURED));

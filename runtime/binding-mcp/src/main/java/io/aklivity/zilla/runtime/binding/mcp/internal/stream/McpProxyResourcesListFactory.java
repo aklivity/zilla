@@ -20,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.LongFunction;
 
-
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;

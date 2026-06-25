@@ -21,9 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.nio.ByteOrder;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 

@@ -23,10 +23,10 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -166,7 +166,7 @@ public class ProtobufChunkingTest
         });
 
         int limit = 48;
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(grouped, "Record"))
             .into(ProtobufSink.of(generator, grouped, "Record"));
@@ -253,7 +253,7 @@ public class ProtobufChunkingTest
         byte[] input,
         int limit)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[4096]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         List<ProtobufEvent> events = new ArrayList<>();
         ProtobufTransform recorder = (control, source, event, sink) ->
@@ -290,7 +290,7 @@ public class ProtobufChunkingTest
         byte[] input,
         int limit)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, message))
             .into(ProtobufSink.of(generator, schema, message));
@@ -398,7 +398,7 @@ public class ProtobufChunkingTest
     }
 
     private static byte[] bytes(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int length)
     {
         byte[] result = new byte[length];

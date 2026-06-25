@@ -19,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -42,7 +42,7 @@ class JsonPipelineRejectTest
     void shouldRejectMalformedJson()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonEx.createSink(generator));
 
@@ -58,7 +58,7 @@ class JsonPipelineRejectTest
     void shouldReportReasonOnMalformedJson()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .reporting(reporter)
             .into(JsonEx.createSink(generator));
@@ -79,7 +79,7 @@ class JsonPipelineRejectTest
     {
         JsonSchema schema = JsonSchema.of("{\"properties\":{\"id\":{\"type\":\"string\"}}}");
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .reporting(reporter)
@@ -98,7 +98,7 @@ class JsonPipelineRejectTest
     {
         JsonSchema schema = JsonSchema.of("{\"properties\":{\"id\":{\"type\":\"string\"}}}");
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
             .reporting(reporter)
@@ -116,7 +116,7 @@ class JsonPipelineRejectTest
     void shouldNotReportOnValidJson()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .reporting(reporter)
             .into(JsonEx.createSink(generator));

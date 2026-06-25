@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public enum Int64Format
 {
@@ -27,7 +27,7 @@ public enum Int64Format
         public int decode(
             Int64State state,
             int flags,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length)
         {
@@ -110,7 +110,7 @@ public enum Int64Format
         public int decode(
             Int64State state,
             int flags,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length)
         {
@@ -150,7 +150,7 @@ public enum Int64Format
     public abstract int decode(
         Int64State state,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length);
 

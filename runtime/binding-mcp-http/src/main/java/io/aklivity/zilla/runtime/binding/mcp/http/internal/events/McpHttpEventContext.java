@@ -19,12 +19,11 @@ import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.event.Mc
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-import org.agrona.concurrent.AtomicBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpBinding;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.event.McpHttpEventExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -32,8 +31,8 @@ public final class McpHttpEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
 
-    private final AtomicBuffer eventBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
-    private final AtomicBuffer extensionBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final MutableDirectBufferEx eventBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
+    private final MutableDirectBufferEx extensionBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final McpHttpEventExFW.Builder mcpHttpEventExRW = new McpHttpEventExFW.Builder();
     private final int mcpHttpTypeId;

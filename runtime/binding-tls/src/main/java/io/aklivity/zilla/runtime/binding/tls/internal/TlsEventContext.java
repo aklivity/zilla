@@ -25,7 +25,6 @@ import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEven
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;

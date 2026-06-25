@@ -19,8 +19,7 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import java.util.HashMap;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -76,7 +75,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     }
 
     int decodePadding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -96,7 +95,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
 
     // the catalog framing the value carries on the wire, stripped once at the start of the first fragment
     int prefix(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -104,7 +103,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     }
 
     int resolveSchemaId(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -128,7 +127,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     // consumes the message-index varints at the value start (after the catalog framing), returning the number
     // of bytes they occupy; the decoded path is then read by message(int)
     int messageProgress(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -162,7 +161,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)

@@ -19,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -44,7 +44,7 @@ class JsonPipelineLenientTest
     void shouldRejectSchemaViolationUnderStrict()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(false))
             .lenient(false)
@@ -66,7 +66,7 @@ class JsonPipelineLenientTest
     void shouldPassSchemaViolationThroughUnderLenient()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(true))
             .lenient(true)
@@ -90,7 +90,7 @@ class JsonPipelineLenientTest
     void shouldRejectMalformedUnderStrict()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(false))
             .lenient(false)
@@ -110,7 +110,7 @@ class JsonPipelineLenientTest
     void shouldRejectMalformedUnderLenient()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(true))
             .lenient(true)
@@ -131,7 +131,7 @@ class JsonPipelineLenientTest
     void shouldCompleteConformingUnderLenient()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(true))
             .lenient(true)

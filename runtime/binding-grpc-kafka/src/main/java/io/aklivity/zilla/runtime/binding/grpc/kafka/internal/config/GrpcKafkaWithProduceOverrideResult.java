@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+
 public final class GrpcKafkaWithProduceOverrideResult
 {
     public final DirectBufferEx name;

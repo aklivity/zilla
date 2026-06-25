@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 class JsonParserNumberRetentionTest
 {
     // a number lexeme longer than the feed window, with no terminator: the window ends mid-number so

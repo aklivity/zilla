@@ -19,10 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 class JsonSourceContractTest
 {
     // getSegment() is valid only in reaction to a segmented event; reading it off a structured value
@@ -65,7 +66,7 @@ class JsonSourceContractTest
         JsonSink.Delivery delivery)
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
             .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, delivery)));
