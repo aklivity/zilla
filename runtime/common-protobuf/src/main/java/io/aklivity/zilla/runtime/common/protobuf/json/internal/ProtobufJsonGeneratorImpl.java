@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
 import java.util.BitSet;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;

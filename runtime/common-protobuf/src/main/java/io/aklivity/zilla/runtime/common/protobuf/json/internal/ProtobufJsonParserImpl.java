@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
 import jakarta.json.JsonException;
 
-import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
