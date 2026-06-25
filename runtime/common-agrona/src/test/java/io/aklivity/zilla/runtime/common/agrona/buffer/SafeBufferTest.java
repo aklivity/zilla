@@ -27,7 +27,6 @@ import static org.junit.Assert.assertTrue;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Test;
 
 public class SafeBufferTest
