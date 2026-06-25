@@ -5859,7 +5859,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         .wrap(frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
                         .endStream(markEndResponse)
-                        .payload((DirectBufferEx) buffer, progress, length)
+                        .payload(buffer, progress, length)
                         .build();
                 frameOffset = http2Data.limit();
                 progress += length;
@@ -6769,8 +6769,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private Http2HeadersDecoder()
         {
-            BiConsumer<DirectBuffer, DirectBuffer> nameValue =
-                    ((BiConsumer<DirectBuffer, DirectBuffer>) this::collectHeaders)
+            BiConsumer<DirectBufferEx, DirectBufferEx> nameValue =
+                    ((BiConsumer<DirectBufferEx, DirectBufferEx>) this::collectHeaders)
                             .andThen(this::validatePseudoHeaders)
                             .andThen(this::uppercaseHeaders)
                             .andThen(this::connectionHeaders)
@@ -6883,8 +6883,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         private void validatePseudoHeaders(
-            DirectBuffer name,
-            DirectBuffer value)
+            DirectBufferEx name,
+            DirectBufferEx value)
         {
             if (!error())
             {
@@ -6897,7 +6897,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         return;
                     }
                     // request pseudo-header fields MUST be one of :authority, :method, :path, :scheme,
-                    int index = context.index((DirectBufferEx) name);
+                    int index = context.index(name);
                     switch (index)
                     {
                     case 1:             // :authority
@@ -6909,7 +6909,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         if (value.capacity() > 0)       // :path MUST not be empty
                         {
                             path++;
-                            if (!HttpUtil.isPathValid((DirectBufferEx) value))
+                            if (!HttpUtil.isPathValid(value))
                             {
                                 httpErrorHeader = headers400;
                             }
@@ -6931,8 +6931,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         private void validateTrailerFieldName(
-            DirectBuffer name,
-            DirectBuffer value)
+            DirectBufferEx name,
+            DirectBufferEx value)
         {
             if (!error())
             {
@@ -6945,8 +6945,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         private void connectionHeaders(
-            DirectBuffer name,
-            DirectBuffer value)
+            DirectBufferEx name,
+            DirectBufferEx value)
         {
             if (!error() && name.equals(HpackContext.CONNECTION))
             {
@@ -6955,8 +6955,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         private void contentLengthHeader(
-            DirectBuffer name,
-            DirectBuffer value)
+            DirectBufferEx name,
+            DirectBufferEx value)
         {
             if (!error() && name.equals(context.nameBuffer(28)))
             {
@@ -6967,8 +6967,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         // 8.1.2.2 TE header MUST NOT contain any value other than "trailers".
         private void teHeader(
-            DirectBuffer name,
-            DirectBuffer value)
+            DirectBufferEx name,
+            DirectBufferEx value)
         {
             if (!error() && name.equals(TE) && !value.equals(TRAILERS))
             {
@@ -6977,8 +6977,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         private void uppercaseHeaders(
-            DirectBuffer name,
-            DirectBuffer value)
+            DirectBufferEx name,
+            DirectBufferEx value)
         {
             if (!error())
             {
@@ -6995,8 +6995,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         // Collect headers into map to resolve target
         // TODO avoid this
         private void collectHeaders(
-            DirectBuffer name,
-            DirectBuffer value)
+            DirectBufferEx name,
+            DirectBufferEx value)
         {
             if (!error())
             {
@@ -7009,7 +7009,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private void decodeHeaderField(
             HpackHeaderFieldFW hf,
-            BiConsumer<DirectBuffer, DirectBuffer> nameValue)
+            BiConsumer<DirectBufferEx, DirectBufferEx> nameValue)
         {
             if (!error())
             {
@@ -7019,7 +7019,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private void decodeHF(
             HpackHeaderFieldFW hf,
-            BiConsumer<DirectBuffer, DirectBuffer> nameValue)
+            BiConsumer<DirectBufferEx, DirectBufferEx> nameValue)
         {
             int index;
             DirectBuffer name = null;
@@ -7441,7 +7441,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 altSvcRawBuffer.putBytes(alpnBytes.length, original, suffixOffset, suffixLength);
                 final String16FW translatedValue = altSvcValueRW
                     .wrap(altSvcValueBuffer, 0, altSvcValueBuffer.capacity())
-                    .set((DirectBufferEx) altSvcRawBuffer, 0, newLength)
+                    .set(altSvcRawBuffer, 0, newLength)
                     .build();
                 builder.item(item -> item.name(HEADER_ALT_SVC).value(translatedValue));
             }

@@ -22,16 +22,16 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class SseModelTest
 {
-    private final MutableDirectBuffer value = new UnsafeBufferEx(new byte[256]);
+    private final MutableDirectBufferEx value = new UnsafeBufferEx(new byte[256]);
 
     @Test
     public void shouldTransformWholeValue()
@@ -97,7 +97,7 @@ public class SseModelTest
         return new TestModelHandler(new TestModelConfig(length, emptyList(), true, transformLength));
     }
 
-    private MutableDirectBuffer value(
+    private MutableDirectBufferEx value(
         String text)
     {
         value.putBytes(0, text.getBytes(UTF_8));

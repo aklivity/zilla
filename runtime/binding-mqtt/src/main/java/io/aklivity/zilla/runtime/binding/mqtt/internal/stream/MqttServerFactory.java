@@ -1533,7 +1533,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final MqttModel model = publisher.contentType;
             final boolean canPublish = MqttState.initialOpened(publisher.state);
 
-            DirectBuffer payloadBuffer = buffer;
+            DirectBufferEx payloadBuffer = buffer;
             int payloadOffset = offset;
             int available = length;
             boolean ready = true;
@@ -1596,7 +1596,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 int sizeClaimed = valueClaimed - publisher.initialPad;
 
                 final OctetsFW payload = payloadRO
-                    .wrap((MutableDirectBufferEx) payloadBuffer, payloadOffset, payloadOffset + sizeClaimed);
+                    .wrap(payloadBuffer, payloadOffset, payloadOffset + sizeClaimed);
 
                 if (canPublish && model.identity() && (sizeClaimed > 0 || server.decodeablePublishPayloadBytes == 0))
                 {
@@ -2949,7 +2949,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             byte reasonCode = SUCCESS;
 
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer decodeBuffer = propertiesValue.buffer();
+            final DirectBufferEx decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();
             final int decodeLimit = propertiesValue.limit();
 
@@ -2957,7 +2957,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
             {
                 final MqttPropertyFW mqttProperty = mqttPropertyRO
-                    .wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                    .wrap(decodeBuffer, decodeProgress, decodeLimit);
                 switch (mqttProperty.kind())
                 {
                 case KIND_TOPIC_ALIAS_MAXIMUM:
@@ -3845,7 +3845,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int packetId = subscribe.packetId();
             final OctetsFW decodePayload = subscribe.payload();
 
-            final DirectBuffer decodeBuffer = decodePayload.buffer();
+            final DirectBufferEx decodeBuffer = decodePayload.buffer();
             final int decodeOffset = decodePayload.offset();
             final int decodeLimit = decodePayload.limit();
 
@@ -3857,7 +3857,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                 {
                     final MqttSubscribePayloadFW mqttSubscribePayload =
-                        mqttSubscribePayloadRO.tryWrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                        mqttSubscribePayloadRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
                     if (mqttSubscribePayload == null)
                     {
                         break;
@@ -3946,7 +3946,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int packetId = subscribe.packetId();
             final OctetsFW decodePayload = subscribe.payload();
 
-            final DirectBuffer decodeBuffer = decodePayload.buffer();
+            final DirectBufferEx decodeBuffer = decodePayload.buffer();
             final int decodeOffset = decodePayload.offset();
             final int decodeLimit = decodePayload.limit();
 
@@ -3955,7 +3955,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             MqttPropertiesFW properties = subscribe.properties();
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer propertiesBuffer = decodePayload.buffer();
+            final DirectBufferEx propertiesBuffer = decodePayload.buffer();
             final int propertiesOffset = propertiesValue.offset();
             final int propertiesLimit = propertiesValue.limit();
 
@@ -3963,7 +3963,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             for (int propertiesProgress = propertiesOffset;
                  propertiesProgress < propertiesLimit; propertiesProgress = mqttProperty.limit())
             {
-                mqttProperty = mqttPropertyRO.tryWrap((DirectBufferEx) propertiesBuffer, propertiesProgress, propertiesLimit);
+                mqttProperty = mqttPropertyRO.tryWrap(propertiesBuffer, propertiesProgress, propertiesLimit);
                 switch (mqttProperty.kind())
                 {
                 case KIND_SUBSCRIPTION_ID:
@@ -3992,7 +3992,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                     {
                         final MqttSubscribePayloadFW mqttSubscribePayload =
-                            mqttSubscribePayloadRO.tryWrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                            mqttSubscribePayloadRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
                         if (mqttSubscribePayload == null)
                         {
                             break;
@@ -4184,7 +4184,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int packetId,
             OctetsFW decodePayload)
         {
-            final DirectBuffer decodeBuffer = decodePayload.buffer();
+            final DirectBufferEx decodeBuffer = decodePayload.buffer();
             final int decodeLimit = decodePayload.limit();
             final int offset = decodePayload.offset();
 
@@ -4194,7 +4194,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             for (int decodeProgress = offset; decodeProgress < decodeLimit; )
             {
                 final MqttUnsubscribePayloadFW mqttUnsubscribePayload =
-                    mqttUnsubscribePayloadRO.tryWrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                    mqttUnsubscribePayloadRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
                 if (mqttUnsubscribePayload == null)
                 {
                     decodeReasonCode = PROTOCOL_ERROR;
@@ -4282,7 +4282,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             List<Subscription> newState,
             boolean adminUnsubscribe)
         {
-            final MutableDirectBuffer encodeBuffer = payloadBuffer;
+            final MutableDirectBufferEx encodeBuffer = payloadBuffer;
             final int encodeOffset = 0;
             final int encodeLimit = payloadBuffer.capacity();
 
@@ -4307,7 +4307,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 final MqttUnsubackPayloadFW mqttUnsubackPayload =
-                    mqttUnsubackPayloadRW.wrap((MutableDirectBufferEx) encodeBuffer, encodeProgress, encodeLimit)
+                    mqttUnsubackPayloadRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .reasonCode(encodeReasonCode)
                         .build();
                 encodeProgress = mqttUnsubackPayload.limit();
@@ -4324,7 +4324,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break;
                 case 5:
                     final OctetsFW encodePayload = octetsRO
-                        .wrap((MutableDirectBufferEx) encodeBuffer, encodeOffset, encodeProgress);
+                        .wrap(encodeBuffer, encodeOffset, encodeProgress);
                     doEncodeUnsubackV5(traceId, authorization, packetId, encodePayload);
                     break;
                 }
@@ -4384,7 +4384,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             byte reasonCode = SUCCESS;
 
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer decodeBuffer = propertiesValue.buffer();
+            final DirectBufferEx decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();
             final int decodeLimit = propertiesValue.limit();
 
@@ -4392,7 +4392,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
             {
                 final MqttPropertyFW mqttProperty = mqttPropertyRO
-                    .wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                    .wrap(decodeBuffer, decodeProgress, decodeLimit);
                 switch (mqttProperty.kind())
                 {
                 case KIND_SESSION_EXPIRY:
@@ -7429,7 +7429,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             willUserPropertiesRW.wrap(willUserPropertiesBuffer, 0, willUserPropertiesBuffer.capacity());
 
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer decodeBuffer = propertiesValue.buffer();
+            final DirectBufferEx decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();
             final int decodeLimit = propertiesValue.limit();
 
@@ -7438,7 +7438,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                 {
                     final MqttPropertyFW mqttProperty = mqttPropertyRO
-                        .wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                        .wrap(decodeBuffer, decodeProgress, decodeLimit);
                     switch (mqttProperty.kind())
                     {
                     case KIND_WILL_DELAY_INTERVAL:
@@ -7532,7 +7532,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             userPropertiesRW.wrap(userPropertiesBuffer, 0, userPropertiesBuffer.capacity());
 
             final OctetsFW propertiesValue = properties.value();
-            final DirectBuffer decodeBuffer = propertiesValue.buffer();
+            final DirectBufferEx decodeBuffer = propertiesValue.buffer();
             final int decodeOffset = propertiesValue.offset();
             final int decodeLimit = propertiesValue.limit();
 
@@ -7551,7 +7551,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                 {
                     final MqttPropertyFW mqttProperty = mqttPropertyRO
-                        .wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                        .wrap(decodeBuffer, decodeProgress, decodeLimit);
                     switch (mqttProperty.kind())
                     {
                     case KIND_EXPIRY_INTERVAL:
@@ -7631,7 +7631,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             {
                                 final String16FW transformed = userPropertyValueRW
                                     .wrap(userPropertyValueBuffer, 0, userPropertyValueBuffer.capacity())
-                                    .set((DirectBufferEx) model.buffer(), 0, produced)
+                                    .set(model.buffer(), 0, produced)
                                     .build();
                                 userPropertiesRW.item(c -> c.key(userPropertyKey).value(transformed));
                             }

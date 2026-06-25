@@ -17,9 +17,8 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import java.util.Set;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -37,19 +36,19 @@ public final class KafkaCacheModel
     public interface Output
     {
         void accept(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length);
     }
 
     private final ModelPipeline pipeline;
     private final KafkaExtractor extractor;
-    private final MutableDirectBuffer scratch;
+    private final MutableDirectBufferEx scratch;
 
     public static KafkaCacheModel decoder(
         ModelHandler handler,
         Set<String> extractPaths,
-        MutableDirectBuffer scratch)
+        MutableDirectBufferEx scratch)
     {
         KafkaCacheModel model = NONE;
         if (handler != null)
@@ -69,7 +68,7 @@ public final class KafkaCacheModel
 
     public static KafkaCacheModel encoder(
         ModelHandler handler,
-        MutableDirectBuffer scratch)
+        MutableDirectBufferEx scratch)
     {
         return handler != null
             ? new KafkaCacheModel(handler.supplyEncoder(), null, scratch)
@@ -86,7 +85,7 @@ public final class KafkaCacheModel
     KafkaCacheModel(
         ModelPipeline pipeline,
         KafkaExtractor extractor,
-        MutableDirectBuffer scratch)
+        MutableDirectBufferEx scratch)
     {
         this.pipeline = pipeline;
         this.extractor = extractor;
@@ -96,7 +95,7 @@ public final class KafkaCacheModel
     public int transform(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int limit,
         Output next)
@@ -158,7 +157,7 @@ public final class KafkaCacheModel
     }
 
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
