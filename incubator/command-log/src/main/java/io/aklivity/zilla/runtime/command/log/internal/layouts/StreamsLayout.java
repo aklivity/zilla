@@ -22,12 +22,12 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
-import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.command.log.internal.spy.OneToOneRingBufferSpy;
 import io.aklivity.zilla.runtime.command.log.internal.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.command.log.internal.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class StreamsLayout extends Layout
 {
@@ -86,7 +86,7 @@ public final class StreamsLayout extends Layout
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
-            final AtomicBuffer atomicStreams = new UnsafeBuffer(mappedStreams);
+            final AtomicBufferEx atomicStreams = new UnsafeBufferEx(mappedStreams);
 
             final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicStreams);
 

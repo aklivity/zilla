@@ -23,7 +23,6 @@ import jakarta.json.stream.JsonLocation;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -40,6 +39,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -77,7 +77,7 @@ public class JsonMutateBM
     private static final String INJECT_KEY = "x";
     private static final String INJECT_VALUE = "9";
 
-    private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
+    private final MutableDirectBuffer outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
     private final JsonSink sink = JsonEx.createSink(generator);
 
@@ -86,7 +86,7 @@ public class JsonMutateBM
     private JsonPipeline injectFirstPipeline;
     private JsonPipeline passthroughPipeline;
 
-    private UnsafeBuffer documentBuffer;
+    private UnsafeBufferEx documentBuffer;
     private int documentLength;
 
     @Setup(Level.Trial)
@@ -105,7 +105,7 @@ public class JsonMutateBM
             .transform(new Passthrough()).into(sink);
 
         byte[] documentBytes = DOCUMENT.getBytes(UTF_8);
-        documentBuffer = new UnsafeBuffer(documentBytes);
+        documentBuffer = new UnsafeBufferEx(documentBytes);
         documentLength = documentBytes.length;
     }
 

@@ -40,7 +40,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Object2IntHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -170,8 +170,8 @@ public final class McpBindingConfig
         this.supplyModel = context::supplyModel;
         this.decodersBySchemaId = new Int2ObjectHashMap<>();
         this.toolSchemaIdsByName = new Object2IntHashMap<>(NO_SCHEMA_ID);
-        this.scratch = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.argsScratch = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.scratch = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.argsScratch = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
     }
 
     public boolean validatesTools()

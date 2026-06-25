@@ -23,25 +23,26 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import org.agrona.BitUtil;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithString;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithStringFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class EnumWithString8FWTest
 {
     private static final int LENGTH_SIZE = BitUtil.SIZE_OF_BYTE;
 
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -52,7 +53,7 @@ public class EnumWithString8FWTest
     private final EnumWithStringFW flyweightRO = new EnumWithStringFW();
 
     static int setAllTestValues(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         final int offset,
         String value)
     {
@@ -186,7 +187,7 @@ public class EnumWithString8FWTest
 
     private static EnumWithStringFW asEnumWithStringFW(EnumWithString value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(LENGTH_SIZE + value.value().length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(LENGTH_SIZE + value.value().length()));
         return new EnumWithStringFW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

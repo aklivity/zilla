@@ -35,10 +35,7 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -82,6 +79,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -91,7 +91,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class KafkaCacheClientFetchFactory implements BindingHandler
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final MessageConsumer NO_RECEIVER = (m, b, i, l) -> {};
 
@@ -134,8 +134,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
 
     private final int kafkaTypeId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
@@ -158,8 +158,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -177,7 +177,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -656,7 +656,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
         private void onClientFanoutMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -956,7 +956,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
         private void onClientMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

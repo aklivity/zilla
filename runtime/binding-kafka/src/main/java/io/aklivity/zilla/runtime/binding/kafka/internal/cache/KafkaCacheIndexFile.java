@@ -39,8 +39,9 @@ import java.util.function.IntFunction;
 
 import org.agrona.IoUtil;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public abstract class KafkaCacheIndexFile extends KafkaCacheFile
 {
@@ -48,7 +49,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
     protected KafkaCacheIndexFile(
         Path location,
         int capacity,
-        MutableDirectBuffer appendBuf)
+        MutableDirectBufferEx appendBuf)
     {
         super(location, capacity, appendBuf);
     }
@@ -99,7 +100,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
         protected SortedByKey(
             Path location,
             int capacity,
-            MutableDirectBuffer appendBuf)
+            MutableDirectBufferEx appendBuf)
         {
             super(location, capacity, appendBuf);
         }
@@ -418,7 +419,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
         protected SortedByValue(
             Path location,
             int capacity,
-            MutableDirectBuffer appendBuf,
+            MutableDirectBufferEx appendBuf,
             IntFunction<long[]> sortSpaceRef)
         {
             super(location, capacity, appendBuf);
@@ -631,7 +632,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
                 try (FileChannel channel = FileChannel.open(workingFile, READ, WRITE))
                 {
                     final ByteBuffer mapped = channel.map(MapMode.READ_WRITE, 0, channel.size());
-                    final MutableDirectBuffer buffer = new UnsafeBuffer(mapped);
+                    final MutableDirectBufferEx buffer = new UnsafeBufferEx(mapped);
 
                     sortByKey(buffer);
 
@@ -663,7 +664,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
                 try (FileChannel channel = FileChannel.open(workingFile, READ, WRITE))
                 {
                     final ByteBuffer mapped = channel.map(MapMode.READ_WRITE, 0, channel.size());
-                    final MutableDirectBuffer buffer = new UnsafeBuffer(mapped);
+                    final MutableDirectBufferEx buffer = new UnsafeBufferEx(mapped);
 
                     sortByKey(buffer);
                     final int newCapacity = unique(buffer);
@@ -687,7 +688,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
         }
 
         private void sortByKey(
-            MutableDirectBuffer buffer)
+            MutableDirectBufferEx buffer)
         {
             final int capacity = buffer.capacity();
             final int length = capacity >> 3;
@@ -710,7 +711,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
         }
 
         private int unique(
-            MutableDirectBuffer buffer)
+            MutableDirectBufferEx buffer)
         {
             // assumes sorted
             final int capacity = buffer.capacity();

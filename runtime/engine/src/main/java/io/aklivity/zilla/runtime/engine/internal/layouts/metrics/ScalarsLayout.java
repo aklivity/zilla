@@ -31,7 +31,9 @@ import java.util.function.LongSupplier;
 import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public abstract class ScalarsLayout extends MetricsLayout
 {
@@ -142,7 +144,7 @@ public abstract class ScalarsLayout extends MetricsLayout
             }
             FileChannel.MapMode mode = readonly ? READ_ONLY : READ_WRITE;
             MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, mode, this.label);
-            final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
+            final AtomicBufferEx atomicBuffer = new UnsafeBufferEx(mappedBuffer);
             return constructor.apply(atomicBuffer);
         }
     }

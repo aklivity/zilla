@@ -30,7 +30,9 @@ import java.nio.file.Path;
 
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class BudgetsLayout implements AutoCloseable
 {
@@ -143,7 +145,7 @@ public final class BudgetsLayout implements AutoCloseable
 
             final MappedByteBuffer mapped = mapExistingFile(budgets, "budgets");
 
-            final AtomicBuffer buffer = new UnsafeBuffer(mapped);
+            final AtomicBufferEx buffer = new UnsafeBufferEx(mapped);
 
             return new BudgetsLayout(buffer);
         }

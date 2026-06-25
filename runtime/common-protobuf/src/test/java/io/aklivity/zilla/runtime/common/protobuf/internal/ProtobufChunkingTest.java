@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
@@ -166,14 +166,14 @@ public class ProtobufChunkingTest
         });
 
         int limit = 48;
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(grouped, "Record"))
             .into(ProtobufSink.of(generator, grouped, "Record"));
         pipeline.reset();
 
         List<byte[]> chunks = new ArrayList<>();
-        UnsafeBuffer buffer = new UnsafeBuffer(input);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(input);
         ProtobufPipeline.Status status = pipeline.transform(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
@@ -187,7 +187,7 @@ public class ProtobufChunkingTest
 
         // decode the concatenated stream, merging the repeated group occurrences as the wire merges them
         ProtobufParser parser = Protobuf.parser(grouped, "Record")
-            .wrap(new UnsafeBuffer(concat(chunks)), 0, concat(chunks).length);
+            .wrap(new UnsafeBufferEx(concat(chunks)), 0, concat(chunks).length);
         String note = null;
         String decodedBlob = null;
         String label = null;
@@ -253,7 +253,7 @@ public class ProtobufChunkingTest
         byte[] input,
         int limit)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         List<ProtobufEvent> events = new ArrayList<>();
         ProtobufTransform recorder = (control, source, event, sink) ->
@@ -266,7 +266,7 @@ public class ProtobufChunkingTest
             .into(ProtobufSink.of(generator, schema, "Person"));
         pipeline.reset();
 
-        UnsafeBuffer buffer = new UnsafeBuffer(input);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(input);
         ProtobufPipeline.Status status = pipeline.transform(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
@@ -290,14 +290,14 @@ public class ProtobufChunkingTest
         byte[] input,
         int limit)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, message))
             .into(ProtobufSink.of(generator, schema, message));
         pipeline.reset();
 
         List<byte[]> chunks = new ArrayList<>();
-        UnsafeBuffer buffer = new UnsafeBuffer(input);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(input);
         ProtobufPipeline.Status status = pipeline.transform(buffer, 0, input.length);
         while (status == ProtobufPipeline.Status.SUSPENDED)
         {
@@ -317,7 +317,7 @@ public class ProtobufChunkingTest
     private Person decode(
         byte[] message)
     {
-        ProtobufParser parser = Protobuf.parser(schema, "Person").wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser(schema, "Person").wrap(new UnsafeBufferEx(message), 0, message.length);
         Person person = new Person();
         ProtobufField pending = null;
         int depth = 0;
@@ -422,7 +422,7 @@ public class ProtobufChunkingTest
         ProtobufSchema schema,
         byte[] message)
     {
-        ProtobufParser parser = Protobuf.parser(schema, "Flat").wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser(schema, "Flat").wrap(new UnsafeBufferEx(message), 0, message.length);
         String[] values = new String[4];
         int number = 0;
         while (parser.hasNext())

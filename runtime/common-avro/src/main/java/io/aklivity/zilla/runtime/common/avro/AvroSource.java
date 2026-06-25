@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Immutable, read-only view of the value observed at the current {@link AvroEvent} as an
@@ -62,7 +62,7 @@ public interface AvroSource
      * Non-owning, on-stack view of the current contiguous raw Avro bytes — valid on {@link AvroEvent#BYTES}
      * and {@link AvroEvent#FIXED} value events (the chunk available now) and on segment events.
      */
-    DirectBuffer getSegment();
+    DirectBufferEx getSegment();
 
     /**
      * The bytes still to come in later events of the run the current event belongs to, {@code 0} on its

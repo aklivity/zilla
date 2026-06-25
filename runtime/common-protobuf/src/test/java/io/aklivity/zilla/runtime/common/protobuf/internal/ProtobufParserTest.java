@@ -28,7 +28,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
@@ -63,7 +63,7 @@ public class ProtobufParserTest
             w.writeBytes(home);
         });
 
-        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBufferEx(message), 0, message.length);
 
         List<String> events = new ArrayList<>();
         int rootLength = -1;
@@ -128,7 +128,7 @@ public class ProtobufParserTest
             w.writeBytes(home);
         });
 
-        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBufferEx(message), 0, message.length);
 
         List<String> events = new ArrayList<>();
         byte[] segment = null;
@@ -183,7 +183,7 @@ public class ProtobufParserTest
             w.writeBytes(new byte[]{0});
         });
 
-        ProtobufParser parser = Protobuf.parser(broken, "P").wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser(broken, "P").wrap(new UnsafeBufferEx(message), 0, message.length);
         parser.nextEvent();
         parser.nextEvent();
 
@@ -201,7 +201,7 @@ public class ProtobufParserTest
             w.writeBytes("hi".getBytes(UTF_8));
         });
 
-        ProtobufParser parser = Protobuf.parser().wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser().wrap(new UnsafeBufferEx(message), 0, message.length);
 
         List<String> events = new ArrayList<>();
         while (parser.hasNext())
@@ -234,7 +234,7 @@ public class ProtobufParserTest
     @Test
     public void shouldRejectUnknownRootMessageOnFirstEvent()
     {
-        ProtobufParser parser = Protobuf.parser(schema, "Nope").wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+        ProtobufParser parser = Protobuf.parser(schema, "Nope").wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
         assertThrows(ProtobufException.class, parser::nextEvent);
     }
@@ -270,7 +270,7 @@ public class ProtobufParserTest
             w.writeBytes(home);
         });
 
-        List<String> whole = drain(Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(message), 0, message.length));
+        List<String> whole = drain(Protobuf.parser(schema, "P").wrap(new UnsafeBufferEx(message), 0, message.length));
 
         ProtobufParser parser = Protobuf.parser(schema, "P");
         List<String> events = new ArrayList<>();
@@ -278,27 +278,26 @@ public class ProtobufParserTest
         boolean[] sawNull = {false};
         int window = 2;
         byte[] retained = new byte[0];
-        int progress = 0;
+        long committed = 0;
         int offset = 0;
         boolean started = false;
         boolean done = false;
         while (!done)
         {
-            int take = Math.min(window, message.length - progress);
-            byte[] buffer = new byte[retained.length + take];
-            System.arraycopy(retained, 0, buffer, 0, retained.length);
-            System.arraycopy(message, progress, buffer, retained.length, take);
-            progress += take;
-            boolean last = progress >= message.length;
-            int limit = buffer.length;
-            UnsafeBuffer view = new UnsafeBuffer(buffer);
+            int take = Math.min(window, message.length - offset);
+            byte[] feed = new byte[retained.length + take];
+            System.arraycopy(retained, 0, feed, 0, retained.length);
+            System.arraycopy(message, offset, feed, retained.length, take);
+            offset += take;
+            boolean last = offset >= message.length;
+            UnsafeBufferEx buffer = new UnsafeBufferEx(feed);
             if (started)
             {
-                parser.resume(view, offset, limit, last);
+                parser.resume(buffer, 0, feed.length, last);
             }
             else
             {
-                parser.wrap(view, offset, limit, last);
+                parser.wrap(buffer, 0, feed.length, last);
                 started = true;
             }
 
@@ -319,8 +318,9 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int parsed = limit - parser.remaining();
-                retained = Arrays.copyOfRange(buffer, parsed, limit);
+                int consumed = (int) (parser.position() - committed);
+                retained = Arrays.copyOfRange(feed, consumed, feed.length);
+                committed = parser.position();
             }
             else
             {
@@ -480,7 +480,7 @@ public class ProtobufParserTest
     }
 
     // drives the parser window-by-window the way a real caller does: on starvation it retains the
-    // unconsumed tail (the bytes the parser did not parse) and re-presents it contiguous with the next window
+    // unconsumed tail (everything at or after position()) and re-presents it contiguous with the next window
     private static void driveWindows(
         ProtobufParser parser,
         byte[] message,
@@ -488,27 +488,26 @@ public class ProtobufParserTest
         BiConsumer<ProtobufParser, ProtobufEvent> consumer)
     {
         byte[] retained = new byte[0];
-        int progress = 0;
+        long committed = 0;
         int offset = 0;
         boolean started = false;
         boolean done = false;
         while (!done)
         {
-            int take = Math.min(window, message.length - progress);
-            byte[] buffer = new byte[retained.length + take];
-            System.arraycopy(retained, 0, buffer, 0, retained.length);
-            System.arraycopy(message, progress, buffer, retained.length, take);
-            progress += take;
-            boolean last = progress >= message.length;
-            int limit = buffer.length;
-            UnsafeBuffer view = new UnsafeBuffer(buffer);
+            int take = Math.min(window, message.length - offset);
+            byte[] feed = new byte[retained.length + take];
+            System.arraycopy(retained, 0, feed, 0, retained.length);
+            System.arraycopy(message, offset, feed, retained.length, take);
+            offset += take;
+            boolean last = offset >= message.length;
+            UnsafeBufferEx buffer = new UnsafeBufferEx(feed);
             if (started)
             {
-                parser.resume(view, offset, limit, last);
+                parser.resume(buffer, 0, feed.length, last);
             }
             else
             {
-                parser.wrap(view, offset, limit, last);
+                parser.wrap(buffer, 0, feed.length, last);
                 started = true;
             }
 
@@ -528,8 +527,9 @@ public class ProtobufParserTest
 
             if (parser.hasNext())
             {
-                int parsed = limit - parser.remaining();
-                retained = Arrays.copyOfRange(buffer, parsed, limit);
+                int consumed = (int) (parser.position() - committed);
+                retained = Arrays.copyOfRange(feed, consumed, feed.length);
+                committed = parser.position();
             }
             else
             {
@@ -542,7 +542,7 @@ public class ProtobufParserTest
         ProtobufParser parser,
         byte[] message)
     {
-        parser.wrap(new UnsafeBuffer(message), 0, message.length);
+        parser.wrap(new UnsafeBufferEx(message), 0, message.length);
         int events = 0;
         while (parser.hasNext())
         {

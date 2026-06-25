@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -38,6 +37,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -90,7 +90,7 @@ public class JsonPipelineBM
     private static final String VALIDATE_DOCUMENT = ROOT_IDENTITY;
     private static final String VALIDATE_SCHEMA = "{\"type\":\"object\"}";
 
-    private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
+    private final MutableDirectBuffer outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
     // structured = the explicit canonical opt-out (re-render); the bare default now prefers bytes
     private final JsonSink structuredSink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.STRUCTURED));
@@ -110,13 +110,13 @@ public class JsonPipelineBM
     private JsonPipeline validateCanonicalPipeline;
     private JsonPipeline validateVerbatimPipeline;
 
-    private UnsafeBuffer flatBuffer;
-    private UnsafeBuffer nestedBuffer;
-    private UnsafeBuffer rootIdentityBuffer;
-    private UnsafeBuffer mostlySkippedBuffer;
-    private UnsafeBuffer largeStringBuffer;
-    private UnsafeBuffer largeNumberBuffer;
-    private UnsafeBuffer validateBuffer;
+    private UnsafeBufferEx flatBuffer;
+    private UnsafeBufferEx nestedBuffer;
+    private UnsafeBufferEx rootIdentityBuffer;
+    private UnsafeBufferEx mostlySkippedBuffer;
+    private UnsafeBufferEx largeStringBuffer;
+    private UnsafeBufferEx largeNumberBuffer;
+    private UnsafeBufferEx validateBuffer;
 
     private int flatLength;
     private int nestedLength;
@@ -167,13 +167,13 @@ public class JsonPipelineBM
         byte[] largeNumberBytes = LARGE_NUMBER.getBytes(UTF_8);
         byte[] validateBytes = VALIDATE_DOCUMENT.getBytes(UTF_8);
 
-        flatBuffer = new UnsafeBuffer(flatBytes);
-        nestedBuffer = new UnsafeBuffer(nestedBytes);
-        rootIdentityBuffer = new UnsafeBuffer(rootIdentityBytes);
-        mostlySkippedBuffer = new UnsafeBuffer(mostlySkippedBytes);
-        largeStringBuffer = new UnsafeBuffer(largeStringBytes);
-        largeNumberBuffer = new UnsafeBuffer(largeNumberBytes);
-        validateBuffer = new UnsafeBuffer(validateBytes);
+        flatBuffer = new UnsafeBufferEx(flatBytes);
+        nestedBuffer = new UnsafeBufferEx(nestedBytes);
+        rootIdentityBuffer = new UnsafeBufferEx(rootIdentityBytes);
+        mostlySkippedBuffer = new UnsafeBufferEx(mostlySkippedBytes);
+        largeStringBuffer = new UnsafeBufferEx(largeStringBytes);
+        largeNumberBuffer = new UnsafeBufferEx(largeNumberBytes);
+        validateBuffer = new UnsafeBufferEx(validateBytes);
 
         flatLength = flatBytes.length;
         nestedLength = nestedBytes.length;
@@ -258,7 +258,7 @@ public class JsonPipelineBM
 
     private int run(
         JsonPipeline pipeline,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length)
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());
@@ -272,7 +272,7 @@ public class JsonPipelineBM
     // field buffer so the fragmenting path's only allocations are the ones under measurement.
     private int runWindowed(
         JsonPipeline pipeline,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length,
         int window)
     {

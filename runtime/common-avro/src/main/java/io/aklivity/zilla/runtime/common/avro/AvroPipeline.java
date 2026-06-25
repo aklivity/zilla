@@ -14,13 +14,13 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * A runnable, resumable {@code common-avro} pipeline assembled from an {@link AvroStream} description
  * terminated with an {@link AvroSink}. Reuse a single instance per thread: call {@link #reset()}
- * once per top-level datum, then {@link #transform(DirectBuffer, int, int)} the datum, which may arrive
+ * once per top-level datum, then {@link #transform(DirectBufferEx, int, int)} the datum, which may arrive
  * whole or as successive input windows.
  * <p>
  * Back-pressure has two independent axes, each with its own non-terminal "call {@code transform} again"
@@ -64,7 +64,7 @@ public interface AvroPipeline
      * Feeds the whole datum, or the final window of a streamed one ({@code last == true}).
      */
     default Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -79,7 +79,7 @@ public interface AvroPipeline
      * malformed or — under {@code last == true} — truncated input.
      */
     Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);
@@ -106,11 +106,11 @@ public interface AvroPipeline
      * generator it re-targets.
      */
     AvroPipelineResult transform(
-        DirectBuffer src,
+        DirectBufferEx src,
         int offset,
         int limit,
         boolean last,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstOffset,
         int dstLimit);
 }

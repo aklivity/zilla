@@ -20,11 +20,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.function.IntPredicate;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.sse.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class SseEventFW extends Flyweight
 {
@@ -51,7 +50,7 @@ public final class SseEventFW extends Flyweight
 
     static int putHexLong(
         long value,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         int sizeOfHex = Math.max((Long.SIZE - numberOfLeadingZeros(value) + 3) / 4, 1);
@@ -74,7 +73,7 @@ public final class SseEventFW extends Flyweight
     }
 
     @Override
-    public SseEventFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public SseEventFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
 
@@ -93,10 +92,10 @@ public final class SseEventFW extends Flyweight
     {
         private OctetsFW data;
         private int flags;
-        private DirectBuffer id;
+        private DirectBufferEx id;
         private long timestamp;
-        private DirectBuffer type;
-        private DirectBuffer comment;
+        private DirectBufferEx type;
+        private DirectBufferEx comment;
 
         public Builder()
         {
@@ -105,7 +104,7 @@ public final class SseEventFW extends Flyweight
 
         @Override
         public Builder wrap(
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int maxLimit)
         {
@@ -136,7 +135,7 @@ public final class SseEventFW extends Flyweight
         }
 
         public Builder id(
-            DirectBuffer id)
+            DirectBufferEx id)
         {
             this.id = id;
             return this;
@@ -150,14 +149,14 @@ public final class SseEventFW extends Flyweight
         }
 
         public Builder type(
-            DirectBuffer type)
+            DirectBufferEx type)
         {
             this.type = type;
             return this;
         }
 
         public Builder comment(
-            DirectBuffer comment)
+            DirectBufferEx comment)
         {
             this.comment = comment;
             return this;
@@ -166,7 +165,7 @@ public final class SseEventFW extends Flyweight
         @Override
         public SseEventFW build()
         {
-            final DirectBuffer textAsBytes = data != null ? data.buffer() : null;
+            final DirectBufferEx textAsBytes = data != null ? data.buffer() : null;
             final int offset = data != null ? data.offset() : 0;
             final int limit = data != null ? data.limit() : 0;
 
@@ -225,12 +224,12 @@ public final class SseEventFW extends Flyweight
         }
 
         private Builder buildData(
-            DirectBuffer textAsBytes,
+            DirectBufferEx textAsBytes,
             int offset,
             int length,
             int flags)
         {
-            final MutableDirectBuffer buffer = buffer();
+            final MutableDirectBufferEx buffer = buffer();
 
             if ((flags & 0x02) != 0x00) // INIT
             {
@@ -256,7 +255,7 @@ public final class SseEventFW extends Flyweight
         }
 
         private Builder buildId(
-            DirectBuffer id)
+            DirectBufferEx id)
         {
             if (id != null)
             {
@@ -310,7 +309,7 @@ public final class SseEventFW extends Flyweight
         }
 
         private Builder buildType(
-            DirectBuffer type)
+            DirectBufferEx type)
         {
             if (type != null)
             {
@@ -334,7 +333,7 @@ public final class SseEventFW extends Flyweight
         }
 
         private Builder buildComment(
-            DirectBuffer comment)
+            DirectBufferEx comment)
         {
             if (comment != null)
             {
@@ -357,7 +356,7 @@ public final class SseEventFW extends Flyweight
     }
 
     private static int indexOfByte(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         IntPredicate matcher)

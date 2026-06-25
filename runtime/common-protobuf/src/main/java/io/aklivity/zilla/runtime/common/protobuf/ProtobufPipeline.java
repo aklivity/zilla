@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * A runnable {@code common-protobuf} pipeline assembled from a {@link ProtobufStream} description
@@ -92,11 +92,11 @@ public interface ProtobufPipeline
     int remaining();
 
     /**
-     * Transforms a whole message in one shot (equivalent to {@link #transform(DirectBuffer, int, int, boolean)} with
+     * Transforms a whole message in one shot (equivalent to {@link #transform(DirectBufferEx, int, int, boolean)} with
      * {@code last == true}), preserving the bounded-buffer contract for callers that reassemble first.
      */
     default Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -111,7 +111,7 @@ public interface ProtobufPipeline
      * malformed or truncated input.
      */
     Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);
@@ -129,11 +129,11 @@ public interface ProtobufPipeline
      * generator it re-targets.
      */
     ProtobufPipelineResult transform(
-        DirectBuffer src,
+        DirectBufferEx src,
         int offset,
         int limit,
         boolean last,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstOffset,
         int dstLimit);
 }

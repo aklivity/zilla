@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.http.internal.hpack;
 
 import static java.nio.ByteOrder.BIG_ENDIAN;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class HpackHuffman
 {
@@ -421,7 +421,7 @@ public final class HpackHuffman
 
 
     // Decodes by traversing huffman tree by single bits
-    public static void decode(Node root, DirectBuffer buf, int offset, int length) {
+    public static void decode(Node root, DirectBufferEx buf, int offset, int length) {
         StringBuilder sb = new StringBuilder();
 
         Node cur = root;
@@ -463,7 +463,7 @@ public final class HpackHuffman
      * @return length of decoded string
      *         -1 if there is an error
      */
-    public static int decode(DirectBuffer src, MutableDirectBuffer dst)
+    public static int decode(DirectBufferEx src, MutableDirectBufferEx dst)
     {
         Node current = ROOT;
         int offset = 0;
@@ -491,7 +491,7 @@ public final class HpackHuffman
     }
 
     // Returns the no of bytes needed to encode src
-    public static int encodedSize(DirectBuffer src, int offset, int length)
+    public static int encodedSize(DirectBufferEx src, int offset, int length)
     {
         int totalBits = 0;
 
@@ -507,7 +507,7 @@ public final class HpackHuffman
 
     // Huffman encodes src buffer into dst buffer
     // Assumes enough space is in the dst buffer
-    public static void encode(DirectBuffer src, MutableDirectBuffer dst)
+    public static void encode(DirectBufferEx src, MutableDirectBufferEx dst)
     {
         //assert dst.capacity() >= encodedSize(src, 0, src.capacity());
 

@@ -26,8 +26,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.agrona.AsciiSequenceView;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
@@ -36,6 +34,8 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class HttpGrpcResponseHeaderHelper
 {
@@ -78,7 +78,7 @@ public final class HttpGrpcResponseHeaderHelper
     private final String16FW grpcMessageRO = new String16FW();
     private final byte[] headerPrefix = new byte[GRPC_PREFIX_LENGTH];
     private final byte[] headerSuffix = new byte[BIN_SUFFIX_LENGTH];
-    private final MutableDirectBuffer metadataBuffer;
+    private final MutableDirectBufferEx metadataBuffer;
 
     public CharSequence contentType;
     public String16FW status;
@@ -87,7 +87,7 @@ public final class HttpGrpcResponseHeaderHelper
     public Array32FW<GrpcMetadataFW> metadata;
 
     public HttpGrpcResponseHeaderHelper(
-        MutableDirectBuffer metadataBuffer)
+        MutableDirectBufferEx metadataBuffer)
     {
         this.metadataBuffer = metadataBuffer;
     }
@@ -130,7 +130,7 @@ public final class HttpGrpcResponseHeaderHelper
     private void visitContentType(
         String16FW value)
     {
-        final DirectBuffer buffer = value.buffer();
+        final DirectBufferEx buffer = value.buffer();
         final int offset = value.offset() + value.fieldSizeLength();
         final int length = value.sizeof() - value.fieldSizeLength();
         contentType = contentTypeRO.wrap(buffer, offset, length);

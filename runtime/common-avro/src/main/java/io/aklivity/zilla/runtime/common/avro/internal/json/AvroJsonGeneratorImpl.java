@@ -21,9 +21,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroField;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
@@ -122,7 +121,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public AvroGenerator wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -207,7 +206,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeKey(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -294,7 +293,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeString(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -306,7 +305,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeBytes(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -315,7 +314,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeFixed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -333,7 +332,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public void writeRaw(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -342,7 +341,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
 
     @Override
     public int writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length,
         int deferred)
@@ -407,7 +406,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     }
 
     private void writeBinary(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -421,7 +420,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     // (bounded, escaping, quoting); the chars json took map back to a whole-code-point prefix of the source, so
     // exactly those source bytes are reported consumed and the unconsumed remainder streams in on resume.
     private int writeStringSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length,
         int deferred)
@@ -446,7 +445,7 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     // 1-2 byte sub-group tail unconsumed for the source to re-present — except on the final delivery, where the
     // tail is padded and emitted. No adapter-side carry buffer is held; output back-pressure carries the remainder.
     private int writeBinarySegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length,
         int deferred)

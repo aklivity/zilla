@@ -20,9 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonSinkSegmentTest
@@ -56,7 +56,7 @@ class JsonSinkSegmentTest
     void shouldWriteSegmentedObjectVerbatim()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
@@ -64,7 +64,7 @@ class JsonSinkSegmentTest
 
         byte[] bytes = "{ \"a\" : 1 } ".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -76,14 +76,14 @@ class JsonSinkSegmentTest
     void shouldSegmentWholeDocumentWithBareSegmentableSink()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         byte[] bytes = "{ \"a\" : [1, 2], \"b\" : 3 } ".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -95,7 +95,7 @@ class JsonSinkSegmentTest
     void shouldWriteSegmentedArrayVerbatim()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
@@ -103,7 +103,7 @@ class JsonSinkSegmentTest
 
         byte[] bytes = "[ 1, 2 ] ".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -115,7 +115,7 @@ class JsonSinkSegmentTest
     void shouldWriteSegmentedNestedWhitespaceVerbatim()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
@@ -123,7 +123,7 @@ class JsonSinkSegmentTest
 
         byte[] bytes = "{ \"x\" : [1 ,2] } ".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -135,7 +135,7 @@ class JsonSinkSegmentTest
     void shouldCompleteAcrossFrames()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(segmentRoot)
@@ -145,8 +145,8 @@ class JsonSinkSegmentTest
         byte[] second = "\"b\":2} ".getBytes(UTF_8);
 
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBuffer(first), 0, first.length, false));
-        Status status = pipeline.transform(new UnsafeBuffer(second), 0, second.length);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBufferEx(first), 0, first.length, false));
+        Status status = pipeline.transform(new UnsafeBufferEx(second), 0, second.length);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];

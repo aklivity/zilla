@@ -16,10 +16,10 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -72,10 +72,10 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLimit,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex,
         int dstLimit)
     {
@@ -136,7 +136,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {

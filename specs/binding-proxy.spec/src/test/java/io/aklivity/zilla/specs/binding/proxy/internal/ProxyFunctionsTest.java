@@ -44,12 +44,12 @@ import java.nio.ByteBuffer;
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.internal.el.ExpressionContext;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.specs.binding.proxy.internal.types.stream.ProxyBeginExFW;
 
@@ -87,14 +87,14 @@ public class ProxyFunctionsTest
                                              .build()
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
         assertEquals(NONE, beginEx.address().kind());
 
         ProxyInfoFW info = new ProxyInfoFW();
-        final DirectBuffer infos = beginEx.infos().items();
+        final DirectBufferEx infos = beginEx.infos().items();
         for (int index = 0, offset = 0; offset < infos.capacity(); index++)
         {
             info.wrap(infos, offset, infos.capacity());
@@ -110,7 +110,7 @@ public class ProxyFunctionsTest
                 break;
             case 2:
                 assertEquals(IDENTITY, info.kind());
-                assertEquals(new UnsafeBuffer(fromHex("12345678")), info.identity().value().value());
+                assertEquals(new UnsafeBufferEx(fromHex("12345678")), info.identity().value().value());
                 break;
             case 3:
                 assertEquals(NAMESPACE, info.kind());
@@ -172,7 +172,7 @@ public class ProxyFunctionsTest
                                              .build()
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
@@ -184,7 +184,7 @@ public class ProxyFunctionsTest
         assertEquals(443, beginEx.address().inet().destinationPort());
 
         ProxyInfoFW info = new ProxyInfoFW();
-        final DirectBuffer infos = beginEx.infos().items();
+        final DirectBufferEx infos = beginEx.infos().items();
         for (int index = 0, offset = 0; offset < infos.capacity(); index++)
         {
             info.wrap(infos, offset, infos.capacity());
@@ -200,7 +200,7 @@ public class ProxyFunctionsTest
                 break;
             case 2:
                 assertEquals(IDENTITY, info.kind());
-                assertEquals(new UnsafeBuffer(fromHex("12345678")), info.identity().value().value());
+                assertEquals(new UnsafeBufferEx(fromHex("12345678")), info.identity().value().value());
                 break;
             case 3:
                 assertEquals(NAMESPACE, info.kind());
@@ -262,19 +262,19 @@ public class ProxyFunctionsTest
                                              .build()
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
         assertEquals(INET4, beginEx.address().kind());
         assertEquals(STREAM, beginEx.address().inet4().protocol().get());
-        assertEquals(new UnsafeBuffer(fromHex("c0a80001")), beginEx.address().inet4().source().value());
-        assertEquals(new UnsafeBuffer(fromHex("c0a800fe")), beginEx.address().inet4().destination().value());
+        assertEquals(new UnsafeBufferEx(fromHex("c0a80001")), beginEx.address().inet4().source().value());
+        assertEquals(new UnsafeBufferEx(fromHex("c0a800fe")), beginEx.address().inet4().destination().value());
         assertEquals(32768, beginEx.address().inet4().sourcePort());
         assertEquals(443, beginEx.address().inet4().destinationPort());
 
         ProxyInfoFW info = new ProxyInfoFW();
-        final DirectBuffer infos = beginEx.infos().items();
+        final DirectBufferEx infos = beginEx.infos().items();
         for (int index = 0, offset = 0; offset < infos.capacity(); index++)
         {
             info.wrap(infos, offset, infos.capacity());
@@ -290,7 +290,7 @@ public class ProxyFunctionsTest
                 break;
             case 2:
                 assertEquals(IDENTITY, info.kind());
-                assertEquals(new UnsafeBuffer(fromHex("12345678")), info.identity().value().value());
+                assertEquals(new UnsafeBufferEx(fromHex("12345678")), info.identity().value().value());
                 break;
             case 3:
                 assertEquals(NAMESPACE, info.kind());
@@ -354,7 +354,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -399,7 +399,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.none(n -> {}))
             .infosItem(i -> i.alpn("echo"))
@@ -425,7 +425,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -449,7 +449,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -460,7 +460,6 @@ public class ProxyFunctionsTest
 
         assertNotNull(matcher.match(byteBuf));
     }
-
 
     @Test
     public void shouldMatchInetBeginExtensionSource() throws Exception
@@ -474,7 +473,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -498,7 +497,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -522,7 +521,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -546,7 +545,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -570,7 +569,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -594,7 +593,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -618,7 +617,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -642,7 +641,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -667,7 +666,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -692,7 +691,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -717,7 +716,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -744,7 +743,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -771,7 +770,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -798,7 +797,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -825,7 +824,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -852,7 +851,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
                                        .source("*")
@@ -893,11 +892,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.alpn("echo"))
@@ -923,11 +922,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -947,11 +946,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -971,11 +970,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -995,11 +994,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1019,11 +1018,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1043,11 +1042,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1067,11 +1066,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1091,11 +1090,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1115,11 +1114,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1138,11 +1137,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1162,11 +1161,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.alpn("echo"))
@@ -1187,11 +1186,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.authority("example.com"))
@@ -1212,11 +1211,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.identity(id -> id.value(v -> v.set(fromHex("12345678")))))
@@ -1237,11 +1236,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.namespace("example"))
@@ -1264,11 +1263,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
@@ -1291,11 +1290,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.secure(s -> s.cipher("ECDHE-RSA-AES128-GCM-SHA256")))
@@ -1318,11 +1317,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.secure(s -> s.signature("SHA256")))
@@ -1345,11 +1344,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.secure(s -> s.name("name@domain")))
@@ -1372,11 +1371,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .infosItem(i -> i.secure(s -> s.key("RSA2048")))
@@ -1398,15 +1397,15 @@ public class ProxyFunctionsTest
                                          .destinationPort(443)
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
         assertEquals(INET6, beginEx.address().kind());
         assertEquals(STREAM, beginEx.address().inet6().protocol().get());
-        assertEquals(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")),
+        assertEquals(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")),
                 beginEx.address().inet6().source().value());
-        assertEquals(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")),
+        assertEquals(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")),
                 beginEx.address().inet6().destination().value());
         assertEquals(32768, beginEx.address().inet6().sourcePort());
         assertEquals(443, beginEx.address().inet6().destinationPort());
@@ -1427,11 +1426,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1448,11 +1447,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1472,11 +1471,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1496,11 +1495,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1520,11 +1519,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1544,11 +1543,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1568,11 +1567,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1592,11 +1591,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1616,11 +1615,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1640,11 +1639,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet6(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("fd123456789a00010000000000000001")), 0, 16)
-                                        .destination(new UnsafeBuffer(fromHex("fd123456789a000100000000000000fe")), 0, 16)
+                                        .source(new UnsafeBufferEx(fromHex("fd123456789a00010000000000000001")), 0, 16)
+                                        .destination(new UnsafeBufferEx(fromHex("fd123456789a000100000000000000fe")), 0, 16)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1663,7 +1662,7 @@ public class ProxyFunctionsTest
                                          .destination("destination-5678")
                                          .build()
                                      .build();
-        DirectBuffer buffer = new UnsafeBuffer(build);
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
         ProxyBeginExFW beginEx = new ProxyBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertNotNull(beginEx);
         assertEquals(0x01, beginEx.typeId());
@@ -1686,7 +1685,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.unix(i -> i.protocol(p -> p.set(STREAM))
                                        .source(paddedUtf8("source-1234", 108), 0, 108)
@@ -1705,7 +1704,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.unix(i -> i.protocol(p -> p.set(STREAM))
                                        .source(paddedUtf8("source-1234", 108), 0, 108)
@@ -1727,7 +1726,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.unix(i -> i.protocol(p -> p.set(STREAM))
                                        .source(paddedUtf8("source-1234", 108), 0, 108)
@@ -1749,7 +1748,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.unix(i -> i.protocol(p -> p.set(STREAM))
                                        .source(paddedUtf8("source-1234", 108), 0, 108)
@@ -1771,7 +1770,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.unix(i -> i.protocol(p -> p.set(STREAM))
                                        .source(paddedUtf8("source-1234", 108), 0, 108)
@@ -1793,7 +1792,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.unix(i -> i.protocol(p -> p.set(STREAM))
                                        .source(paddedUtf8("source-1234", 108), 0, 108)
@@ -1815,7 +1814,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.unix(i -> i.protocol(p -> p.set(STREAM))
                                        .source(paddedUtf8("source-1234", 108), 0, 108)
@@ -1837,7 +1836,7 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.unix(i -> i.protocol(p -> p.set(STREAM))
                                        .source(paddedUtf8("source-1234", 108), 0, 108)
@@ -1879,11 +1878,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1900,11 +1899,11 @@ public class ProxyFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new ProxyBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new ProxyBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x02)
             .address(a -> a.inet4(i -> i.protocol(p -> p.set(STREAM))
-                                        .source(new UnsafeBuffer(fromHex("c0a80001")), 0, 4)
-                                        .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
+                                        .source(new UnsafeBufferEx(fromHex("c0a80001")), 0, 4)
+                                        .destination(new UnsafeBufferEx(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
             .build();
@@ -1912,11 +1911,11 @@ public class ProxyFunctionsTest
         matcher.match(byteBuf);
     }
 
-    private static DirectBuffer paddedUtf8(
+    private static DirectBufferEx paddedUtf8(
         String utf8,
         int length)
     {
-        UnsafeBuffer padded = new UnsafeBuffer(new byte[length]);
+        UnsafeBufferEx padded = new UnsafeBufferEx(new byte[length]);
         padded.putStringWithoutLengthUtf8(0, utf8);
         return padded;
     }

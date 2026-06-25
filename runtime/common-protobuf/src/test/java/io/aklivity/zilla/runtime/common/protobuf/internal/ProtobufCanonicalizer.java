@@ -18,9 +18,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -68,10 +68,10 @@ public final class ProtobufCanonicalizer
 
     public int canonicalize(
         String messageName,
-        DirectBuffer in,
+        DirectBufferEx in,
         int offset,
         int length,
-        MutableDirectBuffer out,
+        MutableDirectBufferEx out,
         int outOffset)
     {
         ProtobufMessage message = schema.message(messageName);
@@ -86,7 +86,7 @@ public final class ProtobufCanonicalizer
 
     private void writeBody(
         ProtobufMessage message,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -125,7 +125,7 @@ public final class ProtobufCanonicalizer
     }
 
     private int collectNumbers(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         int depth)
@@ -147,7 +147,7 @@ public final class ProtobufCanonicalizer
 
     private void writeUnknown(
         int number,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -185,7 +185,7 @@ public final class ProtobufCanonicalizer
 
     private void writeSingular(
         ProtobufField field,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -216,7 +216,7 @@ public final class ProtobufCanonicalizer
 
     private void writeRepeated(
         ProtobufField field,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -281,7 +281,7 @@ public final class ProtobufCanonicalizer
 
     private void writeMap(
         ProtobufField field,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -314,7 +314,7 @@ public final class ProtobufCanonicalizer
 
     private void writeValue(
         ProtobufField field,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,

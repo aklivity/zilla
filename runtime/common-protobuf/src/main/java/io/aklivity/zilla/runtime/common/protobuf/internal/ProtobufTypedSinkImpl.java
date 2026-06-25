@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
@@ -209,7 +209,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufField field,
         ProtobufSource source)
     {
-        DirectBuffer segment = source.segment();
+        DirectBufferEx segment = source.segment();
         int available = segment.capacity();
         int deferred = source.deferredBytes();
         int before = generator.consumed();

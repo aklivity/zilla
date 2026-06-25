@@ -3149,7 +3149,7 @@ public final class VariantFlyweightGenerator extends ClassSpecGenerator
 
                     if (isListType(ofType))
                     {
-                        code.addStatement("final DirectBuffer fields = list.fields()")
+                        code.addStatement("final DirectBufferEx fields = list.fields()")
                             .addStatement("$L.fields(list.fieldCount(), fields, 0, fields.capacity())", memberName)
                             .addStatement("limit($L.build().limit())", memberName);
                     }
@@ -4454,7 +4454,7 @@ public final class VariantFlyweightGenerator extends ClassSpecGenerator
                 if (AstType.LIST32.equals(memberType))
                 {
                     builder.addStatement("List32FW list32 = list32RW.build()")
-                        .addStatement("final DirectBuffer fields = list32.fields()")
+                        .addStatement("final DirectBufferEx fields = list32.fields()")
                         .addStatement("buffer.putBytes(offset, fields, 0, fields.capacity())")
                         .addStatement("return fields.capacity()");
                 }

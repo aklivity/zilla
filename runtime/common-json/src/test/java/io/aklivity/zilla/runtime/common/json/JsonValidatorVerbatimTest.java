@@ -19,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonValidatorVerbatimTest
@@ -43,7 +43,7 @@ class JsonValidatorVerbatimTest
     void shouldValidateThenForwardVerbatimPreservingWhitespace()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -52,7 +52,7 @@ class JsonValidatorVerbatimTest
         // the regression: through the validator a structured replay canonicalizes to {"id":"123","status":"OK"}
         byte[] bytes = "{\"id\": \"123\", \"status\": \"OK\"}".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\": \"123\", \"status\": \"OK\"}", output(gen, buffer));
@@ -62,7 +62,7 @@ class JsonValidatorVerbatimTest
     void shouldValidateThenForwardVerbatimAcrossFrames()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -74,8 +74,8 @@ class JsonValidatorVerbatimTest
         byte[] second = "\"n\": 2} ".getBytes(UTF_8);
 
         pipeline.reset();
-        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBuffer(first), 0, first.length, false));
-        Status status = pipeline.transform(new UnsafeBuffer(second), 0, second.length);
+        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBufferEx(first), 0, first.length, false));
+        Status status = pipeline.transform(new UnsafeBufferEx(second), 0, second.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals("{\"id\": \"123\", \"n\": 2} ", output(gen, buffer));
@@ -85,7 +85,7 @@ class JsonValidatorVerbatimTest
     void shouldForwardTrailingNewlineVerbatim()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -94,7 +94,7 @@ class JsonValidatorVerbatimTest
         String json = "{\n    \"id\": \"123\"\n}\n";
         byte[] bytes = json.getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals(json, output(gen, buffer));
@@ -104,7 +104,7 @@ class JsonValidatorVerbatimTest
     void shouldForwardTrailingNewlineThroughBoundedOutput()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        MutableDirectBuffer output = new UnsafeBufferEx(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
             .into(JsonEx.createSink(gen));
@@ -120,7 +120,7 @@ class JsonValidatorVerbatimTest
     void shouldForwardMultipleDocumentsVerbatimPreservingInterDocumentBytes()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -133,13 +133,13 @@ class JsonValidatorVerbatimTest
         byte[] secondBytes = second.getBytes(UTF_8);
 
         pipeline.reset();
-        Status one = pipeline.transform(new UnsafeBuffer(firstBytes), 0, firstBytes.length);
+        Status one = pipeline.transform(new UnsafeBufferEx(firstBytes), 0, firstBytes.length);
         assertEquals(Status.COMPLETED, one);
         String oneOut = output(gen, buffer);
 
         pipeline.reset();
         gen.wrap(buffer, 0, buffer.capacity());
-        Status two = pipeline.transform(new UnsafeBuffer(secondBytes), 0, secondBytes.length);
+        Status two = pipeline.transform(new UnsafeBufferEx(secondBytes), 0, secondBytes.length);
         assertEquals(Status.COMPLETED, two);
         String twoOut = output(gen, buffer);
 
@@ -151,7 +151,7 @@ class JsonValidatorVerbatimTest
     void shouldRejectInvalidUnderVerbatim()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -160,7 +160,7 @@ class JsonValidatorVerbatimTest
         // id must be a string; a number violates the schema
         byte[] bytes = "{\"id\": 123}".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.REJECTED, status);
     }
@@ -169,7 +169,7 @@ class JsonValidatorVerbatimTest
     void shouldValidateThenForwardVerbatimThroughBoundedOutput()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+        MutableDirectBuffer output = new UnsafeBufferEx(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
             .into(JsonEx.createSink(gen));
@@ -197,7 +197,7 @@ class JsonValidatorVerbatimTest
         int bound)
     {
         byte[] bytes = json.getBytes(UTF_8);
-        UnsafeBuffer in = new UnsafeBuffer(bytes);
+        UnsafeBufferEx in = new UnsafeBufferEx(bytes);
         StringBuilder result = new StringBuilder();
         pipeline.reset();
         gen.wrap(output, 0, bound);
@@ -231,7 +231,7 @@ class JsonValidatorVerbatimTest
         int bound)
     {
         byte[] bytes = (json + " ").getBytes(UTF_8);
-        UnsafeBuffer in = new UnsafeBuffer(bytes);
+        UnsafeBufferEx in = new UnsafeBufferEx(bytes);
         StringBuilder result = new StringBuilder();
         pipeline.reset();
         gen.wrap(output, 0, bound);

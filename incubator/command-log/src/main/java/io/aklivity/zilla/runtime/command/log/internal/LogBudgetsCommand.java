@@ -27,10 +27,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.command.log.internal.layouts.BudgetsLayout;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public final class LogBudgetsCommand implements Runnable
@@ -104,7 +104,7 @@ public final class LogBudgetsCommand implements Runnable
         String name,
         BudgetsLayout budgets)
     {
-        final DirectBuffer buffer = budgets.buffer();
+        final DirectBufferEx buffer = budgets.buffer();
         final int entries = budgets.entries();
 
         for (int index = 0; index < entries; index++)

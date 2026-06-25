@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -49,7 +49,7 @@ public class ProtobufJsonStrictTest
     public void shouldRejectUnknownFieldWhenConfigured()
     {
         ProtobufSchema schema = Protobuf.schema(SCHEMA);
-        ProtobufGenerator generator = Protobuf.generator().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+        ProtobufGenerator generator = Protobuf.generator().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
         ProtobufParser parser = ProtobufJson.parser(JsonEx.createParser(), schema, "Person",
             Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE));
         ProtobufPipeline pipeline = Protobuf.stream(parser).reporting(reporter).into(ProtobufSink.of(generator, schema,
@@ -57,7 +57,7 @@ public class ProtobufJsonStrictTest
         pipeline.reset();
 
         byte[] in = "{\"name\":\"neo\",\"nope\":1}".getBytes(UTF_8);
-        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBufferEx(in), 0, in.length));
         assertTrue(reason[0].contains("nope"), reason[0]);
     }
 
@@ -65,14 +65,14 @@ public class ProtobufJsonStrictTest
     public void shouldIgnoreUnknownFieldByDefault()
     {
         ProtobufSchema schema = Protobuf.schema(SCHEMA);
-        ProtobufGenerator generator = Protobuf.generator().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+        ProtobufGenerator generator = Protobuf.generator().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
         ProtobufParser parser = ProtobufJson.parser(JsonEx.createParser(), schema, "Person");
         ProtobufPipeline pipeline = Protobuf.stream(parser).reporting(reporter).into(ProtobufSink.of(generator, schema,
             "Person"));
         pipeline.reset();
 
         byte[] in = "{\"name\":\"neo\",\"nope\":1}".getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(in), 0, in.length));
         assertNull(reason[0]);
     }
 
@@ -80,7 +80,7 @@ public class ProtobufJsonStrictTest
     public void shouldNotReportOnSuccess()
     {
         ProtobufSchema schema = Protobuf.schema(SCHEMA);
-        ProtobufGenerator generator = Protobuf.generator().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+        ProtobufGenerator generator = Protobuf.generator().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
         ProtobufParser parser = ProtobufJson.parser(JsonEx.createParser(), schema, "Person",
             Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE));
         ProtobufPipeline pipeline = Protobuf.stream(parser).reporting(reporter).into(ProtobufSink.of(generator, schema,
@@ -88,7 +88,7 @@ public class ProtobufJsonStrictTest
         pipeline.reset();
 
         byte[] in = "{\"name\":\"neo\"}".getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(in), 0, in.length));
         assertNull(reason[0]);
     }
 
@@ -102,18 +102,18 @@ public class ProtobufJsonStrictTest
         ProtobufPipeline pipeline = Protobuf.stream(parser).reporting(reporter).into(ProtobufSink.of(generator, schema,
             "Person"));
 
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[256]);
         generator.wrap(out, 0, out.capacity());
         pipeline.reset();
         byte[] bad = "{\"nope\":1}".getBytes(UTF_8);
-        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBuffer(bad), 0, bad.length));
+        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBufferEx(bad), 0, bad.length));
 
         generator.wrap(out, 0, out.capacity());
         pipeline.reset();
         // the prior reject's message must not leak onto a clean value: the reporter fires only on REJECTED
         reason[0] = null;
         byte[] good = "{\"name\":\"neo\"}".getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(good), 0, good.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(good), 0, good.length));
         assertNull(reason[0]);
     }
 }

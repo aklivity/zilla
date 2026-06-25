@@ -36,8 +36,8 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -60,8 +60,8 @@ public final class JsonParserImpl implements JsonParserEx
     private final DirectBufferInputStreamEx ownedInput;
     private final JsonTokenizer tokenizer;
     private final JsonLocationImpl location;
-    private final UnsafeBuffer segmentView = new UnsafeBuffer(0, 0);
-    private final UnsafeBuffer verbatimView = new UnsafeBuffer(0, 0);
+    private final UnsafeBufferEx segmentView = new UnsafeBufferEx(0, 0);
+    private final UnsafeBufferEx verbatimView = new UnsafeBufferEx(0, 0);
 
     private Event currentEvent;
     private JsonEvent lastEvent;

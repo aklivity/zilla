@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -86,7 +86,7 @@ public class AvroPipelineBM
         {"name":"items","type":{"type":"array","items":{"type":"record","name":"Item","fields":[
         {"name":"key","type":"string"},{"name":"value","type":"long"}]}}}]}""";
 
-    private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
+    private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
 
     private AvroGenerator flatGenerator;
     private AvroGenerator nestedGenerator;
@@ -98,8 +98,8 @@ public class AvroPipelineBM
     private AvroPipeline nestedStructured;
     private AvroPipeline nestedSegmented;
 
-    private UnsafeBuffer flatBuffer;
-    private UnsafeBuffer nestedBuffer;
+    private UnsafeBufferEx flatBuffer;
+    private UnsafeBufferEx nestedBuffer;
     private int flatLength;
     private int nestedLength;
 
@@ -126,8 +126,8 @@ public class AvroPipelineBM
         byte[] flatBytes = referenceEncode(FLAT, flatValue());
         byte[] nestedBytes = referenceEncode(NESTED, nestedValue());
 
-        flatBuffer = new UnsafeBuffer(flatBytes);
-        nestedBuffer = new UnsafeBuffer(nestedBytes);
+        flatBuffer = new UnsafeBufferEx(flatBytes);
+        nestedBuffer = new UnsafeBufferEx(nestedBytes);
         flatLength = flatBytes.length;
         nestedLength = nestedBytes.length;
     }
@@ -170,7 +170,7 @@ public class AvroPipelineBM
 
     private int parse(
         AvroPipeline pipeline,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length)
     {
         pipeline.reset();
@@ -181,7 +181,7 @@ public class AvroPipelineBM
     private int transcode(
         AvroPipeline pipeline,
         AvroGenerator generator,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length)
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());

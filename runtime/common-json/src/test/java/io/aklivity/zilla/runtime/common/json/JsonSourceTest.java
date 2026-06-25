@@ -22,9 +22,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonSourceTest
@@ -54,7 +54,7 @@ class JsonSourceTest
         };
 
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[256]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[256]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(capture)
@@ -62,7 +62,7 @@ class JsonSourceTest
 
         byte[] bytes = "[42,-7,\"hi\"]".getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(Status.COMPLETED, status);
         assertEquals(List.of(42, -7), ints);

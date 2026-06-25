@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -65,7 +65,7 @@ class ProtobufPipelineTransformTest
             w.writeBytes("hi".getBytes(UTF_8));
         });
         int dstCap = 64;
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         ProtobufPipelineResult result = pipeline.transform(srcOf(in), SRC_OFFSET, SRC_OFFSET + in.length, true,
             dst, DST_OFFSET, DST_OFFSET + dstCap);
 
@@ -116,7 +116,7 @@ class ProtobufPipelineTransformTest
             w.writeBytes("hi".getBytes(UTF_8));
         });
         int dstCap = 64;
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         ByteArrayOutputStream drained = new ByteArrayOutputStream();
 
         ProtobufPipelineResult first = pipeline.transform(srcOf(f1), SRC_OFFSET, SRC_OFFSET + f1.length, false,
@@ -174,7 +174,7 @@ class ProtobufPipelineTransformTest
             w.writeVarint64(5);
         });
         int dstCap = 64;
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         ProtobufPipelineResult result = pipeline.transform(srcOf(in), SRC_OFFSET, SRC_OFFSET + in.length, true,
             dst, DST_OFFSET, DST_OFFSET + dstCap);
 
@@ -205,7 +205,7 @@ class ProtobufPipelineTransformTest
             w.writeVarint64(5);
         });
         int dstCap = 128;
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         ProtobufPipelineResult result = pipeline.transform(srcOf(in), SRC_OFFSET, SRC_OFFSET + in.length, true,
             dst, DST_OFFSET, DST_OFFSET + dstCap);
 
@@ -221,7 +221,7 @@ class ProtobufPipelineTransformTest
         int dstCap)
     {
         MutableDirectBuffer src = srcOf(in);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         ByteArrayOutputStream drained = new ByteArrayOutputStream();
         ProtobufPipelineResult result;
         int guard = 0;
@@ -253,7 +253,7 @@ class ProtobufPipelineTransformTest
     private static MutableDirectBuffer srcOf(
         byte[] bytes)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[SRC_OFFSET + bytes.length]);
+        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[SRC_OFFSET + bytes.length]);
         buffer.putBytes(SRC_OFFSET, bytes);
         return buffer;
     }

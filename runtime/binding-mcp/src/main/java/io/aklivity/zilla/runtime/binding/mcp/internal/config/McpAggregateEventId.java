@@ -26,8 +26,9 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.zip.CRC32C;
 
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class McpAggregateEventId
 {
@@ -84,7 +85,7 @@ public final class McpAggregateEventId
     public static int encode(
         McpAggregateRoute[] routes,
         Long2ObjectHashMap<String> ids,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         int progress = offset;

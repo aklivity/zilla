@@ -39,8 +39,8 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
@@ -78,13 +78,13 @@ public final class AvroParserImpl implements AvroParser
         DONE
     }
 
-    private static final DirectBuffer EMPTY = new UnsafeBuffer(0, 0);
+    private static final DirectBufferEx EMPTY = new UnsafeBufferEx(0, 0);
 
     private final AvroNode root;
-    private final UnsafeBuffer segmentView;
+    private final UnsafeBufferEx segmentView;
     private final AvroLocationImpl location;
 
-    private DirectBuffer buffer;
+    private DirectBufferEx buffer;
     private int offset;
     private int limit;
     private int progress;
@@ -124,7 +124,7 @@ public final class AvroParserImpl implements AvroParser
         AvroSchema schema)
     {
         this.root = (AvroNode) schema.type();
-        this.segmentView = new UnsafeBuffer(0, 0);
+        this.segmentView = new UnsafeBufferEx(0, 0);
         this.location = new AvroLocationImpl();
         this.nodeStack = new AvroNode[16];
         this.stateStack = new int[16];
@@ -134,7 +134,7 @@ public final class AvroParserImpl implements AvroParser
 
     @Override
     public void wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -973,7 +973,7 @@ public final class AvroParserImpl implements AvroParser
     }
 
     @Override
-    public DirectBuffer getSegment()
+    public DirectBufferEx getSegment()
     {
         segmentView.wrap(buffer, valueOffset + valueConsumed, valueLength - valueConsumed);
         return segmentView;

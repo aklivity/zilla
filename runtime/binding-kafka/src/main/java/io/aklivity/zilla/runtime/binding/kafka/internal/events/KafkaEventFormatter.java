@@ -15,22 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.events;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaApiVersionRejectedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaAuthorizationFailedExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaBrokerConnectionFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaClusterAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaGroupAuthorizationFailedExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaOffsetCommitFailedExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaProduceErrorExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaSaslAuthenticationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaTopicAuthorizationFailedExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaTransactionalIdAuthorizationFailedExFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaUnsupportedSaslMechanismExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -45,7 +38,7 @@ public final class KafkaEventFormatter implements EventFormatterSpi
     }
 
     public String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -88,50 +81,6 @@ public final class KafkaEventFormatter implements EventFormatterSpi
             final KafkaSaslAuthenticationFailedExFW ex = extension.saslAuthenticationFailed();
             result = String.format("SASL authentication failed for identity (%s): %s",
                 asString(ex.identity()), asString(ex.error()));
-            break;
-        }
-        case BROKER_CONNECTION_FAILED:
-        {
-            final KafkaBrokerConnectionFailedExFW ex = extension.brokerConnectionFailed();
-            result = String.format("Broker connection failed for host (%s), port (%d).",
-                asString(ex.host()), ex.port());
-            break;
-        }
-        case PRODUCE_ERROR:
-        {
-            final KafkaProduceErrorExFW ex = extension.produceError();
-            KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
-            result = String.format("%s (Version: %d) Produce error (%d) for topic (%s).",
-                apiKey.title(), ex.apiVersion(), ex.errorCode(), asString(ex.topic()));
-            break;
-        }
-        case GROUP_AUTHORIZATION_FAILED:
-        {
-            final KafkaGroupAuthorizationFailedExFW ex = extension.groupAuthorizationFailed();
-            KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
-            result = String.format("%s (Version: %d) Group authorization failed.", apiKey.title(), ex.apiVersion());
-            break;
-        }
-        case TRANSACTIONAL_ID_AUTHORIZATION_FAILED:
-        {
-            final KafkaTransactionalIdAuthorizationFailedExFW ex = extension.transactionalIdAuthorizationFailed();
-            KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
-            result = String.format("%s (Version: %d) Transactional id authorization failed.",
-                apiKey.title(), ex.apiVersion());
-            break;
-        }
-        case UNSUPPORTED_SASL_MECHANISM:
-        {
-            final KafkaUnsupportedSaslMechanismExFW ex = extension.unsupportedSaslMechanism();
-            result = String.format("Unsupported SASL mechanism (%s).", asString(ex.mechanism()));
-            break;
-        }
-        case OFFSET_COMMIT_FAILED:
-        {
-            final KafkaOffsetCommitFailedExFW ex = extension.offsetCommitFailed();
-            KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
-            result = String.format("%s (Version: %d) Offset commit failed with error (%d).",
-                apiKey.title(), ex.apiVersion(), ex.errorCode());
             break;
         }
         }

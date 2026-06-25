@@ -20,7 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufDiscardSinkImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
@@ -188,7 +188,7 @@ public final class ProtobufSchema
      */
     public boolean validate(
         String messageName,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {

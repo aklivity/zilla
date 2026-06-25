@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
@@ -289,7 +289,7 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         // back-pressure is not failure: a value split mid-varint STARVES without firing the reporter
-        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(message);
         assertEquals(Status.STARVED, pipeline.transform(buffer, 0, message.length - 1, false));
         assertNull(reason[0]);
     }
@@ -426,19 +426,19 @@ public class ProtobufPipelineTest
             w.writeTag(2, ProtobufWireType.VARINT);
             w.writeVarint64(5);
         });
-        assertTrue(schema.validate("P", new UnsafeBuffer(message), 0, message.length));
+        assertTrue(schema.validate("P", new UnsafeBufferEx(message), 0, message.length));
     }
 
     @Test
     public void shouldValidateRejectMalformedMessage()
     {
-        assertFalse(schema.validate("P", new UnsafeBuffer(new byte[]{(byte) 0x10, (byte) 0x80}), 0, 2));
+        assertFalse(schema.validate("P", new UnsafeBufferEx(new byte[]{(byte) 0x10, (byte) 0x80}), 0, 2));
     }
 
     @Test
     public void shouldValidateRejectUnknownMessage()
     {
-        assertFalse(schema.validate("Nope", new UnsafeBuffer(new byte[0]), 0, 0));
+        assertFalse(schema.validate("Nope", new UnsafeBufferEx(new byte[0]), 0, 0));
     }
 
     @Test
@@ -449,7 +449,7 @@ public class ProtobufPipelineTest
             w.writeTag(1, ProtobufWireType.LEN);
             w.writeBytes("x".getBytes(UTF_8));
         });
-        assertTrue(schema.validate("R", new UnsafeBuffer(message), 0, message.length));
+        assertTrue(schema.validate("R", new UnsafeBufferEx(message), 0, message.length));
     }
 
     @Test
@@ -460,7 +460,7 @@ public class ProtobufPipelineTest
             w.writeTag(2, ProtobufWireType.VARINT);
             w.writeVarint64(4);
         });
-        assertFalse(schema.validate("R", new UnsafeBuffer(message), 0, message.length));
+        assertFalse(schema.validate("R", new UnsafeBufferEx(message), 0, message.length));
     }
 
     @Test
@@ -505,7 +505,7 @@ public class ProtobufPipelineTest
             w.writeVarint64(300);
         });
 
-        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(message);
         Capture sink = new Capture(false);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
         pipeline.reset();
@@ -538,7 +538,7 @@ public class ProtobufPipelineTest
         pipeline.reset();
 
         // split inside the nested message body so remaining must survive the window swap
-        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(message);
         int split = message.length - 2;
         assertEquals(Status.STARVED, pipeline.transform(buffer, 0, split, false));
         int progress = split - pipeline.remaining();
@@ -606,7 +606,7 @@ public class ProtobufPipelineTest
         });
 
         // first window ends exactly after field 1; the final window carries field 2 with last = true
-        UnsafeBuffer buffer = new UnsafeBuffer(message);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(message);
         int split = 5; // tag(1) + len(1) + "neo"(3)
         Capture sink = new Capture(false);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(sink);
@@ -727,7 +727,7 @@ public class ProtobufPipelineTest
             int take = Math.min(window, message.length - limit);
             limit += take;
             boolean last = limit >= message.length;
-            status = pipeline.transform(new UnsafeBuffer(message), progress, limit, last);
+            status = pipeline.transform(new UnsafeBufferEx(message), progress, limit, last);
             if (status == Status.STARVED)
             {
                 progress = limit - pipeline.remaining();
@@ -768,7 +768,7 @@ public class ProtobufPipelineTest
     private String decodeName(
         byte[] wire)
     {
-        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(wire), 0, wire.length);
+        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBufferEx(wire), 0, wire.length);
         String name = null;
         ProtobufField field = null;
         while (parser.hasNext())
@@ -792,13 +792,13 @@ public class ProtobufPipelineTest
         byte[] message,
         int window)
     {
-        UnsafeBuffer output = new UnsafeBuffer(new byte[4096]);
+        UnsafeBufferEx output = new UnsafeBufferEx(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator().wrap(output, 0, output.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser())
             .into(ProtobufSink.of(generator));
         pipeline.reset();
 
-        UnsafeBuffer in = new UnsafeBuffer(message);
+        UnsafeBufferEx in = new UnsafeBufferEx(message);
         int progress = 0;
         int limit = 0;
         boolean completed = false;
@@ -834,7 +834,7 @@ public class ProtobufPipelineTest
         sawSuspended = false;
         sawStarved = false;
 
-        UnsafeBuffer output = new UnsafeBuffer(new byte[cap]);
+        UnsafeBufferEx output = new UnsafeBufferEx(new byte[cap]);
 
         ProtobufGenerator generator = Protobuf.generator().wrap(output, 0, cap);
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
@@ -844,7 +844,7 @@ public class ProtobufPipelineTest
         ExpandableArrayBuffer drained = new ExpandableArrayBuffer();
         int drainedLength = 0;
 
-        UnsafeBuffer in = new UnsafeBuffer(message);
+        UnsafeBufferEx in = new UnsafeBufferEx(message);
         int progress = 0;
         int limit = 0;
         boolean completed = false;
@@ -904,7 +904,7 @@ public class ProtobufPipelineTest
     {
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P")).into(new ProtobufDiscardSinkImpl());
         pipeline.reset();
-        return pipeline.transform(new UnsafeBuffer(message), 0, message.length, true);
+        return pipeline.transform(new UnsafeBufferEx(message), 0, message.length, true);
     }
 
     // feeds a message window-by-window, retaining the unconsumed tail (remaining() bytes) across feeds the
@@ -924,7 +924,7 @@ public class ProtobufPipelineTest
             // the retained tail is message[progress, limit); appending the next window keeps it contiguous
             limit += take;
             boolean last = limit >= message.length;
-            status = pipeline.transform(new UnsafeBuffer(message), progress, limit, last);
+            status = pipeline.transform(new UnsafeBufferEx(message), progress, limit, last);
             if (status == Status.STARVED)
             {
                 assertFalse(last, "last window must not starve");
@@ -951,7 +951,7 @@ public class ProtobufPipelineTest
         ProtobufPipeline pipeline,
         byte[] message)
     {
-        return pipeline.transform(new UnsafeBuffer(message), 0, message.length);
+        return pipeline.transform(new UnsafeBufferEx(message), 0, message.length);
     }
 
     private static byte[] wire(

@@ -22,17 +22,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.NestedFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class NestedFWTest
 {
     private final NestedFW.Builder nestedRW = new NestedFW.Builder();
     private final NestedFW nestedRO = new NestedFW();
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -56,7 +57,7 @@ public class NestedFWTest
         assertEquals(flyweight.flat().string4().limit() + 8, flyweight.limit());
     }
 
-    static int setAllTestValues(MutableDirectBuffer buffer, final int offset)
+    static int setAllTestValues(MutableDirectBufferEx buffer, final int offset)
     {
         int pos = offset;
         buffer.putLong(pos, 40);

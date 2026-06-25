@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.metrics.grpc.internal;
 
 import java.util.function.LongConsumer;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 @FunctionalInterface
 interface GrpcMetricConsumer
@@ -27,7 +27,7 @@ interface GrpcMetricConsumer
         LongConsumer recorder,
         long streamId,
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length);
 }

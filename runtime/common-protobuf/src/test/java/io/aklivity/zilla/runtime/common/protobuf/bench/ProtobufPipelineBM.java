@@ -20,8 +20,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.function.Consumer;
 
 import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -65,7 +65,7 @@ import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufWriter;
 @OutputTimeUnit(SECONDS)
 public class ProtobufPipelineBM
 {
-    private final MutableDirectBuffer outputBuffer = new UnsafeBuffer(new byte[16 * 1024]);
+    private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
 
     private final ProtobufSchema schema = newSchema();
     private final ProtobufGenerator generator = Protobuf.generator();
@@ -75,8 +75,8 @@ public class ProtobufPipelineBM
     private ProtobufPipeline transformPipeline;
     private ProtobufPipeline rawCopyPipeline;
 
-    private UnsafeBuffer flatBuffer;
-    private UnsafeBuffer nestedBuffer;
+    private UnsafeBufferEx flatBuffer;
+    private UnsafeBufferEx nestedBuffer;
     private int flatLength;
     private int nestedLength;
 
@@ -129,8 +129,8 @@ public class ProtobufPipelineBM
             w.writeBytes(meta);
         });
 
-        flatBuffer = new UnsafeBuffer(flat);
-        nestedBuffer = new UnsafeBuffer(nested);
+        flatBuffer = new UnsafeBufferEx(flat);
+        nestedBuffer = new UnsafeBufferEx(nested);
         flatLength = flat.length;
         nestedLength = nested.length;
     }
@@ -167,7 +167,7 @@ public class ProtobufPipelineBM
 
     private int runValidate(
         ProtobufPipeline pipeline,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length)
     {
         pipeline.reset();
@@ -176,7 +176,7 @@ public class ProtobufPipelineBM
 
     private int runWrite(
         ProtobufPipeline pipeline,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length)
     {
         generator.wrap(outputBuffer, 0, outputBuffer.capacity());

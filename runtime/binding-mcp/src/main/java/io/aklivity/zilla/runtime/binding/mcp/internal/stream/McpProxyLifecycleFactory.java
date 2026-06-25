@@ -25,10 +25,7 @@ import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAggregateEventId;
@@ -61,6 +58,9 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpToolsListC
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -86,7 +86,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final McpFlushExFW mcpFlushExRO = new McpFlushExFW();
     private final McpChallengeExFW mcpChallengeExRO = new McpChallengeExFW();
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
     private final OctetsFW rewrittenExRO = new OctetsFW();
     private final OctetsFW aggregateRO = new OctetsFW();
 
@@ -102,11 +102,11 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
     private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer codecBuffer;
-    private final MutableDirectBuffer flushExBuffer;
-    private final MutableDirectBuffer challengeExBuffer;
-    private final MutableDirectBuffer aggregateBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx codecBuffer;
+    private final MutableDirectBufferEx flushExBuffer;
+    private final MutableDirectBufferEx challengeExBuffer;
+    private final MutableDirectBufferEx aggregateBuffer;
     private final BindingHandler streamFactory;
     private final Signaler signaler;
     private final LongUnaryOperator supplyInitialId;
@@ -123,10 +123,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
         LongFunction<McpBindingConfig> supplyBinding)
     {
         this.writeBuffer = context.writeBuffer();
-        this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.flushExBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.challengeExBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.aggregateBuffer = new UnsafeBuffer(new byte[AGGREGATE_BUFFER_CAPACITY]);
+        this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.flushExBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.challengeExBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.aggregateBuffer = new UnsafeBufferEx(new byte[AGGREGATE_BUFFER_CAPACITY]);
         this.streamFactory = context.streamFactory();
         this.signaler = context.signaler();
         this.supplyInitialId = context::supplyInitialId;
@@ -148,7 +148,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -329,7 +329,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         private void onServerMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1069,7 +1069,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
         private void onClientMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1499,7 +1499,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length)
     {

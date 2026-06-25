@@ -17,13 +17,12 @@ package io.aklivity.zilla.specs.binding.asyncapi;
 
 import java.nio.ByteBuffer;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.asyncapi.internal.types.stream.AsyncapiBeginExFW;
 
 public final class AsyncapiFunctions
@@ -46,7 +45,7 @@ public final class AsyncapiFunctions
 
         private AsyncapiBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.beginExRW = new AsyncapiBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
@@ -89,7 +88,7 @@ public final class AsyncapiFunctions
 
     public static final class AsyncapiBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final AsyncapiBeginExFW beginExRO = new AsyncapiBeginExFW();
 

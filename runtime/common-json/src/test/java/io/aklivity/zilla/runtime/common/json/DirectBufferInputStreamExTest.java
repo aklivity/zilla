@@ -20,15 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 class DirectBufferInputStreamExTest
 {
     @Test
     void shouldReadAllBytesThenEof() throws Exception
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("hello".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("hello".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, buffer.capacity());
 
@@ -43,7 +43,7 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldSupportMark()
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("abcdef".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("abcdef".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, buffer.capacity());
 
@@ -53,7 +53,7 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldResetToMarkedPosition() throws Exception
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("abcdef".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("abcdef".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, buffer.capacity());
 
@@ -71,7 +71,7 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldReadBulk() throws Exception
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("abcdef".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("abcdef".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, buffer.capacity());
 
@@ -92,7 +92,7 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldReportBulkReadEofWhenExhausted() throws Exception
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("ab".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("ab".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, buffer.capacity());
 
@@ -104,7 +104,7 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldReportAvailable() throws Exception
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("abcdef".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("abcdef".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, buffer.capacity());
 
@@ -116,7 +116,7 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldSkipBytes()
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("abcdef".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("abcdef".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, buffer.capacity());
 
@@ -127,7 +127,7 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldSkipClampsToAvailable()
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("abc".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("abc".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, buffer.capacity());
 
@@ -138,7 +138,7 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldReadFromBufferOffset()
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("xxhelloxx".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("xxhelloxx".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 2, 5);
 
@@ -153,7 +153,7 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldExposeBufferOffsetAndLength()
     {
-        UnsafeBuffer buffer = new UnsafeBuffer("abcdef".getBytes(UTF_8));
+        UnsafeBufferEx buffer = new UnsafeBufferEx("abcdef".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 2, 3);
 
@@ -165,8 +165,8 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldRewrapResetsPosition() throws Exception
     {
-        UnsafeBuffer first = new UnsafeBuffer("abc".getBytes(UTF_8));
-        UnsafeBuffer second = new UnsafeBuffer("xyz".getBytes(UTF_8));
+        UnsafeBufferEx first = new UnsafeBufferEx("abc".getBytes(UTF_8));
+        UnsafeBufferEx second = new UnsafeBufferEx("xyz".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(first, 0, first.capacity());
         assertEquals('a', in.read());
@@ -181,8 +181,8 @@ class DirectBufferInputStreamExTest
     @Test
     void shouldRewrapResetsMark()
     {
-        UnsafeBuffer first = new UnsafeBuffer("abcdef".getBytes(UTF_8));
-        UnsafeBuffer second = new UnsafeBuffer("xyz".getBytes(UTF_8));
+        UnsafeBufferEx first = new UnsafeBufferEx("abcdef".getBytes(UTF_8));
+        UnsafeBufferEx second = new UnsafeBufferEx("xyz".getBytes(UTF_8));
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(first, 0, first.capacity());
         in.read();

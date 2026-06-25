@@ -27,8 +27,8 @@ import jakarta.json.JsonValue;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonStep;
@@ -49,7 +49,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private static final int MAX_DEPTH = 64;
     private static final byte[] HEX = "0123456789abcdef".getBytes();
     // a defensible initial target so a freshly constructed generator never NPEs on direct use before wrap
-    private static final MutableDirectBuffer EMPTY = new UnsafeBuffer(new byte[0]);
+    private static final MutableDirectBuffer EMPTY = new UnsafeBufferEx(new byte[0]);
 
     private final boolean[] inArray = new boolean[MAX_DEPTH];
     private final boolean[] hasMembers = new boolean[MAX_DEPTH];

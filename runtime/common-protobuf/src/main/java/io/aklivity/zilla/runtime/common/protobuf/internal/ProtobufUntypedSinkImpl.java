@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.internal;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
@@ -114,7 +114,7 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
             // a length-delimited value streams through the consumption-driven generator; the sink pushes the
             // unconsumed remainder back via control.consumed() and the source re-exposes it on resume, so the
             // sink keeps no write cursor
-            DirectBuffer segment = source.segment();
+            DirectBufferEx segment = source.segment();
             int available = segment.capacity();
             int deferred = source.deferredBytes();
             int before = generator.consumed();
@@ -140,7 +140,7 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         }
         else
         {
-            DirectBuffer segment = source.segment();
+            DirectBufferEx segment = source.segment();
             generator.writeValue(source.fieldNumber(), source.wireType(), segment, 0, segment.capacity());
             status = ProtobufPipeline.Status.ADVANCED;
         }

@@ -17,10 +17,11 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import java.util.Set;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Object2LongHashMap;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
@@ -29,7 +30,7 @@ final class KafkaExtractor implements ModelVisitor
     private static final long MISSING_REGION = -1L;
 
     private final Set<String> paths;
-    private final MutableDirectBuffer captures;
+    private final MutableDirectBufferEx captures;
     private final Object2LongHashMap<String> regionByPath;
 
     private int capturesOffset;
@@ -38,14 +39,14 @@ final class KafkaExtractor implements ModelVisitor
         Set<String> paths)
     {
         this.paths = paths;
-        this.captures = new ExpandableArrayBuffer();
+        this.captures = new ExpandableArrayBufferEx();
         this.regionByPath = new Object2LongHashMap<>(MISSING_REGION);
     }
 
     @Override
     public void onField(
         String path,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

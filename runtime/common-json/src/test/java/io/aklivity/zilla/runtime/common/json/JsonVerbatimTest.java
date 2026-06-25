@@ -22,9 +22,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 class JsonVerbatimTest
 {
     @Test
@@ -32,7 +32,7 @@ class JsonVerbatimTest
     {
         JsonParserEx parser = JsonEx.createParser();
         byte[] bytes = "{\"id\": \"123\", \"status\": \"OK\"}".getBytes(UTF_8);
-        parser.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         // drive the structured events a validator inspects to apply schema rules
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
@@ -58,7 +58,7 @@ class JsonVerbatimTest
     {
         JsonParserEx parser = JsonEx.createParser();
         byte[] bytes = "[1, {\"a\": 2}, 3]".getBytes(UTF_8);
-        parser.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_ARRAY, parser.nextEvent());
@@ -86,7 +86,7 @@ class JsonVerbatimTest
     {
         JsonParserEx parser = JsonEx.createParser();
         byte[] bytes = "{\"id\": \"123\"}".getBytes(UTF_8);
-        parser.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());

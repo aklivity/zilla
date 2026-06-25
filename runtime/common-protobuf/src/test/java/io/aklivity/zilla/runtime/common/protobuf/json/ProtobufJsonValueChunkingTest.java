@@ -30,7 +30,7 @@ import jakarta.json.JsonReader;
 
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -166,7 +166,7 @@ public class ProtobufJsonValueChunkingTest
         byte[] json,
         int window)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[window]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[window]);
         ProtobufGenerator generator = Protobuf.generator();
         generator.wrap(out, 0, window);
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
@@ -174,7 +174,7 @@ public class ProtobufJsonValueChunkingTest
         pipeline.reset();
 
         ByteArrayOutputStream result = new ByteArrayOutputStream();
-        UnsafeBuffer in = new UnsafeBuffer(json);
+        UnsafeBufferEx in = new UnsafeBufferEx(json);
         int suspends = 0;
         int guard = 0;
         Status status = pipeline.transform(in, 0, json.length);
@@ -198,13 +198,13 @@ public class ProtobufJsonValueChunkingTest
         String messageName,
         byte[] wire)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[1 << 18]);
+        MutableDirectBuffer out = new UnsafeBufferEx(new byte[1 << 18]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(wire), 0, wire.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(wire), 0, wire.length);
         assertEquals(Status.COMPLETED, status);
         generator.flush();
         byte[] bytes = new byte[generator.length()];

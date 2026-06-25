@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -43,7 +43,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
 
     private JsonPipeline active;
     private String diagnostic;
-    private MutableDirectBuffer prefixBuffer;
+    private MutableDirectBufferEx prefixBuffer;
     private int prefixAt;
     // captured per transform call so the JsonReporter callback can fire the validation-failed event with
     // the right trace and binding even when the value is tolerated (LENIENT) rather than rejected
@@ -64,10 +64,10 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLimit,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex,
         int dstLimit)
     {
@@ -123,7 +123,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -145,10 +145,10 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLength,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex)
     {
         prefixBuffer = dst;
@@ -158,7 +158,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
     }
 
     private void putPrefix(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

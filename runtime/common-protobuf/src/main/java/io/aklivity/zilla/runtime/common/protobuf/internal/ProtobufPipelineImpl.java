@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
@@ -113,7 +113,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
 
     @Override
     public Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -187,11 +187,11 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
 
     @Override
     public ProtobufPipelineResult transform(
-        DirectBuffer src,
+        DirectBufferEx src,
         int offset,
         int limit,
         boolean last,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstOffset,
         int dstLimit)
     {
@@ -314,7 +314,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         }
 
         @Override
-        public DirectBuffer segment()
+        public DirectBufferEx segment()
         {
             return parser.segment();
         }

@@ -23,13 +23,13 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.agrona.AsciiSequenceView;
-import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -118,7 +118,7 @@ public final class HttpKafkaBindingConfig
         private void visitMethod(
             String16FW value)
         {
-            final DirectBuffer buffer = value.buffer();
+            final DirectBufferEx buffer = value.buffer();
             final int offset = value.offset() + value.fieldSizeLength();
             final int length = value.sizeof() - value.fieldSizeLength();
             method = methodRO.wrap(buffer, offset, length);
@@ -127,7 +127,7 @@ public final class HttpKafkaBindingConfig
         private void visitPath(
             String16FW value)
         {
-            final DirectBuffer buffer = value.buffer();
+            final DirectBufferEx buffer = value.buffer();
             final int offset = value.offset() + value.fieldSizeLength();
             final int length = value.sizeof() - value.fieldSizeLength();
             path = pathRO.wrap(buffer, offset, length);

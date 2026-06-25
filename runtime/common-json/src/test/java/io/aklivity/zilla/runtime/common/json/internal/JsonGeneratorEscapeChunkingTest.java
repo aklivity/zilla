@@ -25,9 +25,9 @@ import java.util.Map;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 
 class JsonGeneratorEscapeChunkingTest
 {
-    private final MutableDirectBuffer output = new UnsafeBuffer(new byte[256]);
+    private final MutableDirectBuffer output = new UnsafeBufferEx(new byte[256]);
 
     @Test
     void shouldChunkQuoteHeavyStringThroughTinyWindow()
@@ -106,7 +106,7 @@ class JsonGeneratorEscapeChunkingTest
                 .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
-        UnsafeBuffer in = new UnsafeBuffer(bytes);
+        UnsafeBufferEx in = new UnsafeBufferEx(bytes);
         StringBuilder result = new StringBuilder();
         pipeline.reset();
         int window = Math.min(bound, output.capacity());

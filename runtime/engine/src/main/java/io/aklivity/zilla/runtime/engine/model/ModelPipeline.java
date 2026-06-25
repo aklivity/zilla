@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.model;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * A per-stream, resumable transform session.
@@ -60,10 +60,10 @@ public interface ModelPipeline
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLimit,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex,
         int dstLimit);
 
@@ -91,7 +91,7 @@ public interface ModelPipeline
      * @return the padding byte count (0 for transforms that do not expand the input)
      */
     default int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
