@@ -28,7 +28,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
-import org.agrona.ExpandableArrayBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -146,7 +146,7 @@ public class ProtobufJsonValueChunkingTest
         for (Field field : parser.getClass().getDeclaredFields())
         {
             assertTrue(!ExpandableArrayBuffer.class.isAssignableFrom(field.getType()),
-                "no growable ExpandableArrayBuffer may stage the value");
+                "no growable ExpandableArrayBufferEx may stage the value");
             if ("valueChunk".equals(field.getName()))
             {
                 field.setAccessible(true);

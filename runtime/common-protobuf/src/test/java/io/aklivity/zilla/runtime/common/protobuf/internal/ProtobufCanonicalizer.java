@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.agrona.ExpandableArrayBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -431,7 +431,7 @@ public final class ProtobufCanonicalizer
         return message != null && message.mapEntry();
     }
 
-    private ExpandableArrayBuffer scratch(
+    private ExpandableArrayBufferEx scratch(
         int depth)
     {
         acquire(depth);
@@ -443,7 +443,7 @@ public final class ProtobufCanonicalizer
     {
         while (scratch.size() <= depth)
         {
-            scratch.add(new ExpandableArrayBuffer());
+            scratch.add(new ExpandableArrayBufferEx());
             writers.add(new ProtobufWriter());
         }
         return writers.get(depth);

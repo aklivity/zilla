@@ -19,7 +19,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.function.Consumer;
 
-import org.agrona.ExpandableArrayBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -188,7 +188,7 @@ public class ProtobufPipelineBM
     private static byte[] wire(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
+        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];

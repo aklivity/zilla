@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.agrona.ExpandableArrayBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -841,7 +841,7 @@ public class ProtobufPipelineTest
             .into(ProtobufSink.of(generator, schema, "P"));
         pipeline.reset();
 
-        ExpandableArrayBuffer drained = new ExpandableArrayBuffer();
+        ExpandableArrayBufferEx drained = new ExpandableArrayBufferEx();
         int drainedLength = 0;
 
         UnsafeBufferEx in = new UnsafeBufferEx(message);
@@ -957,7 +957,7 @@ public class ProtobufPipelineTest
     private static byte[] wire(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
+        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];

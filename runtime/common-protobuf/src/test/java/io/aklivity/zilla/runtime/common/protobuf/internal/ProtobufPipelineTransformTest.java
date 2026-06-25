@@ -24,7 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
-import org.agrona.ExpandableArrayBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -261,7 +261,7 @@ class ProtobufPipelineTransformTest
     private static byte[] wire(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
+        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];
