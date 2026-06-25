@@ -561,7 +561,7 @@ public class McpFunctionsTest
     public void shouldCopyAbortEx()
     {
         ByteBuffer srcBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer srcBuffer = new UnsafeBufferEx(srcBuf);
+        final UnsafeBufferEx srcBuffer = new UnsafeBufferEx(srcBuf);
 
         final McpAbortExFW source = new McpAbortExFW.Builder()
             .wrap(srcBuffer, 0, srcBuffer.capacity())
