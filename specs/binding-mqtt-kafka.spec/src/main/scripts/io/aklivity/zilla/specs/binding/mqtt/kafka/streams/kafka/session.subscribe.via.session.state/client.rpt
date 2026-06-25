@@ -13,71 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
-                                .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
-                                .filter()
-                                    .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender-1")
-                                    .build()
-                                .build()
-                            .build()}
-
-connected
-
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#migrate")
-                               .hashKey("client-1")
-                               .header("sender-id", "sender-1")
-                               .build()
-                           .build()}
-write zilla:data.empty
-write flush
-
-write notify INIT_MIGRATE_SENT
-
-connect await INIT_MIGRATE_SENT
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .group()
-                                   .groupId("zilla:test-mqtt0-client-1-session")
-                                   .protocol("highlander")
-                                   .timeout(1000)
-                                   .build()
-                               .build()}
-
-connected
-
-read advised zilla:flush ${kafka:matchFlushEx()
-                             .typeId(zilla:id("kafka"))
-                             .group()
-                                 .leaderId("consumer-1")
-                                 .memberId("consumer-1")
-                                 .members("consumer-1")
-                                 .build()
-                             .build()}
-read notify RECEIVED_LEADER
-
-write zilla:data.empty
-
-
-connect await RECEIVED_LEADER
+connect
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -87,14 +23,9 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1")
                                     .build()
-                                .filter()
-                                    .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender-1")
-                                    .build()
                                 .build()
                             .build()}
 
@@ -106,7 +37,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-signal")
+                               .key("client-1#will")
                                .hashKey("client-1")
                                .header("type", "will-signal")
                                .build()
@@ -119,7 +50,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
@@ -132,7 +63,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
@@ -163,6 +94,7 @@ read ${mqtt:session()
                .build()}
 
 write notify SESSION_FINISHED
+
 
 connect await SESSION_FINISHED
         "zilla://streams/kafka0"
@@ -203,4 +135,3 @@ read zilla:data.ext ${kafka:matchDataEx()
                             .build()}
 
 read "message"
-

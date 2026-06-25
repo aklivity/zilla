@@ -93,7 +93,9 @@ write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "400")
+                           .header(":status", "200")
                            .build()}
+
+read '{"jsonrpc":"2.0","id":2,"error":{"code":-32700,"message":"Parse error"}}'
 
 read closed

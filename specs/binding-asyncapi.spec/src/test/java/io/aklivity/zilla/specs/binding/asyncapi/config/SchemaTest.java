@@ -40,6 +40,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/asyncapi/config");
 
     @Test
@@ -70,6 +71,14 @@ public class SchemaTest
     public void shouldValidateMqttSecureServer()
     {
         JsonObject config = schema.validate("server.mqtt.secure.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateMqttStoreServer()
+    {
+        JsonObject config = schema.validate("server.mqtt.store.yaml");
 
         assertThat(config, not(nullValue()));
     }

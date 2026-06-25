@@ -1,5 +1,8 @@
 ---
 name: zilla-mqtt-kafka-proxy
+stores:
+  memory0:
+    type: memory
 bindings:
   north_tcp_server:
     type: tcp
@@ -15,6 +18,8 @@ bindings:
   north_mqtt_server:
     type: mqtt
     kind: server
+    options:
+      store: memory0
     exit: north_mqtt_kafka_mapping
   north_mqtt_kafka_mapping:
     type: mqtt-kafka

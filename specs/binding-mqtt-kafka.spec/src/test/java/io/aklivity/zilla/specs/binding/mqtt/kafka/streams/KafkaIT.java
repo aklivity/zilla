@@ -614,24 +614,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.client.takeover/client",
-        "${kafka}/session.client.takeover/server"})
-    public void shouldTakeOverSession() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${kafka}/session.exists.clean.start/client",
-        "${kafka}/session.exists.clean.start/server"})
-    public void shouldRemoveSessionAtCleanStart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.subscribe/client",
         "${kafka}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
@@ -689,15 +671,6 @@ public class KafkaIT
         "${kafka}/session.server.sent.reset/client",
         "${kafka}/session.server.sent.reset/server"})
     public void shouldSessionStreamReceiveServerSentReset() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${kafka}/session.group.server.sent.reset/client",
-        "${kafka}/session.group.server.sent.reset/server"})
-    public void shouldGroupStreamReceiveServerSentReset() throws Exception
     {
         k3po.finish();
     }
@@ -785,15 +758,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.will.message.takeover.deliver.will/client",
-        "${kafka}/session.will.message.takeover.deliver.will/server"})
-    public void shouldSendWillMessageOnSessionTakeover() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.will.message.cancel.delivery/client",
         "${kafka}/session.will.message.cancel.delivery/server"})
     public void shouldCancelWillDelivery() throws Exception
@@ -830,33 +794,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.connect.override.max.session.expiry/client",
-        "${kafka}/session.connect.override.max.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooBig() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${kafka}/session.connect.override.min.session.expiry/client",
-        "${kafka}/session.connect.override.min.session.expiry/server"})
-    public void shouldConnectServerOverridesSessionExpiryTooSmall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${kafka}/session.redirect/client",
-        "${kafka}/session.redirect/server"})
-    public void shouldRedirect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.session.expiry.fragmented/client",
         "${kafka}/session.session.expiry.fragmented/server"})
     public void shouldDecodeSessionExpirySignalFragmented() throws Exception
@@ -887,6 +824,15 @@ public class KafkaIT
         "${kafka}/publish.qos2/client",
         "${kafka}/publish.qos2/server"})
     public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.no.prior.offsets/client",
+        "${kafka}/publish.qos2.no.prior.offsets/server"})
+    public void shouldPublishQoS2MessageNoPriorOffsets() throws Exception
     {
         k3po.finish();
     }

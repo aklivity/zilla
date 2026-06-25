@@ -77,6 +77,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.will.message.takeover/client",
+        "${net}/session.will.message.takeover/server"})
+    public void shouldDeliverWillMessageOnSessionTakeover() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.subscribe/client",
         "${net}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
@@ -171,6 +180,15 @@ public class SessionIT
         "${net}/session.server.redirect.after.connack/client",
         "${net}/session.server.redirect.after.connack/server"})
     public void shouldRedirectAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.redirect/client",
+        "${net}/session.redirect/server"})
+    public void shouldRedirect() throws Exception
     {
         k3po.finish();
     }

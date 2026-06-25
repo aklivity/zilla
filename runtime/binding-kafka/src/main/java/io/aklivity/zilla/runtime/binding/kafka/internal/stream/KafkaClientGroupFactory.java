@@ -151,7 +151,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final byte DESCRIBE_CONFIG_EXCLUDE_SYNONYMS = (byte) 0x00;
 
     private static final String UNKNOWN_MEMBER_ID = "";
-    private static final String HIGHLANDER_PROTOCOL = "highlander";
     private static final String GROUP_MIN_SESSION_TIMEOUT = "group.min.session.timeout.ms";
     private static final String GROUP_MAX_SESSION_TIMEOUT = "group.max.session.timeout.ms";
     private static final String GROUP_INITIAL_REBALANCE_DELAY = "group.initial.rebalance.delay.ms";
@@ -418,11 +417,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     newStream = newGroup::onStream;
 
                     groupStreams.put(groupId, newGroup);
-                }
-                else if (HIGHLANDER_PROTOCOL.equals(protocol))
-                {
-                    group.onStreamMigrate(begin, application);
-                    newStream = group::onStream;
                 }
             }
         }
@@ -1756,38 +1750,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             doStreamAbortIfNecessary(traceId);
 
             groupStreams.remove(groupId);
-        }
-
-        private void onStreamMigrate(
-            BeginFW begin,
-            MessageConsumer application)
-        {
-            final long originId = begin.originId();
-            final long routedId = begin.routedId();
-            final long initialId = begin.streamId();
-            final long affinity = begin.affinity();
-            final long traceId = begin.traceId();
-
-            doStreamResetIfNecessary(traceId, EMPTY_OCTETS);
-            doStreamAbortIfNecessary(traceId);
-
-            this.sender = application;
-            this.originId = originId;
-            this.routedId = routedId;
-            this.initialId = initialId;
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.affinity = affinity;
-
-            if (KafkaState.closed(state))
-            {
-                initialSeq = 0;
-                initialAck = 0;
-                replyAck = 0;
-                replySeq = 0;
-                state = 0;
-            }
-
-            client.onStreamMigrate(traceId);
         }
     }
 

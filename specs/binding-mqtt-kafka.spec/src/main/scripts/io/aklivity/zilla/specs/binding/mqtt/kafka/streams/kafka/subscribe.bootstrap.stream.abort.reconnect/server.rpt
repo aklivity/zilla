@@ -23,7 +23,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                               .typeId(zilla:id("kafka"))
                               .bootstrap()
                                   .topic("mqtt-clients")
-                                  .groupId("mqtt-clients")
                                   .build()
                               .build()}
 
@@ -39,7 +38,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                               .typeId(zilla:id("kafka"))
                               .bootstrap()
                                   .topic("mqtt-clients")
-                                  .groupId("mqtt-clients")
                                   .build()
                               .build()}
 

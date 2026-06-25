@@ -111,8 +111,12 @@ public final class McpProxyFactory implements McpStreamFactory
         bindings.put(binding.id, newBinding);
         if (newBinding.cache != null)
         {
-            newBinding.cache.onSettled = (kind, changed) ->
+            newBinding.cache.onSettled = (kind, changed, value) ->
             {
+                if (kind == KIND_TOOLS_LIST && newBinding.validatesTools())
+                {
+                    newBinding.rebuildToolSchemaIndex(value);
+                }
                 if (changed)
                 {
                     final long traceId = context.supplyTraceId();
