@@ -457,16 +457,16 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodersByPacketTypeV5 = decodersByPacketType;
     }
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer dataExtBuffer;
-    private final MutableDirectBuffer payloadBuffer;
-    private final MutableDirectBuffer propertyBuffer;
-    private final MutableDirectBuffer sessionExtBuffer;
-    private final MutableDirectBuffer sessionStateBuffer;
-    private final MutableDirectBuffer userPropertiesBuffer;
-    private final MutableDirectBuffer willMessageBuffer;
-    private final MutableDirectBuffer willUserPropertiesBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx dataExtBuffer;
+    private final MutableDirectBufferEx payloadBuffer;
+    private final MutableDirectBufferEx propertyBuffer;
+    private final MutableDirectBufferEx sessionExtBuffer;
+    private final MutableDirectBufferEx sessionStateBuffer;
+    private final MutableDirectBufferEx userPropertiesBuffer;
+    private final MutableDirectBufferEx willMessageBuffer;
+    private final MutableDirectBufferEx willUserPropertiesBuffer;
 
     private final ByteBuffer charsetBuffer;
     private final BufferPool bufferPool;

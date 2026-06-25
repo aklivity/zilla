@@ -347,7 +347,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         int length,
         MessageConsumer mqtt)
     {
-        final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
+        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
@@ -4634,7 +4634,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         Flyweight extension)
@@ -4651,7 +4651,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .flags(flags)
             .budgetId(budgetId)
             .reserved(reserved)
-            .payload((DirectBufferEx) buffer, index, length)
+            .payload(buffer, index, length)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
