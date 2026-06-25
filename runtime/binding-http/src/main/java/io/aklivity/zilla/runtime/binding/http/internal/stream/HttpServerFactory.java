@@ -529,7 +529,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Http2ServerDecoder decodeHttp2IgnoreAll = this::decodeHttp2IgnoreAll;
 
     private final EnumMap<Http2FrameType, Http2ServerDecoder> decodersByFrameType;
-    private final MutableDirectBuffer modelBuffer;
+    private final MutableDirectBufferEx modelBuffer;
     private final MutableDirectBuffer modelValueBuffer;
     private final MutableDirectBufferEx modelBeginExBuffer;
     private final MutableBoolean modelValid = new MutableBoolean();
@@ -5154,7 +5154,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 doEncodeRstStream(traceId, streamId, error);
             }
 
-            final DirectBuffer dataBuffer = http2Headers.buffer();
+            final DirectBufferEx dataBuffer = http2Headers.buffer();
             final int dataOffset = http2Headers.dataOffset();
 
             final boolean endHeaders = http2Headers.endHeaders();
@@ -5448,7 +5448,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 doEncodeRstStream(traceId, streamId, error);
             }
 
-            final DirectBuffer dataBuffer = http2Trailers.buffer();
+            final DirectBufferEx dataBuffer = http2Trailers.buffer();
             final int dataOffset = http2Trailers.dataOffset();
 
             final boolean endHeaders = http2Trailers.endHeaders();
