@@ -156,7 +156,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final String GROUP_MAX_SESSION_TIMEOUT = "group.max.session.timeout.ms";
     private static final String GROUP_INITIAL_REBALANCE_DELAY = "group.initial.rebalance.delay.ms";
     private static final byte GROUP_KEY_TYPE = 0x00;
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -299,7 +299,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final int proxyTypeId;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final MutableDirectBuffer userdataBuffer;
+    private final MutableDirectBufferEx userdataBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final IntFunction<Signaler> supplySignaler;
@@ -515,7 +515,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -1320,7 +1320,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private MessageConsumer sender;
         private String nodeId;
         private int timeout;
-        private MutableDirectBuffer metadataBuffer;
+        private MutableDirectBufferEx metadataBuffer;
 
         private int state;
 
@@ -2376,7 +2376,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -3162,7 +3162,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -4027,7 +4027,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -5135,7 +5135,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);

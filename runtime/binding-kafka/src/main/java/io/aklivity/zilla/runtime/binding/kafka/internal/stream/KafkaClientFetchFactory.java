@@ -111,7 +111,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -168,7 +168,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final MessageHeaderFW messageHeaderRO = new MessageHeaderFW();
     private final ControlRecordKeyFW controlRecordKeyRO = new ControlRecordKeyFW();
     private final OctetsFW valueRO = new OctetsFW();
-    private final DirectBuffer headersRO = new UnsafeBufferEx();
+    private final DirectBufferEx headersRO = new UnsafeBufferEx();
 
     private final KafkaFetchClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaFetchClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -379,7 +379,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length,
         Flyweight extension)
@@ -1292,7 +1292,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         final int headerCount = recordTrailer.headerCount();
                         final int headersOffset = recordTrailer.limit();
                         final int headersLength = recordLimit - headersOffset;
-                        final DirectBuffer headers = wrapHeaders(buffer, headersOffset, headersLength);
+                        final DirectBufferEx headers = wrapHeaders(buffer, headersOffset, headersLength);
 
                         progress += sizeofRecord;
 
@@ -1496,7 +1496,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 final int headerCount = recordTrailer.headerCount();
                 final int headersOffset = recordTrailer.limit();
                 final int headersLength = recordLimit - headersOffset;
-                final DirectBuffer headers = headersRO;
+                final DirectBufferEx headers = headersRO;
                 headers.wrap(buffer, headersOffset, headersLength);
 
                 progress += recordProgress;
@@ -2879,7 +2879,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     }
                     else
                     {
-                        final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                        final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                         decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                         decodeSlotOffset = limit - progress;
                         decodeSlotReserved = (int) ((long) (limit - progress) * reserved / (limit - offset));
@@ -3075,7 +3075,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 OctetsFW key,
                 OctetsFW value,
                 int headerCount,
-                DirectBuffer headers)
+                DirectBufferEx headers)
             {
                 this.nextOffset = offset + 1;
 
@@ -3151,7 +3151,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long offset,
                 OctetsFW value,
                 int headerCount,
-                DirectBuffer headers)
+                DirectBufferEx headers)
             {
                 this.nextOffset = offset + 1;
 
@@ -3242,12 +3242,12 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         }
     }
 
-    private DirectBuffer wrapHeaders(
+    private DirectBufferEx wrapHeaders(
         DirectBufferEx buffer,
         int offset,
         int length)
     {
-        DirectBuffer headers = EMPTY_BUFFER;
+        DirectBufferEx headers = EMPTY_BUFFER;
         if (length != 0)
         {
             headers = headersRO;

@@ -326,7 +326,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -397,7 +397,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length,
         Flyweight extension)
@@ -961,7 +961,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long traceId,
             int flags,
             int reserved,
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length,
             Flyweight extension)
@@ -2010,7 +2010,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);

@@ -85,7 +85,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBufferEx();
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -315,7 +315,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -1532,7 +1532,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                     }
                     else
                     {
-                        final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                        final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                         decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                         decodeSlotOffset = limit - progress;
                         decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
