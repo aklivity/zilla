@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufGeneratorImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufSchemaCompiler;

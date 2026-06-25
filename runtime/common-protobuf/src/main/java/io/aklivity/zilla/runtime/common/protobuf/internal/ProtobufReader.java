@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.nio.ByteOrder;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 

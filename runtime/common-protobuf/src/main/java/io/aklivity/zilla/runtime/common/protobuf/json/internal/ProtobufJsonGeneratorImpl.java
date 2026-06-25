@@ -18,8 +18,8 @@ import java.util.BitSet;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
@@ -61,7 +61,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private final boolean protoFieldNames;
     private final boolean includeDefaults;
     private final StringBuilder scratch;
-    private final UnsafeBuffer byteView;
+    private final UnsafeBufferEx byteView;
 
     private Scope[] scopes;
     private int depth;
@@ -100,7 +100,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         this.protoFieldNames = protoFieldNames;
         this.includeDefaults = includeDefaults;
         this.scratch = new StringBuilder();
-        this.byteView = new UnsafeBuffer();
+        this.byteView = new UnsafeBufferEx();
         this.scopes = new Scope[8];
         for (int i = 0; i < scopes.length; i++)
         {

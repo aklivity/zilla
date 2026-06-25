@@ -23,10 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
 import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;

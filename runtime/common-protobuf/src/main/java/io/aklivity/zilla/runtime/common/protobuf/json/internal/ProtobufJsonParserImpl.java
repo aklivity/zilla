@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 import jakarta.json.JsonException;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.lang.Numbers;
@@ -78,9 +78,9 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private final ProtobufSchema schema;
     private final String messageName;
     private final boolean rejectUnknownFields;
-    private final UnsafeBuffer estimateView;
-    private final UnsafeBuffer valueChunk;
-    private final UnsafeBuffer valueView;
+    private final UnsafeBufferEx estimateView;
+    private final UnsafeBufferEx valueChunk;
+    private final UnsafeBufferEx valueView;
     private final ProtobufLocation location = new ProtobufLocation()
     {
         @Override
@@ -149,9 +149,9 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         this.schema = schema;
         this.messageName = messageName;
         this.rejectUnknownFields = rejectUnknownFields;
-        this.estimateView = new UnsafeBuffer(new byte[ESTIMATE]);
-        this.valueChunk = new UnsafeBuffer(new byte[VALUE_CHUNK]);
-        this.valueView = new UnsafeBuffer();
+        this.estimateView = new UnsafeBufferEx(new byte[ESTIMATE]);
+        this.valueChunk = new UnsafeBufferEx(new byte[VALUE_CHUNK]);
+        this.valueView = new UnsafeBufferEx();
         this.frames = new Frame[8];
         for (int i = 0; i < frames.length; i++)
         {
