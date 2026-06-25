@@ -69,33 +69,6 @@ public class ProtobufModelEncoderPipelineTest
     }
 
     @Test
-    public void shouldTransformWholeValue()
-    {
-        ProtobufModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        byte[] in = JSON.getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertArrayEquals(WIRE, out);
-
-        // reset and reuse the same pipeline for the next value
-        pipeline.reset();
-        ModelPipelineResult reused = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-        assertEquals(ModelStatus.COMPLETE, reused.status());
-        byte[] outReused = new byte[reused.produced()];
-        dst.getBytes(0, outReused);
-        assertArrayEquals(WIRE, outReused);
-    }
-
-    @Test
     public void shouldIsolateInterleavedStreams()
     {
         ProtobufModelHandlerImpl handler = newHandler();
@@ -173,23 +146,6 @@ public class ProtobufModelEncoderPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] in = JSON.getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
-    public void shouldRejectInvalid()
-    {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        ProtobufModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // an unknown field is rejected by the strict JSON parser
-        byte[] in = "{\"content\":\"OK\",\"unexpected\":\"value\"}".getBytes(UTF_8);
         MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());

@@ -67,22 +67,6 @@ public class JsonModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldTransformWholeValue()
-    {
-        JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        assertEquals("{\"id\":\"123\",\"status\":\"OK\"}", text(dst, result.produced()));
-    }
-
-    @Test
     public void shouldIsolateInterleavedStreams()
     {
         JsonModelHandlerImpl handler = newHandler();

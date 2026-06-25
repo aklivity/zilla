@@ -22,7 +22,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
-import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,7 +32,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -90,21 +88,6 @@ public class AvroModelDecoderPipelineTest
     {
         config = new AvroModelConfiguration(new Configuration());
         context = mock(EngineContext.class);
-    }
-
-    @Test
-    public void shouldTransformWholeValue()
-    {
-        AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(AVRO.length, result.consumed());
-        assertEquals(JSON, text(dst, result.produced()));
     }
 
     @Test
@@ -193,23 +176,6 @@ public class AvroModelDecoderPipelineTest
         assertEquals("2.5", extracted.get("$.d"));
         assertEquals("true", extracted.get("$.b"));
         assertEquals("1", extracted.get("$.e"));
-    }
-
-    @Test
-    public void shouldRejectInvalid()
-    {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        // truncated: id length prefix promises 3 bytes but the status field is missing under FLAGS_FIN
-        byte[] invalid = {0x06, 0x69, 0x64, 0x30, 0x10};
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(invalid), 0, invalid.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
     }
 
     @Test

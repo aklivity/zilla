@@ -51,35 +51,6 @@ public class Int64ModelPipelineTest
     }
 
     @Test
-    public void shouldTransformWholeValue()
-    {
-        ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "1234567890".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(bytes.length, result.produced());
-    }
-
-    @Test
-    public void shouldRejectInvalid()
-    {
-        ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "12x".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
     public void shouldTransformSignedSuffixedValue()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());

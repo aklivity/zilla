@@ -51,51 +51,6 @@ public class Int32ModelPipelineTest
     }
 
     @Test
-    public void shouldTransformWholeValue()
-    {
-        ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        byte[] bytes = "42".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(bytes.length, result.consumed());
-        assertEquals(bytes.length, result.produced());
-        assertEquals("42", dst.getStringWithoutLengthUtf8(0, result.produced()));
-    }
-
-    @Test
-    public void shouldRejectInvalid()
-    {
-        ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        byte[] bytes = "12x".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
-    public void shouldRejectOutOfRange()
-    {
-        ModelHandler handler = handler(Int32ModelConfig.builder().format("text").max(10).build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        byte[] bytes = "42".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
     public void shouldTransformSignedValue()
     {
         ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());

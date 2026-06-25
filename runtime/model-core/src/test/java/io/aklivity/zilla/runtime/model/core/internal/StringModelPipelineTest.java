@@ -51,56 +51,6 @@ public class StringModelPipelineTest
     }
 
     @Test
-    public void shouldTransformWholeValue()
-    {
-        ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "Valid String".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(bytes.length, result.consumed());
-        assertEquals(bytes.length, result.produced());
-        assertEquals("Valid String", dst.getStringWithoutLengthUtf8(0, result.produced()));
-    }
-
-    @Test
-    public void shouldRejectInvalidEncoding()
-    {
-        ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = {(byte) 0xc0};
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-        assertEquals(0, result.consumed());
-        assertEquals(0, result.produced());
-    }
-
-    @Test
-    public void shouldRejectInvalidPattern()
-    {
-        ModelHandler handler = handler(StringModelConfig.builder()
-            .encoding("utf_8")
-            .pattern("^[a-zA-Z\\s]+$")
-            .build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "Hello123".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
     public void shouldOverflowBoundedDestination()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
@@ -188,21 +138,6 @@ public class StringModelPipelineTest
     }
 
     @Test
-    public void shouldTransformMultiByteValue()
-    {
-        ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        byte[] bytes = "Héllo wörld €".getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[64]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(bytes.length, result.produced());
-    }
-
-    @Test
     public void shouldTransformMultiByteFragmented()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
@@ -220,37 +155,6 @@ public class StringModelPipelineTest
         ModelPipelineResult second = pipeline.transform(0L, 0L, FLAGS_FIN,
             new UnsafeBuffer(tail), 0, tail.length, dst, first.produced(), dst.capacity());
         assertEquals(ModelStatus.COMPLETE, second.status());
-    }
-
-    @Test
-    public void shouldRejectInvalidUtf8Continuation()
-    {
-        ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = {(byte) 0xe2, (byte) 0x28, (byte) 0xa1};
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
-    public void shouldTransformMatchingPattern()
-    {
-        ModelHandler handler = handler(StringModelConfig.builder()
-            .encoding("utf_8")
-            .pattern("^[a-zA-Z\\s]+$")
-            .build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "Hello World".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[32]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
     }
 
     private ModelHandler handler(

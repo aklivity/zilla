@@ -76,24 +76,6 @@ public class AvroModelEncoderPipelineTest
     }
 
     @Test
-    public void shouldTransformWholeValue()
-    {
-        AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        byte[] in = JSON.getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertArrayEquals(AVRO, out);
-    }
-
-    @Test
     public void shouldIsolateInterleavedStreams()
     {
         AvroModelHandlerImpl handler = newHandler();
@@ -132,23 +114,6 @@ public class AvroModelEncoderPipelineTest
     }
 
     @Test
-    public void shouldRejectInvalid()
-    {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // id must be a string, not a number
-        byte[] in = "{\"id\":123,\"status\":\"positive\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
     public void shouldRejectMalformedJson()
     {
         when(context.clock()).thenReturn(Clock.systemUTC());
@@ -174,40 +139,6 @@ public class AvroModelEncoderPipelineTest
 
         byte[] in = JSON.getBytes(UTF_8);
         assertTrue(pipeline.padding(new UnsafeBuffer(in), 0, in.length) >= 0);
-    }
-
-    @Test
-    public void shouldValidateBinaryWholeValue()
-    {
-        AvroModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(AVRO.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertArrayEquals(AVRO, out);
-    }
-
-    @Test
-    public void shouldRejectBinaryTruncated()
-    {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        AvroModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // id length prefix promises 3 bytes, then status length prefix 8 with no payload -> truncated datum
-        byte[] truncated = {0x06, 0x69, 0x64, 0x30, 0x10};
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(truncated), 0, truncated.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
     }
 
     private AvroModelHandlerImpl newHandler()

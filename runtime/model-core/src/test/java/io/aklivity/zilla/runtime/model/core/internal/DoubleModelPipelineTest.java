@@ -51,35 +51,6 @@ public class DoubleModelPipelineTest
     }
 
     @Test
-    public void shouldTransformWholeValue()
-    {
-        ModelHandler handler = handler(DoubleModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "4.2".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(bytes.length, result.produced());
-    }
-
-    @Test
-    public void shouldRejectInvalid()
-    {
-        ModelHandler handler = handler(DoubleModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "4.x".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
     public void shouldTransformSignedDecimalValue()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("text").build());

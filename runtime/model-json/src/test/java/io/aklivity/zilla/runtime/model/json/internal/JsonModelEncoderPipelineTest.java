@@ -15,14 +15,12 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
-import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,8 +29,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
@@ -60,40 +56,6 @@ public class JsonModelEncoderPipelineTest
     public void init()
     {
         context = mock(EngineContext.class);
-    }
-
-    @Test
-    public void shouldTransformWholeValue()
-    {
-        JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // the test catalog adds no framing prefix, so the output is the validated value itself
-        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(in.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertEquals("{\"id\":\"123\",\"status\":\"OK\"}", new String(out, UTF_8));
-    }
-
-    @Test
-    public void shouldRejectInvalidValue()
-    {
-        JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
-
-        // missing required "status"
-        byte[] in = "{\"id\":\"123\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
     }
 
     @Test

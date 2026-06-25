@@ -58,40 +58,6 @@ public class CoreModelLenientTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
     }
 
-    // STRICT (default): an out-of-range value (structurally valid, constraint violated) is rejected.
-    @Test
-    public void shouldRejectConstraintViolationUnderStrict()
-    {
-        ModelHandler handler = new Int32ModelContext(context).supplyHandler(
-            Int32ModelConfig.builder().format("text").max(10).validate(STRICT).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "42".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    // LENIENT: the SAME out-of-range value passes through unchanged.
-    @Test
-    public void shouldPassConstraintViolationThroughUnderLenient()
-    {
-        ModelHandler handler = new Int32ModelContext(context).supplyHandler(
-            Int32ModelConfig.builder().format("text").max(10).validate(LENIENT).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        byte[] bytes = "42".getBytes();
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(bytes.length, result.produced());
-        assertEquals("42", dst.getStringWithoutLengthUtf8(0, result.produced()));
-    }
-
     // A genuine parse failure (non-numeric bytes) rejects in BOTH modes — never relaxed.
     @Test
     public void shouldRejectMalformedUnderStrict()

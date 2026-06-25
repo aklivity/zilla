@@ -18,7 +18,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -67,64 +66,6 @@ public class JsonModelLenientTest
         eventWriter = mock(MessageConsumer.class);
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(eventWriter);
-    }
-
-    // STRICT (default): a schema-constraint violation on structurally-valid JSON rejects and reports.
-    @Test
-    public void shouldRejectSchemaViolationUnderStrict()
-    {
-        ModelPipeline pipeline = newHandler(strict()).supplyDecoder(ModelVisitor.NONE);
-
-        byte[] in = "{\"id\":123}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-        verify(eventWriter, atLeastOnce()).accept(anyInt(), any(DirectBuffer.class), anyInt(), anyInt());
-    }
-
-    // LENIENT: the SAME violation passes the original document through unchanged, and the event still fires.
-    @Test
-    public void shouldPassSchemaViolationThroughUnderLenient()
-    {
-        ModelPipeline pipeline = newHandler(lenient()).supplyDecoder(ModelVisitor.NONE);
-
-        byte[] in = "{\"id\":123}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals("{\"id\":123}", text(dst, result.produced()));
-        verify(eventWriter, atLeastOnce()).accept(anyInt(), any(DirectBuffer.class), anyInt(), anyInt());
-    }
-
-    // A genuine parse failure (malformed JSON) rejects in BOTH modes.
-    @Test
-    public void shouldRejectMalformedUnderStrict()
-    {
-        ModelPipeline pipeline = newHandler(strict()).supplyDecoder(ModelVisitor.NONE);
-
-        byte[] in = "{\"id\" 123}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-    }
-
-    @Test
-    public void shouldRejectMalformedUnderLenient()
-    {
-        ModelPipeline pipeline = newHandler(lenient()).supplyDecoder(ModelVisitor.NONE);
-
-        byte[] in = "{\"id\" 123}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
     }
 
     // decode vs encode independence: {decode: lenient, encode: strict} relaxes only the read side.

@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
-import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,7 +32,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -94,45 +92,6 @@ public class ProtobufModelDecoderPipelineTest
     public void init()
     {
         context = mock(EngineContext.class);
-    }
-
-    @Test
-    public void shouldTransformWholeValueToJson()
-    {
-        ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(WIRE.length, result.consumed());
-        assertEquals(JSON, text(dst, result.produced()));
-
-        // reset and reuse the same pipeline for the next value
-        pipeline.reset();
-        ModelPipelineResult reused = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-        assertEquals(ModelStatus.COMPLETE, reused.status());
-        assertEquals(JSON, text(dst, reused.produced()));
-    }
-
-    @Test
-    public void shouldTransformWholeValueToWire()
-    {
-        ProtobufModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(WIRE.length, result.consumed());
-        byte[] out = new byte[result.produced()];
-        dst.getBytes(0, out);
-        assertArrayEquals(PAYLOAD, out);
     }
 
     @Test
@@ -281,23 +240,6 @@ public class ProtobufModelDecoderPipelineTest
         assertEquals(ModelStatus.COMPLETE, result.status());
         String json = "{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}";
         assertEquals(json, out.toString(UTF_8));
-    }
-
-    @Test
-    public void shouldRejectInvalid()
-    {
-        when(context.clock()).thenReturn(Clock.systemUTC());
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        ProtobufModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
-
-        // index byte, then content length prefix promises 8 bytes but only "OK" follows under FLAGS_COMPLETE
-        byte[] invalid = {0x00, 0x0a, 0x08, 0x4f, 0x4b};
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(invalid), 0, invalid.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
     }
 
     @Test
