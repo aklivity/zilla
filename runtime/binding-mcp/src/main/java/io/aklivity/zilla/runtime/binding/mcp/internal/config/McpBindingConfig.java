@@ -53,12 +53,12 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class McpBindingConfig
 {
@@ -70,6 +70,12 @@ public final class McpBindingConfig
     private static final int PORT_HTTP = 80;
     private static final int PORT_HTTPS = 443;
     private static final String PATH_ROOT = "/";
+
+    private static final String MODEL_NAME = "model";
+    private static final String CATALOG_NAME = "catalog";
+    private static final String SCHEMA_ID = "id";
+
+    private static final CatalogHandler NO_CATALOG = new NoOpCatalogHandler();
 
     public final long id;
     public final McpOptionsConfig options;
@@ -86,6 +92,8 @@ public final class McpBindingConfig
     private final String serverPath;
     private final CatalogHandler toolsCatalog;
     private final ModelConfig toolsModel;
+    private final boolean validates;
+    private final ModelConfigAdapter modelConfig;
     private final Function<ModelConfig, ModelHandler> supplyModel;
     private final Int2ObjectHashMap<ModelPipeline> decodersBySchemaId;
     private final Object2IntHashMap<String> toolSchemaIdsByName;
@@ -153,9 +161,11 @@ public final class McpBindingConfig
         this.toolsModel = Optional.ofNullable(options)
             .map(o -> o.tools)
             .orElse(null);
-        this.toolsCatalog = toolsModel != null && !toolsModel.cataloged.isEmpty()
+        this.validates = toolsModel != null && !toolsModel.cataloged.isEmpty();
+        this.toolsCatalog = validates
             ? context.supplyCatalog(toolsModel.cataloged.get(0).id)
-            : null;
+            : NO_CATALOG;
+        this.modelConfig = new ModelConfigAdapter();
         this.supplyModel = context::supplyModel;
         this.decodersBySchemaId = new Int2ObjectHashMap<>();
         this.toolSchemaIdsByName = new Object2IntHashMap<>(NO_SCHEMA_ID);
@@ -165,29 +175,26 @@ public final class McpBindingConfig
 
     public boolean validatesTools()
     {
-        return toolsCatalog != null;
+        return validates;
     }
 
     public int registerToolSchema(
         String subject,
         String schema)
     {
-        return toolsCatalog != null ? toolsCatalog.register(subject, schema) : NO_SCHEMA_ID;
+        return toolsCatalog.register(subject, schema);
     }
 
     public void unregisterToolSchema(
         String subject)
     {
-        if (toolsCatalog != null)
-        {
-            toolsCatalog.unregister(subject);
-        }
+        toolsCatalog.unregister(subject);
     }
 
     public boolean validatesTool(
         int schemaId)
     {
-        return toolsCatalog != null && schemaId != NO_SCHEMA_ID;
+        return schemaId != NO_SCHEMA_ID;
     }
 
     public boolean validateToolArgs(
@@ -199,7 +206,7 @@ public final class McpBindingConfig
         int limit)
     {
         boolean valid = true;
-        final ModelPipeline decoder = toolsCatalog != null && schemaId != NO_SCHEMA_ID
+        final ModelPipeline decoder = schemaId != NO_SCHEMA_ID
             ? decodersBySchemaId.computeIfAbsent(schemaId, this::newToolDecoder)
             : null;
         if (decoder != null)
@@ -337,17 +344,15 @@ public final class McpBindingConfig
         int schemaId)
     {
         final CatalogedConfig template = toolsModel.cataloged.get(0);
-        final CatalogedConfig cataloged = CatalogedConfig.builder()
-            .name(template.name)
-            .schema()
-                .id(schemaId)
-                .build()
+        final JsonObject model = Json.createObjectBuilder()
+            .add(MODEL_NAME, toolsModel.model)
+            .add(CATALOG_NAME, Json.createObjectBuilder()
+                .add(template.name, Json.createArrayBuilder()
+                    .add(Json.createObjectBuilder().add(SCHEMA_ID, schemaId))))
             .build();
-        cataloged.id = template.id;
-        final ModelConfig model = JsonModelConfig.builder()
-            .catalog(cataloged)
-            .build();
-        final ModelHandler handler = supplyModel.apply(model);
+        final ModelConfig toolModel = modelConfig.adaptFromJson(model);
+        toolModel.cataloged.get(0).id = template.id;
+        final ModelHandler handler = supplyModel.apply(toolModel);
         return handler != null ? handler.supplyDecoder() : null;
     }
 
@@ -550,5 +555,23 @@ public final class McpBindingConfig
             }
         }
         return redirectURI;
+    }
+
+    private static final class NoOpCatalogHandler implements CatalogHandler
+    {
+        @Override
+        public String resolve(
+            int schemaId)
+        {
+            return null;
+        }
+
+        @Override
+        public int resolve(
+            String subject,
+            String version)
+        {
+            return NO_SCHEMA_ID;
+        }
     }
 }
