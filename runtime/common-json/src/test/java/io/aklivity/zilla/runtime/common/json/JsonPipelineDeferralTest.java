@@ -19,15 +19,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonPipelineDeferralTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
     // a transform that needs each scalar whole: while a value still has deferred bytes it pushes back via
     // consumed(0) and does not forward; once the value is complete it forwards it downstream. The source

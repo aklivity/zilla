@@ -34,7 +34,6 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
-
 public final class GrpcKafkaRouteConfig
 {
     public final long id;

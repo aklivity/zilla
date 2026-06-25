@@ -23,15 +23,15 @@ import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonProjectorSegmentTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
     @Test
     void shouldSegmentKeptSubtreeWhenSinkOptsIn()
@@ -200,7 +200,7 @@ class JsonProjectorSegmentTest
         int outBound,
         int inStep)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[outBound]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[outBound]);
         JsonGeneratorEx gen = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))
@@ -261,7 +261,7 @@ class JsonProjectorSegmentTest
         int outBound,
         int inStep)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[outBound]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[outBound]);
         JsonGeneratorEx gen = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/id", "/status", "/total")))
@@ -306,7 +306,7 @@ class JsonProjectorSegmentTest
     private static String plain(
         String json)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[4096]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(out, 0, out.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))

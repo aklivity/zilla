@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest
+
     .KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_INSTANCE_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;

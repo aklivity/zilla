@@ -20,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.function.Consumer;
 
-import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
@@ -338,7 +338,7 @@ public class ProtobufJsonTest
         String messageName,
         byte[] wire)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
@@ -357,7 +357,7 @@ public class ProtobufJsonTest
         String messageName,
         String json)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
@@ -376,7 +376,7 @@ public class ProtobufJsonTest
         String json,
         int window)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
@@ -429,7 +429,7 @@ public class ProtobufJsonTest
         String messageName,
         String json)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
@@ -454,7 +454,7 @@ public class ProtobufJsonTest
     private static byte[] wire(
         Consumer<ProtobufGenerator> body)
     {
-        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[8192]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(buffer, 0, buffer.capacity());
         body.accept(generator);
         byte[] bytes = new byte[generator.length()];

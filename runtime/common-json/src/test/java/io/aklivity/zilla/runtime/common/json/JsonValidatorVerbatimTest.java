@@ -18,9 +18,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -43,7 +43,7 @@ class JsonValidatorVerbatimTest
     void shouldValidateThenForwardVerbatimPreservingWhitespace()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -62,7 +62,7 @@ class JsonValidatorVerbatimTest
     void shouldValidateThenForwardVerbatimAcrossFrames()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -85,7 +85,7 @@ class JsonValidatorVerbatimTest
     void shouldForwardTrailingNewlineVerbatim()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -104,7 +104,7 @@ class JsonValidatorVerbatimTest
     void shouldForwardTrailingNewlineThroughBoundedOutput()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
             .into(JsonEx.createSink(gen));
@@ -120,7 +120,7 @@ class JsonValidatorVerbatimTest
     void shouldForwardMultipleDocumentsVerbatimPreservingInterDocumentBytes()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -151,7 +151,7 @@ class JsonValidatorVerbatimTest
     void shouldRejectInvalidUnderVerbatim()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator())
@@ -169,7 +169,7 @@ class JsonValidatorVerbatimTest
     void shouldValidateThenForwardVerbatimThroughBoundedOutput()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
             .into(JsonEx.createSink(gen));
@@ -182,7 +182,7 @@ class JsonValidatorVerbatimTest
 
     private static String output(
         JsonGeneratorEx gen,
-        MutableDirectBuffer buffer)
+        MutableDirectBufferEx buffer)
     {
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
@@ -192,7 +192,7 @@ class JsonValidatorVerbatimTest
     private static String bounded(
         JsonPipeline pipeline,
         JsonGeneratorEx gen,
-        MutableDirectBuffer output,
+        MutableDirectBufferEx output,
         String json,
         int bound)
     {
@@ -226,7 +226,7 @@ class JsonValidatorVerbatimTest
     private static String chunked(
         JsonPipeline pipeline,
         JsonGeneratorEx gen,
-        MutableDirectBuffer output,
+        MutableDirectBufferEx output,
         String json,
         int bound)
     {

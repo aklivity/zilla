@@ -31,8 +31,8 @@ import java.util.zip.CRC32C;
 
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
-import org.agrona.concurrent.ringbuffer.RingBuffer;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;

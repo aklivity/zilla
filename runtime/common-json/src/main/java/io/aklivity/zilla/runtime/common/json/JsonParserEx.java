@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.common.json;
 
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * A {@link JsonParser} extended with the streaming-over-buffers surface the standard
@@ -24,7 +24,7 @@ import org.agrona.DirectBuffer;
  * a sub-interface of the standard type that drives a {@link JsonStream} pipeline.
  * <p>
  * Obtain an instance from {@link JsonEx#createParser()} (the implementation is internal). Reuse a
- * single instance per thread, calling {@link #wrap(DirectBuffer, int, int)} to borrow each frame's
+ * single instance per thread, calling {@link #wrap(DirectBufferEx, int, int)} to borrow each frame's
  * buffer before pumping.
  */
 public interface JsonParserEx extends JsonParser
@@ -52,7 +52,7 @@ public interface JsonParserEx extends JsonParser
      * {@code getSegment()}), and a fragmented number via {@code getBigDecimal()}/{@code getBigInteger()}.
      */
     JsonParserEx wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit);
 
@@ -60,17 +60,17 @@ public interface JsonParserEx extends JsonParser
      * Wraps the next input window {@code [offset, limit)} of a chunked feed; {@code last} marks the final
      * window, so its EOF is the terminal delimiter (completing a trailing scalar, rejecting a truncated
      * value) rather than a frame boundary with more bytes to come. The three-argument
-     * {@link #wrap(DirectBuffer, int, int)} is the {@code last == true} shorthand.
+     * {@link #wrap(DirectBufferEx, int, int)} is the {@code last == true} shorthand.
      */
     JsonParserEx wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);
 
     /**
      * Rewinds the parser to before the start of a document, clearing all tokenizer state (parse stack,
-     * scratch, stream offset) so the next {@link #wrap(DirectBuffer, int, int)} begins a fresh top-level
+     * scratch, stream offset) so the next {@link #wrap(DirectBufferEx, int, int)} begins a fresh top-level
      * value. A reused instance calls this once per document; it is not called between the windows of a
      * single document (those continue via {@code wrap}). Distinct from a window swap, which preserves
      * in-flight state.
@@ -145,7 +145,7 @@ public interface JsonParserEx extends JsonParser
      * contiguous slice, valid on-stack only. The {@link JsonSource#getSegment()} accessor promoted onto the
      * parser surface so a pipeline exposes it to a stage without narrowing to {@link JsonSource}.
      */
-    DirectBuffer getSegment();
+    DirectBufferEx getSegment();
 
     /**
      * Bounded pull of the coalesced <em>verbatim</em> run as a {@link JsonVerbatim} block — the original source

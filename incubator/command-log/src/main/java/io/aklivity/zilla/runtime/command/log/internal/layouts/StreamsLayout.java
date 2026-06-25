@@ -22,7 +22,6 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
-
 import io.aklivity.zilla.runtime.command.log.internal.spy.OneToOneRingBufferSpy;
 import io.aklivity.zilla.runtime.command.log.internal.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.command.log.internal.spy.RingBufferSpy.SpyPosition;

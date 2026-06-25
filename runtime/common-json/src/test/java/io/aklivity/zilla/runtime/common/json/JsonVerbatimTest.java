@@ -21,10 +21,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 class JsonVerbatimTest
 {
     @Test
@@ -123,7 +124,7 @@ class JsonVerbatimTest
     }
 
     private static String asString(
-        DirectBuffer buffer)
+        DirectBufferEx buffer)
     {
         byte[] copy = new byte[buffer.capacity()];
         buffer.getBytes(0, copy);

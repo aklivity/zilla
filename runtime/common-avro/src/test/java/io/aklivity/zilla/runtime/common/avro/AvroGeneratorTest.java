@@ -18,9 +18,10 @@ import static io.aklivity.zilla.runtime.common.avro.AvroValues.NO_CONTROL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.junit.jupiter.api.Test;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import org.junit.jupiter.api.Test;
 
 public class AvroGeneratorTest
 {

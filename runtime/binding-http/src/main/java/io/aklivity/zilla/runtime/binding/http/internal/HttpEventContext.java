@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.time.Clock;
 import java.util.Map;
 
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;

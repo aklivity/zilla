@@ -35,12 +35,9 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonValue;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Object2IntHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -48,6 +45,9 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -98,8 +98,8 @@ public final class McpBindingConfig
     private final Function<ModelConfig, ModelHandler> supplyModel;
     private final Int2ObjectHashMap<ModelPipeline> decodersBySchemaId;
     private final Object2IntHashMap<String> toolSchemaIdsByName;
-    private final MutableDirectBuffer scratch;
-    private final MutableDirectBuffer argsScratch;
+    private final MutableDirectBufferEx scratch;
+    private final MutableDirectBufferEx argsScratch;
 
     public McpBindingConfig(
         BindingConfig binding,
@@ -202,7 +202,7 @@ public final class McpBindingConfig
         int schemaId,
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int limit)
     {
@@ -305,7 +305,7 @@ public final class McpBindingConfig
         int schemaId,
         long traceId,
         long bindingId,
-        DirectBuffer params,
+        DirectBufferEx params,
         int index,
         int limit)
     {
@@ -320,7 +320,7 @@ public final class McpBindingConfig
     }
 
     private String extractArguments(
-        DirectBuffer params,
+        DirectBufferEx params,
         int index,
         int limit)
     {

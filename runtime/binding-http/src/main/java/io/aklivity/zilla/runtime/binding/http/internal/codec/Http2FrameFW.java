@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.http.internal.codec;
 
 import static java.nio.ByteOrder.BIG_ENDIAN;
 
-
 import io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags;
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;

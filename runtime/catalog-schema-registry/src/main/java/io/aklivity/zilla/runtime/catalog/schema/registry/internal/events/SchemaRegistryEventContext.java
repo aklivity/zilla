@@ -24,7 +24,6 @@ import java.nio.ByteBuffer;
 import java.time.Clock;
 import java.util.regex.Pattern;
 
-
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.event.SchemaRegistryEventExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;

@@ -21,10 +21,10 @@ import java.math.BigDecimal;
 
 import jakarta.json.stream.JsonLocation;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -82,7 +82,7 @@ class JsonInjectTest
         String json)
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBufferEx(new byte[1024]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[1024]);
         generator.wrap(output, 0, output.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(new Inject(beforeKey, injectKey, injectKind, injectValue))
@@ -299,7 +299,7 @@ class JsonInjectTest
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             throw new UnsupportedOperationException();
         }

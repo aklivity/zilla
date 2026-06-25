@@ -32,7 +32,6 @@ import java.util.stream.IntStream;
 
 import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
-import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -49,7 +48,7 @@ public final class HistogramsLayout extends MetricsLayout
     private static final LongSupplier ZERO_LONG_SUPPLIER = () -> 0L;
 
     private HistogramsLayout(
-        AtomicBuffer buffer)
+        AtomicBufferEx buffer)
     {
         super(buffer);
     }

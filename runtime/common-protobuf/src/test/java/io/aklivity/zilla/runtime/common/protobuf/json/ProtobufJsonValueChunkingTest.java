@@ -29,10 +29,10 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
 import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
@@ -166,7 +166,7 @@ public class ProtobufJsonValueChunkingTest
         byte[] json,
         int window)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[window]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[window]);
         ProtobufGenerator generator = Protobuf.generator();
         generator.wrap(out, 0, window);
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
@@ -198,7 +198,7 @@ public class ProtobufJsonValueChunkingTest
         String messageName,
         byte[] wire)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[1 << 18]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[1 << 18]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
@@ -224,7 +224,7 @@ public class ProtobufJsonValueChunkingTest
     }
 
     private static byte[] bytes(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int length)
     {
         byte[] bytes = new byte[length];

@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEven
 import java.nio.ByteBuffer;
 import java.time.Clock;
 
-
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.event.TcpEventExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;

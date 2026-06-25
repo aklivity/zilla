@@ -25,9 +25,9 @@ import java.util.Map;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
-import org.agrona.MutableDirectBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -37,7 +37,7 @@ class JsonValidatorChainTest
         "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}," +
         "\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]}";
 
-    private final MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[1024]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
     @Test
     void shouldForwardFullStreamWhenValid()

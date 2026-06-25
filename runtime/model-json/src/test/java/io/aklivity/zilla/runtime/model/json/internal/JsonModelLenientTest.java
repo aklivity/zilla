@@ -25,10 +25,10 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
-import org.agrona.DirectBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -103,7 +103,7 @@ public class JsonModelLenientTest
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("{\"id\":\"abc\"}", text(dst, result.produced()));
-        verify(eventWriter, never()).accept(anyInt(), any(DirectBuffer.class), anyInt(), anyInt());
+        verify(eventWriter, never()).accept(anyInt(), any(DirectBufferEx.class), anyInt(), anyInt());
     }
 
     private static ValidateConfig strict()
