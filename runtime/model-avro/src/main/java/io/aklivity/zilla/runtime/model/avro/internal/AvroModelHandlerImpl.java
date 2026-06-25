@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.common.avro.Avro;
@@ -68,7 +68,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     }
 
     int decodePadding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -88,7 +88,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     // the catalog framing the value carries on the wire, stripped once at the start of the first fragment
     int prefix(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -96,7 +96,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     }
 
     int resolveSchemaId(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -122,7 +122,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
