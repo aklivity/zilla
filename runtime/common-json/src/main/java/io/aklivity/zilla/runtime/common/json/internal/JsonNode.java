@@ -14,18 +14,14 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import static jakarta.json.stream.JsonParser.Event.END_ARRAY;
-import static jakarta.json.stream.JsonParser.Event.END_OBJECT;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
+import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;

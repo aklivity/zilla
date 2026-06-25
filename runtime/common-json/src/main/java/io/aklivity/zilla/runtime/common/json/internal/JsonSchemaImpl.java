@@ -14,17 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import static jakarta.json.stream.JsonParser.Event.END_ARRAY;
-import static jakarta.json.stream.JsonParser.Event.END_OBJECT;
-import static jakarta.json.stream.JsonParser.Event.KEY_NAME;
-import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
-import static jakarta.json.stream.JsonParser.Event.START_OBJECT;
-import static jakarta.json.stream.JsonParser.Event.VALUE_FALSE;
-import static jakarta.json.stream.JsonParser.Event.VALUE_NULL;
-import static jakarta.json.stream.JsonParser.Event.VALUE_NUMBER;
-import static jakarta.json.stream.JsonParser.Event.VALUE_STRING;
-import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
-
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
@@ -44,19 +33,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.stream.JsonLocation;
-import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
+import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
-import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;

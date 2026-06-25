@@ -14,11 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import org.junit.jupiter.api.Test;
 
 public class JsonStringsTest
 {

@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import jakarta.json.stream.JsonParser;
 
 import org.junit.jupiter.api.Test;

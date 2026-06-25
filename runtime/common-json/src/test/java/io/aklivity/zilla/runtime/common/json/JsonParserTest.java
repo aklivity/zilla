@@ -14,23 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import static jakarta.json.stream.JsonParser.Event.END_ARRAY;
-import static jakarta.json.stream.JsonParser.Event.END_OBJECT;
-import static jakarta.json.stream.JsonParser.Event.KEY_NAME;
-import static jakarta.json.stream.JsonParser.Event.START_ARRAY;
-import static jakarta.json.stream.JsonParser.Event.START_OBJECT;
-import static jakarta.json.stream.JsonParser.Event.VALUE_FALSE;
-import static jakarta.json.stream.JsonParser.Event.VALUE_NULL;
-import static jakarta.json.stream.JsonParser.Event.VALUE_NUMBER;
-import static jakarta.json.stream.JsonParser.Event.VALUE_STRING;
-import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
