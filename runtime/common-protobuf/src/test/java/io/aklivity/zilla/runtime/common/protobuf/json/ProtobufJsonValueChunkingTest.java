@@ -144,7 +144,7 @@ public class ProtobufJsonValueChunkingTest
         boolean fixedFound = false;
         for (Field field : parser.getClass().getDeclaredFields())
         {
-            assertTrue(!ExpandableArrayBuffer.class.isAssignableFrom(field.getType()),
+            assertTrue(!ExpandableArrayBufferEx.class.isAssignableFrom(field.getType()),
                 "no growable ExpandableArrayBufferEx may stage the value");
             if ("valueChunk".equals(field.getName()))
             {
