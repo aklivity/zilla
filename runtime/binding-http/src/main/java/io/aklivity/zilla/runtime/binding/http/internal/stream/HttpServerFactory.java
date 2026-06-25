@@ -78,10 +78,6 @@ import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableReference;
 import org.agrona.concurrent.AtomicBuffer;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
@@ -139,6 +135,9 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.http.internal.util.HttpUtil;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
