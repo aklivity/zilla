@@ -5176,7 +5176,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer headersBuffer = headersPool.buffer(headersSlot);
+                    final MutableDirectBufferEx headersBuffer = headersPool.buffer(headersSlot);
                     headersBuffer.putBytes(headersSlotOffset, dataBuffer, dataOffset, dataLength);
                     headersSlotOffset = dataLength;
 
@@ -5194,11 +5194,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             assert headersSlotOffset != 0;
 
             final int streamId = http2Continuation.streamId();
-            final DirectBuffer payload = http2Continuation.payload();
+            final DirectBufferEx payload = http2Continuation.payload();
             final boolean endHeaders = http2Continuation.endHeaders();
             final boolean endRequest = http2Continuation.endStream();
 
-            final MutableDirectBuffer headersBuffer = headersPool.buffer(headersSlot);
+            final MutableDirectBufferEx headersBuffer = headersPool.buffer(headersSlot);
             headersBuffer.putBytes(headersSlotOffset, payload, 0, payload.capacity());
             headersSlotOffset += payload.capacity();
 
@@ -5470,7 +5470,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer headersBuffer = headersPool.buffer(headersSlot);
+                    final MutableDirectBufferEx headersBuffer = headersPool.buffer(headersSlot);
                     headersBuffer.putBytes(headersSlotOffset, dataBuffer, dataOffset, dataLength);
                     headersSlotOffset = dataLength;
 
@@ -5527,7 +5527,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             int streamId,
             byte flags,
             int deferred,
-            DirectBuffer payload)
+            DirectBufferEx payload)
         {
             int progress = 0;
 
