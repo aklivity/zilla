@@ -200,7 +200,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          sparse-checkout: examples/${{ matrix.dir }}
+          sparse-checkout: |
+            examples/.github
+            examples/${{ matrix.dir }}
 
       - name: Route Docker Hub pulls through mirror.gcr.io
         run: |

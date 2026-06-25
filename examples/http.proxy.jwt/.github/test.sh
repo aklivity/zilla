@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 PORT="7114"
 MESSAGE="Hello, world"
@@ -19,10 +21,14 @@ JWT_TOKEN_NO_SCOPE=$(docker compose run --rm \
     --no-iat \
     --secret @/private.pem | tr -d '\r\n')
 
-UNAUTHORIZED_RESPONSE=$(curl -w "%{http_code}" http://localhost:$PORT/ \
-    -H "Authorization: Bearer $JWT_TOKEN_NO_SCOPE" \
-    -H "Content-Type: text/plain" \
-    -d "$MESSAGE")
+get_unauthorized() {
+  UNAUTHORIZED_RESPONSE=$(curl -w "%{http_code}" http://localhost:$PORT/ \
+      -H "Authorization: Bearer $JWT_TOKEN_NO_SCOPE" \
+      -H "Content-Type: text/plain" \
+      -d "$MESSAGE")
+  [ "$UNAUTHORIZED_RESPONSE" = "404" ]
+}
+retry_until 5 2 get_unauthorized
 
 if [ "$UNAUTHORIZED_RESPONSE" = "404" ]; then
   echo ✅
@@ -43,10 +49,14 @@ JWT_TOKEN_WITH_SCOPE=$(docker compose run --rm \
     --payload "scope=echo:stream" \
     --secret @/private.pem | tr -d '\r\n')
 
-AUTHORIZED_RESPONSE=$(curl "http://localhost:$PORT/" \
-    -H "Authorization: Bearer $JWT_TOKEN_WITH_SCOPE" \
-    -H "Content-Type: text/plain" \
-    -d "$MESSAGE")
+get_authorized() {
+  AUTHORIZED_RESPONSE=$(curl "http://localhost:$PORT/" \
+      -H "Authorization: Bearer $JWT_TOKEN_WITH_SCOPE" \
+      -H "Content-Type: text/plain" \
+      -d "$MESSAGE")
+  [ "$AUTHORIZED_RESPONSE" = "$MESSAGE" ]
+}
+retry_until 5 2 get_authorized
 
 if [ "$AUTHORIZED_RESPONSE" = "$MESSAGE" ]; then
   echo ✅

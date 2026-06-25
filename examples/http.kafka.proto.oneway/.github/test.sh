@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -22,10 +24,14 @@ if [ ! -f "$ENCODED_FILE" ]; then
 fi
 
 # WHEN
-OUTPUT=$(curl -w "%{http_code}" -s --request POST http://localhost:$PORT/requests \
-  --header "Content-Type: application/protobuf" \
-  --data-binary @"$ENCODED_FILE")
-RESULT=$?
+post_requests() {
+  OUTPUT=$(curl -w "%{http_code}" -s --request POST http://localhost:$PORT/requests \
+    --header "Content-Type: application/protobuf" \
+    --data-binary @"$ENCODED_FILE")
+  RESULT=$?
+  [ "$RESULT" -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 5 2 post_requests
 echo RESULT="$RESULT"
 
 # THEN
