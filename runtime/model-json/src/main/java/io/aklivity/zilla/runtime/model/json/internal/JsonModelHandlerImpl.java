@@ -16,8 +16,7 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -64,7 +63,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     }
 
     int decodePadding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -78,7 +77,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     }
 
     int resolveSchemaId(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -104,7 +103,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
