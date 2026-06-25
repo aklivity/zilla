@@ -23,11 +23,11 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -78,19 +78,19 @@ public class ProtobufModelEncoderPipelineTest
 
         byte[] a1 = "{\"content\":\"OK\",".getBytes(UTF_8);
         byte[] a2tail = "\"date_time\":\"01012024\"}".getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
         ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
-            new UnsafeBuffer(a1), 0, a1.length, dst, 0, dst.capacity());
+            new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
         byte[] bIn = JSON.getBytes(UTF_8);
         ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(bIn), 0, bIn.length, dst, 0, dst.capacity());
+            new UnsafeBufferEx(bIn), 0, bIn.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
         dst.getBytes(0, outB);
@@ -99,7 +99,7 @@ public class ProtobufModelEncoderPipelineTest
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
         ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
-            new UnsafeBuffer(a2), 0, a2.length, dst, 0, dst.capacity());
+            new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
@@ -116,14 +116,14 @@ public class ProtobufModelEncoderPipelineTest
         // bounded-chunk OVERFLOW drain across re-transforms (INIT cleared on every re-call after the first)
         String content = "A".repeat(2000);
         byte[] in = ("{\"content\":\"" + content + "\",\"date_time\":\"01012024\"}").getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[512]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int flags = FLAGS_COMPLETE;
         ModelPipelineResult result;
         int guard = 0;
         do
         {
-            result = pipeline.transform(0L, 0L, flags, new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
+            result = pipeline.transform(0L, 0L, flags, new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
             drain(dst, result.produced(), out);
             flags = FLAGS_FIN;
             guard++;
@@ -146,9 +146,9 @@ public class ProtobufModelEncoderPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
         byte[] in = JSON.getBytes(UTF_8);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBuffer(in), 0, in.length, dst, 0, dst.capacity());
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
@@ -199,7 +199,7 @@ public class ProtobufModelEncoderPipelineTest
     }
 
     private static void drain(
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int produced,
         ByteArrayOutputStream sink)
     {
