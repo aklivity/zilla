@@ -225,9 +225,17 @@
                                         }
                                     }
                                 },
-                                "additionalProperties": false
+                                "additionalProperties": false,
+                                "required":
+                                [
+                                    "store"
+                                ]
                             }
-                        }
+                        },
+                        "required":
+                        [
+                            "options"
+                        ]
                     },
                     {
                         "properties":

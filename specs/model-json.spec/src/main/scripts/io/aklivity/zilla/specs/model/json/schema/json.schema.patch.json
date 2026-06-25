@@ -47,7 +47,8 @@
                                                     "type": "string",
                                                     "enum": [
                                                         "topic",
-                                                        "encoded"
+                                                        "encoded",
+                                                        "tool"
                                                     ]
                                                 },
                                                 "version": {

@@ -164,6 +164,39 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.validation.yaml")
+    @Specification({
+        "${app}/cache.tools.call.valid.input/client",
+        "${app}/cache.tools.call.valid.input/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldProxyToolsCallWithValidInput() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.validation.yaml")
+    @Specification({
+        "${app}/cache.tools.call.invalid.input/client",
+        "${app}/cache.tools.call.invalid.input/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRejectToolsCallWithInvalidInput() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.validation.yaml")
+    @Specification({
+        "${app}/cache.tools.call.no.schema/client",
+        "${app}/cache.tools.call.no.schema/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldForwardToolsCallWithoutSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.hydrate.lifecycle.reconnect/server" })
