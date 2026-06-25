@@ -1683,7 +1683,8 @@ public final class TlsServerFactory implements TlsStreamFactory
             String tlsProtocol = "".equals(alpn) ? null : alpn;
 
             final TlsBindingConfig binding = bindings.get(routedId);
-            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, null) : null;
+            final TlsRouteConfig route = binding != null
+                ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, null) : null;
 
             if (route != null)
             {
