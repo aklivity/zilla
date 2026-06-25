@@ -5854,7 +5854,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final int length = Math.min(limit - progress, remoteSettings.maxFrameSize);
                 final boolean markEndResponse = endResponse && limit - progress < remoteSettings.maxFrameSize;
-                final Http2DataFW http2Data = http2DataRW.wrap((MutableDirectBufferEx) frameBuffer, frameOffset, frameBuffer.capacity())
+                final Http2DataFW http2Data = http2DataRW
+                        .wrap((MutableDirectBufferEx) frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
                         .endStream(markEndResponse)
                         .payload((DirectBufferEx) buffer, progress, length)
@@ -5885,7 +5886,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
-                final Http2HeadersFW http2Headers = http2HeadersRW.wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
+                final Http2HeadersFW http2Headers = http2HeadersRW
+                        .wrap((MutableDirectBufferEx) frameBuffer, 0, frameBuffer.capacity())
                         .streamId(streamId)
                         .headers(hb -> headersEncoder.encodeTrailers(encodeContext, trailers, hb))
                         .endHeaders()
@@ -5940,7 +5942,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     .build()
                     .limit();
 
-            final int frameLimit = http2WindowUpdateRW.wrap((MutableDirectBufferEx) frameBuffer, frameOffset, frameBuffer.capacity())
+            final int frameLimit = http2WindowUpdateRW
+                    .wrap((MutableDirectBufferEx) frameBuffer, frameOffset, frameBuffer.capacity())
                     .streamId(streamId)
                     .size(size)
                     .build()
@@ -6893,7 +6896,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         return;
                     }
                     // request pseudo-header fields MUST be one of :authority, :method, :path, :scheme,
-                    int index = context.index(name);
+                    int index = context.index((DirectBufferEx) name);
                     switch (index)
                     {
                     case 1:             // :authority
@@ -7059,7 +7062,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]); // TODO
+                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
                         int length = HpackHuffman.decode((DirectBufferEx) value, dst);
                         if (length == -1)
                         {
@@ -7075,7 +7078,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     name = hpackName.payload();
                     if (hpackName.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]); // TODO
+                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
                         int length = HpackHuffman.decode((DirectBufferEx) name, dst);
                         if (length == -1)
                         {
@@ -7088,8 +7091,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode(value, dst);
+                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
+                        int length = HpackHuffman.decode((DirectBufferEx) value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
@@ -7107,7 +7110,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     nameCopy.putBytes(0, name, 0, name.capacity());
                     MutableDirectBuffer valueCopy = new UnsafeBufferEx(new byte[value.capacity()]);
                     valueCopy.putBytes(0, value, 0, value.capacity());
-                    context.add(nameCopy, valueCopy);
+                    context.add((DirectBufferEx) nameCopy, (DirectBufferEx) valueCopy);
                 }
                 break;
             default:
@@ -7321,16 +7324,16 @@ public final class HttpServerFactory implements HttpStreamFactory
             DirectBuffer valueBuffer)
         {
             builder.type(WITHOUT_INDEXING);
-            final int nameIndex = hpackContext.index(nameBuffer);
+            final int nameIndex = hpackContext.index((DirectBufferEx) nameBuffer);
             if (nameIndex != -1)
             {
                 builder.name(nameIndex);
             }
             else
             {
-                builder.name(nameBuffer, 0, nameBuffer.capacity());
+                builder.name((DirectBufferEx) nameBuffer, 0, nameBuffer.capacity());
             }
-            builder.value(valueBuffer, 0, valueBuffer.capacity());
+            builder.value((DirectBufferEx) valueBuffer, 0, valueBuffer.capacity());
         }
     }
 
@@ -7423,7 +7426,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder =
-            altSvcHeadersRW.wrap(altSvcHeadersBuffer, 0, altSvcHeadersBuffer.capacity());
+            altSvcHeadersRW.wrap((MutableDirectBufferEx) altSvcHeadersBuffer, 0, altSvcHeadersBuffer.capacity());
 
         headers.forEach(h ->
         {
@@ -7436,8 +7439,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 altSvcRawBuffer.putBytes(0, alpnBytes);
                 altSvcRawBuffer.putBytes(alpnBytes.length, original, suffixOffset, suffixLength);
                 final String16FW translatedValue = altSvcValueRW
-                    .wrap(altSvcValueBuffer, 0, altSvcValueBuffer.capacity())
-                    .set(altSvcRawBuffer, 0, newLength)
+                    .wrap((MutableDirectBufferEx) altSvcValueBuffer, 0, altSvcValueBuffer.capacity())
+                    .set((DirectBufferEx) altSvcRawBuffer, 0, newLength)
                     .build();
                 builder.item(item -> item.name(HEADER_ALT_SVC).value(translatedValue));
             }

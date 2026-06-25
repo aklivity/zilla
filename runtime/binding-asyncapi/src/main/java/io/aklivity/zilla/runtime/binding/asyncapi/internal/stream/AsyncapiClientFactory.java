@@ -92,7 +92,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);

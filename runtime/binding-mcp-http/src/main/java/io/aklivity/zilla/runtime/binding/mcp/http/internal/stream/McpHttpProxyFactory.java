@@ -45,11 +45,8 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonWriter;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptArgumentConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptConfig;
@@ -76,6 +73,9 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBegin
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;

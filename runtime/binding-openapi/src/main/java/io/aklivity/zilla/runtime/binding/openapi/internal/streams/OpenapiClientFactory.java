@@ -91,7 +91,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         EngineContext context)
     {
         this.context = context;
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;

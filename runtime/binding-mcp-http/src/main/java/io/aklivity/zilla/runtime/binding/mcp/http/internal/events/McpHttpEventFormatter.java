@@ -14,11 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal.events;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.event.McpHttpEventExFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.event.McpHttpSchemaAccessorUnresolvedExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
