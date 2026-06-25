@@ -44,7 +44,6 @@ import java.util.regex.Pattern;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
@@ -76,10 +75,11 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
-import io.aklivity.zilla.runtime.common.json.StreamingJson;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -284,12 +284,8 @@ public final class McpClientFactory implements McpStreamFactory
         this.signaler = context.signaler();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
-        this.responseParserFactory = StreamingJson.createParserFactory(Map.of(
-            StreamingJson.PATH_INCLUDES, CLIENT_JSON_PATH_INCLUDES,
-            StreamingJson.TOKEN_MAX_BYTES, decodeMax));
-        this.requestParserFactory = StreamingJson.createParserFactory(Map.of(
-            StreamingJson.PATH_INCLUDES, List.of(),
-            StreamingJson.TOKEN_MAX_BYTES, encodeMax));
+        this.responseParserFactory = JsonEx.createParserFactory(Map.of());
+        this.requestParserFactory = JsonEx.createParserFactory(Map.of());
 
         final Int2ObjectHashMap<McpSessionIdResolver> resolvers = new Int2ObjectHashMap<>();
         resolvers.put(KIND_TOOLS_LIST, ex -> ex.toolsList().sessionId().asString());
@@ -3705,7 +3701,7 @@ public final class McpClientFactory implements McpStreamFactory
 
                 if (decodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer slotBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                     slotBuffer.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
                     decodeSlotReserved += reserved;
@@ -3734,7 +3730,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (decodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                 final int reserved = decodeSlotReserved;
                 final int offset = 0;
                 final int limit = decodeSlotOffset;
@@ -3777,7 +3773,7 @@ public final class McpClientFactory implements McpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer slot = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
                     slot.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
@@ -3905,7 +3901,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
                 final long slotTraceId = encodeSlotTraceId;
                 final long slotAuthorization = encodeSlotAuthorization;
@@ -4000,7 +3996,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -4124,7 +4120,7 @@ public final class McpClientFactory implements McpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + length, remaining);
                     encodeSlotOffset = remaining;
                     encodeSlotTraceId = traceId;
@@ -4166,7 +4162,7 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpInitializeRequest extends HttpStream
     {
-        private final ExpandableArrayBuffer resultBuffer = new ExpandableArrayBuffer();
+        private final ExpandableArrayBufferEx resultBuffer = new ExpandableArrayBufferEx();
         private int resultLimit;
 
         HttpInitializeRequest(
@@ -4575,7 +4571,7 @@ public final class McpClientFactory implements McpStreamFactory
 
                 if (decodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer slotBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                     slotBuffer.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
                     decodeSlotReserved += reserved;
@@ -4631,7 +4627,7 @@ public final class McpClientFactory implements McpStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer slot = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
                     slot.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
