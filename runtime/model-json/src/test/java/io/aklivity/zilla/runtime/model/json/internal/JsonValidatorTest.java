@@ -25,13 +25,13 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -106,7 +106,7 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBufferEx();
+        UnsafeBufferEx data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -149,7 +149,7 @@ public class JsonValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBufferEx();
+        UnsafeBufferEx data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -190,7 +190,7 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBufferEx();
+        UnsafeBufferEx data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -234,7 +234,7 @@ public class JsonValidatorTest
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBufferEx();
+        UnsafeBufferEx data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -276,7 +276,7 @@ public class JsonValidatorTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         JsonValidatorHandler validator = new JsonValidatorHandler(model, context);
 
-        DirectBuffer data = new UnsafeBufferEx();
+        UnsafeBufferEx data = new UnsafeBufferEx();
 
         String payload =
                 "[" +
@@ -301,7 +301,7 @@ public class JsonValidatorTest
                     "\"id\": \"123\"," +
                     "\"status\": \"OK\"" +
                 "}").getBytes();
-        DirectBuffer data = new UnsafeBufferEx(bytes);
+        UnsafeBufferEx data = new UnsafeBufferEx(bytes);
 
         boolean valid = true;
         for (int i = 0; i < bytes.length; i++)
@@ -332,7 +332,7 @@ public class JsonValidatorTest
                     "\"id\": 123," +
                     "\"status\": \"OK\"" +
                 "}").getBytes();
-        DirectBuffer data = new UnsafeBufferEx(bytes);
+        UnsafeBufferEx data = new UnsafeBufferEx(bytes);
 
         boolean valid = true;
         for (int i = 0; i < bytes.length; i++)
@@ -357,7 +357,7 @@ public class JsonValidatorTest
     {
         JsonValidatorHandler validator = newValidator(OBJECT_SCHEMA);
 
-        DirectBuffer data = new UnsafeBufferEx();
+        UnsafeBufferEx data = new UnsafeBufferEx();
 
         String payload =
                 "{" +
@@ -422,7 +422,7 @@ public class JsonValidatorTest
 
         int length = encoded.length + event.length;
 
-        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(length);
+        ExpandableDirectByteBufferEx data = new ExpandableDirectByteBufferEx(length);
         data.putBytes(0, encoded, 0, encoded.length);
         data.putBytes(encoded.length, event, 0, event.length);
 
@@ -466,7 +466,7 @@ public class JsonValidatorTest
 
         int length = encoded.length + event.length;
 
-        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(length);
+        ExpandableDirectByteBufferEx data = new ExpandableDirectByteBufferEx(length);
         data.putBytes(0, encoded, 0, encoded.length);
         data.putBytes(encoded.length, event, 0, event.length);
 
@@ -503,7 +503,7 @@ public class JsonValidatorTest
         byte[] event = "{\"id\": \"123\",\"status\": \"OK\"}".getBytes();
         int total = encoded.length + event.length;
 
-        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(total);
+        ExpandableDirectByteBufferEx data = new ExpandableDirectByteBufferEx(total);
         data.putBytes(0, encoded, 0, encoded.length);
         data.putBytes(encoded.length, event, 0, event.length);
 
@@ -544,7 +544,7 @@ public class JsonValidatorTest
         byte[] event = "{\"id\": 123,\"status\": \"OK\"}".getBytes();
         int total = encoded.length + event.length;
 
-        ExpandableDirectByteBuffer data = new ExpandableDirectByteBuffer(total);
+        ExpandableDirectByteBufferEx data = new ExpandableDirectByteBufferEx(total);
         data.putBytes(0, encoded, 0, encoded.length);
         data.putBytes(encoded.length, event, 0, event.length);
 
@@ -561,7 +561,7 @@ public class JsonValidatorTest
         Capture capture = new Capture();
         String payload = "{\"id\":\"123\",\"status\":\"OK\"}";
         byte[] bytes = payload.getBytes(UTF_8);
-        DirectBuffer data = new UnsafeBufferEx(bytes);
+        UnsafeBufferEx data = new UnsafeBufferEx(bytes);
 
         assertTrue(validator.validate(0L, 0L, data, 0, bytes.length, capture));
         assertEquals(payload, capture.text());
@@ -577,7 +577,7 @@ public class JsonValidatorTest
         // a validator does not transform the payload, so the original bytes are forwarded unchanged
         String payload = "{\"id\": \"123\", \"status\": \"OK\"}";
         byte[] bytes = payload.getBytes(UTF_8);
-        DirectBuffer data = new UnsafeBufferEx(bytes);
+        UnsafeBufferEx data = new UnsafeBufferEx(bytes);
 
         assertTrue(validator.validate(0L, 0L, data, 0, bytes.length, capture));
         assertEquals(payload, capture.text());
@@ -648,13 +648,13 @@ public class JsonValidatorTest
 
     private static final class Capture implements ValueConsumer
     {
-        private final MutableDirectBuffer buffer = new ExpandableDirectByteBuffer();
+        private final MutableDirectBuffer buffer = new ExpandableDirectByteBufferEx();
 
         private int length;
 
         @Override
         public void accept(
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length)
         {
