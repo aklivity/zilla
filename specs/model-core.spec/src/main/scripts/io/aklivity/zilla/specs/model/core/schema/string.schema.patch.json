@@ -7,38 +7,47 @@
     {
         "op": "add",
         "path": "/$defs/models/model/allOf/-",
-        "value": {
-            "if": {
-                "properties": {
-                    "model": {
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
                         "const": "string"
                     }
                 }
             },
-            "then": {
-                "properties": {
-                    "model": {
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
                         "const": "string"
                     },
-                    "encoding": {
+                    "encoding":
+                    {
                         "type": "string",
-                        "enum": [
-                            "utf_8",
-                            "utf_16"
-                        ]
+                        "enum": [ "utf_8", "utf_16" ]
                     },
-                    "minLength": {
+                    "minLength":
+                    {
                         "type": "integer",
                         "minimum": 1
                     },
-                    "maxLength": {
+                    "maxLength":
+                    {
                         "type": "integer",
                         "minimum": 1
                     },
-                    "pattern": {
+                    "pattern":
+                    {
                         "type": "string"
                     },
-                    "validate": {
+                    "validate":
+                    {
                         "$ref": "#/$defs/validate"
                     }
                 },

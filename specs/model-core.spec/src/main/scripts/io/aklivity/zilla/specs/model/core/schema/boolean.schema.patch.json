@@ -7,20 +7,28 @@
     {
         "op": "add",
         "path": "/$defs/models/model/allOf/-",
-        "value": {
-            "if": {
-                "properties": {
-                    "model": {
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
                         "const": "boolean"
                     }
                 }
             },
-            "then": {
-                "properties": {
-                    "model": {
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
                         "const": "boolean"
                     },
-                    "validate": {
+                    "validate":
+                    {
                         "$ref": "#/$defs/validate"
                     }
                 },

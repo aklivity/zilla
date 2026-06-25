@@ -7,121 +7,145 @@
     {
         "op": "add",
         "path": "/$defs/models/model/allOf/-",
-        "value": {
-            "if": {
-                "properties": {
-                    "model": {
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
                         "const": "test"
                     }
                 }
             },
-            "then": {
-                "properties": {
-                    "model": {
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
                         "const": "test"
                     },
-                    "validate": {
-                        "oneOf": [
+                    "validate":
+                    {
+                        "oneOf":
+                        [
                             {
                                 "type": "string",
-                                "enum": [
-                                    "strict",
-                                    "lenient"
-                                ]
+                                "enum": [ "strict", "lenient" ]
                             },
                             {
                                 "type": "object",
-                                "properties": {
-                                    "decode": {
+                                "properties":
+                                {
+                                    "decode":
+                                    {
                                         "type": "string",
-                                        "enum": [
-                                            "strict",
-                                            "lenient"
-                                        ]
+                                        "enum": [ "strict", "lenient" ]
                                     },
-                                    "encode": {
+                                    "encode":
+                                    {
                                         "type": "string",
-                                        "enum": [
-                                            "strict",
-                                            "lenient"
-                                        ]
+                                        "enum": [ "strict", "lenient" ]
                                     }
                                 },
                                 "additionalProperties": false
                             }
                         ]
                     },
-                    "length": {
+                    "length":
+                    {
                         "type": "integer"
                     },
-                    "transform": {
+                    "transform":
+                    {
                         "type": "object",
-                        "properties": {
-                            "length": {
+                        "properties":
+                        {
+                            "length":
+                            {
                                 "type": "integer"
                             }
                         },
                         "additionalProperties": false
                     },
-                    "capability": {
+                    "capability":
+                    {
                         "type": "string"
                     },
-                    "fields": {
+                    "fields":
+                    {
                         "type": "array",
-                        "items": {
+                        "items":
+                        {
                             "type": "string"
                         }
                     },
-                    "catalog": {
+                    "catalog":
+                    {
                         "type": "object",
-                        "patternProperties": {
-                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$": {
+                        "patternProperties":
+                        {
+                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                            {
                                 "type": "array",
-                                "items": {
-                                    "oneOf": [
+                                "items":
+                                {
+                                    "oneOf":
+                                    [
                                         {
                                             "type": "object",
-                                            "properties": {
-                                                "id": {
+                                            "properties":
+                                            {
+                                                "id":
+                                                {
                                                     "type": "integer"
                                                 }
                                             },
-                                            "required": [
+                                            "required":
+                                            [
                                                 "id"
                                             ],
                                             "additionalProperties": false
                                         },
                                         {
                                             "type": "object",
-                                            "properties": {
-                                                "strategy": {
+                                            "properties":
+                                            {
+                                                "strategy":
+                                                {
                                                     "type": "string",
-                                                    "enum": [
-                                                        "topic"
-                                                    ]
+                                                    "enum": [ "topic" ]
                                                 },
-                                                "version": {
+                                                "version":
+                                                {
                                                     "type": "string",
                                                     "default": "latest"
                                                 }
                                             },
-                                            "required": [
+                                            "required":
+                                            [
                                                 "strategy"
                                             ],
                                             "additionalProperties": false
                                         },
                                         {
                                             "type": "object",
-                                            "properties": {
-                                                "subject": {
+                                            "properties":
+                                            {
+                                                "subject":
+                                                {
                                                     "type": "string"
                                                 },
-                                                "version": {
+                                                "version":
+                                                {
                                                     "type": "string",
                                                     "default": "latest"
                                                 }
                                             },
-                                            "required": [
+                                            "required":
+                                            [
                                                 "subject"
                                             ],
                                             "additionalProperties": false
