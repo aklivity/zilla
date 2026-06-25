@@ -170,7 +170,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
 
     @Override
     public ProtobufParser wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -201,7 +201,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
 
     @Override
     public ProtobufParser resume(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -293,9 +293,9 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     @Override
-    public DirectBuffer segment()
+    public DirectBufferEx segment()
     {
-        DirectBuffer segment;
+        DirectBufferEx segment;
         if (currentEvent == ProtobufEvent.START_MESSAGE || currentEvent == ProtobufEvent.START_GROUP)
         {
             segment = estimateView;
