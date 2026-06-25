@@ -91,7 +91,7 @@ public interface ModelPipeline
      * @return the padding byte count (0 for transforms that do not expand the input)
      */
     default int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
