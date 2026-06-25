@@ -108,7 +108,7 @@ final class TestBindingFactory implements BindingHandler
     private final EngineContext context;
     private final TestEventContext event;
     private final Long2ObjectHashMap<TestBindingConfig> bindings;
-    private final MutableDirectBuffer modelBuffer;
+    private final MutableDirectBufferEx modelBuffer;
 
     private ModelHandler valueModel;
     private String schema;
@@ -903,7 +903,7 @@ final class TestBindingFactory implements BindingHandler
 
         private int transform(
             long traceId,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int limit)
         {

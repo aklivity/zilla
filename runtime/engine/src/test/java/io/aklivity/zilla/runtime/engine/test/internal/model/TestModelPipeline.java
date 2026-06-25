@@ -19,9 +19,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -41,7 +40,7 @@ final class TestModelPipeline implements ModelPipeline
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
-    private final DirectBuffer extractedValue = new UnsafeBufferEx("1234".getBytes(UTF_8));
+    private final DirectBufferEx extractedValue = new UnsafeBufferEx("1234".getBytes(UTF_8));
 
     private final int length;
     private final int transformLength;
@@ -72,10 +71,10 @@ final class TestModelPipeline implements ModelPipeline
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLimit,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex,
         int dstLimit)
     {

@@ -32,8 +32,6 @@ import static org.junit.Assert.assertSame;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.MutableInteger;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedValueFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -421,10 +420,10 @@ public class KafkaCachePartitionTest
             long traceId,
             long bindingId,
             int flags,
-            DirectBuffer src,
+            DirectBufferEx src,
             int srcIndex,
             int srcLimit,
-            MutableDirectBuffer dst,
+            MutableDirectBufferEx dst,
             int dstIndex,
             int dstLimit)
         {
