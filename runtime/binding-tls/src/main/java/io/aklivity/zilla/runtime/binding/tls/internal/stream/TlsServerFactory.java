@@ -49,8 +49,12 @@ import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.agrona.collections.Long2ObjectHashMap;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
+import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;
@@ -69,9 +73,6 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExF
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -1683,8 +1684,12 @@ public final class TlsServerFactory implements TlsStreamFactory
             String tlsProtocol = "".equals(alpn) ? null : alpn;
 
             final TlsBindingConfig binding = bindings.get(routedId);
+            final TlsMutualConfig mutual = binding != null && binding.options != null ? binding.options.mutual : null;
+            final Certificate[] clientCerts = clientCertificates(tlsSession, mutual);
+
             final TlsRouteConfig route = binding != null
-                ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, null) : null;
+                ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, clientCerts)
+                : null;
 
             if (route != null)
             {
@@ -2267,6 +2272,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 }
             }
 
+
             private void doAppAbort(
                 long traceId)
             {
@@ -2423,5 +2429,24 @@ public final class TlsServerFactory implements TlsStreamFactory
         }
 
         return commonName;
+    }
+
+    private static Certificate[] clientCertificates(
+        SSLSession session,
+        TlsMutualConfig mutual)
+    {
+        Certificate[] certs = null;
+        if (mutual == TlsMutualConfig.REQUIRED || mutual == TlsMutualConfig.REQUESTED)
+        {
+            try
+            {
+                certs = session.getPeerCertificates();
+            }
+            catch (SSLPeerUnverifiedException ex)
+            {
+                // no client cert presented under mutual: requested
+            }
+        }
+        return certs;
     }
 }
