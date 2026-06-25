@@ -126,7 +126,7 @@ public final class Target implements AutoCloseable
 
     private void handleWrite(
         int msgTypeId,
-        MutableDirectBufferEx buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -134,7 +134,7 @@ public final class Target implements AutoCloseable
 
         if (timestamps)
         {
-            buffer.putLong(index + FIELD_OFFSET_TIMESTAMP, System.nanoTime());
+            ((MutableDirectBufferEx) buffer).putLong(index + FIELD_OFFSET_TIMESTAMP, System.nanoTime());
         }
 
         final FrameFW frame = frameRO.wrap(buffer, index, index + length);
