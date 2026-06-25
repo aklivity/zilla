@@ -19,7 +19,6 @@ import java.nio.ByteOrder;
 import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Object2IntHashMap;

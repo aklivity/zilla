@@ -222,7 +222,7 @@ final class AvroExtractor implements AvroTransform
 
         private Field()
         {
-            this.value = new ExpandableDirectByteBuffer();
+            this.value = new ExpandableDirectByteBufferEx();
         }
     }
 }

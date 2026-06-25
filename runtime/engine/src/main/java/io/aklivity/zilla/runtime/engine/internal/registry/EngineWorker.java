@@ -948,7 +948,7 @@ public class EngineWorker implements EngineContext, Agent
                 }
             }
 
-            workDone += streamsBuffer.read(readHandler, readLimit);
+            workDone += streamsBuffer.readEx(readHandler, readLimit);
 
             if (workDone == 0 &&
                 maxSelectMillis != 0 &&
@@ -1387,7 +1387,7 @@ public class EngineWorker implements EngineContext, Agent
                 }
 
                 final MessageConsumer writer = supplyWriter(watcherIndex);
-                final FlushFW flush = flushRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+                final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(0L)
                         .routedId(0L)
                         .streamId(0L)
@@ -1417,7 +1417,7 @@ public class EngineWorker implements EngineContext, Agent
 
         final int targetIndex = ownerIndex(budgetId);
         final MessageConsumer writer = supplyWriter(targetIndex);
-        final WindowFW window = windowRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(0L)
             .routedId(0L)
             .streamId(0L)
@@ -1936,7 +1936,7 @@ public class EngineWorker implements EngineContext, Agent
         final long sequence,
         final long acknowledge, final int maximum)
     {
-        final ResetFW reset = resetRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1955,7 +1955,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         final long syntheticId = 0L;
 
-        final ResetFW reset = resetRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(syntheticId)
             .routedId(syntheticId)
             .streamId(streamId)
@@ -1973,7 +1973,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         final long syntheticId = 0L;
 
-        final AbortFW abort = abortRW.wrap((MutableDirectBufferEx) writeBuffer, 0, writeBuffer.capacity())
+        final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(syntheticId)
             .routedId(syntheticId)
             .streamId(streamId)
@@ -2123,7 +2123,7 @@ public class EngineWorker implements EngineContext, Agent
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, (MutableDirectBufferEx) writeBuffer, correlations, streams, streamSets, throttles);
+        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(

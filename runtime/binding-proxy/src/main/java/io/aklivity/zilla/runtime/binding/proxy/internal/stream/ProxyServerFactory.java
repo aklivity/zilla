@@ -140,6 +140,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
     private final LongUnaryOperator supplyReplyId;
 
     private final DirectBufferEx headerRO = EMPTY_BUFFER;
+    private final MutableDirectBufferEx crc32cBufferRW = new UnsafeBufferEx();
 
     public ProxyServerFactory(
         ProxyConfiguration config,
@@ -1955,7 +1956,8 @@ public final class ProxyServerFactory implements ProxyStreamFactory
 
             net.decodedCrc32c = tlv.value().value().getInt(0, BIG_ENDIAN) & 0xffff_ffffL;
 
-            ((MutableDirectBufferEx) buffer).putInt(tlv.offset() + ProxyTlvFW.FIELD_OFFSET_VALUE, 0);
+            crc32cBufferRW.wrap(buffer);
+            crc32cBufferRW.putInt(tlv.offset() + ProxyTlvFW.FIELD_OFFSET_VALUE, 0);
             updateCRC32C(net.crc32c, tlv.buffer(), tlv.offset(), tlv.sizeof());
 
             net.decodableBytes -= tlv.sizeof();
