@@ -24,9 +24,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -55,7 +56,7 @@ public class CoreModelEventFormatterTest
         assertEquals(MODEL_CORE, factory.type());
         CoreModelEventFormatter formatter = factory.create(new Configuration());
 
-        DirectBuffer event = captured.get();
+        DirectBufferEx event = (DirectBufferEx) captured.get();
         String formatted = formatter.format(event, 0, event.capacity());
 
         assertEquals("A message payload failed validation. A field was not the expected type (int32).", formatted);

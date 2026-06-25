@@ -156,7 +156,7 @@ public final class TlsClientFactory implements TlsStreamFactory
     {
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.streamFactory = context.streamFactory();
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();

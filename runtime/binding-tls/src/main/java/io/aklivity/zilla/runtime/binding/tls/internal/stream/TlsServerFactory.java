@@ -174,7 +174,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.streamFactory = context.streamFactory();
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
@@ -1683,7 +1683,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             String tlsProtocol = "".equals(alpn) ? null : alpn;
 
             final TlsBindingConfig binding = bindings.get(routedId);
-            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol, port) : null;
+            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, null) : null;
 
             if (route != null)
             {

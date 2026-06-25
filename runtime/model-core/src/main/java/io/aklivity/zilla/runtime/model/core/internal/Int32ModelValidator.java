@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
 final class Int32ModelValidator implements CoreModelValidator
@@ -61,7 +62,7 @@ final class Int32ModelValidator implements CoreModelValidator
             state.decoded = 0;
             state.processed = 0;
         }
-        int progress = format.decode(state, data, index, length);
+        int progress = format.decode(state, (DirectBufferEx) data, index, length);
         Validity validity = progress != Int32Format.INVALID_INDEX ? Validity.VALID : Validity.MALFORMED;
         if ((flags & FLAGS_FIN) != 0x00 && validity == Validity.VALID)
         {

@@ -164,7 +164,7 @@ public class SseClientFactory implements SseStreamFactory
         SseConfiguration config,
         EngineContext context)
     {
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.lineBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();

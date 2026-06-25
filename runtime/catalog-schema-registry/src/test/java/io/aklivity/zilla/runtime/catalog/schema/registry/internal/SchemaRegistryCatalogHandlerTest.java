@@ -69,12 +69,12 @@ public class SchemaRegistryCatalogHandlerTest
     {
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, catalogConfig, context);
 
-        DirectBuffer framed = new UnsafeBufferEx();
+        DirectBufferEx framed = new UnsafeBufferEx();
         byte[] framedBytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64};
         framed.wrap(framedBytes, 0, framedBytes.length);
         assertEquals(5, catalog.decodePadding(framed, 0, framed.capacity()));
 
-        DirectBuffer unframed = new UnsafeBufferEx();
+        DirectBufferEx unframed = new UnsafeBufferEx();
         byte[] unframedBytes = {0x06, 0x69, 0x64};
         unframed.wrap(unframedBytes, 0, unframedBytes.length);
         assertEquals(0, catalog.decodePadding(unframed, 0, unframed.capacity()));

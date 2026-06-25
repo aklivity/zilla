@@ -29,6 +29,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.zip.CRC32C;
 
+import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.ringbuffer.OneToOneRingBuffer;
@@ -738,12 +739,12 @@ public class TlsWorker implements EngineContext
             long traceId,
             int signalId,
             int contextId,
-            DirectBufferEx buffer,
+            DirectBuffer buffer,
             int offset,
             int length)
         {
             signal(originId, routedId, streamId, 0L, 0L, traceId, NO_CANCEL_ID, signalId, contextId,
-                buffer, offset, length);
+                (DirectBufferEx) buffer, offset, length);
         }
 
         @Override
