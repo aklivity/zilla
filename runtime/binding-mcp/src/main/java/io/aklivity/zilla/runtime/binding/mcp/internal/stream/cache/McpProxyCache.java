@@ -73,12 +73,12 @@ public final class McpProxyCache
     public boolean populated;
 
     Runnable onReady;
-    public ListChangedListener onSettled = (kind, changed) -> {};
+    public ListChangedListener onSettled = (kind, changed, value) -> {};
 
     @FunctionalInterface
     public interface ListChangedListener
     {
-        void accept(int kind, boolean changed);
+        void accept(int kind, boolean changed, String value);
     }
 
     public McpProxyCache(
@@ -331,7 +331,7 @@ public final class McpProxyCache
             final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
             lastChecksum = newChecksum;
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
-                .andThen(k -> onSettled.accept(kind, changed)));
+                .andThen(k -> onSettled.accept(kind, changed, value)));
         }
 
         public void acquire(
@@ -393,7 +393,7 @@ public final class McpProxyCache
                 degraded = false;
             }
             checkReady();
-            onSettled.accept(kind, changed);
+            onSettled.accept(kind, changed, value);
         }
 
         private void checkPut(

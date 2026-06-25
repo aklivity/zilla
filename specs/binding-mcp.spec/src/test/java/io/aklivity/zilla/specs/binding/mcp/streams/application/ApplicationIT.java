@@ -101,6 +101,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/cache.tools.call.valid.input/client",
+        "${app}/cache.tools.call.valid.input/server"})
+    public void shouldProxyToolsCallWithValidInput() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.tools.call.no.schema/client",
+        "${app}/cache.tools.call.no.schema/server"})
+    public void shouldForwardToolsCallWithoutSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.initialize.alt.svc/client",
         "${app}/lifecycle.initialize.alt.svc/server"})
     public void shouldInitializeLifecycleAltSvc() throws Exception

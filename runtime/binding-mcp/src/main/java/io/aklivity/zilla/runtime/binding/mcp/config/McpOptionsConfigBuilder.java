@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOptionsConfigBuilder<T>>
@@ -27,6 +28,7 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
     private McpAuthorizationConfig authorization;
     private McpCacheConfig cache;
     private String server;
+    private ModelConfig tools;
 
     public McpOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -77,6 +79,13 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
         return this;
     }
 
+    public McpOptionsConfigBuilder<T> tools(
+        ModelConfig tools)
+    {
+        this.tools = tools;
+        return this;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     protected Class<McpOptionsConfigBuilder<T>> thisType()
@@ -87,6 +96,6 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
     @Override
     public T build()
     {
-        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server));
+        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server, tools));
     }
 }
