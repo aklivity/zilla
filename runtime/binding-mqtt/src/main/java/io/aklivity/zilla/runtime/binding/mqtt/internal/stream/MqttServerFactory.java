@@ -4688,7 +4688,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (expiryInterval != -1)
                 {
-                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
+                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer,
+                        propertiesSize.get(), propertyBuffer.capacity())
                         .expiryInterval(expiryInterval)
                         .build();
                     propertiesSize.set(mqttPropertyRW.limit());
@@ -4696,7 +4697,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (contentType.value() != null)
                 {
-                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
+                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer,
+                        propertiesSize.get(), propertyBuffer.capacity())
                         .contentType(contentType.asString())
                         .build();
                     propertiesSize.set(mqttPropertyRW.limit());
@@ -4704,7 +4706,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (!format.get().equals(MqttPayloadFormat.NONE))
                 {
-                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
+                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer,
+                        propertiesSize.get(), propertyBuffer.capacity())
                         .payloadFormat((byte) subscribeDataEx.subscribe().format().get().ordinal())
                         .build();
                     propertiesSize.set(mqttPropertyRW.limit());
@@ -4712,7 +4715,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (responseTopic.value() != null)
                 {
-                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
+                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer,
+                        propertiesSize.get(), propertyBuffer.capacity())
                         .responseTopic(responseTopic.asString())
                         .build();
                     propertiesSize.set(mqttPropertyRW.limit());
@@ -4720,7 +4724,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (correlation.length() != -1)
                 {
-                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
+                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer,
+                        propertiesSize.get(), propertyBuffer.capacity())
                         .correlationData(a -> a.bytes(correlation.bytes()))
                         .build();
                     propertiesSize.set(mqttPropertyRW.limit());
@@ -4728,7 +4733,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 properties.forEach(p ->
                 {
-                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer, propertiesSize.get(), propertyBuffer.capacity())
+                    mqttPropertyRW.wrap((MutableDirectBufferEx) propertyBuffer,
+                        propertiesSize.get(), propertyBuffer.capacity())
                         .userProperty(c -> c.key(p.key()).value(p.value()))
                         .build();
                     propertiesSize.set(mqttPropertyRW.limit());
@@ -6191,7 +6197,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     assert state == 0;
                     state = MqttState.openingInitial(state);
 
-                    final MqttBeginExFW beginEx = mqttPublishBeginExRW.wrap((MutableDirectBufferEx) extBuffer, 0, extBuffer.capacity())
+                    final MqttBeginExFW beginEx = mqttPublishBeginExRW
+                        .wrap((MutableDirectBufferEx) extBuffer, 0, extBuffer.capacity())
                         .compositeId(compositeId)
                         .typeId(mqttTypeId)
                         .publish(p ->
@@ -6690,7 +6697,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert state == 0;
                 state = MqttState.openingInitial(state);
 
-                final MqttBeginExFW beginEx = mqttSubscribeBeginExRW.wrap((MutableDirectBufferEx) extBuffer, 0, extBuffer.capacity())
+                final MqttBeginExFW beginEx = mqttSubscribeBeginExRW
+                    .wrap((MutableDirectBufferEx) extBuffer, 0, extBuffer.capacity())
                     .compositeId(compositeId)
                     .typeId(mqttTypeId)
                     .subscribe(subscribeBuilder ->
@@ -7429,7 +7437,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                 {
-                    final MqttPropertyFW mqttProperty = mqttPropertyRO.wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                    final MqttPropertyFW mqttProperty = mqttPropertyRO
+                        .wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
                     switch (mqttProperty.kind())
                     {
                     case KIND_WILL_DELAY_INTERVAL:
@@ -7541,7 +7550,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 decode:
                 for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                 {
-                    final MqttPropertyFW mqttProperty = mqttPropertyRO.wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
+                    final MqttPropertyFW mqttProperty = mqttPropertyRO
+                        .wrap((DirectBufferEx) decodeBuffer, decodeProgress, decodeLimit);
                     switch (mqttProperty.kind())
                     {
                     case KIND_EXPIRY_INTERVAL:
