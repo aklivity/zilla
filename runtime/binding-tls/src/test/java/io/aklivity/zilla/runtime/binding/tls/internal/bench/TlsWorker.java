@@ -31,12 +31,12 @@ import java.util.zip.CRC32C;
 
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
-import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -77,7 +77,7 @@ public class TlsWorker implements EngineContext
 {
     private static final int BUFFER_SIZE = 1024 * 64;
     private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[BUFFER_SIZE]);
-    private final RingBuffer streamsBuffer = new OneToOneRingBuffer(new UnsafeBufferEx(new byte[1024 * 1024 + 768]));
+    private final RingBufferEx streamsBuffer = new ManyToOneRingBuffer(new UnsafeBufferEx(new byte[1024 * 1024 + 768]));
     private final BufferPool bufferPool;
     private final Long2ObjectHashMap<BindingHandler> handlers;
     private final Object2ObjectHashMap<String, Binding> bindings;
@@ -494,7 +494,7 @@ public class TlsWorker implements EngineContext
 
     public void doWork()
     {
-        streamsBuffer.read(this::handleRead, Integer.MAX_VALUE);
+        streamsBuffer.readEx(this::handleRead, Integer.MAX_VALUE);
     }
 
     public void attach(
