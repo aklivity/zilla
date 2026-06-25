@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -191,7 +191,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final McpClient client;
 
         private final int toolSchemaId;
-        private ExpandableArrayBufferEx argsBuffer;
+        private ExpandableDirectByteBufferEx argsBuffer;
         private int argsProgress;
 
         private int state;
@@ -380,7 +380,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (argsBuffer == null)
             {
-                argsBuffer = new ExpandableArrayBufferEx();
+                argsBuffer = new ExpandableDirectByteBufferEx();
             }
             argsBuffer.putBytes(argsProgress, buffer, offset, length);
             argsProgress += length;

@@ -50,8 +50,8 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -70,7 +70,6 @@ abstract class McpProxyListFactory implements BindingHandler
     private final ResetFW resetRO = new ResetFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
-    private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
     private final DirectBufferEx listReplyCloseRO =
         new UnsafeBufferEx("]}".getBytes(StandardCharsets.UTF_8));
     private final DirectBufferEx listReplySeparatorRO =
@@ -116,8 +115,7 @@ abstract class McpProxyListFactory implements BindingHandler
         McpConfiguration config,
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding,
-        int kind,
-        List<String> pathIncludes)
+        int kind)
     {
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
@@ -262,7 +260,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private int replyMax;
         private int replyPad;
 
-        private JsonParser decodableJson;
+        private JsonParserEx decodableJson;
         private long decodedParserProgress;       // absolute streamOffset of buffer[offset] passed to decode
         private int decodeDepth;                  // JSON nesting depth in the reply envelope
         private int decodeItemDepth;              // JSON nesting depth within the current item
@@ -597,7 +595,7 @@ abstract class McpProxyListFactory implements BindingHandler
             if (decodableJson != null)
             {
                 final int delta = (int) (decodableJson.getLocation().getStreamOffset() - decodedParserProgress);
-                inputRO.wrap(buffer, offset + delta, limit - offset - delta);
+                decodableJson.wrap(buffer, offset + delta, limit);
             }
 
             McpListClientDecoder previous = null;
@@ -728,8 +726,8 @@ abstract class McpProxyListFactory implements BindingHandler
             return limit;
         }
 
-        inputRO.wrap(buffer, progress, limit - progress);
-        client.decodableJson = listItemParserFactory.createParser(inputRO);
+        client.decodableJson = JsonEx.createParser(Map.of());
+        client.decodableJson.wrap(buffer, progress, limit);
         client.arrayKey = arrayKey();
         client.idKey = idKey();
         client.decoder = decodeReply;
