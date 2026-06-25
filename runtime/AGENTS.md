@@ -553,6 +553,40 @@ described in [../specs/AGENTS.md](../specs/AGENTS.md).
 
 ---
 
+## Integration test dependencies — use the `test` implementations, never another component's
+
+A module's tests must **never** depend on another component's production SPI
+implementation (e.g. `catalog-inline`, `vault-filesystem`, `guard-jwt`,
+`model-json`, `store-redis`) just to satisfy a `type:` reference in a test
+`zilla.yaml`, or to exercise the edge where this component calls into another
+component's API. Doing so couples test scope to an unrelated production module,
+drags its transitive dependencies onto the test classpath, and obscures which
+contract is actually under test.
+
+Instead, use the engine's **test implementation** for every SPI concept. The
+engine `test-jar` (already a `test` dependency of every runtime module) ships a
+`type: test` implementation for each concept — `TestBinding`, `TestGuard`,
+`TestVault`, `TestCatalog`, `TestStore`, `TestModel`, `TestExporter`,
+`TestMetricGroup`, `TestRouter`, `TestResolver` — wired through
+`META-INF/services` and activated as soon as `engine:<version>:test-jar` is on
+the classpath. Reference `type: test` in the test `zilla.yaml` and configure it
+inline. See [engine/AGENTS.md](engine/AGENTS.md) for the test implementations
+and their schema patches.
+
+When a `type: test` implementation lacks behavior an integration test needs,
+**extend the test implementation** (additively, preserving existing behavior so
+other modules' tests are unaffected) rather than reaching for the production
+module. For example, `TestCatalog` supports runtime schema registration so a
+binding that registers schemas through the `CatalogHandler` API can be tested
+against `type: test` without depending on `catalog-inline`.
+
+A production runtime SPI dependency belongs in the docker-image assembly, not in
+a `runtime/<module>/pom.xml` `test` scope. The rare genuine exception (a test
+that must assert another production module's behavior — usually a sign the test
+belongs in that other module) must be justified in the PR and scoped narrowly.
+
+---
+
 ## Benchmarks
 
 JMH benchmarks live alongside unit tests under `src/test/java/.../bench/` (e.g.
