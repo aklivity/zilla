@@ -1,5 +1,8 @@
 ---
 name: zilla-mqtt-proxy-jwt
+stores:
+  memory0:
+    type: memory
 vaults:
   my_servers:
     type: filesystem
@@ -50,6 +53,7 @@ bindings:
     type: mqtt
     kind: server
     options:
+      store: memory0
       authorization:
         authn_jwt:
           credentials:

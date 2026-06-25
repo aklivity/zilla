@@ -47,6 +47,24 @@ scope mqtt_kafka
          int16[length] packetIds = null;
     }
 
+    struct MqttKafkaSessionOffsetMetadata
+    {
+         string16 topic;
+         int32 partitionId = 0;
+         int64 consumedOffset = 0;
+         int64 producerId = 0;
+         int16 producerEpoch = 0;
+         int32 producerSequence = 0;
+         int16 length;
+         int16[length] packetIds = null;
+    }
+
+    struct MqttKafkaSessionOffsets
+    {
+         uint8 version = 1;
+         MqttKafkaSessionOffsetMetadata[] entries;
+    }
+
     scope event
     {
         enum MqttKafkaEventType (uint8)

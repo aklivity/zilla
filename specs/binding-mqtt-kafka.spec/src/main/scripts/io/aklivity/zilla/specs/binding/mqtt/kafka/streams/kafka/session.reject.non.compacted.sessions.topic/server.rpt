@@ -17,66 +17,6 @@ accept "zilla://streams/kafka0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
-                                .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
-                                .filter()
-                                    .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender-1")
-                                    .build()
-                                .build()
-                            .build()}
-
-connected
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#migrate")
-                               .hashKey("client-1")
-                               .header("sender-id", "sender-1")
-                               .build()
-                           .build()}
-read zilla:data.empty
-
-read closed
-write close
-
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                               .typeId(zilla:id("kafka"))
-                               .group()
-                                   .groupId("zilla:test-mqtt0-client-1-session")
-                                   .protocol("highlander")
-                                   .timeout(1000)
-                                   .build()
-                               .build()}
-
-connected
-
-# This is the second prerequisite
-write advise zilla:flush ${kafka:flushEx()
-                             .typeId(zilla:id("kafka"))
-                             .group()
-                                 .leaderId("consumer-1")
-                                 .memberId("consumer-1")
-                                 .members("consumer-1")
-                                 .build()
-                             .build()}
-write flush
-
-read zilla:data.empty
-
 
 accepted
 
@@ -85,13 +25,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1")
-                                    .build()
-                                .filter()
-                                    .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender-1")
                                     .build()
                                 .build()
                             .build()}

@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.config;
 
+import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class McpOptionsConfig extends OptionsConfig
@@ -24,17 +26,21 @@ public final class McpOptionsConfig extends OptionsConfig
     public final McpAuthorizationConfig authorization;
     public final McpCacheConfig cache;
     public final String server;
+    public final ModelConfig tools;
 
     McpOptionsConfig(
         McpElicitationConfig elicitation,
         McpAuthorizationConfig authorization,
         McpCacheConfig cache,
-        String server)
+        String server,
+        ModelConfig tools)
     {
+        super(tools != null ? List.of(tools) : List.of(), List.of());
         this.elicitation = elicitation;
         this.authorization = authorization;
         this.cache = cache;
         this.server = server;
+        this.tools = tools;
     }
 
     public static McpOptionsConfigBuilder<McpOptionsConfig> builder()

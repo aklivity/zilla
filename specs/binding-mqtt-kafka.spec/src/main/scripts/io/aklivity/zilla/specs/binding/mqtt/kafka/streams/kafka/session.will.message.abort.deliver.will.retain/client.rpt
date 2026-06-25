@@ -22,7 +22,6 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
                                 .filter()
                                     .header("type", "will-signal")
                                     .build()
@@ -40,7 +39,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .fetch()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-signal")
+                               .key("client-1#will")
                                .header("type", "will-signal")
                                .build()
                            .build()}
@@ -52,7 +51,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .fetch()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-signal")
+                               .key("client-1#will")
                                .header("type", "will-signal")
                                .build()
                            .build()}
@@ -73,7 +72,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .fetch()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-signal")
+                               .key("client-1#will")
                                .header("type", "will-signal")
                                .build()
                            .build()}
@@ -107,7 +106,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-signal")
+                               .key("client-1#will")
                                .hashKey("client-1")
                                .header("type", "will-signal")
                                .build()
@@ -124,9 +123,8 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
                                 .filter()
-                                    .key("client-1#will-signal")
+                                    .key("client-1#will")
                                     .build()
                                 .build()
                             .build()}
@@ -140,78 +138,7 @@ write close
 read closed
 
 
-connect await RECEIVED_WILL_SIGNAL_NOT_PRESENT
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
-                                .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
-                                .filter()
-                                    .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender-1")
-                                    .build()
-                                .build()
-                            .build()}
-
-connected
-
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client-1#migrate")
-                               .hashKey("client-1")
-                               .header("sender-id", "sender-1")
-                               .build()
-                           .build()}
-write zilla:data.empty
-write flush
-write notify SENT_INITIAL_MIGRATE_SIGNAL
-
-write close
-read closed
-
-
-connect await SENT_INITIAL_MIGRATE_SIGNAL
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .group()
-                                   .groupId("zilla:test-mqtt0-client-1-session")
-                                   .protocol("highlander")
-                                   .timeout(1000)
-                                   .build()
-                               .build()}
-
-connected
-
-read advised zilla:flush ${kafka:matchFlushEx()
-                             .typeId(zilla:id("kafka"))
-                             .group()
-                                 .leaderId("member-1")
-                                 .memberId("member-1")
-                                 .members("member-1")
-                                 .build()
-                             .build()}
-read notify RECEIVED_GROUP_MEMBERS_LEADER
-
-write zilla:data.empty
-
-write abort
-
-
-connect await RECEIVED_GROUP_MEMBERS_LEADER
+connect
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
@@ -221,13 +148,8 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client-1")
-                                    .build()
-                                .filter()
-                                    .key("client-1#migrate")
-                                    .headerNot("sender-id", "sender-1")
                                     .build()
                                 .build()
                             .build()}
@@ -241,7 +163,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-signal")
+                               .key("client-1#will")
                                .hashKey("client-1")
                                .header("type", "will-signal")
                                .build()
@@ -254,7 +176,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
@@ -267,7 +189,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
@@ -310,7 +232,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-signal")
+                               .key("client-1#will")
                                .hashKey("client-1")
                                .header("type", "will-signal")
                                .build()
@@ -335,10 +257,6 @@ write advise zilla:flush ${kafka:flushEx()
                                         .filter()
                                             .key("client-1")
                                             .build()
-                                        .filter()
-                                            .key("client-1#migrate")
-                                            .headerNot("sender-id", "sender-1")
-                                            .build()
                                         .build()
                                 .build()}
 
@@ -350,7 +268,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#will-signal")
+                               .key("client-1#will")
                                .hashKey("client-1")
                                .header("type", "will-signal")
                                .build()
@@ -374,7 +292,7 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client-1#expiry-signal")
+                               .key("client-1#expiry")
                                .hashKey("client-1")
                                .header("type", "expiry-signal")
                                .build()
@@ -435,7 +353,6 @@ read notify RECEIVED_SESSION_WILL_MESSAGE
 
 write close
 read closed
-
 
 
 connect await RECEIVED_SESSION_WILL_MESSAGE
@@ -509,4 +426,3 @@ write flush
 
 write close
 read closed
-

@@ -136,6 +136,55 @@ jobs:
             ^http.echo$
             ^grpc.kafka.proxy$
 
+  cache-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Route Docker Hub pulls through mirror.gcr.io
+        run: |
+          sudo mkdir -p /etc/docker
+          if [ -f /etc/docker/daemon.json ]; then
+            sudo jq '. + {"registry-mirrors": ["https://mirror.gcr.io"]}' /etc/docker/daemon.json > /tmp/daemon.json
+          else
+            echo '{"registry-mirrors": ["https://mirror.gcr.io"]}' > /tmp/daemon.json
+          fi
+          sudo mv /tmp/daemon.json /etc/docker/daemon.json
+          sudo systemctl restart docker
+          timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
+
+      - name: Restore shared example image cache
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: ~/docker-images-cache/images.tar
+          key: example-images-${{ runner.os }}-${{ hashFiles('examples/**/compose.yaml') }}
+          restore-keys: |
+            example-images-${{ runner.os }}-
+
+      - name: Pull example images and refresh shared cache
+        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+        run: |
+          mkdir -p ~/docker-images-cache
+          if [ -f ~/docker-images-cache/images.tar ]; then
+            docker load -i ~/docker-images-cache/images.tar || true
+          fi
+          images=$(grep -rhE '^[[:space:]]*image:' examples/*/compose.yaml \
+            | sed -E 's/^[[:space:]]*image:[[:space:]]*//' \
+            | tr -d "\"'" \
+            | sed -E 's/[[:space:]]*#.*$//; s/[[:space:]]+$//' \
+            | grep -v '\$' \
+            | grep -v 'ghcr.io/aklivity/zilla' \
+            | sort -u)
+          echo "Ensuring the following example images are present:"
+          echo "$images"
+          for img in $images; do
+            docker pull "$img" || echo "::warning::failed to pull $img"
+          done
+          present=$(for img in $images; do docker image inspect "$img" >/dev/null 2>&1 && echo "$img"; done)
+          docker save -o ~/docker-images-cache/images.tar $present
+
   testing:
     strategy:
       matrix:
@@ -143,6 +192,7 @@ jobs:
       fail-fast: false
     needs:
       - setup-examples
+      - cache-images
     runs-on: ubuntu-latest
     env:
       ZILLA_VERSION: develop-SNAPSHOT
@@ -174,11 +224,19 @@ jobs:
         run: |
           docker load -i ~/docker-cache/docker.tar
 
-      - name: Cache Docker images
-        if: ${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) != '' }}
-        uses: ScribeMD/docker-cache@0.5.0
+      - name: Restore shared example image cache
+        uses: actions/cache/restore@v5
         with:
-          key: docker-${{ runner.os }}-${{ matrix.dir }}-${{ hashFiles(format('examples/{0}/compose.yaml', matrix.dir)) }}
+          path: ~/docker-images-cache/images.tar
+          key: example-images-${{ runner.os }}-${{ hashFiles('examples/**/compose.yaml') }}
+          restore-keys: |
+            example-images-${{ runner.os }}-
+
+      - name: Load shared example images
+        run: |
+          if [ -f ~/docker-images-cache/images.tar ]; then
+            docker load -i ~/docker-images-cache/images.tar || true
+          fi
 
       - name: Start Zilla and wait for it to be healthy
         working-directory: examples/${{ matrix.dir }}

@@ -414,6 +414,7 @@ public final class McpServerFactory implements McpStreamFactory
                         routedId,
                         initialId,
                         resolvedId,
+                        binding,
                         session,
                         redirectURI,
                         altSvc,
@@ -1425,6 +1426,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private McpRequestStream stream;
 
+        private final McpBindingConfig binding;
         private final String redirectURI;
         private final String altSvc;
         private final int contentLength;
@@ -1436,6 +1438,7 @@ public final class McpServerFactory implements McpStreamFactory
             long routedId,
             long initialId,
             long resolvedId,
+            McpBindingConfig binding,
             McpLifecycleStream session,
             String redirectURI,
             String altSvc,
@@ -1448,6 +1451,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.resolvedId = resolvedId;
+            this.binding = binding;
             this.session = session;
             this.decoder = decodeJsonRpc;
             this.initialMax = decodeMax;
@@ -2137,7 +2141,17 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization)
         {
             final int paramsLength = contentLength - decodedParamsProgress - 1;
-            McpBeginExFW beginEx = mcpBeginExRW
+
+            assert stream == null;
+            stream = new McpRequestStream(session, this);
+            stream.doAppBegin(traceId, authorization, toolsCallBeginEx(name, paramsLength));
+        }
+
+        private McpBeginExFW toolsCallBeginEx(
+            String name,
+            int paramsLength)
+        {
+            return mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .toolsCall(t -> t
@@ -2146,10 +2160,6 @@ public final class McpServerFactory implements McpStreamFactory
                     .contentLength(paramsLength)
                     .timeout(session.requestTimeout))
                 .build();
-
-            assert stream == null;
-            stream = new McpRequestStream(session, this);
-            stream.doAppBegin(traceId, authorization, beginEx);
         }
 
         private void onDecodePromptsList(
@@ -2245,7 +2255,12 @@ public final class McpServerFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            return stream != null ? stream.doAppData(traceId, authorization, buffer, offset, limit) : offset;
+            int progress = offset;
+            if (stream != null)
+            {
+                progress = stream.doAppData(traceId, authorization, buffer, offset, limit);
+            }
+            return progress;
         }
 
         private int onDecodeNotifyCancelled(
@@ -2315,7 +2330,7 @@ public final class McpServerFactory implements McpStreamFactory
             doEncodeResponseError(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
-                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                     .inject(this::injectAltSvc)
                     .build(),
                 -32700,
@@ -2329,7 +2344,7 @@ public final class McpServerFactory implements McpStreamFactory
             doEncodeResponseError(traceId, authorization,
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
-                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_400))
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
                     .inject(this::injectAltSvc)
                     .build(),
                 -32600,
@@ -2571,11 +2586,15 @@ public final class McpServerFactory implements McpStreamFactory
             doNetBegin(traceId, authorization, extension);
 
             final int codecLimit = codecBuffer.putStringWithoutLengthAscii(0,
-                """
-                {"jsonrpc":"2.0","id":%s,"error":{"code":%d,"message":"%s"}
-                """.formatted(decodedId, code, message));
+                "{\"jsonrpc\":\"2.0\",\"id\":%s,\"error\":{\"code\":%d,\"message\":\"%s\"}}"
+                    .formatted(decodedId, code, message));
             doNetData(traceId, authorization, codecBuffer, 0, codecLimit);
-            doNetEnd(traceId, authorization);
+
+            state = McpState.closingReply(state);
+            if (encodeSlot == BufferPool.NO_SLOT)
+            {
+                doNetEnd(traceId, authorization);
+            }
         }
 
         private void doEncodeResponseErrorDeferred(
@@ -4800,15 +4819,18 @@ public final class McpServerFactory implements McpStreamFactory
             int minReplyNoAck,
             int minReplyMax)
         {
-            final long replyAckMax = Math.max(replySeq - minReplyNoAck, 0);
-            if (replyAckMax > replyAck || minReplyMax > replyMax)
+            if (app != null)
             {
-                replyAck = replyAckMax;
-                assert replyAck <= replySeq;
+                final long replyAckMax = Math.max(replySeq - minReplyNoAck, 0);
+                if (replyAckMax > replyAck || minReplyMax > replyMax)
+                {
+                    replyAck = replyAckMax;
+                    assert replyAck <= replySeq;
 
-                replyMax = Math.max(minReplyMax, replyMax);
+                    replyMax = Math.max(minReplyMax, replyMax);
 
-                doAppWindow(traceId, authorization, budgetId, padding);
+                    doAppWindow(traceId, authorization, budgetId, padding);
+                }
             }
         }
 

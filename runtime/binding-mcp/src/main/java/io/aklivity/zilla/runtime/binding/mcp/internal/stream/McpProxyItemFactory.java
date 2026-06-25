@@ -14,10 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableDirectByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -36,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -46,6 +50,10 @@ import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 abstract class McpProxyItemFactory implements BindingHandler
 {
     private static final String MCP_TYPE_NAME = "mcp";
+
+    private static final int DATA_FLAG_COMPLETE = 0x03;
+    private static final int ERROR_CODE_INVALID_PARAMS = -32602;
+    private static final String ERROR_MESSAGE_INVALID_PARAMS = "Invalid params";
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -67,9 +75,11 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
+    private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
     private final LongIntToLongFunction supplyInitialIdHash;
     private final LongUnaryOperator supplyReplyId;
@@ -85,6 +95,7 @@ abstract class McpProxyItemFactory implements BindingHandler
     {
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialIdHash = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -127,6 +138,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     final String prefix = route.prefix(beginEx);
 
                     newStream = new McpServer(
+                        binding,
                         lifecycle,
                         sender,
                         originId,
@@ -164,6 +176,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
     private final class McpServer
     {
+        private final McpBindingConfig binding;
         private final McpLifecycleServer lifecycle;
         private final MessageConsumer sender;
         private final long originId;
@@ -178,6 +191,10 @@ abstract class McpProxyItemFactory implements BindingHandler
         private boolean prefixStripped;
         private final McpClient client;
 
+        private final int toolSchemaId;
+        private ExpandableDirectByteBuffer argsBuffer;
+        private int argsProgress;
+
         private int state;
 
         private long initialSeq;
@@ -191,6 +208,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private int replyPad;
 
         private McpServer(
+            McpBindingConfig binding,
             McpLifecycleServer lifecycle,
             MessageConsumer sender,
             long originId,
@@ -203,6 +221,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int contentLength,
             String prefix)
         {
+            this.binding = binding;
             this.lifecycle = lifecycle;
             this.sender = sender;
             this.originId = originId;
@@ -214,6 +233,9 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.identifier = identifier;
             this.contentLength = contentLength;
             this.prefix = prefix;
+            this.toolSchemaId = kind == McpBeginExFW.KIND_TOOLS_CALL && binding.validatesTools()
+                ? binding.toolSchemaId(prefix + identifier)
+                : NO_SCHEMA_ID;
             this.client = new McpClient(this, resolvedId);
         }
 
@@ -282,7 +304,8 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             client.doClientBegin(traceId);
 
-            flushServerWindow(traceId, 0L, 0, 0L, 0);
+            final int minInitialMax = toolSchemaId != NO_SCHEMA_ID ? codecBuffer.capacity() : 0;
+            flushServerWindow(traceId, 0L, 0, 0L, minInitialMax);
         }
 
         private void onServerData(
@@ -312,6 +335,10 @@ abstract class McpProxyItemFactory implements BindingHandler
                 prefixAt = indexOfQuotedPrefix(payload.buffer(), payload.offset(), payload.limit());
             }
 
+            final DirectBuffer strippedBuffer;
+            final int strippedOffset;
+            final int strippedLength;
+            final int strippedReserved;
             if (prefixAt >= 0)
             {
                 final DirectBuffer buf = payload.buffer();
@@ -322,12 +349,69 @@ abstract class McpProxyItemFactory implements BindingHandler
                 final int tailLen = limit - tailFrom;
                 codecBuffer.putBytes(0, buf, offset, head);
                 codecBuffer.putBytes(head, buf, tailFrom, tailLen);
-                client.doClientData(traceId, budgetId, flags, reserved - prefixLen, codecBuffer, 0, head + tailLen);
+                strippedBuffer = codecBuffer;
+                strippedOffset = 0;
+                strippedLength = head + tailLen;
+                strippedReserved = reserved - prefixLen;
             }
             else
             {
-                client.doClientData(traceId, budgetId, flags, reserved,
-                    payload.buffer(), payload.offset(), payload.sizeof());
+                strippedBuffer = payload.buffer();
+                strippedOffset = payload.offset();
+                strippedLength = payload.sizeof();
+                strippedReserved = reserved;
+            }
+
+            if (toolSchemaId != NO_SCHEMA_ID)
+            {
+                bufferArgs(traceId, strippedBuffer, strippedOffset, strippedLength);
+            }
+            else
+            {
+                client.doClientData(traceId, budgetId, flags, strippedReserved,
+                    strippedBuffer, strippedOffset, strippedLength);
+            }
+        }
+
+        private void bufferArgs(
+            long traceId,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            if (argsBuffer == null)
+            {
+                argsBuffer = new ExpandableDirectByteBuffer();
+            }
+            argsBuffer.putBytes(argsProgress, buffer, offset, length);
+            argsProgress += length;
+
+            final int argsExpected = contentLength - prefix.length();
+            if (argsProgress >= argsExpected)
+            {
+                validateArgs(traceId);
+            }
+        }
+
+        private void validateArgs(
+            long traceId)
+        {
+            final boolean valid =
+                binding.validateToolCall(toolSchemaId, traceId, routedId, argsBuffer, 0, argsProgress);
+            if (valid)
+            {
+                client.doClientData(traceId, 0L, DATA_FLAG_COMPLETE, argsProgress,
+                    argsBuffer, 0, argsProgress);
+            }
+            else
+            {
+                final McpResetExFW resetEx = mcpResetExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
+                    .build();
+                doServerReset(traceId, resetEx);
+                client.doClientAbort(traceId);
             }
         }
 
@@ -550,7 +634,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
         private void doServerReset(
             long traceId,
-            OctetsFW extension)
+            Flyweight extension)
         {
             if (!McpState.initialClosed(state))
             {
@@ -819,7 +903,6 @@ abstract class McpProxyItemFactory implements BindingHandler
             final Flyweight replyExtension = beginEx != null
                 ? rewriteReplyBeginEx(beginEx)
                 : emptyRO;
-
             server.doServerBegin(traceId, replyExtension);
 
             flushClientWindow(traceId, 0L, 0, 0L, 0);
@@ -917,7 +1000,6 @@ abstract class McpProxyItemFactory implements BindingHandler
             initialPad = padding;
 
             assert initialAck <= initialSeq;
-
             server.flushServerWindow(traceId, budgetId, padding, initialSeq - initialAck, initialMax);
         }
 

@@ -17,75 +17,6 @@ accept "zilla://streams/kafka0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
-                                .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
-                                .filter()
-                                    .key("client#migrate")
-                                    .headerNot("sender-id", "sender-1")
-                                    .build()
-                                .build()
-                            .build()}
-
-connected
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#migrate")
-                               .hashKey("client")
-                               .header("sender-id", "sender-1")
-                               .build()
-                           .build()}
-read zilla:data.empty
-
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                               .typeId(zilla:id("kafka"))
-                               .group()
-                                   .groupId("zilla:test-mqtt0-client-session")
-                                   .protocol("highlander")
-                                   .timeout(1000)
-                                   .build()
-                               .build()}
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .group()
-                                   .groupId("zilla:test-mqtt0-client-session")
-                                   .protocol("highlander")
-                                   .instanceId("zilla")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .timeout(1000)
-                                   .build()
-                               .build()}
-
-connected
-
-write advise zilla:flush ${kafka:flushEx()
-                             .typeId(zilla:id("kafka"))
-                             .group()
-                                 .generationId(1)
-                                 .leaderId("consumer-1")
-                                 .memberId("consumer-1")
-                                 .members("consumer-1")
-                                 .build()
-                             .build()}
-write flush
-
-read zilla:data.empty
-
 
 accepted
 
@@ -136,56 +67,32 @@ write close
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetFetch()
-                                   .groupId("zilla:test-mqtt0-client-session")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .topic("mqtt-messages")
-                                   .partition(0)
-                                   .partition(1)
-                                   .build()
-                               .build()}
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-sessions")
+                                .filter()
+                                    .key("client#offsets")
+                                    .build()
+                                .build()
+                            .build()}
 
 connected
 
 write zilla:data.ext ${kafka:dataEx()
-                                   .typeId(zilla:id("kafka"))
-                                   .offsetFetch()
-                                       .partition(0, 1, 0)
-                                       .partition(1, 1, 0)
-                                     .build()
-                                   .build()}
-write zilla:data.empty
-write flush
-
-read closed
-write close
-
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetFetch()
-                                   .groupId("zilla:test-mqtt0-client-session")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .topic("mqtt-retained")
-                                   .partition(0)
-                                   .build()
-                               .build()}
-
-connected
-
-write zilla:data.ext ${kafka:dataEx()
-                                   .typeId(zilla:id("kafka"))
-                                   .offsetFetch()
-                                       .partition(0, 1, 0)
-                                     .build()
-                                   .build()}
-write zilla:data.empty
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .fetch()
+                               .partition(-1, -1)
+                               .key("client#offsets")
+                               .build()
+                           .build()}
+write ${mqtt_kafka:sessionOffsets()
+            .entry("mqtt-messages", 0, 1, 0, 0, 0)
+            .entry("mqtt-messages", 1, 1, 0, 0, 0)
+            .entry("mqtt-retained", 0, 1, 0, 0, 0)
+            .build()}
 write flush
 
 read closed
@@ -218,16 +125,13 @@ write close
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .offsetCommit()
-                                   .groupId("zilla:test-mqtt0-client-session")
-                                   .memberId("consumer-1")
-                                   .instanceId("zilla")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .build()
-                               .build()}
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-sessions")
+                                .build()
+                            .build()}
 
 connected
 
@@ -242,13 +146,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("PRODUCE_AND_FETCH")
                                 .topic("mqtt-sessions")
-                                .groupId("mqtt-clients")
                                 .filter()
                                     .key("client")
-                                    .build()
-                                .filter()
-                                    .key("client#migrate")
-                                    .headerNot("sender-id", "sender-1")
                                     .build()
                                 .build()
                             .build()}
@@ -261,7 +160,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client#expiry-signal")
+                               .key("client#expiry")
                                .hashKey("client")
                                .header("type", "expiry-signal")
                                .build()
@@ -275,7 +174,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("client#expiry-signal")
+                               .key("client#expiry")
                                .hashKey("client")
                                .header("type", "expiry-signal")
                                .build()

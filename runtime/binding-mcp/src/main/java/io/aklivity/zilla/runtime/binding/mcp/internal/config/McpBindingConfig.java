@@ -15,17 +15,32 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
+
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Object2IntHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -34,8 +49,16 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 public final class McpBindingConfig
 {
@@ -47,6 +70,10 @@ public final class McpBindingConfig
     private static final int PORT_HTTP = 80;
     private static final int PORT_HTTPS = 443;
     private static final String PATH_ROOT = "/";
+
+    private static final String MODEL_NAME = "model";
+    private static final String CATALOG_NAME = "catalog";
+    private static final String SCHEMA_ID = "id";
 
     public final long id;
     public final McpOptionsConfig options;
@@ -61,6 +88,15 @@ public final class McpBindingConfig
     private final String serverScheme;
     private final String serverAuthority;
     private final String serverPath;
+    private final CatalogHandler toolsCatalog;
+    private final ModelConfig toolsModel;
+    private final boolean validates;
+    private final ModelConfigAdapter modelConfig;
+    private final Function<ModelConfig, ModelHandler> supplyModel;
+    private final Int2ObjectHashMap<ModelPipeline> decodersBySchemaId;
+    private final Object2IntHashMap<String> toolSchemaIdsByName;
+    private final MutableDirectBuffer scratch;
+    private final MutableDirectBuffer argsScratch;
 
     public McpBindingConfig(
         BindingConfig binding,
@@ -119,6 +155,203 @@ public final class McpBindingConfig
         this.serverScheme = server != null ? server.getScheme() : null;
         this.serverAuthority = server != null ? authorityOf(server) : null;
         this.serverPath = server != null ? pathOf(server) : null;
+
+        this.toolsModel = Optional.ofNullable(options)
+            .map(o -> o.tools)
+            .orElse(null);
+        this.validates = toolsModel != null && !toolsModel.cataloged.isEmpty();
+        this.toolsCatalog = validates
+            ? context.supplyCatalog(toolsModel.cataloged.get(0).id)
+            : CatalogHandler.NONE;
+        this.modelConfig = new ModelConfigAdapter();
+        this.supplyModel = context::supplyModel;
+        this.decodersBySchemaId = new Int2ObjectHashMap<>();
+        this.toolSchemaIdsByName = new Object2IntHashMap<>(NO_SCHEMA_ID);
+        this.scratch = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.argsScratch = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+    }
+
+    public boolean validatesTools()
+    {
+        return validates;
+    }
+
+    public int registerToolSchema(
+        String subject,
+        String schema)
+    {
+        return toolsCatalog.register(subject, schema);
+    }
+
+    public void unregisterToolSchema(
+        String subject)
+    {
+        toolsCatalog.unregister(subject);
+    }
+
+    public boolean validatesTool(
+        int schemaId)
+    {
+        return schemaId != NO_SCHEMA_ID;
+    }
+
+    public boolean validateToolArgs(
+        int schemaId,
+        long traceId,
+        long bindingId,
+        DirectBuffer data,
+        int index,
+        int limit)
+    {
+        boolean valid = true;
+        final ModelPipeline decoder = schemaId != NO_SCHEMA_ID
+            ? decodersBySchemaId.computeIfAbsent(schemaId, this::newToolDecoder)
+            : null;
+        if (decoder != null)
+        {
+            int srcAt = index;
+            int produced = 0;
+            int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
+            boolean done = false;
+            while (!done)
+            {
+                final ModelPipelineResult result = decoder.transform(traceId, bindingId, flags,
+                    data, srcAt, limit, scratch, produced, scratch.capacity());
+                final ModelStatus status = result.status();
+                if (status == ModelStatus.REJECTED)
+                {
+                    valid = false;
+                    done = true;
+                }
+                else
+                {
+                    produced += result.produced();
+                    if (status == ModelStatus.COMPLETE)
+                    {
+                        done = true;
+                    }
+                    else
+                    {
+                        srcAt += result.consumed();
+                        flags = ModelPipeline.FLAGS_FIN;
+                    }
+                }
+            }
+            decoder.reset();
+        }
+        return valid;
+    }
+
+    public void rebuildToolSchemaIndex(
+        String toolsListJson)
+    {
+        final Map<String, String> schemasByName = new LinkedHashMap<>();
+        if (toolsListJson != null)
+        {
+            try (JsonReader reader = Json.createReader(
+                new ByteArrayInputStream(toolsListJson.getBytes(StandardCharsets.UTF_8))))
+            {
+                final JsonObject root = reader.readObject();
+                if (root.containsKey("tools"))
+                {
+                    final JsonArray tools = root.getJsonArray("tools");
+                    for (JsonValue item : tools)
+                    {
+                        final JsonObject tool = item.asJsonObject();
+                        if (tool.containsKey("name") && tool.containsKey("inputSchema"))
+                        {
+                            schemasByName.put(tool.getString("name"), tool.getJsonObject("inputSchema").toString());
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                schemasByName.clear();
+            }
+        }
+
+        final List<String> stale = new ArrayList<>();
+        for (String name : toolSchemaIdsByName.keySet())
+        {
+            if (!schemasByName.containsKey(name))
+            {
+                stale.add(name);
+            }
+        }
+        for (String name : stale)
+        {
+            unregisterToolSchema(name);
+            toolSchemaIdsByName.removeKey(name);
+        }
+
+        for (Map.Entry<String, String> entry : schemasByName.entrySet())
+        {
+            final int schemaId = registerToolSchema(entry.getKey(), entry.getValue());
+            toolSchemaIdsByName.put(entry.getKey(), schemaId);
+        }
+    }
+
+    public int toolSchemaId(
+        String toolName)
+    {
+        return toolSchemaIdsByName.getValue(toolName);
+    }
+
+    public boolean validateToolCall(
+        int schemaId,
+        long traceId,
+        long bindingId,
+        DirectBuffer params,
+        int index,
+        int limit)
+    {
+        boolean valid = false;
+        final String arguments = extractArguments(params, index, limit);
+        if (arguments != null)
+        {
+            final int length = argsScratch.putStringWithoutLengthUtf8(0, arguments);
+            valid = validateToolArgs(schemaId, traceId, bindingId, argsScratch, 0, length);
+        }
+        return valid;
+    }
+
+    private String extractArguments(
+        DirectBuffer params,
+        int index,
+        int limit)
+    {
+        String arguments;
+        final byte[] bytes = new byte[limit - index];
+        params.getBytes(index, bytes);
+        try (JsonReader reader = Json.createReader(new ByteArrayInputStream(bytes)))
+        {
+            final JsonObject root = reader.readObject();
+            arguments = root.containsKey("arguments")
+                ? root.get("arguments").toString()
+                : "{}";
+        }
+        catch (Exception ex)
+        {
+            arguments = null;
+        }
+        return arguments;
+    }
+
+    private ModelPipeline newToolDecoder(
+        int schemaId)
+    {
+        final CatalogedConfig template = toolsModel.cataloged.get(0);
+        final JsonObject model = Json.createObjectBuilder()
+            .add(MODEL_NAME, toolsModel.model)
+            .add(CATALOG_NAME, Json.createObjectBuilder()
+                .add(template.name, Json.createArrayBuilder()
+                    .add(Json.createObjectBuilder().add(SCHEMA_ID, schemaId))))
+            .build();
+        final ModelConfig toolModel = modelConfig.adaptFromJson(model);
+        toolModel.cataloged.get(0).id = template.id;
+        final ModelHandler handler = supplyModel.apply(toolModel);
+        return handler != null ? handler.supplyDecoder() : null;
     }
 
     public void injectHeaders(
@@ -321,4 +554,5 @@ public final class McpBindingConfig
         }
         return redirectURI;
     }
+
 }

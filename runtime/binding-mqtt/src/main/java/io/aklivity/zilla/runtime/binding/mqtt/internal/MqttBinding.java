@@ -26,12 +26,14 @@ public final class MqttBinding implements Binding
     public static final String NAME = "mqtt";
 
     private final MqttConfiguration config;
+    private final InstanceId instanceId;
 
 
     MqttBinding(
         MqttConfiguration config)
     {
         this.config = config;
+        this.instanceId = new InstanceId(config.instanceId());
     }
 
     @Override
@@ -64,6 +66,6 @@ public final class MqttBinding implements Binding
     public MqttBindingContext supply(
         EngineContext context)
     {
-        return new MqttBindingContext(config, context);
+        return new MqttBindingContext(config, context, instanceId);
     }
 }
