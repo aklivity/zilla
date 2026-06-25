@@ -179,7 +179,7 @@ final class AvroExtractor implements AvroTransform
     private void appendSegment(
         AvroSource source)
     {
-        DirectBuffer segment = source.getSegment();
+        DirectBufferEx segment = source.getSegment();
         int length = segment.capacity();
         current.value.putBytes(current.length, segment, 0, length);
         current.length += length;

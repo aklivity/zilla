@@ -21,7 +21,6 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
@@ -163,7 +162,7 @@ public class MqttKafkaPublishMetadata
         private static final int SESSION_OFFSETS_VERSION = 1;
 
         private final MqttKafkaSessionOffsetsFW.Builder sessionOffsetsRW = new MqttKafkaSessionOffsetsFW.Builder();
-        private final MutableDirectBuffer offsetBuffer;
+        private final MutableDirectBufferEx offsetBuffer;
         private final Consumer<MqttKafkaSessionOffsetMetadataFW.Builder> encodeEntry = this::encodeEntry;
         private final IntConsumer appendPacketId = this::appendPacketId;
 
@@ -171,7 +170,7 @@ public class MqttKafkaPublishMetadata
         private MqttKafkaSessionOffsetMetadataFW.Builder encodingItem;
 
         KafkaSessionOffsetsHelper(
-            MutableDirectBuffer offsetBuffer)
+            MutableDirectBufferEx offsetBuffer)
         {
             this.offsetBuffer = offsetBuffer;
         }
@@ -179,7 +178,7 @@ public class MqttKafkaPublishMetadata
         public MqttKafkaSessionOffsetsFW encode(
             List<KafkaOffsetMetadata> entries)
         {
-            sessionOffsetsRW.wrap((MutableDirectBufferEx) offsetBuffer, 0, offsetBuffer.capacity());
+            sessionOffsetsRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
             sessionOffsetsRW.version(SESSION_OFFSETS_VERSION);
             for (int i = 0, size = entries.size(); i < size; i++)
             {

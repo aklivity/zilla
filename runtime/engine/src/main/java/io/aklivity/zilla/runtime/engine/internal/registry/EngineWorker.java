@@ -1446,11 +1446,11 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleRead(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
-        final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, index + length);
+        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
         final long originId = frame.originId();
         final long routedId = frame.routedId();
         final long streamId = frame.streamId();
@@ -1482,7 +1482,7 @@ public class EngineWorker implements EngineContext, Agent
         long acknowledge,
         int maximum,
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index, int length)
     {
         final int instanceId = instanceId(streamId);
@@ -1496,23 +1496,23 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     break;
                 case DataFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     break;
                 case EndFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case AbortFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case FlushFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     break;
                 default:
                     doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
@@ -1533,27 +1533,27 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case WindowFW.TYPE_ID:
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     break;
                 case ResetFW.TYPE_ID:
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
                     final long cancelId = signal.cancelId();
                     if (cancelId != NO_CANCEL_ID)
                     {
                         futuresById.remove(cancelId);
                     }
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     break;
                 case ChallengeFW.TYPE_ID:
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     break;
                 case RedirectFW.TYPE_ID:
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
@@ -1566,7 +1566,7 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
                     final long cancelId = signal.cancelId();
                     if (cancelId != NO_CANCEL_ID)
                     {
@@ -1580,7 +1580,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDefaultReadInitial(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -1590,11 +1590,11 @@ public class EngineWorker implements EngineContext, Agent
             final MessageConsumer newHandler = handleBeginInitial(msgTypeId, buffer, index, length);
             if (newHandler != null)
             {
-                newHandler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                newHandler.accept(msgTypeId, buffer, index, length);
             }
             else
             {
-                final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, index + length);
+                final FrameFW frame = frameRO.wrap(buffer, index, index + length);
                 final long originId = frame.originId();
                 final long routedId = frame.routedId();
                 final long streamId = frame.streamId();
@@ -1682,7 +1682,7 @@ public class EngineWorker implements EngineContext, Agent
         long acknowledge,
         int maximum,
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index, int length)
     {
         final int instanceId = instanceId(streamId);
@@ -1696,23 +1696,23 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     break;
                 case DataFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     break;
                 case EndFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case AbortFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case FlushFW.TYPE_ID:
-                    handler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    handler.accept(msgTypeId, buffer, index, length);
                     break;
                 default:
                     doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
@@ -1733,27 +1733,27 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case WindowFW.TYPE_ID:
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     break;
                 case ResetFW.TYPE_ID:
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
                 case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
                     final long cancelId = signal.cancelId();
                     if (cancelId != NO_CANCEL_ID)
                     {
                         futuresById.remove(cancelId);
                     }
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     break;
                 case ChallengeFW.TYPE_ID:
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     break;
                 case RedirectFW.TYPE_ID:
-                    throttle.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                    throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
                     break;
@@ -1766,7 +1766,7 @@ public class EngineWorker implements EngineContext, Agent
                 switch (msgTypeId)
                 {
                 case SignalFW.TYPE_ID:
-                    final SignalFW signal = signalRO.wrap((DirectBufferEx) buffer, index, index + length);
+                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
                     final long cancelId = signal.cancelId();
                     if (cancelId != NO_CANCEL_ID)
                     {
@@ -1780,13 +1780,13 @@ public class EngineWorker implements EngineContext, Agent
 
     private void handleDefaultReadReply(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
         if (msgTypeId == BeginFW.TYPE_ID)
         {
-            final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, index + length);
+            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
             final long originId = frame.originId();
             final long routedId = frame.routedId();
             final long streamId = frame.streamId();
@@ -1796,7 +1796,7 @@ public class EngineWorker implements EngineContext, Agent
             final MessageConsumer newHandler = handleBeginReply(msgTypeId, buffer, index, length);
             if (newHandler != null)
             {
-                newHandler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                newHandler.accept(msgTypeId, buffer, index, length);
             }
             else
             {
@@ -1813,7 +1813,7 @@ public class EngineWorker implements EngineContext, Agent
         }
         else if (msgTypeId == FlushFW.TYPE_ID)
         {
-            final FrameFW frame = frameRO.wrap((DirectBufferEx) buffer, index, index + length);
+            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
             final long originId = frame.originId();
             final long routedId = frame.routedId();
             final long streamId = frame.streamId();
@@ -1824,7 +1824,7 @@ public class EngineWorker implements EngineContext, Agent
             final MessageConsumer newHandler = handleFlushReply(msgTypeId, buffer, index, length);
             if (newHandler != null)
             {
-                newHandler.accept(msgTypeId, (DirectBufferEx) buffer, index, length);
+                newHandler.accept(msgTypeId, buffer, index, length);
             }
             else
             {
@@ -2210,8 +2210,8 @@ public class EngineWorker implements EngineContext, Agent
     private static SignalFW.Builder newSignalRW(
         int capacity)
     {
-        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[capacity]);
-        return new SignalFW.Builder().wrap((MutableDirectBufferEx) buffer, 0, buffer.capacity());
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[capacity]);
+        return new SignalFW.Builder().wrap(buffer, 0, buffer.capacity());
     }
 
     private Int2ObjectHashMap<MessageConsumer>[] initDispatcher()
@@ -2361,7 +2361,7 @@ public class EngineWorker implements EngineContext, Agent
             long traceId,
             int signalId,
             int contextId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -2454,7 +2454,7 @@ public class EngineWorker implements EngineContext, Agent
             long cancelId,
             int signalId,
             int contextId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -2473,7 +2473,7 @@ public class EngineWorker implements EngineContext, Agent
                                             .cancelId(cancelId)
                                             .signalId(signalId)
                                             .contextId(contextId)
-                                            .payload((DirectBufferEx) buffer, offset, length)
+                                            .payload(buffer, offset, length)
                                             .build();
 
             streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());

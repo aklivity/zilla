@@ -474,7 +474,7 @@ public final class KafkaCachePartition
                     logFile.advance(keyAt + newLength.limit());
                 }
                 logFile.writeBytes(keyAt, newLength);
-                logFile.appendBytes((DirectBufferEx) buffer, index, length);
+                logFile.appendBytes(buffer, index, length);
             };
 
             OctetsFW value = key.value();
@@ -505,7 +505,7 @@ public final class KafkaCachePartition
                 final int paddedKeySize = paddedKey.sizeof();
                 KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
                 final int keySize = paddedKeyBuilder
-                    .key(k -> k.length(length).value((DirectBufferEx) buffer, index, length)).sizeof();
+                    .key(k -> k.length(length).value(buffer, index, length)).sizeof();
                 paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
                 KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
                 logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
@@ -616,7 +616,7 @@ public final class KafkaCachePartition
                 assert convertedPadding - length >= 0;
 
                 convertedFile.writeInt(convertedLengthAt, convertedLength + length);
-                convertedFile.writeBytes(convertedValueLimit, (DirectBufferEx) buffer, index, length);
+                convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
                 convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
             };
 
@@ -651,7 +651,7 @@ public final class KafkaCachePartition
                             h.nameLen(name.length())
                                 .name(name.value(), 0, name.length())
                                 .valueLen(transformValue.extractedLength(path));
-                            transformValue.extracted(path, (p, b, i, l) -> h.value((DirectBufferEx) b, i, l));
+                            transformValue.extracted(path, (p, b, i, l) -> h.value(b, i, l));
                         });
                     }
                     trailers = builder.build();
@@ -829,7 +829,7 @@ public final class KafkaCachePartition
                         logFile.advance(keyAt + newLength.limit());
                     }
                     logFile.writeBytes(keyAt, newLength);
-                    logFile.appendBytes((DirectBufferEx) buffer, index, length);
+                    logFile.appendBytes(buffer, index, length);
                 };
 
                 transformed = transformKey.transform(traceId, bindingId,
@@ -899,7 +899,7 @@ public final class KafkaCachePartition
                     assert convertedPadding - length >= 0;
 
                     convertedFile.writeInt(convertedLengthAt, convertedLength + length);
-                    convertedFile.writeBytes(convertedValueLimit, (DirectBufferEx) buffer, index, length);
+                    convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
                     convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
                 };
 
