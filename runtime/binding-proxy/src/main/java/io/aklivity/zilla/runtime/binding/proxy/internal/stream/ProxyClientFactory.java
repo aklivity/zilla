@@ -112,7 +112,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         EngineContext context)
     {
         this.router = new ProxyRouter(context.supplyTypeId(ProxyBinding.NAME));
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.encodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;

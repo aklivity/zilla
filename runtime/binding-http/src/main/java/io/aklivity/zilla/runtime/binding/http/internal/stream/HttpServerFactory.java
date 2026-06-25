@@ -5857,7 +5857,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final Http2DataFW http2Data = http2DataRW.wrap((MutableDirectBufferEx) frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
                         .endStream(markEndResponse)
-                        .payload(buffer, progress, length)
+                        .payload((DirectBufferEx) buffer, progress, length)
                         .build();
                 frameOffset = http2Data.limit();
                 progress += length;
@@ -6226,35 +6226,35 @@ public final class HttpServerFactory implements HttpStreamFactory
                 switch (msgTypeId)
                 {
                 case ResetFW.TYPE_ID:
-                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                    final ResetFW reset = resetRO.wrap((DirectBufferEx) buffer, index, index + length);
                     onRequestReset(reset);
                     break;
                 case WindowFW.TYPE_ID:
-                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                    final WindowFW window = windowRO.wrap((DirectBufferEx) buffer, index, index + length);
                     onRequestWindow(window);
                     break;
                 case RedirectFW.TYPE_ID:
-                    final RedirectFW redirect = redirectRO.wrap(buffer, index, index + length);
+                    final RedirectFW redirect = redirectRO.wrap((DirectBufferEx) buffer, index, index + length);
                     onRequestRedirect(redirect);
                     break;
                 case BeginFW.TYPE_ID:
-                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                    final BeginFW begin = beginRO.wrap((DirectBufferEx) buffer, index, index + length);
                     onResponseBegin(begin);
                     break;
                 case DataFW.TYPE_ID:
-                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+                    final DataFW data = dataRO.wrap((DirectBufferEx) buffer, index, index + length);
                     onResponseData(data);
                     break;
                 case EndFW.TYPE_ID:
-                    final EndFW end = endRO.wrap(buffer, index, index + length);
+                    final EndFW end = endRO.wrap((DirectBufferEx) buffer, index, index + length);
                     onResponseEnd(end);
                     break;
                 case AbortFW.TYPE_ID:
-                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                    final AbortFW abort = abortRO.wrap((DirectBufferEx) buffer, index, index + length);
                     onResponseAbort(abort);
                     break;
                 case FlushFW.TYPE_ID:
-                    final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                    final FlushFW flush = flushRO.wrap((DirectBufferEx) buffer, index, index + length);
                     onResponseFlush(flush);
                     break;
                 }
@@ -6695,7 +6695,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void doResponseChallenge(
                 long traceId)
             {
-                final HttpChallengeExFW httpChallengeEx = challengeExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                final HttpChallengeExFW httpChallengeEx = challengeExRW
+                        .wrap((MutableDirectBufferEx) extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
                         .headersItem(h -> h.name(HEADER_NAME_METHOD).value(CHALLENGE_RESPONSE_METHOD))
                         .headersItem(h -> h.name(HEADER_NAME_CONTENT_TYPE).value(CHALLENGE_RESPONSE_CONTENT_TYPE))
@@ -6904,7 +6905,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         if (value.capacity() > 0)       // :path MUST not be empty
                         {
                             path++;
-                            if (!HttpUtil.isPathValid(value))
+                            if (!HttpUtil.isPathValid((DirectBufferEx) value))
                             {
                                 httpErrorHeader = headers400;
                             }
@@ -7059,7 +7060,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (hpackValue.huffman())
                     {
                         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode(value, dst);
+                        int length = HpackHuffman.decode((DirectBufferEx) value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
@@ -7075,7 +7076,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (hpackName.huffman())
                     {
                         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode(name, dst);
+                        int length = HpackHuffman.decode((DirectBufferEx) name, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;

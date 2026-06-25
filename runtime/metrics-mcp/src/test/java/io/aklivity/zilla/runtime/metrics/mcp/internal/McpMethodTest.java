@@ -23,7 +23,6 @@ import java.util.function.Consumer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.McpBeginExFW;
 
 public class McpMethodTest

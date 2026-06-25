@@ -471,7 +471,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         AmqpConfiguration config,
         EngineContext context)
     {
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.frameBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.extraBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.stringBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);

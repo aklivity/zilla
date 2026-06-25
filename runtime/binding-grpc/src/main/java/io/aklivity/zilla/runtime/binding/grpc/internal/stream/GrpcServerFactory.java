@@ -247,7 +247,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         GrpcConfiguration config,
         EngineContext context)
     {
-        this.writeBuffer = context.writeBuffer();
+        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.metadataBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
