@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -39,11 +38,11 @@ public final class SseModel
     private static final int FLAGS_FIN = 0x01;
 
     private final ModelPipeline pipeline;
-    private final MutableDirectBuffer scratch;
+    private final MutableDirectBufferEx scratch;
 
     public static SseModel decoder(
         ModelHandler handler,
-        MutableDirectBuffer scratch)
+        MutableDirectBufferEx scratch)
     {
         return handler != null
             ? new SseModel(handler.supplyDecoder(), scratch)
@@ -58,7 +57,7 @@ public final class SseModel
 
     SseModel(
         ModelPipeline pipeline,
-        MutableDirectBuffer scratch)
+        MutableDirectBufferEx scratch)
     {
         this.pipeline = pipeline;
         this.scratch = scratch;
@@ -72,7 +71,7 @@ public final class SseModel
     public int transform(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int limit)
     {
@@ -111,7 +110,7 @@ public final class SseModel
         return total;
     }
 
-    public DirectBuffer buffer()
+    public DirectBufferEx buffer()
     {
         return scratch;
     }

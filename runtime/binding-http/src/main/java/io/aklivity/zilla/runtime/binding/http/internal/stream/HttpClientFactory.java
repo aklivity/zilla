@@ -3243,12 +3243,12 @@ public final class HttpClientFactory implements HttpStreamFactory
         private void doEncodeHttp2PingAck(
             long traceId,
             long authorization,
-            DirectBuffer payload)
+            DirectBufferEx payload)
         {
             final Http2PingFW http2Ping = http2PingRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
                     .ack()
-                    .payload((DirectBufferEx) payload)
+                    .payload(payload)
                     .build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2Ping);
@@ -4067,7 +4067,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             OctetsFW payload,
             boolean endRequest)
         {
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             final int offset = payload.offset();
             final int limit = payload.limit();
 
@@ -4080,7 +4080,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .wrap(frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
                         .endStream(endRequest && progress + length >= limit)
-                        .payload((DirectBufferEx) buffer, progress, length)
+                        .payload(buffer, progress, length)
                         .build();
 
                 frameOffset = http2Data.limit();
@@ -5266,7 +5266,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             else
                             {
                                 builder.headersItem(item ->
-                                    item.name(name).value((DirectBufferEx) model.buffer(), 0, produced));
+                                    item.name(name).value(model.buffer(), 0, produced));
                             }
                         }
                         else
@@ -5425,20 +5425,20 @@ public final class HttpClientFactory implements HttpStreamFactory
         private void encodeLiteral(
             HpackLiteralHeaderFieldFW.Builder builder,
             HpackContext hpackContext,
-            DirectBuffer nameBuffer,
-            DirectBuffer valueBuffer)
+            DirectBufferEx nameBuffer,
+            DirectBufferEx valueBuffer)
         {
             builder.type(WITHOUT_INDEXING);
-            final int nameIndex = hpackContext.index((DirectBufferEx) nameBuffer);
+            final int nameIndex = hpackContext.index(nameBuffer);
             if (nameIndex != -1)
             {
                 builder.name(nameIndex);
             }
             else
             {
-                builder.name((DirectBufferEx) nameBuffer, 0, nameBuffer.capacity());
+                builder.name(nameBuffer, 0, nameBuffer.capacity());
             }
-            builder.value((DirectBufferEx) valueBuffer, 0, valueBuffer.capacity());
+            builder.value(valueBuffer, 0, valueBuffer.capacity());
         }
     }
 
@@ -5654,8 +5654,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             BiConsumer<DirectBuffer, DirectBuffer> nameValue)
         {
             int index;
-            DirectBuffer name = null;
-            DirectBuffer value = null;
+            DirectBufferEx name = null;
+            DirectBufferEx value = null;
 
             switch (hf.type())
             {
@@ -5695,9 +5695,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]); // TODO
+                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(
-                            (DirectBufferEx) value, (MutableDirectBufferEx) dst);
+                            value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
@@ -5712,9 +5712,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                     name = hpackName.payload();
                     if (hpackName.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]); // TODO
+                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(
-                            (DirectBufferEx) name, (MutableDirectBufferEx) dst);
+                            name, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
@@ -5726,9 +5726,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[4096]); // TODO
+                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(
-                            (DirectBufferEx) value, (MutableDirectBufferEx) dst);
+                            value, dst);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
@@ -5742,11 +5742,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                 if (hpackLiteral.literalType() == INCREMENTAL_INDEXING)
                 {
                     // make a copy for name and value as they go into dynamic table (outlives current frame)
-                    MutableDirectBuffer nameCopy = new UnsafeBufferEx(new byte[name.capacity()]);
+                    MutableDirectBufferEx nameCopy = new UnsafeBufferEx(new byte[name.capacity()]);
                     nameCopy.putBytes(0, name, 0, name.capacity());
-                    MutableDirectBuffer valueCopy = new UnsafeBufferEx(new byte[value.capacity()]);
+                    MutableDirectBufferEx valueCopy = new UnsafeBufferEx(new byte[value.capacity()]);
                     valueCopy.putBytes(0, value, 0, value.capacity());
-                    context.add((DirectBufferEx) nameCopy, (DirectBufferEx) valueCopy);
+                    context.add(nameCopy, valueCopy);
                 }
                 break;
             default:

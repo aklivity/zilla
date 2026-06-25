@@ -147,7 +147,7 @@ public final class MqttModel
         return valid;
     }
 
-    public DirectBuffer buffer()
+    public MutableDirectBufferEx buffer()
     {
         return scratch;
     }

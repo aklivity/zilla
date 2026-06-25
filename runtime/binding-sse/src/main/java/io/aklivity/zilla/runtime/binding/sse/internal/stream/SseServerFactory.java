@@ -186,7 +186,7 @@ public final class SseServerFactory implements SseStreamFactory
         SseConfiguration config,
         EngineContext context)
     {
-        this.writeBuffer = (MutableDirectBufferEx) context.writeBuffer();
+        this.writeBuffer = context.writeBuffer();
         this.challengeBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
@@ -1134,7 +1134,7 @@ public final class SseServerFactory implements SseStreamFactory
                     {
                         final int produced = contentType.transform(traceId, routedId,
                             payload.buffer(), payload.offset(), payload.limit());
-                        content = produced < 0 ? null : contentRO.wrap((DirectBufferEx) contentType.buffer(), 0, produced);
+                        content = produced < 0 ? null : contentRO.wrap(contentType.buffer(), 0, produced);
                         encode = content != null;
                     }
                     else

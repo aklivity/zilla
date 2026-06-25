@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
@@ -59,7 +59,7 @@ class AvroPipelineTransformTest
         // "foo": length 3 (zigzag varint 0x06) followed by the three bytes
         byte[] in = { 0x06, 0x66, 0x6f, 0x6f };
         int dstCap = 64;
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         AvroPipelineResult result = pipeline.transform(srcOf(in), SRC_OFFSET, SRC_OFFSET + in.length, true,
             dst, DST_OFFSET, DST_OFFSET + dstCap);
 
@@ -107,7 +107,7 @@ class AvroPipelineTransformTest
         byte[] f1 = { 0x02 };
         byte[] f2 = { 0x04, 0x68, 0x69 };
         int dstCap = 64;
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         ByteArrayOutputStream drained = new ByteArrayOutputStream();
 
         AvroPipelineResult first = pipeline.transform(srcOf(f1), SRC_OFFSET, SRC_OFFSET + f1.length, false,
@@ -138,8 +138,8 @@ class AvroPipelineTransformTest
         byte[] in,
         int dstCap)
     {
-        MutableDirectBuffer src = srcOf(in);
-        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBufferEx src = srcOf(in);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         ByteArrayOutputStream drained = new ByteArrayOutputStream();
         AvroPipelineResult result;
         int guard = 0;
@@ -159,7 +159,7 @@ class AvroPipelineTransformTest
     }
 
     private static void drainChunk(
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int produced,
         ByteArrayOutputStream sink)
     {
@@ -168,10 +168,10 @@ class AvroPipelineTransformTest
         sink.writeBytes(chunk);
     }
 
-    private static MutableDirectBuffer srcOf(
+    private static MutableDirectBufferEx srcOf(
         byte[] bytes)
     {
-        MutableDirectBuffer buffer = new UnsafeBufferEx(new byte[SRC_OFFSET + bytes.length]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[SRC_OFFSET + bytes.length]);
         buffer.putBytes(SRC_OFFSET, bytes);
         return buffer;
     }
