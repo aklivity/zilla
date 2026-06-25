@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-11...HEAD)
+
+**Implemented enhancements:**
+
+- feat\(binding-mcp\): validate tools/call arguments at the proxy against cached tools/list inputSchema [\#1962](https://github.com/aklivity/zilla/issues/1962)
+
+**Closed issues:**
+
+- Move replica identity from per-binding serverRef to engine-level service config [\#1800](https://github.com/aklivity/zilla/issues/1800)
+- Move MQTT QoS state into mqtt-sessions topic and consolidate session keys [\#1799](https://github.com/aklivity/zilla/issues/1799)
+- Migrate mqtt-kafka session ownership to Store SPI [\#1798](https://github.com/aklivity/zilla/issues/1798)
+
 ## [2.0.0-alpha-11](https://github.com/aklivity/zilla/tree/2.0.0-alpha-11) (2026-06-23)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-10...2.0.0-alpha-11)
