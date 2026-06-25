@@ -315,7 +315,7 @@ public final class McpServerFactory implements McpStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)

@@ -577,7 +577,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)

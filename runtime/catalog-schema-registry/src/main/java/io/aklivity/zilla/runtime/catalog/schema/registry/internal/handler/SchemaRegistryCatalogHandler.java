@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.Unr
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.types.SchemaRegistryPrefixFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -425,7 +426,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
 
     @Override
     public int decodePadding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {

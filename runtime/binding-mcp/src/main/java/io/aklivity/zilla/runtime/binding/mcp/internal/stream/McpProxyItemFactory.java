@@ -107,7 +107,7 @@ abstract class McpProxyItemFactory implements BindingHandler
     @Override
     public final MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)

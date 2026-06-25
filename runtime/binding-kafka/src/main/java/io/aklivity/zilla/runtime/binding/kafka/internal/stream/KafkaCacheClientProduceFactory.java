@@ -31,12 +31,9 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -80,6 +77,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -160,9 +160,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final BudgetCreditor creditor;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer transformBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -217,7 +217,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -1020,7 +1020,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private void onClientFanMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1271,7 +1271,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private void onClientMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

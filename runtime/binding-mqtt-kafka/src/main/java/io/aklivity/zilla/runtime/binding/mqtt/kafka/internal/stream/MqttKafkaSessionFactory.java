@@ -340,7 +340,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer mqtt)
