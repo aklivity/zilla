@@ -30,8 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -39,6 +37,8 @@ import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 
 public class AvroChunkingTest
@@ -54,7 +54,7 @@ public class AvroChunkingTest
     @Test
     public void shouldReportRemainingAgainstLimit()
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[64]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[64]);
         AvroGenerator generator = Avro.generator(Avro.schema("\"int\""), out, 0);
         generator.wrap(out, 0, 10);
         assertEquals(10, generator.remaining());
@@ -66,7 +66,7 @@ public class AvroChunkingTest
     @Test
     public void shouldRejectLimitExceedingCapacity()
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[16]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[16]);
         AvroGenerator generator = Avro.generator(Avro.schema("\"int\""), out, 0);
         assertThrows(IllegalArgumentException.class, () -> generator.wrap(out, 0, out.capacity() + 1));
     }
@@ -75,7 +75,7 @@ public class AvroChunkingTest
     public void shouldRejectNonSplittableValueExceedingLimit()
     {
         AvroSchema schema = Avro.schema("\"double\"");
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[64]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[64]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         generator.wrap(out, 0, 4);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
@@ -106,7 +106,7 @@ public class AvroChunkingTest
         };
 
         int limit = 8;
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[256]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).transform(counting).into(AvroSink.of(generator));
         generator.wrap(out, 0, limit);
@@ -141,7 +141,7 @@ public class AvroChunkingTest
         byte[] whole = AvroValues.transcode(schema, datum, STRUCTURED);
 
         int limit = 8;
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[256]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
         generator.wrap(out, 0, limit);
@@ -177,7 +177,7 @@ public class AvroChunkingTest
         byte[] whole = AvroValues.transcode(schema, datum, STRUCTURED);
 
         int limit = 24;
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[256]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
 
@@ -205,7 +205,7 @@ public class AvroChunkingTest
     }
 
     private static byte[] drain(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int length)
     {
         byte[] bytes = new byte[length];

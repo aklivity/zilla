@@ -22,10 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayOutputStream;
 
-import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.Avro;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
@@ -42,7 +42,7 @@ public class AvroJsonTest
     public void shouldNotReportIdentityForJsonGeneratorPipeline()
     {
         AvroSchema schema = Avro.schema("\"string\"");
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[256]);
         AvroGenerator generator = AvroJson.generator(schema, JsonEx.createGenerator(), true).wrap(out, 0, out.capacity());
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
 
@@ -298,7 +298,7 @@ public class AvroJsonTest
         AvroSchema schema,
         byte[] binary)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[Math.max(256, binary.length * 8)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, binary.length * 8)]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json, true).wrap(out, 0, out.capacity());
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
@@ -319,7 +319,7 @@ public class AvroJsonTest
         String json)
     {
         byte[] jsonBytes = json.getBytes(UTF_8);
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         JsonParserEx parser = JsonEx.createParser();
         AvroPipeline pipeline = AvroJson.stream(schema, parser, true).into(AvroSink.of(generator));
@@ -341,7 +341,7 @@ public class AvroJsonTest
         AvroSchema schema = Avro.schema(schemaText);
         byte[] jsonBytes = json.getBytes(UTF_8);
         JsonParserEx parser = JsonEx.createParser();
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[64]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[64]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = AvroJson.stream(schema, parser).into(AvroSink.of(generator));
         pipeline.reset();
@@ -394,7 +394,7 @@ public class AvroJsonTest
         int limit)
     {
         byte[] jsonBytes = json.getBytes(UTF_8);
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
         JsonParserEx parser = JsonEx.createParser();
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = AvroJson.stream(schema, parser).into(AvroSink.of(generator));
@@ -418,7 +418,7 @@ public class AvroJsonTest
     }
 
     private static void drainAvro(
-        MutableDirectBuffer out,
+        MutableDirectBufferEx out,
         AvroGenerator generator,
         ByteArrayOutputStream result)
     {
@@ -436,7 +436,7 @@ public class AvroJsonTest
             {"name":"id","type":"int"},
             {"name":"name","type":"string"}]}""");
         JsonParserEx parser = JsonEx.createParser();
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[128]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[128]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = AvroJson.stream(schema, parser).into(AvroSink.of(generator));
 
@@ -449,7 +449,7 @@ public class AvroJsonTest
     private static byte[] feedOnce(
         AvroPipeline pipeline,
         AvroGenerator generator,
-        MutableDirectBuffer out,
+        MutableDirectBufferEx out,
         String json)
     {
         byte[] jsonBytes = json.getBytes(UTF_8);
@@ -473,7 +473,7 @@ public class AvroJsonTest
             {"name":"a","type":"string"},
             {"name":"b","type":"bytes"},
             {"name":"c","type":{"type":"fixed","name":"F","size":2}}]}""");
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[256]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[256]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json).wrap(out, 0, out.capacity());
         generator.writeStartRecord();
@@ -495,7 +495,7 @@ public class AvroJsonTest
         byte[] binary,
         int limit)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[limit]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[limit]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
@@ -519,7 +519,7 @@ public class AvroJsonTest
     }
 
     private static void drain(
-        MutableDirectBuffer out,
+        MutableDirectBufferEx out,
         JsonGeneratorEx json,
         ByteArrayOutputStream result)
     {
@@ -552,7 +552,7 @@ public class AvroJsonTest
         AvroSchema schema,
         byte[] binary)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[Math.max(256, binary.length * 8)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, binary.length * 8)]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json).wrap(out, 0, out.capacity());
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
@@ -573,7 +573,7 @@ public class AvroJsonTest
         String json)
     {
         byte[] jsonBytes = json.getBytes(UTF_8);
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         JsonParserEx parser = JsonEx.createParser();
         AvroPipeline pipeline = AvroJson.stream(schema, parser).into(AvroSink.of(generator));

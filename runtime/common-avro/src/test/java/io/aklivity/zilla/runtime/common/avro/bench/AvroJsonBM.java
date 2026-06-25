@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -44,6 +42,8 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.Avro;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
@@ -86,7 +86,7 @@ public class AvroJsonBM
         {"name":"items","type":{"type":"array","items":{"type":"record","name":"Item","fields":[
         {"name":"key","type":"string"},{"name":"value","type":"long"}]}}}]}""";
 
-    private final MutableDirectBuffer outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
+    private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
 
     private AvroGenerator flatJsonGenerator;
     private AvroGenerator nestedJsonGenerator;
@@ -178,7 +178,7 @@ public class AvroJsonBM
         AvroSchema schema,
         byte[] avro)
     {
-        MutableDirectBuffer out = new UnsafeBufferEx(new byte[16 * 1024]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[16 * 1024]);
         JsonGeneratorEx json = JsonEx.createGenerator();
         AvroGenerator generator = AvroJson.generator(schema, json).wrap(out, 0, out.capacity());
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
