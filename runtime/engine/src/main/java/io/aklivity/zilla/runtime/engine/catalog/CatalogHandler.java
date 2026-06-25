@@ -44,6 +44,30 @@ public interface CatalogHandler
     int NO_VERSION_ID = 0;
 
     /**
+     * A no-op handler that resolves nothing: {@link #resolve(int)} returns {@code null} and
+     * {@link #resolve(String, String)} returns {@link #NO_SCHEMA_ID}, while the registration
+     * and pipeline operations retain their default no-op behavior. Useful as a non-null
+     * placeholder when no catalog is configured, so callers can avoid null checks.
+     */
+    CatalogHandler NONE = new CatalogHandler()
+    {
+        @Override
+        public String resolve(
+            int schemaId)
+        {
+            return null;
+        }
+
+        @Override
+        public int resolve(
+            String subject,
+            String version)
+        {
+            return NO_SCHEMA_ID;
+        }
+    };
+
+    /**
      * Functional interface for decoding a framed payload into its raw content.
      * <p>
      * Implementations strip any schema framing (e.g., a Confluent magic byte + schema id prefix)

@@ -47,6 +47,7 @@ public final class AsyncapiBindingConfig
     public final LongFunction<CatalogHandler> supplyCatalog;
     public final ToIntFunction<String> supplyTypeId;
     public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
+    public final LongFunction<String> supplyQName;
 
     public transient AsyncapiCompositeConfig composite;
 
@@ -72,6 +73,7 @@ public final class AsyncapiBindingConfig
         this.supplyBindingId = context::supplyBindingId;
         this.supplyCatalog = context::supplyCatalog;
         this.supplyTypeId = context::supplyTypeId;
+        this.supplyQName = context::supplyQName;
 
         // TODO: move to engine
         if (options != null)

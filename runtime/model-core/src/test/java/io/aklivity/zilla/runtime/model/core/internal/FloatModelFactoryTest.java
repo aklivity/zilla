@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
@@ -26,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelFactory;
+import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
 import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 
 public class FloatModelFactoryTest
@@ -42,8 +45,16 @@ public class FloatModelFactoryTest
         ModelConfig modelConfig = FloatModelConfig.builder().build();
 
         assertThat(model, instanceOf(FloatModel.class));
-        assertThat(context.supplyReadConverterHandler(modelConfig), instanceOf(FloatConverterHandler.class));
-        assertThat(context.supplyWriteConverterHandler(modelConfig), instanceOf(FloatConverterHandler.class));
-        assertThat(context.supplyValidatorHandler(modelConfig), instanceOf(FloatValidatorHandler.class));
+        assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
+    }
+
+    @Test
+    public void shouldReportTypeAndSchema()
+    {
+        ModelFactorySpi spi = new FloatModelFactorySpi();
+
+        assertEquals(FloatModel.NAME, spi.type());
+        assertNotNull(spi.schema());
+        assertThat(spi.create(new Configuration()), instanceOf(FloatModel.class));
     }
 }

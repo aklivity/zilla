@@ -34,6 +34,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -46,8 +47,10 @@ import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -72,6 +75,9 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 final class TestBindingFactory implements BindingHandler
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final BeginFW beginRO = new BeginFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
 
@@ -100,8 +106,9 @@ final class TestBindingFactory implements BindingHandler
     private final EngineContext context;
     private final TestEventContext event;
     private final Long2ObjectHashMap<TestBindingConfig> bindings;
+    private final MutableDirectBuffer modelBuffer;
 
-    private ConverterHandler valueType;
+    private ModelHandler valueModel;
     private String schema;
     private SchemaConfig catalog;
     private List<CatalogHandler> catalogs;
@@ -130,6 +137,7 @@ final class TestBindingFactory implements BindingHandler
         this.context = context;
         this.event = new TestEventContext(context);
         this.bindings = new Long2ObjectHashMap<>();
+        this.modelBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
     }
 
     public void attach(
@@ -144,7 +152,7 @@ final class TestBindingFactory implements BindingHandler
 
             if (options.value != null)
             {
-                this.valueType = context.supplyWriteConverter(options.value);
+                this.valueModel = context.supplyModel(options.value);
             }
 
             this.schema = options.schema;
@@ -321,6 +329,7 @@ final class TestBindingFactory implements BindingHandler
         private boolean pendingBegin;
         private long pendingTraceId;
         private boolean storeAssertionsStarted;
+        private final ModelPipeline valuePipeline;
 
         private TestSource(
             MessageConsumer source,
@@ -336,6 +345,7 @@ final class TestBindingFactory implements BindingHandler
             this.initialId = initialId;
             this.replyId = replyId;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
+            this.valuePipeline = valueModel != null ? valueModel.supplyEncoder() : null;
         }
 
         private void doAuthorize(
@@ -878,9 +888,8 @@ final class TestBindingFactory implements BindingHandler
 
             initialSeq = sequence + reserved;
 
-            if (valueType != null &&
-                valueType.convert(traceId, routedId, payload.buffer(), payload.offset(), payload.sizeof(),
-                        ValueConsumer.NOP) < 0)
+            if (valuePipeline != null &&
+                transform(traceId, payload.buffer(), payload.offset(), payload.limit()) < 0)
             {
                 target.doInitialAbort(traceId);
             }
@@ -888,6 +897,47 @@ final class TestBindingFactory implements BindingHandler
             {
                 target.doInitialData(traceId, flags, reserved, payload);
             }
+        }
+
+        private int transform(
+            long traceId,
+            DirectBuffer data,
+            int index,
+            int limit)
+        {
+            int total = 0;
+            int srcAt = index;
+            int flags = FLAGS_INIT | FLAGS_FIN;
+            boolean done = false;
+            while (!done)
+            {
+                final ModelPipelineResult result = valuePipeline.transform(traceId, routedId, flags,
+                        data, srcAt, limit, modelBuffer, total, modelBuffer.capacity());
+                final ModelStatus status = result.status();
+
+                if (status == ModelStatus.REJECTED)
+                {
+                    total = -1;
+                    done = true;
+                }
+                else
+                {
+                    total += result.produced();
+
+                    if (status == ModelStatus.COMPLETE)
+                    {
+                        done = true;
+                    }
+                    else
+                    {
+                        srcAt += result.consumed();
+                        flags = FLAGS_FIN;
+                    }
+                }
+            }
+
+            valuePipeline.reset();
+            return total;
         }
 
         private void onInitialEnd(

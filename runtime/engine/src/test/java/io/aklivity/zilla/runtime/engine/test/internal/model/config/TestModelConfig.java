@@ -20,12 +20,14 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class TestModelConfig extends ModelConfig
 {
     public final int length;
     public final boolean read;
     public final int transformLength;
+    public final List<String> fields;
 
     public TestModelConfig(
         int length,
@@ -41,10 +43,32 @@ public class TestModelConfig extends ModelConfig
         boolean read,
         int transformLength)
     {
-        super("test", cataloged);
+        this(length, cataloged, read, transformLength, null);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields)
+    {
+        this(length, cataloged, read, transformLength, fields, ValidateConfig.STRICT);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields,
+        ValidateConfig validate)
+    {
+        super("test", cataloged, validate);
         this.length = length;
         this.read = read;
         this.transformLength = transformLength;
+        this.fields = fields;
     }
 
     public static <T> TestModelConfigBuilder<T> builder(

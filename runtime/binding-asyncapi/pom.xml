@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>2.0.0-alpha-11</version>
+    <version>2.0.0-alpha-12</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -141,6 +141,16 @@
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-protobuf</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>store-memory</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <version>2.16.1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

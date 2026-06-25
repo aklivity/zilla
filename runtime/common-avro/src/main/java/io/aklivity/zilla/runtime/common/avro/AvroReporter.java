@@ -27,6 +27,8 @@ package io.aklivity.zilla.runtime.common.avro;
 @FunctionalInterface
 public interface AvroReporter
 {
+    AvroReporter NONE = diagnostic -> {};
+
     void rejected(
         AvroDiagnostic diagnostic);
 }

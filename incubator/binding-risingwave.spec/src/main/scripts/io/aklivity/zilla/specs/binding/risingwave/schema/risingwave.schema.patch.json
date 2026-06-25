@@ -57,7 +57,7 @@
                                     },
                                     "format":
                                     {
-                                        "$ref": "#/$defs/converter"
+                                        "$ref": "#/$defs/models"
                                     }
                                 }
                             },

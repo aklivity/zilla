@@ -27,6 +27,8 @@ package io.aklivity.zilla.runtime.common.json;
 @FunctionalInterface
 public interface JsonReporter
 {
+    JsonReporter NONE = diagnostic -> {};
+
     void rejected(
         JsonDiagnostic diagnostic);
 }

@@ -8,7 +8,7 @@
 <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>specs</artifactId>
-    <version>2.0.0-alpha-11</version>
+    <version>2.0.0-alpha-12</version>
     <relativePath>../pom.xml</relativePath>
 </parent>
 
@@ -30,6 +30,11 @@
 
 <dependencies>
     <dependency>
+        <groupId>io.aklivity.k3po</groupId>
+        <artifactId>lang</artifactId>
+        <scope>provided</scope>
+    </dependency>
+    <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>engine.spec</artifactId>
         <version>${project.version}</version>
@@ -37,6 +42,11 @@
     <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>io.aklivity.k3po</groupId>
+        <artifactId>control-junit</artifactId>
         <scope>test</scope>
     </dependency>
     <dependency>
@@ -96,6 +106,27 @@
         <plugin>
             <groupId>org.moditect</groupId>
             <artifactId>moditect-maven-plugin</artifactId>
+        </plugin>
+        <plugin>
+            <groupId>io.aklivity.k3po</groupId>
+            <artifactId>k3po-maven-plugin</artifactId>
+            <dependencies>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>engine</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                </dependency>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>engine</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
         </plugin>
         <plugin>
             <groupId>org.jacoco</groupId>

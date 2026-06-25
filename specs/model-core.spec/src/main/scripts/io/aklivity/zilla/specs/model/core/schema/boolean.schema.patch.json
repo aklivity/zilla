@@ -1,12 +1,12 @@
 [
     {
         "op": "add",
-        "path": "/$defs/converter/types/enum/-",
+        "path": "/$defs/models/types/enum/-",
         "value": "boolean"
     },
     {
         "op": "add",
-        "path": "/$defs/converter/model/allOf/-",
+        "path": "/$defs/models/model/allOf/-",
         "value":
         {
             "if":
@@ -26,39 +26,10 @@
                     "model":
                     {
                         "const": "boolean"
-                    }
-                },
-                "additionalProperties": false
-            }
-        }
-    },
-    {
-        "op": "add",
-        "path": "/$defs/validator/types/enum/-",
-        "value": "boolean"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/validator/model/allOf/-",
-        "value":
-        {
-            "if":
-            {
-                "properties":
-                {
-                    "model":
+                    },
+                    "validate":
                     {
-                        "const": "boolean"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
-                {
-                    "model":
-                    {
-                        "const": "boolean"
+                        "$ref": "#/$defs/validate"
                     }
                 },
                 "additionalProperties": false

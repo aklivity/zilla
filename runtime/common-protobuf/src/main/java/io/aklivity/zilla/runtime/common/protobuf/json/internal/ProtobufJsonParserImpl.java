@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
+import jakarta.json.JsonException;
+
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -21,11 +23,11 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.lang.Numbers;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufLocation;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufParsingException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
@@ -175,7 +177,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     {
         if (schema.message(messageName) == null)
         {
-            throw new ProtobufException("unknown message " + messageName);
+            throw new ProtobufParsingException("unknown message " + messageName);
         }
         this.last = last;
         depth = -1;
@@ -398,7 +400,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         }
         else
         {
-            throw new ProtobufException("expected json object");
+            throw new ProtobufParsingException("expected json object");
         }
         return progress;
     }
@@ -425,7 +427,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 {
                     if (rejectUnknownFields)
                     {
-                        throw new ProtobufException("unknown field " + parser.getStringView());
+                        throw new ProtobufParsingException("unknown field " + parser.getStringView());
                     }
                     beginSkip();
                 }
@@ -442,7 +444,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             }
             else
             {
-                throw new ProtobufException("expected json key or object end");
+                throw new ProtobufParsingException("expected json key or object end");
             }
         }
         return progress;
@@ -531,7 +533,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             }
             else
             {
-                throw new ProtobufException("expected map key or object end");
+                throw new ProtobufParsingException("expected map key or object end");
             }
         }
         else
@@ -585,7 +587,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         {
             if (token != JsonEvent.START_ARRAY)
             {
-                throw new ProtobufException("expected json array");
+                throw new ProtobufParsingException("expected json array");
             }
             push(Kind.ARRAY, null, field, false, false);
         }
@@ -666,14 +668,27 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     {
         if (last)
         {
-            throw new ProtobufException("truncated json");
+            throw new ProtobufParsingException("truncated json");
         }
         return false;
     }
 
+    // the JSON-advance boundary: a malformed or non-JSON window makes the underlying jakarta parser throw a
+    // JsonException (JsonParsingException for a syntax error), which would otherwise escape the pipeline; turn
+    // it into a ProtobufParsingException so it rejects cleanly through the ProtobufException catch like any
+    // parse failure
     private JsonEvent pull()
     {
-        return parser.hasNextEvent() ? parser.nextEvent() : null;
+        JsonEvent event;
+        try
+        {
+            event = parser.hasNextEvent() ? parser.nextEvent() : null;
+        }
+        catch (JsonException ex)
+        {
+            throw new ProtobufParsingException("Invalid Protobuf event", ex);
+        }
+        return event;
     }
 
     // a field value: a string/bytes value begins a bounded streaming run (FIELD already enqueued), every other
@@ -772,7 +787,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 : parseLong(parser.getStringView());
             break;
         default:
-            throw new ProtobufException("unsupported scalar type " + field.type());
+            throw new ProtobufParsingException("unsupported scalar type " + field.type());
         }
     }
 
@@ -981,7 +996,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         }
         else
         {
-            throw new ProtobufException("invalid base64 character " + ch);
+            throw new ProtobufParsingException("invalid base64 character " + ch);
         }
         return value;
     }
@@ -1060,7 +1075,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         Integer number = field.enumeration() != null ? field.enumeration().number(name) : null;
         if (number == null)
         {
-            throw new ProtobufException("unknown enum value " + name);
+            throw new ProtobufParsingException("unknown enum value " + name);
         }
         return number;
     }
@@ -1070,7 +1085,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     {
         if (token != JsonEvent.START_OBJECT)
         {
-            throw new ProtobufException("expected json object");
+            throw new ProtobufParsingException("expected json object");
         }
     }
 

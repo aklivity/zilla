@@ -29,29 +29,36 @@ final class CoreModelHandler implements ModelHandler
     private final CoreModelEventContext event;
     private final String model;
     private final Supplier<CoreModelValidator> supplier;
+    // LENIENT per direction: a semantic-constraint failure on a structurally-valid value passes through
+    private final boolean decodeLenient;
+    private final boolean encodeLenient;
 
     CoreModelHandler(
         EngineContext context,
         String model,
-        Supplier<CoreModelValidator> supplier)
+        Supplier<CoreModelValidator> supplier,
+        boolean decodeLenient,
+        boolean encodeLenient)
     {
         this.event = new CoreModelEventContext(context);
         this.model = model;
         this.supplier = supplier;
+        this.decodeLenient = decodeLenient;
+        this.encodeLenient = encodeLenient;
     }
 
     @Override
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new CoreModelPipeline(this, supplier.get());
+        return new CoreModelPipeline(this, supplier.get(), decodeLenient);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
-        return new CoreModelPipeline(this, supplier.get());
+        return new CoreModelPipeline(this, supplier.get(), encodeLenient);
     }
 
     void validationFailure(

@@ -20,22 +20,18 @@ import java.util.List;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelHandler
@@ -46,18 +42,16 @@ public class ProtobufModelHandler
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
     private static final int JSON_OBJECT_CURLY_BRACES = 2;
 
-    // a fixed, reused output window the pipeline generator fills; when a feed fills it the chunk is emitted
-    // downstream and the feed resumes into the same window, so output of any size streams in bounded chunks
-    // with no per-message allocation (the common-protobuf generators fragment a single value across windows)
-    private static final int OUT_WINDOW = 8192;
-
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
     protected final String view;
     protected final List<Integer> indexes;
-    protected final MutableDirectBuffer out;
     protected final ProtobufModelEventContext event;
+    // LENIENT per direction: a semantic-validation failure passes through (inert today — no protobuf
+    // semantic validation stage throws yet, so the wired branch is unreached)
+    protected final boolean decodeLenient;
+    protected final boolean encodeLenient;
 
     private final Int2ObjectCache<ProtobufSchema> schemas;
     private final Int2IntHashMap paddings;
@@ -73,58 +67,12 @@ public class ProtobufModelHandler
                 ? catalog.subject
                 : config.subject;
         this.view = config.view;
+        this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
+        this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
         this.indexes = new LinkedList<>();
         this.paddings = new Int2IntHashMap(-1);
-        this.out = new UnsafeBuffer(new byte[OUT_WINDOW]);
         this.event = new ProtobufModelEventContext(context);
-    }
-
-    // Streams a whole message through the pipeline as bounded output chunks emitted via {@code next}, returning
-    // the total number of bytes emitted or -1 when the message is rejected. The fixed window {@code out} is
-    // filled, flushed downstream, then re-wrapped and the feed resumed each time it fills, so output of any size
-    // streams in bounded chunks with no per-message allocation and no re-parse. A late rejection (after some
-    // chunks have already been emitted) returns -1 so the caller aborts the downstream stream; the pipeline's
-    // configured reporter receives the diagnostic on rejection.
-    protected final int transcode(
-        ProtobufPipeline pipeline,
-        ProtobufGenerator generator,
-        DirectBuffer data,
-        int index,
-        int length,
-        ValueConsumer next)
-    {
-        int produced = -1;
-        try
-        {
-            int emitted = 0;
-            generator.wrap(out, 0, out.capacity());
-            pipeline.reset();
-            ProtobufPipeline.Status status = pipeline.transform(data, index, index + length);
-            // each filled window is a finished chunk (the sink backfills any open length slots before
-            // suspending); emit it as-is and resume into the same window — flush() is only for completion
-            while (status == ProtobufPipeline.Status.SUSPENDED)
-            {
-                int chunk = generator.length();
-                next.accept(out, 0, chunk);
-                emitted += chunk;
-                generator.wrap(out, 0, out.capacity());
-                status = pipeline.transform(data, index, index + length);
-            }
-            if (status == ProtobufPipeline.Status.COMPLETED)
-            {
-                generator.flush();
-                int chunk = generator.length();
-                next.accept(out, 0, chunk);
-                emitted += chunk;
-                produced = emitted;
-            }
-        }
-        catch (Exception ex)
-        {
-            produced = -1;
-        }
-        return produced;
     }
 
     protected ProtobufSchema supplySchema(

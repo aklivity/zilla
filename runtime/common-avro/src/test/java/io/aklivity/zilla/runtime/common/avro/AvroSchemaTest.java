@@ -247,12 +247,12 @@ public class AvroSchemaTest
     @Test
     public void shouldRejectMalformedSchemaDocument()
     {
-        assertThrows(AvroValidationException.class, () -> Avro.schema("{ this is not json"));
+        assertThrows(AvroParsingException.class, () -> Avro.schema("{ this is not json"));
     }
 
     @Test
     public void shouldRejectUnexpectedSchemaNode()
     {
-        assertThrows(AvroValidationException.class, () -> Avro.schema("123"));
+        assertThrows(AvroParsingException.class, () -> Avro.schema("123"));
     }
 }

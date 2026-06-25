@@ -16,12 +16,8 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
 
@@ -43,22 +39,16 @@ import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 // Per-worker factory for a protobuf model. One handler serves both directions: supplyDecoder vends a
-// per-stream ProtobufDecodeModelPipeline (catalog framing and message-index prefix stripped, value validated and
-// re-encoded as JSON or canonical wire) and supplyEncoder vends a per-stream ProtobufEncodeModelPipeline
+// per-stream ProtobufModelDecoderPipeline (catalog framing and message-index prefix stripped, value validated and
+// re-encoded as JSON or canonical wire) and supplyEncoder vends a per-stream ProtobufModelEncoderPipeline
 // (catalog framing and message-index prefix emitted, value validated). Configuration-derived state (catalog,
 // schema cache, extraction paths) is shared; in-flight state lives on each pipeline.
 public final class ProtobufModelHandlerImpl extends ProtobufModelHandler implements ModelHandler
 {
-    private static final String PATH = "^\\$\\.([A-Za-z_][A-Za-z0-9_]*)$";
-    private static final Pattern PATH_PATTERN = Pattern.compile(PATH);
-
     // a no-op encoder so encode() emits only the catalog framing into the destination, never the body
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
-    private final Matcher matcher;
-    private final List<String> paths;
-    private final List<String> names;
     private final Map<String, Object> jsonConfig;
 
     public ProtobufModelHandlerImpl(
@@ -66,37 +56,23 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         EngineContext context)
     {
         super(config, context);
-        this.matcher = PATH_PATTERN.matcher("");
-        this.paths = new ArrayList<>();
-        this.names = new ArrayList<>();
         this.jsonConfig = new HashMap<>();
         jsonConfig.put(ProtobufJson.FIELD_NAMES, ProtobufJson.FieldNames.PROTO);
         jsonConfig.put(ProtobufJson.INCLUDE_DEFAULTS, Boolean.TRUE);
     }
 
     @Override
-    public void extract(
-        String path)
-    {
-        if (matcher.reset(path).matches() && !paths.contains(path))
-        {
-            paths.add(path);
-            names.add(matcher.group(1));
-        }
-    }
-
-    @Override
     public ModelPipeline supplyDecoder(
         ModelVisitor visitor)
     {
-        return new ProtobufDecodeModelPipeline(this, paths, names, visitor);
+        return new ProtobufModelDecoderPipeline(this, visitor);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelVisitor visitor)
     {
-        return new ProtobufEncodeModelPipeline(this);
+        return new ProtobufModelEncoderPipeline(this);
     }
 
     int decodePadding(
@@ -213,8 +189,11 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         return framing;
     }
 
+    // read-direction pipeline; when extractor is null no extractor stage is wired so the verbatim/SEGMENTED
+    // fast path stays in effect for a decode with no field extraction
     ProtobufPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         String messageName,
         ProtobufExtractor extractor,
         ProtobufReporter reporter)
@@ -228,16 +207,23 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
             ProtobufGenerator generator = VIEW_JSON.equals(view)
                 ? ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, jsonConfig)
                 : Protobuf.generator();
-            pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
-                .transform(extractor)
-                .reporting(reporter)
-                .into(generator, schema, messageName);
+            pipeline = extractor != null
+                ? Protobuf.stream(Protobuf.parser(schema, messageName))
+                    .transform(extractor)
+                    .lenient(lenient)
+                    .reporting(reporter)
+                    .into(generator, schema, messageName)
+                : Protobuf.stream(Protobuf.parser(schema, messageName))
+                    .lenient(lenient)
+                    .reporting(reporter)
+                    .into(generator, schema, messageName);
         }
         return pipeline;
     }
 
     ProtobufPipeline newPipeline(
         int schemaId,
+        boolean lenient,
         String messageName,
         ProtobufReporter reporter)
     {
@@ -252,6 +238,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
                     Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE))
                 : Protobuf.parser(schema, messageName);
             pipeline = Protobuf.stream(parser)
+                .lenient(lenient)
                 .reporting(reporter)
                 .into(Protobuf.generator(), schema, messageName);
         }

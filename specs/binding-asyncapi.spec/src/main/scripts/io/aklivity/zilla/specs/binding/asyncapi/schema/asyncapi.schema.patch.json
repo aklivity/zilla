@@ -144,6 +144,11 @@
                                     "authorization":
                                     {
                                         "$ref": "#/$defs/options/binding/mqtt/authorization"
+                                    },
+                                    "store":
+                                    {
+                                        "title": "Store Reference",
+                                        "type": "string"
                                     }
                                 },
                                 "additionalProperties": false

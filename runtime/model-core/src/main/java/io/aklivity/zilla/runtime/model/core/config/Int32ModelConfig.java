@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.core.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class Int32ModelConfig extends ModelConfig
 {
@@ -29,15 +30,16 @@ public class Int32ModelConfig extends ModelConfig
     public final boolean exclusiveMax;
     public final boolean exclusiveMin;
 
-    public Int32ModelConfig(
+    Int32ModelConfig(
         String format,
         int max,
         int min,
         boolean exclusiveMax,
         boolean exclusiveMin,
-        int multiple)
+        int multiple,
+        ValidateConfig validate)
     {
-        super(INT_32);
+        super(INT_32, null, validate);
         this.format = format;
         this.max = max;
         this.min = min;

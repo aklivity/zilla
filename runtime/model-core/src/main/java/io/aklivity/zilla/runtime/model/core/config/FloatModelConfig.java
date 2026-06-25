@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.core.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class FloatModelConfig extends ModelConfig
 {
@@ -29,15 +30,16 @@ public class FloatModelConfig extends ModelConfig
     public final boolean exclusiveMax;
     public final boolean exclusiveMin;
 
-    public FloatModelConfig(
+    FloatModelConfig(
         String format,
         float max,
         float min,
         boolean exclusiveMax,
         boolean exclusiveMin,
-        Float multiple)
+        Float multiple,
+        ValidateConfig validate)
     {
-        super(FLOAT);
+        super(FLOAT, null, validate);
         this.format = format;
         this.max = max;
         this.min = min;

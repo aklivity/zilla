@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import java.util.Set;
+
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -26,13 +28,16 @@ final class KafkaExtractor implements ModelVisitor
 {
     private static final long MISSING_REGION = -1L;
 
+    private final Set<String> paths;
     private final MutableDirectBuffer captures;
     private final Object2LongHashMap<String> regionByPath;
 
     private int capturesOffset;
 
-    KafkaExtractor()
+    KafkaExtractor(
+        Set<String> paths)
     {
+        this.paths = paths;
         this.captures = new ExpandableArrayBuffer();
         this.regionByPath = new Object2LongHashMap<>(MISSING_REGION);
     }
@@ -44,10 +49,14 @@ final class KafkaExtractor implements ModelVisitor
         int index,
         int length)
     {
-        final int offset = capturesOffset;
-        captures.putBytes(offset, buffer, index, length);
-        capturesOffset += length;
-        regionByPath.put(path, (long) offset << Integer.SIZE | (length & 0xFFFF_FFFFL));
+        // the model surfaces every top-level field; capture only the configured extraction paths
+        if (paths.contains(path))
+        {
+            final int offset = capturesOffset;
+            captures.putBytes(offset, buffer, index, length);
+            capturesOffset += length;
+            regionByPath.put(path, (long) offset << Integer.SIZE | (length & 0xFFFF_FFFFL));
+        }
     }
 
     int extractedLength(

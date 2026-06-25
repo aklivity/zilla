@@ -537,50 +537,43 @@
             [
             ]
         },
-        "converter":
+        "validate":
         {
             "oneOf":
             [
                 {
-                    "$ref": "#/$defs/converter/types"
+                    "type": "string",
+                    "enum": [ "strict", "lenient" ]
                 },
                 {
-                    "$ref": "#/$defs/converter/model"
+                    "type": "object",
+                    "properties":
+                    {
+                        "decode":
+                        {
+                            "type": "string",
+                            "enum": [ "strict", "lenient" ]
+                        },
+                        "encode":
+                        {
+                            "type": "string",
+                            "enum": [ "strict", "lenient" ]
+                        }
+                    },
+                    "additionalProperties": false
                 }
             ],
-            "types":
-            {
-                "type": "string",
-                "enum": []
-            },
-            "model":
-            {
-                "type": "object",
-                "properties":
-                {
-                    "model":
-                    {
-                        "$ref": "#/$defs/converter/types"
-                    }
-                },
-                "required":
-                [
-                    "model"
-                ],
-                "allOf":
-                [
-                ]
-            }
+            "default": "strict"
         },
-        "validator":
+        "models":
         {
             "oneOf":
             [
                 {
-                    "$ref": "#/$defs/validator/types"
+                    "$ref": "#/$defs/models/types"
                 },
                 {
-                    "$ref": "#/$defs/validator/model"
+                    "$ref": "#/$defs/models/model"
                 }
             ],
             "types":
@@ -595,7 +588,11 @@
                 {
                     "model":
                     {
-                        "$ref": "#/$defs/validator/types"
+                        "$ref": "#/$defs/models/types"
+                    },
+                    "validate":
+                    {
+                        "$ref": "#/$defs/validate"
                     }
                 },
                 "required":

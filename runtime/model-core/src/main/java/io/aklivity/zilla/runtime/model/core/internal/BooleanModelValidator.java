@@ -22,7 +22,7 @@ final class BooleanModelValidator implements CoreModelValidator
     private static final byte FALSE = 0x00;
 
     @Override
-    public boolean validate(
+    public Validity validate(
         int flags,
         DirectBuffer data,
         int index,
@@ -36,6 +36,8 @@ final class BooleanModelValidator implements CoreModelValidator
             valid = value == TRUE || value == FALSE;
         }
 
-        return valid;
+        // a boolean carries no semantic constraints beyond its single-byte structure, so any failure is a
+        // structural/parse failure: MALFORMED, never relaxed
+        return valid ? Validity.VALID : Validity.MALFORMED;
     }
 }

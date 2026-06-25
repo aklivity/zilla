@@ -26,16 +26,24 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // on the supplied CoreModelValidator, so interleaved streams on one worker never corrupt each other.
 final class CoreModelPipeline implements ModelPipeline
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final CoreModelHandler handler;
     private final CoreModelValidator validator;
+    // LENIENT: a structurally-valid value that violates a semantic constraint (INVALID) is reported then
+    // copied through unchanged rather than rejected; a parse failure (MALFORMED) always rejects
+    private final boolean lenient;
     private final ModelPipelineResult result;
 
     CoreModelPipeline(
         CoreModelHandler handler,
-        CoreModelValidator validator)
+        CoreModelValidator validator,
+        boolean lenient)
     {
         this.handler = handler;
         this.validator = validator;
+        this.lenient = lenient;
         this.result = new ModelPipelineResult();
     }
 
@@ -58,12 +66,20 @@ final class CoreModelPipeline implements ModelPipeline
         boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;
         int fragmentFlags = (flags & FLAGS_INIT) | (tail ? FLAGS_FIN : 0);
 
+        Validity validity = validator.validate(fragmentFlags, src, srcIndex, available);
+        // MALFORMED always rejects; INVALID rejects under STRICT but, under LENIENT, reports then passes the
+        // structurally-valid value through (the identity copy below); VALID passes through silently
+        boolean reject = validity == Validity.MALFORMED || validity == Validity.INVALID && !lenient;
+        if (validity != Validity.VALID)
+        {
+            handler.validationFailure(traceId, bindingId);
+        }
+
         ModelStatus status;
         int consumed;
         int produced;
-        if (!validator.validate(fragmentFlags, src, srcIndex, available))
+        if (reject)
         {
-            handler.validationFailure(traceId, bindingId);
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;

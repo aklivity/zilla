@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.protobuf.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
@@ -28,6 +29,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public class ProtobufModelConfigAdapterTest
@@ -70,23 +73,23 @@ public class ProtobufModelConfigAdapterTest
                 """;
 
         // WHEN
-        ProtobufModelConfig converter = jsonb.fromJson(json, ProtobufModelConfig.class);
+        ProtobufModelConfig model = jsonb.fromJson(json, ProtobufModelConfig.class);
 
         // THEN
-        assertThat(converter, not(nullValue()));
-        assertThat(converter.model, equalTo("protobuf"));
-        assertThat(converter.cataloged.size(), equalTo(1));
-        assertThat(converter.cataloged.get(0).name, equalTo("test0"));
-        assertThat(converter.cataloged.get(0).schemas.get(0).strategy, equalTo("topic"));
-        assertThat(converter.cataloged.get(0).schemas.get(0).version, equalTo("latest"));
-        assertThat(converter.cataloged.get(0).schemas.get(0).id, equalTo(0));
-        assertThat(converter.cataloged.get(0).schemas.get(1).subject, equalTo("cat"));
-        assertThat(converter.cataloged.get(0).schemas.get(1).strategy, nullValue());
-        assertThat(converter.cataloged.get(0).schemas.get(1).version, equalTo("latest"));
-        assertThat(converter.cataloged.get(0).schemas.get(1).id, equalTo(0));
-        assertThat(converter.cataloged.get(0).schemas.get(2).strategy, nullValue());
-        assertThat(converter.cataloged.get(0).schemas.get(2).version, nullValue());
-        assertThat(converter.cataloged.get(0).schemas.get(2).id, equalTo(42));
+        assertThat(model, not(nullValue()));
+        assertThat(model.model, equalTo("protobuf"));
+        assertThat(model.cataloged.size(), equalTo(1));
+        assertThat(model.cataloged.get(0).name, equalTo("test0"));
+        assertThat(model.cataloged.get(0).schemas.get(0).strategy, equalTo("topic"));
+        assertThat(model.cataloged.get(0).schemas.get(0).version, equalTo("latest"));
+        assertThat(model.cataloged.get(0).schemas.get(0).id, equalTo(0));
+        assertThat(model.cataloged.get(0).schemas.get(1).subject, equalTo("cat"));
+        assertThat(model.cataloged.get(0).schemas.get(1).strategy, nullValue());
+        assertThat(model.cataloged.get(0).schemas.get(1).version, equalTo("latest"));
+        assertThat(model.cataloged.get(0).schemas.get(1).id, equalTo(0));
+        assertThat(model.cataloged.get(0).schemas.get(2).strategy, nullValue());
+        assertThat(model.cataloged.get(0).schemas.get(2).version, nullValue());
+        assertThat(model.cataloged.get(0).schemas.get(2).id, equalTo(42));
     }
 
     @Test
@@ -96,7 +99,7 @@ public class ProtobufModelConfigAdapterTest
         String expectedJson = """
                 {"model":"protobuf","catalog":{"test0":[{"strategy":"topic","version":"latest"},\
                 {"subject":"cat","version":"latest"},{"id":42}]}}""";
-        ProtobufModelConfig converter = ProtobufModelConfig.builder()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
                 .catalog()
                     .name("test0")
                     .schema()
@@ -113,7 +116,7 @@ public class ProtobufModelConfigAdapterTest
                     .build()
                 .build();
 
-        String json = jsonb.toJson(converter);
+        String json = jsonb.toJson(model);
 
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
@@ -124,7 +127,7 @@ public class ProtobufModelConfigAdapterTest
     {
         String expectedJson = """
                 {"model":"protobuf","catalog":{"test0":[{"subject":"user","version":"latest"}]}}""";
-        ProtobufModelConfig converter = ProtobufModelConfig.builder()
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
                 .catalog()
                     .name("test0")
                     .schema()
@@ -134,7 +137,7 @@ public class ProtobufModelConfigAdapterTest
                     .build()
                 .build();
 
-        String json = jsonb.toJson(converter);
+        String json = jsonb.toJson(model);
 
         assertThat(json, not(nullValue()));
         assertThat(json, equalTo(expectedJson));
@@ -159,10 +162,131 @@ public class ProtobufModelConfigAdapterTest
                 }
                 """;
 
-        ProtobufModelConfig converter = (ProtobufModelConfig) jsonb.fromJson(json, ModelConfig.class);
+        ProtobufModelConfig model = (ProtobufModelConfig) jsonb.fromJson(json, ModelConfig.class);
 
-        assertThat(converter.model, equalTo("protobuf"));
-        assertThat(converter.cataloged, hasSize(1));
-        assertThat(converter.cataloged.get(0).name, equalTo("test0"));
+        assertThat(model.model, equalTo("protobuf"));
+        assertThat(model.cataloged, hasSize(1));
+        assertThat(model.cataloged.get(0).name, equalTo("test0"));
+    }
+
+    @Test
+    public void shouldDefaultValidateStrictWhenAbsent()
+    {
+        String json = """
+                {
+                    "model":"protobuf",
+                    "catalog":
+                    {
+                        "test0":
+                        [
+                            {
+                                "subject":"user",
+                                "version":"latest"
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        ProtobufModelConfig model = jsonb.fromJson(json, ProtobufModelConfig.class);
+
+        assertThat(model.validate, not(nullValue()));
+        assertThat(model.validate.decode, equalTo(ValidateMode.STRICT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldReadScalarValidate()
+    {
+        String json = """
+                {
+                    "model":"protobuf",
+                    "validate":"lenient",
+                    "catalog":
+                    {
+                        "test0":
+                        [
+                            {
+                                "subject":"user",
+                                "version":"latest"
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        ProtobufModelConfig model = jsonb.fromJson(json, ProtobufModelConfig.class);
+
+        assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.LENIENT));
+    }
+
+    @Test
+    public void shouldReadObjectValidate()
+    {
+        String json = """
+                {
+                    "model":"protobuf",
+                    "validate":
+                    {
+                        "decode":"lenient",
+                        "encode":"strict"
+                    },
+                    "catalog":
+                    {
+                        "test0":
+                        [
+                            {
+                                "subject":"user",
+                                "version":"latest"
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        ProtobufModelConfig model = jsonb.fromJson(json, ProtobufModelConfig.class);
+
+        assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldWriteScalarValidate()
+    {
+        String expectedJson = """
+                {"model":"protobuf","catalog":{"test0":[{"subject":"user","version":"latest"}]},"validate":"lenient"}""";
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+                .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .subject("user")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build();
+
+        String json = jsonb.toJson(model);
+
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldOmitValidateWhenStrict()
+    {
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+                .catalog()
+                    .name("test0")
+                    .schema()
+                        .subject("user")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build();
+
+        String json = jsonb.toJson(model);
+
+        assertThat(json, not(containsString("validate")));
     }
 }

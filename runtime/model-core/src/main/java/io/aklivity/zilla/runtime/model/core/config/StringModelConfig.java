@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.core.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public final class StringModelConfig extends ModelConfig
 {
@@ -25,13 +26,14 @@ public final class StringModelConfig extends ModelConfig
     public final int maxLength;
     public final int minLength;
 
-    public StringModelConfig(
+    StringModelConfig(
         String encoding,
         String pattern,
         int maxLength,
-        int minLength)
+        int minLength,
+        ValidateConfig validate)
     {
-        super("string");
+        super("string", null, validate);
         this.encoding = encoding;
         this.pattern = pattern;
         this.maxLength = maxLength;
