@@ -75,8 +75,6 @@ public final class McpBindingConfig
     private static final String CATALOG_NAME = "catalog";
     private static final String SCHEMA_ID = "id";
 
-    private static final CatalogHandler NO_CATALOG = new NoOpCatalogHandler();
-
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
@@ -164,7 +162,7 @@ public final class McpBindingConfig
         this.validates = toolsModel != null && !toolsModel.cataloged.isEmpty();
         this.toolsCatalog = validates
             ? context.supplyCatalog(toolsModel.cataloged.get(0).id)
-            : NO_CATALOG;
+            : CatalogHandler.NONE;
         this.modelConfig = new ModelConfigAdapter();
         this.supplyModel = context::supplyModel;
         this.decodersBySchemaId = new Int2ObjectHashMap<>();
@@ -557,21 +555,4 @@ public final class McpBindingConfig
         return redirectURI;
     }
 
-    private static final class NoOpCatalogHandler implements CatalogHandler
-    {
-        @Override
-        public String resolve(
-            int schemaId)
-        {
-            return null;
-        }
-
-        @Override
-        public int resolve(
-            String subject,
-            String version)
-        {
-            return NO_SCHEMA_ID;
-        }
-    }
 }
