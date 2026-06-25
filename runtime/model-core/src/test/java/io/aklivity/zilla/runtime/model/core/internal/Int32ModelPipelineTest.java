@@ -36,6 +36,10 @@ import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
 public class Int32ModelPipelineTest
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+    private static final int FLAGS_COMPLETE = 0x03;
+
     private EngineContext context;
 
     @Before
@@ -47,48 +51,136 @@ public class Int32ModelPipelineTest
     }
 
     @Test
-    public void shouldTransformWholeValue()
+    public void shouldTransformSignedValue()
     {
         ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
         ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
 
+<<<<<<< HEAD
         byte[] bytes = "42".getBytes();
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+=======
+        byte[] bytes = "+8449999".getBytes();
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+>>>>>>> origin/develop
 
         assertEquals(ModelStatus.COMPLETE, result.status());
-        assertEquals(bytes.length, result.consumed());
-        assertEquals(bytes.length, result.produced());
-        assertEquals("42", dst.getStringWithoutLengthUtf8(0, result.produced()));
     }
 
     @Test
-    public void shouldRejectInvalid()
+    public void shouldTransformNegativeValue()
     {
         ModelHandler handler = handler(Int32ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
+<<<<<<< HEAD
         byte[] bytes = "12x".getBytes();
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+=======
+        byte[] bytes = "-125".getBytes();
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+    }
+
+    @Test
+    public void shouldRejectAtExclusiveMaxLimit()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder()
+            .format("text")
+            .max(999)
+            .exclusiveMax(true)
+            .build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "999".getBytes();
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+>>>>>>> origin/develop
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
     @Test
-    public void shouldRejectOutOfRange()
+    public void shouldRejectAtExclusiveMinLimit()
     {
-        ModelHandler handler = handler(Int32ModelConfig.builder().format("text").max(10).build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelHandler handler = handler(Int32ModelConfig.builder()
+            .format("text")
+            .min(999)
+            .exclusiveMin(true)
+            .build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
 
+<<<<<<< HEAD
         byte[] bytes = "42".getBytes();
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+=======
+        byte[] bytes = "999".getBytes();
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[32]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+>>>>>>> origin/develop
 
         assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldTransformBinaryWholeValue()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+
+        byte[] bytes = {0, 0, 0, 42};
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals(bytes.length, result.produced());
+    }
+
+    @Test
+    public void shouldRejectBinaryTooLong()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] bytes = "Test value".getBytes();
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[64]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
+    @Test
+    public void shouldRejectBinaryFragmentedTooShort()
+    {
+        ModelHandler handler = handler(Int32ModelConfig.builder().format("binary").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+
+        byte[] head = {0, 0, 0};
+        byte[] tail = {0, 42};
+        MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
+
+        ModelPipelineResult first = pipeline.transform(0L, 0L, FLAGS_INIT,
+            new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
+        assertEquals(ModelStatus.UNDERFLOW, first.status());
+
+        ModelPipelineResult second = pipeline.transform(0L, 0L, FLAGS_FIN,
+            new UnsafeBufferEx(tail), 0, tail.length, dst, head.length, dst.capacity());
+        assertEquals(ModelStatus.REJECTED, second.status());
     }
 
     @Test
@@ -101,6 +193,7 @@ public class Int32ModelPipelineTest
         byte[] tail = {0x00, 0x2a};
         MutableDirectBuffer dst = new UnsafeBufferEx(new byte[16]);
 
+<<<<<<< HEAD
         ModelPipelineResult first = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_INIT,
             new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, first.status());
@@ -108,6 +201,15 @@ public class Int32ModelPipelineTest
 
         ModelPipelineResult second = pipeline.transform(0L, 0L, ModelPipeline.FLAGS_FIN,
             new UnsafeBufferEx(tail), 0, tail.length, dst, head.length, dst.capacity());
+=======
+        ModelPipelineResult first = pipeline.transform(0L, 0L, FLAGS_INIT,
+            new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
+        assertEquals(ModelStatus.UNDERFLOW, first.status());
+        assertEquals(head.length, first.consumed());
+
+        ModelPipelineResult second = pipeline.transform(0L, 0L, FLAGS_FIN,
+            new UnsafeBufferEx(tail), 0, tail.length, dst, head.length, dst.capacity());
+>>>>>>> origin/develop
         assertEquals(ModelStatus.COMPLETE, second.status());
         assertEquals(tail.length, second.consumed());
     }

@@ -46,10 +46,10 @@ import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
+import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
-import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 /**
  * The pull cursor ({@link AvroParser}) that decodes the Avro wire into a typed event stream and reads
@@ -256,7 +256,7 @@ public final class AvroParserImpl implements AvroParser
                     }
                     else if (step == STEP_REJECTED)
                     {
-                        throw new AvroValidationException("malformed Avro binary");
+                        throw new AvroParsingException("malformed Avro binary");
                     }
                 }
                 break;
@@ -269,7 +269,7 @@ public final class AvroParserImpl implements AvroParser
                 }
                 else if (segment == STEP_REJECTED)
                 {
-                    throw new AvroValidationException("malformed Avro binary");
+                    throw new AvroParsingException("malformed Avro binary");
                 }
                 break;
             case END:
@@ -288,7 +288,7 @@ public final class AvroParserImpl implements AvroParser
         }
         if (pending == null && !done && last)
         {
-            throw new AvroValidationException("truncated datum");
+            throw new AvroParsingException("truncated datum");
         }
     }
 

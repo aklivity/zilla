@@ -24,6 +24,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfigBuilder;
 import io.aklivity.zilla.runtime.model.core.config.RangeConfig;
@@ -34,8 +36,10 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
     private static final String FORMAT_NAME = "format";
     private static final String MULTIPLE_NAME = "multiple";
     private static final String RANGE_NAME = "range";
+    private static final String VALIDATE_NAME = "validate";
 
     private final RangeConfigAdapter adapter = new RangeConfigAdapter();
+    private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
     @Override
     public String type()
@@ -49,13 +53,15 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
     {
         JsonValue result;
         DoubleModelConfig config = (DoubleModelConfig) options;
+        JsonValue validateJson = validate.adaptToJson(config.validate);
 
         if (config.format.equals(DoubleModelConfigBuilder.DEFAULT_FORMAT) &&
             config.max == Double.POSITIVE_INFINITY &&
             config.min == Double.NEGATIVE_INFINITY &&
             !config.exclusiveMax &&
             !config.exclusiveMin &&
-            config.multiple == null)
+            config.multiple == null &&
+            validateJson == null)
         {
             result = Json.createValue(type());
         }
@@ -79,6 +85,11 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
             if (config.multiple != null)
             {
                 builder.add(MULTIPLE_NAME, config.multiple);
+            }
+
+            if (validateJson != null)
+            {
+                builder.add(VALIDATE_NAME, validateJson);
             }
 
             result = builder.build();
@@ -125,6 +136,9 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
             {
                 builder.multiple(object.getJsonNumber(MULTIPLE_NAME).doubleValue());
             }
+
+            ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
+            builder.validate(validateConfig);
             break;
         default:
             throw new IllegalArgumentException("Unexpected type: " + valueType);

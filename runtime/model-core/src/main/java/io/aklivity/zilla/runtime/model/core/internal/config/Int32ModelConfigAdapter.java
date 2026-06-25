@@ -25,6 +25,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfigBuilder;
 import io.aklivity.zilla.runtime.model.core.config.RangeConfig;
@@ -35,8 +37,10 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     private static final String FORMAT_NAME = "format";
     private static final String MULTIPLE_NAME = "multiple";
     private static final String RANGE_NAME = "range";
+    private static final String VALIDATE_NAME = "validate";
 
     private final RangeConfigAdapter adapter = new RangeConfigAdapter();
+    private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
     @Override
     public String type()
@@ -50,13 +54,15 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
     {
         JsonValue result;
         Int32ModelConfig config = (Int32ModelConfig) options;
+        JsonValue validateJson = validate.adaptToJson(config.validate);
 
         if (config.format.equals(Int32ModelConfigBuilder.DEFAULT_FORMAT) &&
             config.max == Integer.MAX_VALUE &&
             config.min == Integer.MIN_VALUE &&
             !config.exclusiveMax &&
             !config.exclusiveMin &&
-            config.multiple == Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
+            config.multiple == Int32ModelConfigBuilder.DEFAULT_MULTIPLE &&
+            validateJson == null)
         {
             result = Json.createValue(type());
         }
@@ -81,6 +87,11 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
             if (config.multiple != Int32ModelConfigBuilder.DEFAULT_MULTIPLE)
             {
                 builder.add(MULTIPLE_NAME, config.multiple);
+            }
+
+            if (validateJson != null)
+            {
+                builder.add(VALIDATE_NAME, validateJson);
             }
 
             result = builder.build();
@@ -126,6 +137,9 @@ public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
             {
                 builder.multiple(object.getInt(MULTIPLE_NAME));
             }
+
+            ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
+            builder.validate(validateConfig);
             break;
         default:
             throw new IllegalArgumentException("Unexpected type: " + valueType);

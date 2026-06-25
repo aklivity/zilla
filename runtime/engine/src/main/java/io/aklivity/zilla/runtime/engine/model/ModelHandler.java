@@ -20,7 +20,7 @@ package io.aklivity.zilla.runtime.engine.model;
  * <p>
  * A {@code ModelHandler} is supplied by {@link ModelContext} and confined to a single I/O thread. It
  * owns the configuration-derived state shared across every stream — schema resolution and caches,
- * registered extraction paths, and padding policy — and vends a fresh {@link ModelPipeline} per
+ * and padding policy — and vends a fresh {@link ModelPipeline} per
  * stream via {@link #supplyDecoder} and {@link #supplyEncoder}.
  * </p>
  * <p>
@@ -71,20 +71,5 @@ public interface ModelHandler
     default ModelPipeline supplyEncoder()
     {
         return supplyEncoder(ModelVisitor.NONE);
-    }
-
-    /**
-     * Registers a field extraction path so that pipelines vended by this handler will surface the
-     * field value to their {@link ModelVisitor} when a value completes.
-     * <p>
-     * The path syntax is model-specific. Calling this method is optional; omitting it disables
-     * extraction for that path.
-     * </p>
-     *
-     * @param path  the field path to extract
-     */
-    default void extract(
-        String path)
-    {
     }
 }

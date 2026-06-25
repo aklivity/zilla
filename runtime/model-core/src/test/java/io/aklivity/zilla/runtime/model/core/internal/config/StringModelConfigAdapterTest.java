@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.core.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -26,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class StringModelConfigAdapterTest
@@ -44,14 +47,14 @@ public class StringModelConfigAdapterTest
     public void shouldReadString()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\": \"string\"," +
-                "\"encoding\": \"utf_8\"," +
-                "\"pattern\": \"^[a-zA-Z]\"," +
-                "\"maxLength\": 5," +
-                "\"minLength\": 2" +
-            "}";
+        String json = """
+            {
+                "model": "string",
+                "encoding": "utf_8",
+                "pattern": "^[a-zA-Z]",
+                "maxLength": 5,
+                "minLength": 2
+            }""";
 
         // WHEN
         StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
@@ -123,5 +126,121 @@ public class StringModelConfigAdapterTest
         assertThat(model.encoding, equalTo("utf_8"));
         assertThat(model.maxLength, equalTo(0));
         assertThat(model.minLength, equalTo(0));
+    }
+
+    @Test
+    public void shouldDefaultValidateStrictWhenAbsent()
+    {
+        // GIVEN
+        String json = "\"string\"";
+
+        // WHEN
+        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
+
+        // THEN
+        assertThat(model.validate, not(nullValue()));
+        assertThat(model.validate.decode, equalTo(ValidateMode.STRICT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldReadScalarValidate()
+    {
+        // GIVEN
+        String json = """
+            {
+                "model": "string",
+                "validate": "lenient"
+            }""";
+
+        // WHEN
+        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
+
+        // THEN
+        assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.LENIENT));
+    }
+
+    @Test
+    public void shouldReadObjectValidate()
+    {
+        // GIVEN
+        String json = """
+            {
+                "model": "string",
+                "validate":
+                {
+                    "decode": "lenient",
+                    "encode": "strict"
+                }
+            }""";
+
+        // WHEN
+        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
+
+        // THEN
+        assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldWriteScalarValidate()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"model\":\"string\"," +
+                "\"validate\":\"lenient\"" +
+            "}";
+        StringModelConfig model = StringModelConfig.builder()
+            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldWriteObjectValidate()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"model\":\"string\"," +
+                "\"validate\":" +
+                "{" +
+                    "\"decode\":\"lenient\"," +
+                    "\"encode\":\"strict\"" +
+                "}" +
+            "}";
+        StringModelConfig model = StringModelConfig.builder()
+            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT))
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
+    public void shouldWriteBareStringWhenValidateStrict()
+    {
+        // GIVEN
+        String expectedJson = "\"string\"";
+        StringModelConfig model = StringModelConfig.builder()
+            .validate(new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT))
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, equalTo(expectedJson));
+        assertThat(json, not(containsString("validate")));
     }
 }

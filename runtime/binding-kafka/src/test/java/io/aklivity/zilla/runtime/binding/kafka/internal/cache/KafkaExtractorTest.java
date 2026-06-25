@@ -16,9 +16,13 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singleton;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.agrona.MutableDirectBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -31,7 +35,7 @@ public class KafkaExtractorTest
     @Test
     public void shouldCaptureSingleField()
     {
-        KafkaExtractor extractor = new KafkaExtractor();
+        KafkaExtractor extractor = new KafkaExtractor(singleton("$.id"));
 
         onField(extractor, "$.id", "12345");
 
@@ -42,7 +46,10 @@ public class KafkaExtractorTest
     @Test
     public void shouldCaptureMultipleFields()
     {
-        KafkaExtractor extractor = new KafkaExtractor();
+        Set<String> paths = new LinkedHashSet<>();
+        paths.add("$.id");
+        paths.add("$.region");
+        KafkaExtractor extractor = new KafkaExtractor(paths);
 
         onField(extractor, "$.id", "abc");
         onField(extractor, "$.region", "east");
@@ -54,9 +61,26 @@ public class KafkaExtractorTest
     }
 
     @Test
+    public void shouldCaptureConfiguredPathOnly()
+    {
+        KafkaExtractor extractor = new KafkaExtractor(singleton("$.id"));
+
+        onField(extractor, "$.id", "kept");
+        onField(extractor, "$.other", "ignored");
+
+        assertEquals(4, extractor.extractedLength("$.id"));
+        assertEquals("kept", read(extractor, "$.id"));
+
+        assertEquals(0, extractor.extractedLength("$.other"));
+        boolean[] visited = { false };
+        extractor.extracted("$.other", (p, b, i, l) -> visited[0] = true);
+        assertFalse(visited[0]);
+    }
+
+    @Test
     public void shouldReturnZeroForAbsentPath()
     {
-        KafkaExtractor extractor = new KafkaExtractor();
+        KafkaExtractor extractor = new KafkaExtractor(singleton("$.id"));
 
         onField(extractor, "$.id", "abc");
 
@@ -70,7 +94,7 @@ public class KafkaExtractorTest
     @Test
     public void shouldVisitPresentPath()
     {
-        KafkaExtractor extractor = new KafkaExtractor();
+        KafkaExtractor extractor = new KafkaExtractor(singleton("$.id"));
 
         onField(extractor, "$.id", "abc");
 
@@ -82,7 +106,7 @@ public class KafkaExtractorTest
     @Test
     public void shouldClearOnReset()
     {
-        KafkaExtractor extractor = new KafkaExtractor();
+        KafkaExtractor extractor = new KafkaExtractor(singleton("$.id"));
 
         onField(extractor, "$.id", "abc");
         extractor.reset();
@@ -93,7 +117,10 @@ public class KafkaExtractorTest
     @Test
     public void shouldNotBleedAcrossValues()
     {
-        KafkaExtractor extractor = new KafkaExtractor();
+        Set<String> paths = new LinkedHashSet<>();
+        paths.add("$.id");
+        paths.add("$.region");
+        KafkaExtractor extractor = new KafkaExtractor(paths);
 
         onField(extractor, "$.id", "first");
         extractor.reset();

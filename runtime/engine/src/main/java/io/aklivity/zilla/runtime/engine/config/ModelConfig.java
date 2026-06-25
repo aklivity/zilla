@@ -21,18 +21,15 @@ public abstract class ModelConfig
 {
     public final String model;
     public final List<CatalogedConfig> cataloged;
+    public final ValidateConfig validate;
 
-    public ModelConfig(
-        String model)
-    {
-        this(model, null);
-    }
-
-    public ModelConfig(
+    protected ModelConfig(
         String model,
-        List<CatalogedConfig> cataloged)
+        List<CatalogedConfig> cataloged,
+        ValidateConfig validate)
     {
         this.model = model;
         this.cataloged = cataloged;
+        this.validate = validate != null ? validate : ValidateConfig.STRICT;
     }
 }

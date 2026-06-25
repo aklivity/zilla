@@ -14,19 +14,26 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
+<<<<<<< HEAD
 import java.util.Base64;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import org.agrona.ExpandableArrayBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+=======
+import jakarta.json.JsonException;
+
+import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+>>>>>>> origin/develop
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufParsingException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
@@ -132,7 +139,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     {
         if (schema.message(messageName) == null)
         {
-            throw new ProtobufException("unknown message " + messageName);
+            throw new ProtobufParsingException("unknown message " + messageName);
         }
         this.last = last;
         depth = -1;
@@ -326,7 +333,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         }
         else
         {
-            throw new ProtobufException("expected json object");
+            throw new ProtobufParsingException("expected json object");
         }
         return progress;
     }
@@ -351,6 +358,13 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 ProtobufField field = frame.message.field(parser.getStringView());
                 if (field == null)
                 {
+<<<<<<< HEAD
+=======
+                    if (rejectUnknownFields)
+                    {
+                        throw new ProtobufParsingException("unknown field " + parser.getStringView());
+                    }
+>>>>>>> origin/develop
                     beginSkip();
                 }
                 else
@@ -366,7 +380,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             }
             else
             {
-                throw new ProtobufException("expected json key or object end");
+                throw new ProtobufParsingException("expected json key or object end");
             }
         }
         return progress;
@@ -457,7 +471,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             }
             else
             {
-                throw new ProtobufException("expected map key or object end");
+                throw new ProtobufParsingException("expected map key or object end");
             }
         }
         else
@@ -513,7 +527,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         {
             if (token != JsonEvent.START_ARRAY)
             {
-                throw new ProtobufException("expected json array");
+                throw new ProtobufParsingException("expected json array");
             }
             push(Kind.ARRAY, null, field, false, false);
         }
@@ -595,14 +609,27 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     {
         if (last)
         {
-            throw new ProtobufException("truncated json");
+            throw new ProtobufParsingException("truncated json");
         }
         return false;
     }
 
+    // the JSON-advance boundary: a malformed or non-JSON window makes the underlying jakarta parser throw a
+    // JsonException (JsonParsingException for a syntax error), which would otherwise escape the pipeline; turn
+    // it into a ProtobufParsingException so it rejects cleanly through the ProtobufException catch like any
+    // parse failure
     private JsonEvent pull()
     {
-        return parser.hasNextEvent() ? parser.nextEvent() : null;
+        JsonEvent event;
+        try
+        {
+            event = parser.hasNextEvent() ? parser.nextEvent() : null;
+        }
+        catch (JsonException ex)
+        {
+            throw new ProtobufParsingException("Invalid Protobuf event", ex);
+        }
+        return event;
     }
 
     private void decodeValue(
@@ -648,7 +675,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             putBytes(decodeBase64(parser.getStringView().toString()));
             break;
         default:
-            throw new ProtobufException("unsupported scalar type " + field.type());
+            throw new ProtobufParsingException("unsupported scalar type " + field.type());
         }
     }
 
@@ -678,7 +705,202 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         }
     }
 
+<<<<<<< HEAD
     private void putUtf8(
+=======
+    // open a bounded base64-decode streaming run: the decoded length is computed from the base64 length and
+    // padding without decoding, so the first chunk reports the correct deferred remainder
+    private void beginBytesStream(
+        ProtobufField field,
+        CharSequence value,
+        boolean closesMapEntry)
+    {
+        valueStreaming = true;
+        valueString = false;
+        valueSource = value;
+        valueCursor = 0;
+        valueSourceLength = base64SignificantLength(value);
+        valueField = field;
+        valueClosesMapEntry = closesMapEntry;
+        valueRemaining = base64DecodedLength(value, valueSourceLength);
+        refillBytesChunk();
+        enqueue(ProtobufEvent.VALUE, field, null);
+    }
+
+    // drive the in-flight streaming value: when the current chunk is fully drained, stage the next bounded run
+    // (resetting the output-pushback cursor) and enqueue another VALUE; when the source is exhausted, close the
+    // run and emit the deferred map-entry END_MESSAGE if any
+    private boolean streamValueStep()
+    {
+        if (valueCursor < valueSourceLength)
+        {
+            if (valueString)
+            {
+                refillStringChunk();
+            }
+            else
+            {
+                refillBytesChunk();
+            }
+            enqueue(ProtobufEvent.VALUE, valueField, null);
+        }
+        else
+        {
+            valueStreaming = false;
+            valueSource = null;
+            if (valueClosesMapEntry)
+            {
+                enqueue(ProtobufEvent.END_MESSAGE, null, null);
+            }
+        }
+        return true;
+    }
+
+    // encode whole UTF-8 code points into valueChunk until the next code point would not fit; advance the char
+    // cursor and decrement the still-to-come (deferred) byte count by exactly what was staged
+    private void refillStringChunk()
+    {
+        valueConsumed = 0;
+        CharSequence value = valueSource;
+        int length = valueSourceLength;
+        int i = valueCursor;
+        int index = 0;
+        boolean room = true;
+        while (i < length && room)
+        {
+            int codePoint = value.charAt(i);
+            int next = i + 1;
+            if (codePoint >= 0xd800 && codePoint <= 0xdbff && next < length)
+            {
+                char low = value.charAt(next);
+                if (low >= 0xdc00 && low <= 0xdfff)
+                {
+                    codePoint = ((codePoint - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
+                    next++;
+                }
+            }
+            int width = codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
+            if (index + width > VALUE_CHUNK)
+            {
+                room = false;
+            }
+            else
+            {
+                if (codePoint < 0x80)
+                {
+                    valueChunk.putByte(index++, (byte) codePoint);
+                }
+                else if (codePoint < 0x800)
+                {
+                    valueChunk.putByte(index++, (byte) (0xc0 | codePoint >> 6));
+                    valueChunk.putByte(index++, (byte) (0x80 | codePoint & 0x3f));
+                }
+                else if (codePoint < 0x10000)
+                {
+                    valueChunk.putByte(index++, (byte) (0xe0 | codePoint >> 12));
+                    valueChunk.putByte(index++, (byte) (0x80 | codePoint >> 6 & 0x3f));
+                    valueChunk.putByte(index++, (byte) (0x80 | codePoint & 0x3f));
+                }
+                else
+                {
+                    valueChunk.putByte(index++, (byte) (0xf0 | codePoint >> 18));
+                    valueChunk.putByte(index++, (byte) (0x80 | codePoint >> 12 & 0x3f));
+                    valueChunk.putByte(index++, (byte) (0x80 | codePoint >> 6 & 0x3f));
+                    valueChunk.putByte(index++, (byte) (0x80 | codePoint & 0x3f));
+                }
+                i = next;
+            }
+        }
+        valueCursor = i;
+        decodedLength = index;
+        valueRemaining -= index;
+    }
+
+    // decode whole base64 4-char -> 3-byte groups into valueChunk until the next group would not fit; the final
+    // group (with '='/'==' padding -> 1-2 bytes) is decoded on the last chunk. VALUE_CHUNK is a multiple of 3
+    // so a whole group always fits up to the buffer end
+    private void refillBytesChunk()
+    {
+        valueConsumed = 0;
+        CharSequence value = valueSource;
+        int length = valueSourceLength;
+        int i = valueCursor;
+        int index = 0;
+        boolean room = true;
+        while (i < length && room)
+        {
+            if (index + 3 > VALUE_CHUNK)
+            {
+                room = false;
+            }
+            else
+            {
+                int avail = length - i;
+                int s0 = base64Decode(value.charAt(i));
+                int s1 = base64Decode(value.charAt(i + 1));
+                if (avail == 2)
+                {
+                    // final group, two significant chars (one '=' or unpadded) -> 1 byte
+                    valueChunk.putByte(index++, (byte) (s0 << 2 | s1 >> 4));
+                }
+                else if (avail == 3)
+                {
+                    // final group, three significant chars (one '=' or unpadded) -> 2 bytes
+                    int s2 = base64Decode(value.charAt(i + 2));
+                    valueChunk.putByte(index++, (byte) (s0 << 2 | s1 >> 4));
+                    valueChunk.putByte(index++, (byte) (s1 << 4 | s2 >> 2));
+                }
+                else
+                {
+                    int s2 = base64Decode(value.charAt(i + 2));
+                    int s3 = base64Decode(value.charAt(i + 3));
+                    valueChunk.putByte(index++, (byte) (s0 << 2 | s1 >> 4));
+                    valueChunk.putByte(index++, (byte) (s1 << 4 | s2 >> 2));
+                    valueChunk.putByte(index++, (byte) (s2 << 6 | s3));
+                }
+                i += Math.min(avail, 4);
+            }
+        }
+        valueCursor = i;
+        decodedLength = index;
+        valueRemaining -= index;
+    }
+
+    private int base64Decode(
+        int ch)
+    {
+        int value;
+        if (ch >= 'A' && ch <= 'Z')
+        {
+            value = ch - 'A';
+        }
+        else if (ch >= 'a' && ch <= 'z')
+        {
+            value = ch - 'a' + 26;
+        }
+        else if (ch >= '0' && ch <= '9')
+        {
+            value = ch - '0' + 52;
+        }
+        else if (ch == '+' || ch == '-')
+        {
+            value = 62;
+        }
+        else if (ch == '/' || ch == '_')
+        {
+            value = 63;
+        }
+        else
+        {
+            throw new ProtobufParsingException("invalid base64 character " + ch);
+        }
+        return value;
+    }
+
+    // the count of significant (non-padding) base64 characters: the whole length less any 1-2 trailing '='. The
+    // final group's decoded width is then derived from how many significant chars remain (2 -> 1 byte, 3 -> 2)
+    private static int base64SignificantLength(
+>>>>>>> origin/develop
         CharSequence value)
     {
         int length = value.length();
@@ -741,7 +963,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         Integer number = field.enumeration() != null ? field.enumeration().number(name) : null;
         if (number == null)
         {
-            throw new ProtobufException("unknown enum value " + name);
+            throw new ProtobufParsingException("unknown enum value " + name);
         }
         return number;
     }
@@ -758,7 +980,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     {
         if (token != JsonEvent.START_OBJECT)
         {
-            throw new ProtobufException("expected json object");
+            throw new ProtobufParsingException("expected json object");
         }
     }
 

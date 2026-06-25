@@ -1,12 +1,12 @@
 [
     {
         "op": "add",
-        "path": "/$defs/converter/types/enum/-",
+        "path": "/$defs/models/types/enum/-",
         "value": "int32"
     },
     {
         "op": "add",
-        "path": "/$defs/converter/model/allOf/-",
+        "path": "/$defs/models/model/allOf/-",
         "value":
         {
             "if":
@@ -30,11 +30,7 @@
                     "format":
                     {
                         "type": "string",
-                        "enum":
-                        [
-                            "binary",
-                            "text"
-                        ],
+                        "enum": [ "binary", "text" ],
                         "default": "text"
                     },
                     "range":
@@ -45,58 +41,10 @@
                     "multiple":
                     {
                         "type": "integer"
-                    }
-                },
-                "additionalProperties": false
-            }
-        }
-    },
-    {
-        "op": "add",
-        "path": "/$defs/validator/types/enum/-",
-        "value": "int32"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/validator/model/allOf/-",
-        "value":
-        {
-            "if":
-            {
-                "properties":
-                {
-                    "model":
-                    {
-                        "const": "int32"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
-                {
-                    "model":
-                    {
-                        "const": "int32"
                     },
-                    "format":
+                    "validate":
                     {
-                        "type": "string",
-                        "enum":
-                        [
-                            "binary",
-                            "text"
-                        ],
-                        "default": "text"
-                    },
-                    "range":
-                    {
-                        "type": "string",
-                        "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
-                    },
-                    "multiple":
-                    {
-                        "type": "integer"
+                        "$ref": "#/$defs/validate"
                     }
                 },
                 "additionalProperties": false

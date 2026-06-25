@@ -17,14 +17,16 @@ package io.aklivity.zilla.runtime.model.core.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class BooleanModelConfig extends ModelConfig
 {
     public static final String BOOLEAN = "boolean";
 
-    public BooleanModelConfig()
+    BooleanModelConfig(
+        ValidateConfig validate)
     {
-        super(BOOLEAN);
+        super(BOOLEAN, null, validate);
     }
 
     public static <T> BooleanModelConfigBuilder<T> builder(

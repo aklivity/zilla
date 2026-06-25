@@ -28,7 +28,7 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
-import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
+import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 
 /**
  * Compiles an Avro schema document (JSON) into an immutable {@link AvroNode} tree. Runs once per
@@ -53,7 +53,7 @@ final class AvroSchemaCompiler
         }
         catch (JsonException ex)
         {
-            throw new AvroValidationException("malformed Avro schema document", ex);
+            throw new AvroParsingException("malformed Avro schema document", ex);
         }
         return root;
     }
@@ -75,7 +75,7 @@ final class AvroSchemaCompiler
             node = parseObject((JsonObject) value, enclosingNamespace);
             break;
         default:
-            throw new AvroValidationException("unexpected schema node: " + value);
+            throw new AvroParsingException("unexpected schema node: " + value);
         }
         return node;
     }
@@ -188,7 +188,7 @@ final class AvroSchemaCompiler
         }
         if (node == null)
         {
-            throw new AvroValidationException("unresolved schema reference: " + name);
+            throw new AvroParsingException("unresolved schema reference: " + name);
         }
         return node;
     }

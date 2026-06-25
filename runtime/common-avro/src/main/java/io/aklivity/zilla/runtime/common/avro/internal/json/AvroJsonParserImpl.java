@@ -19,16 +19,23 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
+<<<<<<< HEAD
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+=======
+import jakarta.json.JsonException;
+
+import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+>>>>>>> origin/develop
 
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroField;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
+import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
-import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.lang.Numbers;
@@ -56,7 +63,7 @@ import io.aklivity.zilla.runtime.common.lang.Numbers;
  * both of which materialize, matching the floating-point cost on the Avro → JSON side.
  * <p>
  * JSON that does not match the schema (wrong scalar type, an unexpected field key, an unknown union branch, a
- * {@code fixed} of the wrong size) raises {@link AvroValidationException}, reported as a clean reject. Reuse
+ * {@code fixed} of the wrong size) raises {@link AvroParsingException}, reported as a clean reject. Reuse
  * a single instance per worker thread; not thread-safe.
  */
 public final class AvroJsonParserImpl implements AvroParser
@@ -724,9 +731,9 @@ public final class AvroJsonParserImpl implements AvroParser
     {
         while (!havePending && !starved)
         {
-            if (json.hasNextEvent())
+            if (advance())
             {
-                JsonEvent next = json.nextEvent();
+                JsonEvent next = pull();
                 if (next != JsonEvent.START_DOCUMENT && next != JsonEvent.END_DOCUMENT)
                 {
                     pendingEvent = next;
@@ -743,6 +750,37 @@ public final class AvroJsonParserImpl implements AvroParser
             }
         }
         return havePending ? pendingEvent : null;
+    }
+
+    // the JSON-advance boundary: a malformed or non-JSON window makes the underlying jakarta parser throw a
+    // JsonException (JsonParsingException for a syntax error), which would otherwise escape the pipeline; turn
+    // it into an AvroParsingException so it rejects cleanly through the AvroException catch like any parse failure
+    private boolean advance()
+    {
+        boolean hasNext;
+        try
+        {
+            hasNext = json.hasNextEvent();
+        }
+        catch (JsonException ex)
+        {
+            throw new AvroParsingException("malformed JSON input", ex);
+        }
+        return hasNext;
+    }
+
+    private JsonEvent pull()
+    {
+        JsonEvent next;
+        try
+        {
+            next = json.nextEvent();
+        }
+        catch (JsonException ex)
+        {
+            throw new AvroParsingException("malformed JSON input", ex);
+        }
+        return next;
     }
 
     private void consume()
@@ -792,10 +830,10 @@ public final class AvroJsonParserImpl implements AvroParser
         }
     }
 
-    private AvroValidationException reject(
+    private AvroParsingException reject(
         String message)
     {
-        return new AvroValidationException(message);
+        return new AvroParsingException(message);
     }
 
     private List<AvroField> fields(

@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -44,7 +47,11 @@ public class KafkaCacheModelTest
     @Test
     public void shouldTransformWholeValue()
     {
+<<<<<<< HEAD
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
+=======
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[256]));
+>>>>>>> origin/develop
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
 
@@ -55,7 +62,11 @@ public class KafkaCacheModelTest
     @Test
     public void shouldRejectInvalidValue()
     {
+<<<<<<< HEAD
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
+=======
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[256]));
+>>>>>>> origin/develop
 
         int produced = model.transform(0L, 0L, value("nope"), 0, 4, sink);
 
@@ -65,7 +76,11 @@ public class KafkaCacheModelTest
     @Test
     public void shouldTransformWholeValueToLargerLength()
     {
+<<<<<<< HEAD
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 8), new UnsafeBufferEx(new byte[256]));
+=======
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 8), emptySet(), new UnsafeBufferEx(new byte[256]));
+>>>>>>> origin/develop
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
 
@@ -79,7 +94,11 @@ public class KafkaCacheModelTest
     @Test
     public void shouldTransformWholeValueToSmallerLength()
     {
+<<<<<<< HEAD
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 3), new UnsafeBufferEx(new byte[256]));
+=======
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 3), emptySet(), new UnsafeBufferEx(new byte[256]));
+>>>>>>> origin/develop
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
 
@@ -90,7 +109,11 @@ public class KafkaCacheModelTest
     @Test
     public void shouldTransformAcrossOverflow()
     {
+<<<<<<< HEAD
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), new UnsafeBufferEx(new byte[2]));
+=======
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[2]));
+>>>>>>> origin/develop
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
 
@@ -121,8 +144,13 @@ public class KafkaCacheModelTest
     @Test
     public void shouldReportNoneAsDefaults()
     {
+<<<<<<< HEAD
         assertSame(KafkaCacheModel.NONE, KafkaCacheModel.decoder(null, new UnsafeBufferEx(new byte[8])));
         assertSame(KafkaCacheModel.NONE, KafkaCacheModel.encoder(null, new UnsafeBufferEx(new byte[8])));
+=======
+        assertSame(KafkaCacheModel.NONE, KafkaCacheModel.decoder(null, emptySet(), new UnsafeBufferEx(new byte[8])));
+        assertSame(KafkaCacheModel.NONE, KafkaCacheModel.encoder(null, new UnsafeBufferEx(new byte[8])));
+>>>>>>> origin/develop
         assertEquals(0, KafkaCacheModel.NONE.padding(value("x"), 0, 1));
         assertEquals(0, KafkaCacheModel.NONE.extractedLength("$.id"));
 
@@ -134,9 +162,27 @@ public class KafkaCacheModelTest
     }
 
     @Test
+    public void shouldExtractConfiguredField()
+    {
+        KafkaCacheModel model = KafkaCacheModel.decoder(extractingHandler(5, "id"), singleton("$.id"),
+            new UnsafeBufferEx(new byte[256]));
+
+        model.transform(0L, 0L, value("hello"), 0, 5, sink);
+
+        assertEquals(4, model.extractedLength("$.id"));
+        String[] captured = { null };
+        model.extracted("$.id", (p, b, i, l) -> captured[0] = b.getStringWithoutLengthUtf8(i, l));
+        assertEquals("1234", captured[0]);
+    }
+
+    @Test
     public void shouldReportZeroPadding()
     {
+<<<<<<< HEAD
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
+=======
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[256]));
+>>>>>>> origin/develop
 
         assertEquals(0, model.padding(value("hello"), 0, 5));
     }
@@ -144,7 +190,11 @@ public class KafkaCacheModelTest
     @Test
     public void shouldResetReusablePipeline()
     {
+<<<<<<< HEAD
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
+=======
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[256]));
+>>>>>>> origin/develop
 
         model.transform(0L, 0L, value("hello"), 0, 5, sink);
         model.reset();
@@ -167,6 +217,13 @@ public class KafkaCacheModelTest
         int transformLength)
     {
         return new TestModelHandler(new TestModelConfig(length, emptyList(), true, transformLength));
+    }
+
+    private static TestModelHandler extractingHandler(
+        int length,
+        String field)
+    {
+        return new TestModelHandler(new TestModelConfig(length, emptyList(), true, -1, singletonList(field)));
     }
 
     private MutableDirectBuffer value(

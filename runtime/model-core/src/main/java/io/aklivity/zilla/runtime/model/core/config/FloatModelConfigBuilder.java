@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.core.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class FloatModelConfigBuilder<T> extends ConfigBuilder<T, FloatModelConfigBuilder<T>>
 {
@@ -30,6 +31,7 @@ public class FloatModelConfigBuilder<T> extends ConfigBuilder<T, FloatModelConfi
     private Float multiple;
     private Boolean exclusiveMax;
     private Boolean exclusiveMin;
+    private ValidateConfig validate;
 
     FloatModelConfigBuilder(
         Function<FloatModelConfig, T> mapper)
@@ -86,6 +88,13 @@ public class FloatModelConfigBuilder<T> extends ConfigBuilder<T, FloatModelConfi
         return this;
     }
 
+    public FloatModelConfigBuilder<T> validate(
+        ValidateConfig validate)
+    {
+        this.validate = validate;
+        return this;
+    }
+
     @Override
     public T build()
     {
@@ -94,6 +103,6 @@ public class FloatModelConfigBuilder<T> extends ConfigBuilder<T, FloatModelConfi
         float min = this.min != null ? this.min : Float.NEGATIVE_INFINITY;
         boolean exclusiveMax = this.exclusiveMax != null ? this.exclusiveMax : false;
         boolean exclusiveMin = this.exclusiveMin != null ? this.exclusiveMin : false;
-        return mapper.apply(new FloatModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple));
+        return mapper.apply(new FloatModelConfig(format, max, min, exclusiveMax, exclusiveMin, multiple, validate));
     }
 }

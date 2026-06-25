@@ -19,16 +19,18 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public final class JsonModelConfig extends ModelConfig
 {
     public final String subject;
 
-    public JsonModelConfig(
+    JsonModelConfig(
         List<CatalogedConfig> cataloged,
-        String subject)
+        String subject,
+        ValidateConfig validate)
     {
-        super("json", cataloged);
+        super("json", cataloged, validate);
         this.subject = subject;
     }
 

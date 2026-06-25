@@ -57,7 +57,7 @@ final class StringModelValidator implements CoreModelValidator
     }
 
     @Override
-    public boolean validate(
+    public Validity validate(
         int flags,
         DirectBuffer data,
         int index,
@@ -74,17 +74,28 @@ final class StringModelValidator implements CoreModelValidator
             buffer.putBytes(state.length, data, index, length);
         }
 
-        boolean valid = encoding.validate(state, flags, data, index, length);
+        // an encoding failure (bad UTF-8/16, or a value left partially decoded across the boundary) is a
+        // structural decode failure: MALFORMED, never relaxed
+        boolean decoded = encoding.validate(state, flags, data, index, length);
+        Validity validity = decoded ? Validity.VALID : Validity.MALFORMED;
 
-        if (pattern != null && valid && (flags & FLAGS_FIN) != 0x00)
+        if ((flags & FLAGS_FIN) != 0x00 && validity == Validity.VALID)
         {
-            valid = pattern.matcher(buffer.getStringWithoutLengthUtf8(0, state.length)).matches();
+            boolean complete = state.processed == 0;
+            if (!complete)
+            {
+                validity = Validity.MALFORMED;
+            }
+            else
+            {
+                // a fully-decoded string that violates the length bounds or the pattern is a semantic
+                // constraint failure: INVALID, relaxable under LENIENT
+                boolean matches = pattern == null ||
+                    pattern.matcher(buffer.getStringWithoutLengthUtf8(0, state.length)).matches();
+                validity = matches && check.test(state.length) ? Validity.VALID : Validity.INVALID;
+            }
         }
 
-        valid = (flags & FLAGS_FIN) == 0x00
-            ? valid
-            : state.processed == 0 && valid && check.test(state.length);
-
-        return valid;
+        return validity;
     }
 }

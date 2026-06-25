@@ -43,9 +43,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -345,27 +343,6 @@ public class EchoWorker implements EngineContext
     @Override
     public StoreHandler supplyStore(
         long storeId)
-    {
-        return null;
-    }
-
-    @Override
-    public ValidatorHandler supplyValidator(
-        ModelConfig config)
-    {
-        return null;
-    }
-
-    @Override
-    public ConverterHandler supplyReadConverter(
-        ModelConfig config)
-    {
-        return null;
-    }
-
-    @Override
-    public ConverterHandler supplyWriteConverter(
-        ModelConfig config)
     {
         return null;
     }

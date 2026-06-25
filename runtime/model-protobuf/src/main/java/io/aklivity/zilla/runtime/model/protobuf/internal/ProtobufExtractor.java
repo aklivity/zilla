@@ -30,16 +30,17 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
-// Transparent pipeline stage that forwards every event unchanged while capturing the value of each
-// registered top-level field as a side-effect, making it available to the read pipeline once the value
-// completes. A length-delimited scalar (string/bytes) split across input windows arrives as repeated VALUE
-// pieces with a decreasing deferred count; those are coalesced into the field buffer until none remain
-// deferred. Numeric, boolean and enum values render to their ASCII text, matching the extraction surfaced
-// by the legacy converter.
+// Transparent pipeline stage that forwards every event unchanged while capturing the value of every
+// top-level field as a side-effect, making it available to the read pipeline once the value completes.
+// A length-delimited scalar (string/bytes) split across input windows arrives as repeated VALUE pieces with
+// a decreasing deferred count; those are coalesced into the field buffer until none remain deferred.
+// Numeric, boolean and enum values render to their ASCII text, matching the extraction surfaced by the
+// legacy converter.
 final class ProtobufExtractor implements ProtobufTransform
 {
     private final List<Field> fields;
 
+    private int captured;
     private int depth;
     private Field current;
 
@@ -48,27 +49,27 @@ final class ProtobufExtractor implements ProtobufTransform
         this.fields = new ArrayList<>();
     }
 
-    void register(
-        String name)
+    int captured()
     {
-        if (find(name) == null)
-        {
-            fields.add(new Field(name));
-        }
+        return captured;
+    }
+
+    String name(
+        int index)
+    {
+        return fields.get(index).name;
     }
 
     int length(
-        String name)
+        int index)
     {
-        Field field = find(name);
-        return field != null ? field.length : 0;
+        return fields.get(index).length;
     }
 
     DirectBuffer value(
-        String name)
+        int index)
     {
-        Field field = find(name);
-        return field != null ? field.value : null;
+        return fields.get(index).value;
     }
 
     @Override
@@ -78,10 +79,7 @@ final class ProtobufExtractor implements ProtobufTransform
         ProtobufEvent event,
         ProtobufSink sink)
     {
-        if (!fields.isEmpty())
-        {
-            observe(source, event);
-        }
+        observe(source, event);
         return sink.transform(control, source, event);
     }
 
@@ -89,11 +87,8 @@ final class ProtobufExtractor implements ProtobufTransform
     public void reset()
     {
         depth = 0;
+        captured = 0;
         current = null;
-        for (int i = 0; i < fields.size(); i++)
-        {
-            fields.get(i).length = 0;
-        }
     }
 
     @Override
@@ -119,7 +114,7 @@ final class ProtobufExtractor implements ProtobufTransform
             current = null;
             break;
         case FIELD:
-            current = depth == 1 ? find(source.field().name()) : null;
+            current = depth == 1 ? supplyField(source.field().name()) : null;
             if (current != null)
             {
                 current.length = 0;
@@ -197,31 +192,39 @@ final class ProtobufExtractor implements ProtobufTransform
         }
     }
 
-    private Field find(
+    private Field supplyField(
         String name)
     {
         Field result = null;
-        for (int i = 0; result == null && i < fields.size(); i++)
+        for (int i = 0; result == null && i < captured; i++)
         {
             if (fields.get(i).name.equals(name))
             {
                 result = fields.get(i);
             }
         }
+        if (result == null)
+        {
+            if (captured == fields.size())
+            {
+                fields.add(new Field());
+            }
+            result = fields.get(captured);
+            result.name = name;
+            captured++;
+        }
         return result;
     }
 
     private static final class Field
     {
-        private final String name;
         private final MutableDirectBuffer value;
 
+        private String name;
         private int length;
 
-        private Field(
-            String name)
+        private Field()
         {
-            this.name = name;
             this.value = new ExpandableDirectByteBuffer();
         }
     }

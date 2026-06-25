@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+<<<<<<< HEAD
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -22,6 +23,9 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+=======
+import java.nio.charset.StandardCharsets;
+>>>>>>> origin/develop
 
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
@@ -38,14 +42,23 @@ import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
 
+<<<<<<< HEAD
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+=======
+import io.aklivity.zilla.runtime.common.avro.Avro;
+import io.aklivity.zilla.runtime.common.avro.AvroKind;
+import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroType;
+>>>>>>> origin/develop
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
+<<<<<<< HEAD
 import io.aklivity.zilla.runtime.model.avro.internal.types.AvroBooleanFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.AvroBytesFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.AvroDoubleFW;
@@ -54,13 +67,18 @@ import io.aklivity.zilla.runtime.model.avro.internal.types.AvroIntFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.AvroLongFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.AvroUnionFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.OctetsFW;
+=======
+>>>>>>> origin/develop
 
 public abstract class AvroModelHandler
 {
     protected static final String VIEW_JSON = "json";
 
+<<<<<<< HEAD
     private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
     private static final OutputStream EMPTY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
+=======
+>>>>>>> origin/develop
     private static final int JSON_FIELD_STRUCTURE_LENGTH = "\"\":\"\",".length();
     private static final int JSON_FIELD_UNION_LENGTH = "\"\":{\"DATA_TYPE\":\"\"},".length();
     private static final int JSON_FIELD_ARRAY_LENGTH = "\"\":[]," .length();
@@ -77,12 +95,21 @@ public abstract class AvroModelHandler
     protected final ExpandableDirectBufferOutputStream expandable;
     protected final DirectBufferInputStream in;
     protected final AvroModelEventContext event;
+<<<<<<< HEAD
     protected final Map<String, AvroField> extracted;
 
     private final Int2ObjectCache<Schema> schemas;
     private final Int2ObjectCache<GenericDatumReader<GenericRecord>> readers;
     private final Int2ObjectCache<GenericDatumWriter<GenericRecord>> writers;
     private final Int2ObjectCache<GenericRecord> records;
+=======
+    // LENIENT per direction: a semantic-validation failure passes through (inert today — no avro semantic
+    // validation stage throws yet, so the wired branch is unreached)
+    protected final boolean decodeLenient;
+    protected final boolean encodeLenient;
+
+    private final Int2ObjectCache<AvroSchema> schemas;
+>>>>>>> origin/develop
     private final Int2IntHashMap paddings;
     private final AvroBytesFW bytesRO;
     private final AvroIntFW intRO;
@@ -110,14 +137,20 @@ public abstract class AvroModelHandler
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : options.subject;
+        this.decodeLenient = options.validate.decode == ValidateMode.LENIENT;
+        this.encodeLenient = options.validate.encode == ValidateMode.LENIENT;
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
+<<<<<<< HEAD
         this.readers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.writers = new Int2ObjectCache<>(1, 1024, i -> {});
         this.records = new Int2ObjectCache<>(1, 1024, i -> {});
+=======
+>>>>>>> origin/develop
         this.paddings = new Int2IntHashMap(-1);
         this.expandable = new ExpandableDirectBufferOutputStream(new ExpandableDirectByteBufferEx());
         this.in = new DirectBufferInputStream();
         this.event = new AvroModelEventContext(context);
+<<<<<<< HEAD
         this.extracted = new HashMap<>();
         this.bytesRO = new AvroBytesFW();
         this.intRO = new AvroIntFW();
@@ -184,6 +217,12 @@ public abstract class AvroModelHandler
     }
 
     protected final Schema supplySchema(
+=======
+        this.paddingMaxItems = config.paddingMaxItems();
+    }
+
+    protected final AvroSchema supplySchema(
+>>>>>>> origin/develop
         int schemaId)
     {
         return schemas.computeIfAbsent(schemaId, this::resolveSchema);
@@ -195,6 +234,7 @@ public abstract class AvroModelHandler
         return paddings.computeIfAbsent(schemaId, id -> calculatePadding(supplySchema(id)));
     }
 
+<<<<<<< HEAD
     protected final GenericDatumReader<GenericRecord> supplyReader(
         int schemaId)
     {
@@ -202,6 +242,9 @@ public abstract class AvroModelHandler
     }
 
     protected final GenericDatumWriter<GenericRecord> supplyWriter(
+=======
+    private AvroSchema resolveSchema(
+>>>>>>> origin/develop
         int schemaId)
     {
         return writers.computeIfAbsent(schemaId, this::createWriter);

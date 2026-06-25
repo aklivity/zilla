@@ -16,9 +16,12 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,6 +41,8 @@ public class KafkaTopicType
     public final ModelHandler keyModel;
     public final ModelHandler valueModel;
     public final KafkaTopicTransformsType transforms;
+    public final Set<String> keyExtractPaths;
+    public final Set<String> valueExtractPaths;
 
     private final Matcher topicMatch;
     private final Matcher matcher;
@@ -48,6 +53,8 @@ public class KafkaTopicType
         this.keyModel = null;
         this.valueModel = null;
         this.transforms = null;
+        this.keyExtractPaths = emptySet();
+        this.valueExtractPaths = emptySet();
         this.matcher = TRANSFORM_PATH_PATTERN.matcher("");
     }
 
@@ -58,8 +65,10 @@ public class KafkaTopicType
         this.matcher = TRANSFORM_PATH_PATTERN.matcher("");
         this.topicMatch = topicConfig.name != null ? asMatcher(topicConfig.name) : null;
         this.transforms = topicConfig.transforms != null ? transforms(topicConfig.transforms) : null;
-        this.keyModel = topicConfig.key != null ? key(context.supplyModel(topicConfig.key)) : null;
-        this.valueModel = topicConfig.value != null ? headers(context.supplyModel(topicConfig.value)) : null;
+        this.keyModel = topicConfig.key != null ? context.supplyModel(topicConfig.key) : null;
+        this.valueModel = topicConfig.value != null ? context.supplyModel(topicConfig.value) : null;
+        this.keyExtractPaths = keyPaths();
+        this.valueExtractPaths = valuePaths();
     }
 
     public boolean matches(
@@ -68,27 +77,27 @@ public class KafkaTopicType
         return this.topicMatch == null || this.topicMatch.reset(topic).matches();
     }
 
-    private ModelHandler key(
-        ModelHandler handler)
+    private Set<String> keyPaths()
     {
-        if (handler != null && transforms != null && transforms.extractKey != null)
+        Set<String> paths = new LinkedHashSet<>();
+        if (transforms != null && transforms.extractKey != null)
         {
-            handler.extract(transforms.extractKey);
+            paths.add(transforms.extractKey);
         }
-        return handler;
+        return paths;
     }
 
-    private ModelHandler headers(
-        ModelHandler handler)
+    private Set<String> valuePaths()
     {
-        if (handler != null && transforms != null && transforms.extractHeaders != null)
+        Set<String> paths = new LinkedHashSet<>();
+        if (transforms != null && transforms.extractHeaders != null)
         {
             for (KafkaTopicHeaderType header : transforms.extractHeaders)
             {
-                handler.extract(header.path);
+                paths.add(header.path);
             }
         }
-        return handler;
+        return paths;
     }
 
 

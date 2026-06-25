@@ -301,6 +301,21 @@ public class ProtobufJsonTest
     }
 
     @Test
+    public void shouldRejectJsonSyntaxError()
+    {
+        // an invalid token where a value is expected makes the jakarta parser throw JsonParsingException; the
+        // parser boundary translates it to ProtobufParsingException so the pipeline rejects rather than crashing
+        assertEquals(Status.REJECTED, feedJson("Person", "{\"name\": &}"));
+    }
+
+    @Test
+    public void shouldRejectNonJsonInput()
+    {
+        // raw non-JSON bytes: the very first token cannot be parsed
+        assertEquals(Status.REJECTED, feedJson("Person", "@notjson@"));
+    }
+
+    @Test
     public void shouldRejectUnknownMessage()
     {
         assertEquals(Status.REJECTED, feedJson("Nope", "{}"));
