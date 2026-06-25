@@ -29,18 +29,24 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 
 // Per-stream transform mirroring the test model's whole-value length check: the value is accepted only when
-// the total length across fragments equals the configured length. By default the value bytes are copied
-// through into dst unchanged (identity); when a transformed length is configured, the whole value is padded
-// or truncated to that length so a non-identity, length-changing transform can be exercised. Registered
-// extraction paths surface a fixed token to the visitor when a value completes. State lives on the pipeline
-// so interleaved streams stay isolated.
+// the total length across fragments equals the configured length. A length mismatch is treated as a
+// constraint violation (well-formed but invalid): under strict validation it is REJECTED, under lenient
+// validation the original bytes are forwarded verbatim and the value completes. By default an accepted value
+// is copied through into dst unchanged (identity); when a transformed length is configured, the accepted
+// value is padded or truncated to that length so a non-identity, length-changing transform can be exercised.
+// When a real visitor is wired, every configured top-level field surfaces a fixed token to the visitor as its
+// value when an accepted value completes. State lives on the pipeline so interleaved streams stay isolated.
 final class TestModelPipeline implements ModelPipeline
 {
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     private final DirectBuffer extractedValue = new UnsafeBuffer("1234".getBytes(UTF_8));
 
     private final int length;
     private final int transformLength;
-    private final List<String> paths;
+    private final List<String> fields;
+    private final boolean lenient;
     private final ModelVisitor visitor;
     private final ModelPipelineResult result;
 
@@ -49,12 +55,14 @@ final class TestModelPipeline implements ModelPipeline
     TestModelPipeline(
         int length,
         int transformLength,
-        List<String> paths,
+        List<String> fields,
+        boolean lenient,
         ModelVisitor visitor)
     {
         this.length = length;
         this.transformLength = transformLength;
-        this.paths = paths;
+        this.fields = fields;
+        this.lenient = lenient;
         this.visitor = visitor;
         this.result = new ModelPipelineResult();
     }
@@ -81,18 +89,18 @@ final class TestModelPipeline implements ModelPipeline
         int available = Math.min(srcLength, dstLength);
         boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;
         int total = processed + available;
-        boolean valid = tail ? total == length : total <= length;
+        boolean lengthValid = tail ? total == length : total <= length;
 
         ModelStatus status;
         int consumed;
         int produced;
-        if (!valid)
+        if (!lengthValid && !lenient)
         {
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;
         }
-        else if (tail && transformLength >= 0)
+        else if (lengthValid && tail && transformLength >= 0)
         {
             // whole-value transform: truncate, or grow by stamping the original value repeatedly,
             // clipped to the configured transformed length
@@ -107,13 +115,11 @@ final class TestModelPipeline implements ModelPipeline
             consumed = available;
             produced = transformLength;
             status = ModelStatus.COMPLETE;
-            for (int i = 0; i < paths.size(); i++)
-            {
-                visitor.onField(paths.get(i), extractedValue, 0, extractedValue.capacity());
-            }
+            visitExtracted();
         }
         else
         {
+            // identity copy of an accepted value, or verbatim forward of a constraint-invalid value under lenient
             processed = total;
             dst.putBytes(dstIndex, src, srcIndex, available);
             consumed = available;
@@ -125,9 +131,9 @@ final class TestModelPipeline implements ModelPipeline
             else if (tail)
             {
                 status = ModelStatus.COMPLETE;
-                for (int i = 0; i < paths.size(); i++)
+                if (lengthValid)
                 {
-                    visitor.onField(paths.get(i), extractedValue, 0, extractedValue.capacity());
+                    visitExtracted();
                 }
             }
             else
@@ -148,5 +154,16 @@ final class TestModelPipeline implements ModelPipeline
     public void reset()
     {
         processed = 0;
+    }
+
+    private void visitExtracted()
+    {
+        if (visitor != ModelVisitor.NONE)
+        {
+            for (int i = 0; i < fields.size(); i++)
+            {
+                visitor.onField("$." + fields.get(i), extractedValue, 0, extractedValue.capacity());
+            }
+        }
     }
 }

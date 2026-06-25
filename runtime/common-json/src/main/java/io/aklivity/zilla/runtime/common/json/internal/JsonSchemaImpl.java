@@ -275,7 +275,14 @@ public final class JsonSchemaImpl implements JsonSchema
     @Override
     public JsonTransform validator()
     {
-        return new Validator();
+        return new Validator(false);
+    }
+
+    @Override
+    public JsonTransform validator(
+        boolean lenient)
+    {
+        return new Validator(lenient);
     }
 
     @Override
@@ -2308,13 +2315,17 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private final JsonController decline = new Decline();
         private final List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+        private final boolean lenient;
 
         private JsonController upstreamControl;
         private Eval eval;
         private boolean downstreamVerbatim;
+        private boolean failed;
 
-        private Validator()
+        private Validator(
+            boolean lenient)
         {
+            this.lenient = lenient;
             this.eval = eval(new Trace(diagnostics::add));
         }
 
@@ -2331,6 +2342,10 @@ public final class JsonSchemaImpl implements JsonSchema
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {
                 Status downstream = sink.transform(decline, source, event);
+                if (lenient && failed && event == JsonEvent.END_DOCUMENT && downstream != Status.SUSPENDED)
+                {
+                    throw new JsonValidationException(diagnostics);
+                }
                 status = downstream == Status.REJECTED ? Status.REJECTED
                     : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
             }
@@ -2349,12 +2364,15 @@ public final class JsonSchemaImpl implements JsonSchema
                 // a complete scalar: validate before forwarding, so eval reads the whole value rather than the
                 // remainder the sink leaves after advancing the consumed cursor
                 Verdict verdict = eval.feed(toEvent(event), source);
-                if (verdict == Verdict.INVALID)
+                if (verdict == Verdict.INVALID && !lenient)
                 {
                     throw new JsonValidationException(diagnostics);
                 }
+                failed |= verdict == Verdict.INVALID;
                 Status downstream = sink.transform(decline, source, forward(event));
-                status = verdictStatus(verdict, downstream);
+                status = lenient && verdict == Verdict.INVALID
+                    ? leniently(downstream)
+                    : verdictStatus(verdict, downstream);
             }
             else
             {
@@ -2364,11 +2382,14 @@ public final class JsonSchemaImpl implements JsonSchema
                 Verdict verdict = eval.feed(toEvent(event), source);
                 // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
                 // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message
-                if (verdict == Verdict.INVALID)
+                if (verdict == Verdict.INVALID && !lenient)
                 {
                     throw new JsonValidationException(diagnostics);
                 }
-                status = verdictStatus(verdict, downstream);
+                failed |= verdict == Verdict.INVALID;
+                status = lenient && verdict == Verdict.INVALID
+                    ? leniently(downstream)
+                    : verdictStatus(verdict, downstream);
             }
             return status;
         }
@@ -2418,12 +2439,20 @@ public final class JsonSchemaImpl implements JsonSchema
                 : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
         }
 
+        private Status leniently(
+            Status downstream)
+        {
+            return downstream == Status.REJECTED ? Status.REJECTED
+                : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
+        }
+
         @Override
         public void reset()
         {
             diagnostics.clear();
             eval = eval(new Trace(diagnostics::add));
             downstreamVerbatim = false;
+            failed = false;
         }
 
         @Override

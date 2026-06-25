@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.core.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -26,6 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.core.config.BooleanModelConfig;
 
 public class BooleanModelConfigAdapterTest
@@ -44,10 +47,10 @@ public class BooleanModelConfigAdapterTest
     public void shouldRead()
     {
         // GIVEN
-        String json =
-            "{" +
-                "\"model\":\"boolean\"" +
-            "}";
+        String json = """
+            {
+                "model": "boolean"
+            }""";
 
         // WHEN
         BooleanModelConfig model = jsonb.fromJson(json, BooleanModelConfig.class);
@@ -71,5 +74,100 @@ public class BooleanModelConfigAdapterTest
         // THEN
         assertThat(actual, not(nullValue()));
         assertThat(actual, equalTo(expected));
+    }
+
+    @Test
+    public void shouldDefaultValidateStrictWhenAbsent()
+    {
+        // GIVEN
+        String json = """
+            {
+                "model": "boolean"
+            }""";
+
+        // WHEN
+        BooleanModelConfig model = jsonb.fromJson(json, BooleanModelConfig.class);
+
+        // THEN
+        assertThat(model.validate, not(nullValue()));
+        assertThat(model.validate.decode, equalTo(ValidateMode.STRICT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldReadScalarValidate()
+    {
+        // GIVEN
+        String json = """
+            {
+                "model": "boolean",
+                "validate": "lenient"
+            }""";
+
+        // WHEN
+        BooleanModelConfig model = jsonb.fromJson(json, BooleanModelConfig.class);
+
+        // THEN
+        assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.LENIENT));
+    }
+
+    @Test
+    public void shouldReadObjectValidate()
+    {
+        // GIVEN
+        String json = """
+            {
+                "model": "boolean",
+                "validate":
+                {
+                    "decode": "lenient",
+                    "encode": "strict"
+                }
+            }""";
+
+        // WHEN
+        BooleanModelConfig model = jsonb.fromJson(json, BooleanModelConfig.class);
+
+        // THEN
+        assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
+        assertThat(model.validate.encode, equalTo(ValidateMode.STRICT));
+    }
+
+    @Test
+    public void shouldWriteScalarValidate()
+    {
+        // GIVEN
+        String expected =
+            "{" +
+                "\"model\":\"boolean\"," +
+                "\"validate\":\"lenient\"" +
+            "}";
+        BooleanModelConfig model = BooleanModelConfig.builder()
+            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .build();
+
+        // WHEN
+        String actual = jsonb.toJson(model);
+
+        // THEN
+        assertThat(actual, equalTo(expected));
+    }
+
+    @Test
+    public void shouldWriteBareStringWhenValidateStrict()
+    {
+        // GIVEN
+        String expected = "\"boolean\"";
+        BooleanModelConfig model = BooleanModelConfig.builder()
+            .validate(new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT))
+            .build();
+
+        // WHEN
+        String actual = jsonb.toJson(model);
+
+        // THEN
+        assertThat(actual, equalTo(expected));
+        assertThat(actual, not(containsString("validate")));
     }
 }

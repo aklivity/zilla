@@ -17,15 +17,23 @@ package io.aklivity.zilla.runtime.model.core.internal.config;
 import static io.aklivity.zilla.runtime.model.core.config.BooleanModelConfig.BOOLEAN;
 
 import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.core.config.BooleanModelConfig;
+import io.aklivity.zilla.runtime.model.core.config.BooleanModelConfigBuilder;
 
 public class BooleanModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {
+    private static final String MODEL_NAME = "model";
+    private static final String VALIDATE_NAME = "validate";
+
+    private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
+
     @Override
     public String type()
     {
@@ -36,13 +44,32 @@ public class BooleanModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAd
     public JsonValue adaptToJson(
         ModelConfig options)
     {
-        return Json.createValue(type());
+        BooleanModelConfig config = (BooleanModelConfig) options;
+        JsonValue result;
+        JsonValue validateJson = validate.adaptToJson(config.validate);
+        if (validateJson != null)
+        {
+            result = Json.createObjectBuilder()
+                .add(MODEL_NAME, type())
+                .add(VALIDATE_NAME, validateJson)
+                .build();
+        }
+        else
+        {
+            result = Json.createValue(type());
+        }
+        return result;
     }
 
     @Override
     public ModelConfig adaptFromJson(
         JsonValue value)
     {
-        return BooleanModelConfig.builder().build();
+        BooleanModelConfigBuilder<BooleanModelConfig> builder = BooleanModelConfig.builder();
+        if (value instanceof JsonObject object)
+        {
+            builder.validate(validate.adaptFromJsonObject(object));
+        }
+        return builder.build();
     }
 }

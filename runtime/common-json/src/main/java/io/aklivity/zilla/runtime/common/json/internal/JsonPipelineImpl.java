@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 
 import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
+import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -33,6 +34,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
@@ -52,6 +54,7 @@ public final class JsonPipelineImpl implements JsonPipeline
     // the terminal generator the pipeline re-targets per transform, or null for a non-generator terminal
     private final JsonGeneratorEx generator;
     private final JsonPipelineResult result;
+    private final boolean lenient;
 
     private boolean suspended;
     // the value event in flight across a suspend, handed to root.resume() so no stage stores it
@@ -61,7 +64,8 @@ public final class JsonPipelineImpl implements JsonPipeline
         JsonParserEx parser,
         JsonSink root,
         JsonReporter reporter,
-        JsonGeneratorEx generator)
+        JsonGeneratorEx generator,
+        boolean lenient)
     {
         this.parser = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
@@ -71,6 +75,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
         this.generator = generator;
+        this.lenient = lenient;
         this.result = new JsonPipelineResult();
     }
 
@@ -160,12 +165,23 @@ public final class JsonPipelineImpl implements JsonPipeline
                 }
             }
         }
+        catch (JsonValidationException ex)
+        {
+            diagnostic.message = ex.getMessage();
+            reporter.rejected(diagnostic);
+            status = lenient ? Status.COMPLETED : Status.REJECTED;
+        }
+        catch (JsonParsingException ex)
+        {
+            status = Status.REJECTED;
+            diagnostic.message = ex.getMessage();
+        }
         catch (JsonException ex)
         {
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
         }
-        if (status == Status.REJECTED && reporter != null)
+        if (status == Status.REJECTED)
         {
             // terminal failure only — never STARVED/SUSPENDED back-pressure; the diagnostic is a reused,
             // call-scoped view, so the reporter must copy out anything it needs before returning

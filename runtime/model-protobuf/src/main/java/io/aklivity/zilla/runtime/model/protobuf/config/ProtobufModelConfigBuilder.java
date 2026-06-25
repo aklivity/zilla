@@ -21,6 +21,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class ProtobufModelConfigBuilder<T> extends ConfigBuilder<T, ProtobufModelConfigBuilder<T>>
 {
@@ -29,6 +30,7 @@ public class ProtobufModelConfigBuilder<T> extends ConfigBuilder<T, ProtobufMode
     private List<CatalogedConfig> catalogs;
     private String subject;
     private String view;
+    private ValidateConfig validate;
 
     ProtobufModelConfigBuilder(
         Function<ProtobufModelConfig, T> mapper)
@@ -73,9 +75,16 @@ public class ProtobufModelConfigBuilder<T> extends ConfigBuilder<T, ProtobufMode
         return this;
     }
 
+    public ProtobufModelConfigBuilder<T> validate(
+        ValidateConfig validate)
+    {
+        this.validate = validate;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new ProtobufModelConfig(catalogs, subject, view));
+        return mapper.apply(new ProtobufModelConfig(catalogs, subject, view, validate));
     }
 }

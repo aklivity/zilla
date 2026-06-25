@@ -107,12 +107,12 @@
                                                     "input":
                                                     {
                                                         "title": "Input Schema",
-                                                        "$ref": "#/$defs/converter"
+                                                        "$ref": "#/$defs/models"
                                                     },
                                                     "output":
                                                     {
                                                         "title": "Output Schema",
-                                                        "$ref": "#/$defs/converter"
+                                                        "$ref": "#/$defs/models"
                                                     }
                                                 },
                                                 "required": [ "input" ],
@@ -160,7 +160,7 @@
                                                     "output":
                                                     {
                                                         "title": "Output Schema",
-                                                        "$ref": "#/$defs/converter"
+                                                        "$ref": "#/$defs/models"
                                                     }
                                                 },
                                                 "additionalProperties": false
@@ -301,7 +301,7 @@
                                         "query":
                                         {
                                             "title": "Query Projection",
-                                            "$ref": "#/$defs/converter"
+                                            "$ref": "#/$defs/models"
                                         },
                                         "body":
                                         {
@@ -309,7 +309,7 @@
                                             "oneOf":
                                             [
                                                 {
-                                                    "$ref": "#/$defs/converter"
+                                                    "$ref": "#/$defs/models"
                                                 },
                                                 {
                                                     "type": "object",

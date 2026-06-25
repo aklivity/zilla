@@ -28,8 +28,20 @@ public interface AvroStream
         AvroTransform transform);
 
     /**
+     * Relaxes the pipeline's handling of a semantic-validation failure ({@link AvroValidationException}) on a
+     * structurally well-formed value. When {@code true}, such a failure is reported and then the
+     * already-produced structurally-valid value passes through (the pipeline still completes); when
+     * {@code false} (the default), it rejects. A parse failure ({@link AvroParsingException}) always rejects
+     * regardless of this setting. Currently inert: no stage throws {@link AvroValidationException} yet, so
+     * the branch this setting selects is wired but unreached until semantic validation lands.
+     */
+    AvroStream lenient(
+        boolean lenient);
+
+    /**
      * Attaches the {@link AvroReporter} the pipeline pushes an {@link AvroDiagnostic} to on a terminal
-     * {@link AvroPipeline.Status#REJECTED}. The last attached reporter wins; the default is none.
+     * {@link AvroPipeline.Status#REJECTED} or on a reported semantic-validation failure. The last attached
+     * reporter wins; the default is none.
      */
     AvroStream reporting(
         AvroReporter reporter);

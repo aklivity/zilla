@@ -17,10 +17,13 @@ package io.aklivity.zilla.runtime.model.core.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public class BooleanModelConfigBuilder<T> extends ConfigBuilder<T, BooleanModelConfigBuilder<T>>
 {
     private final Function<BooleanModelConfig, T> mapper;
+
+    private ValidateConfig validate;
 
     BooleanModelConfigBuilder(
         Function<BooleanModelConfig, T> mapper)
@@ -35,9 +38,16 @@ public class BooleanModelConfigBuilder<T> extends ConfigBuilder<T, BooleanModelC
         return (Class<BooleanModelConfigBuilder<T>>) getClass();
     }
 
+    public BooleanModelConfigBuilder<T> validate(
+        ValidateConfig validate)
+    {
+        this.validate = validate;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new BooleanModelConfig());
+        return mapper.apply(new BooleanModelConfig(validate));
     }
 }

@@ -238,6 +238,23 @@ public class AvroJsonTest
     }
 
     @Test
+    public void shouldRejectMalformedJson()
+    {
+        // a JSON syntax error: the value advance throws jakarta JsonParsingException, which the parser boundary
+        // translates to AvroParsingException so the pipeline rejects rather than letting it escape
+        assertRejected(
+            "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"}]}",
+            "{\"id\": }");
+    }
+
+    @Test
+    public void shouldRejectNonJsonInput()
+    {
+        // raw non-JSON bytes under a json view: the very first advance fails to tokenize
+        assertRejected("\"int\"", "@notjson@");
+    }
+
+    @Test
     public void shouldEncodeCanonicalNullableUnionValue()
     {
         assertCanonicalJson("[\"null\",\"string\"]", new byte[] { 0x02, 0x02, 0x78 }, "\"x\"");

@@ -161,11 +161,9 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.router.Router;
@@ -813,30 +811,6 @@ public class EngineWorker implements EngineContext, Agent
     {
         CatalogRegistry catalog = registry.resolveCatalog(catalogId);
         return catalog != null ? catalog.handler() : null;
-    }
-
-    @Override
-    public ValidatorHandler supplyValidator(
-        ModelConfig config)
-    {
-        ModelContext model = modelsByType.get(config.model);
-        return model != null ? model.supplyValidatorHandler(config) : null;
-    }
-
-    @Override
-    public ConverterHandler supplyReadConverter(
-        ModelConfig config)
-    {
-        ModelContext model = modelsByType.get(config.model);
-        return model != null ? model.supplyReadConverterHandler(config) : null;
-    }
-
-    @Override
-    public ConverterHandler supplyWriteConverter(
-        ModelConfig config)
-    {
-        ModelContext model = modelsByType.get(config.model);
-        return model != null ? model.supplyWriteConverterHandler(config) : null;
     }
 
     @Override

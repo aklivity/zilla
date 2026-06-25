@@ -58,6 +58,8 @@ bindings:
             model: test
             capability: read
             length: 12
+            fields:
+              - correlationId
             catalog:
               test0:
                 - id: 1

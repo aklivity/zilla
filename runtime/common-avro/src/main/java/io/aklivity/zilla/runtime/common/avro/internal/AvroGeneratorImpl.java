@@ -22,8 +22,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
+import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
-import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
 
 public final class AvroGeneratorImpl implements AvroGenerator
 {
@@ -360,7 +360,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
         AvroNode node = nodeStack[depth - 1];
         if (node.kind != kind)
         {
-            throw new AvroValidationException("expected " + node.kind + " but was " + kind);
+            throw new AvroParsingException("expected " + node.kind + " but was " + kind);
         }
         return node;
     }
@@ -397,7 +397,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         if (progress + count > bound)
         {
-            throw new AvroValidationException("output exceeds limit");
+            throw new AvroParsingException("output exceeds limit");
         }
     }
 
@@ -407,7 +407,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         if (!condition)
         {
-            throw new AvroValidationException(message);
+            throw new AvroParsingException(message);
         }
     }
 

@@ -75,6 +75,9 @@ public final class McpBindingConfig
     private static final String CATALOG_NAME = "catalog";
     private static final String SCHEMA_ID = "id";
 
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
@@ -211,7 +214,7 @@ public final class McpBindingConfig
         {
             int srcAt = index;
             int produced = 0;
-            int flags = ModelPipeline.FLAGS_INIT | ModelPipeline.FLAGS_FIN;
+            int flags = FLAGS_INIT | FLAGS_FIN;
             boolean done = false;
             while (!done)
             {
@@ -233,7 +236,7 @@ public final class McpBindingConfig
                     else
                     {
                         srcAt += result.consumed();
-                        flags = ModelPipeline.FLAGS_FIN;
+                        flags = FLAGS_FIN;
                     }
                 }
             }

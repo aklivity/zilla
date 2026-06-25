@@ -29,8 +29,8 @@ import org.agrona.DirectBuffer;
  * no-op placeholder.
  * </p>
  *
- * @see ConverterHandler
- * @see ValidatorHandler
+ * @see ModelHandler
+ * @see ModelPipeline
  */
 @FunctionalInterface
 public interface ValueConsumer

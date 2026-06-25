@@ -19,18 +19,20 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
 
 public final class AvroModelConfig extends ModelConfig
 {
     public final String subject;
     public final String view;
 
-    public AvroModelConfig(
+    AvroModelConfig(
         List<CatalogedConfig> cataloged,
         String subject,
-        String view)
+        String view,
+        ValidateConfig validate)
     {
-        super("avro", cataloged);
+        super("avro", cataloged, validate);
         this.subject = subject;
         this.view = view;
     }

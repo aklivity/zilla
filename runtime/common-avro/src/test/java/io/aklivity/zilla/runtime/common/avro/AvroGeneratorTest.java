@@ -38,7 +38,7 @@ public class AvroGeneratorTest
     public void shouldRejectMismatchedScalarEvent()
     {
         AvroSink sink = sink("\"int\"");
-        assertThrows(AvroValidationException.class, () -> sink.transform(NO_CONTROL, zero, AvroEvent.BOOLEAN));
+        assertThrows(AvroParsingException.class, () -> sink.transform(NO_CONTROL, zero, AvroEvent.BOOLEAN));
     }
 
     @Test
@@ -46,7 +46,7 @@ public class AvroGeneratorTest
     {
         AvroSink sink = sink("\"int\"");
         sink.transform(NO_CONTROL, zero, AvroEvent.INT);
-        assertThrows(AvroValidationException.class, () -> sink.transform(NO_CONTROL, zero, AvroEvent.INT));
+        assertThrows(AvroParsingException.class, () -> sink.transform(NO_CONTROL, zero, AvroEvent.INT));
     }
 
     @Test
@@ -54,7 +54,7 @@ public class AvroGeneratorTest
     {
         AvroSink sink = sink(
             "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"}]}");
-        assertThrows(AvroValidationException.class, () -> sink.transform(NO_CONTROL, zero, AvroEvent.INT));
+        assertThrows(AvroParsingException.class, () -> sink.transform(NO_CONTROL, zero, AvroEvent.INT));
     }
 
     @Test

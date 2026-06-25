@@ -537,8 +537,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.retentionMillisMax = defaultOffset == LIVE ? retentionMillisMaxLive : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
-            this.transformKey = KafkaCacheModel.decoder(topicType.keyModel, transformBuffer);
-            this.transformValue = KafkaCacheModel.decoder(topicType.valueModel, transformBuffer);
+            this.transformKey = KafkaCacheModel.decoder(topicType.keyModel, topicType.keyExtractPaths, transformBuffer);
+            this.transformValue = KafkaCacheModel.decoder(topicType.valueModel, topicType.valueExtractPaths, transformBuffer);
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
             this.transforms = topicType.transforms;

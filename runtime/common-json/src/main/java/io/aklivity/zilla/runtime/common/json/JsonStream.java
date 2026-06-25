@@ -27,8 +27,19 @@ public interface JsonStream
         JsonTransform transform);
 
     /**
+     * Relaxes the pipeline's handling of a schema-validation failure on a structurally well-formed
+     * document. When {@code true}, a {@link JsonValidationException} is reported and then the original
+     * document bytes pass through unchanged (the pipeline still completes the value); when {@code false}
+     * (the default), such a failure rejects the value. A parse failure (malformed or truncated input)
+     * always rejects regardless of this setting.
+     */
+    JsonStream lenient(
+        boolean lenient);
+
+    /**
      * Attaches the {@link JsonReporter} the pipeline pushes a {@link JsonDiagnostic} to on a terminal
-     * {@link JsonPipeline.Status#REJECTED}. The last attached reporter wins; the default is none.
+     * {@link JsonPipeline.Status#REJECTED} or on a reported schema-validation failure. The last attached
+     * reporter wins; the default is none.
      */
     JsonStream reporting(
         JsonReporter reporter);

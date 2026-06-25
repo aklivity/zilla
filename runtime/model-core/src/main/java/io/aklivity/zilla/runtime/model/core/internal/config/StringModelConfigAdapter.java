@@ -22,6 +22,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
 
@@ -32,6 +34,9 @@ public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, Js
     private static final String PATTERN_NAME = "pattern";
     private static final String MAX_NAME = "maxLength";
     private static final String MIN_NAME = "minLength";
+    private static final String VALIDATE_NAME = "validate";
+
+    private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
     @Override
     public JsonValue adaptToJson(
@@ -39,11 +44,13 @@ public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, Js
     {
         JsonValue result;
         StringModelConfig options = (StringModelConfig) config;
+        JsonValue validateJson = validate.adaptToJson(options.validate);
 
         if (options.encoding.equals(StringModelConfigBuilder.DEFAULT_ENCODING) &&
             options.pattern == null &&
             options.maxLength == 0 &&
-            options.minLength == 0)
+            options.minLength == 0 &&
+            validateJson == null)
         {
             result = Json.createValue(type());
         }
@@ -70,6 +77,11 @@ public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, Js
             if (options.minLength != 0)
             {
                 builder.add(MIN_NAME, options.minLength);
+            }
+
+            if (validateJson != null)
+            {
+                builder.add(VALIDATE_NAME, validateJson);
             }
 
             result = builder.build();
@@ -108,6 +120,9 @@ public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, Js
             {
                 builder.minLength(object.getInt(MIN_NAME));
             }
+
+            ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
+            builder.validate(validateConfig);
             break;
         default:
             throw new IllegalArgumentException("Unexpected type: " + valueType);

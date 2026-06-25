@@ -208,7 +208,7 @@
                                                 },
                                                 "content":
                                                 {
-                                                    "$ref": "#/$defs/validator"
+                                                    "$ref": "#/$defs/models"
                                                 },
                                                 "user-properties":
                                                 {
@@ -217,7 +217,7 @@
                                                     {
                                                         "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                         {
-                                                            "$ref": "#/$defs/validator"
+                                                            "$ref": "#/$defs/models"
                                                         }
                                                     }
                                                 }

@@ -50,7 +50,7 @@ final class FloatModelValidator implements CoreModelValidator
     }
 
     @Override
-    public boolean validate(
+    public Validity validate(
         int flags,
         DirectBuffer data,
         int index,
@@ -64,12 +64,13 @@ final class FloatModelValidator implements CoreModelValidator
             state.divider = 0;
         }
         int progress = format.decode(state, flags, data, index, length);
-        boolean valid = progress != FloatFormat.INVALID_INDEX;
-        if ((flags & FLAGS_FIN) != 0x00 && valid)
+        Validity validity = progress != FloatFormat.INVALID_INDEX ? Validity.VALID : Validity.MALFORMED;
+        if ((flags & FLAGS_FIN) != 0x00 && validity == Validity.VALID)
         {
-            valid &= format.valid(state);
-            valid &= check.test(state.value);
+            validity = !format.valid(state) ? Validity.MALFORMED
+                : !check.test(state.value) ? Validity.INVALID
+                : Validity.VALID;
         }
-        return valid;
+        return validity;
     }
 }

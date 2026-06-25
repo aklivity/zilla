@@ -35,7 +35,8 @@ public final class ProtobufStreamImpl implements ProtobufStream
     private final ProtobufParser parser;
     private final List<ProtobufTransform> transforms;
 
-    private ProtobufReporter reporter;
+    private ProtobufReporter reporter = ProtobufReporter.NONE;
+    private boolean lenient;
 
     public ProtobufStreamImpl(
         ProtobufParser parser)
@@ -53,10 +54,18 @@ public final class ProtobufStreamImpl implements ProtobufStream
     }
 
     @Override
+    public ProtobufStream lenient(
+        boolean lenient)
+    {
+        this.lenient = lenient;
+        return this;
+    }
+
+    @Override
     public ProtobufStream reporting(
         ProtobufReporter reporter)
     {
-        this.reporter = reporter;
+        this.reporter = reporter != null ? reporter : ProtobufReporter.NONE;
         return this;
     }
 
@@ -64,7 +73,7 @@ public final class ProtobufStreamImpl implements ProtobufStream
     public ProtobufPipeline into(
         ProtobufSink sink)
     {
-        return new ProtobufPipelineImpl(parser, transforms, sink, reporter, null);
+        return new ProtobufPipelineImpl(parser, transforms, sink, reporter, null, lenient);
     }
 
     @Override
@@ -72,7 +81,7 @@ public final class ProtobufStreamImpl implements ProtobufStream
         ProtobufGenerator generator)
     {
         // the pipeline owns the generator and re-targets it at the caller's destination per transform call
-        return new ProtobufPipelineImpl(parser, transforms, ProtobufSink.of(generator), reporter, generator);
+        return new ProtobufPipelineImpl(parser, transforms, ProtobufSink.of(generator), reporter, generator, lenient);
     }
 
     @Override
@@ -83,6 +92,6 @@ public final class ProtobufStreamImpl implements ProtobufStream
     {
         // the pipeline owns the generator and re-targets it at the caller's destination per transform call
         return new ProtobufPipelineImpl(parser, transforms, ProtobufSink.of(generator, schema, messageName), reporter,
-            generator);
+            generator, lenient);
     }
 }

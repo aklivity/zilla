@@ -23,7 +23,7 @@ import org.agrona.DirectBuffer;
  * cursor's typed accessors ({@link #getInt()}, {@link #getString()}, {@link #getSegment()}, …). A datum is
  * framed by {@link AvroEvent#START_MESSAGE} and {@link AvroEvent#END_MESSAGE}; {@link #hasNext()} returns
  * {@code false} when the buffered bytes are exhausted, so feed more and continue; malformed binary throws
- * {@link AvroValidationException}. Whether the datum is delivered as structured events or as a verbatim
+ * {@link AvroParsingException}. Whether the datum is delivered as structured events or as a verbatim
  * segment run is chosen per pull via {@link #nextEvent(Mode)} — a stream concern the pipeline drives, not
  * a mode held on the cursor. Reuse a single instance per worker thread; not thread-safe.
  */

@@ -42,27 +42,12 @@ import org.agrona.MutableDirectBuffer;
 public interface ModelPipeline
 {
     /**
-     * Flag value indicating the first fragment of a value.
-     */
-    int FLAGS_INIT = 0x02;
-
-    /**
-     * Flag value indicating the final fragment of a value.
-     */
-    int FLAGS_FIN = 0x01;
-
-    /**
-     * Flag value indicating a complete, unfragmented value (both INIT and FIN bits set).
-     */
-    int FLAGS_COMPLETE = 0x03;
-
-    /**
      * Transforms input from {@code src[srcIndex..srcLimit)} into {@code dst[dstIndex..dstLimit)} and
      * reports progress.
      *
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier
-     * @param flags      the fragment flags ({@link #FLAGS_INIT}, {@link #FLAGS_FIN})
+     * @param flags      the per-fragment stream flags
      * @param src        the source buffer
      * @param srcIndex   the offset of the input in {@code src}
      * @param srcLimit   the offset just past the input in {@code src}

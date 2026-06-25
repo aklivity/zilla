@@ -16,10 +16,9 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.model.ConverterHandler;
+import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ValidatorHandler;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
 public class Int32ModelContext implements ModelContext
@@ -33,43 +32,18 @@ public class Int32ModelContext implements ModelContext
     }
 
     @Override
-    public ConverterHandler supplyReadConverterHandler(
-        ModelConfig config)
-    {
-        return supply(config);
-    }
-
-    @Override
-    public ConverterHandler supplyWriteConverterHandler(
-        ModelConfig config)
-    {
-        return supply(config);
-    }
-
-    @Override
-    public ValidatorHandler supplyValidatorHandler(
-        ModelConfig config)
-    {
-        return new Int32ValidatorHandler(Int32ModelConfig.class.cast(config), context);
-    }
-
-    @Override
     public ModelHandler supplyHandler(
         ModelConfig config)
     {
         return supplyCoreHandler(config);
     }
 
-    private Int32ConverterHandler supply(
-        ModelConfig config)
-    {
-        return new Int32ConverterHandler(Int32ModelConfig.class.cast(config), context);
-    }
-
     private CoreModelHandler supplyCoreHandler(
         ModelConfig config)
     {
         return new CoreModelHandler(context, Int32Model.NAME,
-            Int32ModelValidator.supplier(Int32ModelConfig.class.cast(config)));
+            Int32ModelValidator.supplier(Int32ModelConfig.class.cast(config)),
+            config.validate.decode == ValidateMode.LENIENT,
+            config.validate.encode == ValidateMode.LENIENT);
     }
 }

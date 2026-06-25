@@ -233,7 +233,7 @@
                                         "tools":
                                         {
                                             "title": "Tools",
-                                            "$ref": "#/$defs/validator"
+                                            "$ref": "#/$defs/models"
                                         }
                                     },
                                     "additionalProperties": false
