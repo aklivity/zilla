@@ -34,7 +34,7 @@ import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
@@ -80,7 +80,7 @@ public final class HttpBindingConfig
     public HttpBindingConfig(
         EngineContext context,
         BindingConfig binding,
-        MutableDirectBuffer modelBuffer)
+        MutableDirectBufferEx modelBuffer)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -238,7 +238,7 @@ public final class HttpBindingConfig
 
     private List<HttpRequestType> createRequestTypes(
         Function<ModelConfig, ModelHandler> supplyModel,
-        MutableDirectBuffer modelBuffer)
+        MutableDirectBufferEx modelBuffer)
     {
         List<HttpRequestType> requestTypes = new LinkedList<>();
         if (this.options != null && this.options.requests != null)
