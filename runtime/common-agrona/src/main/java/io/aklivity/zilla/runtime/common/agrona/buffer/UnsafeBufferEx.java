@@ -29,6 +29,7 @@ import java.lang.foreign.ValueLayout;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Objects;
 
 import org.agrona.BufferUtil;
 import org.agrona.DirectBuffer;
@@ -466,12 +467,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int index,
         int length)
     {
-        final long resultingPosition = (long) index + (long) length;
-        if (index < 0 || length < 0 || resultingPosition > capacity)
-        {
-            throw new IndexOutOfBoundsException(
-                String.format("index=%d, length=%d, capacity=%d", index, length, capacity));
-        }
+        Objects.checkFromIndexSize(index, length, capacity);
     }
 
     @Override
@@ -497,7 +493,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return GLOBAL.get(LONG_LAYOUT, addressOffset + index);
         }
@@ -512,7 +508,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return GLOBAL.get(INT_LAYOUT, addressOffset + index);
         }
@@ -527,7 +523,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             return GLOBAL.get(SHORT_LAYOUT, addressOffset + index);
         }
@@ -542,7 +538,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Byte.BYTES);
+                Objects.checkFromIndexSize(index, Byte.BYTES, capacity);
             }
             return GLOBAL.get(BYTE_LAYOUT, addressOffset + index);
         }
@@ -557,7 +553,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return Double.longBitsToDouble(GLOBAL.get(LONG_LAYOUT, addressOffset + index));
         }
@@ -572,7 +568,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return Float.intBitsToFloat(GLOBAL.get(INT_LAYOUT, addressOffset + index));
         }
@@ -587,7 +583,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             return (char) GLOBAL.get(SHORT_LAYOUT, addressOffset + index);
         }
@@ -607,7 +603,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return GLOBAL.get(longLayout(byteOrder), addressOffset + index);
         }
@@ -623,7 +619,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return GLOBAL.get(intLayout(byteOrder), addressOffset + index);
         }
@@ -639,7 +635,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             return GLOBAL.get(shortLayout(byteOrder), addressOffset + index);
         }
@@ -655,7 +651,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return Double.longBitsToDouble(GLOBAL.get(longLayout(byteOrder), addressOffset + index));
         }
@@ -671,7 +667,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return Float.intBitsToFloat(GLOBAL.get(intLayout(byteOrder), addressOffset + index));
         }
@@ -687,7 +683,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             return (char) GLOBAL.get(shortLayout(byteOrder), addressOffset + index);
         }
@@ -707,7 +703,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             GLOBAL.set(LONG_LAYOUT, addressOffset + index, value);
         }
@@ -726,7 +722,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             GLOBAL.set(INT_LAYOUT, addressOffset + index, value);
         }
@@ -745,7 +741,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             GLOBAL.set(SHORT_LAYOUT, addressOffset + index, value);
         }
@@ -764,7 +760,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Byte.BYTES);
+                Objects.checkFromIndexSize(index, Byte.BYTES, capacity);
             }
             GLOBAL.set(BYTE_LAYOUT, addressOffset + index, value);
         }
@@ -783,7 +779,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             GLOBAL.set(LONG_LAYOUT, addressOffset + index, Double.doubleToRawLongBits(value));
         }
@@ -802,7 +798,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             GLOBAL.set(INT_LAYOUT, addressOffset + index, Float.floatToRawIntBits(value));
         }
@@ -821,7 +817,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             GLOBAL.set(SHORT_LAYOUT, addressOffset + index, (short) value);
         }
@@ -845,7 +841,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             GLOBAL.set(longLayout(byteOrder), addressOffset + index, value);
         }
@@ -865,7 +861,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             GLOBAL.set(intLayout(byteOrder), addressOffset + index, value);
         }
@@ -885,7 +881,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             GLOBAL.set(shortLayout(byteOrder), addressOffset + index, value);
         }
@@ -905,7 +901,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             GLOBAL.set(longLayout(byteOrder), addressOffset + index, Double.doubleToRawLongBits(value));
         }
@@ -925,7 +921,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             GLOBAL.set(intLayout(byteOrder), addressOffset + index, Float.floatToRawIntBits(value));
         }
@@ -945,7 +941,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             GLOBAL.set(shortLayout(byteOrder), addressOffset + index, (short) value);
         }
@@ -1187,7 +1183,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return (long) LONG_HANDLE.getVolatile(GLOBAL, addressOffset + index);
         }
@@ -1203,7 +1199,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             LONG_HANDLE.setVolatile(GLOBAL, addressOffset + index, value);
         }
@@ -1222,7 +1218,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
         }
@@ -1241,7 +1237,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             final long currentValue = (long) LONG_HANDLE.getAcquire(GLOBAL, addressOffset + index);
             LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, currentValue + increment);
@@ -1260,7 +1256,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return LONG_HANDLE.compareAndSet(GLOBAL, addressOffset + index, expectedValue, updateValue);
         }
@@ -1276,7 +1272,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return (long) LONG_HANDLE.getAndSet(GLOBAL, addressOffset + index, value);
         }
@@ -1292,7 +1288,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return (long) LONG_HANDLE.getAndAdd(GLOBAL, addressOffset + index, delta);
         }
@@ -1311,7 +1307,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return (int) INT_HANDLE.getVolatile(GLOBAL, addressOffset + index);
         }
@@ -1327,7 +1323,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             INT_HANDLE.setVolatile(GLOBAL, addressOffset + index, value);
         }
@@ -1346,7 +1342,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
         }
@@ -1365,7 +1361,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             final int currentValue = (int) INT_HANDLE.getAcquire(GLOBAL, addressOffset + index);
             INT_HANDLE.setRelease(GLOBAL, addressOffset + index, currentValue + increment);
@@ -1384,7 +1380,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return INT_HANDLE.compareAndSet(GLOBAL, addressOffset + index, expectedValue, updateValue);
         }
@@ -1400,7 +1396,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return (int) INT_HANDLE.getAndSet(GLOBAL, addressOffset + index, value);
         }
@@ -1416,7 +1412,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return (int) INT_HANDLE.getAndAdd(GLOBAL, addressOffset + index, delta);
         }
@@ -1436,7 +1432,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             return GLOBAL.get(SHORT_LAYOUT, addressOffset + index);
         }
@@ -1452,7 +1448,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             GLOBAL.set(SHORT_LAYOUT, addressOffset + index, value);
         }
@@ -1470,7 +1466,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             return (char) GLOBAL.get(SHORT_LAYOUT, addressOffset + index);
         }
@@ -1486,7 +1482,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Short.BYTES);
+                Objects.checkFromIndexSize(index, Short.BYTES, capacity);
             }
             GLOBAL.set(SHORT_LAYOUT, addressOffset + index, (short) value);
         }
@@ -1504,7 +1500,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Byte.BYTES);
+                Objects.checkFromIndexSize(index, Byte.BYTES, capacity);
             }
             return GLOBAL.get(BYTE_LAYOUT, addressOffset + index);
         }
@@ -1520,7 +1516,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Byte.BYTES);
+                Objects.checkFromIndexSize(index, Byte.BYTES, capacity);
             }
             GLOBAL.set(BYTE_LAYOUT, addressOffset + index, value);
         }
@@ -1542,7 +1538,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return (long) LONG_HANDLE.getAcquire(GLOBAL, addressOffset + index);
         }
@@ -1558,7 +1554,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
         }
@@ -1576,7 +1572,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return (long) LONG_HANDLE.getOpaque(GLOBAL, addressOffset + index);
         }
@@ -1592,7 +1588,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             LONG_HANDLE.setOpaque(GLOBAL, addressOffset + index, value);
         }
@@ -1611,7 +1607,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             final long currentValue = (long) LONG_HANDLE.getAcquire(GLOBAL, addressOffset + index);
             LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, currentValue + increment);
@@ -1629,7 +1625,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             final long currentValue = (long) LONG_HANDLE.getOpaque(GLOBAL, addressOffset + index);
             LONG_HANDLE.setOpaque(GLOBAL, addressOffset + index, currentValue + increment);
@@ -1648,7 +1644,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Long.BYTES);
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
             return (long) LONG_HANDLE.compareAndExchange(GLOBAL, addressOffset + index, expectedValue, updateValue);
         }
@@ -1663,7 +1659,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return (int) INT_HANDLE.getAcquire(GLOBAL, addressOffset + index);
         }
@@ -1679,7 +1675,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
         }
@@ -1697,7 +1693,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return (int) INT_HANDLE.getOpaque(GLOBAL, addressOffset + index);
         }
@@ -1713,7 +1709,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             INT_HANDLE.setOpaque(GLOBAL, addressOffset + index, value);
         }
@@ -1732,7 +1728,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             final int currentValue = (int) INT_HANDLE.getAcquire(GLOBAL, addressOffset + index);
             INT_HANDLE.setRelease(GLOBAL, addressOffset + index, currentValue + increment);
@@ -1750,7 +1746,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             final int currentValue = (int) INT_HANDLE.getOpaque(GLOBAL, addressOffset + index);
             INT_HANDLE.setOpaque(GLOBAL, addressOffset + index, currentValue + increment);
@@ -1769,7 +1765,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             if (SHOULD_BOUNDS_CHECK)
             {
-                boundsCheck(index, Integer.BYTES);
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
             return (int) INT_HANDLE.compareAndExchange(GLOBAL, addressOffset + index, expectedValue, updateValue);
         }
