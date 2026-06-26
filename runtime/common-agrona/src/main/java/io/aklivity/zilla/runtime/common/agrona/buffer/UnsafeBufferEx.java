@@ -45,9 +45,11 @@ import org.agrona.MutableDirectBuffer;
  * performance without depending on {@code jdk.unsupported}. For heap memory it
  * falls back to the bounded per-instance segment.
  * <p>
- * Native-path bounds checks are enabled when this class is loaded from the class
- * path (unnamed module), as in unit and integration tests, and disabled when it
- * is loaded as a named module, as in the packaged production runtime.
+ * Native-path bounds checks default to enabled when this class is loaded from the
+ * class path (unnamed module), as in unit and integration tests, and to disabled
+ * when loaded as a named module, as in the packaged production runtime. The
+ * default can be overridden with the {@code zilla.buffer.bounds.checks} system
+ * property.
  * <p>
  * All atomic operations use {@link VarHandle} access modes on the selected
  * segment, providing the same memory ordering guarantees as an
@@ -63,11 +65,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
 {
     private static final MemorySegment GLOBAL = MemorySegment.NULL.reinterpret(Long.MAX_VALUE);
 
-    // Bounds checks are enabled when this class loads from the class path (unnamed module) — i.e. unit and
-    // integration tests — and disabled when it loads as a named module, which is how the packaged jlink
-    // runtime loads it in production. Tests keep IndexOutOfBoundsException safety; production takes the
-    // unchecked native GLOBAL fast path. Resolved once at class init so the JIT folds the per-access branch.
-    private static final boolean SHOULD_BOUNDS_CHECK = !UnsafeBufferEx.class.getModule().isNamed();
+    // Native-path bounds checking. Defaults on for the class path (unnamed module — unit and integration
+    // tests) and off for the packaged named-module runtime (production GLOBAL fast path); override the
+    // default with -Dzilla.buffer.bounds.checks=true|false. Read once at class init so the JIT folds the
+    // per-access branch.
+    private static final boolean SHOULD_BOUNDS_CHECK =
+        Boolean.parseBoolean(System.getProperty("zilla.buffer.bounds.checks",
+            Boolean.toString(!UnsafeBufferEx.class.getModule().isNamed())));
 
     private static final ValueLayout.OfByte BYTE_LAYOUT = JAVA_BYTE;
     private static final ValueLayout.OfInt INT_LAYOUT = JAVA_INT_UNALIGNED;
