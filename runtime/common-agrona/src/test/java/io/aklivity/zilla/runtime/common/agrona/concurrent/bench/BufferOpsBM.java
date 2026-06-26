@@ -15,12 +15,17 @@
  */
 package io.aklivity.zilla.runtime.common.agrona.concurrent.bench;
 
+import static java.lang.foreign.ValueLayout.JAVA_INT_UNALIGNED;
+import static java.lang.foreign.ValueLayout.JAVA_LONG_UNALIGNED;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.nativeOrder;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+import java.lang.foreign.MemorySegment;
+import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 
+import org.agrona.BufferUtil;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -51,9 +56,9 @@ import io.aklivity.zilla.runtime.common.agrona.concurrent.baseline.BaselineBuffe
  * The hypothesis: plain primitive access ({@code JAVA_LONG_UNALIGNED}, no alignment
  * check) matches {@code Unsafe}, while ordered/volatile access goes through aligned
  * {@code VarHandle}s that carry a runtime 8-byte alignment check {@code Unsafe}'s
- * ordered ops lack. If so, {@code plain*} should be at parity across impls while
- * {@code ordered*} regresses on {@code unsafe} (and {@code safe}) relative to
- * {@code baseline}.
+ * ordered ops lack. {@code fenced*} prototypes a Lever 1 lowering — plain unaligned
+ * access plus a standalone {@code VarHandle.releaseFence}/{@code acquireFence} — to
+ * confirm it recovers the regression before changing the production accessors.
  * <p>
  * All variants run over a native (direct) buffer so {@code unsafe} takes the
  * {@code GLOBAL} path, matching the regressed {@code BufferBM} configuration.
@@ -66,7 +71,10 @@ import io.aklivity.zilla.runtime.common.agrona.concurrent.baseline.BaselineBuffe
 @OutputTimeUnit(NANOSECONDS)
 public class BufferOpsBM
 {
+    private static final MemorySegment GLOBAL = MemorySegment.NULL.reinterpret(Long.MAX_VALUE);
+
     private AtomicBufferEx buffer;
+    private long address;
     private long value = 0x0102030405060708L;
 
     @Param({"baseline", "unsafe", "safe"})
@@ -76,6 +84,7 @@ public class BufferOpsBM
     public void init()
     {
         final ByteBuffer byteBuffer = allocateDirect(256).order(nativeOrder());
+        this.address = BufferUtil.address(byteBuffer);
         this.buffer = switch (impl)
         {
         case "safe" -> new SafeBuffer(byteBuffer);
@@ -110,6 +119,26 @@ public class BufferOpsBM
     {
         buffer.putIntOrdered(0, (int)++value);
         return buffer.getIntVolatile(0);
+    }
+
+    @Benchmark
+    public long fencedLong()
+    {
+        VarHandle.releaseFence();
+        GLOBAL.set(JAVA_LONG_UNALIGNED, address, ++value);
+        final long got = GLOBAL.get(JAVA_LONG_UNALIGNED, address);
+        VarHandle.acquireFence();
+        return got;
+    }
+
+    @Benchmark
+    public int fencedInt()
+    {
+        VarHandle.releaseFence();
+        GLOBAL.set(JAVA_INT_UNALIGNED, address, (int)++value);
+        final int got = GLOBAL.get(JAVA_INT_UNALIGNED, address);
+        VarHandle.acquireFence();
+        return got;
     }
 
     public static void main(
