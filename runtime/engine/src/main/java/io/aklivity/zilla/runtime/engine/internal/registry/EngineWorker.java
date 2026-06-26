@@ -47,6 +47,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import static org.agrona.concurrent.AgentRunner.startOnThread;
 
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -385,7 +386,9 @@ public class EngineWorker implements EngineContext, Agent
         this.readLimit = config.maximumMessagesPerRead();
         this.expireLimit = config.maximumExpirationsPerPoll();
         this.streamsBuffer = streamsLayout.streamsBuffer();
-        this.writeBuffer = new UnsafeBufferEx(new byte[config.bufferSlotCapacity() + 1024]);
+        // off-heap so per-worker frame composition takes UnsafeBufferEx's unchecked native (GLOBAL) path;
+        // bounds remain enforced by the flyweight builders that wrap this buffer
+        this.writeBuffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(config.bufferSlotCapacity() + 1024));
         this.streamSets = new Long2ObjectHashMap<>();
         this.streams = initDispatcher();
         this.throttles = initDispatcher();
