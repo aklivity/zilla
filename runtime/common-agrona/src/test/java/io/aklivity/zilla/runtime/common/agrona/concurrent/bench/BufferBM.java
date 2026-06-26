@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.baseline.BaselineBufferEx;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -69,7 +70,7 @@ public class BufferBM
 
     private MutableDirectBufferEx writeBuffer;
 
-    @Param({"unsafe", "safe"})
+    @Param({"unsafe", "safe", "baseline"})
     private String impl;
 
     @Setup(Level.Trial)
@@ -163,6 +164,7 @@ public class BufferBM
         return switch (impl)
         {
         case "safe" -> new SafeBuffer(byteBuffer);
+        case "baseline" -> new BaselineBufferEx(byteBuffer);
         default -> new UnsafeBufferEx(byteBuffer);
         };
     }
