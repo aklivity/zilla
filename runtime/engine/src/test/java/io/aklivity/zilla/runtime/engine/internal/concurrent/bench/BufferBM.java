@@ -25,6 +25,7 @@ import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TRAILER_LENG
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Random;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -36,6 +37,7 @@ import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -49,6 +51,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.SafeBuffer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
 
@@ -66,6 +69,9 @@ public class BufferBM
 
     private MutableDirectBufferEx writeBuffer;
 
+    @Param({"unsafe", "safe"})
+    private String impl;
+
     @Setup(Level.Trial)
     public void init() throws IOException
     {
@@ -75,11 +81,11 @@ public class BufferBM
         final File bufferFile = new File("target/benchmarks/baseline/buffer").getAbsoluteFile();
         createEmptyFile(bufferFile, capacity).close();
 
-        this.buffer = new UnsafeBufferEx(mapExistingFile(bufferFile, "buffer"));
+        this.buffer = newBuffer(mapExistingFile(bufferFile, "buffer"));
         this.source = new ManyToOneRingBuffer(buffer);
         this.target = new ManyToOneRingBuffer(buffer);
 
-        this.writeBuffer = new UnsafeBufferEx(allocateDirect(payload).order(nativeOrder()));
+        this.writeBuffer = newBuffer(allocateDirect(payload).order(nativeOrder()));
         this.writeBuffer.setMemory(0, payload, (byte)new Random().nextInt(256));
     }
 
@@ -149,6 +155,16 @@ public class BufferBM
         {
             Thread.yield();
         }
+    }
+
+    private AtomicBufferEx newBuffer(
+        ByteBuffer byteBuffer)
+    {
+        return switch (impl)
+        {
+        case "safe" -> new SafeBuffer(byteBuffer);
+        default -> new UnsafeBufferEx(byteBuffer);
+        };
     }
 
     public static void main(
