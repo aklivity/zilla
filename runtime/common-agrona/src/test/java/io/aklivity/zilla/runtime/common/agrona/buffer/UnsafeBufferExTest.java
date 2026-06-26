@@ -661,6 +661,72 @@ public class UnsafeBufferExTest
         }
 
         // -------------------------------------------------------------------
+        // Heap atomics — unsupported (native-only): byte[] cannot satisfy
+        // VarHandle alignment, so atomics throw rather than corrupt
+        // -------------------------------------------------------------------
+
+        @Test(expected = UnsupportedOperationException.class)
+        public void shouldRejectPutLongOrderedOnHeap()
+        {
+            new UnsafeBufferEx(new byte[64]).putLongOrdered(8, 1L);
+        }
+
+        @Test(expected = UnsupportedOperationException.class)
+        public void shouldRejectGetLongVolatileOnHeap()
+        {
+            new UnsafeBufferEx(new byte[64]).getLongVolatile(0);
+        }
+
+        @Test(expected = UnsupportedOperationException.class)
+        public void shouldRejectCompareAndSetLongOnHeap()
+        {
+            new UnsafeBufferEx(new byte[64]).compareAndSetLong(0, 0L, 1L);
+        }
+
+        @Test(expected = UnsupportedOperationException.class)
+        public void shouldRejectGetAndAddLongOnHeap()
+        {
+            new UnsafeBufferEx(new byte[64]).getAndAddLong(0, 1L);
+        }
+
+        @Test(expected = UnsupportedOperationException.class)
+        public void shouldRejectPutIntOrderedOnHeap()
+        {
+            new UnsafeBufferEx(new byte[64]).putIntOrdered(4, 1);
+        }
+
+        @Test(expected = UnsupportedOperationException.class)
+        public void shouldRejectGetAndAddIntOnHeap()
+        {
+            new UnsafeBufferEx(new byte[64]).getAndAddInt(0, 1);
+        }
+
+        // -------------------------------------------------------------------
+        // Native bounds checks — enabled by default (regression: CountersLayout)
+        // -------------------------------------------------------------------
+
+        @Test(expected = IndexOutOfBoundsException.class)
+        public void shouldThrowOnPutLongOrderedOutOfBoundsNative()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(8));
+            buffer.putLongOrdered(8, 1L);
+        }
+
+        @Test(expected = IndexOutOfBoundsException.class)
+        public void shouldThrowOnPutIntOutOfBoundsNative()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(8));
+            buffer.putInt(8, 1);
+        }
+
+        @Test(expected = IndexOutOfBoundsException.class)
+        public void shouldThrowOnGetLongOutOfBoundsNative()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(8));
+            buffer.getLong(4);
+        }
+
+        // -------------------------------------------------------------------
         // Comparable / equals / hashCode / toString
         // -------------------------------------------------------------------
 

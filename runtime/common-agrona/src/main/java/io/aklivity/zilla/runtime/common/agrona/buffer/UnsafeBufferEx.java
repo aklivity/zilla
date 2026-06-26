@@ -33,6 +33,7 @@ import java.nio.ByteOrder;
 import org.agrona.BufferUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 /**
  * An {@link AtomicBufferEx} implementation backed by Java's {@link MemorySegment}
@@ -47,6 +48,12 @@ import org.agrona.MutableDirectBuffer;
  * All atomic operations use {@link VarHandle} access modes on the selected
  * segment, providing the same memory ordering guarantees as an
  * {@code Unsafe}-backed buffer.
+ * <p>
+ * Atomic operations are supported only on native-backed buffers (direct
+ * {@code ByteBuffer}, mapped file, or native {@code MemorySegment}). Heap
+ * {@code byte[]} backings throw {@link UnsupportedOperationException} for
+ * atomics, because the JVM cannot guarantee {@code byte[]} alignment for
+ * {@code VarHandle} atomic access.
  */
 public class UnsafeBufferEx implements AtomicBufferEx
 {
@@ -477,63 +484,105 @@ public class UnsafeBufferEx implements AtomicBufferEx
     public long getLong(
         int index)
     {
-        return isNative
-            ? GLOBAL.get(LONG_LAYOUT, addressOffset + index)
-            : segment.get(LONG_LAYOUT, wrapAdjustment + index);
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
+            return GLOBAL.get(LONG_LAYOUT, addressOffset + index);
+        }
+        return segment.get(LONG_LAYOUT, wrapAdjustment + index);
     }
 
     @Override
     public int getInt(
         int index)
     {
-        return isNative
-            ? GLOBAL.get(INT_LAYOUT, addressOffset + index)
-            : segment.get(INT_LAYOUT, wrapAdjustment + index);
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
+            return GLOBAL.get(INT_LAYOUT, addressOffset + index);
+        }
+        return segment.get(INT_LAYOUT, wrapAdjustment + index);
     }
 
     @Override
     public short getShort(
         int index)
     {
-        return isNative
-            ? GLOBAL.get(SHORT_LAYOUT, addressOffset + index)
-            : segment.get(SHORT_LAYOUT, wrapAdjustment + index);
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
+            return GLOBAL.get(SHORT_LAYOUT, addressOffset + index);
+        }
+        return segment.get(SHORT_LAYOUT, wrapAdjustment + index);
     }
 
     @Override
     public byte getByte(
         int index)
     {
-        return isNative
-            ? GLOBAL.get(BYTE_LAYOUT, addressOffset + index)
-            : segment.get(BYTE_LAYOUT, wrapAdjustment + index);
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Byte.BYTES);
+            }
+            return GLOBAL.get(BYTE_LAYOUT, addressOffset + index);
+        }
+        return segment.get(BYTE_LAYOUT, wrapAdjustment + index);
     }
 
     @Override
     public double getDouble(
         int index)
     {
-        return Double.longBitsToDouble(isNative
-            ? GLOBAL.get(LONG_LAYOUT, addressOffset + index)
-            : segment.get(LONG_LAYOUT, wrapAdjustment + index));
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
+            return Double.longBitsToDouble(GLOBAL.get(LONG_LAYOUT, addressOffset + index));
+        }
+        return Double.longBitsToDouble(segment.get(LONG_LAYOUT, wrapAdjustment + index));
     }
 
     @Override
     public float getFloat(
         int index)
     {
-        return Float.intBitsToFloat(isNative
-            ? GLOBAL.get(INT_LAYOUT, addressOffset + index)
-            : segment.get(INT_LAYOUT, wrapAdjustment + index));
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
+            return Float.intBitsToFloat(GLOBAL.get(INT_LAYOUT, addressOffset + index));
+        }
+        return Float.intBitsToFloat(segment.get(INT_LAYOUT, wrapAdjustment + index));
     }
 
     @Override
     public char getChar(
         int index)
     {
-        return (char) (isNative
-            ? GLOBAL.get(SHORT_LAYOUT, addressOffset + index)
-            : segment.get(SHORT_LAYOUT, wrapAdjustment + index));
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
+            return (char) GLOBAL.get(SHORT_LAYOUT, addressOffset + index);
+        }
+        return (char) segment.get(SHORT_LAYOUT, wrapAdjustment + index);
     }
 
     // -----------------------------------------------------------------------
@@ -545,9 +594,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        return isNative
-            ? GLOBAL.get(longLayout(byteOrder), addressOffset + index)
-            : segment.get(longLayout(byteOrder), wrapAdjustment + index);
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
+            return GLOBAL.get(longLayout(byteOrder), addressOffset + index);
+        }
+        return segment.get(longLayout(byteOrder), wrapAdjustment + index);
     }
 
     @Override
@@ -555,9 +610,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        return isNative
-            ? GLOBAL.get(intLayout(byteOrder), addressOffset + index)
-            : segment.get(intLayout(byteOrder), wrapAdjustment + index);
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
+            return GLOBAL.get(intLayout(byteOrder), addressOffset + index);
+        }
+        return segment.get(intLayout(byteOrder), wrapAdjustment + index);
     }
 
     @Override
@@ -565,9 +626,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        return isNative
-            ? GLOBAL.get(shortLayout(byteOrder), addressOffset + index)
-            : segment.get(shortLayout(byteOrder), wrapAdjustment + index);
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
+            return GLOBAL.get(shortLayout(byteOrder), addressOffset + index);
+        }
+        return segment.get(shortLayout(byteOrder), wrapAdjustment + index);
     }
 
     @Override
@@ -575,9 +642,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        return Double.longBitsToDouble(isNative
-            ? GLOBAL.get(longLayout(byteOrder), addressOffset + index)
-            : segment.get(longLayout(byteOrder), wrapAdjustment + index));
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
+            return Double.longBitsToDouble(GLOBAL.get(longLayout(byteOrder), addressOffset + index));
+        }
+        return Double.longBitsToDouble(segment.get(longLayout(byteOrder), wrapAdjustment + index));
     }
 
     @Override
@@ -585,9 +658,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        return Float.intBitsToFloat(isNative
-            ? GLOBAL.get(intLayout(byteOrder), addressOffset + index)
-            : segment.get(intLayout(byteOrder), wrapAdjustment + index));
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
+            return Float.intBitsToFloat(GLOBAL.get(intLayout(byteOrder), addressOffset + index));
+        }
+        return Float.intBitsToFloat(segment.get(intLayout(byteOrder), wrapAdjustment + index));
     }
 
     @Override
@@ -595,9 +674,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int index,
         ByteOrder byteOrder)
     {
-        return (char) (isNative
-            ? GLOBAL.get(shortLayout(byteOrder), addressOffset + index)
-            : segment.get(shortLayout(byteOrder), wrapAdjustment + index));
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
+            return (char) GLOBAL.get(shortLayout(byteOrder), addressOffset + index);
+        }
+        return (char) segment.get(shortLayout(byteOrder), wrapAdjustment + index);
     }
 
     // -----------------------------------------------------------------------
@@ -611,6 +696,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             GLOBAL.set(LONG_LAYOUT, addressOffset + index, value);
         }
         else
@@ -626,6 +715,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             GLOBAL.set(INT_LAYOUT, addressOffset + index, value);
         }
         else
@@ -641,6 +734,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
             GLOBAL.set(SHORT_LAYOUT, addressOffset + index, value);
         }
         else
@@ -656,6 +753,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Byte.BYTES);
+            }
             GLOBAL.set(BYTE_LAYOUT, addressOffset + index, value);
         }
         else
@@ -671,6 +772,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             GLOBAL.set(LONG_LAYOUT, addressOffset + index, Double.doubleToRawLongBits(value));
         }
         else
@@ -686,6 +791,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             GLOBAL.set(INT_LAYOUT, addressOffset + index, Float.floatToRawIntBits(value));
         }
         else
@@ -701,6 +810,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
             GLOBAL.set(SHORT_LAYOUT, addressOffset + index, (short) value);
         }
         else
@@ -721,6 +834,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             GLOBAL.set(longLayout(byteOrder), addressOffset + index, value);
         }
         else
@@ -737,6 +854,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             GLOBAL.set(intLayout(byteOrder), addressOffset + index, value);
         }
         else
@@ -753,6 +874,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
             GLOBAL.set(shortLayout(byteOrder), addressOffset + index, value);
         }
         else
@@ -769,6 +894,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             GLOBAL.set(longLayout(byteOrder), addressOffset + index, Double.doubleToRawLongBits(value));
         }
         else
@@ -785,6 +914,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             GLOBAL.set(intLayout(byteOrder), addressOffset + index, Float.floatToRawIntBits(value));
         }
         else
@@ -801,6 +934,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
             GLOBAL.set(shortLayout(byteOrder), addressOffset + index, (short) value);
         }
         else
@@ -1027,18 +1164,25 @@ public class UnsafeBufferEx implements AtomicBufferEx
     // Atomic — long volatile / ordered / opaque
     // -----------------------------------------------------------------------
 
+    private static UnsupportedOperationException heapAtomicsUnsupported()
+    {
+        return new UnsupportedOperationException(
+            "atomic access requires a native buffer (direct ByteBuffer, mapped file, or native MemorySegment)");
+    }
+
     @Override
     public long getLongVolatile(
         int index)
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             return (long) LONG_HANDLE.getVolatile(GLOBAL, addressOffset + index);
         }
-        else
-        {
-            return (long) LONG_HANDLE.getVolatile(segment, (long) (wrapAdjustment + index));
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1048,11 +1192,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             LONG_HANDLE.setVolatile(GLOBAL, addressOffset + index, value);
         }
         else
         {
-            LONG_HANDLE.setVolatile(segment, (long) (wrapAdjustment + index), value);
+            throw heapAtomicsUnsupported();
         }
     }
 
@@ -1063,11 +1211,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
         }
         else
         {
-            LONG_HANDLE.setRelease(segment, (long) (wrapAdjustment + index), value);
+            throw heapAtomicsUnsupported();
         }
     }
 
@@ -1078,16 +1230,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             final long currentValue = (long) LONG_HANDLE.getAcquire(GLOBAL, addressOffset + index);
             LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, currentValue + increment);
             return currentValue;
         }
-        else
-        {
-            final long currentValue = (long) LONG_HANDLE.getAcquire(segment, (long) (wrapAdjustment + index));
-            LONG_HANDLE.setRelease(segment, (long) (wrapAdjustment + index), currentValue + increment);
-            return currentValue;
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1098,12 +1249,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             return LONG_HANDLE.compareAndSet(GLOBAL, addressOffset + index, expectedValue, updateValue);
         }
-        else
-        {
-            return LONG_HANDLE.compareAndSet(segment, (long) (wrapAdjustment + index), expectedValue, updateValue);
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1113,12 +1265,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             return (long) LONG_HANDLE.getAndSet(GLOBAL, addressOffset + index, value);
         }
-        else
-        {
-            return (long) LONG_HANDLE.getAndSet(segment, (long) (wrapAdjustment + index), value);
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1128,12 +1281,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             return (long) LONG_HANDLE.getAndAdd(GLOBAL, addressOffset + index, delta);
         }
-        else
-        {
-            return (long) LONG_HANDLE.getAndAdd(segment, (long) (wrapAdjustment + index), delta);
-        }
+        throw heapAtomicsUnsupported();
     }
 
     // -----------------------------------------------------------------------
@@ -1146,12 +1300,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             return (int) INT_HANDLE.getVolatile(GLOBAL, addressOffset + index);
         }
-        else
-        {
-            return (int) INT_HANDLE.getVolatile(segment, (long) (wrapAdjustment + index));
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1161,11 +1316,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             INT_HANDLE.setVolatile(GLOBAL, addressOffset + index, value);
         }
         else
         {
-            INT_HANDLE.setVolatile(segment, (long) (wrapAdjustment + index), value);
+            throw heapAtomicsUnsupported();
         }
     }
 
@@ -1176,11 +1335,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
         }
         else
         {
-            INT_HANDLE.setRelease(segment, (long) (wrapAdjustment + index), value);
+            throw heapAtomicsUnsupported();
         }
     }
 
@@ -1191,16 +1354,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             final int currentValue = (int) INT_HANDLE.getAcquire(GLOBAL, addressOffset + index);
             INT_HANDLE.setRelease(GLOBAL, addressOffset + index, currentValue + increment);
             return currentValue;
         }
-        else
-        {
-            final int currentValue = (int) INT_HANDLE.getAcquire(segment, (long) (wrapAdjustment + index));
-            INT_HANDLE.setRelease(segment, (long) (wrapAdjustment + index), currentValue + increment);
-            return currentValue;
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1211,12 +1373,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             return INT_HANDLE.compareAndSet(GLOBAL, addressOffset + index, expectedValue, updateValue);
         }
-        else
-        {
-            return INT_HANDLE.compareAndSet(segment, (long) (wrapAdjustment + index), expectedValue, updateValue);
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1226,12 +1389,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             return (int) INT_HANDLE.getAndSet(GLOBAL, addressOffset + index, value);
         }
-        else
-        {
-            return (int) INT_HANDLE.getAndSet(segment, (long) (wrapAdjustment + index), value);
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1241,12 +1405,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             return (int) INT_HANDLE.getAndAdd(GLOBAL, addressOffset + index, delta);
         }
-        else
-        {
-            return (int) INT_HANDLE.getAndAdd(segment, (long) (wrapAdjustment + index), delta);
-        }
+        throw heapAtomicsUnsupported();
     }
 
     // -----------------------------------------------------------------------
@@ -1258,9 +1423,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int index)
     {
         // No VarHandle for short on MemorySegment; use plain access
-        return isNative
-            ? GLOBAL.get(SHORT_LAYOUT, addressOffset + index)
-            : segment.get(SHORT_LAYOUT, wrapAdjustment + index);
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
+            return GLOBAL.get(SHORT_LAYOUT, addressOffset + index);
+        }
+        return segment.get(SHORT_LAYOUT, wrapAdjustment + index);
     }
 
     @Override
@@ -1270,6 +1441,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
             GLOBAL.set(SHORT_LAYOUT, addressOffset + index, value);
         }
         else
@@ -1282,9 +1457,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     public char getCharVolatile(
         int index)
     {
-        return (char) (isNative
-            ? GLOBAL.get(SHORT_LAYOUT, addressOffset + index)
-            : segment.get(SHORT_LAYOUT, wrapAdjustment + index));
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
+            return (char) GLOBAL.get(SHORT_LAYOUT, addressOffset + index);
+        }
+        return (char) segment.get(SHORT_LAYOUT, wrapAdjustment + index);
     }
 
     @Override
@@ -1294,6 +1475,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Short.BYTES);
+            }
             GLOBAL.set(SHORT_LAYOUT, addressOffset + index, (short) value);
         }
         else
@@ -1306,9 +1491,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     public byte getByteVolatile(
         int index)
     {
-        return isNative
-            ? GLOBAL.get(BYTE_LAYOUT, addressOffset + index)
-            : segment.get(BYTE_LAYOUT, wrapAdjustment + index);
+        if (isNative)
+        {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Byte.BYTES);
+            }
+            return GLOBAL.get(BYTE_LAYOUT, addressOffset + index);
+        }
+        return segment.get(BYTE_LAYOUT, wrapAdjustment + index);
     }
 
     @Override
@@ -1318,6 +1509,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Byte.BYTES);
+            }
             GLOBAL.set(BYTE_LAYOUT, addressOffset + index, value);
         }
         else
@@ -1336,12 +1531,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             return (long) LONG_HANDLE.getAcquire(GLOBAL, addressOffset + index);
         }
-        else
-        {
-            return (long) LONG_HANDLE.getAcquire(segment, (long) (wrapAdjustment + index));
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1351,11 +1547,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
         }
         else
         {
-            LONG_HANDLE.setRelease(segment, (long) (wrapAdjustment + index), value);
+            throw heapAtomicsUnsupported();
         }
     }
 
@@ -1365,12 +1565,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             return (long) LONG_HANDLE.getOpaque(GLOBAL, addressOffset + index);
         }
-        else
-        {
-            return (long) LONG_HANDLE.getOpaque(segment, (long) (wrapAdjustment + index));
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1380,11 +1581,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             LONG_HANDLE.setOpaque(GLOBAL, addressOffset + index, value);
         }
         else
         {
-            LONG_HANDLE.setOpaque(segment, (long) (wrapAdjustment + index), value);
+            throw heapAtomicsUnsupported();
         }
     }
 
@@ -1395,16 +1600,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             final long currentValue = (long) LONG_HANDLE.getAcquire(GLOBAL, addressOffset + index);
             LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, currentValue + increment);
             return currentValue;
         }
-        else
-        {
-            final long currentValue = (long) LONG_HANDLE.getAcquire(segment, (long) (wrapAdjustment + index));
-            LONG_HANDLE.setRelease(segment, (long) (wrapAdjustment + index), currentValue + increment);
-            return currentValue;
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1414,16 +1618,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             final long currentValue = (long) LONG_HANDLE.getOpaque(GLOBAL, addressOffset + index);
             LONG_HANDLE.setOpaque(GLOBAL, addressOffset + index, currentValue + increment);
             return currentValue;
         }
-        else
-        {
-            final long currentValue = (long) LONG_HANDLE.getOpaque(segment, (long) (wrapAdjustment + index));
-            LONG_HANDLE.setOpaque(segment, (long) (wrapAdjustment + index), currentValue + increment);
-            return currentValue;
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1434,12 +1637,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Long.BYTES);
+            }
             return (long) LONG_HANDLE.compareAndExchange(GLOBAL, addressOffset + index, expectedValue, updateValue);
         }
-        else
-        {
-            return (long) LONG_HANDLE.compareAndExchange(segment, (long) (wrapAdjustment + index), expectedValue, updateValue);
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1448,12 +1652,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             return (int) INT_HANDLE.getAcquire(GLOBAL, addressOffset + index);
         }
-        else
-        {
-            return (int) INT_HANDLE.getAcquire(segment, (long) (wrapAdjustment + index));
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1463,11 +1668,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
         }
         else
         {
-            INT_HANDLE.setRelease(segment, (long) (wrapAdjustment + index), value);
+            throw heapAtomicsUnsupported();
         }
     }
 
@@ -1477,12 +1686,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             return (int) INT_HANDLE.getOpaque(GLOBAL, addressOffset + index);
         }
-        else
-        {
-            return (int) INT_HANDLE.getOpaque(segment, (long) (wrapAdjustment + index));
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1492,11 +1702,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             INT_HANDLE.setOpaque(GLOBAL, addressOffset + index, value);
         }
         else
         {
-            INT_HANDLE.setOpaque(segment, (long) (wrapAdjustment + index), value);
+            throw heapAtomicsUnsupported();
         }
     }
 
@@ -1507,16 +1721,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             final int currentValue = (int) INT_HANDLE.getAcquire(GLOBAL, addressOffset + index);
             INT_HANDLE.setRelease(GLOBAL, addressOffset + index, currentValue + increment);
             return currentValue;
         }
-        else
-        {
-            final int currentValue = (int) INT_HANDLE.getAcquire(segment, (long) (wrapAdjustment + index));
-            INT_HANDLE.setRelease(segment, (long) (wrapAdjustment + index), currentValue + increment);
-            return currentValue;
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1526,16 +1739,15 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             final int currentValue = (int) INT_HANDLE.getOpaque(GLOBAL, addressOffset + index);
             INT_HANDLE.setOpaque(GLOBAL, addressOffset + index, currentValue + increment);
             return currentValue;
         }
-        else
-        {
-            final int currentValue = (int) INT_HANDLE.getOpaque(segment, (long) (wrapAdjustment + index));
-            INT_HANDLE.setOpaque(segment, (long) (wrapAdjustment + index), currentValue + increment);
-            return currentValue;
-        }
+        throw heapAtomicsUnsupported();
     }
 
     @Override
@@ -1546,12 +1758,13 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         if (isNative)
         {
+            if (UnsafeBuffer.SHOULD_BOUNDS_CHECK)
+            {
+                boundsCheck(index, Integer.BYTES);
+            }
             return (int) INT_HANDLE.compareAndExchange(GLOBAL, addressOffset + index, expectedValue, updateValue);
         }
-        else
-        {
-            return (int) INT_HANDLE.compareAndExchange(segment, (long) (wrapAdjustment + index), expectedValue, updateValue);
-        }
+        throw heapAtomicsUnsupported();
     }
 
     // -----------------------------------------------------------------------
