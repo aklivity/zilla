@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -16,7 +18,11 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(docker compose run --rm grpcurl -insecure -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.UnaryEcho)
+echo_unary() {
+  OUTPUT=$(docker compose run --rm grpcurl -insecure -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.UnaryEcho)
+  [ $? -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 10 3 echo_unary
 RESULT=$?
 echo RESULT="$RESULT"
 # THEN
@@ -70,7 +76,11 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(docker compose run --rm grpcurl -insecure -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.ServerStreamingEcho)
+echo_server_streaming() {
+  OUTPUT=$(docker compose run --rm grpcurl -insecure -proto echo.proto  -d "$INPUT" zilla.examples.dev:$PORT grpc.examples.echo.Echo.ServerStreamingEcho)
+  [ $? -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 10 3 echo_server_streaming
 RESULT=$?
 echo RESULT="$RESULT"
 # THEN

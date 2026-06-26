@@ -21,9 +21,8 @@ import java.util.Map;
 
 import jakarta.json.JsonException;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroField;
 import io.aklivity.zilla.runtime.common.avro.AvroLocation;
@@ -70,8 +69,8 @@ public final class AvroJsonParserImpl implements AvroParser
     private final JsonParserEx json;
     private final boolean canonical;
     private final AvroType rootType;
-    private final UnsafeBuffer segment;
-    private final UnsafeBuffer segmentView;
+    private final UnsafeBufferEx segment;
+    private final UnsafeBufferEx segmentView;
     private final Map<AvroType, List<AvroField>> fieldsByType;
     private final Map<AvroType, List<AvroType>> branchesByType;
     private final Map<AvroType, List<String>> symbolsByType;
@@ -125,8 +124,8 @@ public final class AvroJsonParserImpl implements AvroParser
         this.json = json;
         this.canonical = canonical;
         this.rootType = schema.type();
-        this.segment = new UnsafeBuffer(0, 0);
-        this.segmentView = new UnsafeBuffer(0, 0);
+        this.segment = new UnsafeBufferEx(0, 0);
+        this.segmentView = new UnsafeBufferEx(0, 0);
         this.fieldsByType = new IdentityHashMap<>();
         this.branchesByType = new IdentityHashMap<>();
         this.symbolsByType = new IdentityHashMap<>();
@@ -153,7 +152,7 @@ public final class AvroJsonParserImpl implements AvroParser
 
     @Override
     public void wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -251,7 +250,7 @@ public final class AvroJsonParserImpl implements AvroParser
     }
 
     @Override
-    public DirectBuffer getSegment()
+    public DirectBufferEx getSegment()
     {
         // expose the unconsumed remainder so a bounded-output suspend on the Avro side resumes correctly
         segmentView.wrap(segment, segmentConsumed, segment.capacity() - segmentConsumed);

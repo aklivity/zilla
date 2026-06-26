@@ -38,10 +38,7 @@ import java.util.regex.Pattern;
 import jakarta.json.Json;
 import jakarta.json.JsonObjectBuilder;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration;
@@ -71,6 +68,9 @@ import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseEndExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.util.Flags;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -105,7 +105,7 @@ public final class SseServerFactory implements SseStreamFactory
 
     private static final String8FW LAST_EVENT_ID_NULL = new String8FW(null);
 
-    private static final DirectBuffer EMPTY_COMMENT = new UnsafeBuffer(new byte[0]);
+    private static final DirectBufferEx EMPTY_COMMENT = new UnsafeBufferEx(new byte[0]);
 
     private static final byte ASCII_COLON = 0x3a;
     private static final String METHOD_PROPERTY = "method";
@@ -160,8 +160,8 @@ public final class SseServerFactory implements SseStreamFactory
     private final String8FW challengeEventType;
     private final OctetsFW challengeEventRO = new OctetsFW();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer challengeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx challengeBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
     private final Signaler signaler;
@@ -177,7 +177,7 @@ public final class SseServerFactory implements SseStreamFactory
     private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeaders;
     private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeadersWithTimestampExt;
     private final Function<ModelConfig, ModelHandler> supplyModel;
-    private final MutableDirectBuffer modelBuffer;
+    private final MutableDirectBufferEx modelBuffer;
     private final OctetsFW contentRO = new OctetsFW();
     private final Clock clock;
     private final long maxIdleMillis;
@@ -187,7 +187,7 @@ public final class SseServerFactory implements SseStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.challengeBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.challengeBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.signaler = context.signaler();
@@ -203,7 +203,7 @@ public final class SseServerFactory implements SseStreamFactory
         this.setHttpResponseHeadersWithTimestampExt = this::setHttpResponseHeadersWithTimestampExt;
         this.challengeEventType = new String8FW(config.challengeEventType());
         this.supplyModel = context::supplyModel;
-        this.modelBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.clock = context.clock();
         this.maxIdleMillis = SECONDS.toMillis(config.maximumIdleTime());
     }
@@ -232,7 +232,7 @@ public final class SseServerFactory implements SseStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer network)
@@ -398,7 +398,7 @@ public final class SseServerFactory implements SseStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -643,7 +643,7 @@ public final class SseServerFactory implements SseStreamFactory
 
                 if (networkSlot != NO_SLOT)
                 {
-                    MutableDirectBuffer buffer = bufferPool.buffer(networkSlot);
+                    MutableDirectBufferEx buffer = bufferPool.buffer(networkSlot);
                     buffer.putBytes(networkSlotOffset, data.buffer(), data.offset(), data.sizeof());
                     networkSlotOffset += data.sizeof();
 
@@ -799,8 +799,8 @@ public final class SseServerFactory implements SseStreamFactory
             int reserved,
             int flags,
             OctetsFW payload,
-            DirectBuffer id,
-            DirectBuffer type,
+            DirectBufferEx id,
+            DirectBufferEx type,
             long timestamp)
         {
             final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
@@ -897,7 +897,7 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 if (networkSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer buffer = bufferPool.buffer(networkSlot);
+                    final MutableDirectBufferEx buffer = bufferPool.buffer(networkSlot);
                     final DataFW data = dataRO.wrap(buffer,  0,  networkSlotOffset);
                     final int reserved = data.reserved();
 
@@ -1022,7 +1022,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             private void onAppMessage(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
@@ -1113,8 +1113,8 @@ public final class SseServerFactory implements SseStreamFactory
                     final OctetsFW payload = data.payload();
                     final OctetsFW extension = data.extension();
 
-                    DirectBuffer id = null;
-                    DirectBuffer type = null;
+                    DirectBufferEx id = null;
+                    DirectBufferEx type = null;
                     long timestamp = 0L;
                     if (extension.sizeof() > 0)
                     {
@@ -1169,7 +1169,7 @@ public final class SseServerFactory implements SseStreamFactory
                 if (extension.sizeof() > 0)
                 {
                     final SseEndExFW sseEndEx = extension.get(sseEndExRO::wrap);
-                    final DirectBuffer id = sseEndEx.id().value();
+                    final DirectBufferEx id = sseEndEx.id().value();
 
                     int flags = FIN | INIT;
 
@@ -1200,7 +1200,7 @@ public final class SseServerFactory implements SseStreamFactory
 
                     if (networkSlot != NO_SLOT)
                     {
-                        MutableDirectBuffer buffer = bufferPool.buffer(networkSlot);
+                        MutableDirectBufferEx buffer = bufferPool.buffer(networkSlot);
                         buffer.putBytes(networkSlotOffset, data.buffer(), data.offset(), data.sizeof());
                         networkSlotOffset += data.sizeof();
 
@@ -1349,7 +1349,7 @@ public final class SseServerFactory implements SseStreamFactory
 
     private final class HttpDecodeHelper
     {
-        private final String8FW.Builder lastIdRW = new String8FW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+        private final String8FW.Builder lastIdRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
         private final String16FW schemeRO = new String16FW();
         private final String16FW authorityRO = new String16FW();

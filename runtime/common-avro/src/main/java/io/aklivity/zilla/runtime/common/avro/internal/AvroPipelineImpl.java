@@ -20,9 +20,8 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.STARVED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
@@ -107,7 +106,7 @@ final class AvroPipelineImpl implements AvroPipeline
 
     @Override
     public Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -175,11 +174,11 @@ final class AvroPipelineImpl implements AvroPipeline
 
     @Override
     public AvroPipelineResult transform(
-        DirectBuffer src,
+        DirectBufferEx src,
         int offset,
         int limit,
         boolean last,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstOffset,
         int dstLimit)
     {
@@ -256,7 +255,7 @@ final class AvroPipelineImpl implements AvroPipeline
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             return parser.getSegment();
         }

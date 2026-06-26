@@ -20,8 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 class JsonLocationTest
 {
@@ -89,7 +90,7 @@ class JsonLocationTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         return JsonEx.createParser(in);
     }
 }

@@ -31,12 +31,8 @@ import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcBindingConfig;
@@ -64,6 +60,10 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaD
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -93,7 +93,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -134,10 +134,10 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final Long2ObjectHashMap<KafkaGrpcBindingConfig> bindings;
     private final List<KafkaRemoteServer> servers;
     private final BufferPool bufferPool;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer metaBuffer;
-    private final ExpandableDirectByteBuffer nameBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx metaBuffer;
+    private final ExpandableDirectByteBufferEx nameBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -152,7 +152,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final int kafkaTypeId;
     private long reconnectAt = NO_CANCEL_ID;
 
-
     public KafkaGrpcRemoteServerFactory(
         KafkaGrpcConfiguration config,
         EngineContext context,
@@ -161,8 +160,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     {
         this.bufferPool = context.bufferPool();
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.metaBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.metaBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -177,7 +176,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.grpcTypeId = context.supplyTypeId(GRPC_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.groupIdFormat = config.groupIdFormat();
-        this.nameBuffer = new ExpandableDirectByteBuffer();
+        this.nameBuffer = new ExpandableDirectByteBufferEx();
         this.nameBuffer.putStringWithoutLengthAscii(0, META_PREFIX);
     }
 
@@ -233,7 +232,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer grpc)
@@ -343,7 +342,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -441,7 +440,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     {
                         final int correlationLength = helper.correlationId.sizeof();
                         OctetsFW newCorrelationId = new OctetsFW.Builder()
-                            .wrap(new UnsafeBuffer(new byte[correlationLength]), 0, correlationLength)
+                            .wrap(new UnsafeBufferEx(new byte[correlationLength]), 0, correlationLength)
                             .set(helper.correlationId)
                             .build();
                         lastCorrelationId = newCorrelationId;
@@ -502,7 +501,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             flush:
             while (progressOffset < grpcQueueSlotOffset)
             {
-                final MutableDirectBuffer grpcQueueBuffer = bufferPool.buffer(grpcQueueSlot);
+                final MutableDirectBufferEx grpcQueueBuffer = bufferPool.buffer(grpcQueueSlot);
                 final GrpcQueueMessageFW queueMessage = queueMessageRO
                     .wrap(grpcQueueBuffer, progressOffset, grpcQueueSlotOffset);
 
@@ -619,7 +618,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 grpcQueueSlot = bufferPool.acquire(initialId);
             }
 
-            final MutableDirectBuffer grpcQueueBuffer = bufferPool.buffer(grpcQueueSlot);
+            final MutableDirectBufferEx grpcQueueBuffer = bufferPool.buffer(grpcQueueSlot);
             GrpcQueueMessageFW.Builder queueMessageBuilder = queueMessageRW
                 .wrap(grpcQueueBuffer, grpcQueueSlotOffset, grpcQueueBuffer.capacity())
                 .correlationId(correlationId)
@@ -896,7 +895,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1145,7 +1144,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1272,7 +1271,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             OctetsFW correlationId)
         {
             correlationIds.add(new OctetsFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[correlationId.sizeof()]), 0, correlationId.sizeof())
+                .wrap(new UnsafeBufferEx(new byte[correlationId.sizeof()]), 0, correlationId.sizeof())
                 .set(correlationId)
                 .build());
 
@@ -1309,7 +1308,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     traceId, 0L, replyBud, replyPad, replyCap);
             }
         }
-
 
         private void doKafkaDataNull(
             long traceId,
@@ -1389,7 +1387,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
         private void onGrpcMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1720,7 +1718,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             GrpcMetadataFW metadata)
         {
             GrpcType type = metadata.type().get();
-            DirectBuffer name = metadata.name().value();
+            DirectBufferEx name = metadata.name().value();
             int nameLen = META_PREFIX_LENGTH + metadata.nameLen();
             nameBuffer.putBytes(META_PREFIX_LENGTH, name, 0, name.capacity());
             if (type == BASE64)
@@ -1757,7 +1755,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             int reserved,
             int deferred,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1846,7 +1844,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         }
     }
 
-
     private void doData(
         MessageConsumer receiver,
         long originId,
@@ -1895,7 +1892,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         long budgetId,
         int reserved,
         int flags,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         Flyweight extension)

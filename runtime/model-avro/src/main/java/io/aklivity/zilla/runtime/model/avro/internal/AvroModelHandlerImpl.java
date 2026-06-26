@@ -16,9 +16,8 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.Avro;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
@@ -68,7 +67,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     }
 
     int decodePadding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -88,7 +87,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     // the catalog framing the value carries on the wire, stripped once at the start of the first fragment
     int prefix(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -96,7 +95,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     }
 
     int resolveSchemaId(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -122,7 +121,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next)
@@ -145,7 +144,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             // so the bytes the parser validated are reproduced for the caller
             AvroGenerator generator = VIEW_JSON.equals(view)
                 ? AvroJson.generator(schema, json, true)
-                : Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0);
+                : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
             pipeline = Avro.stream(Avro.parser(schema))
                 .transform(extractor)
                 .lenient(lenient)
@@ -169,7 +168,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         {
             AvroGenerator generator = VIEW_JSON.equals(view)
                 ? AvroJson.generator(schema, json, true)
-                : Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0);
+                : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
             pipeline = Avro.stream(Avro.parser(schema))
                 .lenient(lenient)
                 .reporting(reporter)
@@ -194,11 +193,11 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
                     .lenient(lenient)
                     .reporting(reporter)
-                    .into(Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0))
+                    .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0))
                 : Avro.stream(Avro.parser(schema))
                     .lenient(lenient)
                     .reporting(reporter)
-                    .into(Avro.generator(schema, new UnsafeBuffer(new byte[1]), 0));
+                    .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0));
         }
         return pipeline;
     }

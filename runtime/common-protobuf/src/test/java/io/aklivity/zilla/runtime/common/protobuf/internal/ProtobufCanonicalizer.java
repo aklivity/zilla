@@ -18,10 +18,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
@@ -49,7 +48,7 @@ public final class ProtobufCanonicalizer
     private final ProtobufSchema schema;
     private final ProtobufWriter rootWriter;
     private final ProtobufReader scalarReader;
-    private final List<ExpandableArrayBuffer> scratch;
+    private final List<ExpandableArrayBufferEx> scratch;
     private final List<ProtobufWriter> writers;
     private final List<ProtobufReader> readers;
     private final List<int[]> numberBuffers;
@@ -68,10 +67,10 @@ public final class ProtobufCanonicalizer
 
     public int canonicalize(
         String messageName,
-        DirectBuffer in,
+        DirectBufferEx in,
         int offset,
         int length,
-        MutableDirectBuffer out,
+        MutableDirectBufferEx out,
         int outOffset)
     {
         ProtobufMessage message = schema.message(messageName);
@@ -86,7 +85,7 @@ public final class ProtobufCanonicalizer
 
     private void writeBody(
         ProtobufMessage message,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -125,7 +124,7 @@ public final class ProtobufCanonicalizer
     }
 
     private int collectNumbers(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         int depth)
@@ -147,7 +146,7 @@ public final class ProtobufCanonicalizer
 
     private void writeUnknown(
         int number,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -185,7 +184,7 @@ public final class ProtobufCanonicalizer
 
     private void writeSingular(
         ProtobufField field,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -216,7 +215,7 @@ public final class ProtobufCanonicalizer
 
     private void writeRepeated(
         ProtobufField field,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -281,7 +280,7 @@ public final class ProtobufCanonicalizer
 
     private void writeMap(
         ProtobufField field,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -314,7 +313,7 @@ public final class ProtobufCanonicalizer
 
     private void writeValue(
         ProtobufField field,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         ProtobufWriter writer,
@@ -431,7 +430,7 @@ public final class ProtobufCanonicalizer
         return message != null && message.mapEntry();
     }
 
-    private ExpandableArrayBuffer scratch(
+    private ExpandableArrayBufferEx scratch(
         int depth)
     {
         acquire(depth);
@@ -443,7 +442,7 @@ public final class ProtobufCanonicalizer
     {
         while (scratch.size() <= depth)
         {
-            scratch.add(new ExpandableArrayBuffer());
+            scratch.add(new ExpandableArrayBufferEx());
             writers.add(new ProtobufWriter());
         }
         return writers.get(depth);

@@ -27,9 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -50,7 +47,10 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import io.aklivity.zilla.runtime.engine.internal.concurent.ManyToOneRingBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.ManyToOneRingBuffer;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -60,11 +60,11 @@ import io.aklivity.zilla.runtime.engine.internal.concurent.ManyToOneRingBuffer;
 @OutputTimeUnit(SECONDS)
 public class BufferBM
 {
-    private AtomicBuffer buffer;
+    private AtomicBufferEx buffer;
     private ManyToOneRingBuffer source;
     private ManyToOneRingBuffer target;
 
-    private MutableDirectBuffer writeBuffer;
+    private MutableDirectBufferEx writeBuffer;
 
     @Setup(Level.Trial)
     public void init() throws IOException
@@ -75,11 +75,11 @@ public class BufferBM
         final File bufferFile = new File("target/benchmarks/baseline/buffer").getAbsoluteFile();
         createEmptyFile(bufferFile, capacity).close();
 
-        this.buffer = new UnsafeBuffer(mapExistingFile(bufferFile, "buffer"));
+        this.buffer = new UnsafeBufferEx(mapExistingFile(bufferFile, "buffer"));
         this.source = new ManyToOneRingBuffer(buffer);
         this.target = new ManyToOneRingBuffer(buffer);
 
-        this.writeBuffer = new UnsafeBuffer(allocateDirect(payload).order(nativeOrder()));
+        this.writeBuffer = new UnsafeBufferEx(allocateDirect(payload).order(nativeOrder()));
         this.writeBuffer.setMemory(0, payload, (byte)new Random().nextInt(256));
     }
 
@@ -116,7 +116,7 @@ public class BufferBM
         final Control control) throws Exception
     {
         while (!control.stopMeasurement &&
-               source.read((msgTypeId, buffer, offset, length) -> {}) == 0)
+               source.readEx((msgTypeId, buffer, offset, length) -> {}) == 0)
         {
             Thread.yield();
         }
@@ -128,7 +128,7 @@ public class BufferBM
     {
         while (!control.stopMeasurement &&
                 (!target.write(0x02, writeBuffer, 0, writeBuffer.capacity()) ||
-                 source.read((msgTypeId, buffer, offset, length) -> {}) == 0))
+                 source.readEx((msgTypeId, buffer, offset, length) -> {}) == 0))
         {
             Thread.yield();
         }
@@ -145,7 +145,7 @@ public class BufferBM
         }
 
         while (!control.stopMeasurement &&
-                source.read((msgTypeId, buffer, offset, length) -> {}) == 0)
+                source.readEx((msgTypeId, buffer, offset, length) -> {}) == 0)
         {
             Thread.yield();
         }

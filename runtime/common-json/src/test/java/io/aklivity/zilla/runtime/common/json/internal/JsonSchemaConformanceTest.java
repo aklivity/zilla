@@ -31,10 +31,10 @@ import java.util.stream.Stream;
 
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.TestFactory;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -368,7 +368,7 @@ class JsonSchemaConformanceTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         return JsonEx.createParser(in);
     }
 }

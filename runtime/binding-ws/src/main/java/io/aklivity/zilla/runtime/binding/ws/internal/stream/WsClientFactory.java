@@ -35,11 +35,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.ws.internal.WsBinding;
 import io.aklivity.zilla.runtime.binding.ws.internal.WsConfiguration;
@@ -64,6 +61,9 @@ import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsBeginExFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsDataExFW;
 import io.aklivity.zilla.runtime.binding.ws.internal.types.stream.WsEndExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -82,7 +82,7 @@ public final class WsClientFactory implements WsStreamFactory
     private static final int MAXIMUM_HEADER_SIZE = 14;
     private static final int PONG_SIGNAL_ID = 1;
 
-    private static final DirectBuffer CLOSE_PAYLOAD = new UnsafeBuffer(new byte[0]);
+    private static final DirectBufferEx CLOSE_PAYLOAD = new UnsafeBufferEx(new byte[0]);
 
     private final MessageDigest sha1 = initSHA1();
 
@@ -125,8 +125,8 @@ public final class WsClientFactory implements WsStreamFactory
     private final WsHeaderFW wsHeaderRO = new WsHeaderFW();
     private final WsHeaderFW.Builder wsHeaderRW = new WsHeaderFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -141,7 +141,7 @@ public final class WsClientFactory implements WsStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -175,7 +175,7 @@ public final class WsClientFactory implements WsStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -466,7 +466,7 @@ public final class WsClientFactory implements WsStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -719,7 +719,7 @@ public final class WsClientFactory implements WsStreamFactory
             private long decodeAuthorization;
             private DecoderState decodeState;
 
-            private MutableDirectBuffer header;
+            private MutableDirectBufferEx header;
             private int headerLength;
 
             private long payloadProgress;
@@ -727,7 +727,7 @@ public final class WsClientFactory implements WsStreamFactory
             private int maskingKey;
 
             private int statusLength;
-            private MutableDirectBuffer status;
+            private MutableDirectBufferEx status;
             private int pingReceived;
 
             private WsClient(
@@ -747,7 +747,7 @@ public final class WsClientFactory implements WsStreamFactory
                 this.protocol = protocol;
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId =  supplyReplyId.applyAsLong(initialId);
-                this.header = new UnsafeBuffer(new byte[MAXIMUM_HEADER_SIZE]);
+                this.header = new UnsafeBufferEx(new byte[MAXIMUM_HEADER_SIZE]);
                 this.decodeState = this::decodeHeader;
             }
 
@@ -933,7 +933,7 @@ public final class WsClientFactory implements WsStreamFactory
 
             private void onNetMessage(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
@@ -1068,7 +1068,7 @@ public final class WsClientFactory implements WsStreamFactory
                     decodeAuthorization = authorization;
 
                     final OctetsFW payload = data.payload();
-                    final DirectBuffer buffer = payload.buffer();
+                    final DirectBufferEx buffer = payload.buffer();
 
                     int offset = payload.offset();
                     int length = payload.sizeof();
@@ -1212,7 +1212,7 @@ public final class WsClientFactory implements WsStreamFactory
 
             // @return no bytes consumed to assemble websocket header
             private int assembleHeader(
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int offset,
                 int length)
             {
@@ -1236,7 +1236,7 @@ public final class WsClientFactory implements WsStreamFactory
             }
 
             private int decodeHeader(
-                final DirectBuffer buffer,
+                final DirectBufferEx buffer,
                 final int offset,
                 final int length)
             {
@@ -1304,7 +1304,7 @@ public final class WsClientFactory implements WsStreamFactory
             }
 
             private int decodeContinuation(
-                final DirectBuffer buffer,
+                final DirectBufferEx buffer,
                 final int offset,
                 final int length)
             {
@@ -1328,7 +1328,7 @@ public final class WsClientFactory implements WsStreamFactory
             }
 
             private int decodeText(
-                final DirectBuffer buffer,
+                final DirectBufferEx buffer,
                 final int offset,
                 final int length)
             {
@@ -1353,7 +1353,7 @@ public final class WsClientFactory implements WsStreamFactory
             }
 
             private int decodeBinary(
-                final DirectBuffer buffer,
+                final DirectBufferEx buffer,
                 final int offset,
                 final int length)
             {
@@ -1396,7 +1396,7 @@ public final class WsClientFactory implements WsStreamFactory
             }
 
             private int decodeClose(
-                final DirectBuffer buffer,
+                final DirectBufferEx buffer,
                 final int offset,
                 final int length)
             {
@@ -1436,7 +1436,7 @@ public final class WsClientFactory implements WsStreamFactory
             }
 
             private int decodePing(
-                final DirectBuffer buffer,
+                final DirectBufferEx buffer,
                 final int offset,
                 final int length)
             {
@@ -1474,7 +1474,7 @@ public final class WsClientFactory implements WsStreamFactory
             }
 
             private int decodePong(
-                final DirectBuffer buffer,
+                final DirectBufferEx buffer,
                 final int offset,
                 final int length)
             {
@@ -1503,7 +1503,7 @@ public final class WsClientFactory implements WsStreamFactory
             }
 
             private int decodeUnexpected(
-                final DirectBuffer directBuffer,
+                final DirectBufferEx directBuffer,
                 final int offset,
                 final int length)
             {
@@ -1636,7 +1636,7 @@ public final class WsClientFactory implements WsStreamFactory
     }
 
     private static int wsHeaderLength(
-        DirectBuffer buffer)
+        DirectBufferEx buffer)
     {
         int wsHeaderLength = 2;
         byte secondByte = buffer.getByte(1);
@@ -1686,6 +1686,6 @@ public final class WsClientFactory implements WsStreamFactory
     @FunctionalInterface
     private interface DecoderState
     {
-        int decode(DirectBuffer buffer, int offset, int length);
+        int decode(DirectBufferEx buffer, int offset, int length);
     }
 }

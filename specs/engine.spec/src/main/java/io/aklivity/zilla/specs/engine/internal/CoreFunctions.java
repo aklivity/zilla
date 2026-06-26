@@ -33,11 +33,11 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.agrona.BitUtil;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.engine.internal.types.String16FW;
 import io.aklivity.zilla.specs.engine.internal.types.String8FW;
 import io.aklivity.zilla.specs.engine.internal.types.stream.Capability;
@@ -110,7 +110,7 @@ public final class CoreFunctions
         String text)
     {
         int capacity = SIZE_OF_BYTE + ofNullable(text).orElse("").length() * 2 + 1;
-        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[capacity]);
+        MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[capacity]);
         String8FW string = STRING_RW.get()
                                    .wrap(writeBuffer, 0, writeBuffer.capacity())
                                    .set(text, UTF_8)
@@ -126,7 +126,7 @@ public final class CoreFunctions
         String text)
     {
         int capacity = SIZE_OF_SHORT + ofNullable(text).orElse("").length() * 2 + 1;
-        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[capacity]);
+        MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[capacity]);
         String16FW string16 = STRING16_RW.get()
                                          .wrap(writeBuffer, 0, writeBuffer.capacity())
                                          .set(text, UTF_8)
@@ -142,7 +142,7 @@ public final class CoreFunctions
         String text)
     {
         int capacity = SIZE_OF_SHORT + ofNullable(text).orElse("").length() * 2 + 1;
-        MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[capacity]);
+        MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[capacity]);
         String16FW string16 = STRING16N_RW.get()
                                           .wrap(writeBuffer, 0, writeBuffer.capacity())
                                           .set(text, UTF_8)

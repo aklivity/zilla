@@ -18,8 +18,8 @@ package io.aklivity.zilla.runtime.binding.http.internal.codec;
 import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameType.GO_AWAY;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /*
 
@@ -63,7 +63,7 @@ public class Http2GoawayFW extends Http2FrameFW
 
     @Override
     public Http2GoawayFW tryWrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -72,7 +72,7 @@ public class Http2GoawayFW extends Http2FrameFW
     }
 
     @Override
-    public Http2GoawayFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public Http2GoawayFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
 
@@ -108,7 +108,7 @@ public class Http2GoawayFW extends Http2FrameFW
         }
 
         @Override
-        public Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
 

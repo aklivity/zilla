@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -12,7 +14,11 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(curl --silent --location "http://localhost:$PORT/pets" --header 'Accept: application/json')
+get_pets() {
+  OUTPUT=$(curl --silent --location "http://localhost:$PORT/pets" --header 'Accept: application/json')
+  [ $? -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 5 2 get_pets
 RESULT=$?
 echo RESULT="$RESULT"
 

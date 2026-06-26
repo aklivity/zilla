@@ -27,8 +27,8 @@ import org.agrona.collections.Hashing;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
-import org.agrona.concurrent.AtomicBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 public final class DefaultBudgetDebitor implements BudgetDebitor, AutoCloseable
 {
     private final BudgetsLayout layout;
-    private final AtomicBuffer storage;
+    private final AtomicBufferEx storage;
     private final int entries;
     private final long budgetMask;
     private final long watcherMask;

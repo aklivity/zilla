@@ -26,8 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class AvroParserPullTest
 {
@@ -40,7 +41,7 @@ public class AvroParserPullTest
             {"name":"name","type":"string"}]}"""));
 
         // id=1 (0x02), name="hi" (0x04 'h' 'i')
-        parser.wrap(new UnsafeBuffer(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
+        parser.wrap(new UnsafeBufferEx(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
 
         List<AvroEvent> events = new ArrayList<>();
         while (parser.hasNext())
@@ -60,14 +61,14 @@ public class AvroParserPullTest
 
         // multi-byte varint 64 -> 0x80 0x01; the caller re-presents the unconsumed bytes plus each new byte.
         // last == false: more input will follow, so the partial INT underflows rather than truncating
-        parser.wrap(new UnsafeBuffer(new byte[] { (byte) 0x80 }), 0, 1, false);
+        parser.wrap(new UnsafeBufferEx(new byte[] { (byte) 0x80 }), 0, 1, false);
         // START_MESSAGE is available, but the INT value is not yet
         assertEquals(true, parser.hasNext());
         assertEquals(START_MESSAGE, parser.nextEvent());
         assertEquals(false, parser.hasNext());
 
         // re-present the unconsumed 0x80 plus the newly arrived 0x01 as the final window
-        parser.wrap(new UnsafeBuffer(new byte[] { (byte) 0x80, 0x01 }), 0, 2);
+        parser.wrap(new UnsafeBufferEx(new byte[] { (byte) 0x80, 0x01 }), 0, 2);
 
         List<AvroEvent> events = new ArrayList<>();
         while (parser.hasNext())

@@ -27,17 +27,17 @@ import java.nio.file.Path;
 import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.MessageHandler;
-import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 
 import io.aklivity.k3po.runtime.driver.internal.behavior.handler.RejectedHandler;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.MessageHandlerEx;
+import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
@@ -58,12 +58,12 @@ final class ZillaPartition implements AutoCloseable
     private final Path streamsPath;
     private final int scopeIndex;
     private final StreamsLayout layout;
-    private final RingBuffer streamsBuffer;
+    private final RingBufferEx streamsBuffer;
     private final LongLongFunction<ZillaServerChannel> lookupServer;
-    private final LongFunction<MessageHandler> lookupStream;
-    private final LongFunction<MessageHandler> lookupThrottle;
-    private final MessageHandler streamHandler;
-    private final LongObjectBiConsumer<MessageHandler> registerStream;
+    private final LongFunction<MessageHandlerEx> lookupStream;
+    private final LongFunction<MessageHandlerEx> lookupThrottle;
+    private final MessageHandlerEx streamHandler;
+    private final LongObjectBiConsumer<MessageHandlerEx> registerStream;
     private final ZillaStreamFactory streamFactory;
     private final LongFunction<ZillaCorrelation> correlateEstablished;
     private final LongFunction<ZillaTarget> supplySender;
@@ -74,9 +74,9 @@ final class ZillaPartition implements AutoCloseable
         int scopeIndex,
         StreamsLayout layout,
         LongLongFunction<ZillaServerChannel> lookupServer,
-        LongFunction<MessageHandler> lookupStream,
-        LongObjectBiConsumer<MessageHandler> registerStream,
-        LongFunction<MessageHandler> lookupThrottle,
+        LongFunction<MessageHandlerEx> lookupStream,
+        LongObjectBiConsumer<MessageHandlerEx> registerStream,
+        LongFunction<MessageHandlerEx> lookupThrottle,
         ZillaStreamFactory streamFactory,
         LongFunction<ZillaCorrelation> correlateEstablished,
         LongFunction<ZillaTarget> supplySender,
@@ -100,7 +100,7 @@ final class ZillaPartition implements AutoCloseable
 
     public int process()
     {
-        return streamsBuffer.read(streamHandler);
+        return streamsBuffer.readEx(streamHandler);
     }
 
     @Override
@@ -140,7 +140,7 @@ final class ZillaPartition implements AutoCloseable
 
     private void handleStream(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -149,7 +149,7 @@ final class ZillaPartition implements AutoCloseable
 
         if ((msgTypeId & 0x4000_0000) != 0)
         {
-            final MessageHandler handler = lookupThrottle.apply(streamId);
+            final MessageHandlerEx handler = lookupThrottle.apply(streamId);
 
             if (handler != null)
             {
@@ -158,7 +158,7 @@ final class ZillaPartition implements AutoCloseable
         }
         else
         {
-            final MessageHandler handler = lookupStream.apply(streamId);
+            final MessageHandlerEx handler = lookupStream.apply(streamId);
 
             if (handler != null)
             {
@@ -173,7 +173,7 @@ final class ZillaPartition implements AutoCloseable
 
     private void handleUnrecognized(
         int msgTypeId,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int index,
         int length)
     {
@@ -181,7 +181,7 @@ final class ZillaPartition implements AutoCloseable
         {
         case BeginFW.TYPE_ID:
             final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-            handleBegin(begin);
+            handleBegin(begin, buffer);
             break;
         case DataFW.TYPE_ID:
             final DataFW data = dataRO.wrap(buffer, index, index + length);
@@ -198,13 +198,14 @@ final class ZillaPartition implements AutoCloseable
             break;
         case FlushFW.TYPE_ID:
             final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-            handleFlush(flush);
+            handleFlush(flush, buffer);
             break;
         }
     }
 
     private void handleBegin(
-        BeginFW begin)
+        BeginFW begin,
+        MutableDirectBufferEx buffer)
     {
         final long originId = begin.originId();
         final long routedId = begin.routedId();
@@ -220,7 +221,7 @@ final class ZillaPartition implements AutoCloseable
             final ZillaServerChannel server = lookupServer.apply(routedId, authorization);
             if (server != null)
             {
-                handleBeginInitial(begin, server);
+                handleBeginInitial(begin, server, buffer);
             }
             else
             {
@@ -230,13 +231,14 @@ final class ZillaPartition implements AutoCloseable
         }
         else
         {
-            handleBeginReply(begin);
+            handleBeginReply(begin, buffer);
         }
     }
 
     private void handleBeginInitial(
         final BeginFW begin,
-        final ZillaServerChannel server)
+        final ZillaServerChannel server,
+        final MutableDirectBufferEx buffer)
     {
         final long originId = begin.originId();
         final long routedId = begin.routedId();
@@ -257,12 +259,12 @@ final class ZillaPartition implements AutoCloseable
             int beginExtBytes = beginExt.sizeof();
             if (beginExtBytes != 0)
             {
-                final DirectBuffer buffer = beginExt.buffer();
+                final DirectBufferEx extBuffer = beginExt.buffer();
                 final int offset = beginExt.offset();
 
                 // TODO: avoid allocation
                 final byte[] beginExtCopy = new byte[beginExtBytes];
-                buffer.getBytes(offset, beginExtCopy);
+                extBuffer.getBytes(offset, beginExtCopy);
 
                 childChannel.readExtBuffer(BEGIN, false).writeBytes(beginExtCopy);
             }
@@ -298,9 +300,9 @@ final class ZillaPartition implements AutoCloseable
                 }
             });
 
-            final MessageHandler newStream = streamFactory.newStream(childChannel, sender, beginFuture);
+            final MessageHandlerEx newStream = streamFactory.newStream(childChannel, sender, beginFuture);
             registerStream.accept(initialId, newStream);
-            newStream.onMessage(begin.typeId(), (MutableDirectBuffer) begin.buffer(), begin.offset(), begin.sizeof());
+            newStream.onMessage(begin.typeId(), buffer, begin.offset(), begin.sizeof());
 
             ChannelFuture handshakeFuture = beginFuture;
 
@@ -317,7 +319,8 @@ final class ZillaPartition implements AutoCloseable
     }
 
     private void handleBeginReply(
-        final BeginFW begin)
+        final BeginFW begin,
+        final MutableDirectBufferEx buffer)
     {
         final long originId = begin.originId();
         final long routedId = begin.routedId();
@@ -334,10 +337,10 @@ final class ZillaPartition implements AutoCloseable
             final ChannelFuture beginFuture = correlation.correlatedFuture();
             final ZillaClientChannel clientChannel = (ZillaClientChannel) beginFuture.getChannel();
 
-            final MessageHandler newStream = streamFactory.newStream(clientChannel, sender, beginFuture);
+            final MessageHandlerEx newStream = streamFactory.newStream(clientChannel, sender, beginFuture);
             registerStream.accept(replyId, newStream);
 
-            newStream.onMessage(begin.typeId(), (MutableDirectBuffer) begin.buffer(), begin.offset(), begin.sizeof());
+            newStream.onMessage(begin.typeId(), buffer, begin.offset(), begin.sizeof());
         }
         else
         {
@@ -346,18 +349,20 @@ final class ZillaPartition implements AutoCloseable
     }
 
     private void handleFlush(
-        FlushFW flush)
+        FlushFW flush,
+        MutableDirectBufferEx buffer)
     {
         final long streamId = flush.streamId();
 
         if ((streamId & 0x0000_0000_0000_0001L) == 0L)
         {
-            handleFlushReply(flush);
+            handleFlushReply(flush, buffer);
         }
     }
 
     private void handleFlushReply(
-        final FlushFW flush)
+        final FlushFW flush,
+        final MutableDirectBufferEx buffer)
     {
         final long originId = flush.originId();
         final long routedId = flush.routedId();
@@ -374,10 +379,10 @@ final class ZillaPartition implements AutoCloseable
             final ChannelFuture beginFuture = correlation.correlatedFuture();
             final ZillaClientChannel clientChannel = (ZillaClientChannel) beginFuture.getChannel();
 
-            final MessageHandler newStream = streamFactory.newStream(clientChannel, sender, beginFuture);
+            final MessageHandlerEx newStream = streamFactory.newStream(clientChannel, sender, beginFuture);
             registerStream.accept(replyId, newStream);
 
-            newStream.onMessage(flush.typeId(), (MutableDirectBuffer) flush.buffer(), flush.offset(), flush.sizeof());
+            newStream.onMessage(flush.typeId(), buffer, flush.offset(), flush.sizeof());
         }
         else
         {

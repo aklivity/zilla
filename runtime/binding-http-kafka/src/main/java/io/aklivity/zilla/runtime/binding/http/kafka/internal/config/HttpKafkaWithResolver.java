@@ -28,9 +28,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
@@ -49,6 +46,8 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 public final class HttpKafkaWithResolver
@@ -162,7 +161,7 @@ public final class HttpKafkaWithResolver
     }
 
     private final String16FW.Builder stringRW = new String16FW.Builder()
-            .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+            .wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
     private final HttpKafkaEtagHelper etagHelper = new HttpKafkaEtagHelper();
 
@@ -256,7 +255,7 @@ public final class HttpKafkaWithResolver
 
             for (HttpKafkaWithFetchFilterConfig filter : fetch.filters.get())
             {
-                DirectBuffer key = null;
+                DirectBufferEx key = null;
                 if (filter.key.isPresent())
                 {
                     String key0 = filter.key.get();
@@ -275,14 +274,14 @@ public final class HttpKafkaWithResolver
                     for (HttpKafkaWithFetchFilterHeaderConfig header0 : filter.headers.get())
                     {
                         String name0 = header0.name;
-                        DirectBuffer name = new String16FW(name0).value();
+                        DirectBufferEx name = new String16FW(name0).value();
 
                         String value0 = header0.value;
                         value0 = findAndReplace(value0, paramsMatcher, replacer);
                         value0 = findAndReplace(value0, identityMatcher, r -> identityReplacer.apply(authorization, r));
                         value0 = findAndReplace(value0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
-                        DirectBuffer value = new String16FW(value0).value();
+                        DirectBufferEx value = new String16FW(value0).value();
 
                         headers.add(new HttpKafkaWithFetchFilterHeaderResult(name, value));
                     }
@@ -392,7 +391,7 @@ public final class HttpKafkaWithResolver
 
         KafkaAckMode acks = produce.acks;
 
-        Supplier<DirectBuffer> keyRef = () -> null;
+        Supplier<DirectBufferEx> keyRef = () -> null;
         if (produce.key.isPresent())
         {
             String key0 = produce.key.get();
@@ -422,7 +421,7 @@ public final class HttpKafkaWithResolver
             for (HttpKafkaWithProduceOverrideConfig override : produce.overrides.get())
             {
                 String name0 = override.name;
-                DirectBuffer name = new String16FW(name0).value();
+                DirectBufferEx name = new String16FW(name0).value();
 
                 String value0 = override.value;
                 value0 = findAndReplace(value0, paramsMatcher, replacer);
@@ -430,7 +429,7 @@ public final class HttpKafkaWithResolver
                 value0 = findAndReplace(value0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
                 String value = value0;
-                Supplier<DirectBuffer> valueRef = () -> new String16FW(value).value();
+                Supplier<DirectBufferEx> valueRef = () -> new String16FW(value).value();
                 if (correlationId != null)
                 {
                     valueRef = () ->

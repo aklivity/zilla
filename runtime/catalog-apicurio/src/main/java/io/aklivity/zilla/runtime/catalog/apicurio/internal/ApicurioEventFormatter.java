@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.StringFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioEventExFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioRetrievedArtifactIdExFW;
@@ -24,6 +22,7 @@ import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioU
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioUnretrievableArtifactSubjectVersionExFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.ApicurioUnretrievableArtifactSubjectVersionStaleArtifactExFW;
 import io.aklivity.zilla.runtime.catalog.apicurio.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
@@ -38,7 +37,7 @@ public final class ApicurioEventFormatter implements EventFormatterSpi
     }
 
     public String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

@@ -24,7 +24,6 @@ import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.command.log.internal.labels.LabelManager;
@@ -119,6 +118,7 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class LoggableStream implements AutoCloseable
@@ -314,7 +314,7 @@ public final class LoggableStream implements AutoCloseable
 
     private boolean handleFrame(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {
@@ -672,9 +672,9 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp,
         final ProxyAddressInet4FW address)
     {
-        final DirectBuffer source = address.source().value();
+        final DirectBufferEx source = address.source().value();
         final int sourcePort = address.sourcePort();
-        final DirectBuffer destination = address.destination().value();
+        final DirectBufferEx destination = address.destination().value();
         final int destinationPort = address.destinationPort();
 
         out.printf(verboseFormat, index, offset, timestamp,
@@ -692,9 +692,9 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp,
         final ProxyAddressInet6FW address)
     {
-        final DirectBuffer source = address.source().value();
+        final DirectBufferEx source = address.source().value();
         final int sourcePort = address.sourcePort();
-        final DirectBuffer destination = address.destination().value();
+        final DirectBufferEx destination = address.destination().value();
         final int destinationPort = address.destinationPort();
 
         out.printf(verboseFormat, index, offset, timestamp,

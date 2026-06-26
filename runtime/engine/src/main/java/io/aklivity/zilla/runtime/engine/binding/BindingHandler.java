@@ -15,8 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.binding;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 /**
@@ -84,7 +83,7 @@ public interface BindingHandler
      */
     MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender);

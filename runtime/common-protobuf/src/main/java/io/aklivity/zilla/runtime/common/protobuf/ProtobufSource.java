@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Immutable, read-only view of the value observed at the current event as a {@link ProtobufStream}
@@ -67,7 +67,7 @@ public interface ProtobufSource
      * chunk, of the current segment slice, or of the whole message at a {@link ProtobufEvent#START_MESSAGE};
      * its {@code [0, capacity())} is the slice. Valid on-stack only.
      */
-    DirectBuffer segment();
+    DirectBufferEx segment();
 
     /**
      * The number of bytes of the current value still to come after this slice — {@code 0} on the last

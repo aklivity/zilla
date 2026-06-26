@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -15,7 +17,11 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(curl http://localhost:$PORT/valid.json)
+get_valid() {
+  OUTPUT=$(curl http://localhost:$PORT/valid.json)
+  [ $? -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 5 2 get_valid
 RESULT=$?
 echo RESULT="$RESULT"
 
@@ -39,8 +45,12 @@ echo PORT="$PORT"
 echo
 
 # WHEN
-OUTPUT=$(curl http://localhost:$PORT/invalid.json)
-RESULT=$?
+get_invalid() {
+  OUTPUT=$(curl http://localhost:$PORT/invalid.json)
+  RESULT=$?
+  [ "$RESULT" -eq 18 ]
+}
+retry_until 5 2 get_invalid
 echo RESULT="$RESULT"
 
 # THEN

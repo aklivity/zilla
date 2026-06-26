@@ -15,8 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.event;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.engine.internal.types.String8FW;
@@ -34,7 +33,7 @@ public final class TestEventFormatter implements EventFormatterSpi
 
     @Override
     public String format(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

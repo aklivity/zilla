@@ -15,7 +15,6 @@
 module io.aklivity.zilla.runtime.binding.asyncapi
 {
     requires io.aklivity.zilla.runtime.engine;
-    requires io.aklivity.zilla.runtime.common.yaml;
     requires io.aklivity.zilla.runtime.binding.mqtt;
     requires io.aklivity.zilla.runtime.binding.http;
     requires io.aklivity.zilla.runtime.binding.sse;
@@ -35,8 +34,8 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires io.aklivity.zilla.runtime.model.json;
     requires io.aklivity.zilla.runtime.model.avro;
     requires io.aklivity.zilla.runtime.model.protobuf;
-    requires io.aklivity.zilla.runtime.common;
     requires io.aklivity.zilla.runtime.common.json;
+    requires io.aklivity.zilla.runtime.common.yaml;
 
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings;

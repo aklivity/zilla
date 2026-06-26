@@ -17,9 +17,8 @@ package io.aklivity.zilla.runtime.model.protobuf.internal;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
@@ -44,7 +43,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
 
     private ProtobufPipeline active;
     private String diagnostic;
-    private MutableDirectBuffer prefixBuffer;
+    private MutableDirectBufferEx prefixBuffer;
     private int prefixAt;
 
     ProtobufModelEncoderPipeline(
@@ -60,10 +59,10 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLimit,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex,
         int dstLimit)
     {
@@ -120,7 +119,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -143,10 +142,10 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         long bindingId,
         int schemaId,
         int[] path,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLength,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex)
     {
         prefixBuffer = dst;
@@ -159,7 +158,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
     }
 
     private void putPrefix(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

@@ -33,11 +33,11 @@ import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -158,7 +158,7 @@ public class McpMetricGroupTest
         LongConsumer recorder = mock(LongConsumer.class);
         MessageConsumer handler = handler("mcp.tools.call", recorder);
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
         BeginFW begin = new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
             .originId(0L).routedId(0L).streamId(1L)
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -347,12 +347,12 @@ public class McpMetricGroupTest
         Consumer<McpBeginExFW.Builder> mutator)
     {
         McpBeginExFW.Builder exBuilder = new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[256]), 0, 256)
+            .wrap(new UnsafeBufferEx(new byte[256]), 0, 256)
             .typeId(0);
         mutator.accept(exBuilder);
         McpBeginExFW beginEx = exBuilder.build();
 
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[512]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[512]);
         BeginFW begin = new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
             .originId(0L).routedId(0L).streamId(streamId)
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(timestamp)
@@ -367,7 +367,7 @@ public class McpMetricGroupTest
         long streamId,
         long timestamp)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
         EndFW end = new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
             .originId(0L).routedId(0L).streamId(streamId)
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(timestamp)
@@ -383,11 +383,11 @@ public class McpMetricGroupTest
         McpOutcome outcome)
     {
         McpEndExFW endEx = new McpEndExFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
             .typeId(0)
             .outcome(o -> o.set(outcome))
             .build();
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
         EndFW end = new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
             .originId(0L).routedId(0L).streamId(streamId)
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(timestamp)
@@ -401,7 +401,7 @@ public class McpMetricGroupTest
         MessageConsumer handler,
         long streamId)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
         AbortFW abort = new AbortFW.Builder().wrap(buffer, 0, buffer.capacity())
             .originId(0L).routedId(0L).streamId(streamId)
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
@@ -414,7 +414,7 @@ public class McpMetricGroupTest
         MessageConsumer handler,
         long streamId)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
         ResetFW reset = new ResetFW.Builder().wrap(buffer, 0, buffer.capacity())
             .originId(0L).routedId(0L).streamId(streamId)
             .sequence(0L).acknowledge(0L).maximum(0)

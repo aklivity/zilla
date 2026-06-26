@@ -17,11 +17,8 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
@@ -48,6 +45,9 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExF
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -78,10 +78,10 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String16FW HEADER_VALUE_TRAILERS = new String16FW("trailers");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
         new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
             .build();
     private static final OctetsFW DASH_BIN_OCTETS = new OctetsFW().wrap(new String16FW("-bind").value(), 0, 4);
 
@@ -115,9 +115,9 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private final GrpcAbortExFW grpcAbortedStatusRO;
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer metadataBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx metadataBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongFunction<CatalogHandler> supplyCatalog;
     private final LongUnaryOperator supplyInitialId;
@@ -133,8 +133,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.metadataBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyCatalog = context::supplyCatalog;
         this.supplyInitialId = context::supplyInitialId;
@@ -144,7 +144,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.helper = new HttpGrpcResponseHeaderHelper(metadataBuffer);
 
-        this.grpcAbortedStatusRO = grpcAbortExRW.wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+        this.grpcAbortedStatusRO = grpcAbortExRW.wrap(new UnsafeBufferEx(new byte[32]), 0, 32)
                 .typeId(grpcTypeId)
                 .status(HEADER_VALUE_GRPC_ABORTED)
                 .build();
@@ -180,7 +180,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer application)
@@ -267,7 +267,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
         private void onAppMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -467,7 +467,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length,
             Flyweight extension)
@@ -647,7 +647,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             int flags,
             OctetsFW payload)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
             final int payloadSize = payload.sizeof();
@@ -735,7 +735,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -836,7 +836,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             assert replyAck <= replySeq;
 
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             final int offset = payload.offset();
             final int limit = payload.limit();
             final int size = payload.sizeof();
@@ -1003,7 +1003,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
                     .name(HTTP_HEADER_TE)
                     .value(HEADER_VALUE_TRAILERS));
 
-
                 headerOffsetRW.value = 0;
                 metadata.forEach(m ->
                 {
@@ -1089,7 +1088,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         Flyweight extension)

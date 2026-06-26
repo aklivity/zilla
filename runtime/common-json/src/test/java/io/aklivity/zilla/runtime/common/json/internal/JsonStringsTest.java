@@ -17,8 +17,9 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class JsonStringsTest
 {
@@ -26,7 +27,7 @@ public class JsonStringsTest
         String body)
     {
         final byte[] bytes = body.getBytes(UTF_8);
-        final UnsafeBuffer buffer = new UnsafeBuffer(bytes);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
         final StringBuilder out = new StringBuilder();
         JsonStrings.unescape(buffer, 0, bytes.length, out);
         return out.toString();
@@ -68,7 +69,7 @@ public class JsonStringsTest
     public void shouldDecodeAtNonZeroOffset()
     {
         final byte[] bytes = "XXa\\nbYY".getBytes(UTF_8);
-        final UnsafeBuffer buffer = new UnsafeBuffer(bytes);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
         final StringBuilder out = new StringBuilder();
         JsonStrings.unescape(buffer, 2, 4, out);
         assertEquals("a\nb", out.toString());

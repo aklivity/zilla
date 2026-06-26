@@ -22,17 +22,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint32;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithUint32FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class EnumWithUint32FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -40,7 +41,7 @@ public class EnumWithUint32FWTest
         }
     };
 
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -52,7 +53,7 @@ public class EnumWithUint32FWTest
     private final EnumWithUint32FW flyweightRO = new EnumWithUint32FW();
 
     static int setAllTestValues(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         final int offset)
     {
         buffer.putInt(offset, (int) EnumWithUint32.NI.value());
@@ -189,10 +190,10 @@ public class EnumWithUint32FWTest
             .build();
     }
 
-    private static DirectBuffer asBuffer(
+    private static DirectBufferEx asBuffer(
         long value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(SIZE_OF_INT));
+        MutableDirectBufferEx valueBuffer = new UnsafeBufferEx(allocateDirect(SIZE_OF_INT));
         valueBuffer.putInt(0, (int) (value & 0xFFFF_FFFFL));
         return valueBuffer;
     }

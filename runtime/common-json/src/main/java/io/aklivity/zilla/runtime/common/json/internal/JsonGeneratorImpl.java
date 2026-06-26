@@ -25,10 +25,9 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonStep;
@@ -36,7 +35,7 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
- * MutableDirectBuffer} with no intermediate DOM and no per-call allocation. Structural separators
+ * MutableDirectBufferEx} with no intermediate DOM and no per-call allocation. Structural separators
  * ({@code ,} and {@code :}) and quoting are inserted automatically from an internal context
  * stack; output is emitted in source order with no insignificant whitespace.
  * <p>
@@ -49,7 +48,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private static final int MAX_DEPTH = 64;
     private static final byte[] HEX = "0123456789abcdef".getBytes();
     // a defensible initial target so a freshly constructed generator never NPEs on direct use before wrap
-    private static final MutableDirectBuffer EMPTY = new UnsafeBuffer(new byte[0]);
+    private static final MutableDirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
 
     private final boolean[] inArray = new boolean[MAX_DEPTH];
     private final boolean[] hasMembers = new boolean[MAX_DEPTH];
@@ -57,7 +56,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private final SegmentWriter writeSegment;
     private final boolean escaped;
 
-    private MutableDirectBuffer buffer = EMPTY;
+    private MutableDirectBufferEx buffer = EMPTY;
     private int offset;
     private int progress;
     private int limit;
@@ -88,7 +87,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -484,7 +483,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeRaw(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -496,7 +495,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -506,7 +505,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length,
         Completion completion)
@@ -530,7 +529,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         JsonVerbatim verbatim)
     {
         final Iterator<JsonStep> steps = verbatim.getSteps();
-        final DirectBuffer segment = verbatim.getSegment();
+        final DirectBufferEx segment = verbatim.getSegment();
         // synthesize the leading separator only when the block begins a member/element that was first in the
         // source (its leading step is a member/element start rather than a SEPARATOR, so its bytes carry no
         // leading comma) yet the container already holds a member in the output — an injected value took the
@@ -557,7 +556,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     // Copies the verbatim block 1:1; the caller pre-bounds the pull to remaining(), so the bytes always fit.
     private void copy(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -870,7 +869,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Copies whole source units (UTF-8 char or JSON escape sequence), stopping before one that overflows
     // the output bound, so consumed() always advances on a unit boundary.
     private int writeRawSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -893,7 +892,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Escapes whole source units (see writeRawSegment), stopping before a unit whose escaped width
     // would overflow the output bound.
     private int writeEscapedSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -918,7 +917,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // Byte length of the next source unit: a backslash escape (2 or 6 bytes) or a UTF-8 char (1-4 bytes),
     // capped at length so a unit not wholly available is held back rather than split.
     private static int unitLength(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -954,7 +953,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     // Output byte width of a source unit once escaped: the sum of each byte's escaped width.
     private static int escapedUnitWidth(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int unit)
     {
@@ -1052,7 +1051,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private interface SegmentWriter
     {
         int accept(
-            DirectBuffer source,
+            DirectBufferEx source,
             int index,
             int length);
     }

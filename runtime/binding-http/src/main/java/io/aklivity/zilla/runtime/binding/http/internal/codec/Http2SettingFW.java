@@ -17,10 +17,9 @@ package io.aklivity.zilla.runtime.binding.http.internal.codec;
 
 import static java.nio.ByteOrder.BIG_ENDIAN;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /*
     Flyweight for HTTP2 SETTINGS frame
@@ -52,7 +51,7 @@ public class Http2SettingFW extends Flyweight
     }
 
     @Override
-    public Http2SettingFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public Http2SettingFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
 
@@ -69,7 +68,7 @@ public class Http2SettingFW extends Flyweight
         }
 
         @Override
-        public Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             return this;

@@ -19,9 +19,8 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import java.util.HashMap;
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
@@ -68,10 +67,10 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLimit,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex,
         int dstLimit)
     {
@@ -133,7 +132,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {

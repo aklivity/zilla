@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.util;
 
 import static java.lang.Character.toUpperCase;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class HttpUtil
 {
@@ -63,7 +63,7 @@ public final class HttpUtil
     }
 
     public static boolean isPathValid(
-        DirectBuffer path)
+        DirectBufferEx path)
     {
         final int pathLength = path.capacity();
         boolean valid = true;

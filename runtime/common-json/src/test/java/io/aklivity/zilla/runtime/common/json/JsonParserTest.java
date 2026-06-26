@@ -41,8 +41,9 @@ import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 class JsonParserTest
 {
@@ -51,7 +52,7 @@ class JsonParserTest
     {
         JsonParserEx parser = JsonEx.createParser();
         byte[] bytes = "{\"alpha\":-12345}".getBytes(UTF_8);
-        parser.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
@@ -159,7 +160,7 @@ class JsonParserTest
         for (int split = 1; split < full.length; split++)
         {
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-            UnsafeBuffer buffer = new UnsafeBuffer(full);
+            UnsafeBufferEx buffer = new UnsafeBufferEx(full);
 
             in.wrap(buffer, 0, split);
             JsonParser parser = JsonEx.createParser(in);
@@ -182,7 +183,7 @@ class JsonParserTest
     void shouldHandleByteByByteFeed()
     {
         byte[] full = "{\"k\":[1,2,3],\"b\":true}".getBytes(UTF_8);
-        UnsafeBuffer buffer = new UnsafeBuffer(full);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(full);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
         in.wrap(buffer, 0, 1);
         JsonParser parser = JsonEx.createParser(in);
@@ -741,7 +742,7 @@ class JsonParserTest
         byte[] full = "\"\\u00e9!\"".getBytes(UTF_8);
         for (int split = 1; split < full.length; split++)
         {
-            UnsafeBuffer buffer = new UnsafeBuffer(full);
+            UnsafeBufferEx buffer = new UnsafeBufferEx(full);
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
             in.wrap(buffer, 0, split);
             JsonParser parser = JsonEx.createParser(in);
@@ -764,7 +765,7 @@ class JsonParserTest
         byte[] full = "-123.45e6 ".getBytes(UTF_8);
         for (int split = 1; split < full.length; split++)
         {
-            UnsafeBuffer buffer = new UnsafeBuffer(full);
+            UnsafeBufferEx buffer = new UnsafeBufferEx(full);
             DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
             in.wrap(buffer, 0, split);
             JsonParser parser = JsonEx.createParser(in);
@@ -799,7 +800,7 @@ class JsonParserTest
         byte[] bytes)
     {
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         return JsonEx.createParser(in);
     }
 }

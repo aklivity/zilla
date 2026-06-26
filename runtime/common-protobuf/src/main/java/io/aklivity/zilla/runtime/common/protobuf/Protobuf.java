@@ -14,8 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufGeneratorImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufParserImpl;
 import io.aklivity.zilla.runtime.common.protobuf.internal.ProtobufSchemaCompiler;
@@ -47,7 +46,7 @@ public final class Protobuf
      * reader so there is no third-party protobuf dependency.
      */
     public static ProtobufSchema schema(
-        DirectBuffer fileDescriptorSet,
+        DirectBufferEx fileDescriptorSet,
         int offset,
         int length)
     {

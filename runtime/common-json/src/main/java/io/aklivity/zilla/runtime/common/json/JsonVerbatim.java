@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.common.json;
 
 import java.util.Iterator;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * A bounded block of a coalesced <em>verbatim</em> run, pulled via {@link JsonSource#getVerbatim(int)} — a
@@ -49,5 +49,5 @@ public interface JsonVerbatim
      * The entire contiguous block of original source bytes — a non-owning, on-stack view spliced 1:1, pre-bounded
      * to the caller's free output space so it always fits. Zero length when the run is drained.
      */
-    DirectBuffer getSegment();
+    DirectBufferEx getSegment();
 }

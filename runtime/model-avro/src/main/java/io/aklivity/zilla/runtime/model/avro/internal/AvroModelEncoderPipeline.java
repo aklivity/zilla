@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
@@ -40,7 +40,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
 
     private AvroPipeline active;
     private String diagnostic;
-    private MutableDirectBuffer prefixBuffer;
+    private MutableDirectBufferEx prefixBuffer;
     private int prefixAt;
 
     AvroModelEncoderPipeline(
@@ -56,10 +56,10 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLimit,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex,
         int dstLimit)
     {
@@ -113,7 +113,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
 
     @Override
     public int padding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -135,10 +135,10 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLength,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstIndex)
     {
         prefixBuffer = dst;
@@ -148,7 +148,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     }
 
     private void putPrefix(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length)
     {

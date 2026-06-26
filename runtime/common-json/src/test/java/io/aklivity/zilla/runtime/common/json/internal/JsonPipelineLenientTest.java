@@ -19,10 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -44,7 +44,7 @@ class JsonPipelineLenientTest
     void shouldRejectSchemaViolationUnderStrict()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(false))
             .lenient(false)
@@ -54,7 +54,7 @@ class JsonPipelineLenientTest
         byte[] bytes = "{\"id\":123}".getBytes(UTF_8);
         pipeline.reset();
         JsonPipelineResult result = pipeline.transform(
-            new UnsafeBuffer(bytes), 0, bytes.length, true, output, 0, output.capacity());
+            new UnsafeBufferEx(bytes), 0, bytes.length, true, output, 0, output.capacity());
 
         assertEquals(Status.REJECTED, result.status());
         assertEquals(0, result.produced());
@@ -66,7 +66,7 @@ class JsonPipelineLenientTest
     void shouldPassSchemaViolationThroughUnderLenient()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(true))
             .lenient(true)
@@ -76,7 +76,7 @@ class JsonPipelineLenientTest
         byte[] bytes = "{\"id\":123}".getBytes(UTF_8);
         pipeline.reset();
         JsonPipelineResult result = pipeline.transform(
-            new UnsafeBuffer(bytes), 0, bytes.length, true, output, 0, output.capacity());
+            new UnsafeBufferEx(bytes), 0, bytes.length, true, output, 0, output.capacity());
 
         assertEquals(Status.COMPLETED, result.status());
         assertEquals(bytes.length, result.produced());
@@ -90,7 +90,7 @@ class JsonPipelineLenientTest
     void shouldRejectMalformedUnderStrict()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(false))
             .lenient(false)
@@ -100,7 +100,7 @@ class JsonPipelineLenientTest
         byte[] bytes = "[1 2]".getBytes(UTF_8);
         pipeline.reset();
         JsonPipelineResult result = pipeline.transform(
-            new UnsafeBuffer(bytes), 0, bytes.length, true, output, 0, output.capacity());
+            new UnsafeBufferEx(bytes), 0, bytes.length, true, output, 0, output.capacity());
 
         assertEquals(Status.REJECTED, result.status());
     }
@@ -110,7 +110,7 @@ class JsonPipelineLenientTest
     void shouldRejectMalformedUnderLenient()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(true))
             .lenient(true)
@@ -120,7 +120,7 @@ class JsonPipelineLenientTest
         byte[] bytes = "[1 2]".getBytes(UTF_8);
         pipeline.reset();
         JsonPipelineResult result = pipeline.transform(
-            new UnsafeBuffer(bytes), 0, bytes.length, true, output, 0, output.capacity());
+            new UnsafeBufferEx(bytes), 0, bytes.length, true, output, 0, output.capacity());
 
         assertEquals(Status.REJECTED, result.status());
         assertEquals(0, result.produced());
@@ -131,7 +131,7 @@ class JsonPipelineLenientTest
     void shouldCompleteConformingUnderLenient()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[128]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(SCHEMA).validator(true))
             .lenient(true)
@@ -141,7 +141,7 @@ class JsonPipelineLenientTest
         byte[] bytes = "{\"id\":\"abc\"}".getBytes(UTF_8);
         pipeline.reset();
         JsonPipelineResult result = pipeline.transform(
-            new UnsafeBuffer(bytes), 0, bytes.length, true, output, 0, output.capacity());
+            new UnsafeBufferEx(bytes), 0, bytes.length, true, output, 0, output.capacity());
 
         assertEquals(Status.COMPLETED, result.status());
         assertEquals("{\"id\":\"abc\"}", output.getStringWithoutLengthUtf8(0, result.produced()));

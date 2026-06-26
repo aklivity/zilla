@@ -28,11 +28,11 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
@@ -145,14 +145,14 @@ public class ProtobufJsonValueChunkingTest
         boolean fixedFound = false;
         for (Field field : parser.getClass().getDeclaredFields())
         {
-            assertTrue(!ExpandableArrayBuffer.class.isAssignableFrom(field.getType()),
-                "no growable ExpandableArrayBuffer may stage the value");
+            assertTrue(!ExpandableArrayBufferEx.class.isAssignableFrom(field.getType()),
+                "no growable ExpandableArrayBufferEx may stage the value");
             if ("valueChunk".equals(field.getName()))
             {
                 field.setAccessible(true);
                 Object value = field.get(parser);
-                assertTrue(value instanceof UnsafeBuffer, "valueChunk must be a fixed UnsafeBuffer");
-                int capacity = ((UnsafeBuffer) value).capacity();
+                assertTrue(value instanceof UnsafeBufferEx, "valueChunk must be a fixed UnsafeBufferEx");
+                int capacity = ((UnsafeBufferEx) value).capacity();
                 assertTrue(capacity > 0 && capacity <= 1 << 13, "value staging buffer must be small and bounded");
                 assertEquals(0, capacity % 3, "value staging buffer must be a multiple of 3 for base64 groups");
                 fixedFound = true;
@@ -166,7 +166,7 @@ public class ProtobufJsonValueChunkingTest
         byte[] json,
         int window)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[window]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[window]);
         ProtobufGenerator generator = Protobuf.generator();
         generator.wrap(out, 0, window);
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
@@ -174,7 +174,7 @@ public class ProtobufJsonValueChunkingTest
         pipeline.reset();
 
         ByteArrayOutputStream result = new ByteArrayOutputStream();
-        UnsafeBuffer in = new UnsafeBuffer(json);
+        UnsafeBufferEx in = new UnsafeBufferEx(json);
         int suspends = 0;
         int guard = 0;
         Status status = pipeline.transform(in, 0, json.length);
@@ -198,13 +198,13 @@ public class ProtobufJsonValueChunkingTest
         String messageName,
         byte[] wire)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[1 << 18]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[1 << 18]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(wire), 0, wire.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(wire), 0, wire.length);
         assertEquals(Status.COMPLETED, status);
         generator.flush();
         byte[] bytes = new byte[generator.length()];
@@ -224,7 +224,7 @@ public class ProtobufJsonValueChunkingTest
     }
 
     private static byte[] bytes(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int length)
     {
         byte[] bytes = new byte[length];

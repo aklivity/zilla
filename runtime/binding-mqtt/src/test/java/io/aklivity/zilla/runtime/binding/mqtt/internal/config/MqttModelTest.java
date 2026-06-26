@@ -22,21 +22,21 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class MqttModelTest
 {
-    private final MutableDirectBuffer value = new UnsafeBuffer(new byte[256]);
+    private final MutableDirectBufferEx value = new UnsafeBufferEx(new byte[256]);
 
     @Test
     public void shouldTransformWholeValue()
     {
-        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5);
 
@@ -48,7 +48,7 @@ public class MqttModelTest
     @Test
     public void shouldRejectInvalidValue()
     {
-        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         assertEquals(-1, model.transform(0L, 0L, value("nope"), 0, 4));
     }
@@ -56,7 +56,7 @@ public class MqttModelTest
     @Test
     public void shouldTransformWholeValueToLargerLength()
     {
-        MqttModel model = MqttModel.decoder(handler(5, 8), new UnsafeBuffer(new byte[256]));
+        MqttModel model = MqttModel.decoder(handler(5, 8), new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5);
 
@@ -67,7 +67,7 @@ public class MqttModelTest
     @Test
     public void shouldTransformWholeValueToSmallerLength()
     {
-        MqttModel model = MqttModel.decoder(handler(5, 3), new UnsafeBuffer(new byte[256]));
+        MqttModel model = MqttModel.decoder(handler(5, 3), new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5);
 
@@ -78,7 +78,7 @@ public class MqttModelTest
     @Test
     public void shouldSupplyNoneWhenNoHandler()
     {
-        MqttModel model = MqttModel.decoder(null, new UnsafeBuffer(new byte[8]));
+        MqttModel model = MqttModel.decoder(null, new UnsafeBufferEx(new byte[8]));
 
         assertSame(MqttModel.NONE, model);
         assertFalse(model.active());
@@ -87,7 +87,7 @@ public class MqttModelTest
     @Test
     public void shouldReportIdentityForValidator()
     {
-        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         assertTrue(model.identity());
     }
@@ -95,7 +95,7 @@ public class MqttModelTest
     @Test
     public void shouldNotReportIdentityForTransformingModel()
     {
-        MqttModel model = MqttModel.decoder(handler(5, 8), new UnsafeBuffer(new byte[256]));
+        MqttModel model = MqttModel.decoder(handler(5, 8), new UnsafeBufferEx(new byte[256]));
 
         assertFalse(model.identity());
     }
@@ -103,7 +103,7 @@ public class MqttModelTest
     @Test
     public void shouldNotReportIdentityWhenNoHandler()
     {
-        MqttModel model = MqttModel.decoder(null, new UnsafeBuffer(new byte[8]));
+        MqttModel model = MqttModel.decoder(null, new UnsafeBufferEx(new byte[8]));
 
         assertFalse(model.identity());
     }
@@ -111,7 +111,7 @@ public class MqttModelTest
     @Test
     public void shouldValidateStreamedFragments()
     {
-        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         assertTrue(model.validate(0L, 0L, true, false, value("hello"), 0, 3));
         assertTrue(model.validate(0L, 0L, false, true, value("hello"), 3, 5));
@@ -120,7 +120,7 @@ public class MqttModelTest
     @Test
     public void shouldRejectInvalidStreamedFragments()
     {
-        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        MqttModel model = MqttModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         assertFalse(model.validate(0L, 0L, true, true, value("nope"), 0, 4));
     }
@@ -138,7 +138,7 @@ public class MqttModelTest
         return new TestModelHandler(new TestModelConfig(length, emptyList(), true, transformLength));
     }
 
-    private MutableDirectBuffer value(
+    private MutableDirectBufferEx value(
         String text)
     {
         value.putBytes(0, text.getBytes(UTF_8));

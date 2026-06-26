@@ -20,19 +20,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.agrona.collections.IntArrayList;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaSessionOffsetsHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttKafkaSessionOffsetsFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class MqttKafkaSessionOffsetsHelperTest
 {
     @Test
     public void shouldRoundTripSessionOffsets()
     {
-        final KafkaSessionOffsetsHelper helper = new KafkaSessionOffsetsHelper(new UnsafeBuffer(new byte[2048]));
+        final KafkaSessionOffsetsHelper helper = new KafkaSessionOffsetsHelper(new UnsafeBufferEx(new byte[2048]));
 
         final List<KafkaOffsetMetadata> input = new ArrayList<>();
 
