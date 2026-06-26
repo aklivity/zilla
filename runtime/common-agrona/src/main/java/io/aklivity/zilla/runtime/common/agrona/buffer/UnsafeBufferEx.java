@@ -53,7 +53,21 @@ import org.agrona.MutableDirectBuffer;
  * <p>
  * All atomic operations use {@link VarHandle} access modes on the selected
  * segment, providing the same memory ordering guarantees as an
- * {@code Unsafe}-backed buffer.
+ * {@code Unsafe}-backed buffer. Release/acquire-only accessors
+ * ({@code putLongOrdered}, {@code putIntOrdered}, {@code put*Release},
+ * {@code getLongVolatile}, {@code getIntVolatile}, {@code get*Acquire}) lower
+ * to plain unaligned access plus a standalone
+ * {@link VarHandle#releaseFence}/{@link VarHandle#acquireFence}, recovering the
+ * per-access alignment-check cost the aligned {@code VarHandle} carries. This
+ * matches the {@code sun.misc.Unsafe} contract (caller is responsible for
+ * alignment; misaligned ordered access has no atomicity guarantee). On x86
+ * (TSO) the fences emit zero instructions; on aarch64 they emit {@code dmb}
+ * and the aligned path may be cheaper. The default is {@code false} on x86 and
+ * {@code true} elsewhere; override with {@code zilla.buffer.aligned.atomics}.
+ * Sequentially-consistent ({@code put*Volatile}), real atomic
+ * ({@code compareAndSet}, {@code getAndAdd}, {@code getAndSet},
+ * {@code compareAndExchange}), and opaque accessors always use the aligned
+ * {@code VarHandle}.
  * <p>
  * Atomic operations are supported only on native-backed buffers (direct
  * {@code ByteBuffer}, mapped file, or native {@code MemorySegment}). Heap
@@ -72,6 +86,29 @@ public class UnsafeBufferEx implements AtomicBufferEx
     private static final boolean SHOULD_BOUNDS_CHECK =
         Boolean.parseBoolean(System.getProperty("zilla.buffer.bounds.checks",
             Boolean.toString(!UnsafeBufferEx.class.getModule().isNamed())));
+
+    // Use aligned VarHandle for release/acquire-only accessors (putLongOrdered, putIntOrdered,
+    // putLongRelease, putIntRelease, getLongVolatile, getIntVolatile, getLongAcquire, getIntAcquire).
+    // The aligned path validates the address is naturally aligned on every access, providing a fast-fail
+    // for misaligned ordered/volatile use (the JMM provides no atomicity guarantee for misaligned
+    // long/double access). When false, those accessors lower to a standalone VarHandle release/acquire
+    // fence plus an unaligned plain access, matching the sun.misc.Unsafe contract — on x86 (TSO) the
+    // fences emit zero instructions, recovering the per-op alignment-check cost; on aarch64 the aligned
+    // path uses stlr/ldar instructions that may be cheaper than fence emulation. Defaults to false on
+    // x86/amd64, true elsewhere. Override with -Dzilla.buffer.aligned.atomics=true|false. Read once at
+    // class init so the JIT folds the per-access branch. Full setVolatile / getVolatile (sequentially
+    // consistent), compareAndSet / getAndAdd / getAndSet / compareAndExchange (real atomics), and
+    // opaque accessors always use the aligned VarHandle regardless of this setting — they require
+    // alignment for correctness, not just diagnostics.
+    private static final boolean USE_ALIGNED_ATOMICS =
+        Boolean.parseBoolean(System.getProperty("zilla.buffer.aligned.atomics",
+            Boolean.toString(!isX86())));
+
+    private static boolean isX86()
+    {
+        final String arch = System.getProperty("os.arch", "");
+        return "amd64".equals(arch) || "x86_64".equals(arch);
+    }
 
     private static final ValueLayout.OfByte BYTE_LAYOUT = JAVA_BYTE;
     private static final ValueLayout.OfInt INT_LAYOUT = JAVA_INT_UNALIGNED;
@@ -1189,7 +1226,19 @@ public class UnsafeBufferEx implements AtomicBufferEx
             {
                 Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
-            return (long) LONG_HANDLE.getVolatile(GLOBAL, addressOffset + index);
+            final long result;
+            if (USE_ALIGNED_ATOMICS)
+            {
+                result = (long) LONG_HANDLE.getVolatile(GLOBAL, addressOffset + index);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x7) == 0
+                    : "getLongVolatile requires 8-byte aligned address";
+                result = GLOBAL.get(LONG_LAYOUT, addressOffset + index);
+                VarHandle.acquireFence();
+            }
+            return result;
         }
         throw heapAtomicsUnsupported();
     }
@@ -1224,7 +1273,17 @@ public class UnsafeBufferEx implements AtomicBufferEx
             {
                 Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
-            LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            if (USE_ALIGNED_ATOMICS)
+            {
+                LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x7) == 0
+                    : "putLongOrdered requires 8-byte aligned address";
+                VarHandle.releaseFence();
+                GLOBAL.set(LONG_LAYOUT, addressOffset + index, value);
+            }
         }
         else
         {
@@ -1313,7 +1372,19 @@ public class UnsafeBufferEx implements AtomicBufferEx
             {
                 Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
-            return (int) INT_HANDLE.getVolatile(GLOBAL, addressOffset + index);
+            final int result;
+            if (USE_ALIGNED_ATOMICS)
+            {
+                result = (int) INT_HANDLE.getVolatile(GLOBAL, addressOffset + index);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x3) == 0
+                    : "getIntVolatile requires 4-byte aligned address";
+                result = GLOBAL.get(INT_LAYOUT, addressOffset + index);
+                VarHandle.acquireFence();
+            }
+            return result;
         }
         throw heapAtomicsUnsupported();
     }
@@ -1348,7 +1419,17 @@ public class UnsafeBufferEx implements AtomicBufferEx
             {
                 Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
-            INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            if (USE_ALIGNED_ATOMICS)
+            {
+                INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x3) == 0
+                    : "putIntOrdered requires 4-byte aligned address";
+                VarHandle.releaseFence();
+                GLOBAL.set(INT_LAYOUT, addressOffset + index, value);
+            }
         }
         else
         {
@@ -1544,7 +1625,19 @@ public class UnsafeBufferEx implements AtomicBufferEx
             {
                 Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
-            return (long) LONG_HANDLE.getAcquire(GLOBAL, addressOffset + index);
+            final long result;
+            if (USE_ALIGNED_ATOMICS)
+            {
+                result = (long) LONG_HANDLE.getAcquire(GLOBAL, addressOffset + index);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x7) == 0
+                    : "getLongAcquire requires 8-byte aligned address";
+                result = GLOBAL.get(LONG_LAYOUT, addressOffset + index);
+                VarHandle.acquireFence();
+            }
+            return result;
         }
         throw heapAtomicsUnsupported();
     }
@@ -1560,7 +1653,17 @@ public class UnsafeBufferEx implements AtomicBufferEx
             {
                 Objects.checkFromIndexSize(index, Long.BYTES, capacity);
             }
-            LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            if (USE_ALIGNED_ATOMICS)
+            {
+                LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x7) == 0
+                    : "putLongRelease requires 8-byte aligned address";
+                VarHandle.releaseFence();
+                GLOBAL.set(LONG_LAYOUT, addressOffset + index, value);
+            }
         }
         else
         {
@@ -1665,7 +1768,19 @@ public class UnsafeBufferEx implements AtomicBufferEx
             {
                 Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
-            return (int) INT_HANDLE.getAcquire(GLOBAL, addressOffset + index);
+            final int result;
+            if (USE_ALIGNED_ATOMICS)
+            {
+                result = (int) INT_HANDLE.getAcquire(GLOBAL, addressOffset + index);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x3) == 0
+                    : "getIntAcquire requires 4-byte aligned address";
+                result = GLOBAL.get(INT_LAYOUT, addressOffset + index);
+                VarHandle.acquireFence();
+            }
+            return result;
         }
         throw heapAtomicsUnsupported();
     }
@@ -1681,7 +1796,17 @@ public class UnsafeBufferEx implements AtomicBufferEx
             {
                 Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
             }
-            INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            if (USE_ALIGNED_ATOMICS)
+            {
+                INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x3) == 0
+                    : "putIntRelease requires 4-byte aligned address";
+                VarHandle.releaseFence();
+                GLOBAL.set(INT_LAYOUT, addressOffset + index, value);
+            }
         }
         else
         {

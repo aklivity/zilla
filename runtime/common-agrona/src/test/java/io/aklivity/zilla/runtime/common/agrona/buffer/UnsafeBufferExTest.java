@@ -727,6 +727,84 @@ public class UnsafeBufferExTest
         }
 
         // -------------------------------------------------------------------
+        // Release/acquire-only accessor lowering — fence-pair round-trips
+        // -------------------------------------------------------------------
+        // Cross-method coverage for the Lever 1 lowering: write via the release
+        // arm of one method, read via the acquire arm of another. On x86 (default
+        // zilla.buffer.aligned.atomics=false) the writer issues a releaseFence
+        // before a plain unaligned store and the reader does a plain unaligned
+        // load followed by an acquireFence; the fence pair must still preserve
+        // the value.
+
+        @Test
+        public void shouldRoundTripLongOrderedToLongAcquire()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(64));
+
+            buffer.putLongOrdered(0, 0xCAFEBABEDEADBEEFL);
+            assertEquals(0xCAFEBABEDEADBEEFL, buffer.getLongAcquire(0));
+        }
+
+        @Test
+        public void shouldRoundTripLongReleaseToLongVolatile()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(64));
+
+            buffer.putLongRelease(0, 0x0102030405060708L);
+            assertEquals(0x0102030405060708L, buffer.getLongVolatile(0));
+        }
+
+        @Test
+        public void shouldRoundTripIntOrderedToIntAcquire()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(64));
+
+            buffer.putIntOrdered(0, 0xDEADBEEF);
+            assertEquals(0xDEADBEEF, buffer.getIntAcquire(0));
+        }
+
+        @Test
+        public void shouldRoundTripIntReleaseToIntVolatile()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(64));
+
+            buffer.putIntRelease(0, 0xABCDEF01);
+            assertEquals(0xABCDEF01, buffer.getIntVolatile(0));
+        }
+
+        // Bounds-check coverage on the lowered native arm — these accessors run
+        // the SHOULD_BOUNDS_CHECK gate before the fence/store, so out-of-range
+        // index must still throw IndexOutOfBoundsException.
+
+        @Test(expected = IndexOutOfBoundsException.class)
+        public void shouldThrowOnPutLongReleaseOutOfBoundsNative()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(8));
+            buffer.putLongRelease(8, 1L);
+        }
+
+        @Test(expected = IndexOutOfBoundsException.class)
+        public void shouldThrowOnGetLongAcquireOutOfBoundsNative()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(8));
+            buffer.getLongAcquire(4);
+        }
+
+        @Test(expected = IndexOutOfBoundsException.class)
+        public void shouldThrowOnPutIntReleaseOutOfBoundsNative()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(4));
+            buffer.putIntRelease(4, 1);
+        }
+
+        @Test(expected = IndexOutOfBoundsException.class)
+        public void shouldThrowOnGetIntAcquireOutOfBoundsNative()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(4));
+            buffer.getIntAcquire(2);
+        }
+
+        // -------------------------------------------------------------------
         // Comparable / equals / hashCode / toString
         // -------------------------------------------------------------------
 
