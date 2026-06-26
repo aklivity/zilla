@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-12...HEAD)
+
+**Implemented enhancements:**
+
+- Enable MemorySegment field accessors via DirectBufferEx buffer migration [\#1723](https://github.com/aklivity/zilla/issues/1723)
+
+**Closed issues:**
+
+- engine: add identity\(\) capability to ModelPipeline so callers can skip buffer-and-hold for validators [\#1956](https://github.com/aklivity/zilla/issues/1956)
+- Make common-avro / common-protobuf transforms consumption-driven for a uniform src-authoritative resume [\#1932](https://github.com/aklivity/zilla/issues/1932)
+
 ## [2.0.0-alpha-12](https://github.com/aklivity/zilla/tree/2.0.0-alpha-12) (2026-06-25)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-11...2.0.0-alpha-12)
