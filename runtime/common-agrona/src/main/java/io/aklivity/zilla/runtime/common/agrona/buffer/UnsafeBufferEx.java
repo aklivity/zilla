@@ -2417,4 +2417,1029 @@ public class UnsafeBufferEx implements AtomicBufferEx
         }
         return result;
     }
+
+    public Native asNative()
+    {
+        if (!isNative)
+        {
+            throw new IllegalStateException("UnsafeBufferEx.asNative requires a native-backed buffer");
+        }
+        return new Native(segment, byteBuffer);
+    }
+
+    public static final class Native implements AtomicBufferEx
+    {
+        private final MemorySegment segment;
+        private final long addressOffset;
+        private final int capacity;
+        private final ByteBuffer byteBuffer;
+        private final UnsafeBufferEx fallback;
+
+        private Native(
+            MemorySegment segment,
+            ByteBuffer byteBuffer)
+        {
+            assert segment.heapBase().isEmpty()
+                : "UnsafeBufferEx.Native requires a native MemorySegment";
+            this.segment = segment;
+            this.addressOffset = segment.address();
+            this.capacity = (int) segment.byteSize();
+            this.byteBuffer = byteBuffer;
+            this.fallback = new UnsafeBufferEx(segment);
+        }
+
+        private static UnsupportedOperationException cannotReWrap()
+        {
+            return new UnsupportedOperationException("UnsafeBufferEx.Native does not support re-wrap");
+        }
+
+        // -------------------------------------------------------------------
+        // Hot path — final field accessors
+        // -------------------------------------------------------------------
+
+        @Override
+        public int capacity()
+        {
+            return capacity;
+        }
+
+        @Override
+        public long addressOffset()
+        {
+            return addressOffset;
+        }
+
+        @Override
+        public ByteBuffer byteBuffer()
+        {
+            return byteBuffer;
+        }
+
+        @Override
+        public byte[] byteArray()
+        {
+            return null;
+        }
+
+        @Override
+        public int wrapAdjustment()
+        {
+            return 0;
+        }
+
+        @Override
+        public MemorySegment segment()
+        {
+            return segment;
+        }
+
+        // -------------------------------------------------------------------
+        // Hot path — primitive long/int put/get
+        // -------------------------------------------------------------------
+
+        @Override
+        public void putLong(
+            int index,
+            long value)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
+            }
+            GLOBAL.set(LONG_LAYOUT, addressOffset + index, value);
+        }
+
+        @Override
+        public long getLong(
+            int index)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
+            }
+            return GLOBAL.get(LONG_LAYOUT, addressOffset + index);
+        }
+
+        @Override
+        public void putInt(
+            int index,
+            int value)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
+            }
+            GLOBAL.set(INT_LAYOUT, addressOffset + index, value);
+        }
+
+        @Override
+        public int getInt(
+            int index)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
+            }
+            return GLOBAL.get(INT_LAYOUT, addressOffset + index);
+        }
+
+        // -------------------------------------------------------------------
+        // Hot path — ordered / release / acquire / volatile (release-acquire form)
+        // -------------------------------------------------------------------
+
+        @Override
+        public void putLongOrdered(
+            int index,
+            long value)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
+            }
+            if (USE_ALIGNED_ATOMICS)
+            {
+                LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x7) == 0
+                    : "putLongOrdered requires 8-byte aligned address";
+                VarHandle.releaseFence();
+                GLOBAL.set(LONG_LAYOUT, addressOffset + index, value);
+            }
+        }
+
+        @Override
+        public long getLongVolatile(
+            int index)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
+            }
+            final long result;
+            if (USE_ALIGNED_ATOMICS)
+            {
+                result = (long) LONG_HANDLE.getVolatile(GLOBAL, addressOffset + index);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x7) == 0
+                    : "getLongVolatile requires 8-byte aligned address";
+                result = GLOBAL.get(LONG_LAYOUT, addressOffset + index);
+                VarHandle.acquireFence();
+            }
+            return result;
+        }
+
+        @Override
+        public void putIntOrdered(
+            int index,
+            int value)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
+            }
+            if (USE_ALIGNED_ATOMICS)
+            {
+                INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x3) == 0
+                    : "putIntOrdered requires 4-byte aligned address";
+                VarHandle.releaseFence();
+                GLOBAL.set(INT_LAYOUT, addressOffset + index, value);
+            }
+        }
+
+        @Override
+        public int getIntVolatile(
+            int index)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
+            }
+            final int result;
+            if (USE_ALIGNED_ATOMICS)
+            {
+                result = (int) INT_HANDLE.getVolatile(GLOBAL, addressOffset + index);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x3) == 0
+                    : "getIntVolatile requires 4-byte aligned address";
+                result = GLOBAL.get(INT_LAYOUT, addressOffset + index);
+                VarHandle.acquireFence();
+            }
+            return result;
+        }
+
+        @Override
+        public void putLongRelease(
+            int index,
+            long value)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
+            }
+            if (USE_ALIGNED_ATOMICS)
+            {
+                LONG_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x7) == 0
+                    : "putLongRelease requires 8-byte aligned address";
+                VarHandle.releaseFence();
+                GLOBAL.set(LONG_LAYOUT, addressOffset + index, value);
+            }
+        }
+
+        @Override
+        public long getLongAcquire(
+            int index)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
+            }
+            final long result;
+            if (USE_ALIGNED_ATOMICS)
+            {
+                result = (long) LONG_HANDLE.getAcquire(GLOBAL, addressOffset + index);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x7) == 0
+                    : "getLongAcquire requires 8-byte aligned address";
+                result = GLOBAL.get(LONG_LAYOUT, addressOffset + index);
+                VarHandle.acquireFence();
+            }
+            return result;
+        }
+
+        @Override
+        public void putIntRelease(
+            int index,
+            int value)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
+            }
+            if (USE_ALIGNED_ATOMICS)
+            {
+                INT_HANDLE.setRelease(GLOBAL, addressOffset + index, value);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x3) == 0
+                    : "putIntRelease requires 4-byte aligned address";
+                VarHandle.releaseFence();
+                GLOBAL.set(INT_LAYOUT, addressOffset + index, value);
+            }
+        }
+
+        @Override
+        public int getIntAcquire(
+            int index)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
+            }
+            final int result;
+            if (USE_ALIGNED_ATOMICS)
+            {
+                result = (int) INT_HANDLE.getAcquire(GLOBAL, addressOffset + index);
+            }
+            else
+            {
+                assert ((addressOffset + index) & 0x3) == 0
+                    : "getIntAcquire requires 4-byte aligned address";
+                result = GLOBAL.get(INT_LAYOUT, addressOffset + index);
+                VarHandle.acquireFence();
+            }
+            return result;
+        }
+
+        @Override
+        public boolean compareAndSetInt(
+            int index,
+            int expectedValue,
+            int updateValue)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Integer.BYTES, capacity);
+            }
+            return INT_HANDLE.compareAndSet(GLOBAL, addressOffset + index, expectedValue, updateValue);
+        }
+
+        @Override
+        public boolean compareAndSetLong(
+            int index,
+            long expectedValue,
+            long updateValue)
+        {
+            if (SHOULD_BOUNDS_CHECK)
+            {
+                Objects.checkFromIndexSize(index, Long.BYTES, capacity);
+            }
+            return LONG_HANDLE.compareAndSet(GLOBAL, addressOffset + index, expectedValue, updateValue);
+        }
+
+        // -------------------------------------------------------------------
+        // Hot path — bulk copy / fill
+        // -------------------------------------------------------------------
+
+        @Override
+        public void putBytes(
+            int index,
+            DirectBuffer srcBuffer,
+            int srcIndex,
+            int length)
+        {
+            if (srcBuffer instanceof DirectBufferEx ex)
+            {
+                MemorySegment.copy(ex.segment(), ex.wrapAdjustment() + srcIndex, segment, index, length);
+            }
+            else
+            {
+                fallback.putBytes(index, srcBuffer, srcIndex, length);
+            }
+        }
+
+        @Override
+        public void setMemory(
+            int index,
+            int length,
+            byte value)
+        {
+            segment.asSlice(index, length).fill(value);
+        }
+
+        // -------------------------------------------------------------------
+        // wrap — all overloads unsupported
+        // -------------------------------------------------------------------
+
+        @Override
+        public void wrap(
+            byte[] buffer)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            byte[] buffer,
+            int offset,
+            int length)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            ByteBuffer buffer)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            ByteBuffer buffer,
+            int offset,
+            int length)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            DirectBuffer buffer)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            DirectBufferEx buffer)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            long address,
+            int length)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            MemorySegment segment)
+        {
+            throw cannotReWrap();
+        }
+
+        @Override
+        public void wrap(
+            MemorySegment segment,
+            int offset,
+            int length)
+        {
+            throw cannotReWrap();
+        }
+
+        // -------------------------------------------------------------------
+        // Cold path — delegate to fallback
+        // -------------------------------------------------------------------
+
+        @Override
+        public boolean isExpandable()
+        {
+            return fallback.isExpandable();
+        }
+        @Override
+        public void checkLimit(int limit)
+        {
+            fallback.checkLimit(limit);
+        }
+        @Override
+        public void boundsCheck(int index, int length)
+        {
+            fallback.boundsCheck(index, length);
+        }
+        @Override
+        public void verifyAlignment()
+        {
+            fallback.verifyAlignment();
+        }
+
+        @Override
+        public short getShort(int index)
+        {
+            return fallback.getShort(index);
+        }
+        @Override
+        public byte getByte(int index)
+        {
+            return fallback.getByte(index);
+        }
+        @Override
+        public double getDouble(int index)
+        {
+            return fallback.getDouble(index);
+        }
+        @Override
+        public float getFloat(int index)
+        {
+            return fallback.getFloat(index);
+        }
+        @Override
+        public char getChar(int index)
+        {
+            return fallback.getChar(index);
+        }
+
+        @Override
+        public long getLong(int index, ByteOrder byteOrder)
+        {
+            return fallback.getLong(index, byteOrder);
+        }
+        @Override
+        public int getInt(int index, ByteOrder byteOrder)
+        {
+            return fallback.getInt(index, byteOrder);
+        }
+        @Override
+        public short getShort(int index, ByteOrder byteOrder)
+        {
+            return fallback.getShort(index, byteOrder);
+        }
+        @Override
+        public double getDouble(int index, ByteOrder byteOrder)
+        {
+            return fallback.getDouble(index, byteOrder);
+        }
+        @Override
+        public float getFloat(int index, ByteOrder byteOrder)
+        {
+            return fallback.getFloat(index, byteOrder);
+        }
+        @Override
+        public char getChar(int index, ByteOrder byteOrder)
+        {
+            return fallback.getChar(index, byteOrder);
+        }
+
+        @Override
+        public void putShort(int index, short value)
+        {
+            fallback.putShort(index, value);
+        }
+        @Override
+        public void putByte(int index, byte value)
+        {
+            fallback.putByte(index, value);
+        }
+        @Override
+        public void putDouble(int index, double value)
+        {
+            fallback.putDouble(index, value);
+        }
+        @Override
+        public void putFloat(int index, float value)
+        {
+            fallback.putFloat(index, value);
+        }
+        @Override
+        public void putChar(int index, char value)
+        {
+            fallback.putChar(index, value);
+        }
+
+        @Override
+        public void putLong(int index, long value, ByteOrder byteOrder)
+        {
+            fallback.putLong(index, value, byteOrder);
+        }
+        @Override
+        public void putInt(int index, int value, ByteOrder byteOrder)
+        {
+            fallback.putInt(index, value, byteOrder);
+        }
+        @Override
+        public void putShort(int index, short value, ByteOrder byteOrder)
+        {
+            fallback.putShort(index, value, byteOrder);
+        }
+        @Override
+        public void putDouble(int index, double value, ByteOrder byteOrder)
+        {
+            fallback.putDouble(index, value, byteOrder);
+        }
+        @Override
+        public void putFloat(int index, float value, ByteOrder byteOrder)
+        {
+            fallback.putFloat(index, value, byteOrder);
+        }
+        @Override
+        public void putChar(int index, char value, ByteOrder byteOrder)
+        {
+            fallback.putChar(index, value, byteOrder);
+        }
+
+        @Override
+        public void getBytes(int index, byte[] dst)
+        {
+            fallback.getBytes(index, dst);
+        }
+        @Override
+        public void getBytes(int index, byte[] dst, int offset, int length)
+        {
+            fallback.getBytes(index, dst, offset, length);
+        }
+        @Override
+        public void getBytes(int index, MutableDirectBuffer dstBuffer, int dstIndex, int length)
+        {
+            fallback.getBytes(index, dstBuffer, dstIndex, length);
+        }
+        @Override
+        public void getBytes(int index, ByteBuffer dstBuffer, int length)
+        {
+            fallback.getBytes(index, dstBuffer, length);
+        }
+        @Override
+        public void getBytes(int index, ByteBuffer dstBuffer, int dstOffset, int length)
+        {
+            fallback.getBytes(index, dstBuffer, dstOffset, length);
+        }
+        @Override
+        public void getBytes(int index, MemorySegment dstSegment, int dstIndex, int length)
+        {
+            fallback.getBytes(index, dstSegment, dstIndex, length);
+        }
+
+        @Override
+        public void putBytes(int index, byte[] src)
+        {
+            fallback.putBytes(index, src);
+        }
+        @Override
+        public void putBytes(int index, byte[] src, int offset, int length)
+        {
+            fallback.putBytes(index, src, offset, length);
+        }
+        @Override
+        public void putBytes(int index, ByteBuffer srcBuffer, int length)
+        {
+            fallback.putBytes(index, srcBuffer, length);
+        }
+        @Override
+        public void putBytes(int index, ByteBuffer srcBuffer, int srcOffset, int length)
+        {
+            fallback.putBytes(index, srcBuffer, srcOffset, length);
+        }
+        @Override
+        public void putBytes(int index, DirectBufferEx srcBuffer, int srcIndex, int length)
+        {
+            fallback.putBytes(index, srcBuffer, srcIndex, length);
+        }
+        @Override
+        public void putBytes(int index, MemorySegment srcSegment, int srcIndex, int length)
+        {
+            fallback.putBytes(index, srcSegment, srcIndex, length);
+        }
+
+        // Atomic — long volatile / ordered / opaque (cold-path remainder)
+        @Override
+        public void putLongVolatile(int index, long value)
+        {
+            fallback.putLongVolatile(index, value);
+        }
+        @Override
+        public long addLongOrdered(int index, long increment)
+        {
+            return fallback.addLongOrdered(index, increment);
+        }
+        @Override
+        public long getAndSetLong(int index, long value)
+        {
+            return fallback.getAndSetLong(index, value);
+        }
+        @Override
+        public long getAndAddLong(int index, long delta)
+        {
+            return fallback.getAndAddLong(index, delta);
+        }
+        @Override
+        public long getLongOpaque(int index)
+        {
+            return fallback.getLongOpaque(index);
+        }
+        @Override
+        public void putLongOpaque(int index, long value)
+        {
+            fallback.putLongOpaque(index, value);
+        }
+        @Override
+        public long addLongRelease(int index, long increment)
+        {
+            return fallback.addLongRelease(index, increment);
+        }
+        @Override
+        public long addLongOpaque(int index, long increment)
+        {
+            return fallback.addLongOpaque(index, increment);
+        }
+        @Override
+        public long compareAndExchangeLong(int index, long expectedValue, long updateValue)
+        {
+            return fallback.compareAndExchangeLong(index, expectedValue, updateValue);
+        }
+
+        // Atomic — int volatile / ordered / opaque (cold-path remainder)
+        @Override
+        public void putIntVolatile(int index, int value)
+        {
+            fallback.putIntVolatile(index, value);
+        }
+        @Override
+        public int addIntOrdered(int index, int increment)
+        {
+            return fallback.addIntOrdered(index, increment);
+        }
+        @Override
+        public int getAndSetInt(int index, int value)
+        {
+            return fallback.getAndSetInt(index, value);
+        }
+        @Override
+        public int getAndAddInt(int index, int delta)
+        {
+            return fallback.getAndAddInt(index, delta);
+        }
+        @Override
+        public int getIntOpaque(int index)
+        {
+            return fallback.getIntOpaque(index);
+        }
+        @Override
+        public void putIntOpaque(int index, int value)
+        {
+            fallback.putIntOpaque(index, value);
+        }
+        @Override
+        public int addIntRelease(int index, int increment)
+        {
+            return fallback.addIntRelease(index, increment);
+        }
+        @Override
+        public int addIntOpaque(int index, int increment)
+        {
+            return fallback.addIntOpaque(index, increment);
+        }
+        @Override
+        public int compareAndExchangeInt(int index, int expectedValue, int updateValue)
+        {
+            return fallback.compareAndExchangeInt(index, expectedValue, updateValue);
+        }
+
+        // Atomic — short / char / byte volatile
+        @Override
+        public short getShortVolatile(int index)
+        {
+            return fallback.getShortVolatile(index);
+        }
+        @Override
+        public void putShortVolatile(int index, short value)
+        {
+            fallback.putShortVolatile(index, value);
+        }
+        @Override
+        public char getCharVolatile(int index)
+        {
+            return fallback.getCharVolatile(index);
+        }
+        @Override
+        public void putCharVolatile(int index, char value)
+        {
+            fallback.putCharVolatile(index, value);
+        }
+        @Override
+        public byte getByteVolatile(int index)
+        {
+            return fallback.getByteVolatile(index);
+        }
+        @Override
+        public void putByteVolatile(int index, byte value)
+        {
+            fallback.putByteVolatile(index, value);
+        }
+
+        // String — ASCII (length-prefixed)
+        @Override
+        public String getStringAscii(int index)
+        {
+            return fallback.getStringAscii(index);
+        }
+        @Override
+        public String getStringAscii(int index, ByteOrder byteOrder)
+        {
+            return fallback.getStringAscii(index, byteOrder);
+        }
+        @Override
+        public String getStringAscii(int index, int length)
+        {
+            return fallback.getStringAscii(index, length);
+        }
+        @Override
+        public int getStringAscii(int index, Appendable appendable)
+        {
+            return fallback.getStringAscii(index, appendable);
+        }
+        @Override
+        public int getStringAscii(int index, Appendable appendable, ByteOrder byteOrder)
+        {
+            return fallback.getStringAscii(index, appendable, byteOrder);
+        }
+        @Override
+        public int getStringAscii(int index, int length, Appendable appendable)
+        {
+            return fallback.getStringAscii(index, length, appendable);
+        }
+
+        // String — ASCII (no length prefix)
+        @Override
+        public String getStringWithoutLengthAscii(int index, int length)
+        {
+            return fallback.getStringWithoutLengthAscii(index, length);
+        }
+        @Override
+        public int getStringWithoutLengthAscii(int index, int length, Appendable appendable)
+        {
+            return fallback.getStringWithoutLengthAscii(index, length, appendable);
+        }
+
+        // String — UTF-8
+        @Override
+        public String getStringUtf8(int index)
+        {
+            return fallback.getStringUtf8(index);
+        }
+        @Override
+        public String getStringUtf8(int index, ByteOrder byteOrder)
+        {
+            return fallback.getStringUtf8(index, byteOrder);
+        }
+        @Override
+        public String getStringUtf8(int index, int length)
+        {
+            return fallback.getStringUtf8(index, length);
+        }
+        @Override
+        public String getStringWithoutLengthUtf8(int index, int length)
+        {
+            return fallback.getStringWithoutLengthUtf8(index, length);
+        }
+
+        // putString — ASCII (length-prefixed)
+        @Override
+        public int putStringAscii(int index, String value)
+        {
+            return fallback.putStringAscii(index, value);
+        }
+        @Override
+        public int putStringAscii(int index, CharSequence value)
+        {
+            return fallback.putStringAscii(index, value);
+        }
+        @Override
+        public int putStringAscii(int index, String value, ByteOrder byteOrder)
+        {
+            return fallback.putStringAscii(index, value, byteOrder);
+        }
+        @Override
+        public int putStringAscii(int index, CharSequence value, ByteOrder byteOrder)
+        {
+            return fallback.putStringAscii(index, value, byteOrder);
+        }
+
+        // putString — ASCII (no length prefix)
+        @Override
+        public int putStringWithoutLengthAscii(int index, String value)
+        {
+            return fallback.putStringWithoutLengthAscii(index, value);
+        }
+        @Override
+        public int putStringWithoutLengthAscii(int index, CharSequence value)
+        {
+            return fallback.putStringWithoutLengthAscii(index, value);
+        }
+        @Override
+        public int putStringWithoutLengthAscii(int index, String value, int valueOffset, int length)
+        {
+            return fallback.putStringWithoutLengthAscii(index, value, valueOffset, length);
+        }
+        @Override
+        public int putStringWithoutLengthAscii(int index, CharSequence value, int valueOffset, int length)
+        {
+            return fallback.putStringWithoutLengthAscii(index, value, valueOffset, length);
+        }
+
+        // putString — UTF-8
+        @Override
+        public int putStringUtf8(int index, String value)
+        {
+            return fallback.putStringUtf8(index, value);
+        }
+        @Override
+        public int putStringUtf8(int index, String value, ByteOrder byteOrder)
+        {
+            return fallback.putStringUtf8(index, value, byteOrder);
+        }
+        @Override
+        public int putStringUtf8(int index, String value, int maxEncodedLength)
+        {
+            return fallback.putStringUtf8(index, value, maxEncodedLength);
+        }
+        @Override
+        public int putStringUtf8(int index, String value, ByteOrder byteOrder, int maxEncodedLength)
+        {
+            return fallback.putStringUtf8(index, value, byteOrder, maxEncodedLength);
+        }
+        @Override
+        public int putStringWithoutLengthUtf8(int index, String value)
+        {
+            return fallback.putStringWithoutLengthUtf8(index, value);
+        }
+
+        // ASCII int/long parsing and encoding
+        @Override
+        public int parseNaturalIntAscii(int index, int length)
+        {
+            return fallback.parseNaturalIntAscii(index, length);
+        }
+        @Override
+        public long parseNaturalLongAscii(int index, int length)
+        {
+            return fallback.parseNaturalLongAscii(index, length);
+        }
+        @Override
+        public int parseIntAscii(int index, int length)
+        {
+            return fallback.parseIntAscii(index, length);
+        }
+        @Override
+        public long parseLongAscii(int index, int length)
+        {
+            return fallback.parseLongAscii(index, length);
+        }
+        @Override
+        public int putIntAscii(int index, int value)
+        {
+            return fallback.putIntAscii(index, value);
+        }
+        @Override
+        public int putNaturalIntAscii(int index, int value)
+        {
+            return fallback.putNaturalIntAscii(index, value);
+        }
+        @Override
+        public void putNaturalPaddedIntAscii(int index, int length, int value)
+        {
+            fallback.putNaturalPaddedIntAscii(index, length, value);
+        }
+        @Override
+        public int putNaturalIntAsciiFromEnd(int value, int endExclusive)
+        {
+            return fallback.putNaturalIntAsciiFromEnd(value, endExclusive);
+        }
+        @Override
+        public int putNaturalLongAscii(int index, long value)
+        {
+            return fallback.putNaturalLongAscii(index, value);
+        }
+        @Override
+        public int putLongAscii(int index, long value)
+        {
+            return fallback.putLongAscii(index, value);
+        }
+
+        // Comparable
+        @Override
+        public int compareTo(DirectBuffer that)
+        {
+            return fallback.compareTo(that);
+        }
+
+        // Object overrides
+        @Override
+        public String toString()
+        {
+            return "UnsafeBufferEx.Native{capacity=" + capacity + "}";
+        }
+
+        @Override
+        public boolean equals(
+            Object obj)
+        {
+            if (this == obj)
+            {
+                return true;
+            }
+            if (!(obj instanceof DirectBuffer that))
+            {
+                return false;
+            }
+            if (this.capacity != that.capacity())
+            {
+                return false;
+            }
+            for (int i = 0; i < capacity; i++)
+            {
+                if (this.getByte(i) != that.getByte(i))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode()
+        {
+            int result = 1;
+            for (int i = 0; i < capacity; i++)
+            {
+                result = 31 * result + getByte(i);
+            }
+            return result;
+        }
+    }
 }

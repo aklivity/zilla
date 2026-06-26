@@ -70,7 +70,7 @@ public class BufferBM
 
     private MutableDirectBufferEx writeBuffer;
 
-    @Param({"unsafe", "safe", "baseline"})
+    @Param({"unsafe", "safe", "baseline", "native"})
     private String impl;
 
     @Param({"256", "1024", "4096", "16384"})
@@ -167,6 +167,7 @@ public class BufferBM
         {
         case "safe" -> new SafeBuffer(byteBuffer);
         case "baseline" -> new BaselineBufferEx(byteBuffer);
+        case "native" -> new UnsafeBufferEx(byteBuffer).asNative();
         default -> new UnsafeBufferEx(byteBuffer);
         };
     }
