@@ -73,11 +73,13 @@ public class BufferBM
     @Param({"unsafe", "safe", "baseline"})
     private String impl;
 
+    @Param({"256", "1024", "4096", "16384"})
+    private int payload;
+
     @Setup(Level.Trial)
     public void init() throws IOException
     {
         final int capacity = 1024 * 1024 * 64 + TRAILER_LENGTH;
-        final int payload = 256;
 
         final File bufferFile = new File("target/benchmarks/baseline/buffer").getAbsoluteFile();
         createEmptyFile(bufferFile, capacity).close();
