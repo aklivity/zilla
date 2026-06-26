@@ -21,14 +21,14 @@ import static org.mockito.Mockito.mock;
 import java.time.Duration;
 import java.util.Properties;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.SchemaRegistryCatalogHandler;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -69,12 +69,12 @@ public class SchemaRegistryCatalogHandlerTest
     {
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, catalogConfig, context);
 
-        DirectBuffer framed = new UnsafeBuffer();
+        DirectBufferEx framed = new UnsafeBufferEx();
         byte[] framedBytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64};
         framed.wrap(framedBytes, 0, framedBytes.length);
         assertEquals(5, catalog.decodePadding(framed, 0, framed.capacity()));
 
-        DirectBuffer unframed = new UnsafeBuffer();
+        DirectBufferEx unframed = new UnsafeBufferEx();
         byte[] unframedBytes = {0x06, 0x69, 0x64};
         unframed.wrap(unframedBytes, 0, unframedBytes.length);
         assertEquals(0, catalog.decodePadding(unframed, 0, unframed.capacity()));
@@ -85,7 +85,7 @@ public class SchemaRegistryCatalogHandlerTest
     {
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, catalogConfig, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -101,7 +101,7 @@ public class SchemaRegistryCatalogHandlerTest
 
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, catalogConfig, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -117,7 +117,7 @@ public class SchemaRegistryCatalogHandlerTest
     {
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, catalogConfig, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
@@ -134,7 +134,7 @@ public class SchemaRegistryCatalogHandlerTest
 
         SchemaRegistryCatalogHandler catalog = new SchemaRegistryCatalogHandler(config, catalogConfig, context);
 
-        DirectBuffer data = new UnsafeBuffer();
+        DirectBufferEx data = new UnsafeBufferEx();
 
         byte[] bytes = {0x00, 0x00, 0x00, 0x00, 0x09, 0x06, 0x69, 0x64,
             0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};

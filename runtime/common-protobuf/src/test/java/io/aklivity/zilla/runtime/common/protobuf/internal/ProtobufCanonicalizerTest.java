@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.function.Consumer;
 
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -195,9 +195,9 @@ public class ProtobufCanonicalizerTest
         String messageName,
         byte[] input)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[256]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[256]);
         ProtobufCanonicalizer canonicalizer = new ProtobufCanonicalizer(schema);
-        int length = canonicalizer.canonicalize(messageName, new UnsafeBuffer(input), 0, input.length, out, 0);
+        int length = canonicalizer.canonicalize(messageName, new UnsafeBufferEx(input), 0, input.length, out, 0);
         byte[] result = new byte[length];
         out.getBytes(0, result);
         return result;
@@ -206,7 +206,7 @@ public class ProtobufCanonicalizerTest
     private static byte[] wire(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
+        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];

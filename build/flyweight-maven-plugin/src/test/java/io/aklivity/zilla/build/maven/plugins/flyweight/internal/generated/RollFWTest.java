@@ -21,24 +21,25 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.Roll;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.RollFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class RollFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -48,7 +49,7 @@ public class RollFWTest
     private final RollFW.Builder flyweightRW = new RollFW.Builder();
     private final RollFW flyweightRO = new RollFW();
 
-    static int setAllTestValues(MutableDirectBuffer buffer, final int offset)
+    static int setAllTestValues(MutableDirectBufferEx buffer, final int offset)
     {
         int pos = offset;
         buffer.putByte(pos,  (byte) Roll.SPRING.ordinal());
@@ -174,9 +175,9 @@ public class RollFWTest
             .build();
     }
 
-    private static DirectBuffer asBuffer(byte value)
+    private static DirectBufferEx asBuffer(byte value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(1));
+        MutableDirectBufferEx valueBuffer = new UnsafeBufferEx(allocateDirect(1));
         valueBuffer.putByte(0, value);
         return valueBuffer;
     }

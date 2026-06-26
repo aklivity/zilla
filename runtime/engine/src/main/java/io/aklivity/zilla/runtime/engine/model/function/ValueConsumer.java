@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.model.function;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Receives a slice of a {@link DirectBuffer} as a zero-copy callback.
@@ -50,7 +50,7 @@ public interface ValueConsumer
      * @param length  the length of the data
      */
     void accept(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length);
 }

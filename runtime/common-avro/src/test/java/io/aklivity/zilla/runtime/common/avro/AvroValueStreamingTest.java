@@ -30,15 +30,15 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 
 public class AvroValueStreamingTest
@@ -126,7 +126,7 @@ public class AvroValueStreamingTest
         }
         byte[] datum = encode("\"string\"", builder.toString());
 
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[16]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[16]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator));
 
@@ -135,7 +135,7 @@ public class AvroValueStreamingTest
         List<byte[]> output = new ArrayList<>();
         pipeline.reset();
         generator.wrap(out, 0, out.capacity());
-        UnsafeBuffer in = new UnsafeBuffer(datum);
+        UnsafeBufferEx in = new UnsafeBufferEx(datum);
         int progress = 0;
         int length = 0;
         Status status = pipeline.transform(in, 0, 0, false);
@@ -200,7 +200,7 @@ public class AvroValueStreamingTest
 
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(collector);
         pipeline.reset();
-        UnsafeBuffer buffer = new UnsafeBuffer(datum);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(datum);
         Status status = pipeline.transform(buffer, 0, 0, false);
         int progress = 0;
         int guard = datum.length * 2 + 8;
@@ -229,7 +229,7 @@ public class AvroValueStreamingTest
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(new Collector());
         pipeline.reset();
         // a partial window with more input to follow (last == false) — starved, not truncated
-        Status status = pipeline.transform(new UnsafeBuffer(datum), 0, 10, false);
+        Status status = pipeline.transform(new UnsafeBufferEx(datum), 0, 10, false);
 
         assertEquals(STARVED, status);
     }
@@ -243,7 +243,7 @@ public class AvroValueStreamingTest
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(new Collector());
         pipeline.reset();
         // the final window holds only part of the value, so it cannot complete -> truncated
-        Status status = pipeline.transform(new UnsafeBuffer(datum), 0, 10, true);
+        Status status = pipeline.transform(new UnsafeBufferEx(datum), 0, 10, true);
 
         assertEquals(REJECTED, status);
     }
@@ -256,7 +256,7 @@ public class AvroValueStreamingTest
     {
         pipeline.reset();
         collector.reset();
-        UnsafeBuffer buffer = new UnsafeBuffer(datum);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(datum);
         Status status = pipeline.transform(buffer, 0, 0, false);
         int progress = 0;
         int guard = datum.length * 2 + 8;
@@ -270,7 +270,7 @@ public class AvroValueStreamingTest
     }
 
     private static byte[] drain(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int length)
     {
         byte[] bytes = new byte[length];
@@ -330,7 +330,7 @@ public class AvroValueStreamingTest
         {
             if (event == AvroEvent.STRING || event == AvroEvent.BYTES || event == AvroEvent.FIXED)
             {
-                DirectBuffer segment = source.getSegment();
+                DirectBufferEx segment = source.getSegment();
                 byte[] chunk = new byte[segment.capacity()];
                 segment.getBytes(0, chunk);
                 chunks.add(chunk);

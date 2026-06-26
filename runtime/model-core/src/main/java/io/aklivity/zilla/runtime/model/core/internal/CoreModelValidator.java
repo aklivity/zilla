@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 // Per-stream validation strategy for a core model, owning all in-flight parse state so concurrent
 // streams sharing a per-worker CoreModelHandler never interfere. Reset on FLAGS_INIT, decode the
@@ -29,7 +29,7 @@ interface CoreModelValidator
 
     Validity validate(
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length);
 }

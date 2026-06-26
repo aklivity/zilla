@@ -21,9 +21,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
@@ -58,16 +57,16 @@ public final class ConformanceTestee
 
     private final ProtobufSchema schema;
     private final ProtobufCanonicalizer canonicalizer;
-    private final MutableDirectBuffer canonical;
-    private final MutableDirectBuffer response;
+    private final MutableDirectBufferEx canonical;
+    private final MutableDirectBufferEx response;
 
     public ConformanceTestee(
         ProtobufSchema schema)
     {
         this.schema = schema;
         this.canonicalizer = new ProtobufCanonicalizer(schema);
-        this.canonical = new UnsafeBuffer(new byte[1 << 20]);
-        this.response = new UnsafeBuffer(new byte[1 << 20]);
+        this.canonical = new UnsafeBufferEx(new byte[1 << 20]);
+        this.response = new UnsafeBufferEx(new byte[1 << 20]);
     }
 
     public void run(
@@ -93,7 +92,7 @@ public final class ConformanceTestee
     public byte[] handle(
         byte[] request)
     {
-        UnsafeBuffer buffer = new UnsafeBuffer(request);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(request);
         ProtobufReader reader = new ProtobufReader().wrap(buffer, 0, request.length);
 
         int payloadOffset = -1;
@@ -153,7 +152,7 @@ public final class ConformanceTestee
     private void encodeResult(
         ProtobufWriter writer,
         String messageType,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int payloadOffset,
         int payloadLength)
     {
@@ -233,7 +232,7 @@ public final class ConformanceTestee
         String[] args) throws IOException
     {
         byte[] descriptorSet = Files.readAllBytes(Path.of(args[0]));
-        ProtobufSchema schema = Protobuf.schema(new UnsafeBuffer(descriptorSet), 0, descriptorSet.length);
+        ProtobufSchema schema = Protobuf.schema(new UnsafeBufferEx(descriptorSet), 0, descriptorSet.length);
         new ConformanceTestee(schema).run(System.in, System.out);
     }
 }

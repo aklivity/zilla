@@ -17,10 +17,10 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 // Phase 2 (prune): a transform drops a named top-level field while forwarding the rest verbatim, so the
@@ -65,7 +65,7 @@ class JsonSkipTest
         String json)
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
-        MutableDirectBuffer output = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[1024]);
         generator.wrap(output, 0, output.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(new Skip(dropKey))
@@ -73,7 +73,7 @@ class JsonSkipTest
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals(Status.COMPLETED, status);
 
         byte[] out = new byte[generator.length()];

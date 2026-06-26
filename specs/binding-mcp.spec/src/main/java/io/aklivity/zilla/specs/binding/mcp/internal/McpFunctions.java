@@ -19,13 +19,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.ByteBuffer;
 import java.util.function.Predicate;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.McpCapabilities;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
@@ -85,7 +84,7 @@ public final class McpFunctions
 
     public static final class McpBeginExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
         private final McpBeginExFW.Builder beginExRW = new McpBeginExFW.Builder();
 
         private McpBeginExBuilder()
@@ -383,7 +382,7 @@ public final class McpFunctions
 
     public static final class McpBeginExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
         private final McpBeginExFW beginExRO = new McpBeginExFW();
 
         private Integer typeId;
@@ -947,7 +946,7 @@ public final class McpFunctions
 
     public static final class McpFlushExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
         private final McpFlushExFW.Builder flushExRW = new McpFlushExFW.Builder();
 
         private McpFlushExBuilder()
@@ -1239,7 +1238,7 @@ public final class McpFunctions
 
     public static final class McpFlushExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
         private final McpFlushExFW flushExRO = new McpFlushExFW();
 
         private Integer typeId;
@@ -1748,7 +1747,7 @@ public final class McpFunctions
 
     public static final class McpChallengeExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
         private final McpChallengeExFW.Builder challengeExRW = new McpChallengeExFW.Builder();
 
         private McpChallengeExBuilder()
@@ -1870,7 +1869,7 @@ public final class McpFunctions
 
     public static final class McpChallengeExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
         private final McpChallengeExFW challengeExRO = new McpChallengeExFW();
 
         private Integer typeId;
@@ -2073,7 +2072,7 @@ public final class McpFunctions
 
     public static final class McpResetExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
         private final McpResetExFW.Builder resetExRW = new McpResetExFW.Builder();
 
         private McpResetExBuilder()
@@ -2176,7 +2175,7 @@ public final class McpFunctions
 
     public static final class McpResetExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
         private final McpResetExFW resetExRO = new McpResetExFW();
 
         private Integer typeId;
@@ -2371,7 +2370,7 @@ public final class McpFunctions
 
     public static final class McpAbortExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[256]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[256]);
         private final McpAbortExFW.Builder abortExRW = new McpAbortExFW.Builder();
 
         private McpAbortExBuilder()
@@ -2404,7 +2403,7 @@ public final class McpFunctions
 
     public static final class McpAbortExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
         private final McpAbortExFW abortExRO = new McpAbortExFW();
 
         private Integer typeId;
@@ -2466,7 +2465,7 @@ public final class McpFunctions
 
     public static final class McpEndExBuilder
     {
-        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[256]);
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[256]);
         private final McpEndExFW.Builder endExRW = new McpEndExFW.Builder();
 
         private McpEndExBuilder()
@@ -2500,7 +2499,7 @@ public final class McpFunctions
 
     public static final class McpEndExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
         private final McpEndExFW endExRO = new McpEndExFW();
 
         private Integer typeId;

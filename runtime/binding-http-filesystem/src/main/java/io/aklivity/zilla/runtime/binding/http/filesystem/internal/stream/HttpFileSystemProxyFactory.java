@@ -17,10 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.filesystem.internal.stream;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.HttpFileSystemConfiguration;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFileSystemBindingConfig;
@@ -46,6 +43,9 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.H
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -67,7 +67,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private static final String8FW HEADER_ETAG_NAME = new String8FW("etag");
     private static final String8FW HEADER_CONTENT_TYPE_NAME = new String8FW("content-type");
     private static final String8FW HEADER_CONTENT_LENGTH_NAME = new String8FW("content-length");
-    private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final int READ_FILE_MASK = 1 << FileSystemCapabilities.READ_FILE.ordinal();
     private static final int WRITE_FILE_MASK = 1 << FileSystemCapabilities.WRITE_FILE.ordinal();
     private static final int CREATE_FILE_MASK = 1 << FileSystemCapabilities.CREATE_FILE.ordinal();
@@ -81,31 +81,31 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     static
     {
         HttpHeaderFW headerMethodGet = new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+                .wrap(new UnsafeBufferEx(new byte[512]), 0, 512)
                 .name(":method")
                 .value("GET")
                 .build();
 
         HttpHeaderFW headerMethodHead = new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+                .wrap(new UnsafeBufferEx(new byte[512]), 0, 512)
                 .name(":method")
                 .value("HEAD")
                 .build();
 
         HttpHeaderFW headerMethodPost = new HttpHeaderFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+            .wrap(new UnsafeBufferEx(new byte[512]), 0, 512)
             .name(":method")
             .value("POST")
             .build();
 
         HttpHeaderFW headerMethodPut = new HttpHeaderFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+            .wrap(new UnsafeBufferEx(new byte[512]), 0, 512)
             .name(":method")
             .value("PUT")
             .build();
 
         HttpHeaderFW headerMethodDelete = new HttpHeaderFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+            .wrap(new UnsafeBufferEx(new byte[512]), 0, 512)
             .name(":method")
             .value("DELETE")
             .build();
@@ -118,7 +118,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         SUPPORTED_HTTP_METHOD = test;
     }
 
-    private final OctetsFW emptyExRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private final OctetsFW emptyExRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -147,8 +147,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private final HttpResetExFW.Builder httpResetExRW = new HttpResetExFW.Builder();
 
     private final FileSystemBeginExFW.Builder fsBeginExRW = new FileSystemBeginExFW.Builder();
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -162,7 +162,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -195,7 +195,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer http)
@@ -277,7 +277,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -674,7 +674,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
         private void onFileSystemMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

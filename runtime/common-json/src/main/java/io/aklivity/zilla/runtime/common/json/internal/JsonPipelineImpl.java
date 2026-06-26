@@ -20,9 +20,8 @@ import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParsingException;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -39,7 +38,7 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
- * driver. {@link #transform(DirectBuffer, int, int)} re-targets the parser at the frame buffer then pumps
+ * driver. {@link #transform(DirectBufferEx, int, int)} re-targets the parser at the frame buffer then pumps
  * each parsed event through the root sink, passing a {@link Source} view that adapts the parser to the
  * immutable {@code JsonSource} surface and a {@link Control} that adapts it to the {@link JsonController}.
  */
@@ -103,7 +102,7 @@ public final class JsonPipelineImpl implements JsonPipeline
 
     @Override
     public Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -193,11 +192,11 @@ public final class JsonPipelineImpl implements JsonPipeline
 
     @Override
     public JsonPipelineResult transform(
-        DirectBuffer src,
+        DirectBufferEx src,
         int offset,
         int limit,
         boolean last,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstOffset,
         int dstLimit)
     {
@@ -288,7 +287,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             return parser.getSegment();
         }

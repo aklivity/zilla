@@ -21,9 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.nio.ByteOrder;
 import java.util.List;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
@@ -36,7 +36,7 @@ public class AvroFragmentedParserTest
         Recorder recorder = new Recorder();
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(recorder);
         pipeline.reset();
-        UnsafeBuffer buffer = new UnsafeBuffer(binary);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(binary);
         // simulate byte-by-byte arrival: each feed presents the unconsumed remainder plus one new byte
         Status status = pipeline.transform(buffer, 0, 0, false);
         int progress = 0;
@@ -100,7 +100,7 @@ public class AvroFragmentedParserTest
     @Test
     public void shouldParseDoubleAcrossFrames()
     {
-        UnsafeBuffer encoded = new UnsafeBuffer(new byte[8]);
+        UnsafeBufferEx encoded = new UnsafeBufferEx(new byte[8]);
         encoded.putDouble(0, 2.25d, ByteOrder.LITTLE_ENDIAN);
         byte[] bytes = new byte[8];
         encoded.getBytes(0, bytes);
@@ -117,11 +117,11 @@ public class AvroFragmentedParserTest
             {"name":"name","type":"string"}]}""");
         byte[] binary = new byte[] { (byte) 0x80, 0x01, 0x08, 0x77, 0x78, 0x79, 0x7a };
 
-        UnsafeBuffer out = new UnsafeBuffer(new byte[64]);
+        UnsafeBufferEx out = new UnsafeBufferEx(new byte[64]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(AvroSink.of(generator, AvroSink.Delivery.SEGMENTABLE));
         pipeline.reset();
-        UnsafeBuffer buffer = new UnsafeBuffer(binary);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(binary);
         Status status = pipeline.transform(buffer, 0, 0, false);
         int progress = 0;
         for (int available = 1; available <= binary.length && status != COMPLETED; available++)

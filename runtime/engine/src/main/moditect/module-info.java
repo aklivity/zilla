@@ -52,7 +52,8 @@ module io.aklivity.zilla.runtime.engine
     requires jdk.unsupported;
     requires java.management;
     requires java.net.http;
-    requires io.aklivity.zilla.runtime.common;
+    requires transitive io.aklivity.zilla.runtime.common.agrona;
+    requires io.aklivity.zilla.runtime.common.feature;
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.yaml;
 

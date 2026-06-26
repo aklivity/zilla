@@ -29,8 +29,9 @@ import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
 import org.agrona.CloseHelper;
-import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class BudgetsLayout implements AutoCloseable
 {
@@ -49,10 +50,10 @@ public final class BudgetsLayout implements AutoCloseable
 
     public static final int SIZEOF_BUDGET_ENTRY_SHIFT = numberOfTrailingZeros(SIZEOF_BUDGET_ENTRY);
 
-    private final AtomicBuffer buffer;
+    private final AtomicBufferEx buffer;
 
     private BudgetsLayout(
-        AtomicBuffer buffer)
+        AtomicBufferEx buffer)
     {
         if (!isPowerOfTwo(buffer.capacity()))
         {
@@ -67,7 +68,7 @@ public final class BudgetsLayout implements AutoCloseable
         unmap(buffer().byteBuffer());
     }
 
-    public AtomicBuffer buffer()
+    public AtomicBufferEx buffer()
     {
         return buffer;
     }
@@ -143,7 +144,7 @@ public final class BudgetsLayout implements AutoCloseable
 
             final MappedByteBuffer mapped = mapExistingFile(budgets, "budgets");
 
-            final AtomicBuffer buffer = new UnsafeBuffer(mapped);
+            final AtomicBufferEx buffer = new UnsafeBufferEx(mapped);
 
             return new BudgetsLayout(buffer);
         }

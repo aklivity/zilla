@@ -49,10 +49,7 @@ import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
@@ -73,6 +70,9 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExF
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -83,13 +83,13 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsServerFactory implements TlsStreamFactory
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final int MAXIMUM_HEADER_SIZE = 5 + 20 + 256;    // TODO version + MAC + padding
     private static final int NET_SIGNAL_HANDSHAKE_TASK_COMPLETE = 1;
     private static final int NET_SIGNAL_HANDSHAKE_TIMEOUT = 2;
     private static final int APP_SIGNAL_RESET_LATER = 1;
-    private static final MutableDirectBuffer EMPTY_MUTABLE_DIRECT_BUFFER = new UnsafeBuffer(new byte[0]);
+    private static final MutableDirectBufferEx EMPTY_MUTABLE_DIRECT_BUFFER = new UnsafeBufferEx(new byte[0]);
 
     static final Optional<TlsServer.TlsStream> NULL_STREAM = Optional.ofNullable(null);
 
@@ -138,7 +138,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
     private final int proxyTypeId;
     private final Signaler signaler;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
@@ -156,13 +156,13 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final long handshakeTimeoutMillis;
 
     private final ByteBuffer inNetByteBuffer;
-    private final MutableDirectBuffer inNetBuffer;
+    private final MutableDirectBufferEx inNetBuffer;
     private final ByteBuffer outNetByteBuffer;
-    private final DirectBuffer outNetBuffer;
+    private final DirectBufferEx outNetBuffer;
     private final ByteBuffer inAppByteBuffer;
-    private final MutableDirectBuffer inAppBuffer;
+    private final MutableDirectBufferEx inAppBuffer;
     private final ByteBuffer outAppByteBuffer;
-    private final DirectBuffer outAppBuffer;
+    private final DirectBufferEx outAppBuffer;
 
     private final SecureRandom random;
 
@@ -191,13 +191,13 @@ public final class TlsServerFactory implements TlsStreamFactory
         this.event = new TlsEventContext(context);
 
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.inNetBuffer = new UnsafeBuffer(inNetByteBuffer);
+        this.inNetBuffer = new UnsafeBufferEx(inNetByteBuffer);
         this.outNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity() << 1);
-        this.outNetBuffer = new UnsafeBuffer(outNetByteBuffer);
+        this.outNetBuffer = new UnsafeBufferEx(outNetByteBuffer);
         this.inAppByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.inAppBuffer = new UnsafeBuffer(inAppByteBuffer);
+        this.inAppBuffer = new UnsafeBufferEx(inAppByteBuffer);
         this.outAppByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
-        this.outAppBuffer = new UnsafeBuffer(outAppByteBuffer);
+        this.outAppBuffer = new UnsafeBufferEx(outAppByteBuffer);
 
         this.random = new SecureRandom();
     }
@@ -238,7 +238,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer net)
@@ -355,7 +355,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -522,7 +522,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         long traceId,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -574,7 +574,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         long traceId,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -610,7 +610,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         long traceId,
         long budgetId,
         int reserved,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -732,7 +732,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         long traceId,
         long budgetId,
         int reserved,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -797,7 +797,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         long traceId,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -812,7 +812,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         long traceId,
         long budgetId,
         int reserved,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -921,7 +921,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         long traceId,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -936,7 +936,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         long traceId,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -952,7 +952,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             long traceId,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -1037,7 +1037,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
         private void onNetMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1091,7 +1091,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             if (beginEx != null && beginEx.typeId() == proxyTypeId)
             {
                 // TODO: use decodeSlot instead of allocation
-                MutableDirectBuffer bufferEx = new UnsafeBuffer(new byte[beginEx.sizeof()]);
+                MutableDirectBufferEx bufferEx = new UnsafeBufferEx(new byte[beginEx.sizeof()]);
                 bufferEx.putBytes(0, beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
                 extension = new ProxyBeginExFW().wrap(bufferEx, 0, bufferEx.capacity());
             }
@@ -1161,7 +1161,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     int offset = payload.offset();
                     int limit = payload.limit();
 
-                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                     buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -1326,7 +1326,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
 
                 encodeNet(encodeSlotTraceId, budgetId, buffer, 0, limit);
@@ -1362,7 +1362,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             final long traceId = signal.traceId();
             final long budgetId = decodeSlotBudgetId; // TODO: signal.budgetId ?
 
-            MutableDirectBuffer buffer = EMPTY_MUTABLE_DIRECT_BUFFER;
+            MutableDirectBufferEx buffer = EMPTY_MUTABLE_DIRECT_BUFFER;
             int reserved = 0;
             int offset = 0;
             int limit = 0;
@@ -1403,13 +1403,13 @@ public final class TlsServerFactory implements TlsStreamFactory
         private void doNetData(
             long traceId,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -1505,7 +1505,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         private void encodeNet(
             long traceId,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -1539,7 +1539,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + length, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -1560,7 +1560,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             long traceId,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -1585,7 +1585,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * (reserved / (limit - offset));
@@ -1637,7 +1637,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 final long budgetId = decodeSlotBudgetId; // TODO: signal.budgetId ?
 
-                final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                 final int reserved = decodeSlotReserved;
                 final int offset = 0;
                 final int limit = decodeSlotOffset;
@@ -1707,7 +1707,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             long traceId,
             long budgetId,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1726,7 +1726,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             long budgetId,
             OctetsFW payload)
         {
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             final int offset = payload.offset();
             final int length = payload.sizeof();
 
@@ -1912,7 +1912,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             private void onAppMessage(
                 int msgTypeId,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int index,
                 int length)
             {
@@ -2242,7 +2242,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 long traceId,
                 long budgetId,
                 int reserved,
-                DirectBuffer buffer,
+                DirectBufferEx buffer,
                 int offset,
                 int length)
             {

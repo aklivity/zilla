@@ -18,10 +18,9 @@ package io.aklivity.zilla.runtime.binding.http.internal.codec;
 import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameType.PING;
 import static io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags.ACK;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /*
 
@@ -56,7 +55,7 @@ public class Http2PingFW extends Http2FrameFW
     }
 
     public Http2PingFW tryWrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -72,7 +71,7 @@ public class Http2PingFW extends Http2FrameFW
 
     @Override
     public Http2PingFW wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -116,7 +115,7 @@ public class Http2PingFW extends Http2FrameFW
         }
 
         @Override
-        public Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             payloadLength(8);
@@ -130,7 +129,7 @@ public class Http2PingFW extends Http2FrameFW
         }
 
         @Override
-        public Http2PingFW.Builder payload(DirectBuffer payload, int offset, int length)
+        public Http2PingFW.Builder payload(DirectBufferEx payload, int offset, int length)
         {
             if (length != 8)
             {

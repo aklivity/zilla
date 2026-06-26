@@ -19,11 +19,6 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableDirectByteBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
@@ -42,6 +37,10 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -64,7 +63,7 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final ResetFW resetRO = new ResetFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -77,9 +76,9 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer codecBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx codecBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongIntToLongFunction supplyInitialIdHash;
     private final LongUnaryOperator supplyReplyId;
@@ -94,8 +93,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         int kind)
     {
         this.writeBuffer = context.writeBuffer();
-        this.codecBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialIdHash = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -107,7 +106,7 @@ abstract class McpProxyItemFactory implements BindingHandler
     @Override
     public final MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -192,7 +191,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final McpClient client;
 
         private final int toolSchemaId;
-        private ExpandableDirectByteBuffer argsBuffer;
+        private ExpandableDirectByteBufferEx argsBuffer;
         private int argsProgress;
 
         private int state;
@@ -241,7 +240,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
         private void onServerMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -335,13 +334,13 @@ abstract class McpProxyItemFactory implements BindingHandler
                 prefixAt = indexOfQuotedPrefix(payload.buffer(), payload.offset(), payload.limit());
             }
 
-            final DirectBuffer strippedBuffer;
+            final DirectBufferEx strippedBuffer;
             final int strippedOffset;
             final int strippedLength;
             final int strippedReserved;
             if (prefixAt >= 0)
             {
-                final DirectBuffer buf = payload.buffer();
+                final DirectBufferEx buf = payload.buffer();
                 final int offset = payload.offset();
                 final int limit = payload.limit();
                 final int head = prefixAt - offset;
@@ -375,13 +374,13 @@ abstract class McpProxyItemFactory implements BindingHandler
 
         private void bufferArgs(
             long traceId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
             if (argsBuffer == null)
             {
-                argsBuffer = new ExpandableDirectByteBuffer();
+                argsBuffer = new ExpandableDirectByteBufferEx();
             }
             argsBuffer.putBytes(argsProgress, buffer, offset, length);
             argsProgress += length;
@@ -416,7 +415,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         }
 
         private int indexOfQuotedPrefix(
-            DirectBuffer buf,
+            DirectBufferEx buf,
             int offset,
             int limit)
         {
@@ -547,7 +546,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long budgetId,
             int flags,
             int reserved,
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length)
         {
@@ -721,7 +720,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long budgetId,
             int flags,
             int reserved,
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length)
         {
@@ -830,7 +829,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
         private void onClientMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1102,7 +1101,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length)
     {

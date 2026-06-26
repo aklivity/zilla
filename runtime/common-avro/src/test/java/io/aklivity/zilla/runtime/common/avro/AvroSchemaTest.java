@@ -26,10 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
@@ -42,7 +42,7 @@ public class AvroSchemaTest
     {
         AvroPipeline pipeline = Avro.stream(Avro.parser(Avro.schema(schemaText))).into(sink);
         pipeline.reset();
-        return pipeline.transform(new UnsafeBuffer(binary), 0, binary.length);
+        return pipeline.transform(new UnsafeBufferEx(binary), 0, binary.length);
     }
 
     @FunctionalInterface
@@ -150,7 +150,7 @@ public class AvroSchemaTest
         {
             if (event == AvroEvent.BYTES)
             {
-                DirectBuffer segment = source.getSegment();
+                DirectBufferEx segment = source.getSegment();
                 byte[] dst = new byte[segment.capacity()];
                 segment.getBytes(0, dst);
                 captured[0] = dst;

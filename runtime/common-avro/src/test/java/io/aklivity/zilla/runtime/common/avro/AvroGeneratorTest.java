@@ -18,13 +18,14 @@ import static io.aklivity.zilla.runtime.common.avro.AvroValues.NO_CONTROL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class AvroGeneratorTest
 {
-    private final UnsafeBuffer out = new UnsafeBuffer(new byte[64]);
+    private final UnsafeBufferEx out = new UnsafeBufferEx(new byte[64]);
     private final AvroSource zero = new ZeroSource(new byte[0]);
 
     private AvroSink sink(
@@ -68,12 +69,12 @@ public class AvroGeneratorTest
 
     private static final class ZeroSource implements AvroSource
     {
-        private final UnsafeBuffer empty;
+        private final UnsafeBufferEx empty;
 
         private ZeroSource(
             byte[] segment)
         {
-            this.empty = new UnsafeBuffer(segment);
+            this.empty = new UnsafeBufferEx(segment);
         }
         private final AvroLocation location = new AvroLocation()
         {
@@ -139,7 +140,7 @@ public class AvroGeneratorTest
         }
 
         @Override
-        public DirectBuffer getSegment()
+        public DirectBufferEx getSegment()
         {
             return empty;
         }

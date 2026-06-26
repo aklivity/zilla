@@ -20,10 +20,10 @@ import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
@@ -33,12 +33,12 @@ public class HttpModelTest
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMPLETE = 0x03;
 
-    private final MutableDirectBuffer value = new UnsafeBuffer(new byte[256]);
+    private final MutableDirectBufferEx value = new UnsafeBufferEx(new byte[256]);
 
     @Test
     public void shouldTransformWholeValue()
     {
-        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5);
 
@@ -49,7 +49,7 @@ public class HttpModelTest
     @Test
     public void shouldRejectInvalidValue()
     {
-        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         assertEquals(-1, model.transform(0L, 0L, value("nope"), 0, 4));
     }
@@ -57,7 +57,7 @@ public class HttpModelTest
     @Test
     public void shouldTransformWholeValueToLargerLength()
     {
-        HttpModel model = HttpModel.decoder(handler(5, 8), new UnsafeBuffer(new byte[256]));
+        HttpModel model = HttpModel.decoder(handler(5, 8), new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5);
 
@@ -68,7 +68,7 @@ public class HttpModelTest
     @Test
     public void shouldTransformWholeValueToSmallerLength()
     {
-        HttpModel model = HttpModel.decoder(handler(5, 3), new UnsafeBuffer(new byte[256]));
+        HttpModel model = HttpModel.decoder(handler(5, 3), new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, value("hello"), 0, 5);
 
@@ -79,13 +79,13 @@ public class HttpModelTest
     @Test
     public void shouldSupplyNoneWhenNoHandler()
     {
-        assertSame(HttpModel.NONE, HttpModel.decoder(null, new UnsafeBuffer(new byte[8])));
+        assertSame(HttpModel.NONE, HttpModel.decoder(null, new UnsafeBufferEx(new byte[8])));
     }
 
     @Test
     public void shouldTransformWholeContent()
     {
-        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         int consumed = model.transform(0L, 0L, FLAGS_COMPLETE, value("hello"), 0, 5, 256);
 
@@ -97,7 +97,7 @@ public class HttpModelTest
     @Test
     public void shouldRejectInvalidContent()
     {
-        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         int consumed = model.transform(0L, 0L, FLAGS_COMPLETE, value("nope"), 0, 4, 256);
 
@@ -107,7 +107,7 @@ public class HttpModelTest
     @Test
     public void shouldTransformContentAcrossFragments()
     {
-        HttpModel model = HttpModel.decoder(handler(10), new UnsafeBuffer(new byte[256]));
+        HttpModel model = HttpModel.decoder(handler(10), new UnsafeBufferEx(new byte[256]));
 
         int consumed1 = model.transform(0L, 0L, FLAGS_INIT, value("hello"), 0, 5, 256);
         assertEquals(5, consumed1);
@@ -123,7 +123,7 @@ public class HttpModelTest
     @Test
     public void shouldTransformContentAcrossOverflow()
     {
-        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBuffer(new byte[256]));
+        HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
         int consumed1 = model.transform(0L, 0L, FLAGS_COMPLETE, value("hello"), 0, 5, 2);
         assertEquals(2, consumed1);
@@ -149,7 +149,7 @@ public class HttpModelTest
         return new TestModelHandler(new TestModelConfig(length, emptyList(), true, transformLength));
     }
 
-    private MutableDirectBuffer value(
+    private MutableDirectBufferEx value(
         String text)
     {
         value.putBytes(0, text.getBytes(UTF_8));

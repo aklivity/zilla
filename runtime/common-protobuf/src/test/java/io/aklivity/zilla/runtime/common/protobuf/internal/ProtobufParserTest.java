@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
@@ -63,7 +63,7 @@ public class ProtobufParserTest
             w.writeBytes(home);
         });
 
-        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBufferEx(message), 0, message.length);
 
         List<String> events = new ArrayList<>();
         int rootLength = -1;
@@ -128,7 +128,7 @@ public class ProtobufParserTest
             w.writeBytes(home);
         });
 
-        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser(schema, "P").wrap(new UnsafeBufferEx(message), 0, message.length);
 
         List<String> events = new ArrayList<>();
         byte[] segment = null;
@@ -183,7 +183,7 @@ public class ProtobufParserTest
             w.writeBytes(new byte[]{0});
         });
 
-        ProtobufParser parser = Protobuf.parser(broken, "P").wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser(broken, "P").wrap(new UnsafeBufferEx(message), 0, message.length);
         parser.nextEvent();
         parser.nextEvent();
 
@@ -201,7 +201,7 @@ public class ProtobufParserTest
             w.writeBytes("hi".getBytes(UTF_8));
         });
 
-        ProtobufParser parser = Protobuf.parser().wrap(new UnsafeBuffer(message), 0, message.length);
+        ProtobufParser parser = Protobuf.parser().wrap(new UnsafeBufferEx(message), 0, message.length);
 
         List<String> events = new ArrayList<>();
         while (parser.hasNext())
@@ -234,7 +234,7 @@ public class ProtobufParserTest
     @Test
     public void shouldRejectUnknownRootMessageOnFirstEvent()
     {
-        ProtobufParser parser = Protobuf.parser(schema, "Nope").wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+        ProtobufParser parser = Protobuf.parser(schema, "Nope").wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
         assertThrows(ProtobufException.class, parser::nextEvent);
     }
@@ -270,7 +270,7 @@ public class ProtobufParserTest
             w.writeBytes(home);
         });
 
-        List<String> whole = drain(Protobuf.parser(schema, "P").wrap(new UnsafeBuffer(message), 0, message.length));
+        List<String> whole = drain(Protobuf.parser(schema, "P").wrap(new UnsafeBufferEx(message), 0, message.length));
 
         ProtobufParser parser = Protobuf.parser(schema, "P");
         List<String> events = new ArrayList<>();
@@ -291,7 +291,7 @@ public class ProtobufParserTest
             progress += take;
             boolean last = progress >= message.length;
             int limit = buffer.length;
-            UnsafeBuffer view = new UnsafeBuffer(buffer);
+            UnsafeBufferEx view = new UnsafeBufferEx(buffer);
             if (started)
             {
                 parser.resume(view, offset, limit, last);
@@ -501,7 +501,7 @@ public class ProtobufParserTest
             progress += take;
             boolean last = progress >= message.length;
             int limit = buffer.length;
-            UnsafeBuffer view = new UnsafeBuffer(buffer);
+            UnsafeBufferEx view = new UnsafeBufferEx(buffer);
             if (started)
             {
                 parser.resume(view, offset, limit, last);
@@ -542,7 +542,7 @@ public class ProtobufParserTest
         ProtobufParser parser,
         byte[] message)
     {
-        parser.wrap(new UnsafeBuffer(message), 0, message.length);
+        parser.wrap(new UnsafeBufferEx(message), 0, message.length);
         int events = 0;
         while (parser.hasNext())
         {
@@ -574,7 +574,7 @@ public class ProtobufParserTest
     private static byte[] wire(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
+        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];

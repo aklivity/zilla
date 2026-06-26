@@ -18,11 +18,8 @@ import java.util.Base64;
 import java.util.function.BiConsumer;
 import java.util.function.ToLongFunction;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
@@ -31,17 +28,20 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagPartitionV1FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagV1FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class HttpKafkaEtagHelper
 {
     private final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW =
         new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
-                .wrap(new UnsafeBuffer(new byte[2048]), 0, 2048);
+                .wrap(new UnsafeBufferEx(new byte[2048]), 0, 2048);
 
     private final HttpKafkaEtagFW.Builder etagRW =
-            new HttpKafkaEtagFW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+            new HttpKafkaEtagFW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
-    private final String16FW.Builder stringRW = new String16FW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+    private final String16FW.Builder stringRW = new String16FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
     private final HttpKafkaEtagFW etagRO = new HttpKafkaEtagFW();
     private final HttpKafkaEtagPartitionV1FW partitionV1RO = new HttpKafkaEtagPartitionV1FW();
@@ -50,7 +50,7 @@ public final class HttpKafkaEtagHelper
     private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
     private final Base64.Decoder decoder64 = Base64.getUrlDecoder();
 
-    private final MutableDirectBuffer bufferRW = new UnsafeBuffer(0L, 0);
+    private final MutableDirectBufferEx bufferRW = new UnsafeBufferEx(0L, 0);
     private final byte[] base64RW = new byte[256];
 
     private final Int2ObjectCache<byte[]> byteArrays = new Int2ObjectCache<>(1, 16, i -> {});
@@ -81,7 +81,7 @@ public final class HttpKafkaEtagHelper
 
         count.value = 0;
 
-        MutableDirectBuffer buffer = etagRW.buffer();
+        MutableDirectBufferEx buffer = etagRW.buffer();
         offset.value = etag.limit();
         progress.forEach(p ->
         {
@@ -111,7 +111,7 @@ public final class HttpKafkaEtagHelper
 
             final byte[] encodedBase64 = base64RW;
             final int encodedBytes = encoder64.encode(encodableRaw, encodedBase64);
-            MutableDirectBuffer encodeBuf = bufferRW;
+            MutableDirectBufferEx encodeBuf = bufferRW;
             encodeBuf.wrap(encodedBase64, 0, encodedBytes);
             encodedBuf = stringRW.set(encodeBuf, 0, encodeBuf.capacity()).build();
         }
@@ -145,7 +145,7 @@ public final class HttpKafkaEtagHelper
 
         HttpKafkaEtagFW decoded = null;
 
-        DirectBuffer decodeBuf = decodable != null ? decodable.value() : null;
+        DirectBufferEx decodeBuf = decodable != null ? decodable.value() : null;
         decode:
         if (decodeBuf != null)
         {
@@ -188,7 +188,7 @@ public final class HttpKafkaEtagHelper
             final byte[] decodedBase64 = base64RW;
             final int decodedBytes = decoder64.decode(encodedBase64, decodedBase64);
 
-            DirectBuffer decodedBuf = bufferRW;
+            DirectBufferEx decodedBuf = bufferRW;
             decodedBuf.wrap(decodedBase64, 0, decodedBytes);
             decoded = etagRO.tryWrap(decodedBuf, 0, decodedBuf.capacity());
         }
@@ -203,7 +203,7 @@ public final class HttpKafkaEtagHelper
             case HttpKafkaEtagFW.KIND_V1:
                 final HttpKafkaEtagV1FW etagV1 = etag.v1();
                 int partitionCount = etagV1.partitionCount();
-                DirectBuffer wrapBuffer = etagV1.buffer();
+                DirectBufferEx wrapBuffer = etagV1.buffer();
                 int wrapOffset = etagV1.limit();
 
                 final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressV1RW = progressRW;

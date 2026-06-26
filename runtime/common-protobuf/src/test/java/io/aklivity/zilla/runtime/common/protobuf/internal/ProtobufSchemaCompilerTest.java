@@ -23,11 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
@@ -45,7 +45,7 @@ public class ProtobufSchemaCompilerTest
     public void shouldCompileDescriptorSetAndResolveNames()
     {
         byte[] descriptorSet = personDescriptorSet();
-        MutableDirectBuffer buffer = new UnsafeBuffer(descriptorSet);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(descriptorSet);
 
         ProtobufSchema schema = Protobuf.schema(buffer, 0, descriptorSet.length);
 
@@ -61,7 +61,7 @@ public class ProtobufSchemaCompilerTest
     public void shouldCanonicalizeThroughCompiledSchema()
     {
         byte[] descriptorSet = personDescriptorSet();
-        MutableDirectBuffer descriptors = new UnsafeBuffer(descriptorSet);
+        MutableDirectBufferEx descriptors = new UnsafeBufferEx(descriptorSet);
         ProtobufSchema schema = Protobuf.schema(descriptors, 0, descriptorSet.length);
 
         byte[] address = encode(g ->
@@ -94,7 +94,7 @@ public class ProtobufSchemaCompilerTest
     public void shouldCompileMapsOneofPackedAndProto3Optional()
     {
         byte[] descriptorSet = boxDescriptorSet();
-        MutableDirectBuffer descriptors = new UnsafeBuffer(descriptorSet);
+        MutableDirectBufferEx descriptors = new UnsafeBufferEx(descriptorSet);
         ProtobufSchema schema = Protobuf.schema(descriptors, 0, descriptorSet.length);
 
         assertTrue(schema.message("test.Box.LabelsEntry").mapEntry());
@@ -133,9 +133,9 @@ public class ProtobufSchemaCompilerTest
         String messageName,
         byte[] input)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
         ProtobufCanonicalizer canonicalizer = new ProtobufCanonicalizer(schema);
-        int length = canonicalizer.canonicalize(messageName, new UnsafeBuffer(input), 0, input.length, out, 0);
+        int length = canonicalizer.canonicalize(messageName, new UnsafeBufferEx(input), 0, input.length, out, 0);
         byte[] result = new byte[length];
         out.getBytes(0, result);
         return result;
@@ -404,7 +404,7 @@ public class ProtobufSchemaCompilerTest
     private static byte[] encode(
         Consumer<ProtobufWriter> body)
     {
-        ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
+        ExpandableArrayBufferEx buffer = new ExpandableArrayBufferEx();
         ProtobufWriter writer = new ProtobufWriter().wrap(buffer, 0);
         body.accept(writer);
         byte[] bytes = new byte[writer.length()];

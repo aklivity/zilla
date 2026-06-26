@@ -17,10 +17,9 @@ package io.aklivity.zilla.runtime.common.avro;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery;
 
@@ -47,7 +46,7 @@ public final class AvroValues
         Recorder recorder = new Recorder();
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(recorder);
         pipeline.reset();
-        recorder.status = pipeline.transform(new UnsafeBuffer(binary), 0, binary.length);
+        recorder.status = pipeline.transform(new UnsafeBufferEx(binary), 0, binary.length);
         return recorder.events;
     }
 
@@ -58,7 +57,7 @@ public final class AvroValues
         Recorder recorder = new Recorder();
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema)).into(recorder);
         pipeline.reset();
-        recorder.status = pipeline.transform(new UnsafeBuffer(binary), 0, binary.length);
+        recorder.status = pipeline.transform(new UnsafeBufferEx(binary), 0, binary.length);
         return recorder;
     }
 
@@ -67,13 +66,13 @@ public final class AvroValues
         byte[] binary,
         Delivery delivery)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[Math.max(64, binary.length * 4)]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(64, binary.length * 4)]);
         AvroGenerator generator = Avro.generator(schema, out, 0);
         AvroPipeline pipeline = Avro.stream(Avro.parser(schema))
             .transform(schema.validator())
             .into(AvroSink.of(generator, delivery));
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(binary), 0, binary.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(binary), 0, binary.length);
         if (status != Status.COMPLETED)
         {
             throw new AssertionError("parse did not complete: " + status);
@@ -116,7 +115,7 @@ public final class AvroValues
         private static byte[] copy(
             AvroSource in)
         {
-            DirectBuffer segment = in.getSegment();
+            DirectBufferEx segment = in.getSegment();
             byte[] dst = new byte[segment.capacity()];
             segment.getBytes(0, dst);
             return dst;

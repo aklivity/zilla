@@ -26,8 +26,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.agrona.BitUtil;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,13 +33,16 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String32FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 @RunWith(Parameterized.class)
 public class String32FWTest
 {
     private static final int LENGTH_SIZE = 4;
 
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(1000000))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(1000000))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -353,16 +354,16 @@ public class String32FWTest
         assertEquals("value1", stringRO.value().getStringWithoutLengthUtf8(0, stringRO.value().capacity()));
     }
 
-    private static MutableDirectBuffer asBuffer(String value)
+    private static MutableDirectBufferEx asBuffer(String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(value.length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(value.length()));
         buffer.putStringWithoutLengthUtf8(0, value);
         return buffer;
     }
 
     private static String32FW asStringFW(String value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(Byte.SIZE + value.length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(Byte.SIZE + value.length()));
         return new String32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 

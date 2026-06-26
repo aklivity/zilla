@@ -15,12 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.codec;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 /*
  *  Flyweight for HTTP2 client preface
@@ -35,9 +33,9 @@ public class Http2PrefaceFW extends Flyweight
         'S', 'M', '\r', '\n',
         '\r', '\n'
     };
-    private static final DirectBuffer PREFACE = new UnsafeBuffer(PRI_REQUEST);
+    private static final DirectBufferEx PREFACE = new UnsafeBufferEx(PRI_REQUEST);
 
-    private final DirectBuffer payloadRO = new UnsafeBuffer(new byte[0]);
+    private final DirectBufferEx payloadRO = new UnsafeBufferEx(new byte[0]);
 
     @Override
     public int limit()
@@ -51,7 +49,7 @@ public class Http2PrefaceFW extends Flyweight
     }
 
     public Http2PrefaceFW tryWrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -71,7 +69,7 @@ public class Http2PrefaceFW extends Flyweight
 
     @Override
     public Http2PrefaceFW wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int maxLimit)
     {
@@ -92,7 +90,7 @@ public class Http2PrefaceFW extends Flyweight
         }
 
         @Override
-        public Http2PrefaceFW.Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public Http2PrefaceFW.Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             return this;

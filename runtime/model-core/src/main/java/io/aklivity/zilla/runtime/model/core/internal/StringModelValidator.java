@@ -18,9 +18,9 @@ import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import org.agrona.DirectBuffer;
 import org.agrona.ExpandableDirectByteBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 final class StringModelValidator implements CoreModelValidator
@@ -59,7 +59,7 @@ final class StringModelValidator implements CoreModelValidator
     @Override
     public Validity validate(
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {

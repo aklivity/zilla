@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import jakarta.json.stream.JsonParsingException;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 // Decodes the raw body of a JSON string (the bytes between the surrounding quotes, escapes and
 // UTF-8 intact) into a StringBuilder, applying JSON unescaping. The tokenizer validates the body
@@ -29,7 +29,7 @@ final class JsonStrings
     }
 
     static void unescape(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length,
         StringBuilder out)
@@ -56,7 +56,7 @@ final class JsonStrings
     }
 
     private static int unescapeEscape(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         StringBuilder out)
     {
@@ -105,7 +105,7 @@ final class JsonStrings
     }
 
     private static int appendUtf8(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int first,
         StringBuilder out)

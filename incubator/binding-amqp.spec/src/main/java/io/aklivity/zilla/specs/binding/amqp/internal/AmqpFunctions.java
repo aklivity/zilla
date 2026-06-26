@@ -23,13 +23,12 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
 import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpAnnotationFW;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpApplicationPropertyFW;
 import io.aklivity.zilla.specs.binding.amqp.internal.types.AmqpBinaryFW;
@@ -121,7 +120,7 @@ public final class AmqpFunctions
 
         public AmqpBeginExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[MAX_BUFFER_SIZE]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
             this.beginExRW = new AmqpBeginExFW.Builder()
                 .wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -178,7 +177,7 @@ public final class AmqpFunctions
 
         public AmqpDataExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[MAX_BUFFER_SIZE]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
             this.dataExRW = new AmqpDataExFW.Builder()
                 .wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -395,7 +394,7 @@ public final class AmqpFunctions
         {
             if (propertiesRW == null)
             {
-                propertiesRW = new AmqpPropertiesFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                propertiesRW = new AmqpPropertiesFW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
             }
             return propertiesRW;
         }
@@ -429,7 +428,7 @@ public final class AmqpFunctions
 
     public static final class AmqpDataExMatcherBuilder
     {
-        private final DirectBuffer bufferRO = new UnsafeBuffer();
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final AmqpDataExFW dataExRO = new AmqpDataExFW();
 
@@ -461,7 +460,7 @@ public final class AmqpFunctions
             String deliveryTag)
         {
             assert deliveryTagRW == null;
-            deliveryTagRW = new AmqpBinaryFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+            deliveryTagRW = new AmqpBinaryFW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
             deliveryTagRW.bytes(b -> b.set(deliveryTag.getBytes(UTF_8)));
             return this;
         }
@@ -509,7 +508,7 @@ public final class AmqpFunctions
             if (annotationsRW == null)
             {
                 this.annotationsRW = new Array32FW.Builder<>(new AmqpAnnotationFW.Builder(), new AmqpAnnotationFW())
-                    .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
             }
             return key instanceof Long ? annotations((long) key, value) : annotations((String) key, value);
         }
@@ -649,7 +648,7 @@ public final class AmqpFunctions
         {
             if (propertiesRW == null)
             {
-                propertiesRW = new AmqpPropertiesFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                propertiesRW = new AmqpPropertiesFW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
             }
             return propertiesRW;
         }
@@ -662,7 +661,7 @@ public final class AmqpFunctions
             {
                 this.applicationPropertiesRW = new Array32FW.Builder<>(new AmqpApplicationPropertyFW.Builder(),
                     new AmqpApplicationPropertyFW())
-                    .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                    .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
             }
             applicationPropertiesRW.item(a -> a.key(key)
                                                .value(v -> v.bytes(o -> o.set(value))));
@@ -767,7 +766,7 @@ public final class AmqpFunctions
 
         public AmqpAbortExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[MAX_BUFFER_SIZE]);
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[MAX_BUFFER_SIZE]);
             this.abortExRW = new AmqpAbortExFW.Builder()
                 .wrap(writeBuffer, 0, writeBuffer.capacity());
         }

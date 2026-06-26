@@ -20,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.function.Consumer;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
@@ -218,7 +218,7 @@ public class ProtobufJsonTest
     @Test
     public void shouldReusePipelineAcrossMessages()
     {
-        UnsafeBuffer out = new UnsafeBuffer(new byte[4096]);
+        UnsafeBufferEx out = new UnsafeBufferEx(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator();
         JsonParserEx parser = JsonEx.createParser();
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(parser, schema, "Person"))
@@ -281,8 +281,8 @@ public class ProtobufJsonTest
     public void shouldRejectUnsupportedGeneratorWrites()
     {
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, "Person");
-        generator.wrap(new UnsafeBuffer(new byte[64]), 0, 64);
-        UnsafeBuffer any = new UnsafeBuffer(new byte[]{1});
+        generator.wrap(new UnsafeBufferEx(new byte[64]), 0, 64);
+        UnsafeBufferEx any = new UnsafeBufferEx(new byte[]{1});
         assertThrows(RuntimeException.class, () -> generator.writeMessage(1, any, 0, 1));
         assertThrows(RuntimeException.class, () -> generator.writeRaw(any, 0, 1));
         assertThrows(RuntimeException.class, () -> generator.writeValue(1, ProtobufWireType.LEN, any, 0, 1));
@@ -338,14 +338,14 @@ public class ProtobufJsonTest
         String messageName,
         byte[] wire)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
 
-        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(wire), 0, wire.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(wire), 0, wire.length));
         generator.flush();
 
         byte[] bytes = new byte[generator.length()];
@@ -357,14 +357,14 @@ public class ProtobufJsonTest
         String messageName,
         String json)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
 
         byte[] in = json.getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(in), 0, in.length));
 
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);
@@ -376,13 +376,13 @@ public class ProtobufJsonTest
         String json,
         int window)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
 
-        UnsafeBuffer in = new UnsafeBuffer(json.getBytes(UTF_8));
+        UnsafeBufferEx in = new UnsafeBufferEx(json.getBytes(UTF_8));
         int length = in.capacity();
         int progress = 0;
         int limit = 0;
@@ -413,13 +413,13 @@ public class ProtobufJsonTest
     private byte[] feedReuse(
         ProtobufPipeline pipeline,
         ProtobufGenerator generator,
-        UnsafeBuffer out,
+        UnsafeBufferEx out,
         String json)
     {
         generator.wrap(out, 0, out.capacity());
         pipeline.reset();
         byte[] in = json.getBytes(UTF_8);
-        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(in), 0, in.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(in), 0, in.length));
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);
         return bytes;
@@ -429,13 +429,13 @@ public class ProtobufJsonTest
         String messageName,
         String json)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
         byte[] in = json.getBytes(UTF_8);
-        return pipeline.transform(new UnsafeBuffer(in), 0, in.length);
+        return pipeline.transform(new UnsafeBufferEx(in), 0, in.length);
     }
 
     private byte[] nestedWire()
@@ -454,7 +454,7 @@ public class ProtobufJsonTest
     private static byte[] wire(
         Consumer<ProtobufGenerator> body)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[8192]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(buffer, 0, buffer.capacity());
         body.accept(generator);
         byte[] bytes = new byte[generator.length()];

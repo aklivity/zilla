@@ -14,8 +14,7 @@
  */
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.OctetsFW;
@@ -61,7 +60,7 @@ final class HttpUtils
     {
         if (isContentLengthValid(contentLength))
         {
-            DirectBuffer buffer = contentLength.value().value();
+            DirectBufferEx buffer = contentLength.value().value();
             assert buffer != null;
             int capacity = buffer.capacity();
             return capacity == 0 ? 0L : buffer.parseLongAscii(0, capacity);

@@ -15,9 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -27,10 +26,10 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
  * Per-stream driver around a decode {@link ModelPipeline} for the http binding.
  * <p>
  * Scalar metadata (header, path and query values) is transformed whole-value via the
- * {@link #transform(long, long, DirectBuffer, int, int)} overload: the value is driven through the
+ * {@link #transform(long, long, DirectBufferEx, int, int)} overload: the value is driven through the
  * pipeline and the produced (possibly changed) bytes are exposed via {@link #buffer} / {@link #produced}
  * for the caller to substitute downstream, or {@code -1} signals the model rejected it. Streaming content
- * is transformed via {@link #transform(long, long, int, DirectBuffer, int, int, int)}: each fragment is
+ * is transformed via {@link #transform(long, long, int, DirectBufferEx, int, int, int)}: each fragment is
  * driven through the pipeline and the produced bytes are exposed for the caller to forward downstream.
  * </p>
  */
@@ -42,13 +41,13 @@ public final class HttpModel
     private static final int FLAGS_FIN = 0x01;
 
     private final ModelPipeline pipeline;
-    private final MutableDirectBuffer scratch;
+    private final MutableDirectBufferEx scratch;
 
     private int produced;
 
     public static HttpModel decoder(
         ModelHandler handler,
-        MutableDirectBuffer scratch)
+        MutableDirectBufferEx scratch)
     {
         return handler != null
             ? new HttpModel(handler.supplyDecoder(), scratch)
@@ -63,7 +62,7 @@ public final class HttpModel
 
     HttpModel(
         ModelPipeline pipeline,
-        MutableDirectBuffer scratch)
+        MutableDirectBufferEx scratch)
     {
         this.pipeline = pipeline;
         this.scratch = scratch;
@@ -72,7 +71,7 @@ public final class HttpModel
     public int transform(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int limit)
     {
@@ -125,7 +124,7 @@ public final class HttpModel
         long traceId,
         long bindingId,
         int flags,
-        DirectBuffer src,
+        DirectBufferEx src,
         int srcIndex,
         int srcLimit,
         int dstMax)
@@ -152,7 +151,7 @@ public final class HttpModel
         return consumed;
     }
 
-    public DirectBuffer buffer()
+    public DirectBufferEx buffer()
     {
         return scratch;
     }

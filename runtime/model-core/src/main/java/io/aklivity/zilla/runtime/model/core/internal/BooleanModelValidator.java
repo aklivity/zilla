@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 final class BooleanModelValidator implements CoreModelValidator
 {
@@ -24,7 +24,7 @@ final class BooleanModelValidator implements CoreModelValidator
     @Override
     public Validity validate(
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {

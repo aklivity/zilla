@@ -22,17 +22,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt16;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt16FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class EnumWithInt16FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -40,7 +41,7 @@ public class EnumWithInt16FWTest
         }
     };
 
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -51,7 +52,7 @@ public class EnumWithInt16FWTest
     private final EnumWithInt16FW.Builder flyweightRW = new EnumWithInt16FW.Builder();
     private final EnumWithInt16FW flyweightRO = new EnumWithInt16FW();
 
-    static int setAllTestValues(MutableDirectBuffer buffer, final int offset)
+    static int setAllTestValues(MutableDirectBufferEx buffer, final int offset)
     {
         int pos = offset;
         buffer.putShort(pos,  EnumWithInt16.TWO.value());
@@ -177,9 +178,9 @@ public class EnumWithInt16FWTest
             .build();
     }
 
-    private static DirectBuffer asBuffer(short value)
+    private static DirectBufferEx asBuffer(short value)
     {
-        MutableDirectBuffer valueBuffer = new UnsafeBuffer(allocateDirect(SIZE_OF_SHORT));
+        MutableDirectBufferEx valueBuffer = new UnsafeBufferEx(allocateDirect(SIZE_OF_SHORT));
         valueBuffer.putShort(0, value);
         return valueBuffer;
     }

@@ -22,8 +22,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
@@ -31,10 +29,13 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithVariantOfUint64;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ListWithEnumAndVariantWithDefaultFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.UnionWithEnumFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class UnionWithEnumFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
     {
         {
             // Make sure the code is not secretly relying upon memory being initialized to 0
@@ -55,7 +56,7 @@ public class UnionWithEnumFWTest
     private static final EnumWithUint8 KIND_FIELD4 = EnumWithUint8.SAN;
 
     private int setAllTestValues(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         final int offset)
     {
         int unionCaseTypeOffset = offset;
@@ -203,7 +204,7 @@ public class UnionWithEnumFWTest
     @Test
     public void shouldSetList()
     {
-        MutableDirectBuffer listBuffer = new UnsafeBuffer(allocateDirect(20));
+        MutableDirectBufferEx listBuffer = new UnsafeBufferEx(allocateDirect(20));
         ListWithEnumAndVariantWithDefaultFW listWithEnumAndVariantWithDefault =
             new ListWithEnumAndVariantWithDefaultFW.Builder()
                 .wrap(listBuffer, 0, listBuffer.capacity())

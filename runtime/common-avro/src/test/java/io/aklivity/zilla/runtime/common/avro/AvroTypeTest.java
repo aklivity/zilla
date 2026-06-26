@@ -25,8 +25,9 @@ import jakarta.json.JsonNumber;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class AvroTypeTest
 {
@@ -182,7 +183,7 @@ public class AvroTypeTest
     {
         AvroParser parser = Avro.parser(Avro.schema("[\"null\",\"string\"]"));
         // branch 1 (string) "x": 0x02 0x02 0x78
-        parser.wrap(new UnsafeBuffer(new byte[] { 0x02, 0x02, 0x78 }), 0, 3);
+        parser.wrap(new UnsafeBufferEx(new byte[] { 0x02, 0x02, 0x78 }), 0, 3);
 
         assertEquals(AvroEvent.START_MESSAGE, next(parser));
         assertEquals(AvroEvent.UNION_BRANCH, next(parser));
@@ -200,7 +201,7 @@ public class AvroTypeTest
             {"type":"record","name":"R","fields":[
             {"name":"id","type":"int"},
             {"name":"name","type":"string"}]}"""));
-        parser.wrap(new UnsafeBuffer(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
+        parser.wrap(new UnsafeBufferEx(new byte[] { 0x02, 0x04, 0x68, 0x69 }), 0, 4);
 
         assertEquals(AvroEvent.START_MESSAGE, next(parser));
         assertEquals(AvroKind.RECORD, parser.type().kind());

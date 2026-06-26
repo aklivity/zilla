@@ -16,10 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration;
@@ -40,6 +37,9 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.Extensio
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -47,7 +47,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -75,15 +75,14 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
 
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
     private final long compositeRouteId;
     private final AsyncapiCompositeGenerator generator;
     private final AsyncapiEventContext event;
-
 
     public AsyncapiClientFactory(
         AsyncapiConfiguration config,
@@ -94,7 +93,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bindings = new Long2ObjectHashMap<>();
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.compositeRouteId = config.compositeRouteId();
@@ -145,7 +144,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer receiver)
@@ -247,7 +246,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
         private void onAsyncapiMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -663,7 +662,6 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             delegate.doCompositeReset(traceId);
         }
 
-
         private void onCompositeWindow(
             WindowFW window)
         {
@@ -692,7 +690,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
         private void onCompositeMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

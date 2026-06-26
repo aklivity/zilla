@@ -23,15 +23,15 @@ import java.util.Map;
 
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonProjectorSegmentTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
     @Test
     void shouldSegmentKeptSubtreeWhenSinkOptsIn()
@@ -161,7 +161,7 @@ class JsonProjectorSegmentTest
         {
             limit = Math.min(limit + 8, bytes.length);
             boolean last = limit >= bytes.length;
-            status = pipeline.transform(new UnsafeBuffer(bytes), progress, limit, last);
+            status = pipeline.transform(new UnsafeBufferEx(bytes), progress, limit, last);
             progress = limit - pipeline.remaining();
             if (status == Status.COMPLETED || status == Status.REJECTED)
             {
@@ -200,7 +200,7 @@ class JsonProjectorSegmentTest
         int outBound,
         int inStep)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[outBound]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[outBound]);
         JsonGeneratorEx gen = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))
@@ -222,7 +222,7 @@ class JsonProjectorSegmentTest
                 limit = Math.min(limit + inStep, bytes.length);
             }
             boolean last = limit >= bytes.length;
-            status = pipeline.transform(new UnsafeBuffer(bytes), progress, limit, last);
+            status = pipeline.transform(new UnsafeBufferEx(bytes), progress, limit, last);
             byte[] chunk = new byte[gen.length()];
             out.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
@@ -261,7 +261,7 @@ class JsonProjectorSegmentTest
         int outBound,
         int inStep)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[outBound]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[outBound]);
         JsonGeneratorEx gen = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/id", "/status", "/total")))
@@ -283,7 +283,7 @@ class JsonProjectorSegmentTest
                 limit = Math.min(limit + inStep, bytes.length);
             }
             boolean last = limit >= bytes.length;
-            status = pipeline.transform(new UnsafeBuffer(bytes), progress, limit, last);
+            status = pipeline.transform(new UnsafeBufferEx(bytes), progress, limit, last);
             byte[] chunk = new byte[gen.length()];
             out.getBytes(0, chunk);
             result.append(new String(chunk, UTF_8));
@@ -306,14 +306,14 @@ class JsonProjectorSegmentTest
     private static String plain(
         String json)
     {
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[4096]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(out, 0, out.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonEx.projector(List.of("/a")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
         byte[] bytes = json.getBytes(UTF_8);
         pipeline.reset();
-        Status status = pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals(Status.COMPLETED, status);
         byte[] rendered = new byte[gen.length()];
         out.getBytes(0, rendered);
@@ -350,6 +350,6 @@ class JsonProjectorSegmentTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
     }
 }

@@ -20,10 +20,9 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.Optional;
 
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream.KafkaGrpcFetchHeaderHelper;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -38,7 +37,7 @@ public final class KafkaGrpcBindingConfig
 
     public KafkaGrpcBindingConfig(
         BindingConfig binding,
-        MutableDirectBuffer metaBuffer)
+        MutableDirectBufferEx metaBuffer)
     {
         this.id = binding.id;
         this.entryId = binding.entryId;

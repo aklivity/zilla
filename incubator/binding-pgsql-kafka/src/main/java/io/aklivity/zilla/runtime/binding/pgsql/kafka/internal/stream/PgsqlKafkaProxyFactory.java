@@ -28,12 +28,9 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.config.PgsqlKafkaBindingConfig;
@@ -57,6 +54,9 @@ import io.aklivity.zilla.runtime.binding.pgsql.parser.PgsqlParser;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Alter;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateZtable;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.Drop;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -87,7 +87,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMP = 0x03;
 
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
     private final PgsqlParser parser = new PgsqlParser();
@@ -124,8 +124,8 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
     private final BufferPool bufferPool;
     private final PgsqlKafkaConfiguration config;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<CatalogHandler> supplyCatalog;
@@ -155,7 +155,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     {
         this.config = config;
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -188,7 +188,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer app)
@@ -288,7 +288,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
         private void onAppMessage(
             final int msgTypeId,
-            final DirectBuffer buffer,
+            final DirectBufferEx buffer,
             final int index,
             final int length)
         {
@@ -348,7 +348,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final int flags = data.flags();
 
             final OctetsFW payload = data.payload();
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             int offset = payload.offset();
             int limit = payload.limit();
 
@@ -385,7 +385,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                     }
                 }
 
-                final MutableDirectBuffer slotBuffer = bufferPool.buffer(parserSlot);
+                final MutableDirectBufferEx slotBuffer = bufferPool.buffer(parserSlot);
                 slotBuffer.putBytes(parserSlotOffset, buffer, offset, limit - offset);
                 parserSlotOffset += limit - offset;
 
@@ -462,7 +462,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             int progress,
             PgsqlKafkaCompletionCommand command)
         {
-            final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
+            final MutableDirectBufferEx parserBuffer = bufferPool.buffer(parserSlot);
 
             if (commandsProcessed != COMMAND_PROCESSED_ERRORED)
             {
@@ -657,7 +657,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         {
             if (parserSlot != NO_SLOT)
             {
-                final MutableDirectBuffer parserBuffer = bufferPool.buffer(parserSlot);
+                final MutableDirectBufferEx parserBuffer = bufferPool.buffer(parserSlot);
 
                 String sql = parserBuffer.getStringWithoutLengthAscii(0, parserSlotOffset);
                 splitStatements(sql)
@@ -747,7 +747,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
         protected void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

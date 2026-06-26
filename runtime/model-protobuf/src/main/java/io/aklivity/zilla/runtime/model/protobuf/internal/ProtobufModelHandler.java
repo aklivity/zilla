@@ -19,10 +19,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.agrona.BitUtil;
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
@@ -104,7 +104,7 @@ public class ProtobufModelHandler
     }
 
     protected int decodeIndexes(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {

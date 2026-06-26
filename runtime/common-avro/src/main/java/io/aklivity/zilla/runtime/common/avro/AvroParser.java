@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * A schema-bound Avro event cursor. {@link #reset()} rewinds for a new datum, {@link #wrap(DirectBuffer,
@@ -57,7 +57,7 @@ public interface AvroParser
      * run of datum bytes with {@code last == true} — the whole datum, or the final window of a streamed one.
      */
     default void wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -74,7 +74,7 @@ public interface AvroParser
      * truncation. The buffer is borrowed for the duration of the call only.
      */
     void wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);
@@ -139,7 +139,7 @@ public interface AvroParser
      * and {@link AvroEvent#FIXED} value events (the chunk available now) and on segment events. After
      * {@link #consumed(int)} pushback (a bounded-output suspend) it exposes only the unconsumed remainder.
      */
-    DirectBuffer getSegment();
+    DirectBufferEx getSegment();
 
     /**
      * Advances the current value chunk's read cursor by {@code sourceBytes} already written downstream, so a

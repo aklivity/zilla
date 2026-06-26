@@ -20,8 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class HttpUtilTest
 {
@@ -86,7 +87,7 @@ public class HttpUtilTest
     {
         byte[] ascii = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%25"
             .getBytes(US_ASCII);
-        assertTrue(HttpUtil.isPathValid(new UnsafeBuffer(ascii)));
+        assertTrue(HttpUtil.isPathValid(new UnsafeBufferEx(ascii)));
     }
 
     @Test
@@ -99,12 +100,12 @@ public class HttpUtilTest
         byte[] ascii4 = "/pathof000000016".getBytes(US_ASCII);
         byte[] ascii5 = "/pathof0000000017".getBytes(US_ASCII);
 
-        assertTrue(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertTrue(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
-        assertTrue(HttpUtil.isPathValid(new UnsafeBuffer(ascii2)));
-        assertTrue(HttpUtil.isPathValid(new UnsafeBuffer(ascii3)));
-        assertTrue(HttpUtil.isPathValid(new UnsafeBuffer(ascii4)));
-        assertTrue(HttpUtil.isPathValid(new UnsafeBuffer(ascii5)));
+        assertTrue(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertTrue(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
+        assertTrue(HttpUtil.isPathValid(new UnsafeBufferEx(ascii2)));
+        assertTrue(HttpUtil.isPathValid(new UnsafeBufferEx(ascii3)));
+        assertTrue(HttpUtil.isPathValid(new UnsafeBufferEx(ascii4)));
+        assertTrue(HttpUtil.isPathValid(new UnsafeBufferEx(ascii5)));
     }
 
     @Test
@@ -112,8 +113,8 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith ".getBytes(US_ASCII);
         byte[] ascii1 = " /pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
@@ -121,8 +122,8 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith\"".getBytes(US_ASCII);
         byte[] ascii1 = "\"/pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
@@ -130,8 +131,8 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith<".getBytes(US_ASCII);
         byte[] ascii1 = "</pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
@@ -139,8 +140,8 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith>".getBytes(US_ASCII);
         byte[] ascii1 = ">/pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
@@ -148,8 +149,8 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith\\".getBytes(US_ASCII);
         byte[] ascii1 = "\\/pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
@@ -157,8 +158,8 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith^".getBytes(US_ASCII);
         byte[] ascii1 = "^/pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
@@ -166,8 +167,8 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith`".getBytes(US_ASCII);
         byte[] ascii1 = "`/pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
@@ -175,8 +176,8 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith{".getBytes(US_ASCII);
         byte[] ascii1 = "{/pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
@@ -184,8 +185,8 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith}".getBytes(US_ASCII);
         byte[] ascii1 = "}/pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
@@ -193,14 +194,14 @@ public class HttpUtilTest
     {
         byte[] ascii0 = "/pathwith|".getBytes(US_ASCII);
         byte[] ascii1 = "|/pathwith".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
     }
 
     @Test
     public void shouldRejectInvalidAsciiDeleteCharacterInPath()
     {
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(new byte[0x7F])));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(new byte[0x7F])));
     }
 
     @Test
@@ -210,17 +211,17 @@ public class HttpUtilTest
         byte[] ascii1 = "/path%a5ith".getBytes(US_ASCII);
         byte[] ascii2 = "/path%".getBytes(US_ASCII);
         byte[] ascii3 = "/pat%2j".getBytes(US_ASCII);
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii1)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii2)));
-        assertFalse(HttpUtil.isPathValid(new UnsafeBuffer(ascii3)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii1)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii2)));
+        assertFalse(HttpUtil.isPathValid(new UnsafeBufferEx(ascii3)));
     }
 
     @Test
     public void shouldAcceptValidAsciiPercentCharacterInPath()
     {
         byte[] ascii0 = "where=(UPPER(hazard_name)%20LIKE".getBytes(US_ASCII);
-        assertTrue(HttpUtil.isPathValid(new UnsafeBuffer(ascii0)));
+        assertTrue(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
     }
 
 }

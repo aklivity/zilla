@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.avro;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * A schema-bound Avro binary writer. Call the typed methods in schema order to write one message; the
@@ -35,7 +35,7 @@ public interface AvroGenerator
      * exceed the capacity.
      */
     AvroGenerator wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit);
 
@@ -56,7 +56,7 @@ public interface AvroGenerator
     void writeEnd();
 
     void writeKey(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length);
 
@@ -81,17 +81,17 @@ public interface AvroGenerator
         double value);
 
     void writeString(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length);
 
     void writeBytes(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length);
 
     void writeFixed(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length);
 
@@ -99,7 +99,7 @@ public interface AvroGenerator
         int index);
 
     void writeRaw(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length);
 
@@ -113,7 +113,7 @@ public interface AvroGenerator
      * has been written.
      */
     int writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length,
         int deferred);

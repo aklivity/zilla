@@ -21,10 +21,10 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
@@ -72,7 +72,7 @@ public class ProtobufModelHandlerTest
         byte[] encoded = handler.encodeIndexes();
 
         // decodeIndexes reads the leading count then that many zig-zag varint entries
-        int progress = handler.decodeIndexes(new UnsafeBuffer(encoded), 0, encoded.length);
+        int progress = handler.decodeIndexes(new UnsafeBufferEx(encoded), 0, encoded.length);
         assertEquals(encoded.length, progress);
         assertArrayEquals(new int[]{3, 5, 7}, handler.decodedPath());
     }
@@ -84,7 +84,7 @@ public class ProtobufModelHandlerTest
 
         // a single zero byte encodes a zero-length index path; decodeIndexes records the lone zero entry
         byte[] wire = {0x00};
-        int progress = handler.decodeIndexes(new UnsafeBuffer(wire), 0, wire.length);
+        int progress = handler.decodeIndexes(new UnsafeBufferEx(wire), 0, wire.length);
         assertEquals(1, progress);
         assertArrayEquals(new int[]{0}, handler.decodedPath());
     }

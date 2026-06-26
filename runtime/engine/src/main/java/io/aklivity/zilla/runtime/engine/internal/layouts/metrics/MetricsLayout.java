@@ -25,7 +25,8 @@ import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
 import org.agrona.BitUtil;
-import org.agrona.concurrent.AtomicBuffer;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 
 public abstract class MetricsLayout implements AutoCloseable
 {
@@ -37,10 +38,10 @@ public abstract class MetricsLayout implements AutoCloseable
     protected static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
     protected static final int NOT_FOUND = -1;
 
-    protected final AtomicBuffer buffer;
+    protected final AtomicBufferEx buffer;
 
     protected MetricsLayout(
-        AtomicBuffer buffer)
+        AtomicBufferEx buffer)
     {
         this.buffer = buffer;
     }

@@ -45,11 +45,8 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonWriter;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptArgumentConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptConfig;
@@ -76,6 +73,9 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBegin
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -118,7 +118,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final ResetFW resetRO = new ResetFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -130,8 +130,8 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -143,8 +143,8 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final Long2ObjectHashMap<McpHttpBindingConfig> bindings;
 
     private final JsonGeneratorEx projectGenerator;
-    private final MutableDirectBuffer projectBuffer;
-    private final UnsafeBuffer argsRO;
+    private final MutableDirectBufferEx projectBuffer;
+    private final UnsafeBufferEx argsRO;
     private final Map<JsonSchema, JsonPipeline> projectors;
     private final Map<JsonSchema, JsonPipeline> validatingProjectors;
     private final Map<JsonSchema, JsonPipeline> validators;
@@ -161,7 +161,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -171,8 +171,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.events = new McpHttpEventContext(context);
         this.bindings = new Long2ObjectHashMap<>();
         this.projectGenerator = JsonEx.createGenerator();
-        this.projectBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.argsRO = new UnsafeBuffer(new byte[0]);
+        this.projectBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.argsRO = new UnsafeBufferEx(new byte[0]);
         this.projectors = new IdentityHashMap<>();
         this.validatingProjectors = new IdentityHashMap<>();
         this.validators = new IdentityHashMap<>();
@@ -198,7 +198,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -374,7 +374,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         private void onMcpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -460,7 +460,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     }
                     else
                     {
-                        final MutableDirectBuffer slot = bufferPool.buffer(requestSlot);
+                        final MutableDirectBufferEx slot = bufferPool.buffer(requestSlot);
                         slot.putBytes(requestOffset, payload.buffer(), payload.offset(), payload.sizeof());
                         requestOffset += payload.sizeof();
                         pumpRequest(traceId);
@@ -482,7 +482,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     }
                     else
                     {
-                        final MutableDirectBuffer slot = bufferPool.buffer(requestSlot);
+                        final MutableDirectBufferEx slot = bufferPool.buffer(requestSlot);
                         slot.putBytes(requestOffset, payload.buffer(), payload.offset(), payload.sizeof());
                         requestOffset += payload.sizeof();
                     }
@@ -803,7 +803,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId,
             String status,
             String contentType,
-            DirectBuffer body,
+            DirectBufferEx body,
             int offset,
             int length)
         {
@@ -887,7 +887,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         private JsonPipeline.Status responseStep(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length,
             boolean last)
@@ -953,7 +953,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         private void stageBytes(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1000,7 +1000,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (replySlot != NO_SLOT && McpHttpState.replyOpened(state))
             {
-                final MutableDirectBuffer slot = bufferPool.buffer(replySlot);
+                final MutableDirectBufferEx slot = bufferPool.buffer(replySlot);
                 int maxPayload = replyMax - (int)(replySeq - replyAck) - replyPad;
                 while (replySlotOffset > 0 && maxPayload > 0)
                 {
@@ -1042,7 +1042,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId,
             int flags,
             int reserved,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1288,7 +1288,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         private void stageRequestBody(
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1325,7 +1325,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 if (requestEncodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBuffer slot = bufferPool.buffer(requestEncodeSlot);
+                    final MutableDirectBufferEx slot = bufferPool.buffer(requestEncodeSlot);
                     int maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
                     while (requestEncodeOffset > 0 && maxPayload > 0)
                     {
@@ -1390,7 +1390,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1468,7 +1468,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
                 else
                 {
-                    final MutableDirectBuffer slot = bufferPool.buffer(responseSlot);
+                    final MutableDirectBufferEx slot = bufferPool.buffer(responseSlot);
                     slot.putBytes(responseOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     responseOffset += payload.sizeof();
 
@@ -1505,7 +1505,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
             else
             {
-                final DirectBuffer body = responseSlot != NO_SLOT ? bufferPool.buffer(responseSlot) : null;
+                final DirectBufferEx body = responseSlot != NO_SLOT ? bufferPool.buffer(responseSlot) : null;
                 server.onUpstreamResponse(traceId, responseStatus, responseContentType, body, 0, responseOffset);
                 cleanupResponseSlot();
             }
@@ -1536,7 +1536,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     }
                 }
 
-                final MutableDirectBuffer slot = bufferPool.buffer(responseSlot);
+                final MutableDirectBufferEx slot = bufferPool.buffer(responseSlot);
                 final JsonPipeline.Status status = server.responseStep(slot, 0, responseOffset, responseEnded);
                 if (status != JsonPipeline.Status.SUSPENDED)
                 {
@@ -1709,7 +1709,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         private void onMcpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1910,7 +1910,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private boolean validate(
         JsonSchema schema,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -1919,7 +1919,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private String project(
         JsonSchema schema,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -1928,7 +1928,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private String validateProject(
         JsonSchema schema,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -1937,7 +1937,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private String template(
         McpHttpRouteConfig route,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -1946,7 +1946,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private String run(
         JsonPipeline pipeline,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -2195,7 +2195,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     }
 
     private static JsonObject parseObject(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -2219,7 +2219,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     }
 
     private static String text(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {
@@ -2529,7 +2529,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         int flags,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {

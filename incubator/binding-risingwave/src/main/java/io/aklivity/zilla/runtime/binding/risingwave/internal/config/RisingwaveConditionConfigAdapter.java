@@ -23,7 +23,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveBinding;
