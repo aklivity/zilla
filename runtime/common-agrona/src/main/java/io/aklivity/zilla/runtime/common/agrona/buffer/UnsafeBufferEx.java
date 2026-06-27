@@ -56,14 +56,12 @@ import org.agrona.MutableDirectBuffer;
  * {@code Unsafe}-backed buffer. Release/acquire-only accessors
  * ({@code putLongOrdered}, {@code putIntOrdered}, {@code put*Release},
  * {@code getLongVolatile}, {@code getIntVolatile}, {@code get*Acquire}) lower
- * to plain unaligned access plus a standalone
- * {@link VarHandle#releaseFence}/{@link VarHandle#acquireFence}, recovering the
- * per-access alignment-check cost the aligned {@code VarHandle} carries. This
- * matches the {@code sun.misc.Unsafe} contract (caller is responsible for
- * alignment; misaligned ordered access has no atomicity guarantee). On x86
- * (TSO) the fences emit zero instructions; on aarch64 they emit {@code dmb}
- * and the aligned path may be cheaper. The default is {@code false} on x86 and
- * {@code true} elsewhere; override with {@code zilla.buffer.aligned.atomics}.
+ * by default to plain unaligned access plus a standalone
+ * {@link VarHandle#releaseFence}/{@link VarHandle#acquireFence}, matching the
+ * {@code sun.misc.Unsafe} contract (caller is responsible for alignment;
+ * misaligned ordered access has no atomicity guarantee). Override with
+ * {@code -Dzilla.buffer.aligned.atomics=true} to restore the aligned
+ * {@code VarHandle} path's per-access alignment-check fast-fail.
  * Sequentially-consistent ({@code put*Volatile}), real atomic
  * ({@code compareAndSet}, {@code getAndAdd}, {@code getAndSet},
  * {@code compareAndExchange}), and opaque accessors always use the aligned
@@ -91,24 +89,18 @@ public final class UnsafeBufferEx implements AtomicBufferEx
     // putLongRelease, putIntRelease, getLongVolatile, getIntVolatile, getLongAcquire, getIntAcquire).
     // The aligned path validates the address is naturally aligned on every access, providing a fast-fail
     // for misaligned ordered/volatile use (the JMM provides no atomicity guarantee for misaligned
-    // long/double access). When false, those accessors lower to a standalone VarHandle release/acquire
-    // fence plus an unaligned plain access, matching the sun.misc.Unsafe contract — on x86 (TSO) the
-    // fences emit zero instructions, recovering the per-op alignment-check cost; on aarch64 the aligned
-    // path uses stlr/ldar instructions that may be cheaper than fence emulation. Defaults to false on
-    // x86/amd64, true elsewhere. Override with -Dzilla.buffer.aligned.atomics=true|false. Read once at
-    // class init so the JIT folds the per-access branch. Full setVolatile / getVolatile (sequentially
-    // consistent), compareAndSet / getAndAdd / getAndSet / compareAndExchange (real atomics), and
-    // opaque accessors always use the aligned VarHandle regardless of this setting — they require
-    // alignment for correctness, not just diagnostics.
+    // long/double access). When false (default), those accessors lower to a standalone VarHandle
+    // release/acquire fence plus an unaligned plain access, matching the sun.misc.Unsafe contract — on
+    // x86 (TSO) the fences emit zero instructions, on aarch64 they emit dmb but Apple Silicon and
+    // similar cores elide the barrier into the load-store buffer under contention. BufferBM confirms
+    // false is a strict improvement on both x86 and aarch64 at all measured payload sizes. Override
+    // with -Dzilla.buffer.aligned.atomics=true to restore the per-access alignment-check fast-fail.
+    // Read once at class init so the JIT folds the per-access branch. Full setVolatile / getVolatile
+    // (sequentially consistent), compareAndSet / getAndAdd / getAndSet / compareAndExchange (real
+    // atomics), and opaque accessors always use the aligned VarHandle regardless of this setting —
+    // they require alignment for correctness, not just diagnostics.
     private static final boolean USE_ALIGNED_ATOMICS =
-        Boolean.parseBoolean(System.getProperty("zilla.buffer.aligned.atomics",
-            Boolean.toString(!isX86())));
-
-    private static boolean isX86()
-    {
-        final String arch = System.getProperty("os.arch", "");
-        return "amd64".equals(arch) || "x86_64".equals(arch);
-    }
+        Boolean.parseBoolean(System.getProperty("zilla.buffer.aligned.atomics", "false"));
 
     private static final ValueLayout.OfByte BYTE_LAYOUT = JAVA_BYTE;
     private static final ValueLayout.OfInt INT_LAYOUT = JAVA_INT_UNALIGNED;
