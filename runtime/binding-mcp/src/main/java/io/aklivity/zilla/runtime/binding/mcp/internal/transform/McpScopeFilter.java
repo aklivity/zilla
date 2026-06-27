@@ -34,7 +34,7 @@ public final class McpScopeFilter implements JsonTransform
 {
     private final String arrayKey;
     private final Map<String, List<String>> scopesByName;
-    private final BiPredicate<String, List<String>> admits;
+    private final BiPredicate<CharSequence, List<String>> admits;
     private final KeySource keySource = new KeySource();
     private final MediatingController mediatingControl = new MediatingController();
 
@@ -49,7 +49,7 @@ public final class McpScopeFilter implements JsonTransform
     public McpScopeFilter(
         String arrayKey,
         Map<String, List<String>> scopesByName,
-        BiPredicate<String, List<String>> admits)
+        BiPredicate<CharSequence, List<String>> admits)
     {
         this.arrayKey = arrayKey;
         this.scopesByName = scopesByName;
@@ -218,8 +218,8 @@ public final class McpScopeFilter implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
-        final String name = source.getStringView().toString();
-        final List<String> scopes = scopesByName.get(name);
+        final CharSequence name = source.getStringView();
+        final List<String> scopes = lookupScopes(name);
 
         itemPending = false;
         nameArmed = false;
@@ -242,6 +242,21 @@ public final class McpScopeFilter implements JsonTransform
             status = sink.transform(mediatingControl, source, event);
         }
         return status;
+    }
+
+    private List<String> lookupScopes(
+        CharSequence name)
+    {
+        List<String> result = null;
+        for (Map.Entry<String, List<String>> entry : scopesByName.entrySet())
+        {
+            if (entry.getKey().contentEquals(name))
+            {
+                result = entry.getValue();
+                break;
+            }
+        }
+        return result;
     }
 
     private static final class MediatingController implements JsonController
