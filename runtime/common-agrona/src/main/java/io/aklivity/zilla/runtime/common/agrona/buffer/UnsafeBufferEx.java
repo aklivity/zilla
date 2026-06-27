@@ -278,7 +278,14 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
     public void wrap(
         ByteBuffer buffer)
     {
-        wrapByteBufferView(buffer);
+        // refresh the clean view only when the underlying buffer identity changes; held at
+        // position 0, limit capacity so the ByteBuffer.put fast path ignores the wrapped buffer's
+        // NIO limit (Agrona scratch state, e.g. dirtied by CRC32.update)
+        if (byteBuffer != buffer)
+        {
+            byteBufferView = buffer.duplicate();
+            byteBufferView.clear();
+        }
         byteBuffer = buffer;
         if (buffer.isDirect())
         {
@@ -304,7 +311,13 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         int offset,
         int length)
     {
-        wrapByteBufferView(buffer);
+        // refresh the clean view only when the underlying buffer identity changes; the view is
+        // offset-independent (absolute indexing via wrapAdjustment + index)
+        if (byteBuffer != buffer)
+        {
+            byteBufferView = buffer.duplicate();
+            byteBufferView.clear();
+        }
         byteBuffer = buffer;
         if (buffer.isDirect())
         {
@@ -427,20 +440,6 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         capacity = length;
         wrapAdjustment = offset;
         isNative = segment.isNative();
-    }
-
-    // A clean duplicate of the wrapped buffer, refreshed only when the underlying buffer identity
-    // changes, reused on same-instance re-wrap, and inherited on sub-wrap. Held permanently at
-    // position 0, limit capacity so the ByteBuffer.put bulk-copy fast path is always in bounds for
-    // a valid copy, without consulting the wrapped buffer's NIO limit (Agrona scratch state).
-    private void wrapByteBufferView(
-        ByteBuffer buffer)
-    {
-        if (byteBuffer != buffer)
-        {
-            byteBufferView = buffer.duplicate();
-            byteBufferView.clear();
-        }
     }
 
     private void wrapFromUnsafe(
