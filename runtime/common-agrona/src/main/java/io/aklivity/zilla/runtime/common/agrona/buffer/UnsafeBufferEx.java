@@ -73,7 +73,7 @@ import org.agrona.MutableDirectBuffer;
  * atomics, because the JVM cannot guarantee {@code byte[]} alignment for
  * {@code VarHandle} atomic access.
  */
-public final class UnsafeBufferEx implements AtomicBufferEx
+public class UnsafeBufferEx implements AtomicBufferEx
 {
     private static final MemorySegment GLOBAL = MemorySegment.NULL.reinterpret(Long.MAX_VALUE);
 

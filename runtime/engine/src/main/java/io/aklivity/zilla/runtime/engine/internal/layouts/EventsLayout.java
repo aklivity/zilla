@@ -65,7 +65,7 @@ public final class EventsLayout implements AutoCloseable
     public RingBufferSpy createSpy()
     {
         final MappedByteBuffer mappedBuffer = mapExistingFile(path.toFile(), "events");
-        final AtomicBufferEx atomicBuffer = new UnsafeBufferEx(mappedBuffer);
+        final AtomicBufferEx atomicBuffer = new UnsafeBufferEx(mappedBuffer).asNative();
         final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicBuffer);
         spy.spyAt(ZERO);
         return spy;
@@ -101,7 +101,7 @@ public final class EventsLayout implements AutoCloseable
             final File layoutFile = path.toFile();
             CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
             final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
-            final AtomicBufferEx atomicBuffer = new UnsafeBufferEx(mappedBuffer);
+            final AtomicBufferEx atomicBuffer = new UnsafeBufferEx(mappedBuffer).asNative();
             final RingBufferEx ringBuffer = new OneToOneRingBuffer(atomicBuffer);
             return new EventsLayout(path, ringBuffer);
         }
