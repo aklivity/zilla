@@ -867,5 +867,24 @@ public class UnsafeBufferExTest
             target.getBytes(0, readback);
             assertArrayEquals(payload, readback);
         }
+
+        @Test
+        public void shouldPutBytesFromByteBufferWithStaleSourceLimit()
+        {
+            // the index-based putBytes(ByteBuffer) contract copies by capacity, not NIO limit; a
+            // stale limit narrower than the requested range must not reject a valid copy
+            final ByteBuffer source = ByteBuffer.allocateDirect(64);
+            final byte[] payload = "bytebuffer-spanning-stale-limit".getBytes();
+            source.put(payload);
+            source.position(0);
+            source.limit(4);
+
+            final UnsafeBufferEx target = new UnsafeBufferEx(ByteBuffer.allocateDirect(64));
+            target.putBytes(0, source, 0, payload.length);
+
+            final byte[] readback = new byte[payload.length];
+            target.getBytes(0, readback);
+            assertArrayEquals(payload, readback);
+        }
     }
 }

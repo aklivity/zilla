@@ -1125,7 +1125,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int srcOffset,
         int length)
     {
-        if (byteBuffer != null)
+        // ByteBuffer.put bounds-checks the source against its NIO limit, but the index-based
+        // putBytes contract copies by capacity; only take the fast path when limit covers the
+        // range, else copy by capacity so a stale limit does not reject a valid copy
+        if (byteBuffer != null && srcBuffer.limit() >= srcOffset + length)
         {
             byteBuffer.put(wrapAdjustment + index, srcBuffer, srcOffset, length);
         }
@@ -3346,7 +3349,20 @@ public class UnsafeBufferEx implements AtomicBufferEx
             int srcOffset,
             int length)
         {
-            byteBuffer.put(index, srcBuffer, srcOffset, length);
+            // ByteBuffer.put bounds-checks the source against its NIO limit, but the index-based
+            // putBytes contract copies by capacity; only take the fast path when limit covers the
+            // range, else copy by capacity so a stale limit does not reject a valid copy
+            if (srcBuffer.limit() >= srcOffset + length)
+            {
+                byteBuffer.put(index, srcBuffer, srcOffset, length);
+            }
+            else
+            {
+                final MemorySegment src = srcBuffer.isDirect()
+                    ? MemorySegment.ofAddress(BufferUtil.address(srcBuffer)).reinterpret(srcBuffer.capacity())
+                    : MemorySegment.ofArray(BufferUtil.array(srcBuffer));
+                MemorySegment.copy(src, srcOffset, segment, index, length);
+            }
         }
 
         @Override
