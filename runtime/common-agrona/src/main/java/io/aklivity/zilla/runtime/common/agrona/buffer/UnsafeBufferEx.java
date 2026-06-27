@@ -73,7 +73,7 @@ import org.agrona.MutableDirectBuffer;
  * atomics, because the JVM cannot guarantee {@code byte[]} alignment for
  * {@code VarHandle} atomic access.
  */
-public final class UnsafeBufferEx implements AtomicBufferEx
+public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
 {
     private static final MemorySegment GLOBAL = MemorySegment.NULL.reinterpret(Long.MAX_VALUE);
 
@@ -148,6 +148,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx
     private MemorySegment segment;
     private byte[] byteArray;
     private ByteBuffer byteBuffer;
+    private ByteBuffer byteBufferView;
     private long addressOffset;
     private int capacity;
     private int wrapAdjustment;
@@ -249,6 +250,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx
     {
         byteArray = buffer;
         byteBuffer = null;
+        byteBufferView = null;
         segment = MemorySegment.ofArray(buffer);
         addressOffset = BufferUtil.ARRAY_BASE_OFFSET;
         capacity = buffer.length;
@@ -264,6 +266,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx
     {
         byteArray = buffer;
         byteBuffer = null;
+        byteBufferView = null;
         segment = MemorySegment.ofArray(buffer);
         addressOffset = BufferUtil.ARRAY_BASE_OFFSET + offset;
         capacity = length;
@@ -275,6 +278,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx
     public void wrap(
         ByteBuffer buffer)
     {
+        wrapByteBufferView(buffer);
         byteBuffer = buffer;
         if (buffer.isDirect())
         {
@@ -300,6 +304,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         int offset,
         int length)
     {
+        wrapByteBufferView(buffer);
         byteBuffer = buffer;
         if (buffer.isDirect())
         {
@@ -326,6 +331,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         segment = buffer.segment();
         byteArray = buffer.byteArray();
         byteBuffer = buffer.byteBuffer();
+        byteBufferView = buffer instanceof DirectBufferViewEx view ? view.byteBufferView() : null;
         addressOffset = buffer.addressOffset();
         capacity = buffer.capacity();
         wrapAdjustment = buffer.wrapAdjustment();
@@ -341,6 +347,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         segment = buffer.segment();
         byteArray = buffer.byteArray();
         byteBuffer = buffer.byteBuffer();
+        byteBufferView = buffer instanceof DirectBufferViewEx view ? view.byteBufferView() : null;
         addressOffset = buffer.addressOffset() + offset;
         capacity = length;
         wrapAdjustment = buffer.wrapAdjustment() + offset;
@@ -384,6 +391,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx
     {
         byteArray = null;
         byteBuffer = null;
+        byteBufferView = null;
         segment = MemorySegment.ofAddress(address).reinterpret(length);
         addressOffset = address;
         capacity = length;
@@ -397,6 +405,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx
     {
         byteArray = null;
         byteBuffer = null;
+        byteBufferView = null;
         this.segment = segment;
         addressOffset = segment.address();
         capacity = (int) segment.byteSize();
@@ -412,11 +421,26 @@ public final class UnsafeBufferEx implements AtomicBufferEx
     {
         byteArray = null;
         byteBuffer = null;
+        byteBufferView = null;
         this.segment = segment;
         addressOffset = segment.address() + offset;
         capacity = length;
         wrapAdjustment = offset;
         isNative = segment.isNative();
+    }
+
+    // A clean duplicate of the wrapped buffer, refreshed only when the underlying buffer identity
+    // changes, reused on same-instance re-wrap, and inherited on sub-wrap. Held permanently at
+    // position 0, limit capacity so the ByteBuffer.put bulk-copy fast path is always in bounds for
+    // a valid copy, without consulting the wrapped buffer's NIO limit (Agrona scratch state).
+    private void wrapByteBufferView(
+        ByteBuffer buffer)
+    {
+        if (byteBuffer != buffer)
+        {
+            byteBufferView = buffer.duplicate();
+            byteBufferView.clear();
+        }
     }
 
     private void wrapFromUnsafe(
@@ -464,6 +488,12 @@ public final class UnsafeBufferEx implements AtomicBufferEx
     public ByteBuffer byteBuffer()
     {
         return byteBuffer;
+    }
+
+    @Override
+    public ByteBuffer byteBufferView()
+    {
+        return byteBufferView;
     }
 
     @Override
@@ -1097,12 +1127,11 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         int offset,
         int length)
     {
-        // ByteBuffer.put also bounds-checks this destination against its NIO limit, which Agrona
-        // treats as scratch state independent of capacity; only take the fast path when the
-        // destination limit covers the range, else copy by the destination's capacity-sized segment
-        if (byteBuffer != null && byteBuffer.limit() >= wrapAdjustment + index + length)
+        // copy through the clean view so the intrinsified ByteBuffer.put fast path is taken without
+        // consulting the wrapped buffer's NIO limit (Agrona scratch state, e.g. dirtied by CRC32)
+        if (byteBufferView != null)
         {
-            byteBuffer.put(wrapAdjustment + index, src, offset, length);
+            byteBufferView.put(wrapAdjustment + index, src, offset, length);
         }
         else
         {
@@ -1128,14 +1157,12 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         int srcOffset,
         int length)
     {
-        // ByteBuffer.put bounds-checks both this destination and the source against their NIO
-        // limits, which Agrona treats as scratch state independent of capacity; only take the
-        // fast path when both limits cover the range, else copy by capacity so a stale limit
-        // does not reject a valid copy
-        if (byteBuffer != null && byteBuffer.limit() >= wrapAdjustment + index + length &&
-            srcBuffer.limit() >= srcOffset + length)
+        // the destination copies through the clean view; the source is a caller-owned ByteBuffer
+        // whose NIO limit must still cover the range for the intrinsified ByteBuffer.put fast path,
+        // else copy by capacity so a stale source limit does not reject a valid copy
+        if (byteBufferView != null && srcBuffer.limit() >= srcOffset + length)
         {
-            byteBuffer.put(wrapAdjustment + index, srcBuffer, srcOffset, length);
+            byteBufferView.put(wrapAdjustment + index, srcBuffer, srcOffset, length);
         }
         else
         {
@@ -1153,16 +1180,14 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         int srcIndex,
         int length)
     {
-        final ByteBuffer srcBb = srcBuffer.byteBuffer();
         final int srcAdjusted = srcBuffer.wrapAdjustment() + srcIndex;
-        // ByteBuffer.put bounds-checks both this destination and the source against their NIO
-        // limits, which Agrona treats as scratch state independent of capacity (e.g. left dirty
-        // by CRC32.update); only take the intrinsified fast path when both limits cover the range,
-        // else copy by capacity
-        if (byteBuffer != null && srcBb != null &&
-            byteBuffer.limit() >= wrapAdjustment + index + length && srcBb.limit() >= srcAdjusted + length)
+        // both ends copy through their clean views, so the intrinsified ByteBuffer.put fast path is
+        // always taken for ByteBuffer-backed buffers without consulting either NIO limit (Agrona
+        // scratch state, e.g. dirtied by CRC32.update); else copy by capacity
+        final ByteBuffer srcView = srcBuffer instanceof DirectBufferViewEx view ? view.byteBufferView() : null;
+        if (byteBufferView != null && srcView != null)
         {
-            byteBuffer.put(wrapAdjustment + index, srcBb, srcAdjusted, length);
+            byteBufferView.put(wrapAdjustment + index, srcView, srcAdjusted, length);
         }
         else
         {
@@ -1178,12 +1203,14 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         int srcIndex,
         int length)
     {
-        final ByteBuffer srcBb = srcBuffer.byteBuffer();
         final int srcAdjusted = srcBuffer.wrapAdjustment() + srcIndex;
-        final boolean destOk = byteBuffer != null && byteBuffer.limit() >= wrapAdjustment + index + length;
-        if (destOk && srcBb != null && srcBb.limit() >= srcAdjusted + length)
+        // copy through clean views (Agrona treats NIO limit as scratch state); a DirectBufferEx
+        // source falls to its capacity-sized segment, an external DirectBuffer to a byte[] view or
+        // a byte-wise copy
+        final ByteBuffer srcView = srcBuffer instanceof DirectBufferViewEx view ? view.byteBufferView() : null;
+        if (byteBufferView != null && srcView != null)
         {
-            byteBuffer.put(wrapAdjustment + index, srcBb, srcAdjusted, length);
+            byteBufferView.put(wrapAdjustment + index, srcView, srcAdjusted, length);
         }
         else if (srcBuffer instanceof DirectBufferEx safe)
         {
@@ -1193,9 +1220,9 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         else
         {
             final byte[] srcArray = srcBuffer.byteArray();
-            if (destOk && srcArray != null)
+            if (byteBufferView != null && srcArray != null)
             {
-                byteBuffer.put(wrapAdjustment + index, srcArray, srcAdjusted, length);
+                byteBufferView.put(wrapAdjustment + index, srcArray, srcAdjusted, length);
             }
             else if (srcArray != null)
             {
@@ -2454,12 +2481,13 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         return new Native(segment, byteBuffer);
     }
 
-    public static final class Native implements AtomicBufferEx
+    public static final class Native implements AtomicBufferEx, DirectBufferViewEx
     {
         private final MemorySegment segment;
         private final long addressOffset;
         private final int capacity;
         private final ByteBuffer byteBuffer;
+        private final ByteBuffer byteBufferView;
 
         private Native(
             MemorySegment segment,
@@ -2473,6 +2501,11 @@ public final class UnsafeBufferEx implements AtomicBufferEx
             this.addressOffset = segment.address();
             this.capacity = (int) segment.byteSize();
             this.byteBuffer = byteBuffer;
+            // clean duplicate (position 0, limit capacity) so the ByteBuffer.put bulk-copy fast path
+            // is always in bounds without consulting the wrapped buffer's NIO limit (Agrona scratch
+            // state, e.g. dirtied by CRC32.update)
+            this.byteBufferView = byteBuffer.duplicate();
+            this.byteBufferView.clear();
         }
 
         private static UnsupportedOperationException cannotReWrap()
@@ -2500,6 +2533,12 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         public ByteBuffer byteBuffer()
         {
             return byteBuffer;
+        }
+
+        @Override
+        public ByteBuffer byteBufferView()
+        {
+            return byteBufferView;
         }
 
         @Override
@@ -2791,21 +2830,25 @@ public final class UnsafeBufferEx implements AtomicBufferEx
             int srcIndex,
             int length)
         {
-            if (srcBuffer instanceof DirectBufferEx ex)
+            final int srcAdjusted = srcBuffer.wrapAdjustment() + srcIndex;
+            // copy through clean views (Agrona treats NIO limit as scratch state); a DirectBufferEx
+            // source falls to its capacity-sized segment, an external DirectBuffer to a byte[] view
+            // or a byte-wise copy
+            final ByteBuffer srcView = srcBuffer instanceof DirectBufferViewEx view ? view.byteBufferView() : null;
+            if (srcView != null)
             {
-                MemorySegment.copy(ex.segment(), ex.wrapAdjustment() + srcIndex, segment, index, length);
+                byteBufferView.put(index, srcView, srcAdjusted, length);
+            }
+            else if (srcBuffer instanceof DirectBufferEx safe)
+            {
+                MemorySegment.copy(safe.segment(), srcAdjusted, segment, index, length);
             }
             else
             {
                 final byte[] srcArray = srcBuffer.byteArray();
-                if (srcArray != null && byteBuffer.limit() >= index + length)
+                if (srcArray != null)
                 {
-                    byteBuffer.put(index, srcArray, srcBuffer.wrapAdjustment() + srcIndex, length);
-                }
-                else if (srcArray != null)
-                {
-                    MemorySegment.copy(MemorySegment.ofArray(srcArray), BYTE_LAYOUT,
-                        srcBuffer.wrapAdjustment() + srcIndex, segment, BYTE_LAYOUT, index, length);
+                    byteBufferView.put(index, srcArray, srcAdjusted, length);
                 }
                 else
                 {
@@ -3342,14 +3385,9 @@ public final class UnsafeBufferEx implements AtomicBufferEx
             int offset,
             int length)
         {
-            if (byteBuffer.limit() >= index + length)
-            {
-                byteBuffer.put(index, src, offset, length);
-            }
-            else
-            {
-                MemorySegment.copy(MemorySegment.ofArray(src), BYTE_LAYOUT, offset, segment, BYTE_LAYOUT, index, length);
-            }
+            // copy through the clean view so the intrinsified ByteBuffer.put fast path is taken
+            // without consulting the wrapped buffer's NIO limit (Agrona scratch state)
+            byteBufferView.put(index, src, offset, length);
         }
 
         @Override
@@ -3369,12 +3407,12 @@ public final class UnsafeBufferEx implements AtomicBufferEx
             int srcOffset,
             int length)
         {
-            // ByteBuffer.put bounds-checks both this destination and the source against their NIO
-            // limits, which Agrona treats as scratch state independent of capacity; only take the
-            // fast path when both limits cover the range, else copy by capacity
-            if (byteBuffer.limit() >= index + length && srcBuffer.limit() >= srcOffset + length)
+            // the destination copies through the clean view; the source is a caller-owned ByteBuffer
+            // whose NIO limit must still cover the range for the intrinsified ByteBuffer.put fast
+            // path, else copy by capacity so a stale source limit does not reject a valid copy
+            if (srcBuffer.limit() >= srcOffset + length)
             {
-                byteBuffer.put(index, srcBuffer, srcOffset, length);
+                byteBufferView.put(index, srcBuffer, srcOffset, length);
             }
             else
             {
@@ -3392,15 +3430,14 @@ public final class UnsafeBufferEx implements AtomicBufferEx
             int srcIndex,
             int length)
         {
-            final ByteBuffer srcBb = srcBuffer.byteBuffer();
             final int srcAdjusted = srcBuffer.wrapAdjustment() + srcIndex;
-            // ByteBuffer.put bounds-checks both this destination and the source against their NIO
-            // limits, which Agrona treats as scratch state independent of capacity (e.g. left
-            // dirty by CRC32.update); only take the intrinsified fast path when both limits cover
-            // the range, else copy by capacity
-            if (srcBb != null && byteBuffer.limit() >= index + length && srcBb.limit() >= srcAdjusted + length)
+            // both ends copy through their clean views, so the intrinsified ByteBuffer.put fast path
+            // is always taken for ByteBuffer-backed buffers without consulting either NIO limit
+            // (Agrona scratch state, e.g. dirtied by CRC32.update); else copy by capacity
+            final ByteBuffer srcView = srcBuffer instanceof DirectBufferViewEx view ? view.byteBufferView() : null;
+            if (srcView != null)
             {
-                byteBuffer.put(index, srcBb, srcAdjusted, length);
+                byteBufferView.put(index, srcView, srcAdjusted, length);
             }
             else
             {
