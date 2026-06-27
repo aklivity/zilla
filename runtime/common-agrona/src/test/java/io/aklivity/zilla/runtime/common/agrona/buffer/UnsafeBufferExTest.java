@@ -886,5 +886,27 @@ public class UnsafeBufferExTest
             target.getBytes(0, readback);
             assertArrayEquals(payload, readback);
         }
+
+        @Test
+        public void shouldPutBytesWithStaleDestinationLimit()
+        {
+            // ByteBuffer.put also bounds-checks the destination against its NIO limit; a write at
+            // an index beyond a stale destination limit but within capacity must still succeed
+            // (e.g. a mapped cache file whose limit was left dirty by CRC32.update)
+            final ByteBuffer destBb = ByteBuffer.allocateDirect(512);
+            final UnsafeBufferEx target = new UnsafeBufferEx(destBb);
+            destBb.position(0);
+            destBb.limit(8);
+
+            final byte[] payload = "written-beyond-stale-dest-limit".getBytes();
+            final UnsafeBufferEx source = new UnsafeBufferEx(ByteBuffer.allocateDirect(64));
+            source.putBytes(0, payload);
+
+            target.putBytes(450, source, 0, payload.length);
+
+            final byte[] readback = new byte[payload.length];
+            target.getBytes(450, readback);
+            assertArrayEquals(payload, readback);
+        }
     }
 }

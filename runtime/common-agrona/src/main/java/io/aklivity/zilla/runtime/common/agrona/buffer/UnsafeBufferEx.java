@@ -1097,7 +1097,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int offset,
         int length)
     {
-        if (byteBuffer != null)
+        // ByteBuffer.put also bounds-checks this destination against its NIO limit, which Agrona
+        // treats as scratch state independent of capacity; only take the fast path when the
+        // destination limit covers the range, else copy by the destination's capacity-sized segment
+        if (byteBuffer != null && byteBuffer.limit() >= wrapAdjustment + index + length)
         {
             byteBuffer.put(wrapAdjustment + index, src, offset, length);
         }
@@ -1125,10 +1128,12 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int srcOffset,
         int length)
     {
-        // ByteBuffer.put bounds-checks the source against its NIO limit, but the index-based
-        // putBytes contract copies by capacity; only take the fast path when limit covers the
-        // range, else copy by capacity so a stale limit does not reject a valid copy
-        if (byteBuffer != null && srcBuffer.limit() >= srcOffset + length)
+        // ByteBuffer.put bounds-checks both this destination and the source against their NIO
+        // limits, which Agrona treats as scratch state independent of capacity; only take the
+        // fast path when both limits cover the range, else copy by capacity so a stale limit
+        // does not reject a valid copy
+        if (byteBuffer != null && byteBuffer.limit() >= wrapAdjustment + index + length &&
+            srcBuffer.limit() >= srcOffset + length)
         {
             byteBuffer.put(wrapAdjustment + index, srcBuffer, srcOffset, length);
         }
@@ -1150,10 +1155,12 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         final ByteBuffer srcBb = srcBuffer.byteBuffer();
         final int srcAdjusted = srcBuffer.wrapAdjustment() + srcIndex;
-        // ByteBuffer.put bounds-checks the source against its NIO limit, which Agrona treats as
-        // scratch state independent of capacity (e.g. left dirty by CRC32.update); only take the
-        // intrinsified fast path when limit covers the range, else copy by the buffer's capacity
-        if (byteBuffer != null && srcBb != null && srcBb.limit() >= srcAdjusted + length)
+        // ByteBuffer.put bounds-checks both this destination and the source against their NIO
+        // limits, which Agrona treats as scratch state independent of capacity (e.g. left dirty
+        // by CRC32.update); only take the intrinsified fast path when both limits cover the range,
+        // else copy by capacity
+        if (byteBuffer != null && srcBb != null &&
+            byteBuffer.limit() >= wrapAdjustment + index + length && srcBb.limit() >= srcAdjusted + length)
         {
             byteBuffer.put(wrapAdjustment + index, srcBb, srcAdjusted, length);
         }
@@ -1173,7 +1180,8 @@ public class UnsafeBufferEx implements AtomicBufferEx
     {
         final ByteBuffer srcBb = srcBuffer.byteBuffer();
         final int srcAdjusted = srcBuffer.wrapAdjustment() + srcIndex;
-        if (byteBuffer != null && srcBb != null && srcBb.limit() >= srcAdjusted + length)
+        final boolean destOk = byteBuffer != null && byteBuffer.limit() >= wrapAdjustment + index + length;
+        if (destOk && srcBb != null && srcBb.limit() >= srcAdjusted + length)
         {
             byteBuffer.put(wrapAdjustment + index, srcBb, srcAdjusted, length);
         }
@@ -1185,7 +1193,7 @@ public class UnsafeBufferEx implements AtomicBufferEx
         else
         {
             final byte[] srcArray = srcBuffer.byteArray();
-            if (byteBuffer != null && srcArray != null)
+            if (destOk && srcArray != null)
             {
                 byteBuffer.put(wrapAdjustment + index, srcArray, srcAdjusted, length);
             }
@@ -2790,9 +2798,14 @@ public class UnsafeBufferEx implements AtomicBufferEx
             else
             {
                 final byte[] srcArray = srcBuffer.byteArray();
-                if (srcArray != null)
+                if (srcArray != null && byteBuffer.limit() >= index + length)
                 {
                     byteBuffer.put(index, srcArray, srcBuffer.wrapAdjustment() + srcIndex, length);
+                }
+                else if (srcArray != null)
+                {
+                    MemorySegment.copy(MemorySegment.ofArray(srcArray), BYTE_LAYOUT,
+                        srcBuffer.wrapAdjustment() + srcIndex, segment, BYTE_LAYOUT, index, length);
                 }
                 else
                 {
@@ -3329,7 +3342,14 @@ public class UnsafeBufferEx implements AtomicBufferEx
             int offset,
             int length)
         {
-            byteBuffer.put(index, src, offset, length);
+            if (byteBuffer.limit() >= index + length)
+            {
+                byteBuffer.put(index, src, offset, length);
+            }
+            else
+            {
+                MemorySegment.copy(MemorySegment.ofArray(src), BYTE_LAYOUT, offset, segment, BYTE_LAYOUT, index, length);
+            }
         }
 
         @Override
@@ -3349,10 +3369,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
             int srcOffset,
             int length)
         {
-            // ByteBuffer.put bounds-checks the source against its NIO limit, but the index-based
-            // putBytes contract copies by capacity; only take the fast path when limit covers the
-            // range, else copy by capacity so a stale limit does not reject a valid copy
-            if (srcBuffer.limit() >= srcOffset + length)
+            // ByteBuffer.put bounds-checks both this destination and the source against their NIO
+            // limits, which Agrona treats as scratch state independent of capacity; only take the
+            // fast path when both limits cover the range, else copy by capacity
+            if (byteBuffer.limit() >= index + length && srcBuffer.limit() >= srcOffset + length)
             {
                 byteBuffer.put(index, srcBuffer, srcOffset, length);
             }
@@ -3374,10 +3394,11 @@ public class UnsafeBufferEx implements AtomicBufferEx
         {
             final ByteBuffer srcBb = srcBuffer.byteBuffer();
             final int srcAdjusted = srcBuffer.wrapAdjustment() + srcIndex;
-            // ByteBuffer.put bounds-checks the source against its NIO limit, which Agrona treats
-            // as scratch state independent of capacity (e.g. left dirty by CRC32.update); only
-            // take the intrinsified fast path when limit covers the range, else copy by capacity
-            if (srcBb != null && srcBb.limit() >= srcAdjusted + length)
+            // ByteBuffer.put bounds-checks both this destination and the source against their NIO
+            // limits, which Agrona treats as scratch state independent of capacity (e.g. left
+            // dirty by CRC32.update); only take the intrinsified fast path when both limits cover
+            // the range, else copy by capacity
+            if (srcBb != null && byteBuffer.limit() >= index + length && srcBb.limit() >= srcAdjusted + length)
             {
                 byteBuffer.put(index, srcBb, srcAdjusted, length);
             }
