@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
-import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -27,12 +26,6 @@ import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
 
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
-import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -44,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFa
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpRouteRequest;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.transform.McpScopeFilter;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
@@ -58,7 +52,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -1920,66 +1917,52 @@ abstract class McpProxyListFactory implements BindingHandler
             fetched = true;
             if (value != null)
             {
-                final String filtered = filterByScopes(value);
-                final byte[] bytes = filtered.getBytes(StandardCharsets.UTF_8);
+                final byte[] bytes = filterByScopes(value);
                 cachedBuf = new UnsafeBufferEx(bytes);
                 cachedLen = bytes.length;
             }
             emitIfReady(supplyTraceId.getAsLong());
         }
 
-        private String filterByScopes(
+        private byte[] filterByScopes(
             String json)
         {
             final Map<String, List<String>> scopesByName = cache.scopesByName();
+            final byte[] src = json.getBytes(StandardCharsets.UTF_8);
 
             if (binding.routeGuard == null || scopesByName.isEmpty())
             {
-                return json;
+                return src;
             }
 
-            final String itemsKey = arrayKey();
+            final McpScopeFilter filter = new McpScopeFilter(
+                arrayKey(),
+                scopesByName,
+                (name, scopes) -> binding.routeGuard.verify(authorization, scopes));
 
-            try (JsonReader reader = Json.createReader(
-                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))))
+            final JsonParserEx parser = JsonEx.createParser();
+            final JsonGeneratorEx generator = JsonEx.createGenerator();
+            final JsonPipeline pipeline = JsonEx.stream(parser)
+                .transform(filter)
+                .into(generator);
+
+            final DirectBufferEx srcBuf = new UnsafeBufferEx(src);
+            final MutableDirectBufferEx dstBuf = new UnsafeBufferEx(new byte[src.length + 16]);
+            int produced = 0;
+
+            pipeline.reset();
+            JsonPipelineResult result = pipeline.transform(srcBuf, 0, src.length, true, dstBuf, 0, dstBuf.capacity());
+            produced += result.produced();
+
+            while (result.status() == JsonPipeline.Status.SUSPENDED)
             {
-                final JsonObject root = reader.readObject();
-                if (!root.containsKey(itemsKey))
-                {
-                    return json;
-                }
-
-                final JsonArray items = root.getJsonArray(itemsKey);
-                final JsonArrayBuilder filtered = Json.createArrayBuilder();
-
-                for (JsonValue item : items)
-                {
-                    final JsonObject tool = item.asJsonObject();
-                    final String name = tool.getString("name", null);
-                    if (name != null && admitsToolByScope(name, scopesByName))
-                    {
-                        filtered.add(tool);
-                    }
-                }
-
-                return Json.createObjectBuilder()
-                    .add(itemsKey, filtered)
-                    .build()
-                    .toString();
+                result = pipeline.transform(srcBuf, 0, src.length, true, dstBuf, produced, dstBuf.capacity());
+                produced += result.produced();
             }
-            catch (Exception ex)
-            {
-                return json;
-            }
-        }
 
-        private boolean admitsToolByScope(
-            String toolName,
-            Map<String, List<String>> scopesByName)
-        {
-            final List<String> scopes = scopesByName.get(toolName);
-
-            return scopes == null || binding.routeGuard.verify(authorization, scopes);
+            final byte[] output = new byte[produced];
+            dstBuf.getBytes(0, output);
+            return output;
         }
 
         private void onServerEnd(
