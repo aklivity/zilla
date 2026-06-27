@@ -76,6 +76,8 @@ public class BufferCopyBM
     private MemorySegment dstSeg;
     private ByteBuffer srcBb;
     private ByteBuffer dstBb;
+    private ByteBuffer srcBbView;
+    private ByteBuffer dstBbView;
     private BaselineBufferEx baselineSrc;
     private BaselineBufferEx baselineDst;
 
@@ -97,6 +99,13 @@ public class BufferCopyBM
         this.srcBb = src;
         this.dstBb = dst;
 
+        // clean duplicates held at position 0, limit capacity — the byteBufferView indirection
+        // UnsafeBufferEx.putBytes takes on its ByteBuffer.put fast path
+        this.srcBbView = src.duplicate();
+        this.srcBbView.clear();
+        this.dstBbView = dst.duplicate();
+        this.dstBbView.clear();
+
         this.baselineSrc = new BaselineBufferEx(src);
         this.baselineDst = new BaselineBufferEx(dst);
     }
@@ -117,6 +126,12 @@ public class BufferCopyBM
     public void byteBuffer()
     {
         dstBb.put(0, srcBb, 0, size);
+    }
+
+    @Benchmark
+    public void byteBufferView()
+    {
+        dstBbView.put(0, srcBbView, 0, size);
     }
 
     @Benchmark
