@@ -49,7 +49,6 @@ module io.aklivity.zilla.runtime.engine
     requires transitive jakarta.json.bind;
     requires transitive org.agrona;
     requires jdk.management;
-    requires jdk.unsupported;
     requires java.management;
     requires java.net.http;
     requires transitive io.aklivity.zilla.runtime.common.agrona;
