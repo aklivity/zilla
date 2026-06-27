@@ -386,9 +386,6 @@ public class EngineWorker implements EngineContext, Agent
         this.readLimit = config.maximumMessagesPerRead();
         this.expireLimit = config.maximumExpirationsPerPoll();
         this.streamsBuffer = streamsLayout.streamsBuffer();
-        // off-heap and Native-specialized: per-worker frame composition skips the isNative branch
-        // and the aligned-VarHandle alignment check; bounds remain enforced by the flyweight
-        // builders that wrap this buffer
         this.writeBuffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(config.bufferSlotCapacity() + 1024)).asNative();
         this.streamSets = new Long2ObjectHashMap<>();
         this.streams = initDispatcher();
