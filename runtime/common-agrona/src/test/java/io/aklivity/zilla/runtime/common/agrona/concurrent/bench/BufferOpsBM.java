@@ -77,7 +77,7 @@ public class BufferOpsBM
     private long address;
     private long value = 0x0102030405060708L;
 
-    @Param({"baseline", "unsafe", "safe"})
+    @Param({"baseline", "unsafe", "safe", "native"})
     private String impl;
 
     @Setup
@@ -89,6 +89,7 @@ public class BufferOpsBM
         {
         case "safe" -> new SafeBuffer(byteBuffer);
         case "baseline" -> new BaselineBufferEx(byteBuffer);
+        case "native" -> new UnsafeBufferEx(byteBuffer).asNative();
         default -> new UnsafeBufferEx(byteBuffer);
         };
     }
