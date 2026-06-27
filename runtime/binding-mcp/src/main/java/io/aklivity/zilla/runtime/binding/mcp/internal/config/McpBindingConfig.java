@@ -25,7 +25,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -82,7 +81,6 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
-    public final GuardHandler routeGuard;
     public final String credentials;
     public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
@@ -139,15 +137,6 @@ public final class McpBindingConfig
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)
             .map(context::supplyGuard)
-            .orElse(null);
-
-        this.routeGuard = binding.routes.stream()
-            .flatMap(r -> r.guarded.stream())
-            .map(g -> g.id)
-            .filter(id -> id != 0L)
-            .map(context::supplyGuard)
-            .filter(Objects::nonNull)
-            .findFirst()
             .orElse(null);
 
         this.credentials = Optional.ofNullable(options)
