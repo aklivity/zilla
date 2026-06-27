@@ -1145,16 +1145,8 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int srcIndex,
         int length)
     {
-        final ByteBuffer srcBb = srcBuffer.byteBuffer();
-        if (byteBuffer != null && srcBb != null)
-        {
-            byteBuffer.put(wrapAdjustment + index, srcBb, srcBuffer.wrapAdjustment() + srcIndex, length);
-        }
-        else
-        {
-            MemorySegment.copy(srcBuffer.segment(), srcBuffer.wrapAdjustment() + srcIndex,
-                segment, wrapAdjustment + index, length);
-        }
+        MemorySegment.copy(srcBuffer.segment(), srcBuffer.wrapAdjustment() + srcIndex,
+            segment, wrapAdjustment + index, length);
     }
 
     @Override
@@ -1164,10 +1156,10 @@ public class UnsafeBufferEx implements AtomicBufferEx
         int srcIndex,
         int length)
     {
-        final ByteBuffer srcBb = srcBuffer.byteBuffer();
-        if (byteBuffer != null && srcBb != null)
+        if (srcBuffer instanceof DirectBufferEx safe)
         {
-            byteBuffer.put(wrapAdjustment + index, srcBb, srcBuffer.wrapAdjustment() + srcIndex, length);
+            MemorySegment.copy(safe.segment(), safe.wrapAdjustment() + srcIndex,
+                segment, wrapAdjustment + index, length);
         }
         else
         {
@@ -1175,11 +1167,6 @@ public class UnsafeBufferEx implements AtomicBufferEx
             if (byteBuffer != null && srcArray != null)
             {
                 byteBuffer.put(wrapAdjustment + index, srcArray, srcBuffer.wrapAdjustment() + srcIndex, length);
-            }
-            else if (srcBuffer instanceof DirectBufferEx safe)
-            {
-                MemorySegment.copy(safe.segment(), safe.wrapAdjustment() + srcIndex,
-                    segment, wrapAdjustment + index, length);
             }
             else if (srcArray != null)
             {
@@ -2775,10 +2762,9 @@ public class UnsafeBufferEx implements AtomicBufferEx
             int srcIndex,
             int length)
         {
-            final ByteBuffer srcBb = srcBuffer.byteBuffer();
-            if (srcBb != null)
+            if (srcBuffer instanceof DirectBufferEx ex)
             {
-                byteBuffer.put(index, srcBb, srcBuffer.wrapAdjustment() + srcIndex, length);
+                MemorySegment.copy(ex.segment(), ex.wrapAdjustment() + srcIndex, segment, index, length);
             }
             else
             {
@@ -2786,10 +2772,6 @@ public class UnsafeBufferEx implements AtomicBufferEx
                 if (srcArray != null)
                 {
                     byteBuffer.put(index, srcArray, srcBuffer.wrapAdjustment() + srcIndex, length);
-                }
-                else if (srcBuffer instanceof DirectBufferEx ex)
-                {
-                    MemorySegment.copy(ex.segment(), ex.wrapAdjustment() + srcIndex, segment, index, length);
                 }
                 else
                 {
@@ -3356,16 +3338,8 @@ public class UnsafeBufferEx implements AtomicBufferEx
             int srcIndex,
             int length)
         {
-            final ByteBuffer srcBb = srcBuffer.byteBuffer();
-            if (srcBb != null)
-            {
-                byteBuffer.put(index, srcBb, srcBuffer.wrapAdjustment() + srcIndex, length);
-            }
-            else
-            {
-                MemorySegment.copy(srcBuffer.segment(), srcBuffer.wrapAdjustment() + srcIndex,
-                    segment, index, length);
-            }
+            MemorySegment.copy(srcBuffer.segment(), srcBuffer.wrapAdjustment() + srcIndex,
+                segment, index, length);
         }
 
         @Override
