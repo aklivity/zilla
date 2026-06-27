@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -25,7 +26,15 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -56,6 +65,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 abstract class McpProxyListFactory implements BindingHandler
@@ -166,7 +176,8 @@ abstract class McpProxyListFactory implements BindingHandler
                         initialId,
                         affinity,
                         authorization,
-                        cache)::onServerMessage;
+                        cache,
+                        binding.routeGuard)::onServerMessage;
                 }
                 else
                 {
@@ -1829,6 +1840,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private final long affinity;
         private final long authorization;
         private final McpProxyCache.McpListCache cache;
+        private final GuardHandler routeGuard;
 
         private int state;
         private boolean fetched;
@@ -1850,7 +1862,8 @@ abstract class McpProxyListFactory implements BindingHandler
             long initialId,
             long affinity,
             long authorization,
-            McpProxyCache.McpListCache cache)
+            McpProxyCache.McpListCache cache,
+            GuardHandler routeGuard)
         {
             this.lifecycle = lifecycle;
             this.initialId = initialId;
@@ -1858,6 +1871,7 @@ abstract class McpProxyListFactory implements BindingHandler
             this.affinity = affinity;
             this.authorization = authorization;
             this.cache = cache;
+            this.routeGuard = routeGuard;
         }
 
         private void onServerMessage(
@@ -1909,11 +1923,94 @@ abstract class McpProxyListFactory implements BindingHandler
             fetched = true;
             if (value != null)
             {
-                final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+                final String filtered = filterByScopes(value);
+                final byte[] bytes = filtered.getBytes(StandardCharsets.UTF_8);
                 cachedBuf = new UnsafeBufferEx(bytes);
                 cachedLen = bytes.length;
             }
             emitIfReady(supplyTraceId.getAsLong());
+        }
+
+        private String filterByScopes(
+            String json)
+        {
+            if (routeGuard == null)
+            {
+                return json;
+            }
+
+            final String itemsKey = arrayKey();
+
+            try (JsonReader reader = Json.createReader(
+                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))))
+            {
+                final JsonObject root = reader.readObject();
+                if (!root.containsKey(itemsKey))
+                {
+                    return json;
+                }
+
+                final JsonArray items = root.getJsonArray(itemsKey);
+                final JsonArrayBuilder filtered = Json.createArrayBuilder();
+
+                for (JsonValue item : items)
+                {
+                    final JsonObject tool = item.asJsonObject();
+                    if (admitsByScope(tool))
+                    {
+                        filtered.add(tool);
+                    }
+                }
+
+                return Json.createObjectBuilder()
+                    .add(itemsKey, filtered)
+                    .build()
+                    .toString();
+            }
+            catch (Exception ex)
+            {
+                return json;
+            }
+        }
+
+        private boolean admitsByScope(
+            JsonObject item)
+        {
+            if (!item.containsKey("securitySchemes"))
+            {
+                return true;
+            }
+
+            final JsonObject schemes = item.getJsonObject("securitySchemes");
+
+            for (String schemeName : schemes.keySet())
+            {
+                final JsonObject scheme = schemes.getJsonObject(schemeName);
+                final String type = scheme.getString("type", "");
+
+                if ("noauth".equals(type))
+                {
+                    return true;
+                }
+
+                if (scheme.containsKey("scopes"))
+                {
+                    final JsonArray scopes = scheme.getJsonArray("scopes");
+                    final List<String> scopeList = scopes.stream()
+                        .map(v -> ((JsonString) v).getString())
+                        .collect(Collectors.toList());
+                    if (routeGuard.verify(authorization, scopeList))
+                    {
+                        return true;
+                    }
+                }
+                else if (routeGuard.verify(authorization, List.of()))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void onServerEnd(

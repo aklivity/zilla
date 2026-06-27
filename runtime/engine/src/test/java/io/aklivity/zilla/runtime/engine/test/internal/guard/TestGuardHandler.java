@@ -175,11 +175,12 @@ public final class TestGuardHandler implements GuardHandler
         return expiresAt != 0L && challengeAt <= now && now < expiresAt;
     }
 
-    boolean verify(
+    @Override
+    public boolean verify(
         long sessionId,
-        List<String> roles)
+        List<String> scopes)
     {
         return (sessionId == 0L && credentials == null || sessions.containsKey(sessionId)) &&
-                (this.roles == null || this.roles.containsAll(roles));
+                (this.roles == null || this.roles.containsAll(scopes));
     }
 }

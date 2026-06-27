@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import java.util.List;
+
 /**
  * Manages authorization sessions for streams passing through a guarded binding.
  * <p>
@@ -168,6 +170,25 @@ public interface GuardHandler
      */
     String credentials(
         long sessionId);
+
+    /**
+     * Returns whether the given session holds all of the specified scopes.
+     * <p>
+     * Used by bindings that need to test dynamic, per-item scope requirements at
+     * serving time (e.g., filtering a cached tool list by the connecting client's
+     * scopes). The scope names are guard-specific.
+     * </p>
+     *
+     * @param sessionId  the session identifier
+     * @param scopes     the required scopes; an empty list always succeeds
+     * @return {@code true} if the session holds every scope in the list
+     */
+    default boolean verify(
+        long sessionId,
+        List<String> scopes)
+    {
+        return true;
+    }
 
     /**
      * Returns the UTC millisecond timestamp at which this session expires and must be

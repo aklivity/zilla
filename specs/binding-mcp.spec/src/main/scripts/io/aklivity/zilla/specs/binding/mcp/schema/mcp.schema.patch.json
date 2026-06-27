@@ -381,8 +381,7 @@
                                                     }
                                                 },
                                                 "additionalProperties": false
-                                            },
-                                            "guarded": false
+                                            }
                                         }
                                     }
                                 }
