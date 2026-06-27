@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.guard.identity.internal;
 
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
@@ -136,14 +135,6 @@ public class IdentityGuardHandler implements GuardHandler
         long sessionId)
     {
         return sessionsById.get(sessionId) != null;
-    }
-
-    @Override
-    public boolean verify(
-        long sessionId,
-        List<String> scopes)
-    {
-        return true;
     }
 
     private final class IdentitySessionStore
