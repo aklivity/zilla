@@ -26,14 +26,12 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
@@ -65,7 +63,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 abstract class McpProxyListFactory implements BindingHandler
@@ -177,7 +174,7 @@ abstract class McpProxyListFactory implements BindingHandler
                         affinity,
                         authorization,
                         cache,
-                        binding.routeGuard)::onServerMessage;
+                        binding)::onServerMessage;
                 }
                 else
                 {
@@ -1840,7 +1837,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private final long affinity;
         private final long authorization;
         private final McpProxyCache.McpListCache cache;
-        private final GuardHandler routeGuard;
+        private final McpBindingConfig binding;
 
         private int state;
         private boolean fetched;
@@ -1863,7 +1860,7 @@ abstract class McpProxyListFactory implements BindingHandler
             long affinity,
             long authorization,
             McpProxyCache.McpListCache cache,
-            GuardHandler routeGuard)
+            McpBindingConfig binding)
         {
             this.lifecycle = lifecycle;
             this.initialId = initialId;
@@ -1871,7 +1868,7 @@ abstract class McpProxyListFactory implements BindingHandler
             this.affinity = affinity;
             this.authorization = authorization;
             this.cache = cache;
-            this.routeGuard = routeGuard;
+            this.binding = binding;
         }
 
         private void onServerMessage(
@@ -1934,7 +1931,9 @@ abstract class McpProxyListFactory implements BindingHandler
         private String filterByScopes(
             String json)
         {
-            if (routeGuard == null)
+            final Map<String, List<String>> scopesByName = cache.scopesByName();
+
+            if (binding.routeGuard == null || scopesByName.isEmpty())
             {
                 return json;
             }
@@ -1956,7 +1955,8 @@ abstract class McpProxyListFactory implements BindingHandler
                 for (JsonValue item : items)
                 {
                     final JsonObject tool = item.asJsonObject();
-                    if (admitsByScope(tool))
+                    final String name = tool.getString("name", null);
+                    if (name != null && admitsToolByScope(name, scopesByName))
                     {
                         filtered.add(tool);
                     }
@@ -1973,44 +1973,13 @@ abstract class McpProxyListFactory implements BindingHandler
             }
         }
 
-        private boolean admitsByScope(
-            JsonObject item)
+        private boolean admitsToolByScope(
+            String toolName,
+            Map<String, List<String>> scopesByName)
         {
-            if (!item.containsKey("securitySchemes"))
-            {
-                return true;
-            }
+            final List<String> scopes = scopesByName.get(toolName);
 
-            final JsonObject schemes = item.getJsonObject("securitySchemes");
-
-            for (String schemeName : schemes.keySet())
-            {
-                final JsonObject scheme = schemes.getJsonObject(schemeName);
-                final String type = scheme.getString("type", "");
-
-                if ("noauth".equals(type))
-                {
-                    return true;
-                }
-
-                if (scheme.containsKey("scopes"))
-                {
-                    final JsonArray scopes = scheme.getJsonArray("scopes");
-                    final List<String> scopeList = scopes.stream()
-                        .map(v -> ((JsonString) v).getString())
-                        .collect(Collectors.toList());
-                    if (routeGuard.verify(authorization, scopeList))
-                    {
-                        return true;
-                    }
-                }
-                else if (routeGuard.verify(authorization, List.of()))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return scopes == null || binding.routeGuard.verify(authorization, scopes);
         }
 
         private void onServerEnd(
