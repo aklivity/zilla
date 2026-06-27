@@ -270,4 +270,25 @@ public class UnsafeBufferExNativeTest
         target.getBytes(0, readback);
         assertArrayEquals(payload, readback);
     }
+
+    @Test
+    public void putBytesFromDirectBufferExWithStaleSourceLimitRoundTrips()
+    {
+        // Agrona treats the source's NIO ByteBuffer limit as scratch state independent of
+        // capacity (e.g. left dirty by CRC32.update); a putBytes spanning beyond the stale limit
+        // but within capacity must still copy the full range — see KafkaCachePartition.computeHash
+        ByteBuffer sourceBb = ByteBuffer.allocateDirect(64);
+        UnsafeBufferEx source = new UnsafeBufferEx(sourceBb);
+        byte[] payload = "trailer-spanning-stale-limit".getBytes();
+        source.putBytes(0, payload);
+        sourceBb.position(0);
+        sourceBb.limit(4);
+
+        UnsafeBufferEx.Native target = new UnsafeBufferEx(ByteBuffer.allocateDirect(64)).asNative();
+        target.putBytes(0, source, 0, payload.length);
+
+        byte[] readback = new byte[payload.length];
+        target.getBytes(0, readback);
+        assertArrayEquals(payload, readback);
+    }
 }
