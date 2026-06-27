@@ -175,19 +175,21 @@ public interface GuardHandler
      * Returns whether the given session holds all of the specified scopes.
      * <p>
      * Used by bindings that need to test dynamic, per-item scope requirements at
-     * serving time (e.g., filtering a cached tool list by the connecting client's
-     * scopes). The scope names are guard-specific.
+     * serving time. The scope names are guard-specific. The default returns
+     * {@code false} so that guards which do not implement scope introspection
+     * deny by default; implementations that do not track scopes but wish to
+     * allow all items must override and return {@code true}.
      * </p>
      *
      * @param sessionId  the session identifier
-     * @param scopes     the required scopes; an empty list always succeeds
+     * @param scopes     the required scopes
      * @return {@code true} if the session holds every scope in the list
      */
     default boolean verify(
         long sessionId,
         List<String> scopes)
     {
-        return true;
+        return false;
     }
 
     /**
