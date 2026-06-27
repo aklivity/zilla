@@ -1105,8 +1105,15 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         int offset,
         int length)
     {
-        MemorySegment.copy(MemorySegment.ofArray(src), BYTE_LAYOUT, offset,
-            segment, BYTE_LAYOUT, wrapAdjustment + index, length);
+        if (byteBuffer != null)
+        {
+            byteBuffer.put(wrapAdjustment + index, src, offset, length);
+        }
+        else
+        {
+            MemorySegment.copy(MemorySegment.ofArray(src), BYTE_LAYOUT, offset,
+                segment, BYTE_LAYOUT, wrapAdjustment + index, length);
+        }
     }
 
     @Override
@@ -1126,10 +1133,17 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         int srcOffset,
         int length)
     {
-        final MemorySegment src = srcBuffer.isDirect()
-            ? MemorySegment.ofAddress(BufferUtil.address(srcBuffer)).reinterpret(srcBuffer.capacity())
-            : MemorySegment.ofArray(BufferUtil.array(srcBuffer));
-        MemorySegment.copy(src, srcOffset, segment, wrapAdjustment + index, length);
+        if (byteBuffer != null)
+        {
+            byteBuffer.put(wrapAdjustment + index, srcBuffer, srcOffset, length);
+        }
+        else
+        {
+            final MemorySegment src = srcBuffer.isDirect()
+                ? MemorySegment.ofAddress(BufferUtil.address(srcBuffer)).reinterpret(srcBuffer.capacity())
+                : MemorySegment.ofArray(BufferUtil.array(srcBuffer));
+            MemorySegment.copy(src, srcOffset, segment, wrapAdjustment + index, length);
+        }
     }
 
     @Override
@@ -1139,8 +1153,16 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         int srcIndex,
         int length)
     {
-        MemorySegment.copy(srcBuffer.segment(), JAVA_BYTE, srcBuffer.wrapAdjustment() + srcIndex,
-            segment, JAVA_BYTE, wrapAdjustment + index, length);
+        final ByteBuffer srcBb = srcBuffer.byteBuffer();
+        if (byteBuffer != null && srcBb != null)
+        {
+            byteBuffer.put(wrapAdjustment + index, srcBb, srcBuffer.wrapAdjustment() + srcIndex, length);
+        }
+        else
+        {
+            MemorySegment.copy(srcBuffer.segment(), srcBuffer.wrapAdjustment() + srcIndex,
+                segment, wrapAdjustment + index, length);
+        }
     }
 
     @Override
@@ -1150,38 +1172,34 @@ public final class UnsafeBufferEx implements AtomicBufferEx
         int srcIndex,
         int length)
     {
-        if (srcBuffer instanceof DirectBufferEx safe)
+        final ByteBuffer srcBb = srcBuffer.byteBuffer();
+        if (byteBuffer != null && srcBb != null)
         {
-            MemorySegment.copy(safe.segment(), JAVA_BYTE, safe.wrapAdjustment() + srcIndex,
-                segment, JAVA_BYTE, wrapAdjustment + index, length);
+            byteBuffer.put(wrapAdjustment + index, srcBb, srcBuffer.wrapAdjustment() + srcIndex, length);
         }
         else
         {
             final byte[] srcArray = srcBuffer.byteArray();
-            if (srcArray != null)
+            if (byteBuffer != null && srcArray != null)
             {
-                final int adjustment = srcBuffer.wrapAdjustment();
+                byteBuffer.put(wrapAdjustment + index, srcArray, srcBuffer.wrapAdjustment() + srcIndex, length);
+            }
+            else if (srcBuffer instanceof DirectBufferEx safe)
+            {
+                MemorySegment.copy(safe.segment(), safe.wrapAdjustment() + srcIndex,
+                    segment, wrapAdjustment + index, length);
+            }
+            else if (srcArray != null)
+            {
                 MemorySegment.copy(
-                    MemorySegment.ofArray(srcArray), BYTE_LAYOUT, adjustment + srcIndex,
+                    MemorySegment.ofArray(srcArray), BYTE_LAYOUT, srcBuffer.wrapAdjustment() + srcIndex,
                     segment, BYTE_LAYOUT, wrapAdjustment + index, length);
             }
             else
             {
-                final ByteBuffer srcBb = srcBuffer.byteBuffer();
-                if (srcBb != null)
+                for (int i = 0; i < length; i++)
                 {
-                    final MemorySegment src = srcBb.isDirect()
-                        ? MemorySegment.ofAddress(BufferUtil.address(srcBb)).reinterpret(srcBb.capacity())
-                        : MemorySegment.ofArray(BufferUtil.array(srcBb));
-                    MemorySegment.copy(src, srcBuffer.wrapAdjustment() + srcIndex,
-                        segment, wrapAdjustment + index, length);
-                }
-                else
-                {
-                    for (int i = 0; i < length; i++)
-                    {
-                        segment.set(BYTE_LAYOUT, wrapAdjustment + index + i, srcBuffer.getByte(srcIndex + i));
-                    }
+                    segment.set(BYTE_LAYOUT, wrapAdjustment + index + i, srcBuffer.getByte(srcIndex + i));
                 }
             }
         }
