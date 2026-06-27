@@ -18,9 +18,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.junit.Test;
 
@@ -48,7 +48,7 @@ public class ScopeFilterTest
             "{\"name\":\"get_status\",\"description\":\"Get status\"}" +
             "]}";
 
-        Map<String, List<String>> scopesByName = new LinkedHashMap<>();
+        Map<CharSequence, List<String>> scopesByName = new TreeMap<>(CharSequence::compare);
         scopesByName.put("list_repos", List.of("read"));
         scopesByName.put("delete_repo", List.of("admin"));
 
@@ -72,7 +72,7 @@ public class ScopeFilterTest
             "{\"name\":\"list_repos\",\"description\":\"List repos\"}" +
             "]}";
 
-        Map<String, List<String>> scopesByName = new LinkedHashMap<>();
+        Map<CharSequence, List<String>> scopesByName = new TreeMap<>(CharSequence::compare);
 
         McpScopeFilter filter = new McpScopeFilter(
             "tools",
@@ -91,7 +91,7 @@ public class ScopeFilterTest
             "{\"name\":\"list_repos\",\"description\":\"List repos\"}" +
             "]}";
 
-        Map<String, List<String>> scopesByName = new LinkedHashMap<>();
+        Map<CharSequence, List<String>> scopesByName = new TreeMap<>(CharSequence::compare);
         scopesByName.put("list_repos", List.of("admin"));
 
         McpScopeFilter filter = new McpScopeFilter(

@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -252,7 +251,7 @@ public final class McpProxyCache
         private final String storeKey;
         private final String storeLockKey;
         private final Map<String, String> fragments;
-        private Map<String, List<String>> scopesByName;
+        private Map<CharSequence, List<String>> scopesByName;
         private long lastChecksum = -1L;
         private String lockToken;
 
@@ -269,7 +268,7 @@ public final class McpProxyCache
             return degraded;
         }
 
-        public Map<String, List<String>> scopesByName()
+        public Map<CharSequence, List<String>> scopesByName()
         {
             return scopesByName != null ? scopesByName : Collections.emptyMap();
         }
@@ -432,7 +431,7 @@ public final class McpProxyCache
                 return;
             }
 
-            final Map<String, List<String>> index = new LinkedHashMap<>();
+            final Map<CharSequence, List<String>> index = new TreeMap<>(CharSequence::compare);
 
             try (JsonReader reader = Json.createReader(
                 new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8))))

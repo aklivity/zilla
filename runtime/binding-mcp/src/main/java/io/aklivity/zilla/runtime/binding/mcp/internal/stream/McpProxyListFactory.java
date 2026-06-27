@@ -1927,7 +1927,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private byte[] filterByScopes(
             String json)
         {
-            final Map<String, List<String>> scopesByName = cache.scopesByName();
+            final Map<CharSequence, List<String>> scopesByName = cache.scopesByName();
             final byte[] src = json.getBytes(StandardCharsets.UTF_8);
 
             if (binding.routeGuard == null || scopesByName.isEmpty())

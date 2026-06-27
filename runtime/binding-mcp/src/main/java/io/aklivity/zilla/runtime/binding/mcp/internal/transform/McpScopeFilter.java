@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 public final class McpScopeFilter implements JsonTransform
 {
     private final String arrayKey;
-    private final Map<String, List<String>> scopesByName;
+    private final Map<CharSequence, List<String>> scopesByName;
     private final BiPredicate<CharSequence, List<String>> admits;
     private final KeySource keySource = new KeySource();
     private final MediatingController mediatingControl = new MediatingController();
@@ -48,7 +48,7 @@ public final class McpScopeFilter implements JsonTransform
 
     public McpScopeFilter(
         String arrayKey,
-        Map<String, List<String>> scopesByName,
+        Map<CharSequence, List<String>> scopesByName,
         BiPredicate<CharSequence, List<String>> admits)
     {
         this.arrayKey = arrayKey;
@@ -219,7 +219,7 @@ public final class McpScopeFilter implements JsonTransform
         JsonSink sink)
     {
         final CharSequence name = source.getStringView();
-        final List<String> scopes = lookupScopes(name);
+        final List<String> scopes = scopesByName.get(name);
 
         itemPending = false;
         nameArmed = false;
@@ -242,21 +242,6 @@ public final class McpScopeFilter implements JsonTransform
             status = sink.transform(mediatingControl, source, event);
         }
         return status;
-    }
-
-    private List<String> lookupScopes(
-        CharSequence name)
-    {
-        List<String> result = null;
-        for (Map.Entry<String, List<String>> entry : scopesByName.entrySet())
-        {
-            if (entry.getKey().contentEquals(name))
-            {
-                result = entry.getValue();
-                break;
-            }
-        }
-        return result;
     }
 
     private static final class MediatingController implements JsonController
