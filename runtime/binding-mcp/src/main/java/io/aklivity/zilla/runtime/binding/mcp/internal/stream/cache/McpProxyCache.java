@@ -588,7 +588,7 @@ public final class McpProxyCache
         private List<String> scanScheme(
             JsonParserEx parser)
         {
-            String type = null;
+            boolean noauth = false;
             List<String> scopes = null;
             int depth = 1;
             while (depth > 0 && parser.hasNext())
@@ -611,7 +611,7 @@ public final class McpProxyCache
                         if ("type".contentEquals(key))
                         {
                             parser.next();
-                            type = parser.getString();
+                            noauth = "noauth".contentEquals(parser.getStringView());
                         }
                         else if ("scopes".contentEquals(key))
                         {
@@ -624,7 +624,7 @@ public final class McpProxyCache
                 }
             }
 
-            return "noauth".equals(type) ? NO_AUTH : scopes;
+            return noauth ? NO_AUTH : scopes;
         }
 
         private List<String> scanStrings(

@@ -46,6 +46,7 @@ public final class McpScopeFilter implements JsonTransform
     private BiPredicate<CharSequence, List<String>> admits;
     private final KeySource keySource = new KeySource();
     private final Control mediator = new Control();
+    private final Control inject = new Control(true);
 
     private final State outer = this::onOuter;
     private final State items = this::onItems;
@@ -59,7 +60,7 @@ public final class McpScopeFilter implements JsonTransform
     private boolean itemsArmed;
     private boolean nameArmed;
 
-    public McpScopeFilter init(
+    public void init(
         String arrayKey,
         Map<CharSequence, List<String>> scopesByName,
         BiPredicate<CharSequence, List<String>> admits)
@@ -68,7 +69,6 @@ public final class McpScopeFilter implements JsonTransform
         this.scopesByName = scopesByName;
         this.admits = admits;
         reset();
-        return this;
     }
 
     @Override
@@ -272,13 +272,13 @@ public final class McpScopeFilter implements JsonTransform
         }
         else
         {
-            mediator.synthetic = true;
-            status = sink.transform(mediator, source, JsonEvent.START_OBJECT);
+            // re-emit the elided object start and name key as synthetic events carrying no source bytes,
+            // then resume the real name value through the byte-tracking mediator
+            status = sink.transform(inject, source, JsonEvent.START_OBJECT);
             if (status == Status.ADVANCED)
             {
-                status = sink.transform(mediator, keySource.with("name"), JsonEvent.KEY_NAME);
+                status = sink.transform(inject, keySource.with("name"), JsonEvent.KEY_NAME);
             }
-            mediator.synthetic = false;
             if (status == Status.ADVANCED)
             {
                 status = sink.transform(mediator, source, event);
@@ -290,8 +290,20 @@ public final class McpScopeFilter implements JsonTransform
 
     private static final class Control implements JsonController
     {
+        private final boolean synthetic;
+
         private JsonController delegate;
-        private boolean synthetic;
+
+        private Control()
+        {
+            this(false);
+        }
+
+        private Control(
+            boolean synthetic)
+        {
+            this.synthetic = synthetic;
+        }
 
         @Override
         public void segmentable()

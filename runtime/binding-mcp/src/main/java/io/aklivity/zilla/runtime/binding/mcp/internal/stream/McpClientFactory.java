@@ -4829,6 +4829,9 @@ public final class McpClientFactory implements McpStreamFactory
             super(mcp);
             final McpBindingConfig binding = bindings.get(mcp.routedId);
             final Map<String, List<String>> roles = binding.getRoles(mcp.resolvedId);
+            // per-stream pipeline: the injector carries in-flight parse state across response data frames,
+            // so each concurrent tools/list stream owns its own (unlike the proxy filter, which runs to
+            // completion synchronously and is reused per worker)
             final JsonParserEx parser = JsonEx.createParser();
             final JsonGeneratorEx generator = JsonEx.createGenerator();
             this.pipeline = JsonEx.stream(parser)

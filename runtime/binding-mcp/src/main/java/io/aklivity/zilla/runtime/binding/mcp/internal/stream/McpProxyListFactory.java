@@ -845,8 +845,8 @@ abstract class McpProxyListFactory implements BindingHandler
             case KEY_NAME:
                 if (client.decodeDepth == 1)
                 {
-                    final String key = parser.getString();
-                    if (client.arrayKey.equals(key))
+                    final CharSequence key = client.decodableJson.getStringView();
+                    if (client.arrayKey.contentEquals(key))
                     {
                         client.decoder = decodeItems;
                     }
@@ -1401,7 +1401,7 @@ abstract class McpProxyListFactory implements BindingHandler
             case KEY_NAME:
                 if (client.decodeItemDepth == 1 &&
                     client.prefix.length() > 0 &&
-                    client.idKey.equals(parser.getString()))
+                    client.idKey.contentEquals(client.decodableJson.getStringView()))
                 {
                     client.decoder = decodeItemId;
                     break decode;
