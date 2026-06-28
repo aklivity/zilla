@@ -4821,7 +4821,6 @@ public final class McpClientFactory implements McpStreamFactory
     private final class HttpToolsListStream extends HttpRequestStream
     {
         private final JsonPipeline pipeline;
-        private final MutableDirectBufferEx stagingBuffer;
         private boolean pipelineReset;
 
         HttpToolsListStream(
@@ -4835,7 +4834,6 @@ public final class McpClientFactory implements McpStreamFactory
             this.pipeline = JsonEx.stream(parser)
                 .transform(new McpSchemeInjector(JSON_KEY_TOOLS, roles))
                 .into(generator);
-            this.stagingBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         }
 
         @Override
@@ -4891,31 +4889,42 @@ public final class McpClientFactory implements McpStreamFactory
                 }
 
                 int available = mcp.replyWindow();
-                JsonPipeline.Status status = JsonPipeline.Status.SUSPENDED;
-                boolean progressing = true;
-                while (available > 0 && progressing && status == JsonPipeline.Status.SUSPENDED)
+                // stage transform output in a pooled encode slot bounded by the reply window; when the slot is
+                // unavailable (pool exhausted) leave the input in the decode slot, exactly as window exhaustion,
+                // and resume on the next reply window or response data
+                final int slot = available > 0 ? encodePool.acquire(initialId) : NO_SLOT;
+                if (slot != NO_SLOT)
                 {
-                    final int cap = Math.min(available, stagingBuffer.capacity());
-                    final JsonPipelineResult result =
-                        pipeline.transform(buffer, progress, limit, endOfInput, stagingBuffer, 0, cap);
-                    final int produced = result.produced();
-                    if (produced > 0)
+                    final MutableDirectBufferEx staging = encodePool.buffer(slot);
+                    final int capacity = staging.capacity();
+                    JsonPipeline.Status status = JsonPipeline.Status.SUSPENDED;
+                    boolean progressing = true;
+                    while (available > 0 && progressing && status == JsonPipeline.Status.SUSPENDED)
                     {
-                        final int flushed = mcp.doAppData(traceId, authorization, stagingBuffer, 0, produced);
-                        assert flushed == produced;
+                        final int cap = Math.min(available, capacity);
+                        final JsonPipelineResult result =
+                            pipeline.transform(buffer, progress, limit, endOfInput, staging, 0, cap);
+                        final int produced = result.produced();
+                        if (produced > 0)
+                        {
+                            final int flushed = mcp.doAppData(traceId, authorization, staging, 0, produced);
+                            assert flushed == produced;
+                        }
+
+                        progress += result.consumed();
+                        available = mcp.replyWindow();
+                        status = result.status();
+                        // guard against a stalled pipeline (no input consumed, no output produced) so we yield
+                        // back to the decode slot and wait for more input or reply window rather than spinning
+                        progressing = produced > 0 || result.consumed() > 0;
                     }
 
-                    progress += result.consumed();
-                    available = mcp.replyWindow();
-                    status = result.status();
-                    // guard against a stalled pipeline (no input consumed, no output produced) so we yield
-                    // back to the decode slot and wait for more input or reply window rather than spinning
-                    progressing = produced > 0 || result.consumed() > 0;
-                }
+                    encodePool.release(slot);
 
-                if (endOfInput && status == JsonPipeline.Status.COMPLETED)
-                {
-                    pipelineReset = false;
+                    if (endOfInput && status == JsonPipeline.Status.COMPLETED)
+                    {
+                        pipelineReset = false;
+                    }
                 }
             }
 
