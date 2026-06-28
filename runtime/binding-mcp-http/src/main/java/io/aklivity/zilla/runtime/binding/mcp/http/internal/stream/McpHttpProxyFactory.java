@@ -86,6 +86,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
@@ -2096,6 +2097,24 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (outputSchema != null)
             {
                 item.add("outputSchema", outputSchema);
+            }
+            final List<GuardedConfig> guarded = binding.toolGuarded(tool.name);
+            if (!guarded.isEmpty())
+            {
+                final JsonObjectBuilder schemes = Json.createObjectBuilder();
+                for (GuardedConfig g : guarded)
+                {
+                    if (!g.roles.isEmpty())
+                    {
+                        final JsonArrayBuilder scopes = Json.createArrayBuilder();
+                        for (String role : g.roles)
+                        {
+                            scopes.add(role);
+                        }
+                        schemes.add(g.name, Json.createObjectBuilder().add("scopes", scopes));
+                    }
+                }
+                item.add("securitySchemes", schemes);
             }
             tools.add(item);
         }

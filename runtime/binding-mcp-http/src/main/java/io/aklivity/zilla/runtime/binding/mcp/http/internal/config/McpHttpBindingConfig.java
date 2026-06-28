@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -169,6 +170,21 @@ public final class McpHttpBindingConfig
             .filter(r -> r.authorized(authorization) && r.matchesResource(name))
             .findFirst()
             .orElse(null);
+    }
+
+    public List<GuardedConfig> toolGuarded(
+        String name)
+    {
+        List<GuardedConfig> result = List.of();
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.matchesTool(name))
+            {
+                result = route.guarded;
+                break;
+            }
+        }
+        return result;
     }
 
     public Collection<McpHttpToolConfig> tools()

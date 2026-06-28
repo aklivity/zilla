@@ -18,10 +18,12 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,7 +31,15 @@ import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
@@ -241,6 +251,7 @@ public final class McpProxyCache
         private final String storeKey;
         private final String storeLockKey;
         private final Map<String, String> fragments;
+        private Map<CharSequence, List<String>> scopesByName;
         private long lastChecksum = -1L;
         private String lockToken;
 
@@ -255,6 +266,11 @@ public final class McpProxyCache
         public boolean degraded()
         {
             return degraded;
+        }
+
+        public Map<CharSequence, List<String>> scopesByName()
+        {
+            return scopesByName != null ? scopesByName : Collections.emptyMap();
         }
 
         private McpListCache(
@@ -330,6 +346,7 @@ public final class McpProxyCache
             final long newChecksum = crc32.getValue();
             final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
             lastChecksum = newChecksum;
+            rebuildScopeIndex(value);
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
         }
@@ -382,6 +399,7 @@ public final class McpProxyCache
                 final long newChecksum = crc32.getValue();
                 changed = lastChecksum != -1L && lastChecksum != newChecksum;
                 lastChecksum = newChecksum;
+                rebuildScopeIndex(value);
             }
             else
             {
@@ -402,6 +420,79 @@ public final class McpProxyCache
             populated = true;
             degraded = false;
             checkReady();
+        }
+
+        private void rebuildScopeIndex(
+            String value)
+        {
+            if (kind != KIND_TOOLS_LIST || value == null)
+            {
+                scopesByName = null;
+                return;
+            }
+
+            final Map<CharSequence, List<String>> index = new TreeMap<>(CharSequence::compare);
+
+            try (JsonReader reader = Json.createReader(
+                new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8))))
+            {
+                final JsonObject root = reader.readObject();
+                if (root.containsKey("tools"))
+                {
+                    final JsonArray tools = root.getJsonArray("tools");
+                    for (JsonValue item : tools)
+                    {
+                        final JsonObject tool = item.asJsonObject();
+                        if (tool.containsKey("name"))
+                        {
+                            final String name = tool.getString("name");
+                            final List<String> scopes = extractScopes(tool);
+                            if (scopes != null)
+                            {
+                                index.put(name, scopes);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                index.clear();
+            }
+
+            scopesByName = index.isEmpty() ? null : index;
+        }
+
+        private List<String> extractScopes(
+            JsonObject tool)
+        {
+            if (!tool.containsKey("securitySchemes"))
+            {
+                return null;
+            }
+
+            final JsonObject schemes = tool.getJsonObject("securitySchemes");
+
+            for (String schemeName : schemes.keySet())
+            {
+                final JsonObject scheme = schemes.getJsonObject(schemeName);
+                final String type = scheme.getString("type", "");
+
+                if ("noauth".equals(type))
+                {
+                    return null;
+                }
+
+                if (scheme.containsKey("scopes"))
+                {
+                    final JsonArray scopeArray = scheme.getJsonArray("scopes");
+                    return scopeArray.stream()
+                        .map(v -> ((JsonString) v).getString())
+                        .collect(Collectors.toList());
+                }
+            }
+
+            return List.of();
         }
     }
 }

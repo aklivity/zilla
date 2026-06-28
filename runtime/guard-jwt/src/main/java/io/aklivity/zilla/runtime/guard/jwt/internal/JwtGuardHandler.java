@@ -299,7 +299,8 @@ public class JwtGuardHandler implements GuardHandler
         return session != null && session.challenge(now);
     }
 
-    boolean verify(
+    @Override
+    public boolean verify(
         long sessionId,
         List<String> roles)
     {

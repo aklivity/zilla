@@ -395,6 +395,21 @@ public final class McpBindingConfig
             : authority;
     }
 
+    public Map<String, List<String>> getRoles(
+        long routeId)
+    {
+        Map<String, List<String>> result = Map.of();
+        for (McpRouteConfig route : routes)
+        {
+            if (route.id == routeId)
+            {
+                result = route.getRoles();
+                break;
+            }
+        }
+        return result;
+    }
+
     public McpRouteConfig resolve(
         long authorization)
     {
