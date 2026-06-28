@@ -178,9 +178,9 @@ public final class TestGuardHandler implements GuardHandler
     @Override
     public boolean verify(
         long sessionId,
-        List<String> scopes)
+        List<String> roles)
     {
         return (sessionId == 0L && credentials == null || sessions.containsKey(sessionId)) &&
-                (this.roles == null || this.roles.containsAll(scopes));
+                (this.roles == null || this.roles.containsAll(roles));
     }
 }

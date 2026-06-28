@@ -78,6 +78,8 @@ public final class McpBindingConfig
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
+    private static final Map<String, List<String>> EMPTY_ROLES = Map.of();
+
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
@@ -398,12 +400,12 @@ public final class McpBindingConfig
     public Map<String, List<String>> getRoles(
         long routeId)
     {
-        Map<String, List<String>> result = Map.of();
+        Map<String, List<String>> result = EMPTY_ROLES;
         for (McpRouteConfig route : routes)
         {
             if (route.id == routeId)
             {
-                result = route.getRoles();
+                result = route.roles;
                 break;
             }
         }

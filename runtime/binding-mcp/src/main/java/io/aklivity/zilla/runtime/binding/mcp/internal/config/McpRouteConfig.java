@@ -48,6 +48,7 @@ public final class McpRouteConfig
     public final long id;
     public final McpWithConfig with;
     public final List<GuardedConfig> guarded;
+    public final Map<String, List<String>> roles;
 
     private final List<McpConditionMatcher> matchers;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
@@ -59,6 +60,9 @@ public final class McpRouteConfig
         this.id = route.id;
         this.with = McpWithConfig.class.cast(route.with);
         this.guarded = route.guarded;
+        this.roles = route.guarded.stream()
+            .filter(g -> !g.roles.isEmpty())
+            .collect(toMap(g -> g.name, g -> g.roles, (a, b) -> a, LinkedHashMap::new));
         this.matchers = route.when.stream()
             .map(McpConditionConfig.class::cast)
             .map(McpConditionMatcher::new)
@@ -69,13 +73,6 @@ public final class McpRouteConfig
             .filter(t -> t != null)
             .findFirst()
             .orElse(null);
-    }
-
-    public Map<String, List<String>> getRoles()
-    {
-        return guarded.stream()
-            .filter(g -> !g.roles.isEmpty())
-            .collect(toMap(g -> g.name, g -> g.roles, (a, b) -> a, LinkedHashMap::new));
     }
 
     public String toolkit()
