@@ -20,6 +20,7 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.nativeOrder;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
@@ -34,6 +35,7 @@ import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -57,6 +59,16 @@ import io.aklivity.zilla.runtime.common.agrona.concurrent.baseline.BaselineBuffe
  *   <li>{@code baseline} — Agrona's {@code UnsafeBuffer.putBytes} via the
  *       preserved {@link BaselineBufferEx}, which is the {@code sun.misc.Unsafe}
  *       implementation we are trying to match.</li>
+ *   <li>{@code byteBuffer} / {@code byteBufferView} — {@code ByteBuffer.put} on a
+ *       direct {@code allocateDirect} buffer, and on the cached {@code duplicate()}
+ *       view {@code UnsafeBufferEx.putBytes} actually takes.</li>
+ *   <li>{@code segmentSharedView} / {@code segmentConfinedView} — {@code ByteBuffer.put}
+ *       on a {@link MemorySegment#asByteBuffer()} view over a native segment from a
+ *       shared vs confined {@link Arena}. This is the path a segment-major mmap layout
+ *       (mapped via {@code FileChannel.map(..., Arena)} so it can be unmapped by
+ *       {@code Arena.close()} instead of {@code Unsafe.invokeCleaner}) would take to
+ *       recover the fast path; the question is whether the arena session liveness
+ *       check on each access erodes it below the plain-direct {@code byteBuffer} number.</li>
  * </ul>
  * The hypothesis: {@code layout} has measurable per-call overhead vs {@code bulk},
  * and that overhead accounts for the residual single-threaded gap in {@code BufferBM}
@@ -78,6 +90,12 @@ public class BufferCopyBM
     private ByteBuffer dstBb;
     private ByteBuffer srcBbView;
     private ByteBuffer dstBbView;
+    private Arena sharedArena;
+    private Arena confinedArena;
+    private ByteBuffer srcSharedView;
+    private ByteBuffer dstSharedView;
+    private ByteBuffer srcConfinedView;
+    private ByteBuffer dstConfinedView;
     private BaselineBufferEx baselineSrc;
     private BaselineBufferEx baselineDst;
 
@@ -106,8 +124,35 @@ public class BufferCopyBM
         this.dstBbView = dst.duplicate();
         this.dstBbView.clear();
 
+        // segment-backed ByteBuffer views (segment.asByteBuffer()) over native MemorySegments — the
+        // path a segment-major mmap layout would take to recover the ByteBuffer.put fast path after
+        // mapping via FileChannel.map(..., Arena). Shared and confined arenas carry different
+        // per-access session liveness checks; shared is required when a layout is unmapped from a
+        // thread other than the one that maps it, confined is the cheaper check if both happen on
+        // the owning worker thread.
+        this.sharedArena = Arena.ofShared();
+        final MemorySegment srcShared = sharedArena.allocate(32768);
+        final MemorySegment dstShared = sharedArena.allocate(32768);
+        MemorySegment.copy(srcSeg, 0, srcShared, 0, srcShared.byteSize());
+        this.srcSharedView = srcShared.asByteBuffer().order(nativeOrder());
+        this.dstSharedView = dstShared.asByteBuffer().order(nativeOrder());
+
+        this.confinedArena = Arena.ofConfined();
+        final MemorySegment srcConfined = confinedArena.allocate(32768);
+        final MemorySegment dstConfined = confinedArena.allocate(32768);
+        MemorySegment.copy(srcSeg, 0, srcConfined, 0, srcConfined.byteSize());
+        this.srcConfinedView = srcConfined.asByteBuffer().order(nativeOrder());
+        this.dstConfinedView = dstConfined.asByteBuffer().order(nativeOrder());
+
         this.baselineSrc = new BaselineBufferEx(src);
         this.baselineDst = new BaselineBufferEx(dst);
+    }
+
+    @TearDown
+    public void destroy()
+    {
+        sharedArena.close();
+        confinedArena.close();
     }
 
     @Benchmark
@@ -132,6 +177,18 @@ public class BufferCopyBM
     public void byteBufferView()
     {
         dstBbView.put(0, srcBbView, 0, size);
+    }
+
+    @Benchmark
+    public void segmentSharedView()
+    {
+        dstSharedView.put(0, srcSharedView, 0, size);
+    }
+
+    @Benchmark
+    public void segmentConfinedView()
+    {
+        dstConfinedView.put(0, srcConfinedView, 0, size);
     }
 
     @Benchmark
