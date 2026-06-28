@@ -32,6 +32,7 @@ import java.util.function.UnaryOperator;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
@@ -43,6 +44,7 @@ public final class McpRouteConfig
 
     public final long id;
     public final McpWithConfig with;
+    public final List<GuardedConfig> guarded;
 
     private final List<McpConditionMatcher> matchers;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
@@ -53,6 +55,7 @@ public final class McpRouteConfig
     {
         this.id = route.id;
         this.with = McpWithConfig.class.cast(route.with);
+        this.guarded = route.guarded;
         this.matchers = route.when.stream()
             .map(McpConditionConfig.class::cast)
             .map(McpConditionMatcher::new)
