@@ -70,6 +70,11 @@ public final class McpHttpBindingConfig
     private final Map<ModelConfig, JsonSchema> jsonSchemas;
     private final Map<McpHttpRouteConfig, List<String>> unsatisfiedAccessors;
 
+    // memoized list replies; derived solely from static binding config, built once on first request
+    private String toolsListJson;
+    private String resourcesListJson;
+    private String promptsListJson;
+
     public McpHttpBindingConfig(
         BindingConfig binding,
         EngineContext context)
@@ -200,6 +205,39 @@ public final class McpHttpBindingConfig
     public Collection<McpHttpPromptConfig> prompts()
     {
         return promptsByName.values();
+    }
+
+    public String toolsListJson()
+    {
+        return toolsListJson;
+    }
+
+    public void toolsListJson(
+        String json)
+    {
+        this.toolsListJson = json;
+    }
+
+    public String resourcesListJson()
+    {
+        return resourcesListJson;
+    }
+
+    public void resourcesListJson(
+        String json)
+    {
+        this.resourcesListJson = json;
+    }
+
+    public String promptsListJson()
+    {
+        return promptsListJson;
+    }
+
+    public void promptsListJson(
+        String json)
+    {
+        this.promptsListJson = json;
     }
 
     public McpHttpPromptConfig prompt(

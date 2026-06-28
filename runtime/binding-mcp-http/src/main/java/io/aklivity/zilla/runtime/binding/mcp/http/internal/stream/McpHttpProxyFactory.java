@@ -561,19 +561,19 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (kind == KIND_TOOLS_LIST)
             {
-                doMcpReply(traceId, buildToolsList(binding));
+                doMcpReply(traceId, toolsList(binding));
                 cleanupRequestSlot();
                 return;
             }
             else if (kind == KIND_RESOURCES_LIST)
             {
-                doMcpReply(traceId, buildResourcesList(binding));
+                doMcpReply(traceId, resourcesList(binding));
                 cleanupRequestSlot();
                 return;
             }
             else if (kind == KIND_PROMPTS_LIST)
             {
-                doMcpReply(traceId, buildPromptsList(binding));
+                doMcpReply(traceId, promptsList(binding));
                 cleanupRequestSlot();
                 return;
             }
@@ -2074,6 +2074,42 @@ public final class McpHttpProxyFactory implements BindingHandler
         final JsonObjectBuilder reply = Json.createObjectBuilder()
             .add("contents", Json.createArrayBuilder().add(item));
         return compact(reply.build());
+    }
+
+    private String toolsList(
+        McpHttpBindingConfig binding)
+    {
+        String json = binding.toolsListJson();
+        if (json == null)
+        {
+            json = buildToolsList(binding);
+            binding.toolsListJson(json);
+        }
+        return json;
+    }
+
+    private String resourcesList(
+        McpHttpBindingConfig binding)
+    {
+        String json = binding.resourcesListJson();
+        if (json == null)
+        {
+            json = buildResourcesList(binding);
+            binding.resourcesListJson(json);
+        }
+        return json;
+    }
+
+    private String promptsList(
+        McpHttpBindingConfig binding)
+    {
+        String json = binding.promptsListJson();
+        if (json == null)
+        {
+            json = buildPromptsList(binding);
+            binding.promptsListJson(json);
+        }
+        return json;
     }
 
     private String buildToolsList(
