@@ -244,6 +244,17 @@ abstract class McpProxyListFactory implements BindingHandler
         return server::onServerMessage;
     }
 
+    @FunctionalInterface
+    private interface RoleVerifier
+    {
+        boolean verify(
+            long authorization,
+            List<String> roles);
+    }
+
+    private static final RoleVerifier ALLOW_ALL = (authorization, roles) -> true;
+    private static final List<String> EMPTY_ROLES = List.of();
+
     private final class McpListClient implements McpRouteRequest
     {
         private final McpListServer server;
@@ -251,7 +262,8 @@ abstract class McpProxyListFactory implements BindingHandler
         private final long routedId;
         private final String8FW prefix;
         private final Predicate<String> admits;
-        private final GuardHandler guard;
+        private final RoleVerifier verifier;
+        private final boolean verifies;
         private final McpLifecycleClient lifecycle;
         private long initialId;
         private long replyId;
@@ -300,7 +312,8 @@ abstract class McpProxyListFactory implements BindingHandler
             this.routedId = routedId;
             this.prefix = prefix;
             this.admits = admits;
-            this.guard = guard;
+            this.verifies = guard != null;
+            this.verifier = guard != null ? guard::verify : ALLOW_ALL;
             this.lifecycle = server.lifecycle.supplyClient(routedId);
         }
 
@@ -939,7 +952,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 client.decodedScopes = null;
                 client.decodedSchemesFound = false;
                 client.decodedNoAuth = false;
-                if (client.admits != null || client.guard != null)
+                if (client.admits != null || client.verifies)
                 {
                     client.itemDeferred = true;
                     client.decoder = decodeItemScan;
@@ -993,14 +1006,11 @@ abstract class McpProxyListFactory implements BindingHandler
                 client.decodeItemDepth--;
                 if (client.decodeItemDepth == 0)
                 {
-                    boolean admitted = true;
-                    if (client.guard != null && client.decodedSchemesFound && !client.decodedNoAuth)
-                    {
-                        final List<String> scopes = client.decodedScopes != null
-                            ? client.decodedScopes
-                            : List.of();
-                        admitted = client.guard.verify(client.server.authorization, scopes);
-                    }
+                    final List<String> roles = client.decodedScopes != null
+                        ? client.decodedScopes
+                        : EMPTY_ROLES;
+                    final boolean admitted = !client.decodedSchemesFound || client.decodedNoAuth ||
+                        client.verifier.verify(client.server.authorization, roles);
                     if (admitted)
                     {
                         client.onDecodedItemBegin(traceId);
@@ -1037,13 +1047,13 @@ abstract class McpProxyListFactory implements BindingHandler
             case KEY_NAME:
                 if (client.decodeItemDepth == 1)
                 {
-                    final String key = parser.getString();
-                    if (client.idKey.equals(key))
+                    final CharSequence key = client.decodableJson.getStringView();
+                    if (client.idKey.contentEquals(key))
                     {
                         client.decoder = decodeItemName;
                         break decode;
                     }
-                    else if (client.guard != null && "securitySchemes".equals(key))
+                    else if (client.verifies && "securitySchemes".contentEquals(key))
                     {
                         client.decodedSchemesFound = true;
                         client.decodeSchemesTypeKey = false;
@@ -1083,7 +1093,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 final String name = parser.getString();
                 if (client.admits == null || client.admits.test(name))
                 {
-                    if (client.guard != null)
+                    if (client.verifies)
                     {
                         client.decodedNameKeyProgress = decodedKeyProgress;
                         client.decodedNameValueProgress = decodedValueProgress;
@@ -1117,7 +1127,7 @@ abstract class McpProxyListFactory implements BindingHandler
             }
             else
             {
-                if (client.guard != null)
+                if (client.verifies)
                 {
                     client.decoder = decodeItemScan;
                 }

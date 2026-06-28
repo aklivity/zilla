@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -31,20 +30,17 @@ import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
-import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
-import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
+import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -61,6 +57,10 @@ public final class McpProxyCache
     private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_LIFECYCLE = "lifecycle.lock";
     private static final Duration STORE_TTL_FOREVER = null;
+
+    private static final List<String> EMPTY_ROLES = List.of();
+    // identity sentinel distinct from EMPTY_ROLES, signalling a scheme that requires no authorization
+    private static final List<String> NO_AUTH = new ArrayList<>(0);
 
     public final long bindingId;
     public final GuardHandler guard;
@@ -251,7 +251,7 @@ public final class McpProxyCache
         private final String storeKey;
         private final String storeLockKey;
         private final Map<String, String> fragments;
-        private Map<CharSequence, List<String>> scopesByName;
+        private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
         private long lastChecksum = -1L;
         private String lockToken;
 
@@ -270,7 +270,7 @@ public final class McpProxyCache
 
         public Map<CharSequence, List<String>> scopesByName()
         {
-            return scopesByName != null ? scopesByName : Collections.emptyMap();
+            return scopesByName;
         }
 
         private McpListCache(
@@ -346,7 +346,7 @@ public final class McpProxyCache
             final long newChecksum = crc32.getValue();
             final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
             lastChecksum = newChecksum;
-            rebuildScopeIndex(value);
+            scopesByName = indexScopesByName(value);
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
         }
@@ -399,7 +399,7 @@ public final class McpProxyCache
                 final long newChecksum = crc32.getValue();
                 changed = lastChecksum != -1L && lastChecksum != newChecksum;
                 lastChecksum = newChecksum;
-                rebuildScopeIndex(value);
+                scopesByName = indexScopesByName(value);
             }
             else
             {
@@ -422,77 +422,235 @@ public final class McpProxyCache
             checkReady();
         }
 
-        private void rebuildScopeIndex(
+        private Map<CharSequence, List<String>> indexScopesByName(
             String value)
         {
-            if (kind != KIND_TOOLS_LIST || value == null)
-            {
-                scopesByName = null;
-                return;
-            }
-
             final Map<CharSequence, List<String>> index = new TreeMap<>(CharSequence::compare);
 
-            try (JsonReader reader = Json.createReader(
-                new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8))))
+            if (kind == KIND_TOOLS_LIST && value != null)
             {
-                final JsonObject root = reader.readObject();
-                if (root.containsKey("tools"))
+                final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+                final JsonParserEx parser = JsonEx.createParser();
+                parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+                try
                 {
-                    final JsonArray tools = root.getJsonArray("tools");
-                    for (JsonValue item : tools)
+                    scanToolsList(parser, index);
+                }
+                catch (Exception ex)
+                {
+                    index.clear();
+                }
+            }
+
+            return index;
+        }
+
+        private void scanToolsList(
+            JsonParserEx parser,
+            Map<CharSequence, List<String>> index)
+        {
+            if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
+            {
+                int depth = 1;
+                while (depth > 0 && parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
                     {
-                        final JsonObject tool = item.asJsonObject();
-                        if (tool.containsKey("name"))
+                    case START_OBJECT:
+                    case START_ARRAY:
+                        depth++;
+                        break;
+                    case END_OBJECT:
+                    case END_ARRAY:
+                        depth--;
+                        break;
+                    case KEY_NAME:
+                        if (depth == 1 && "tools".contentEquals(parser.getStringView()))
                         {
-                            final String name = tool.getString("name");
-                            final List<String> scopes = extractScopes(tool);
-                            if (scopes != null)
-                            {
-                                index.put(name, scopes);
-                            }
+                            scanTools(parser, index);
                         }
+                        break;
+                    default:
+                        break;
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                index.clear();
-            }
-
-            scopesByName = index.isEmpty() ? null : index;
         }
 
-        private List<String> extractScopes(
-            JsonObject tool)
+        private void scanTools(
+            JsonParserEx parser,
+            Map<CharSequence, List<String>> index)
         {
-            if (!tool.containsKey("securitySchemes"))
+            if (parser.hasNext() && parser.next() == JsonParser.Event.START_ARRAY)
             {
-                return null;
-            }
-
-            final JsonArray schemes = tool.getJsonArray("securitySchemes");
-
-            for (JsonValue entry : schemes)
-            {
-                final JsonObject scheme = entry.asJsonObject();
-                final String type = scheme.getString("type", "");
-
-                if ("noauth".equals(type))
+                boolean items = true;
+                while (items && parser.hasNext())
                 {
-                    return null;
-                }
-
-                if (scheme.containsKey("scopes"))
-                {
-                    final JsonArray scopeArray = scheme.getJsonArray("scopes");
-                    return scopeArray.stream()
-                        .map(v -> ((JsonString) v).getString())
-                        .collect(Collectors.toList());
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case START_OBJECT:
+                        scanTool(parser, index);
+                        break;
+                    case END_ARRAY:
+                        items = false;
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }
+        }
 
-            return List.of();
+        private void scanTool(
+            JsonParserEx parser,
+            Map<CharSequence, List<String>> index)
+        {
+            String name = null;
+            List<String> roles = null;
+            int depth = 1;
+            while (depth > 0 && parser.hasNext())
+            {
+                final JsonParser.Event event = parser.next();
+                switch (event)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    if (depth == 1)
+                    {
+                        final CharSequence key = parser.getStringView();
+                        if ("name".contentEquals(key))
+                        {
+                            parser.next();
+                            name = parser.getString();
+                        }
+                        else if ("securitySchemes".contentEquals(key))
+                        {
+                            roles = scanSchemes(parser);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            if (name != null && roles != null)
+            {
+                index.put(name, roles);
+            }
+        }
+
+        // returns the required roles for the first decisive scheme: empty when schemes are present but
+        // none constrain roles, or null (NO_AUTH sentinel) when a scheme declares no authorization
+        private List<String> scanSchemes(
+            JsonParserEx parser)
+        {
+            List<String> roles = EMPTY_ROLES;
+
+            if (parser.hasNext() && parser.next() == JsonParser.Event.START_ARRAY)
+            {
+                boolean settled = false;
+                boolean schemes = true;
+                while (schemes && parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case START_OBJECT:
+                        final List<String> scheme = scanScheme(parser);
+                        if (!settled && scheme != null)
+                        {
+                            roles = scheme == NO_AUTH ? null : scheme;
+                            settled = true;
+                        }
+                        break;
+                    case END_ARRAY:
+                        schemes = false;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+
+            return roles;
+        }
+
+        private List<String> scanScheme(
+            JsonParserEx parser)
+        {
+            String type = null;
+            List<String> scopes = null;
+            int depth = 1;
+            while (depth > 0 && parser.hasNext())
+            {
+                final JsonParser.Event event = parser.next();
+                switch (event)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    if (depth == 1)
+                    {
+                        final CharSequence key = parser.getStringView();
+                        if ("type".contentEquals(key))
+                        {
+                            parser.next();
+                            type = parser.getString();
+                        }
+                        else if ("scopes".contentEquals(key))
+                        {
+                            scopes = scanStrings(parser);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            return "noauth".equals(type) ? NO_AUTH : scopes;
+        }
+
+        private List<String> scanStrings(
+            JsonParserEx parser)
+        {
+            final List<String> result = new ArrayList<>();
+            if (parser.hasNext() && parser.next() == JsonParser.Event.START_ARRAY)
+            {
+                boolean values = true;
+                while (values && parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case VALUE_STRING:
+                        result.add(parser.getString());
+                        break;
+                    case END_ARRAY:
+                        values = false;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+            return result;
         }
     }
 }
