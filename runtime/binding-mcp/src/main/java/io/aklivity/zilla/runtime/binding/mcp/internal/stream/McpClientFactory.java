@@ -31,7 +31,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
@@ -43,13 +42,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonReader;
-import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Int2ObjectHashMap;
@@ -4814,15 +4806,32 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpToolsListStream extends HttpRequestStream
     {
-        private final Map<String, List<String>> roles;
-        private final StringBuilder resultBuffer;
+        private final DirectBufferEx schemesBuffer;
+        private final int schemesLength;
+        private final long[] toolEndStreamOffsets;
+        private int toolEndCount;
+        private int currentInjection;
+        private int injectBytesWritten;
 
         HttpToolsListStream(
             McpStream mcp)
         {
             super(mcp);
-            this.roles = request.binding().getRoles(mcp.resolvedId);
-            this.resultBuffer = roles.isEmpty() ? null : new StringBuilder();
+            final McpBindingConfig binding = bindings.get(mcp.routedId);
+            final Map<String, List<String>> roles = binding.getRoles(mcp.resolvedId);
+            if (roles.isEmpty())
+            {
+                this.schemesBuffer = null;
+                this.schemesLength = 0;
+                this.toolEndStreamOffsets = null;
+            }
+            else
+            {
+                final byte[] bytes = buildSchemesJson(roles);
+                this.schemesBuffer = new UnsafeBufferEx(bytes);
+                this.schemesLength = bytes.length;
+                this.toolEndStreamOffsets = new long[16];
+            }
         }
 
         @Override
@@ -4859,6 +4868,18 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
+        void onDecodeResultEvent(
+            JsonParser.Event event,
+            JsonParser parser,
+            int depth)
+        {
+            if (schemesBuffer != null && event == JsonParser.Event.END_OBJECT && depth == 1)
+            {
+                toolEndStreamOffsets[toolEndCount++] = parser.getLocation().getStreamOffset();
+            }
+        }
+
+        @Override
         int onDecodeResponseResult(
             long traceId,
             long authorization,
@@ -4867,106 +4888,96 @@ public final class McpClientFactory implements McpStreamFactory
             int limit)
         {
             int progress = offset;
-            if (resultBuffer != null)
+
+            if (schemesBuffer != null && mcp != null)
             {
-                final int length = limit - offset;
-                final byte[] bytes = new byte[length];
-                buffer.getBytes(offset, bytes);
-                resultBuffer.append(new String(bytes, StandardCharsets.UTF_8));
-                progress = limit;
+                final long baseStreamOffset = decodedResultProgress;
+
+                while (currentInjection < toolEndCount && progress < limit)
+                {
+                    final int bracePos = offset + (int)(toolEndStreamOffsets[currentInjection] - baseStreamOffset) - 1;
+
+                    if (bracePos < progress || bracePos >= limit)
+                    {
+                        break;
+                    }
+
+                    if (progress < bracePos)
+                    {
+                        progress = mcp.doAppData(traceId, authorization, buffer, progress, bracePos);
+                        if (progress < bracePos)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (injectBytesWritten < schemesLength)
+                    {
+                        injectBytesWritten = mcp.doAppData(traceId, authorization, schemesBuffer,
+                            injectBytesWritten, schemesLength);
+                        if (injectBytesWritten < schemesLength)
+                        {
+                            break;
+                        }
+                    }
+
+                    progress = mcp.doAppData(traceId, authorization, buffer, bracePos, bracePos + 1);
+                    if (progress <= bracePos)
+                    {
+                        break;
+                    }
+
+                    injectBytesWritten = 0;
+                    currentInjection++;
+                }
+
+                if (currentInjection >= toolEndCount && progress < limit)
+                {
+                    progress = mcp.doAppData(traceId, authorization, buffer, progress, limit);
+                }
+
+                if (progress >= limit)
+                {
+                    toolEndCount = 0;
+                    currentInjection = 0;
+                }
             }
             else
             {
                 progress = mcp != null ? mcp.doAppData(traceId, authorization, buffer, offset, limit) : offset;
             }
+
             return progress;
         }
 
-        @Override
-        void onResponseComplete(
-            long traceId,
-            long authorization)
-        {
-            if (resultBuffer != null && resultBuffer.length() > 0 && mcp != null)
-            {
-                final String modified = injectSecuritySchemes(resultBuffer.toString(), roles);
-                final byte[] bytes = modified.getBytes(StandardCharsets.UTF_8);
-                codecBuffer.putBytes(0, bytes);
-                mcp.doAppData(traceId, authorization, codecBuffer, 0, bytes.length);
-            }
-        }
-
-        private String injectSecuritySchemes(
-            String resultJson,
+        private byte[] buildSchemesJson(
             Map<String, List<String>> roles)
         {
-            try (JsonReader reader = Json.createReader(new StringReader(resultJson)))
+            final StringBuilder sb = new StringBuilder();
+            sb.append(",\"securitySchemes\":[");
+            boolean first = true;
+            for (Map.Entry<String, List<String>> entry : roles.entrySet())
             {
-                final JsonObject result = reader.readObject();
-                if (!result.containsKey("tools"))
+                if (!first)
                 {
-                    return resultJson;
+                    sb.append(',');
                 }
-
-                final JsonArray tools = result.getJsonArray("tools");
-                final JsonArrayBuilder toolsBuilder = Json.createArrayBuilder();
-
-                for (JsonValue item : tools)
+                first = false;
+                sb.append("{\"type\":\"oauth2\",\"scopes\":[");
+                boolean firstScope = true;
+                for (String scope : entry.getValue())
                 {
-                    final JsonObject tool = item.asJsonObject();
-                    final JsonObjectBuilder toolBuilder = Json.createObjectBuilder();
-
-                    for (Map.Entry<String, JsonValue> entry : tool.entrySet())
+                    if (!firstScope)
                     {
-                        if (!"securitySchemes".equals(entry.getKey()))
-                        {
-                            toolBuilder.add(entry.getKey(), entry.getValue());
-                        }
+                        sb.append(',');
                     }
-
-                    final JsonObjectBuilder schemes = Json.createObjectBuilder();
-                    if (tool.containsKey("securitySchemes"))
-                    {
-                        final JsonObject upstream = tool.getJsonObject("securitySchemes");
-                        for (Map.Entry<String, JsonValue> entry : upstream.entrySet())
-                        {
-                            schemes.add(entry.getKey(), entry.getValue());
-                        }
-                    }
-
-                    for (Map.Entry<String, List<String>> entry : roles.entrySet())
-                    {
-                        final JsonArrayBuilder scopes = Json.createArrayBuilder();
-                        for (String role : entry.getValue())
-                        {
-                            scopes.add(role);
-                        }
-                        schemes.add(entry.getKey(), Json.createObjectBuilder().add("scopes", scopes));
-                    }
-
-                    toolBuilder.add("securitySchemes", schemes);
-                    toolsBuilder.add(toolBuilder);
+                    firstScope = false;
+                    sb.append('"').append(scope).append('"');
                 }
-
-                final JsonObjectBuilder resultBuilder = Json.createObjectBuilder();
-                for (Map.Entry<String, JsonValue> entry : result.entrySet())
-                {
-                    if ("tools".equals(entry.getKey()))
-                    {
-                        resultBuilder.add("tools", toolsBuilder);
-                    }
-                    else
-                    {
-                        resultBuilder.add(entry.getKey(), entry.getValue());
-                    }
-                }
-
-                return resultBuilder.build().toString();
+                sb.append("]}");
             }
-            catch (Exception ex)
-            {
-                return resultJson;
-            }
+            sb.append(']');
+            return sb.toString().getBytes(StandardCharsets.UTF_8);
         }
     }
 

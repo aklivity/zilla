@@ -160,8 +160,7 @@
                                     },
                                     "required": [ "server" ],
                                     "additionalProperties": false
-                                },
-                                "routes": false
+                                }
                             },
                             "required": [ "options" ]
                         }
