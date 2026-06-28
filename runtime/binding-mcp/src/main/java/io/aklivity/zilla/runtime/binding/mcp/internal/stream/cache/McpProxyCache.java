@@ -471,11 +471,11 @@ public final class McpProxyCache
                 return null;
             }
 
-            final JsonObject schemes = tool.getJsonObject("securitySchemes");
+            final JsonArray schemes = tool.getJsonArray("securitySchemes");
 
-            for (String schemeName : schemes.keySet())
+            for (JsonValue entry : schemes)
             {
-                final JsonObject scheme = schemes.getJsonObject(schemeName);
+                final JsonObject scheme = entry.asJsonObject();
                 final String type = scheme.getString("type", "");
 
                 if ("noauth".equals(type))

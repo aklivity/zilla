@@ -40,11 +40,11 @@ public class ScopeFilterTest
     {
         String json = "{\"tools\":[" +
             "{\"name\":\"list_repos\",\"description\":\"List repos\"," +
-            "\"securitySchemes\":{\"oauth\":{\"type\":\"oauth2\"," +
-            "\"scopes\":[\"read\"]}}}," +
+            "\"securitySchemes\":[{\"type\":\"oauth2\"," +
+            "\"scopes\":[\"read\"]}]}," +
             "{\"name\":\"delete_repo\",\"description\":\"Delete repo\"," +
-            "\"securitySchemes\":{\"oauth\":{\"type\":\"oauth2\"," +
-            "\"scopes\":[\"admin\"]}}}," +
+            "\"securitySchemes\":[{\"type\":\"oauth2\"," +
+            "\"scopes\":[\"admin\"]}]}," +
             "{\"name\":\"get_status\",\"description\":\"Get status\"}" +
             "]}";
 

@@ -1201,14 +1201,14 @@ abstract class McpProxyListFactory implements BindingHandler
                 break;
             case END_ARRAY:
                 client.decodeItemDepth--;
-                break;
-            case END_OBJECT:
-                client.decodeItemDepth--;
                 if (client.decodeItemDepth == 1)
                 {
                     client.decoder = decodeItemScan;
                     break decode;
                 }
+                break;
+            case END_OBJECT:
+                client.decodeItemDepth--;
                 break;
             case KEY_NAME:
                 if (client.decodeItemDepth == 3)

@@ -2101,7 +2101,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             final List<GuardedConfig> guarded = binding.toolGuarded(tool.name);
             if (!guarded.isEmpty())
             {
-                final JsonObjectBuilder schemes = Json.createObjectBuilder();
+                final JsonArrayBuilder schemes = Json.createArrayBuilder();
                 for (GuardedConfig g : guarded)
                 {
                     if (!g.roles.isEmpty())
@@ -2111,7 +2111,9 @@ public final class McpHttpProxyFactory implements BindingHandler
                         {
                             scopes.add(role);
                         }
-                        schemes.add(g.name, Json.createObjectBuilder().add("scopes", scopes));
+                        schemes.add(Json.createObjectBuilder()
+                            .add("type", "oauth2")
+                            .add("scopes", scopes));
                     }
                 }
                 item.add("securitySchemes", schemes);
