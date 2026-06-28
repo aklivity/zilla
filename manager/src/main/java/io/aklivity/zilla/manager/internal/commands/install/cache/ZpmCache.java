@@ -77,13 +77,13 @@ public final class ZpmCache
 
     public ZpmCache(
         List<RemoteRepository> repositories,
-        boolean offline,
+        boolean excludeRemoteRepositories,
         Path directory,
         ConsoleLogger logger)
     {
         this.logger = logger;
         this.repositorySystem = ZpmSupplierRepositorySystemFactory.newRepositorySystem();
-        this.session = newRepositorySystemSession(repositorySystem, directory, offline);
+        this.session = newRepositorySystemSession(repositorySystem, directory, excludeRemoteRepositories);
 
         this.repositories = repositories;
     }
@@ -174,12 +174,14 @@ public final class ZpmCache
     private RepositorySystemSession newRepositorySystemSession(
         RepositorySystem system,
         Path dir,
-        boolean offline)
+        boolean excludeRemoteRepositories)
     {
-        // When remote repositories are excluded, resolve strictly from the local cache.
-        // Offline mode prevents any network transfer, and ignoring artifact-descriptor
-        // repositories stops repositories declared in transitive POMs from being contacted
-        // (e.g. for SNAPSHOT metadata), which would otherwise stall a network-less build.
+        // When remote repositories are excluded, ignore repositories declared in
+        // transitive dependency POMs so resolution stays within the explicitly
+        // configured (local file) repositories. Otherwise a POM-declared remote host
+        // would be contacted (e.g. for SNAPSHOT metadata) and stall a network-less build.
+        // Note: offline mode cannot be used here, as the local Maven repository is itself
+        // configured as a file-based remote repository, which offline mode would block.
         return new SessionBuilderSupplier(system)
             .get()
                 .withLocalRepositoryBaseDirectories(dir)
@@ -187,8 +189,7 @@ public final class ZpmCache
                 .setTransferListener(new ZpmConsoleTransferListener())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
-                .setOffline(offline)
-                .setIgnoreArtifactDescriptorRepositories(offline)
+                .setIgnoreArtifactDescriptorRepositories(excludeRemoteRepositories)
                 .build();
     }
 
