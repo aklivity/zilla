@@ -188,7 +188,7 @@ abstract class McpProxyListFactory implements BindingHandler
                         initialId,
                         affinity,
                         authorization,
-                        binding.guard,
+                        binding.filterGuard,
                         prefixes)::onServerMessage;
                 }
             }
@@ -2131,7 +2131,7 @@ abstract class McpProxyListFactory implements BindingHandler
             final Map<CharSequence, List<String>> scopesByName = cache.scopesByName();
             final byte[] src = json.getBytes(StandardCharsets.UTF_8);
 
-            if (binding.guard == null || scopesByName.isEmpty())
+            if (binding.filterGuard == null || scopesByName.isEmpty())
             {
                 return src;
             }
@@ -2139,7 +2139,7 @@ abstract class McpProxyListFactory implements BindingHandler
             final McpScopeFilter filter = new McpScopeFilter(
                 arrayKey(),
                 scopesByName,
-                (name, scopes) -> binding.guard.verify(authorization, scopes));
+                (name, scopes) -> binding.filterGuard.verify(authorization, scopes));
 
             final JsonParserEx parser = JsonEx.createParser();
             final JsonGeneratorEx generator = JsonEx.createGenerator();

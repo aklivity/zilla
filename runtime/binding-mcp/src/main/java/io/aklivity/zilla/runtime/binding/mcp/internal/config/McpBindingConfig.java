@@ -83,6 +83,7 @@ public final class McpBindingConfig
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
+    public final GuardHandler filterGuard;
     public final String credentials;
     public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
@@ -139,6 +140,16 @@ public final class McpBindingConfig
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)
             .map(context::supplyGuard)
+            .orElse(null);
+
+        // per-tool scope filtering verifies against the binding authorization guard when configured,
+        // otherwise against the guard referenced by a route's guarded condition (e.g. the proxy kind)
+        this.filterGuard = guard != null ? guard : routes.stream()
+            .flatMap(r -> r.guarded.stream())
+            .map(g -> g.id)
+            .map(context::supplyGuard)
+            .filter(g -> g != null)
+            .findFirst()
             .orElse(null);
 
         this.credentials = Optional.ofNullable(options)
