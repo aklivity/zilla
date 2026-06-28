@@ -41,9 +41,9 @@ public final class McpScopeFilter implements JsonTransform
             JsonSink sink);
     }
 
-    private final String arrayKey;
-    private final Map<CharSequence, List<String>> scopesByName;
-    private final BiPredicate<CharSequence, List<String>> admits;
+    private String arrayKey;
+    private Map<CharSequence, List<String>> scopesByName;
+    private BiPredicate<CharSequence, List<String>> admits;
     private final KeySource keySource = new KeySource();
     private final Control mediator = new Control();
 
@@ -59,7 +59,7 @@ public final class McpScopeFilter implements JsonTransform
     private boolean itemsArmed;
     private boolean nameArmed;
 
-    public McpScopeFilter(
+    public McpScopeFilter init(
         String arrayKey,
         Map<CharSequence, List<String>> scopesByName,
         BiPredicate<CharSequence, List<String>> admits)
@@ -67,6 +67,8 @@ public final class McpScopeFilter implements JsonTransform
         this.arrayKey = arrayKey;
         this.scopesByName = scopesByName;
         this.admits = admits;
+        reset();
+        return this;
     }
 
     @Override

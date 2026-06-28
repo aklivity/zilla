@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiPredicate;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -118,6 +119,18 @@ abstract class McpProxyListFactory implements BindingHandler
     private final McpListClientDecoder decodeItemScopeValues = this::decodeItemScopeValues;
     private final McpListClientDecoder decodeItemFinalize = this::decodeItemFinalize;
     private final McpListClientDecoder decodeIgnore = this::decodeIgnore;
+
+    // reusable per-worker scope-filter machinery; reconfigured per list response, never reallocated
+    private final ScopeAdmitter scopeAdmitter = new ScopeAdmitter();
+    private final McpScopeFilter scopeFilter = new McpScopeFilter();
+    private final JsonParserEx scopeParser = JsonEx.createParser();
+    private final JsonGeneratorEx scopeGenerator = JsonEx.createGenerator();
+    private final JsonPipeline scopePipeline = JsonEx.stream(scopeParser)
+        .transform(scopeFilter)
+        .into(scopeGenerator);
+    private final MutableDirectBufferEx scopeSourceBuffer = new UnsafeBufferEx();
+    private final MutableDirectBufferEx scopeTargetBuffer = new UnsafeBufferEx();
+    private byte[] scopeTargetArray = new byte[0];
 
     McpProxyListFactory(
         McpConfiguration config,
@@ -254,6 +267,21 @@ abstract class McpProxyListFactory implements BindingHandler
 
     private static final RoleVerifier ALLOW_ALL = (authorization, roles) -> true;
     private static final List<String> EMPTY_ROLES = List.of();
+
+    // reusable scope-filter predicate, reconfigured per list response to avoid a per-call capture
+    private static final class ScopeAdmitter implements BiPredicate<CharSequence, List<String>>
+    {
+        private GuardHandler guard;
+        private long authorization;
+
+        @Override
+        public boolean test(
+            CharSequence name,
+            List<String> roles)
+        {
+            return guard.verify(authorization, roles);
+        }
+    }
 
     private final class McpListClient implements McpRouteRequest
     {
@@ -2131,38 +2159,38 @@ abstract class McpProxyListFactory implements BindingHandler
             final Map<CharSequence, List<String>> scopesByName = cache.scopesByName();
             final byte[] src = json.getBytes(StandardCharsets.UTF_8);
 
-            if (binding.filterGuard == null || scopesByName.isEmpty())
+            byte[] output = src;
+            if (binding.filterGuard != null && !scopesByName.isEmpty())
             {
-                return src;
-            }
+                scopeAdmitter.guard = binding.filterGuard;
+                scopeAdmitter.authorization = authorization;
+                scopeFilter.init(arrayKey(), scopesByName, scopeAdmitter);
 
-            final McpScopeFilter filter = new McpScopeFilter(
-                arrayKey(),
-                scopesByName,
-                (name, scopes) -> binding.filterGuard.verify(authorization, scopes));
+                // filtering only drops items, so the target never exceeds the source (plus structural slack)
+                final int capacity = src.length + 16;
+                if (scopeTargetArray.length < capacity)
+                {
+                    scopeTargetArray = new byte[capacity];
+                }
+                scopeSourceBuffer.wrap(src);
+                scopeTargetBuffer.wrap(scopeTargetArray);
+                int produced = 0;
 
-            final JsonParserEx parser = JsonEx.createParser();
-            final JsonGeneratorEx generator = JsonEx.createGenerator();
-            final JsonPipeline pipeline = JsonEx.stream(parser)
-                .transform(filter)
-                .into(generator);
-
-            final DirectBufferEx srcBuf = new UnsafeBufferEx(src);
-            final MutableDirectBufferEx dstBuf = new UnsafeBufferEx(new byte[src.length + 16]);
-            int produced = 0;
-
-            pipeline.reset();
-            JsonPipelineResult result = pipeline.transform(srcBuf, 0, src.length, true, dstBuf, 0, dstBuf.capacity());
-            produced += result.produced();
-
-            while (result.status() == JsonPipeline.Status.SUSPENDED)
-            {
-                result = pipeline.transform(srcBuf, 0, src.length, true, dstBuf, produced, dstBuf.capacity());
+                scopePipeline.reset();
+                JsonPipelineResult result =
+                    scopePipeline.transform(scopeSourceBuffer, 0, src.length, true, scopeTargetBuffer, 0, capacity);
                 produced += result.produced();
-            }
 
-            final byte[] output = new byte[produced];
-            dstBuf.getBytes(0, output);
+                while (result.status() == JsonPipeline.Status.SUSPENDED)
+                {
+                    result = scopePipeline.transform(
+                        scopeSourceBuffer, 0, src.length, true, scopeTargetBuffer, produced, capacity);
+                    produced += result.produced();
+                }
+
+                output = new byte[produced];
+                scopeTargetBuffer.getBytes(0, output);
+            }
             return output;
         }
 
