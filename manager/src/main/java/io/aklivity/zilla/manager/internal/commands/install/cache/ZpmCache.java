@@ -77,13 +77,13 @@ public final class ZpmCache
 
     public ZpmCache(
         List<RemoteRepository> repositories,
-        boolean excludeRemoteRepositories,
+        boolean excludeRemote,
         Path directory,
         ConsoleLogger logger)
     {
         this.logger = logger;
         this.repositorySystem = ZpmSupplierRepositorySystemFactory.newRepositorySystem();
-        this.session = newRepositorySystemSession(repositorySystem, directory, excludeRemoteRepositories);
+        this.session = newRepositorySystemSession(repositorySystem, directory, excludeRemote);
 
         this.repositories = repositories;
     }
@@ -174,14 +174,8 @@ public final class ZpmCache
     private RepositorySystemSession newRepositorySystemSession(
         RepositorySystem system,
         Path dir,
-        boolean excludeRemoteRepositories)
+        boolean excludeRemote)
     {
-        // When remote repositories are excluded, ignore repositories declared in
-        // transitive dependency POMs so resolution stays within the explicitly
-        // configured (local file) repositories. Otherwise a POM-declared remote host
-        // would be contacted (e.g. for SNAPSHOT metadata) and stall a network-less build.
-        // Note: offline mode cannot be used here, as the local Maven repository is itself
-        // configured as a file-based remote repository, which offline mode would block.
         return new SessionBuilderSupplier(system)
             .get()
                 .withLocalRepositoryBaseDirectories(dir)
@@ -189,7 +183,7 @@ public final class ZpmCache
                 .setTransferListener(new ZpmConsoleTransferListener())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
-                .setIgnoreArtifactDescriptorRepositories(excludeRemoteRepositories)
+                .setIgnoreArtifactDescriptorRepositories(excludeRemote)
                 .build();
     }
 
