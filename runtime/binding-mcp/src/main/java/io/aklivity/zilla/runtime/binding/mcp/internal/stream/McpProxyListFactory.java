@@ -1197,7 +1197,7 @@ abstract class McpProxyListFactory implements BindingHandler
         int progress,
         int limit)
     {
-        final JsonParser parser = client.decodableJson;
+        final JsonParserEx parser = client.decodableJson;
 
         decode:
         while (parser.hasNext())
