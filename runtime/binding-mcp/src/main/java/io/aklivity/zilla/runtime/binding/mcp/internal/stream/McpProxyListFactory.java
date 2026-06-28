@@ -324,7 +324,8 @@ abstract class McpProxyListFactory implements BindingHandler
         private boolean itemDeferred;
         private long decodedNameKeyProgress;
         private long decodedNameValueProgress;
-        private List<String> decodedScopes;
+        private final List<String> decodedScopes = new ArrayList<>();
+        private boolean decodedScopesFound;
         private boolean decodedSchemesFound;
         private boolean decodedNoAuth;
         private boolean decodeSchemesTypeKey;
@@ -977,7 +978,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 client.decodeItemDepth = 1;
                 client.itemBegun = false;
                 client.decodedNameKeyProgress = -1;
-                client.decodedScopes = null;
+                client.decodedScopesFound = false;
                 client.decodedSchemesFound = false;
                 client.decodedNoAuth = false;
                 if (client.admits != null || client.verifies)
@@ -1034,7 +1035,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 client.decodeItemDepth--;
                 if (client.decodeItemDepth == 0)
                 {
-                    final List<String> roles = client.decodedScopes != null
+                    final List<String> roles = client.decodedScopesFound
                         ? client.decodedScopes
                         : EMPTY_ROLES;
                     final boolean admitted = !client.decodedSchemesFound || client.decodedNoAuth ||
@@ -1302,7 +1303,8 @@ abstract class McpProxyListFactory implements BindingHandler
             {
             case START_ARRAY:
                 client.decodeItemDepth++;
-                client.decodedScopes = new ArrayList<>();
+                client.decodedScopes.clear();
+                client.decodedScopesFound = true;
                 break;
             case VALUE_STRING:
                 client.decodedScopes.add(parser.getString());
