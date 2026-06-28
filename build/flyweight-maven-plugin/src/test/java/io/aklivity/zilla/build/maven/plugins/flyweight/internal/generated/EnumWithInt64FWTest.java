@@ -33,13 +33,12 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class EnumWithInt64FWTest
 {
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
 
     private final EnumWithInt64FW.Builder flyweightRW = new EnumWithInt64FW.Builder();
     private final EnumWithInt64FW flyweightRO = new EnumWithInt64FW();
@@ -59,20 +58,10 @@ public class EnumWithInt64FWTest
     @Test
     public void shouldSetUsingEnum()
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(8))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
-        MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(8))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(8));
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
+        MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(8));
+        expected.setMemory(0, expected.capacity(), (byte) 0xab);
         int limit = flyweightRW.wrap(buffer, 0, buffer.capacity())
                                .set(EnumWithInt64.TWELVE)
                                .build()
@@ -85,13 +74,8 @@ public class EnumWithInt64FWTest
     @Test
     public void shouldNotTryWrapWhenIncomplete()
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(10 + SIZE_OF_LONG))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(10 + SIZE_OF_LONG));
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
         int size = setAllTestValues(buffer, 10);
         for (int maxLimit = 10; maxLimit < 10 + size; maxLimit++)
         {
@@ -102,13 +86,8 @@ public class EnumWithInt64FWTest
     @Test
     public void shouldNotWrapWhenIncomplete()
     {
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(10 + SIZE_OF_LONG))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(10 + SIZE_OF_LONG));
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
         int size = setAllTestValues(buffer, 10);
         for (int maxLimit = 10; maxLimit < 10 + size; maxLimit++)
         {
@@ -131,13 +110,8 @@ public class EnumWithInt64FWTest
     public void shouldTryWrapAndReadAllValues() throws Exception
     {
         final int offset = 1;
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG));
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
         setAllTestValues(buffer, offset);
         assertNotNull(flyweightRO.tryWrap(buffer, offset, buffer.capacity()));
         assertAllTestValuesRead(flyweightRO);
@@ -147,13 +121,8 @@ public class EnumWithInt64FWTest
     public void shouldWrapAndReadAllValues() throws Exception
     {
         final int offset = 10;
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG));
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
         int size = setAllTestValues(buffer, offset);
         int limit = flyweightRO.wrap(buffer,  offset,  buffer.capacity()).limit();
         assertEquals(offset + size, limit);
@@ -164,13 +133,8 @@ public class EnumWithInt64FWTest
     public void shouldNotTryWrapAndReadInvalidValue() throws Exception
     {
         final int offset = 12;
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG));
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
         buffer.putLong(offset, -2L);
         assertNotNull(flyweightRO.tryWrap(buffer, offset, buffer.capacity()));
         assertNull(flyweightRO.get());
@@ -180,13 +144,8 @@ public class EnumWithInt64FWTest
     public void shouldNotWrapAndReadInvalidValue() throws Exception
     {
         final int offset = 12;
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG));
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
         buffer.putLong(offset, -2L);
         flyweightRO.wrap(buffer, offset, buffer.capacity()).limit();
         assertNull(flyweightRO.get());
@@ -196,13 +155,8 @@ public class EnumWithInt64FWTest
     public void shouldSetUsingEnumWithInt64FW()
     {
         int offset = 10;
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(offset + SIZE_OF_LONG));
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
         EnumWithInt64FW bigNumber = new EnumWithInt64FW().wrap(asBuffer(0x10L), 0, SIZE_OF_LONG);
 
         int limit = flyweightRW.wrap(buffer, offset, offset + SIZE_OF_LONG)

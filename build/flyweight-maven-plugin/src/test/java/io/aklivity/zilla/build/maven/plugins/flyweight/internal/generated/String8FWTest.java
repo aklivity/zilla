@@ -32,13 +32,12 @@ public class String8FWTest
 {
     private static final int LENGTH_SIZE = 1;
 
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
     private final String8FW.Builder stringRW = new String8FW.Builder();
     private final String8FW stringRO = new String8FW();
 
