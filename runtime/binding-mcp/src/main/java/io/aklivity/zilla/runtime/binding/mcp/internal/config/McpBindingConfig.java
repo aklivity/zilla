@@ -52,7 +52,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -396,17 +395,19 @@ public final class McpBindingConfig
             : authority;
     }
 
-    public List<GuardedConfig> routeGuarded(
+    public Map<String, List<String>> getRoles(
         long routeId)
     {
+        Map<String, List<String>> result = Map.of();
         for (McpRouteConfig route : routes)
         {
             if (route.id == routeId)
             {
-                return route.guarded;
+                result = route.getRoles();
+                break;
             }
         }
-        return List.of();
+        return result;
     }
 
     public McpRouteConfig resolve(

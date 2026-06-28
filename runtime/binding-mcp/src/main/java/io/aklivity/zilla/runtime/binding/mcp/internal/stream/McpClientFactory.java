@@ -93,7 +93,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
@@ -4815,15 +4814,15 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpToolsListStream extends HttpRequestStream
     {
-        private final List<GuardedConfig> guarded;
+        private final Map<String, List<String>> roles;
         private final StringBuilder resultBuffer;
 
         HttpToolsListStream(
             McpStream mcp)
         {
             super(mcp);
-            this.guarded = request.binding().routeGuarded(mcp.resolvedId);
-            this.resultBuffer = guarded.isEmpty() ? null : new StringBuilder();
+            this.roles = request.binding().getRoles(mcp.resolvedId);
+            this.resultBuffer = roles.isEmpty() ? null : new StringBuilder();
         }
 
         @Override
@@ -4890,7 +4889,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (resultBuffer != null && resultBuffer.length() > 0 && mcp != null)
             {
-                final String modified = injectSecuritySchemes(resultBuffer.toString(), guarded);
+                final String modified = injectSecuritySchemes(resultBuffer.toString(), roles);
                 final byte[] bytes = modified.getBytes(StandardCharsets.UTF_8);
                 codecBuffer.putBytes(0, bytes);
                 mcp.doAppData(traceId, authorization, codecBuffer, 0, bytes.length);
@@ -4899,7 +4898,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         private String injectSecuritySchemes(
             String resultJson,
-            List<GuardedConfig> guarded)
+            Map<String, List<String>> roles)
         {
             try (JsonReader reader = Json.createReader(new StringReader(resultJson)))
             {
@@ -4935,17 +4934,14 @@ public final class McpClientFactory implements McpStreamFactory
                         }
                     }
 
-                    for (GuardedConfig g : guarded)
+                    for (Map.Entry<String, List<String>> entry : roles.entrySet())
                     {
-                        if (!g.roles.isEmpty())
+                        final JsonArrayBuilder scopes = Json.createArrayBuilder();
+                        for (String role : entry.getValue())
                         {
-                            final JsonArrayBuilder scopes = Json.createArrayBuilder();
-                            for (String role : g.roles)
-                            {
-                                scopes.add(role);
-                            }
-                            schemes.add(g.name, Json.createObjectBuilder().add("scopes", scopes));
+                            scopes.add(role);
                         }
+                        schemes.add(entry.getKey(), Json.createObjectBuilder().add("scopes", scopes));
                     }
 
                     toolBuilder.add("securitySchemes", schemes);

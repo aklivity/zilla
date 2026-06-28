@@ -25,8 +25,11 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
@@ -66,6 +69,13 @@ public final class McpRouteConfig
             .filter(t -> t != null)
             .findFirst()
             .orElse(null);
+    }
+
+    public Map<String, List<String>> getRoles()
+    {
+        return guarded.stream()
+            .filter(g -> !g.roles.isEmpty())
+            .collect(toMap(g -> g.name, g -> g.roles, (a, b) -> a, LinkedHashMap::new));
     }
 
     public String toolkit()
