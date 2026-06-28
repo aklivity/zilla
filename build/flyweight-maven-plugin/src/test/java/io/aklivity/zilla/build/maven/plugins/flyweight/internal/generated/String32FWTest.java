@@ -42,13 +42,12 @@ public class String32FWTest
 {
     private static final int LENGTH_SIZE = 4;
 
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(1000000))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(1000000));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
 
     @Parameters
     public static Collection<Object[]> values()

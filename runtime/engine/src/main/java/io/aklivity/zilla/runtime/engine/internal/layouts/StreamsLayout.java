@@ -112,7 +112,7 @@ public final class StreamsLayout implements AutoCloseable
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
-            final AtomicBufferEx atomicStreams = new UnsafeBufferEx(mappedStreams);
+            final AtomicBufferEx atomicStreams = new UnsafeBufferEx(mappedStreams).asNative();
 
             return new StreamsLayout(new ManyToOneRingBuffer(atomicStreams));
         }

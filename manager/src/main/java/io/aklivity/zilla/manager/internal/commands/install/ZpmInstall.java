@@ -187,7 +187,7 @@ public final class ZpmInstall extends ZpmCommand
 
             List<RemoteRepository> remoteRepositories = asRemoteRepositories(settings, repositories);
 
-            ZpmCache cache = new ZpmCache(remoteRepositories, cacheDir, logger);
+            ZpmCache cache = new ZpmCache(remoteRepositories, excludeRemoteRepos, cacheDir, logger);
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
 
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
@@ -759,7 +759,8 @@ public final class ZpmInstall extends ZpmCommand
             "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.directory=$ZILLA_DIRECTORY\"",
             "JAVA_OPTIONS=\"$JAVA_OPTIONS --add-opens java.base/jdk.internal.misc=ALL-UNNAMED " +
                 "--add-opens java.base/jdk.internal.misc=org.agrona " +
-                "--enable-native-access=ALL-UNNAMED\"",
+                "--enable-native-access=io.aklivity.zilla.runtime.common.agrona " +
+                "--sun-misc-unsafe-memory-access=deny\"",
             String.format(String.join(" ", Arrays.asList(
                     "exec $ZILLA_DIRECTORY/%s/bin/java",
                     "$JAVA_OPTIONS",

@@ -39,13 +39,12 @@ public class VariantUint8KindWithString32TypeFWTest
     private static final int LENGTH_SIZE_STRING32 = 4;
     private static final int KIND_SIZE = 1;
 
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
 
     private final VariantUint8KindWithString32TypeFW.Builder flyweightRW = new VariantUint8KindWithString32TypeFW.Builder();
     private final VariantUint8KindWithString32TypeFW flyweightRO = new VariantUint8KindWithString32TypeFW();

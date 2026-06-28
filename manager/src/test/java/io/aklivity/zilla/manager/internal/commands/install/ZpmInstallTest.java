@@ -73,4 +73,41 @@ public class ZpmInstallTest
         assertThat(new File(String.format("target/zpm/cache/org/agrona/agrona/%1$s/agrona-%1$s.jar", agronaVersion)),
             anExistingFile());
     }
+
+    @Test
+    public void shouldInstallEngineExcludingRemoteRepositories() throws Exception
+    {
+        Properties versions = new Properties();
+        try (InputStream resource = getClass().getResourceAsStream("/conf/install/version.properties"))
+        {
+            versions.load(resource);
+        }
+        String version = versions.getProperty("project.version");
+        String agronaVersion = versions.getProperty("agrona.version");
+
+        Path configDir = Paths.get(getClass().getResource("/conf/install/zpm.json").toURI()).getParent();
+
+        String[] args =
+        {
+            "install",
+            "--config-directory", configDir.toString(),
+            "--lock-directory", "target/test-locks/install-offline",
+            "--output-directory", "target/zpm-offline",
+            "--launcher-directory", "target",
+            "--exclude-remote-repositories",
+            "--silent"
+        };
+
+        Cli<Runnable> parser = new Cli<>(ZpmCli.class);
+        Runnable install = parser.parse(args);
+
+        install.run();
+
+        assertThat(install, instanceOf(ZpmInstall.class));
+        assertThat(new File("target/test-locks/install-offline/zpm-lock.json"), anExistingFile());
+        assertThat(new File(String.format("target/zpm-offline/cache/io/aklivity/zilla/engine/%1$s/engine-%1$s.jar", version)),
+            anExistingFile());
+        assertThat(new File(String.format("target/zpm-offline/cache/org/agrona/agrona/%1$s/agrona-%1$s.jar", agronaVersion)),
+            anExistingFile());
+    }
 }
