@@ -32,19 +32,32 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 public final class McpScopeFilter implements JsonTransform
 {
+    @FunctionalInterface
+    private interface State
+    {
+        Status apply(
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink);
+    }
+
     private final String arrayKey;
     private final Map<CharSequence, List<String>> scopesByName;
     private final BiPredicate<CharSequence, List<String>> admits;
     private final KeySource keySource = new KeySource();
-    private final MediatingController mediatingControl = new MediatingController();
+    private final Control mediator = new Control();
 
+    private final State outer = this::onOuter;
+    private final State items = this::onItems;
+    private final State pending = this::onPending;
+    private final State copying = this::onCopying;
+    private final State skipping = this::onSkipping;
+
+    private State state = outer;
     private int depth;
-    private boolean itemsArmed;
-    private boolean inItems;
     private int itemDepth;
-    private boolean itemPending;
+    private boolean itemsArmed;
     private boolean nameArmed;
-    private boolean dropping;
 
     public McpScopeFilter(
         String arrayKey,
@@ -59,13 +72,11 @@ public final class McpScopeFilter implements JsonTransform
     @Override
     public void reset()
     {
+        state = outer;
         depth = 0;
-        itemsArmed = false;
-        inItems = false;
         itemDepth = 0;
-        itemPending = false;
+        itemsArmed = false;
         nameArmed = false;
-        dropping = false;
     }
 
     @Override
@@ -75,18 +86,16 @@ public final class McpScopeFilter implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
-        mediatingControl.delegate = control;
-        return inItems
-            ? onItems(source, event, sink)
-            : onOuter(source, event, sink);
+        mediator.delegate = control;
+        return state.apply(source, event, sink);
     }
 
+    // outside the target array: pass everything through, arming when the target array key is seen
     private Status onOuter(
         JsonSource source,
         JsonEvent event,
         JsonSink sink)
     {
-        Status status;
         switch (event)
         {
         case START_OBJECT:
@@ -95,26 +104,24 @@ public final class McpScopeFilter implements JsonTransform
             if (itemsArmed && event == JsonEvent.START_ARRAY)
             {
                 itemsArmed = false;
-                inItems = true;
+                itemDepth = 0;
+                state = items;
             }
-            status = sink.transform(mediatingControl, source, event);
             break;
         case END_OBJECT:
         case END_ARRAY:
             depth--;
-            status = sink.transform(mediatingControl, source, event);
             break;
         case KEY_NAME:
             itemsArmed = depth == 1 && arrayKey.contentEquals(source.getStringView());
-            status = sink.transform(mediatingControl, source, event);
             break;
         default:
-            status = sink.transform(mediatingControl, source, event);
             break;
         }
-        return status;
+        return sink.transform(mediator, source, event);
     }
 
+    // between items in the target array: each item object defers its emission until its name resolves
     private Status onItems(
         JsonSource source,
         JsonEvent event,
@@ -124,93 +131,125 @@ public final class McpScopeFilter implements JsonTransform
         switch (event)
         {
         case START_OBJECT:
+            itemDepth = 1;
+            nameArmed = false;
+            state = pending;
+            status = Status.ADVANCED;
+            break;
+        case END_ARRAY:
+            state = outer;
+            status = sink.transform(mediator, source, event);
+            break;
+        default:
+            status = sink.transform(mediator, source, event);
+            break;
+        }
+        return status;
+    }
+
+    // inside an item whose admission is undecided: swallow events until the name value is seen
+    private Status onPending(
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        Status status;
+        switch (event)
+        {
+        case START_OBJECT:
+        case START_ARRAY:
             itemDepth++;
-            if (itemDepth == 1)
-            {
-                itemPending = true;
-                dropping = false;
-                status = Status.ADVANCED;
-            }
-            else if (dropping)
-            {
-                status = Status.ADVANCED;
-            }
-            else
-            {
-                status = sink.transform(mediatingControl, source, event);
-            }
+            status = sink.transform(mediator, source, event);
             break;
         case END_OBJECT:
             itemDepth--;
-            if (dropping)
-            {
-                if (itemDepth == 0)
-                {
-                    dropping = false;
-                }
-                status = Status.ADVANCED;
-            }
-            else
-            {
-                status = sink.transform(mediatingControl, source, event);
-            }
-            break;
-        case START_ARRAY:
-            itemDepth++;
-            status = dropping
-                ? Status.ADVANCED
-                : sink.transform(mediatingControl, source, event);
-            break;
-        case END_ARRAY:
+            status = sink.transform(mediator, source, event);
             if (itemDepth == 0)
             {
-                inItems = false;
-                status = sink.transform(mediatingControl, source, event);
-            }
-            else
-            {
-                itemDepth--;
-                status = dropping
-                    ? Status.ADVANCED
-                    : sink.transform(mediatingControl, source, event);
+                state = items;
             }
             break;
+        case END_ARRAY:
+            itemDepth--;
+            status = sink.transform(mediator, source, event);
+            break;
         case KEY_NAME:
-            if (dropping)
-            {
-                status = Status.ADVANCED;
-            }
-            else if (itemPending && itemDepth == 1)
+            if (itemDepth == 1)
             {
                 nameArmed = "name".contentEquals(source.getStringView());
                 status = Status.ADVANCED;
             }
             else
             {
-                status = sink.transform(mediatingControl, source, event);
+                status = sink.transform(mediator, source, event);
             }
             break;
         case VALUE_STRING:
-            if (dropping)
-            {
-                status = Status.ADVANCED;
-            }
-            else if (itemPending && nameArmed)
-            {
-                status = resolveItem(source, event, sink);
-            }
-            else
-            {
-                status = sink.transform(mediatingControl, source, event);
-            }
+            status = nameArmed
+                ? resolveItem(source, event, sink)
+                : sink.transform(mediator, source, event);
             break;
         default:
-            status = dropping || itemPending
-                ? Status.ADVANCED
-                : sink.transform(mediatingControl, source, event);
+            status = Status.ADVANCED;
             break;
         }
         return status;
+    }
+
+    // inside an admitted item: copy its remaining content through verbatim
+    private Status onCopying(
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        switch (event)
+        {
+        case START_OBJECT:
+        case START_ARRAY:
+            itemDepth++;
+            break;
+        case END_ARRAY:
+            itemDepth--;
+            break;
+        case END_OBJECT:
+            itemDepth--;
+            if (itemDepth == 0)
+            {
+                state = items;
+            }
+            break;
+        default:
+            break;
+        }
+        return sink.transform(mediator, source, event);
+    }
+
+    // inside a rejected item: swallow its remaining content
+    private Status onSkipping(
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        switch (event)
+        {
+        case START_OBJECT:
+        case START_ARRAY:
+            itemDepth++;
+            break;
+        case END_ARRAY:
+            itemDepth--;
+            break;
+        case END_OBJECT:
+            itemDepth--;
+            if (itemDepth == 0)
+            {
+                state = items;
+            }
+            break;
+        default:
+            break;
+        }
+        return Status.ADVANCED;
     }
 
     private Status resolveItem(
@@ -221,30 +260,33 @@ public final class McpScopeFilter implements JsonTransform
         final CharSequence name = source.getStringView();
         final List<String> scopes = scopesByName.get(name);
 
-        itemPending = false;
         nameArmed = false;
 
+        Status status;
         if (scopes != null && !admits.test(name, scopes))
         {
-            dropping = true;
-            return Status.ADVANCED;
+            state = skipping;
+            status = Status.ADVANCED;
         }
-
-        mediatingControl.synthetic = true;
-        Status status = sink.transform(mediatingControl, source, JsonEvent.START_OBJECT);
-        if (status == Status.ADVANCED)
+        else
         {
-            status = sink.transform(mediatingControl, keySource.with("name"), JsonEvent.KEY_NAME);
-        }
-        mediatingControl.synthetic = false;
-        if (status == Status.ADVANCED)
-        {
-            status = sink.transform(mediatingControl, source, event);
+            mediator.synthetic = true;
+            status = sink.transform(mediator, source, JsonEvent.START_OBJECT);
+            if (status == Status.ADVANCED)
+            {
+                status = sink.transform(mediator, keySource.with("name"), JsonEvent.KEY_NAME);
+            }
+            mediator.synthetic = false;
+            if (status == Status.ADVANCED)
+            {
+                status = sink.transform(mediator, source, event);
+            }
+            state = copying;
         }
         return status;
     }
 
-    private static final class MediatingController implements JsonController
+    private static final class Control implements JsonController
     {
         private JsonController delegate;
         private boolean synthetic;
