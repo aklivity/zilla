@@ -77,12 +77,13 @@ public final class ZpmCache
 
     public ZpmCache(
         List<RemoteRepository> repositories,
+        boolean offline,
         Path directory,
         ConsoleLogger logger)
     {
         this.logger = logger;
         this.repositorySystem = ZpmSupplierRepositorySystemFactory.newRepositorySystem();
-        this.session = newRepositorySystemSession(repositorySystem, directory);
+        this.session = newRepositorySystemSession(repositorySystem, directory, offline);
 
         this.repositories = repositories;
     }
@@ -172,8 +173,13 @@ public final class ZpmCache
 
     private RepositorySystemSession newRepositorySystemSession(
         RepositorySystem system,
-        Path dir)
+        Path dir,
+        boolean offline)
     {
+        // When remote repositories are excluded, resolve strictly from the local cache.
+        // Offline mode prevents any network transfer, and ignoring artifact-descriptor
+        // repositories stops repositories declared in transitive POMs from being contacted
+        // (e.g. for SNAPSHOT metadata), which would otherwise stall a network-less build.
         return new SessionBuilderSupplier(system)
             .get()
                 .withLocalRepositoryBaseDirectories(dir)
@@ -181,6 +187,8 @@ public final class ZpmCache
                 .setTransferListener(new ZpmConsoleTransferListener())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
+                .setOffline(offline)
+                .setIgnoreArtifactDescriptorRepositories(offline)
                 .build();
     }
 
