@@ -1223,12 +1223,12 @@ abstract class McpProxyListFactory implements BindingHandler
             case KEY_NAME:
                 if (client.decodeItemDepth == 3)
                 {
-                    final String key = parser.getString();
-                    if ("type".equals(key))
+                    final CharSequence key = parser.getStringView();
+                    if ("type".contentEquals(key))
                     {
                         client.decodeSchemesTypeKey = true;
                     }
-                    else if ("scopes".equals(key))
+                    else if ("scopes".contentEquals(key))
                     {
                         client.decoder = decodeItemScopeValues;
                         break decode;
@@ -1239,7 +1239,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 if (client.decodeSchemesTypeKey)
                 {
                     client.decodeSchemesTypeKey = false;
-                    if ("noauth".equals(parser.getString()))
+                    if ("noauth".contentEquals(parser.getStringView()))
                     {
                         client.decodedNoAuth = true;
                     }
