@@ -31,7 +31,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +50,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.transform.McpSchemeInjector;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
@@ -78,7 +78,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -717,7 +720,8 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final int decodedOffset = offset + http.decodedResultProgress - http.decodedParserProgress;
             final int decodedLimit = offset + decodedResultProgress - http.decodedParserProgress;
-            final int decodedProgress = http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit);
+            final int decodedProgress =
+                http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit, true);
 
             http.decodedResultProgress = decodedProgress - offset + http.decodedParserProgress;
         }
@@ -787,7 +791,8 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final int decodedOffset = offset + http.decodedResultProgress - http.decodedParserProgress;
             final int decodedLimit = offset + decodedResultProgress - http.decodedParserProgress;
-            final int decodedProgress = http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit);
+            final int decodedProgress =
+                http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit, false);
 
             http.decodedResultProgress = decodedProgress - offset + http.decodedParserProgress;
         }
@@ -1939,6 +1944,11 @@ public final class McpClientFactory implements McpStreamFactory
                 replySeq, replyAck, replyMax,
                 traceId, authorization, affinity,
                 beginEx);
+        }
+
+        int replyWindow()
+        {
+            return Math.max(replyMax - (int)(replySeq - replyAck) - replyPad, 0);
         }
 
         int doAppData(
@@ -3556,7 +3566,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit);
+            int limit,
+            boolean endOfInput);
 
         void onDecodeResultEvent(
             JsonParser.Event event,
@@ -4097,7 +4108,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit)
+            int limit,
+            boolean endOfInput)
         {
             return mcp != null ? mcp.doAppData(traceId, authorization, buffer, offset, limit) : offset;
         }
@@ -4267,7 +4279,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit)
+            int limit,
+            boolean endOfInput)
         {
             return limit;
         }
@@ -4733,7 +4746,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit)
+            int limit,
+            boolean endOfInput)
         {
             return mcp.doAppData(traceId, authorization, buffer, offset, limit);
         }
@@ -4806,12 +4820,9 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpToolsListStream extends HttpRequestStream
     {
-        private final DirectBufferEx schemesBuffer;
-        private final int schemesLength;
-        private final long[] toolEndStreamOffsets;
-        private int toolEndCount;
-        private int currentInjection;
-        private int injectBytesWritten;
+        private final JsonPipeline pipeline;
+        private final MutableDirectBufferEx stagingBuffer;
+        private boolean pipelineReset;
 
         HttpToolsListStream(
             McpStream mcp)
@@ -4819,19 +4830,12 @@ public final class McpClientFactory implements McpStreamFactory
             super(mcp);
             final McpBindingConfig binding = bindings.get(mcp.routedId);
             final Map<String, List<String>> roles = binding.getRoles(mcp.resolvedId);
-            if (roles.isEmpty())
-            {
-                this.schemesBuffer = null;
-                this.schemesLength = 0;
-                this.toolEndStreamOffsets = null;
-            }
-            else
-            {
-                final byte[] bytes = buildSchemesJson(roles);
-                this.schemesBuffer = new UnsafeBufferEx(bytes);
-                this.schemesLength = bytes.length;
-                this.toolEndStreamOffsets = new long[16];
-            }
+            final JsonParserEx parser = JsonEx.createParser();
+            final JsonGeneratorEx generator = JsonEx.createGenerator();
+            this.pipeline = JsonEx.stream(parser)
+                .transform(new McpSchemeInjector(JSON_KEY_TOOLS, roles))
+                .into(generator);
+            this.stagingBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         }
 
         @Override
@@ -4868,116 +4872,54 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        void onDecodeResultEvent(
-            JsonParser.Event event,
-            JsonParser parser,
-            int depth)
-        {
-            if (schemesBuffer != null && event == JsonParser.Event.END_OBJECT && depth == 1)
-            {
-                toolEndStreamOffsets[toolEndCount++] = parser.getLocation().getStreamOffset();
-            }
-        }
-
-        @Override
         int onDecodeResponseResult(
             long traceId,
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit)
+            int limit,
+            boolean endOfInput)
         {
             int progress = offset;
 
-            if (schemesBuffer != null && mcp != null)
+            if (mcp != null)
             {
-                final long baseStreamOffset = decodedResultProgress;
-
-                while (currentInjection < toolEndCount && progress < limit)
+                if (!pipelineReset)
                 {
-                    final int bracePos = offset + (int)(toolEndStreamOffsets[currentInjection] - baseStreamOffset) - 1;
-
-                    if (bracePos < progress || bracePos >= limit)
-                    {
-                        break;
-                    }
-
-                    if (progress < bracePos)
-                    {
-                        progress = mcp.doAppData(traceId, authorization, buffer, progress, bracePos);
-                        if (progress < bracePos)
-                        {
-                            break;
-                        }
-                    }
-
-                    if (injectBytesWritten < schemesLength)
-                    {
-                        injectBytesWritten = mcp.doAppData(traceId, authorization, schemesBuffer,
-                            injectBytesWritten, schemesLength);
-                        if (injectBytesWritten < schemesLength)
-                        {
-                            break;
-                        }
-                    }
-
-                    progress = mcp.doAppData(traceId, authorization, buffer, bracePos, bracePos + 1);
-                    if (progress <= bracePos)
-                    {
-                        break;
-                    }
-
-                    injectBytesWritten = 0;
-                    currentInjection++;
+                    pipeline.reset();
+                    pipelineReset = true;
                 }
 
-                if (currentInjection >= toolEndCount && progress < limit)
+                int available = mcp.replyWindow();
+                JsonPipeline.Status status = JsonPipeline.Status.SUSPENDED;
+                boolean progressing = true;
+                while (available > 0 && progressing && status == JsonPipeline.Status.SUSPENDED)
                 {
-                    progress = mcp.doAppData(traceId, authorization, buffer, progress, limit);
+                    final int cap = Math.min(available, stagingBuffer.capacity());
+                    final JsonPipelineResult result =
+                        pipeline.transform(buffer, progress, limit, endOfInput, stagingBuffer, 0, cap);
+                    final int produced = result.produced();
+                    if (produced > 0)
+                    {
+                        final int flushed = mcp.doAppData(traceId, authorization, stagingBuffer, 0, produced);
+                        assert flushed == produced;
+                    }
+
+                    progress += result.consumed();
+                    available = mcp.replyWindow();
+                    status = result.status();
+                    // guard against a stalled pipeline (no input consumed, no output produced) so we yield
+                    // back to the decode slot and wait for more input or reply window rather than spinning
+                    progressing = produced > 0 || result.consumed() > 0;
                 }
 
-                if (progress >= limit)
+                if (endOfInput && status == JsonPipeline.Status.COMPLETED)
                 {
-                    toolEndCount = 0;
-                    currentInjection = 0;
+                    pipelineReset = false;
                 }
-            }
-            else
-            {
-                progress = mcp != null ? mcp.doAppData(traceId, authorization, buffer, offset, limit) : offset;
             }
 
             return progress;
-        }
-
-        private byte[] buildSchemesJson(
-            Map<String, List<String>> roles)
-        {
-            final StringBuilder sb = new StringBuilder();
-            sb.append(",\"securitySchemes\":[");
-            boolean first = true;
-            for (Map.Entry<String, List<String>> entry : roles.entrySet())
-            {
-                if (!first)
-                {
-                    sb.append(',');
-                }
-                first = false;
-                sb.append("{\"type\":\"oauth2\",\"scopes\":[");
-                boolean firstScope = true;
-                for (String scope : entry.getValue())
-                {
-                    if (!firstScope)
-                    {
-                        sb.append(',');
-                    }
-                    firstScope = false;
-                    sb.append('"').append(scope).append('"');
-                }
-                sb.append("]}");
-            }
-            sb.append(']');
-            return sb.toString().getBytes(StandardCharsets.UTF_8);
         }
     }
 
