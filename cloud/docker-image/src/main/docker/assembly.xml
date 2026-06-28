@@ -49,6 +49,7 @@
         <include>jakarta/json/**</include>
         <include>jakarta/inject/**</include>
         <include>org/snakeyaml/snakeyaml-engine/**</include>
+        <include>org/eclipse/parsson/**</include>
         <include>org/eclipse/yasson/**</include>
         <include>org/glassfish/**</include>
         <include>com/github/rvesse/**</include>
@@ -59,8 +60,6 @@
         <include>org/slf4j/**</include>
         <include>org/antlr/**</include>
         <include>org/sonatype/oss/**</include>
-        <include>com/fasterxml/oss-parent/**</include>
-        <include>com/fasterxml/jackson/**</include>
         <include>org/yaml/snakeyaml/**</include>
         <include>org/junit/**</include>
         <include>com/google/**</include>

@@ -187,7 +187,7 @@ public final class ZpmInstall extends ZpmCommand
 
             List<RemoteRepository> remoteRepositories = asRemoteRepositories(settings, repositories);
 
-            ZpmCache cache = new ZpmCache(remoteRepositories, cacheDir, logger);
+            ZpmCache cache = new ZpmCache(remoteRepositories, excludeRemoteRepos, cacheDir, logger);
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
 
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
