@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
+import java.util.List;
+
 /**
  * Manages authorization sessions for streams passing through a guarded binding.
  * <p>
@@ -168,6 +170,21 @@ public interface GuardHandler
      */
     String credentials(
         long sessionId);
+
+    /**
+     * Returns whether the given session holds all of the specified roles.
+     * <p>
+     * Used by bindings that need to test dynamic, per-item role requirements at
+     * serving time. The role names are guard-specific.
+     * </p>
+     *
+     * @param sessionId  the session identifier
+     * @param roles      the required roles
+     * @return {@code true} if the session holds every role in the list
+     */
+    boolean verify(
+        long sessionId,
+        List<String> roles);
 
     /**
      * Returns the UTC millisecond timestamp at which this session expires and must be

@@ -86,6 +86,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
@@ -560,19 +561,19 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (kind == KIND_TOOLS_LIST)
             {
-                doMcpReply(traceId, buildToolsList(binding));
+                doMcpReply(traceId, toolsList(binding));
                 cleanupRequestSlot();
                 return;
             }
             else if (kind == KIND_RESOURCES_LIST)
             {
-                doMcpReply(traceId, buildResourcesList(binding));
+                doMcpReply(traceId, resourcesList(binding));
                 cleanupRequestSlot();
                 return;
             }
             else if (kind == KIND_PROMPTS_LIST)
             {
-                doMcpReply(traceId, buildPromptsList(binding));
+                doMcpReply(traceId, promptsList(binding));
                 cleanupRequestSlot();
                 return;
             }
@@ -2075,6 +2076,42 @@ public final class McpHttpProxyFactory implements BindingHandler
         return compact(reply.build());
     }
 
+    private String toolsList(
+        McpHttpBindingConfig binding)
+    {
+        String json = binding.toolsListJson();
+        if (json == null)
+        {
+            json = buildToolsList(binding);
+            binding.toolsListJson(json);
+        }
+        return json;
+    }
+
+    private String resourcesList(
+        McpHttpBindingConfig binding)
+    {
+        String json = binding.resourcesListJson();
+        if (json == null)
+        {
+            json = buildResourcesList(binding);
+            binding.resourcesListJson(json);
+        }
+        return json;
+    }
+
+    private String promptsList(
+        McpHttpBindingConfig binding)
+    {
+        String json = binding.promptsListJson();
+        if (json == null)
+        {
+            json = buildPromptsList(binding);
+            binding.promptsListJson(json);
+        }
+        return json;
+    }
+
     private String buildToolsList(
         McpHttpBindingConfig binding)
     {
@@ -2096,6 +2133,26 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (outputSchema != null)
             {
                 item.add("outputSchema", outputSchema);
+            }
+            final List<GuardedConfig> guarded = binding.toolGuarded(tool.name);
+            if (!guarded.isEmpty())
+            {
+                final JsonArrayBuilder schemes = Json.createArrayBuilder();
+                for (GuardedConfig g : guarded)
+                {
+                    if (!g.roles.isEmpty())
+                    {
+                        final JsonArrayBuilder scopes = Json.createArrayBuilder();
+                        for (String role : g.roles)
+                        {
+                            scopes.add(role);
+                        }
+                        schemes.add(Json.createObjectBuilder()
+                            .add("type", "oauth2")
+                            .add("scopes", scopes));
+                    }
+                }
+                item.add("securitySchemes", schemes);
             }
             tools.add(item);
         }
