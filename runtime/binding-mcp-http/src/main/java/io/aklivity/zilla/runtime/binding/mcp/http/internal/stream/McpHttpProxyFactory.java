@@ -76,8 +76,10 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.WindowFW
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
@@ -111,6 +113,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final int RESPONSE_BUFFER_MAX = 4096;
 
     private static final byte[] REPLY_SUFFIX = "\"}]}".getBytes(UTF_8);
+    private static final byte[] EMPTY_OBJECT = "{}".getBytes(UTF_8);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -146,6 +149,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final Long2ObjectHashMap<McpHttpBindingConfig> bindings;
 
     private final JsonGeneratorEx projectGenerator;
+    private final JsonParserEx queryParser = JsonEx.createParser();
     private final MutableDirectBufferEx projectBuffer;
     private final UnsafeBufferEx argsRO;
     private final Map<JsonSchema, JsonPipeline> projectors;
@@ -638,8 +642,8 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (with.query != null)
             {
                 argsRO.wrap(argsBytes);
-                final String projected = project(binding.jsonSchema(with.query), argsRO, 0, argsBytes.length);
-                final String query = projected != null ? queryString(parseValue(projected)) : "";
+                final int produced = projectInto(binding.jsonSchema(with.query), argsRO, 0, argsBytes.length);
+                final String query = produced >= 0 ? queryStringFromBytes(projectBuffer, 0, produced) : "";
                 if (!query.isEmpty())
                 {
                     path = path + "?" + query;
@@ -651,15 +655,15 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (with.bodyTemplate != null)
             {
                 argsRO.wrap(argsBytes);
-                final String remapped = template(route, argsRO, 0, argsBytes.length);
-                body = (remapped != null ? remapped : "{}").getBytes(UTF_8);
+                final int produced = templateInto(route, argsRO, 0, argsBytes.length);
+                body = bodyBytes(produced);
                 contentType = DEFAULT_CONTENT_TYPE;
             }
             else if (with.body != null)
             {
                 argsRO.wrap(argsBytes);
-                final String projected = project(binding.jsonSchema(with.body), argsRO, 0, argsBytes.length);
-                body = (projected != null ? projected : "{}").getBytes(UTF_8);
+                final int produced = projectInto(binding.jsonSchema(with.body), argsRO, 0, argsBytes.length);
+                body = bodyBytes(produced);
                 contentType = DEFAULT_CONTENT_TYPE;
             }
 
@@ -1913,16 +1917,16 @@ public final class McpHttpProxyFactory implements BindingHandler
         int offset,
         int length)
     {
-        return run(validators.computeIfAbsent(schema, this::newValidator), buffer, offset, length) != null;
+        return runInto(validators.computeIfAbsent(schema, this::newValidator), buffer, offset, length) >= 0;
     }
 
-    private String project(
+    private int projectInto(
         JsonSchema schema,
         DirectBufferEx buffer,
         int offset,
         int length)
     {
-        return run(projectors.computeIfAbsent(schema, this::newProjector), buffer, offset, length);
+        return runInto(projectors.computeIfAbsent(schema, this::newProjector), buffer, offset, length);
     }
 
     private String validateProject(
@@ -1934,16 +1938,19 @@ public final class McpHttpProxyFactory implements BindingHandler
         return run(validatingProjectors.computeIfAbsent(schema, this::newValidatingProjector), buffer, offset, length);
     }
 
-    private String template(
+    private int templateInto(
         McpHttpRouteConfig route,
         DirectBufferEx buffer,
         int offset,
         int length)
     {
-        return run(templates.computeIfAbsent(route, this::newTemplate), buffer, offset, length);
+        return runInto(templates.computeIfAbsent(route, this::newTemplate), buffer, offset, length);
     }
 
-    private String run(
+    // Runs a pipeline over the input window into projectBuffer, returning the bytes produced, or -1 when the
+    // value did not complete. The output stays in projectBuffer so the caller can stream it onward (a request
+    // body) or walk it (a query object) without materializing an intermediate String.
+    private int runInto(
         JsonPipeline pipeline,
         DirectBufferEx buffer,
         int offset,
@@ -1954,14 +1961,105 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         final JsonPipeline.Status status = pipeline.transform(buffer, offset, offset + length);
 
+        return status == JsonPipeline.Status.COMPLETED ? projectGenerator.length() : -1;
+    }
+
+    private String run(
+        JsonPipeline pipeline,
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        final int produced = runInto(pipeline, buffer, offset, length);
+
         String result = null;
-        if (status == JsonPipeline.Status.COMPLETED)
+        if (produced >= 0)
         {
-            final byte[] bytes = new byte[projectGenerator.length()];
+            final byte[] bytes = new byte[produced];
             projectBuffer.getBytes(0, bytes);
             result = new String(bytes, UTF_8);
         }
         return result;
+    }
+
+    // Copies the request body just produced into projectBuffer, or the empty object when projection produced
+    // nothing; the returned array is the upstream request body.
+    private byte[] bodyBytes(
+        int produced)
+    {
+        byte[] body = EMPTY_OBJECT;
+        if (produced >= 0)
+        {
+            body = new byte[produced];
+            projectBuffer.getBytes(0, body);
+        }
+        return body;
+    }
+
+    // Builds an application/x-www-form-urlencoded query string from a projected query object held in buffer,
+    // walking it as a streaming event run rather than materializing a JSON object tree. Top-level scalar
+    // members become key=value pairs; a member whose value is an array repeats the key per element.
+    private String queryStringFromBytes(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        final StringBuilder builder = new StringBuilder();
+        queryParser.reset();
+        queryParser.wrap(buffer, offset, offset + length, true);
+
+        String key = null;
+        int depth = 0;
+        boolean inArray = false;
+        while (queryParser.hasNextEvent())
+        {
+            final JsonEvent event = queryParser.nextEvent();
+            switch (event)
+            {
+            case START_OBJECT:
+                depth++;
+                break;
+            case START_ARRAY:
+                depth++;
+                inArray = depth == 2;
+                break;
+            case END_OBJECT:
+                depth--;
+                break;
+            case END_ARRAY:
+                depth--;
+                inArray = false;
+                break;
+            case KEY_NAME:
+                if (depth == 1)
+                {
+                    key = queryParser.getString();
+                }
+                break;
+            case VALUE_STRING:
+            case VALUE_NUMBER:
+                if (key != null && (depth == 1 || depth == 2 && inArray))
+                {
+                    appendQuery(builder, key, queryParser.getString());
+                }
+                break;
+            case VALUE_TRUE:
+                if (key != null && (depth == 1 || depth == 2 && inArray))
+                {
+                    appendQuery(builder, key, "true");
+                }
+                break;
+            case VALUE_FALSE:
+                if (key != null && (depth == 1 || depth == 2 && inArray))
+                {
+                    appendQuery(builder, key, "false");
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        return builder.toString();
     }
 
     private JsonPipeline newValidator(
@@ -1996,32 +2094,6 @@ public final class McpHttpProxyFactory implements BindingHandler
             .transform(JsonEx.projector(route.bodyTemplatePointers))
             .transform(new McpHttpRename(route.bodyTemplateRenames))
             .into(JsonEx.createSink(projectGenerator));
-    }
-
-    private String queryString(
-        JsonValue projected)
-    {
-        final StringBuilder builder = new StringBuilder();
-        if (projected.getValueType() == JsonValue.ValueType.OBJECT)
-        {
-            final JsonObject object = projected.asJsonObject();
-            for (String key : object.keySet())
-            {
-                final JsonValue value = object.get(key);
-                if (value.getValueType() == JsonValue.ValueType.ARRAY)
-                {
-                    for (JsonValue element : value.asJsonArray())
-                    {
-                        appendQuery(builder, key, asText(element));
-                    }
-                }
-                else
-                {
-                    appendQuery(builder, key, asText(value));
-                }
-            }
-        }
-        return builder.toString();
     }
 
     private void appendQuery(
