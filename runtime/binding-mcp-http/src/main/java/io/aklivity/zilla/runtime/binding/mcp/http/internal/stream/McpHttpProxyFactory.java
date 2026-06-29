@@ -115,7 +115,22 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final byte[] TOOL_SUCCESS_PREFIX = "{\"content\":[{\"type\":\"text\",\"text\":".getBytes(UTF_8);
     private static final byte[] TOOL_SUCCESS_INFIX = "}],\"structuredContent\":".getBytes(UTF_8);
     private static final byte[] TOOL_SUCCESS_SUFFIX = ",\"isError\":false}".getBytes(UTF_8);
+    private static final byte[] TOOL_ERROR_SUFFIX = "}],\"isError\":true}".getBytes(UTF_8);
     private static final byte[] EMPTY_OBJECT = "{}".getBytes(UTF_8);
+    private static final byte[] RESOURCE_PREFIX = "{\"contents\":[{\"uri\":".getBytes(UTF_8);
+    private static final byte[] RESOURCE_MIME = ",\"mimeType\":".getBytes(UTF_8);
+    private static final byte[] RESOURCE_TEXT = ",\"text\":".getBytes(UTF_8);
+    private static final byte[] RESOURCE_TEXT_OPEN = ",\"text\":\"".getBytes(UTF_8);
+    private static final byte[] RESOURCE_SUFFIX = "}]}".getBytes(UTF_8);
+    private static final byte[] PROMPT_DESCRIPTION = "{\"description\":".getBytes(UTF_8);
+    private static final byte[] PROMPT_MESSAGES = ",\"messages\":[".getBytes(UTF_8);
+    private static final byte[] PROMPT_MESSAGES_OPEN = "{\"messages\":[".getBytes(UTF_8);
+    private static final byte[] PROMPT_MESSAGE_ROLE = "{\"role\":".getBytes(UTF_8);
+    private static final byte[] PROMPT_MESSAGE_CONTENT = ",\"content\":{\"type\":\"text\",\"text\":".getBytes(UTF_8);
+    private static final byte[] PROMPT_MESSAGE_END = "}}".getBytes(UTF_8);
+    private static final byte[] PROMPT_SUFFIX = "]}".getBytes(UTF_8);
+
+    private static final Map<String, String> EMPTY_PARAMS = Map.of();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -154,6 +169,8 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final JsonParserEx queryParser = JsonEx.createParser();
     private final JsonPipeline canonicalizer;
     private final MutableDirectBufferEx projectBuffer;
+    private final MutableDirectBufferEx replyBuffer;
+    private final UnsafeBufferEx escapeRO = new UnsafeBufferEx(new byte[0]);
     private final UnsafeBufferEx argsRO;
     private final Map<String, String> argsCaptured = new HashMap<>();
     private final JsonGeneratorEx argsGenerator;
@@ -188,6 +205,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.canonicalizer = JsonEx.stream(JsonEx.createParser())
             .into(JsonEx.createSink(projectGenerator));
         this.projectBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.replyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.argsRO = new UnsafeBufferEx(new byte[0]);
         this.argsGenerator = JsonEx.createGenerator();
         this.argsBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
@@ -264,7 +282,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     String name = null;
                     String uri = null;
                     int contentLength = -1;
-                    final Map<String, String> params = new HashMap<>();
+                    Map<String, String> params = EMPTY_PARAMS;
 
                     if (kind == KIND_TOOLS_CALL)
                     {
@@ -276,6 +294,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     {
                         uri = beginEx.resourcesRead().uri().asString();
                         contentLength = beginEx.resourcesRead().contentLength();
+                        params = new HashMap<>();
                         resource = binding.resolveResource(uri, params);
                         if (resource != null)
                         {
@@ -603,7 +622,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 final int argsLength = requestSlot != NO_SLOT
                     ? extractArgs(bufferPool.buffer(requestSlot), 0, requestOffset)
                     : emptyArgs();
-                doMcpReply(traceId, buildPromptGet(binding.prompt(name), argsLength));
+                doMcpReplyBytes(traceId, buildPromptGet(binding.prompt(name), argsLength));
                 cleanupRequestSlot();
                 return;
             }
@@ -622,7 +641,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 argsRO.wrap(argsBuffer, 0, argsLength);
                 if (!validate(binding.jsonSchema(tool.input), argsRO, 0, argsLength))
                 {
-                    doMcpReply(traceId, buildToolError("invalid arguments"));
+                    doMcpReplyBytes(traceId, buildToolError("invalid arguments"));
                     cleanupRequestSlot();
                     return;
                 }
@@ -837,20 +856,21 @@ public final class McpHttpProxyFactory implements BindingHandler
                     final int produced = projectResponse(outputSchema, body, offset, length);
                     if (outputSchema != null && produced < 0)
                     {
-                        doMcpReply(traceId, buildToolError("invalid response"));
+                        doMcpReplyBytes(traceId, buildToolError("invalid response"));
                     }
                     else
                     {
                         final int structuredLength = produced >= 0 ? produced : emptyResponse();
-                        final String summary = tool != null && tool.summary != null
-                            ? interpolate(tool.summary, expr -> resolveResult(structuredLength, expr))
-                            : text(projectBuffer, 0, structuredLength);
-                        doMcpToolSuccess(traceId, summary, structuredLength);
+                        final int summaryLength = tool != null && tool.summary != null
+                            ? putJsonString(replyBuffer, 0,
+                                interpolate(tool.summary, expr -> resolveResult(structuredLength, expr)))
+                            : putJsonString(replyBuffer, 0, projectBuffer, 0, structuredLength);
+                        doMcpToolSuccess(traceId, summaryLength, structuredLength);
                     }
                 }
                 else
                 {
-                    doMcpReply(traceId, buildToolError(cap(text(body, offset, length))));
+                    doMcpReplyBytes(traceId, buildToolError(cap(text(body, offset, length))));
                 }
             }
             else
@@ -866,8 +886,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     final String mimeType = resource != null && resource.mimeType != null
                         ? resource.mimeType
                         : contentType;
-                    final String resourceText = text(projectBuffer, 0, produced);
-                    doMcpReply(traceId, buildResource(uri, mimeType, resourceText));
+                    doMcpReplyBytes(traceId, buildResource(uri, mimeType, produced));
                 }
             }
         }
@@ -898,7 +917,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             final String mimeType = resource != null && resource.mimeType != null
                 ? resource.mimeType
                 : contentType;
-            stage(replyPrefix(uri, mimeType));
+            stageBytes(replyBuffer, 0, replyPrefix(uri, mimeType));
             doMcpBegin(traceId);
         }
 
@@ -1011,18 +1030,28 @@ public final class McpHttpProxyFactory implements BindingHandler
             flushReply(traceId);
         }
 
-        // Assembles the tools/call success reply by staging the static envelope around the escaped summary and
-        // the projected structuredContent spliced verbatim from projectBuffer, avoiding a jakarta DOM round-trip
-        // of the upstream response body.
-        private void doMcpToolSuccess(
+        // Stages a reply envelope already assembled into replyBuffer[0..length], avoiding a jakarta DOM
+        // round-trip and the intermediate String/byte[] that doMcpReply(String) requires.
+        private void doMcpReplyBytes(
             long traceId,
-            String summary,
             int length)
         {
-            final StringBuilder text = new StringBuilder();
-            jsonString(text, summary);
+            stageBytes(replyBuffer, 0, length);
+            replyComplete = true;
+            doMcpBegin(traceId);
+            flushReply(traceId);
+        }
+
+        // Assembles the tools/call success reply by staging the static envelope around the escaped summary
+        // (already written into replyBuffer[0..summaryLength]) and the projected structuredContent spliced
+        // verbatim from projectBuffer, avoiding a jakarta DOM round-trip of the upstream response body.
+        private void doMcpToolSuccess(
+            long traceId,
+            int summaryLength,
+            int length)
+        {
             stage(TOOL_SUCCESS_PREFIX);
-            stage(text.toString().getBytes(UTF_8));
+            stageBytes(replyBuffer, 0, summaryLength);
             stage(TOOL_SUCCESS_INFIX);
             stageBytes(projectBuffer, 0, length);
             stage(TOOL_SUCCESS_SUFFIX);
@@ -1180,17 +1209,19 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
         }
 
-        private byte[] replyPrefix(
+        // Writes the streaming resource reply prefix up to the open quote of the text value into
+        // replyBuffer and returns its length; the escaped resource text and REPLY_SUFFIX follow as the
+        // projected body streams in.
+        private int replyPrefix(
             String uri,
             String mimeType)
         {
-            final StringBuilder builder = new StringBuilder()
-                .append("{\"contents\":[{\"uri\":");
-            jsonString(builder, uri);
-            builder.append(",\"mimeType\":");
-            jsonString(builder, mimeType);
-            builder.append(",\"text\":\"");
-            return builder.toString().getBytes(UTF_8);
+            int progress = put(replyBuffer, 0, RESOURCE_PREFIX);
+            progress = putJsonString(replyBuffer, progress, uri);
+            progress = put(replyBuffer, progress, RESOURCE_MIME);
+            progress = putJsonString(replyBuffer, progress, mimeType);
+            progress = put(replyBuffer, progress, RESOURCE_TEXT_OPEN);
+            return progress;
         }
     }
 
@@ -2160,29 +2191,32 @@ public final class McpHttpProxyFactory implements BindingHandler
         builder.append(encode(key)).append('=').append(encode(value));
     }
 
-    private String buildToolError(
+    // Assembles {"content":[{"type":"text","text":<escaped>}],"isError":true} into replyBuffer from static
+    // byte[] fragments and the escaped error text, returning its length — no jakarta DOM, no String round-trip.
+    private int buildToolError(
         String bodyText)
     {
-        final JsonArrayBuilder content = Json.createArrayBuilder()
-            .add(Json.createObjectBuilder().add("type", "text").add("text", bodyText));
-        final JsonObjectBuilder reply = Json.createObjectBuilder()
-            .add("content", content)
-            .add("isError", true);
-        return compact(reply.build());
+        int progress = put(replyBuffer, 0, TOOL_SUCCESS_PREFIX);
+        progress = putJsonString(replyBuffer, progress, bodyText);
+        progress = put(replyBuffer, progress, TOOL_ERROR_SUFFIX);
+        return progress;
     }
 
-    private String buildResource(
+    // Assembles {"contents":[{"uri":<u>,"mimeType":<m>,"text":<escaped>}]} into replyBuffer, escaping the
+    // projected resource text spliced directly from projectBuffer[0..length], returning its length.
+    private int buildResource(
         String uri,
         String mimeType,
-        String text)
+        int length)
     {
-        final JsonObjectBuilder item = Json.createObjectBuilder()
-            .add("uri", uri)
-            .add("mimeType", mimeType)
-            .add("text", text);
-        final JsonObjectBuilder reply = Json.createObjectBuilder()
-            .add("contents", Json.createArrayBuilder().add(item));
-        return compact(reply.build());
+        int progress = put(replyBuffer, 0, RESOURCE_PREFIX);
+        progress = putJsonString(replyBuffer, progress, uri);
+        progress = put(replyBuffer, progress, RESOURCE_MIME);
+        progress = putJsonString(replyBuffer, progress, mimeType);
+        progress = put(replyBuffer, progress, RESOURCE_TEXT);
+        progress = putJsonString(replyBuffer, progress, projectBuffer, 0, length);
+        progress = put(replyBuffer, progress, RESOURCE_SUFFIX);
+        return progress;
     }
 
     private String toolsList(
@@ -2327,29 +2361,42 @@ public final class McpHttpProxyFactory implements BindingHandler
         return compact(Json.createObjectBuilder().add("prompts", prompts).build());
     }
 
-    private String buildPromptGet(
+    // Assembles {"description":<d>,"messages":[{"role":<r>,"content":{"type":"text","text":<t>}},...]} into
+    // replyBuffer (description optional), interpolating each message text into the escaped value directly,
+    // returning its length — replaces the per-request jakarta DOM + compact round-trip.
+    private int buildPromptGet(
         McpHttpPromptConfig prompt,
         int argsLength)
     {
-        final JsonObjectBuilder reply = Json.createObjectBuilder();
+        int progress;
         if (prompt.description != null)
         {
-            reply.add("description", prompt.description);
+            progress = put(replyBuffer, 0, PROMPT_DESCRIPTION);
+            progress = putJsonString(replyBuffer, progress, prompt.description);
+            progress = put(replyBuffer, progress, PROMPT_MESSAGES);
         }
-        final JsonArrayBuilder messages = Json.createArrayBuilder();
+        else
+        {
+            progress = put(replyBuffer, 0, PROMPT_MESSAGES_OPEN);
+        }
+        boolean first = true;
         for (McpHttpPromptMessageConfig message : prompt.messages)
         {
+            if (!first)
+            {
+                replyBuffer.putByte(progress++, (byte) ',');
+            }
+            first = false;
             final String text = interpolate(message.text,
                 expr -> expr.startsWith("args.") ? navigateBytes(argsBuffer, argsLength, expr.substring(5)) : "");
-            final JsonObjectBuilder content = Json.createObjectBuilder()
-                .add("type", "text")
-                .add("text", text);
-            messages.add(Json.createObjectBuilder()
-                .add("role", message.role)
-                .add("content", content));
+            progress = put(replyBuffer, progress, PROMPT_MESSAGE_ROLE);
+            progress = putJsonString(replyBuffer, progress, message.role);
+            progress = put(replyBuffer, progress, PROMPT_MESSAGE_CONTENT);
+            progress = putJsonString(replyBuffer, progress, text);
+            progress = put(replyBuffer, progress, PROMPT_MESSAGE_END);
         }
-        reply.add("messages", messages);
-        return compact(reply.build());
+        progress = put(replyBuffer, progress, PROMPT_SUFFIX);
+        return progress;
     }
 
     private JsonObject schemaObject(
@@ -2472,53 +2519,111 @@ public final class McpHttpProxyFactory implements BindingHandler
         return builder.toString();
     }
 
-    private static void jsonString(
-        StringBuilder builder,
+    private static int put(
+        MutableDirectBufferEx buffer,
+        int offset,
+        byte[] bytes)
+    {
+        buffer.putBytes(offset, bytes);
+        return offset + bytes.length;
+    }
+
+    // Writes the UTF-8 of value as a quoted, JSON-escaped string into buffer at offset, returning the new
+    // offset. value is encoded once into a wrapped byte view, then escaped byte-wise — equivalent to escaping
+    // each char and UTF-8 encoding, since the escaped set and control bytes are all single-byte ASCII.
+    private int putJsonString(
+        MutableDirectBufferEx buffer,
+        int offset,
         String value)
     {
-        builder.append('"');
-        final int length = value != null ? value.length() : 0;
+        int progress = offset;
+        buffer.putByte(progress++, (byte) '"');
+        if (value != null && !value.isEmpty())
+        {
+            final byte[] bytes = value.getBytes(UTF_8);
+            escapeRO.wrap(bytes);
+            progress = putEscaped(buffer, progress, escapeRO, 0, bytes.length);
+        }
+        buffer.putByte(progress++, (byte) '"');
+        return progress;
+    }
+
+    // Writes the bytes of source[sourceOffset..+length] as a quoted, JSON-escaped string into buffer at
+    // offset, returning the new offset — used to splice already-UTF-8 projected content (a resource body or
+    // structuredContent) as a JSON string value without materializing an intermediate String.
+    private int putJsonString(
+        MutableDirectBufferEx buffer,
+        int offset,
+        DirectBufferEx source,
+        int sourceOffset,
+        int length)
+    {
+        int progress = offset;
+        buffer.putByte(progress++, (byte) '"');
+        progress = putEscaped(buffer, progress, source, sourceOffset, length);
+        buffer.putByte(progress++, (byte) '"');
+        return progress;
+    }
+
+    private static int putEscaped(
+        MutableDirectBufferEx buffer,
+        int offset,
+        DirectBufferEx source,
+        int sourceOffset,
+        int length)
+    {
+        int progress = offset;
         for (int index = 0; index < length; index++)
         {
-            final char c = value.charAt(index);
+            final int c = source.getByte(sourceOffset + index) & 0xff;
             switch (c)
             {
             case '"':
-                builder.append("\\\"");
+                buffer.putByte(progress++, (byte) '\\');
+                buffer.putByte(progress++, (byte) '"');
                 break;
             case '\\':
-                builder.append("\\\\");
+                buffer.putByte(progress++, (byte) '\\');
+                buffer.putByte(progress++, (byte) '\\');
                 break;
             case '\n':
-                builder.append("\\n");
+                buffer.putByte(progress++, (byte) '\\');
+                buffer.putByte(progress++, (byte) 'n');
                 break;
             case '\r':
-                builder.append("\\r");
+                buffer.putByte(progress++, (byte) '\\');
+                buffer.putByte(progress++, (byte) 'r');
                 break;
             case '\t':
-                builder.append("\\t");
+                buffer.putByte(progress++, (byte) '\\');
+                buffer.putByte(progress++, (byte) 't');
                 break;
             case '\b':
-                builder.append("\\b");
+                buffer.putByte(progress++, (byte) '\\');
+                buffer.putByte(progress++, (byte) 'b');
                 break;
             case '\f':
-                builder.append("\\f");
+                buffer.putByte(progress++, (byte) '\\');
+                buffer.putByte(progress++, (byte) 'f');
                 break;
             default:
                 if (c < 0x20)
                 {
-                    builder.append("\\u00");
-                    builder.append((char) hex(c >> 4));
-                    builder.append((char) hex(c & 0xf));
+                    buffer.putByte(progress++, (byte) '\\');
+                    buffer.putByte(progress++, (byte) 'u');
+                    buffer.putByte(progress++, (byte) '0');
+                    buffer.putByte(progress++, (byte) '0');
+                    buffer.putByte(progress++, hex(c >> 4));
+                    buffer.putByte(progress++, hex(c & 0xf));
                 }
                 else
                 {
-                    builder.append(c);
+                    buffer.putByte(progress++, (byte) c);
                 }
                 break;
             }
         }
-        builder.append('"');
+        return progress;
     }
 
     private static byte hex(
