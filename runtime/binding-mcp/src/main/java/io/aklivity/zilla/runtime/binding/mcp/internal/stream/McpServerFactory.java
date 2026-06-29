@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpInitializeParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpNotifyCanceledParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.transform.McpSchemeExcluder;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
@@ -78,6 +79,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -212,6 +215,8 @@ public final class McpServerFactory implements McpStreamFactory
     private final Signaler signaler;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx codecBuffer;
+    private final MutableDirectBufferEx schemeStaging;
+    private final MutableDirectBufferEx schemeStagingView = new UnsafeBufferEx();
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongIntToLongFunction supplyInitialIdHash;
@@ -268,6 +273,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.signaler = context.signaler();
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.schemeStaging = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyInitialIdHash = context::supplyInitialId;
@@ -2132,6 +2138,9 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert stream == null;
             stream = new McpRequestStream(session, this);
+            stream.schemePipeline = JsonEx.stream(JsonEx.createParser())
+                .transform(new McpSchemeExcluder("tools"))
+                .into(JsonEx.createGenerator());
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -4584,6 +4593,10 @@ public final class McpServerFactory implements McpStreamFactory
         private long replyAck;
         private int replyMax;
 
+        // non-null only for tools/list, where it strips securitySchemes from the reply (SEP-1488 pending)
+        private JsonPipeline schemePipeline;
+        private boolean schemePipelineReset;
+
         private McpRequestStream(
             McpLifecycleStream session,
             McpServer server)
@@ -5006,16 +5019,40 @@ public final class McpServerFactory implements McpStreamFactory
             }
             else if (payload != null)
             {
-                if (sse != null)
+                final DirectBufferEx body = excludeSchemes(payload);
+                if (body.capacity() > 0)
                 {
-                    sse.doEncodeResponseSseData(traceId, authorization, requestId, payload.value());
-                }
-                else
-                {
-                    server.doEncodeResponseBegin(traceId, authorization);
-                    server.doEncodeResponseData(traceId, authorization, payload.value());
+                    if (sse != null)
+                    {
+                        sse.doEncodeResponseSseData(traceId, authorization, requestId, body);
+                    }
+                    else
+                    {
+                        server.doEncodeResponseBegin(traceId, authorization);
+                        server.doEncodeResponseData(traceId, authorization, body);
+                    }
                 }
             }
+        }
+
+        // strips securitySchemes from a tools/list reply (schemePipeline set), else forwards the payload as-is
+        private DirectBufferEx excludeSchemes(
+            OctetsFW payload)
+        {
+            DirectBufferEx body = payload.value();
+            if (schemePipeline != null)
+            {
+                if (!schemePipelineReset)
+                {
+                    schemePipeline.reset();
+                    schemePipelineReset = true;
+                }
+                final JsonPipelineResult result = schemePipeline.transform(
+                    body, 0, body.capacity(), false, schemeStaging, 0, schemeStaging.capacity());
+                schemeStagingView.wrap(schemeStaging, 0, result.produced());
+                body = schemeStagingView;
+            }
+            return body;
         }
 
         private void onAppFlush(
