@@ -646,20 +646,18 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
             }
 
-            byte[] body = null;
+            int bodyLength = -1;
             String contentType = null;
             if (with.bodyTemplate != null)
             {
                 argsRO.wrap(argsBuffer, 0, argsLength);
-                final int produced = templateInto(route, argsRO, 0, argsLength);
-                body = bodyBytes(produced);
+                bodyLength = templateInto(route, argsRO, 0, argsLength);
                 contentType = DEFAULT_CONTENT_TYPE;
             }
             else if (with.body != null)
             {
                 argsRO.wrap(argsBuffer, 0, argsLength);
-                final int produced = projectInto(binding.jsonSchema(with.body), argsRO, 0, argsLength);
-                body = bodyBytes(produced);
+                bodyLength = projectInto(binding.jsonSchema(with.body), argsRO, 0, argsLength);
                 contentType = DEFAULT_CONTENT_TYPE;
             }
 
@@ -667,7 +665,20 @@ public final class McpHttpProxyFactory implements BindingHandler
             binding.resolveCredentials(authorization, credentials);
 
             delegate.doHttpBegin(traceId, with.headers, credentials, path, contentType);
-            delegate.doHttpRequest(traceId, body);
+            if (contentType != null)
+            {
+                if (bodyLength < 0)
+                {
+                    projectBuffer.putBytes(0, EMPTY_OBJECT);
+                    bodyLength = EMPTY_OBJECT.length;
+                }
+                if (bodyLength > 0)
+                {
+                    delegate.stageRequestBody(projectBuffer, 0, bodyLength);
+                }
+            }
+            delegate.requestComplete();
+            delegate.flushRequestStream(traceId);
 
             cleanupRequestSlot();
         }
@@ -1173,9 +1184,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         private MessageConsumer receiver;
         private int state;
 
-        private byte[] pendingBody;
-        private int requestProgress;
-
         private int requestEncodeSlot = NO_SLOT;
         private int requestEncodeOffset;
         private boolean requestDataStarted;
@@ -1242,50 +1250,6 @@ public final class McpHttpProxyFactory implements BindingHandler
                 initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, httpBeginEx);
         }
 
-        private void doHttpRequest(
-            long traceId,
-            byte[] body)
-        {
-            if (body != null && body.length > 0)
-            {
-                pendingBody = body;
-                requestProgress = 0;
-                flushRequest(traceId);
-            }
-            else
-            {
-                doHttpEnd(traceId);
-            }
-        }
-
-        private void flushRequest(
-            long traceId)
-        {
-            if (pendingBody != null)
-            {
-                int maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
-                while (requestProgress < pendingBody.length && maxPayload > 0)
-                {
-                    final int length = Math.min(maxPayload, pendingBody.length - requestProgress);
-                    final int reserved = length + initialPad;
-                    final int flags = (requestProgress == 0 ? FLAGS_INIT : 0) |
-                        (requestProgress + length == pendingBody.length ? FLAGS_FIN : 0);
-                    extBuffer.putBytes(0, pendingBody, requestProgress, length);
-                    doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, server.authorization, flags, 0L, reserved, extBuffer, 0, length);
-                    initialSeq += reserved;
-                    requestProgress += length;
-                    maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
-                }
-
-                if (requestProgress >= pendingBody.length)
-                {
-                    pendingBody = null;
-                    doHttpEnd(traceId);
-                }
-            }
-        }
-
         private void stageRequestBody(
             DirectBufferEx buffer,
             int offset,
@@ -1296,7 +1260,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 requestEncodeSlot = bufferPool.acquire(initialId);
             }
 
-            if (requestEncodeSlot == NO_SLOT)
+            if (requestEncodeSlot == NO_SLOT || requestEncodeOffset + length > bufferPool.slotCapacity())
             {
                 server.cleanup(0L);
             }
@@ -1383,7 +1347,6 @@ public final class McpHttpProxyFactory implements BindingHandler
                     traceId, server.authorization);
                 state = McpHttpState.closedInitial(state);
             }
-            pendingBody = null;
             cleanupRequestEncodeSlot();
         }
 
@@ -1611,15 +1574,8 @@ public final class McpHttpProxyFactory implements BindingHandler
             initialPad = window.padding();
 
             final long traceId = window.traceId();
-            if (server.requestStreaming)
-            {
-                flushRequestStream(traceId);
-                resumeRequest(traceId);
-            }
-            else
-            {
-                flushRequest(traceId);
-            }
+            flushRequestStream(traceId);
+            resumeRequest(traceId);
         }
 
         private void onHttpReset(
@@ -1627,7 +1583,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
             state = McpHttpState.closedInitial(state);
-            pendingBody = null;
             cleanupRequestEncodeSlot();
             server.onUpstreamAbort(traceId);
         }
@@ -2075,20 +2030,6 @@ public final class McpHttpProxyFactory implements BindingHandler
             break;
         }
         return result;
-    }
-
-    // Copies the request body just produced into projectBuffer, or the empty object when projection produced
-    // nothing; the returned array is the upstream request body.
-    private byte[] bodyBytes(
-        int produced)
-    {
-        byte[] body = EMPTY_OBJECT;
-        if (produced >= 0)
-        {
-            body = new byte[produced];
-            projectBuffer.getBytes(0, body);
-        }
-        return body;
     }
 
     // Builds an application/x-www-form-urlencoded query string from a projected query object held in buffer,
