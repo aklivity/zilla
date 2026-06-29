@@ -299,6 +299,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.list.security.schemes/client",
+        "${net}/tools.list.security.schemes/server"})
+    public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.list.aborted/client",
         "${net}/tools.list.aborted/server"})
     public void shouldAbortToolsList() throws Exception

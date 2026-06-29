@@ -37,11 +37,8 @@ public class ContiguousSizeFieldsFWTest
     private final MutableDirectBufferEx expected = new UnsafeBufferEx(new byte[100]);
 
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
-            expected.setMemory(0, expected.capacity(), (byte) 0xab);
-        }
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
+        expected.setMemory(0, expected.capacity(), (byte) 0xab);
     }
 
     private final ContiguousSizeFieldsFW.Builder builder = new ContiguousSizeFieldsFW.Builder();

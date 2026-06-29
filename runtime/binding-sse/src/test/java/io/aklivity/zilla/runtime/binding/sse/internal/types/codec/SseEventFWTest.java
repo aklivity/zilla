@@ -28,21 +28,19 @@ public class SseEventFWTest
 {
     private static final int BUFFER_SIZE = 1024;
 
-    private final UnsafeBufferEx actual = new UnsafeBufferEx(allocateDirect(BUFFER_SIZE))
+    private final UnsafeBufferEx actual;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(BUFFER_SIZE));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        actual = unsafe;
+    }
 
-    private final UnsafeBufferEx expected = new UnsafeBufferEx(allocateDirect(BUFFER_SIZE))
+    private final UnsafeBufferEx expected;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(BUFFER_SIZE));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        expected = unsafe;
+    }
 
     final int offset = 123;
 

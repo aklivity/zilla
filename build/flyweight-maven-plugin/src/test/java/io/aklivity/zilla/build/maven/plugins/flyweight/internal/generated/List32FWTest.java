@@ -37,13 +37,12 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class List32FWTest
 {
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
 
     private final List32FW.Builder list32RW = new List32FW.Builder();
     private final List32FW list32RO = new List32FW();
@@ -147,13 +146,8 @@ public class List32FWTest
     @Test
     public void shouldSetFieldsUsingFieldsMethodWithDirectBuffer() throws Exception
     {
-        final MutableDirectBufferEx listBuffer = new UnsafeBufferEx(allocateDirect(100))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        final MutableDirectBufferEx listBuffer = new UnsafeBufferEx(allocateDirect(100));
+        listBuffer.setMemory(0, listBuffer.capacity(), (byte) 0xab);
         VariantEnumKindOfStringFW.Builder field1RW = new VariantEnumKindOfStringFW.Builder();
         VariantEnumKindOfUint32FW.Builder field2RW = new VariantEnumKindOfUint32FW.Builder();
         ListFW.Builder<List32FW> listRW = new List32FW.Builder()
@@ -176,13 +170,8 @@ public class List32FWTest
     @Test
     public void shouldSetFieldsUsingFieldsMethodWithVisitor() throws Exception
     {
-        final MutableDirectBufferEx listBuffer = new UnsafeBufferEx(allocateDirect(100))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        final MutableDirectBufferEx listBuffer = new UnsafeBufferEx(allocateDirect(100));
+        listBuffer.setMemory(0, listBuffer.capacity(), (byte) 0xab);
         VariantEnumKindOfStringFW.Builder field1RW = new VariantEnumKindOfStringFW.Builder();
         VariantEnumKindOfUint32FW.Builder field2RW = new VariantEnumKindOfUint32FW.Builder();
         ListFW.Builder<List32FW> listRW = new List32FW.Builder()

@@ -338,6 +338,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.guarded.roles.yaml")
+    @Specification({
+        "${app}/tools.list.security.schemes/client",
+        "${net}/tools.list.security.schemes/server"})
+    public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.list.aborted/client",

@@ -32,6 +32,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -49,6 +50,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.transform.McpSchemeInjector;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
@@ -76,7 +78,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -715,7 +720,8 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final int decodedOffset = offset + http.decodedResultProgress - http.decodedParserProgress;
             final int decodedLimit = offset + decodedResultProgress - http.decodedParserProgress;
-            final int decodedProgress = http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit);
+            final int decodedProgress =
+                http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit, true);
 
             http.decodedResultProgress = decodedProgress - offset + http.decodedParserProgress;
         }
@@ -785,7 +791,8 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final int decodedOffset = offset + http.decodedResultProgress - http.decodedParserProgress;
             final int decodedLimit = offset + decodedResultProgress - http.decodedParserProgress;
-            final int decodedProgress = http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit);
+            final int decodedProgress =
+                http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit, false);
 
             http.decodedResultProgress = decodedProgress - offset + http.decodedParserProgress;
         }
@@ -1937,6 +1944,11 @@ public final class McpClientFactory implements McpStreamFactory
                 replySeq, replyAck, replyMax,
                 traceId, authorization, affinity,
                 beginEx);
+        }
+
+        int replyWindow()
+        {
+            return Math.max(replyMax - (int)(replySeq - replyAck) - replyPad, 0);
         }
 
         int doAppData(
@@ -3554,7 +3566,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit);
+            int limit,
+            boolean endOfInput);
 
         void onDecodeResultEvent(
             JsonParser.Event event,
@@ -4095,7 +4108,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit)
+            int limit,
+            boolean endOfInput)
         {
             return mcp != null ? mcp.doAppData(traceId, authorization, buffer, offset, limit) : offset;
         }
@@ -4265,7 +4279,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit)
+            int limit,
+            boolean endOfInput)
         {
             return limit;
         }
@@ -4731,7 +4746,8 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit)
+            int limit,
+            boolean endOfInput)
         {
             return mcp.doAppData(traceId, authorization, buffer, offset, limit);
         }
@@ -4804,10 +4820,23 @@ public final class McpClientFactory implements McpStreamFactory
 
     private final class HttpToolsListStream extends HttpRequestStream
     {
+        private final JsonPipeline pipeline;
+        private boolean pipelineReset;
+
         HttpToolsListStream(
             McpStream mcp)
         {
             super(mcp);
+            final McpBindingConfig binding = bindings.get(mcp.routedId);
+            final Map<String, List<String>> roles = binding.getRoles(mcp.resolvedId);
+            // per-stream pipeline: the injector carries in-flight parse state across response data frames,
+            // so each concurrent tools/list stream owns its own (unlike the proxy filter, which runs to
+            // completion synchronously and is reused per worker)
+            final JsonParserEx parser = JsonEx.createParser();
+            final JsonGeneratorEx generator = JsonEx.createGenerator();
+            this.pipeline = JsonEx.stream(parser)
+                .transform(new McpSchemeInjector(JSON_KEY_TOOLS, roles))
+                .into(generator);
         }
 
         @Override
@@ -4841,6 +4870,68 @@ public final class McpClientFactory implements McpStreamFactory
 
             doNetBegin(traceId, authorization, httpBeginEx);
             doNetData(traceId, authorization, codecBuffer, 0, codecLength);
+        }
+
+        @Override
+        int onDecodeResponseResult(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean endOfInput)
+        {
+            int progress = offset;
+
+            if (mcp != null)
+            {
+                if (!pipelineReset)
+                {
+                    pipeline.reset();
+                    pipelineReset = true;
+                }
+
+                int available = mcp.replyWindow();
+                // stage transform output in a pooled encode slot bounded by the reply window; when the slot is
+                // unavailable (pool exhausted) leave the input in the decode slot, exactly as window exhaustion,
+                // and resume on the next reply window or response data
+                final int slot = available > 0 ? encodePool.acquire(initialId) : NO_SLOT;
+                if (slot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx staging = encodePool.buffer(slot);
+                    final int capacity = staging.capacity();
+                    JsonPipeline.Status status = JsonPipeline.Status.SUSPENDED;
+                    boolean progressing = true;
+                    while (available > 0 && progressing && status == JsonPipeline.Status.SUSPENDED)
+                    {
+                        final int cap = Math.min(available, capacity);
+                        final JsonPipelineResult result =
+                            pipeline.transform(buffer, progress, limit, endOfInput, staging, 0, cap);
+                        final int produced = result.produced();
+                        if (produced > 0)
+                        {
+                            final int flushed = mcp.doAppData(traceId, authorization, staging, 0, produced);
+                            assert flushed == produced;
+                        }
+
+                        progress += result.consumed();
+                        available = mcp.replyWindow();
+                        status = result.status();
+                        // guard against a stalled pipeline (no input consumed, no output produced) so we yield
+                        // back to the decode slot and wait for more input or reply window rather than spinning
+                        progressing = produced > 0 || result.consumed() > 0;
+                    }
+
+                    encodePool.release(slot);
+
+                    if (endOfInput && status == JsonPipeline.Status.COMPLETED)
+                    {
+                        pipelineReset = false;
+                    }
+                }
+            }
+
+            return progress;
         }
     }
 

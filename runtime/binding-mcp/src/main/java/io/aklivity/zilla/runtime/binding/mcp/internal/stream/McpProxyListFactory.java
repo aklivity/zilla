@@ -18,9 +18,11 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiPredicate;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -37,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFa
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpRouteRequest;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.transform.McpScopeFilter;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
@@ -51,11 +54,15 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 abstract class McpProxyListFactory implements BindingHandler
@@ -108,8 +115,22 @@ abstract class McpProxyListFactory implements BindingHandler
     private final McpListClientDecoder decodeItemDrop = this::decodeItemDrop;
     private final McpListClientDecoder decodeItemBody = this::decodeItemBody;
     private final McpListClientDecoder decodeItemId = this::decodeItemId;
+    private final McpListClientDecoder decodeItemSchemes = this::decodeItemSchemes;
+    private final McpListClientDecoder decodeItemScopeValues = this::decodeItemScopeValues;
     private final McpListClientDecoder decodeItemFinalize = this::decodeItemFinalize;
     private final McpListClientDecoder decodeIgnore = this::decodeIgnore;
+
+    // reusable per-worker scope-filter machinery; reconfigured per list response, never reallocated
+    private final ScopeAdmitter scopeAdmitter = new ScopeAdmitter();
+    private final McpScopeFilter scopeFilter = new McpScopeFilter();
+    private final JsonParserEx scopeParser = JsonEx.createParser();
+    private final JsonGeneratorEx scopeGenerator = JsonEx.createGenerator();
+    private final JsonPipeline scopePipeline = JsonEx.stream(scopeParser)
+        .transform(scopeFilter)
+        .into(scopeGenerator);
+    private final MutableDirectBufferEx scopeSourceBuffer = new UnsafeBufferEx();
+    private final MutableDirectBufferEx scopeTargetBuffer = new UnsafeBufferEx();
+    private byte[] scopeTargetArray = new byte[0];
 
     McpProxyListFactory(
         McpConfiguration config,
@@ -166,7 +187,8 @@ abstract class McpProxyListFactory implements BindingHandler
                         initialId,
                         affinity,
                         authorization,
-                        cache)::onServerMessage;
+                        cache,
+                        binding)::onServerMessage;
                 }
                 else
                 {
@@ -179,6 +201,7 @@ abstract class McpProxyListFactory implements BindingHandler
                         initialId,
                         affinity,
                         authorization,
+                        binding.filterGuard,
                         prefixes)::onServerMessage;
                 }
             }
@@ -228,10 +251,36 @@ abstract class McpProxyListFactory implements BindingHandler
     {
         final long initialId = supplyInitialId.applyAsLong(route.resolvedId());
         final McpListServer server = new McpListServer(
-            lifecycle, sink, true, initialId, 0L, authorization, List.of(route));
+            lifecycle, sink, true, initialId, 0L, authorization, null, List.of(route));
         server.replyMax = replyMax;
         server.driveHydrationBegin(traceId);
         return server::onServerMessage;
+    }
+
+    @FunctionalInterface
+    private interface RoleVerifier
+    {
+        boolean verify(
+            long authorization,
+            List<String> roles);
+    }
+
+    private static final RoleVerifier ALLOW_ALL = (authorization, roles) -> true;
+    private static final List<String> EMPTY_ROLES = List.of();
+
+    // reusable scope-filter predicate, reconfigured per list response to avoid a per-call capture
+    private static final class ScopeAdmitter implements BiPredicate<CharSequence, List<String>>
+    {
+        private GuardHandler guard;
+        private long authorization;
+
+        @Override
+        public boolean test(
+            CharSequence name,
+            List<String> roles)
+        {
+            return guard.verify(authorization, roles);
+        }
     }
 
     private final class McpListClient implements McpRouteRequest
@@ -241,6 +290,8 @@ abstract class McpProxyListFactory implements BindingHandler
         private final long routedId;
         private final String8FW prefix;
         private final Predicate<String> admits;
+        private final RoleVerifier verifier;
+        private final boolean verifies;
         private final McpLifecycleClient lifecycle;
         private long initialId;
         private long replyId;
@@ -271,18 +322,27 @@ abstract class McpProxyListFactory implements BindingHandler
         private String idKey;
         private boolean itemBegun;
         private boolean itemDeferred;
-
+        private long decodedNameKeyProgress;
+        private long decodedNameValueProgress;
+        private final List<String> decodedScopes = new ArrayList<>();
+        private boolean decodedScopesFound;
+        private boolean decodedSchemesFound;
+        private boolean decodedNoAuth;
+        private boolean decodeSchemesTypeKey;
         private McpListClient(
             McpListServer server,
             long routedId,
             String8FW prefix,
-            Predicate<String> admits)
+            Predicate<String> admits,
+            GuardHandler guard)
         {
             this.server = server;
             this.originId = server.lifecycle.originId;
             this.routedId = routedId;
             this.prefix = prefix;
             this.admits = admits;
+            this.verifies = guard != null;
+            this.verifier = guard != null ? guard::verify : ALLOW_ALL;
             this.lifecycle = server.lifecycle.supplyClient(routedId);
         }
 
@@ -785,8 +845,8 @@ abstract class McpProxyListFactory implements BindingHandler
             case KEY_NAME:
                 if (client.decodeDepth == 1)
                 {
-                    final String key = parser.getString();
-                    if (client.arrayKey.equals(key))
+                    final CharSequence key = client.decodableJson.getStringView();
+                    if (client.arrayKey.contentEquals(key))
                     {
                         client.decoder = decodeItems;
                     }
@@ -917,7 +977,11 @@ abstract class McpProxyListFactory implements BindingHandler
                 client.decodedItemProgress = decodedItemProgress - 1;
                 client.decodeItemDepth = 1;
                 client.itemBegun = false;
-                if (client.admits != null)
+                client.decodedNameKeyProgress = -1;
+                client.decodedScopesFound = false;
+                client.decodedSchemesFound = false;
+                client.decodedNoAuth = false;
+                if (client.admits != null || client.verifies)
                 {
                     client.itemDeferred = true;
                     client.decoder = decodeItemScan;
@@ -971,18 +1035,60 @@ abstract class McpProxyListFactory implements BindingHandler
                 client.decodeItemDepth--;
                 if (client.decodeItemDepth == 0)
                 {
-                    client.onDecodedItemBegin(traceId);
-                    client.itemDeferred = false;
-                    client.decoder = decodeItemFinalize;
+                    final List<String> roles = client.decodedScopesFound
+                        ? client.decodedScopes
+                        : EMPTY_ROLES;
+                    final boolean admitted = !client.decodedSchemesFound || client.decodedNoAuth ||
+                        client.verifier.verify(client.server.authorization, roles);
+                    if (admitted)
+                    {
+                        client.onDecodedItemBegin(traceId);
+                        client.itemDeferred = false;
+                        if (client.decodedNameKeyProgress >= 0)
+                        {
+                            final int decodedKeyOffset =
+                                offset + (int) (client.decodedNameKeyProgress - client.decodedParserProgress);
+                            final int decodedValueOffset =
+                                offset + (int) (client.decodedNameValueProgress - client.decodedParserProgress);
+                            final int decodedOpenQuote =
+                                indexOfByte(buffer, decodedKeyOffset, decodedValueOffset, (byte) '"');
+                            final int decodedContent =
+                                (decodedOpenQuote != -1 ? decodedOpenQuote : decodedValueOffset) + 1;
+                            final int decodedOffset =
+                                offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
+                            client.onDecodedItemChunk(buffer, decodedOffset,
+                                decodedContent - decodedOffset, traceId);
+                            client.onDecodedItemChunk(client.prefix.value(), 0,
+                                client.prefix.length(), traceId);
+                            client.decodedItemProgress =
+                                client.decodedParserProgress + (long) (decodedContent - offset);
+                        }
+                        client.decoder = decodeItemFinalize;
+                    }
+                    else
+                    {
+                        client.decodedItemProgress = -1;
+                        client.decoder = decodeItemStart;
+                    }
                     break decode;
                 }
                 break;
             case KEY_NAME:
-                if (client.decodeItemDepth == 1 &&
-                    client.idKey.equals(parser.getString()))
+                if (client.decodeItemDepth == 1)
                 {
-                    client.decoder = decodeItemName;
-                    break decode;
+                    final CharSequence key = client.decodableJson.getStringView();
+                    if (client.idKey.contentEquals(key))
+                    {
+                        client.decoder = decodeItemName;
+                        break decode;
+                    }
+                    else if (client.verifies && "securitySchemes".contentEquals(key))
+                    {
+                        client.decodedSchemesFound = true;
+                        client.decodeSchemesTypeKey = false;
+                        client.decoder = decodeItemSchemes;
+                        break decode;
+                    }
                 }
                 break;
             default:
@@ -1016,18 +1122,31 @@ abstract class McpProxyListFactory implements BindingHandler
                 final String name = parser.getString();
                 if (client.admits == null || client.admits.test(name))
                 {
-                    client.onDecodedItemBegin(traceId);
-                    client.itemDeferred = false;
-                    final int decodedKeyOffset = offset + (int) (decodedKeyProgress - client.decodedParserProgress);
-                    final int decodedValueOffset = offset + (int) (decodedValueProgress - client.decodedParserProgress);
-                    final int decodedOpenQuote = indexOfByte(buffer, decodedKeyOffset, decodedValueOffset, (byte) '"');
-                    final int decodedContent = (decodedOpenQuote != -1 ? decodedOpenQuote : decodedValueOffset) + 1;
-                    final int decodedOffset =
-                        offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
-                    client.onDecodedItemChunk(buffer, decodedOffset, decodedContent - decodedOffset, traceId);
-                    client.onDecodedItemChunk(client.prefix.value(), 0, client.prefix.length(), traceId);
-                    client.decodedItemProgress = client.decodedParserProgress + (long) (decodedContent - offset);
-                    client.decoder = decodeItemBody;
+                    if (client.verifies)
+                    {
+                        client.decodedNameKeyProgress = decodedKeyProgress;
+                        client.decodedNameValueProgress = decodedValueProgress;
+                        client.decoder = decodeItemScan;
+                    }
+                    else
+                    {
+                        client.onDecodedItemBegin(traceId);
+                        client.itemDeferred = false;
+                        final int decodedKeyOffset =
+                            offset + (int) (decodedKeyProgress - client.decodedParserProgress);
+                        final int decodedValueOffset =
+                            offset + (int) (decodedValueProgress - client.decodedParserProgress);
+                        final int decodedOpenQuote =
+                            indexOfByte(buffer, decodedKeyOffset, decodedValueOffset, (byte) '"');
+                        final int decodedContent =
+                            (decodedOpenQuote != -1 ? decodedOpenQuote : decodedValueOffset) + 1;
+                        final int decodedOffset =
+                            offset + (int) (client.decodedItemProgress - client.decodedParserProgress);
+                        client.onDecodedItemChunk(buffer, decodedOffset, decodedContent - decodedOffset, traceId);
+                        client.onDecodedItemChunk(client.prefix.value(), 0, client.prefix.length(), traceId);
+                        client.decodedItemProgress = client.decodedParserProgress + (long) (decodedContent - offset);
+                        client.decoder = decodeItemBody;
+                    }
                 }
                 else
                 {
@@ -1037,9 +1156,16 @@ abstract class McpProxyListFactory implements BindingHandler
             }
             else
             {
-                client.onDecodedItemBegin(traceId);
-                client.itemDeferred = false;
-                client.decoder = decodeItemBody;
+                if (client.verifies)
+                {
+                    client.decoder = decodeItemScan;
+                }
+                else
+                {
+                    client.onDecodedItemBegin(traceId);
+                    client.itemDeferred = false;
+                    client.decoder = decodeItemBody;
+                }
             }
         }
 
@@ -1081,6 +1207,112 @@ abstract class McpProxyListFactory implements BindingHandler
                     break decode;
                 }
                 break;
+            default:
+                break;
+            }
+        }
+
+        return offset + (int) (parser.getLocation().getStreamOffset() - client.decodedParserProgress);
+    }
+
+    private int decodeItemSchemes(
+        McpListClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = client.decodableJson;
+
+        decode:
+        while (parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                client.decodeItemDepth++;
+                break;
+            case END_ARRAY:
+                client.decodeItemDepth--;
+                if (client.decodeItemDepth == 1)
+                {
+                    client.decoder = decodeItemScan;
+                    break decode;
+                }
+                break;
+            case END_OBJECT:
+                client.decodeItemDepth--;
+                break;
+            case KEY_NAME:
+                if (client.decodeItemDepth == 3)
+                {
+                    final CharSequence key = parser.getStringView();
+                    if ("type".contentEquals(key))
+                    {
+                        client.decodeSchemesTypeKey = true;
+                    }
+                    else if ("scopes".contentEquals(key))
+                    {
+                        client.decoder = decodeItemScopeValues;
+                        break decode;
+                    }
+                }
+                break;
+            case VALUE_STRING:
+                if (client.decodeSchemesTypeKey)
+                {
+                    client.decodeSchemesTypeKey = false;
+                    if ("noauth".contentEquals(parser.getStringView()))
+                    {
+                        client.decodedNoAuth = true;
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        return offset + (int) (parser.getLocation().getStreamOffset() - client.decodedParserProgress);
+    }
+
+    private int decodeItemScopeValues(
+        McpListClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParser parser = client.decodableJson;
+
+        decode:
+        while (parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            switch (event)
+            {
+            case START_ARRAY:
+                client.decodeItemDepth++;
+                client.decodedScopes.clear();
+                client.decodedScopesFound = true;
+                break;
+            case VALUE_STRING:
+                client.decodedScopes.add(parser.getString());
+                break;
+            case END_ARRAY:
+                client.decodeItemDepth--;
+                client.decoder = decodeItemSchemes;
+                break decode;
             default:
                 break;
             }
@@ -1169,7 +1401,7 @@ abstract class McpProxyListFactory implements BindingHandler
             case KEY_NAME:
                 if (client.decodeItemDepth == 1 &&
                     client.prefix.length() > 0 &&
-                    client.idKey.equals(parser.getString()))
+                    client.idKey.contentEquals(client.decodableJson.getStringView()))
                 {
                     client.decoder = decodeItemId;
                     break decode;
@@ -1292,6 +1524,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private final long replyId;
         private final long affinity;
         private final long authorization;
+        private final GuardHandler guard;
         private final Deque<McpRoutePrefix> remaining;
 
         private int state;
@@ -1322,9 +1555,10 @@ abstract class McpProxyListFactory implements BindingHandler
             long initialId,
             long affinity,
             long authorization,
+            GuardHandler guard,
             List<McpRoutePrefix> prefixes)
         {
-            this(lifecycle, lifecycle.sender, false, initialId, affinity, authorization, prefixes);
+            this(lifecycle, lifecycle.sender, false, initialId, affinity, authorization, guard, prefixes);
         }
 
         private McpListServer(
@@ -1334,6 +1568,7 @@ abstract class McpProxyListFactory implements BindingHandler
             long initialId,
             long affinity,
             long authorization,
+            GuardHandler guard,
             List<McpRoutePrefix> prefixes)
         {
             this.lifecycle = lifecycle;
@@ -1343,6 +1578,7 @@ abstract class McpProxyListFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
+            this.guard = guard;
             this.remaining = new ArrayDeque<>(prefixes);
         }
 
@@ -1564,7 +1800,7 @@ abstract class McpProxyListFactory implements BindingHandler
             final Predicate<String> admits = routeConfig != null && routeConfig.filters(kind)
                 ? name -> routeConfig.admits(kind, name)
                 : null;
-            client = new McpListClient(this, route.resolvedId(), route.prefix(), admits);
+            client = new McpListClient(this, route.resolvedId(), route.prefix(), admits, guard);
             client.doClientBegin(traceId);
         }
 
@@ -1829,6 +2065,7 @@ abstract class McpProxyListFactory implements BindingHandler
         private final long affinity;
         private final long authorization;
         private final McpProxyCache.McpListCache cache;
+        private final McpBindingConfig binding;
 
         private int state;
         private boolean fetched;
@@ -1850,7 +2087,8 @@ abstract class McpProxyListFactory implements BindingHandler
             long initialId,
             long affinity,
             long authorization,
-            McpProxyCache.McpListCache cache)
+            McpProxyCache.McpListCache cache,
+            McpBindingConfig binding)
         {
             this.lifecycle = lifecycle;
             this.initialId = initialId;
@@ -1858,6 +2096,7 @@ abstract class McpProxyListFactory implements BindingHandler
             this.affinity = affinity;
             this.authorization = authorization;
             this.cache = cache;
+            this.binding = binding;
         }
 
         private void onServerMessage(
@@ -1909,11 +2148,52 @@ abstract class McpProxyListFactory implements BindingHandler
             fetched = true;
             if (value != null)
             {
-                final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+                final byte[] bytes = filterByScopes(value);
                 cachedBuf = new UnsafeBufferEx(bytes);
                 cachedLen = bytes.length;
             }
             emitIfReady(supplyTraceId.getAsLong());
+        }
+
+        private byte[] filterByScopes(
+            String json)
+        {
+            final Map<CharSequence, List<String>> scopesByName = cache.scopesByName();
+            final byte[] src = json.getBytes(StandardCharsets.UTF_8);
+
+            byte[] output = src;
+            if (binding.filterGuard != null && !scopesByName.isEmpty())
+            {
+                scopeAdmitter.guard = binding.filterGuard;
+                scopeAdmitter.authorization = authorization;
+                scopeFilter.init(arrayKey(), scopesByName, scopeAdmitter);
+
+                // filtering only drops items, so the target never exceeds the source (plus structural slack)
+                final int capacity = src.length + 16;
+                if (scopeTargetArray.length < capacity)
+                {
+                    scopeTargetArray = new byte[capacity];
+                }
+                scopeSourceBuffer.wrap(src);
+                scopeTargetBuffer.wrap(scopeTargetArray);
+                int produced = 0;
+
+                scopePipeline.reset();
+                JsonPipelineResult result =
+                    scopePipeline.transform(scopeSourceBuffer, 0, src.length, true, scopeTargetBuffer, 0, capacity);
+                produced += result.produced();
+
+                while (result.status() == JsonPipeline.Status.SUSPENDED)
+                {
+                    result = scopePipeline.transform(
+                        scopeSourceBuffer, 0, src.length, true, scopeTargetBuffer, produced, capacity);
+                    produced += result.produced();
+                }
+
+                output = new byte[produced];
+                scopeTargetBuffer.getBytes(0, output);
+            }
+            return output;
         }
 
         private void onServerEnd(

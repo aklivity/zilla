@@ -77,12 +77,13 @@ public final class ZpmCache
 
     public ZpmCache(
         List<RemoteRepository> repositories,
+        boolean excludeRemote,
         Path directory,
         ConsoleLogger logger)
     {
         this.logger = logger;
         this.repositorySystem = ZpmSupplierRepositorySystemFactory.newRepositorySystem();
-        this.session = newRepositorySystemSession(repositorySystem, directory);
+        this.session = newRepositorySystemSession(repositorySystem, directory, excludeRemote);
 
         this.repositories = repositories;
     }
@@ -172,7 +173,8 @@ public final class ZpmCache
 
     private RepositorySystemSession newRepositorySystemSession(
         RepositorySystem system,
-        Path dir)
+        Path dir,
+        boolean excludeRemote)
     {
         return new SessionBuilderSupplier(system)
             .get()
@@ -181,6 +183,7 @@ public final class ZpmCache
                 .setTransferListener(new ZpmConsoleTransferListener())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
+                .setIgnoreArtifactDescriptorRepositories(excludeRemote)
                 .build();
     }
 

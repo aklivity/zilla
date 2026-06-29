@@ -449,6 +449,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/tools.list.security.schemes/client",
+        "${app}/tools.list.security.schemes/server"})
+    public void shouldListToolsExcludingSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/tools.list.aborted/client",
         "${app}/tools.list.aborted/server"})
     public void shouldAbortToolsList() throws Exception

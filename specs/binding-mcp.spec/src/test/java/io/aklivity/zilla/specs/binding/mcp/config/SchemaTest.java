@@ -95,10 +95,12 @@ public class SchemaTest
         schema.validate("server.routes.invalid.yaml");
     }
 
-    @Test(expected = JsonException.class)
-    public void shouldRejectClientWithRoutes()
+    @Test
+    public void shouldValidateClientWithRoutes()
     {
-        schema.validate("client.routes.invalid.yaml");
+        JsonObject config = schema.validate("client.routes.yaml");
+
+        assertThat(config, not(nullValue()));
     }
 
     @Test(expected = JsonException.class)

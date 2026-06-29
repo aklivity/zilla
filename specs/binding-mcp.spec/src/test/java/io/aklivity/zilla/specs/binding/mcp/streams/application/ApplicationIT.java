@@ -263,6 +263,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.list.security.schemes/client",
+        "${app}/tools.list.security.schemes/server"})
+    public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.list.aborted/client",
         "${app}/tools.list.aborted/server"})
     public void shouldAbortToolsList() throws Exception

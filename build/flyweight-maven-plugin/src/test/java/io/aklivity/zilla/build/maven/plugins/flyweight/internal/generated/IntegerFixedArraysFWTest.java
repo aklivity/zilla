@@ -37,19 +37,18 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class IntegerFixedArraysFWTest
 {
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(199))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xFF);
-        }
-    };
-    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(199))
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(199));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xFF);
+        buffer = unsafe;
+    }
+    private final MutableDirectBufferEx expected;
     {
-        {
-            setMemory(0, capacity(), (byte) 0xFF);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(199));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xFF);
+        expected = unsafe;
+    }
     private final IntegerFixedArraysFW.Builder flyweightRW = new IntegerFixedArraysFW.Builder();
     private final IntegerFixedArraysFW flyweightRO = new IntegerFixedArraysFW();
 

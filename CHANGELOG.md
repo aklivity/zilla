@@ -2,7 +2,22 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-12...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-13...HEAD)
+
+**Fixed bugs:**
+
+- KafkaCacheServerProduceFan: IndexOutOfBoundsException on DefaultBudgetCreditor under concurrent HTTP-Kafka   produce load \(1.2.4\) [\#1788](https://github.com/aklivity/zilla/issues/1788)
+- Engine worker crash: KafkaCacheFile IndexOutOfBoundsException under sustained produce load [\#1787](https://github.com/aklivity/zilla/issues/1787)
+- `java.lang.InternalError: a fault occurred in an unsafe memory access operation` \(Zilla 0.9.173\) [\#1610](https://github.com/aklivity/zilla/issues/1610)
+
+**Closed issues:**
+
+- Remove Jackson dependency from binding-asyncapi [\#1967](https://github.com/aklivity/zilla/issues/1967)
+- binding-mcp: per-client `tools/list` filtering by per-tool authorization metadata [\#1831](https://github.com/aklivity/zilla/issues/1831)
+
+## [2.0.0-alpha-13](https://github.com/aklivity/zilla/tree/2.0.0-alpha-13) (2026-06-26)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-12...2.0.0-alpha-13)
 
 **Implemented enhancements:**
 
@@ -12,6 +27,11 @@
 
 - engine: add identity\(\) capability to ModelPipeline so callers can skip buffer-and-hold for validators [\#1956](https://github.com/aklivity/zilla/issues/1956)
 - Make common-avro / common-protobuf transforms consumption-driven for a uniform src-authoritative resume [\#1932](https://github.com/aklivity/zilla/issues/1932)
+
+**Merged pull requests:**
+
+- test\(examples\): make smoke-test CI deterministic with readiness gating [\#1966](https://github.com/aklivity/zilla/pull/1966) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): migrate Agrona buffer types to UnsafeBufferEx extension library [\#1733](https://github.com/aklivity/zilla/pull/1733) ([jfallows](https://github.com/jfallows))
 
 ## [2.0.0-alpha-12](https://github.com/aklivity/zilla/tree/2.0.0-alpha-12) (2026-06-25)
 

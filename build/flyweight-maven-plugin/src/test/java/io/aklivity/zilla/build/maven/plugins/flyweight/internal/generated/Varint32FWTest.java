@@ -28,20 +28,18 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Varint32FWTest
 {
-    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(100))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
-    private final MutableDirectBufferEx expected = new UnsafeBufferEx(allocateDirect(100))
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
+    private final MutableDirectBufferEx expected;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        expected = unsafe;
+    }
 
     private final Varint32FW.Builder varint32RW = new Varint32FW.Builder();
     private final Varint32FW varint32RO = new Varint32FW();
