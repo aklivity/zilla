@@ -698,7 +698,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
                 if (bodyLength > 0)
                 {
-                    delegate.stageRequestBody(projectBuffer, 0, bodyLength);
+                    delegate.stageRequestBody(traceId, projectBuffer, 0, bodyLength);
                 }
             }
             delegate.requestComplete();
@@ -749,7 +749,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 final int produced = requestGenerator.length();
                 if (produced > 0)
                 {
-                    delegate.stageRequestBody(projectBuffer, 0, produced);
+                    delegate.stageRequestBody(traceId, projectBuffer, 0, produced);
                 }
 
                 switch (status)
@@ -1303,6 +1303,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         private void stageRequestBody(
+            long traceId,
             DirectBufferEx buffer,
             int offset,
             int length)
@@ -1314,7 +1315,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (requestEncodeSlot == NO_SLOT || requestEncodeOffset + length > bufferPool.slotCapacity())
             {
-                server.cleanup(0L);
+                server.cleanup(traceId);
             }
             else
             {
