@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
-import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -30,10 +29,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
-import jakarta.json.JsonValue;
+import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Object2IntHashMap;
@@ -48,6 +45,8 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -264,22 +263,12 @@ public final class McpBindingConfig
         final Map<String, String> schemasByName = new LinkedHashMap<>();
         if (toolsListJson != null)
         {
-            try (JsonReader reader = Json.createReader(
-                new ByteArrayInputStream(toolsListJson.getBytes(StandardCharsets.UTF_8))))
+            final byte[] bytes = toolsListJson.getBytes(StandardCharsets.UTF_8);
+            final JsonParserEx parser = JsonEx.createParser();
+            parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+            try
             {
-                final JsonObject root = reader.readObject();
-                if (root.containsKey("tools"))
-                {
-                    final JsonArray tools = root.getJsonArray("tools");
-                    for (JsonValue item : tools)
-                    {
-                        final JsonObject tool = item.asJsonObject();
-                        if (tool.containsKey("name") && tool.containsKey("inputSchema"))
-                        {
-                            schemasByName.put(tool.getString("name"), tool.getJsonObject("inputSchema").toString());
-                        }
-                    }
-                }
+                scanToolsList(parser, schemasByName);
             }
             catch (Exception ex)
             {
@@ -338,20 +327,157 @@ public final class McpBindingConfig
         int limit)
     {
         String arguments;
-        final byte[] bytes = new byte[limit - index];
-        params.getBytes(index, bytes);
-        try (JsonReader reader = Json.createReader(new ByteArrayInputStream(bytes)))
+        final JsonParserEx parser = JsonEx.createParser();
+        parser.wrap(params, index, limit);
+        try
         {
-            final JsonObject root = reader.readObject();
-            arguments = root.containsKey("arguments")
-                ? root.get("arguments").toString()
-                : "{}";
+            arguments = scanArguments(parser);
         }
         catch (Exception ex)
         {
             arguments = null;
         }
         return arguments;
+    }
+
+    private String scanArguments(
+        JsonParserEx parser)
+    {
+        String arguments = "{}";
+        if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
+        {
+            int depth = 1;
+            while (depth > 0 && parser.hasNext())
+            {
+                final JsonParser.Event event = parser.next();
+                switch (event)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    if (depth == 1 && "arguments".contentEquals(parser.getStringView()))
+                    {
+                        parser.next();
+                        arguments = parser.getValue().toString();
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        return arguments;
+    }
+
+    private void scanToolsList(
+        JsonParserEx parser,
+        Map<String, String> schemasByName)
+    {
+        if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
+        {
+            int depth = 1;
+            while (depth > 0 && parser.hasNext())
+            {
+                final JsonParser.Event event = parser.next();
+                switch (event)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    if (depth == 1 && "tools".contentEquals(parser.getStringView()))
+                    {
+                        scanTools(parser, schemasByName);
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
+    private void scanTools(
+        JsonParserEx parser,
+        Map<String, String> schemasByName)
+    {
+        if (parser.hasNext() && parser.next() == JsonParser.Event.START_ARRAY)
+        {
+            boolean items = true;
+            while (items && parser.hasNext())
+            {
+                final JsonParser.Event event = parser.next();
+                switch (event)
+                {
+                case START_OBJECT:
+                    scanTool(parser, schemasByName);
+                    break;
+                case END_ARRAY:
+                    items = false;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
+    private void scanTool(
+        JsonParserEx parser,
+        Map<String, String> schemasByName)
+    {
+        String name = null;
+        String inputSchema = null;
+        int depth = 1;
+        while (depth > 0 && parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                depth++;
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                depth--;
+                break;
+            case KEY_NAME:
+                if (depth == 1)
+                {
+                    final CharSequence key = parser.getStringView();
+                    if ("name".contentEquals(key))
+                    {
+                        parser.next();
+                        name = parser.getString();
+                    }
+                    else if ("inputSchema".contentEquals(key) &&
+                        parser.next() == JsonParser.Event.START_OBJECT)
+                    {
+                        inputSchema = parser.getObject().toString();
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        if (name != null && inputSchema != null)
+        {
+            schemasByName.put(name, inputSchema);
+        }
     }
 
     private ModelPipeline newToolDecoder(
