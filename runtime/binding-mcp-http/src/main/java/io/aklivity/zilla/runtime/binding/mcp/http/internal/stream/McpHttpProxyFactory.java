@@ -595,15 +595,10 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
             else if (kind == KIND_PROMPTS_GET)
             {
-                final JsonObject promptRequest = requestSlot != NO_SLOT
-                    ? parseObject(bufferPool.buffer(requestSlot), 0, requestOffset)
-                    : null;
-                final JsonObject promptArgs = promptRequest != null &&
-                    promptRequest.containsKey("arguments") &&
-                    promptRequest.get("arguments").getValueType() == JsonValue.ValueType.OBJECT
-                    ? promptRequest.getJsonObject("arguments")
-                    : JsonValue.EMPTY_JSON_OBJECT;
-                doMcpReply(traceId, buildPromptGet(binding.prompt(name), promptArgs));
+                final int argsLength = requestSlot != NO_SLOT
+                    ? extractArgs(bufferPool.buffer(requestSlot), 0, requestOffset)
+                    : emptyArgs();
+                doMcpReply(traceId, buildPromptGet(binding.prompt(name), argsLength));
                 cleanupRequestSlot();
                 return;
             }
@@ -2390,7 +2385,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private String buildPromptGet(
         McpHttpPromptConfig prompt,
-        JsonObject args)
+        int argsLength)
     {
         final JsonObjectBuilder reply = Json.createObjectBuilder();
         if (prompt.description != null)
@@ -2401,7 +2396,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         for (McpHttpPromptMessageConfig message : prompt.messages)
         {
             final String text = interpolate(message.text,
-                expr -> expr.startsWith("args.") ? navigate(args, expr.substring(5)) : "");
+                expr -> expr.startsWith("args.") ? navigateBytes(argsBuffer, argsLength, expr.substring(5)) : "");
             final JsonObjectBuilder content = Json.createObjectBuilder()
                 .add("type", "text")
                 .add("text", text);
