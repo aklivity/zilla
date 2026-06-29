@@ -152,6 +152,10 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final JsonParserEx queryParser = JsonEx.createParser();
     private final MutableDirectBufferEx projectBuffer;
     private final UnsafeBufferEx argsRO;
+    private final Map<String, String> argsCaptured = new HashMap<>();
+    private final JsonGeneratorEx argsGenerator;
+    private final MutableDirectBufferEx argsBuffer;
+    private final JsonPipeline argsPipeline;
     private final Map<JsonSchema, JsonPipeline> projectors;
     private final Map<JsonSchema, JsonPipeline> validatingProjectors;
     private final Map<JsonSchema, JsonPipeline> validators;
@@ -180,6 +184,11 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.projectGenerator = JsonEx.createGenerator();
         this.projectBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.argsRO = new UnsafeBufferEx(new byte[0]);
+        this.argsGenerator = JsonEx.createGenerator();
+        this.argsBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.argsPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(new McpHttpArguments(argsCaptured))
+            .into(JsonEx.createSink(argsGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         this.projectors = new IdentityHashMap<>();
         this.validatingProjectors = new IdentityHashMap<>();
         this.validators = new IdentityHashMap<>();
@@ -599,27 +608,19 @@ public final class McpHttpProxyFactory implements BindingHandler
                 return;
             }
 
-            final JsonObject request = requestSlot != NO_SLOT
-                ? parseObject(bufferPool.buffer(requestSlot), 0, requestOffset)
-                : null;
-
-            final JsonObject args = kind == KIND_TOOLS_CALL && request != null &&
-                request.containsKey("arguments") &&
-                request.get("arguments").getValueType() == JsonValue.ValueType.OBJECT
-                ? request.getJsonObject("arguments")
-                : JsonValue.EMPTY_JSON_OBJECT;
-
             final McpHttpToolConfig tool = kind == KIND_TOOLS_CALL ? binding.tool(name) : null;
             final McpHttpWithConfig with = route.with;
 
             final boolean needArgs = tool != null && tool.input != null ||
                 with.query != null || with.body != null || with.bodyTemplate != null;
-            final byte[] argsBytes = needArgs ? compact(args).getBytes(UTF_8) : null;
+            final int argsLength = needArgs
+                ? requestSlot != NO_SLOT ? extractArgs(bufferPool.buffer(requestSlot), 0, requestOffset) : emptyArgs()
+                : 0;
 
             if (tool != null && tool.input != null)
             {
-                argsRO.wrap(argsBytes);
-                if (!validate(binding.jsonSchema(tool.input), argsRO, 0, argsBytes.length))
+                argsRO.wrap(argsBuffer, 0, argsLength);
+                if (!validate(binding.jsonSchema(tool.input), argsRO, 0, argsLength))
                 {
                     doMcpReply(traceId, buildToolError("invalid arguments"));
                     cleanupRequestSlot();
@@ -637,12 +638,12 @@ public final class McpHttpProxyFactory implements BindingHandler
                 return;
             }
 
-            String path = interpolate(with.headers.get(HEADER_PATH), expr -> resolveRequest(args, expr));
+            String path = interpolate(with.headers.get(HEADER_PATH), expr -> resolveRequest(argsLength, expr));
 
             if (with.query != null)
             {
-                argsRO.wrap(argsBytes);
-                final int produced = projectInto(binding.jsonSchema(with.query), argsRO, 0, argsBytes.length);
+                argsRO.wrap(argsBuffer, 0, argsLength);
+                final int produced = projectInto(binding.jsonSchema(with.query), argsRO, 0, argsLength);
                 final String query = produced >= 0 ? queryStringFromBytes(projectBuffer, 0, produced) : "";
                 if (!query.isEmpty())
                 {
@@ -654,15 +655,15 @@ public final class McpHttpProxyFactory implements BindingHandler
             String contentType = null;
             if (with.bodyTemplate != null)
             {
-                argsRO.wrap(argsBytes);
-                final int produced = templateInto(route, argsRO, 0, argsBytes.length);
+                argsRO.wrap(argsBuffer, 0, argsLength);
+                final int produced = templateInto(route, argsRO, 0, argsLength);
                 body = bodyBytes(produced);
                 contentType = DEFAULT_CONTENT_TYPE;
             }
             else if (with.body != null)
             {
-                argsRO.wrap(argsBytes);
-                final int produced = projectInto(binding.jsonSchema(with.body), argsRO, 0, argsBytes.length);
+                argsRO.wrap(argsBuffer, 0, argsLength);
+                final int produced = projectInto(binding.jsonSchema(with.body), argsRO, 0, argsLength);
                 body = bodyBytes(produced);
                 contentType = DEFAULT_CONTENT_TYPE;
             }
@@ -677,13 +678,13 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         private String resolveRequest(
-            JsonObject args,
+            int argsLength,
             String expression)
         {
             String value = "";
             if (expression.startsWith("args."))
             {
-                value = encode(navigate(args, expression.substring(5)));
+                value = encode(navigateBytes(argsBuffer, argsLength, expression.substring(5)));
             }
             else if (expression.startsWith("params."))
             {
@@ -1978,6 +1979,105 @@ public final class McpHttpProxyFactory implements BindingHandler
             final byte[] bytes = new byte[produced];
             projectBuffer.getBytes(0, bytes);
             result = new String(bytes, UTF_8);
+        }
+        return result;
+    }
+
+    // Re-roots the request to its arguments object in argsBuffer, returning the bytes produced (the empty
+    // object when no arguments are present), by streaming it through the re-rooting McpHttpArguments stage
+    // rather than materializing the request as a jakarta JsonObject tree.
+    private int extractArgs(
+        DirectBufferEx request,
+        int offset,
+        int length)
+    {
+        argsGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+        argsCaptured.clear();
+        argsPipeline.reset();
+
+        final JsonPipeline.Status status = argsPipeline.transform(request, offset, offset + length);
+        final int produced = status == JsonPipeline.Status.COMPLETED ? argsGenerator.length() : 0;
+
+        return produced > 0 ? produced : emptyArgs();
+    }
+
+    private int emptyArgs()
+    {
+        argsBuffer.putBytes(0, EMPTY_OBJECT);
+        return EMPTY_OBJECT.length;
+    }
+
+    // Resolves a dotted path within the arguments object held in buffer, returning the scalar value as text or
+    // an empty string when the path is absent or addresses a container, by walking it as a streaming event run
+    // rather than navigating a jakarta JsonObject tree.
+    private String navigateBytes(
+        DirectBufferEx buffer,
+        int length,
+        String path)
+    {
+        final String[] segments = path.split("\\.");
+        queryParser.reset();
+        queryParser.wrap(buffer, 0, length, true);
+
+        int depth = 0;
+        int matched = 0;
+        boolean awaitingValue = false;
+        String result = "";
+        boolean done = false;
+        while (!done && queryParser.hasNextEvent())
+        {
+            final JsonEvent event = queryParser.nextEvent();
+            if (awaitingValue)
+            {
+                result = scalarText(event);
+                done = true;
+            }
+            else
+            {
+                switch (event)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    if (depth == matched + 1 && segments[matched].contentEquals(queryParser.getStringView()))
+                    {
+                        matched++;
+                        awaitingValue = matched == segments.length;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    private String scalarText(
+        JsonEvent event)
+    {
+        String result;
+        switch (event)
+        {
+        case VALUE_STRING:
+        case VALUE_NUMBER:
+            result = queryParser.getString();
+            break;
+        case VALUE_TRUE:
+            result = "true";
+            break;
+        case VALUE_FALSE:
+            result = "false";
+            break;
+        default:
+            result = "";
+            break;
         }
         return result;
     }
