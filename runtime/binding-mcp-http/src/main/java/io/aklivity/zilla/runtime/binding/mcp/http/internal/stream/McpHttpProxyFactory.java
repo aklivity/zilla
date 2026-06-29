@@ -110,6 +110,8 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final int RESPONSE_GEN_BOUND = 1024;
     private static final int RESPONSE_BUFFER_MAX = 4096;
 
+    private static final byte[] REPLY_SUFFIX = "\"}]}".getBytes(UTF_8);
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -304,6 +306,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         private final long affinity;
 
         private final HttpProxy delegate;
+        private final Map<String, String> credentials = new HashMap<>();
 
         private int state;
         private boolean requestHandled;
@@ -660,7 +663,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 contentType = DEFAULT_CONTENT_TYPE;
             }
 
-            final Map<String, String> credentials = new HashMap<>();
+            credentials.clear();
             binding.resolveCredentials(authorization, credentials);
 
             delegate.doHttpBegin(traceId, with.headers, credentials, path, contentType);
@@ -768,7 +771,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final McpHttpWithConfig with = route.with;
             final String path = interpolate(with.headers.get(HEADER_PATH), this::resolveStreamingRequest);
-            final Map<String, String> credentials = new HashMap<>();
+            credentials.clear();
             binding.resolveCredentials(authorization, credentials);
             delegate.doHttpBegin(traceId, with.headers, credentials, path, DEFAULT_CONTENT_TYPE);
         }
@@ -915,7 +918,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId)
         {
             responseDone = true;
-            stage(replySuffix());
+            stage(REPLY_SUFFIX);
             replyComplete = true;
             flushReply(traceId);
         }
@@ -1156,11 +1159,6 @@ public final class McpHttpProxyFactory implements BindingHandler
             jsonString(builder, mimeType);
             builder.append(",\"text\":\"");
             return builder.toString().getBytes(UTF_8);
-        }
-
-        private byte[] replySuffix()
-        {
-            return "\"}]}".getBytes(UTF_8);
         }
     }
 
