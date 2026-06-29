@@ -40,7 +40,6 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
-import jakarta.json.JsonString;
 import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonWriter;
@@ -113,6 +112,9 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final int RESPONSE_BUFFER_MAX = 4096;
 
     private static final byte[] REPLY_SUFFIX = "\"}]}".getBytes(UTF_8);
+    private static final byte[] TOOL_SUCCESS_PREFIX = "{\"content\":[{\"type\":\"text\",\"text\":".getBytes(UTF_8);
+    private static final byte[] TOOL_SUCCESS_INFIX = "}],\"structuredContent\":".getBytes(UTF_8);
+    private static final byte[] TOOL_SUCCESS_SUFFIX = ",\"isError\":false}".getBytes(UTF_8);
     private static final byte[] EMPTY_OBJECT = "{}".getBytes(UTF_8);
 
     private final BeginFW beginRO = new BeginFW();
@@ -150,6 +152,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private final JsonGeneratorEx projectGenerator;
     private final JsonParserEx queryParser = JsonEx.createParser();
+    private final JsonPipeline canonicalizer;
     private final MutableDirectBufferEx projectBuffer;
     private final UnsafeBufferEx argsRO;
     private final Map<String, String> argsCaptured = new HashMap<>();
@@ -182,6 +185,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.events = new McpHttpEventContext(context);
         this.bindings = new Long2ObjectHashMap<>();
         this.projectGenerator = JsonEx.createGenerator();
+        this.canonicalizer = JsonEx.stream(JsonEx.createParser())
+            .into(JsonEx.createSink(projectGenerator));
         this.projectBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.argsRO = new UnsafeBufferEx(new byte[0]);
         this.argsGenerator = JsonEx.createGenerator();
@@ -829,20 +834,18 @@ public final class McpHttpProxyFactory implements BindingHandler
                 {
                     final McpHttpToolConfig tool = binding.tool(name);
                     final JsonSchema outputSchema = tool != null ? binding.jsonSchema(tool.output) : null;
-                    final String projected = outputSchema != null
-                        ? validateProject(outputSchema, body, offset, length)
-                        : text(body, offset, length);
-                    if (outputSchema != null && projected == null)
+                    final int produced = projectResponse(outputSchema, body, offset, length);
+                    if (outputSchema != null && produced < 0)
                     {
                         doMcpReply(traceId, buildToolError("invalid response"));
                     }
                     else
                     {
-                        final JsonValue structured = parseValue(projected);
+                        final int structuredLength = produced >= 0 ? produced : emptyResponse();
                         final String summary = tool != null && tool.summary != null
-                            ? interpolate(tool.summary, expr -> resolveResult(structured, expr))
-                            : compact((JsonStructure) structured);
-                        doMcpReply(traceId, buildToolSuccess(structured, summary));
+                            ? interpolate(tool.summary, expr -> resolveResult(structuredLength, expr))
+                            : text(projectBuffer, 0, structuredLength);
+                        doMcpToolSuccess(traceId, summary, structuredLength);
                     }
                 }
                 else
@@ -853,10 +856,8 @@ public final class McpHttpProxyFactory implements BindingHandler
             else
             {
                 final JsonSchema responseSchema = resource != null ? binding.jsonSchema(resource.output) : null;
-                final String projected = responseSchema != null
-                    ? validateProject(responseSchema, body, offset, length)
-                    : text(body, offset, length);
-                if (responseSchema != null && projected == null)
+                final int produced = projectResponse(responseSchema, body, offset, length);
+                if (produced < 0)
                 {
                     doMcpAbort(traceId);
                 }
@@ -865,7 +866,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     final String mimeType = resource != null && resource.mimeType != null
                         ? resource.mimeType
                         : contentType;
-                    final String resourceText = compact((JsonStructure) parseValue(projected));
+                    final String resourceText = text(projectBuffer, 0, produced);
                     doMcpReply(traceId, buildResource(uri, mimeType, resourceText));
                 }
             }
@@ -1005,6 +1006,26 @@ public final class McpHttpProxyFactory implements BindingHandler
             String reply)
         {
             stage(reply.getBytes(UTF_8));
+            replyComplete = true;
+            doMcpBegin(traceId);
+            flushReply(traceId);
+        }
+
+        // Assembles the tools/call success reply by staging the static envelope around the escaped summary and
+        // the projected structuredContent spliced verbatim from projectBuffer, avoiding a jakarta DOM round-trip
+        // of the upstream response body.
+        private void doMcpToolSuccess(
+            long traceId,
+            String summary,
+            int length)
+        {
+            final StringBuilder text = new StringBuilder();
+            jsonString(text, summary);
+            stage(TOOL_SUCCESS_PREFIX);
+            stage(text.toString().getBytes(UTF_8));
+            stage(TOOL_SUCCESS_INFIX);
+            stageBytes(projectBuffer, 0, length);
+            stage(TOOL_SUCCESS_SUFFIX);
             replyComplete = true;
             doMcpBegin(traceId);
             flushReply(traceId);
@@ -1850,16 +1871,38 @@ public final class McpHttpProxyFactory implements BindingHandler
         return sessionId;
     }
 
+    // Resolves a result.<path> reference within the projected response body held in projectBuffer by walking it
+    // as a streaming event run, rather than navigating a jakarta JsonObject tree.
     private String resolveResult(
-        JsonValue structured,
+        int length,
         String expression)
     {
         String value = "";
-        if (expression.startsWith("result.") && structured.getValueType() == JsonValue.ValueType.OBJECT)
+        if (expression.startsWith("result."))
         {
-            value = navigate(structured.asJsonObject(), expression.substring(7));
+            value = navigateBytes(projectBuffer, length, expression.substring(7));
         }
         return value;
+    }
+
+    // Projects the upstream response body into projectBuffer, validating against the schema when present and
+    // canonicalizing otherwise, returning the bytes produced or -1 when validation or parsing did not complete.
+    private int projectResponse(
+        JsonSchema schema,
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        final JsonPipeline pipeline = schema != null
+            ? validatingProjectors.computeIfAbsent(schema, this::newValidatingProjector)
+            : canonicalizer;
+        return runInto(pipeline, buffer, offset, length);
+    }
+
+    private int emptyResponse()
+    {
+        projectBuffer.putBytes(0, EMPTY_OBJECT);
+        return EMPTY_OBJECT.length;
     }
 
     private boolean validate(
@@ -1878,15 +1921,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         int length)
     {
         return runInto(projectors.computeIfAbsent(schema, this::newProjector), buffer, offset, length);
-    }
-
-    private String validateProject(
-        JsonSchema schema,
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        return run(validatingProjectors.computeIfAbsent(schema, this::newValidatingProjector), buffer, offset, length);
     }
 
     private int templateInto(
@@ -1913,24 +1947,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         final JsonPipeline.Status status = pipeline.transform(buffer, offset, offset + length);
 
         return status == JsonPipeline.Status.COMPLETED ? projectGenerator.length() : -1;
-    }
-
-    private String run(
-        JsonPipeline pipeline,
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        final int produced = runInto(pipeline, buffer, offset, length);
-
-        String result = null;
-        if (produced >= 0)
-        {
-            final byte[] bytes = new byte[produced];
-            projectBuffer.getBytes(0, bytes);
-            result = new String(bytes, UTF_8);
-        }
-        return result;
     }
 
     // Re-roots the request to its arguments object in argsBuffer, returning the bytes produced (the empty
@@ -2144,19 +2160,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         builder.append(encode(key)).append('=').append(encode(value));
     }
 
-    private String buildToolSuccess(
-        JsonValue structured,
-        String summary)
-    {
-        final JsonArrayBuilder content = Json.createArrayBuilder()
-            .add(Json.createObjectBuilder().add("type", "text").add("text", summary));
-        final JsonObjectBuilder reply = Json.createObjectBuilder()
-            .add("content", content)
-            .add("structuredContent", structured)
-            .add("isError", false);
-        return compact(reply.build());
-    }
-
     private String buildToolError(
         String bodyText)
     {
@@ -2357,30 +2360,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         return text != null ? parseObject(text) : null;
     }
 
-    private static JsonObject parseObject(
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        final byte[] bytes = new byte[length];
-        buffer.getBytes(offset, bytes);
-        return parseObject(new String(bytes, UTF_8));
-    }
-
-    private static JsonValue parseValue(
-        String text)
-    {
-        JsonValue value = JsonValue.EMPTY_JSON_OBJECT;
-        if (text != null && !text.isEmpty())
-        {
-            try (JsonReader reader = Json.createReader(new StringReader(text)))
-            {
-                value = reader.readValue();
-            }
-        }
-        return value;
-    }
-
     private static String text(
         DirectBufferEx buffer,
         int offset,
@@ -2465,52 +2444,6 @@ public final class McpHttpProxyFactory implements BindingHandler
             result = builder.toString();
         }
 
-        return result;
-    }
-
-    private static String navigate(
-        JsonObject root,
-        String path)
-    {
-        String result = "";
-        JsonValue current = root;
-        boolean found = root != null;
-        for (String segment : path.split("\\."))
-        {
-            if (current != null && current.getValueType() == JsonValue.ValueType.OBJECT &&
-                current.asJsonObject().containsKey(segment))
-            {
-                current = current.asJsonObject().get(segment);
-            }
-            else
-            {
-                found = false;
-                break;
-            }
-        }
-        if (found && current != null)
-        {
-            result = asText(current);
-        }
-        return result;
-    }
-
-    private static String asText(
-        JsonValue value)
-    {
-        String result;
-        switch (value.getValueType())
-        {
-        case STRING:
-            result = ((JsonString) value).getString();
-            break;
-        case NULL:
-            result = "";
-            break;
-        default:
-            result = value.toString();
-            break;
-        }
         return result;
     }
 
