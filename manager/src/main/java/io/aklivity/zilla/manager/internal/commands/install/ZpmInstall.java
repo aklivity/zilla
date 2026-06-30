@@ -135,6 +135,10 @@ public final class ZpmInstall extends ZpmCommand
         hidden = true)
     public boolean ignoreMissingDependencies;
 
+    @Option(name = {"--unsafe-memory-access"},
+        hidden = true)
+    public String unsafeMemoryAccess = "deny";
+
     @Override
     public void invoke()
     {
@@ -789,7 +793,7 @@ public final class ZpmInstall extends ZpmCommand
             "JAVA_OPTIONS=\"$JAVA_OPTIONS --add-opens java.base/jdk.internal.misc=ALL-UNNAMED " +
                 "--add-opens java.base/jdk.internal.misc=org.agrona " +
                 "--enable-native-access=io.aklivity.zilla.runtime.common.agrona " +
-                "--sun-misc-unsafe-memory-access=deny\"",
+                "--sun-misc-unsafe-memory-access=%s\"".formatted(unsafeMemoryAccess),
             String.format(String.join(" ", Arrays.asList(
                     "exec $ZILLA_DIRECTORY/%s/bin/java",
                     "$JAVA_OPTIONS",
