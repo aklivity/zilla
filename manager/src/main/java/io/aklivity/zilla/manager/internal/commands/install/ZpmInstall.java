@@ -602,22 +602,51 @@ public final class ZpmInstall extends ZpmCommand
         logger.info(String.format("Generated module info for delegate module\n"));
 
         String moduleInfoContents = Files.readString(generatedModuleInfo);
-        Pattern pattern = Pattern.compile("(?:provides\\s+)([^\\s]+)(?:\\s+with)");
-        Matcher matcher = pattern.matcher(moduleInfoContents);
+
+        Pattern providesPattern = Pattern.compile("(?m)^\\s*provides\\s+([^\\s;]+)\\s+with\\s+[^;]+;\\R?");
+        Matcher providesMatcher = providesPattern.matcher(moduleInfoContents);
+        StringBuilder cleanedModuleInfo = new StringBuilder();
+
         List<String> uses = new ArrayList<>();
-        while (matcher.find())
+
+        while (providesMatcher.find())
         {
-            String service = matcher.group(1);
-            uses.add(String.format("uses %s;", service));
+            String serviceInterface = providesMatcher.group(1);
+            boolean serviceClassPresent = false;
+            try
+            {
+                Class.forName(serviceInterface, false, this.getClass().getClassLoader());
+                serviceClassPresent = true;
+            }
+            catch (ClassNotFoundException e)
+            {
+                serviceClassPresent = false;
+            }
+            if (serviceClassPresent)
+            {
+                providesMatcher.appendReplacement(cleanedModuleInfo, providesMatcher.group(0));
+                uses.add(String.format("    uses %s;", serviceInterface));
+            }
+            else
+            {
+                providesMatcher.appendReplacement(cleanedModuleInfo, "");
+            }
         }
+        providesMatcher.appendTail(cleanedModuleInfo);
+        moduleInfoContents = cleanedModuleInfo.toString();
 
         if (!uses.isEmpty())
         {
-            Files.writeString(generatedModuleInfo,
-                moduleInfoContents.replace(
-                    "}",
-                    String.join("\n", uses) + "\n}"));
+            int lastBraceIndex = moduleInfoContents.lastIndexOf('}');
+            if (lastBraceIndex != -1)
+            {
+                moduleInfoContents = moduleInfoContents.substring(0, lastBraceIndex) +
+                    String.join("\n", uses) +
+                    "\n}";
+            }
         }
+
+        Files.writeString(generatedModuleInfo, moduleInfoContents);
 
         expandJar(generatedDelegateDir, generatedDelegatePath);
 
