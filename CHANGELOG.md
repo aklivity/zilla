@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [2.0.0-alpha-14](https://github.com/aklivity/zilla/tree/2.0.0-alpha-14) (2026-06-29)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-13...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-13...2.0.0-alpha-14)
 
 **Fixed bugs:**
 
@@ -14,6 +14,15 @@
 
 - Remove Jackson dependency from binding-asyncapi [\#1967](https://github.com/aklivity/zilla/issues/1967)
 - binding-mcp: per-client `tools/list` filtering by per-tool authorization metadata [\#1831](https://github.com/aklivity/zilla/issues/1831)
+
+**Merged pull requests:**
+
+- perf\(binding-mcp-http\): stream the proxy request and response paths, removing per-message JSON DOM/String allocations [\#1975](https://github.com/aklivity/zilla/pull/1975) ([jfallows](https://github.com/jfallows))
+- Add offline mode support to ZPM cache resolution [\#1974](https://github.com/aklivity/zilla/pull/1974) ([jfallows](https://github.com/jfallows))
+- Enforce --sun-misc-unsafe-memory-access=deny [\#1973](https://github.com/aklivity/zilla/pull/1973) ([jfallows](https://github.com/jfallows))
+- Add scope-based filtering for MCP tools list with guard support [\#1972](https://github.com/aklivity/zilla/pull/1972) ([jfallows](https://github.com/jfallows))
+- chore\(binding-asyncapi\): remove unused Jackson dependency [\#1971](https://github.com/aklivity/zilla/pull/1971) ([jfallows](https://github.com/jfallows))
+- Replace Unsafe with Foreign Function & Memory API in UnsafeBufferEx [\#1968](https://github.com/aklivity/zilla/pull/1968) ([jfallows](https://github.com/jfallows))
 
 ## [2.0.0-alpha-13](https://github.com/aklivity/zilla/tree/2.0.0-alpha-13) (2026-06-26)
 
