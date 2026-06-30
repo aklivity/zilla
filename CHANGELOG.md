@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.0-alpha-16](https://github.com/aklivity/zilla/tree/2.0.0-alpha-16) (2026-06-30)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-15...2.0.0-alpha-16)
+
 ## [2.0.0-alpha-15](https://github.com/aklivity/zilla/tree/2.0.0-alpha-15) (2026-06-30)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-14...2.0.0-alpha-15)
