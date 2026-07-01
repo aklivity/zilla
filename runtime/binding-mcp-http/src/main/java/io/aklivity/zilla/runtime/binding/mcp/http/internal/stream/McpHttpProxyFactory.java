@@ -437,7 +437,9 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
         }
 
-        private void onMcpBegin(
+        // The buffered kinds (listings, prompts/get) reply immediately when no request body is expected;
+        // the HTTP-backed kinds override this to await the request body before shaping the upstream request.
+        void onMcpBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
@@ -446,15 +448,6 @@ public final class McpHttpProxyFactory implements BindingHandler
             initialAck = begin.acknowledge();
             state = McpHttpState.openingInitial(state);
 
-            onMcpBeginImpl(traceId);
-        }
-
-        // Per-kind begin handling: the buffered kinds (listings, prompts/get) reply immediately when no
-        // request body is expected, while the HTTP-backed kinds override this to await the request body
-        // before shaping the upstream request.
-        void onMcpBeginImpl(
-            long traceId)
-        {
             doMcpWindow(traceId);
             if (!requestHandled && contentLength < 0)
             {
@@ -793,9 +786,15 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         @Override
-        void onMcpBeginImpl(
-            long traceId)
+        void onMcpBegin(
+            BeginFW begin)
         {
+            final long traceId = begin.traceId();
+
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            state = McpHttpState.openingInitial(state);
+
             doMcpWindow(traceId);
         }
 
@@ -1168,9 +1167,15 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         @Override
-        void onMcpBeginImpl(
-            long traceId)
+        void onMcpBegin(
+            BeginFW begin)
         {
+            final long traceId = begin.traceId();
+
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            state = McpHttpState.openingInitial(state);
+
             if (route.with.body != null && route.with.bodyTemplate == null &&
                 contentLength > bufferPool.slotCapacity())
             {
@@ -1187,7 +1192,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
             else
             {
-                super.onMcpBeginImpl(traceId);
+                doMcpWindow(traceId);
             }
         }
 
