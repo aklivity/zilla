@@ -42,6 +42,7 @@ public final class McpOpenapiBindingConfig
     public final LongFunction<CatalogHandler> supplyCatalog;
     public final ToIntFunction<String> supplyTypeId;
     public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
+    public final LongFunction<String> supplyQName;
 
     public transient McpOpenapiCompositeConfig composite;
 
@@ -62,5 +63,6 @@ public final class McpOpenapiBindingConfig
         this.supplyBindingId = context::supplyBindingId;
         this.supplyCatalog = context::supplyCatalog;
         this.supplyTypeId = context::supplyTypeId;
+        this.supplyQName = context::supplyQName;
     }
 }

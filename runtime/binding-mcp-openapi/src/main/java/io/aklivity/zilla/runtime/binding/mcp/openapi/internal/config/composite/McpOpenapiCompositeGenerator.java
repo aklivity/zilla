@@ -57,15 +57,19 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationV
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiParameterView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecurityRequirementView;
+import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class McpOpenapiCompositeGenerator
@@ -86,6 +90,7 @@ public final class McpOpenapiCompositeGenerator
     {
         final OpenapiParser parser = new OpenapiParser();
         final Map<String, OpenapiView> specsByLabel = new LinkedHashMap<>();
+        final Map<String, Map<String, String>> securityByLabel = new LinkedHashMap<>();
 
         int tagIndex = 1;
         if (binding.options != null && binding.options.specs != null)
@@ -93,6 +98,7 @@ public final class McpOpenapiCompositeGenerator
             for (McpOpenapiSpecificationConfig specification : binding.options.specs)
             {
                 final String label = specification.label;
+                securityByLabel.put(label, specification.security);
                 for (McpOpenapiCatalogConfig catalog : specification.catalogs)
                 {
                     final long catalogId = binding.resolveId.applyAsLong(catalog.name);
@@ -145,7 +151,9 @@ public final class McpOpenapiCompositeGenerator
                 tool = with.operationId;
             }
 
-            routed.add(new RoutedOperation(tool, resource, operation, toolConfig(binding, tool)));
+            final List<GuardedRef> guarded = guardedRefs(binding, openapi, operation, securityByLabel.get(with.apiId));
+
+            routed.add(new RoutedOperation(tool, resource, operation, toolConfig(binding, tool), guarded));
         }
 
         final NamespaceConfig namespace = NamespaceConfig.builder()
@@ -308,7 +316,6 @@ public final class McpOpenapiCompositeGenerator
     {
         for (RoutedOperation entry : routed)
         {
-            final OpenapiOperationView operation = entry.operation;
             final McpHttpConditionConfig when = new McpHttpConditionConfig(entry.tool, entry.resource);
             final McpHttpWithConfig with = withConfig(entry);
 
@@ -316,10 +323,79 @@ public final class McpOpenapiCompositeGenerator
                 .when(when)
                 .with(with)
                 .exit(httpClientExit)
+                .inject(r -> injectGuarded(r, entry))
                 .build();
         }
 
         return binding;
+    }
+
+    private <C> RouteConfigBuilder<C> injectGuarded(
+        RouteConfigBuilder<C> route,
+        RoutedOperation entry)
+    {
+        for (GuardedRef ref : entry.guarded)
+        {
+            route.guarded()
+                .name(ref.qname)
+                .inject(g -> injectRoles(g, ref.roles))
+                .build();
+        }
+
+        return route;
+    }
+
+    private <C> GuardedConfigBuilder<C> injectRoles(
+        GuardedConfigBuilder<C> guarded,
+        List<String> roles)
+    {
+        roles.forEach(guarded::role);
+        return guarded;
+    }
+
+    private static List<GuardedRef> guardedRefs(
+        McpOpenapiBindingConfig binding,
+        OpenapiView openapi,
+        OpenapiOperationView operation,
+        Map<String, String> securityMap)
+    {
+        final List<GuardedRef> result = new LinkedList<>();
+
+        final List<List<OpenapiSecurityRequirementView>> security = operation.security != null
+            ? operation.security
+            : openapi.security;
+        final Map<String, OpenapiSecuritySchemeView> schemes = openapi.components != null
+            ? openapi.components.securitySchemes
+            : null;
+
+        if (securityMap != null && !securityMap.isEmpty() && security != null && schemes != null)
+        {
+            security.stream()
+                .flatMap(List::stream)
+                .filter(r -> securityMap.containsKey(r.name))
+                .filter(r -> qualifies(schemes.get(r.name)))
+                .forEach(r ->
+                {
+                    final String guard = securityMap.get(r.name);
+                    final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guard));
+                    final List<String> roles = r.scopes != null ? r.scopes : List.of();
+                    result.add(new GuardedRef(qname, roles));
+                });
+        }
+
+        return result;
+    }
+
+    private static boolean qualifies(
+        OpenapiSecuritySchemeView scheme)
+    {
+        final boolean bearerJwt = "http".equals(scheme != null ? scheme.type : null) &&
+            "bearer".equalsIgnoreCase(scheme.scheme) &&
+            "jwt".equalsIgnoreCase(scheme.bearerFormat);
+        return scheme != null &&
+            (bearerJwt ||
+             "oauth2".equals(scheme.type) ||
+             "openIdConnect".equals(scheme.type));
     }
 
     private McpHttpWithConfig withConfig(
@@ -561,22 +637,39 @@ public final class McpOpenapiCompositeGenerator
         private final String resource;
         private final OpenapiOperationView operation;
         private final McpOpenapiToolConfig toolConfig;
+        private final List<GuardedRef> guarded;
 
         private RoutedOperation(
             String tool,
             String resource,
             OpenapiOperationView operation,
-            McpOpenapiToolConfig toolConfig)
+            McpOpenapiToolConfig toolConfig,
+            List<GuardedRef> guarded)
         {
             this.tool = tool;
             this.resource = resource;
             this.operation = operation;
             this.toolConfig = toolConfig;
+            this.guarded = guarded;
         }
 
         private String subjectName()
         {
             return tool != null ? tool : resource;
+        }
+    }
+
+    private static final class GuardedRef
+    {
+        private final String qname;
+        private final List<String> roles;
+
+        private GuardedRef(
+            String qname,
+            List<String> roles)
+        {
+            this.qname = qname;
+            this.roles = roles;
         }
     }
 }

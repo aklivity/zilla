@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
+    private static final String SECURITY_NAME = "security";
     private static final String SERVERS_NAME = "servers";
     private static final String SERVER_URL_NAME = "url";
     private static final String CATALOG_NAME = "catalog";
@@ -98,6 +100,13 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     spec.servers.forEach(s ->
                         servers.add(Json.createObjectBuilder().add(SERVER_URL_NAME, s)));
                     specObject.add(SERVERS_NAME, servers);
+                }
+
+                if (spec.security != null && !spec.security.isEmpty())
+                {
+                    final JsonObjectBuilder security = Json.createObjectBuilder();
+                    spec.security.forEach(security::add);
+                    specObject.add(SECURITY_NAME, security);
                 }
 
                 specs.add(spec.label, specObject);
@@ -176,7 +185,18 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     }
                 }
 
-                mcpOpenapiOptions.spec(new McpOpenapiSpecificationConfig(label, servers, catalogs));
+                Map<String, String> security = null;
+                if (specObject.containsKey(SECURITY_NAME))
+                {
+                    security = new LinkedHashMap<>();
+                    final JsonObject securityObject = specObject.getJsonObject(SECURITY_NAME);
+                    for (String scheme : securityObject.keySet())
+                    {
+                        security.put(scheme, securityObject.getString(scheme));
+                    }
+                }
+
+                mcpOpenapiOptions.spec(new McpOpenapiSpecificationConfig(label, servers, catalogs, security));
             }
         }
 

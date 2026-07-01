@@ -15,20 +15,32 @@
 package io.aklivity.zilla.runtime.binding.mcp.openapi.config;
 
 import java.util.List;
+import java.util.Map;
 
 public final class McpOpenapiSpecificationConfig
 {
     public final String label;
     public final List<String> servers;
     public final List<McpOpenapiCatalogConfig> catalogs;
+    public final Map<String, String> security;
 
     public McpOpenapiSpecificationConfig(
         String label,
         List<String> servers,
         List<McpOpenapiCatalogConfig> catalogs)
     {
+        this(label, servers, catalogs, null);
+    }
+
+    public McpOpenapiSpecificationConfig(
+        String label,
+        List<String> servers,
+        List<McpOpenapiCatalogConfig> catalogs,
+        Map<String, String> security)
+    {
         this.label = label;
         this.servers = servers;
         this.catalogs = catalogs;
+        this.security = security;
     }
 }
