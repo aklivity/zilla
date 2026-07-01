@@ -13,6 +13,9 @@ permissions:
   packages: write
   pull-requests: read
 
+env:
+  MAVEN_OPTS: -Djava.net.preferIPv4Stack=true
+
 jobs:
   prepare:
     name: Prepare ${{ inputs.version }}
