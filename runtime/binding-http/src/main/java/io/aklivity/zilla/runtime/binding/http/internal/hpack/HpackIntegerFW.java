@@ -15,10 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.hpack;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /*
 
@@ -77,7 +76,7 @@ public class HpackIntegerFW extends Flyweight
     }
 
     @Override
-    public HpackIntegerFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public HpackIntegerFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         decodedOctets = 0;
         value = 0;
@@ -127,7 +126,7 @@ public class HpackIntegerFW extends Flyweight
         }
 
         @Override
-        public HpackIntegerFW.Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public HpackIntegerFW.Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             return this;

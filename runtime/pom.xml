@@ -47,8 +47,9 @@
     <module>catalog-inline</module>
     <module>catalog-karapace</module>
     <module>catalog-schema-registry</module>
-    <module>common</module>
+    <module>common-agrona</module>
     <module>common-avro</module>
+    <module>common-feature</module>
     <module>common-json</module>
     <module>common-lang</module>
     <module>common-protobuf</module>
@@ -226,7 +227,12 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>common</artifactId>
+        <artifactId>common-feature</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common-agrona</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

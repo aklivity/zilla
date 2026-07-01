@@ -23,34 +23,33 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String8FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.UnionOctetsFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class UnionOctetsFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
 
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx expected;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        expected = unsafe;
+    }
     private final UnionOctetsFW.Builder flyweightRW = new UnionOctetsFW.Builder();
     private final UnionOctetsFW flyweightRO = new UnionOctetsFW();
 
-    static int setAllTestValuesCase1(MutableDirectBuffer buffer, final int offset)
+    static int setAllTestValuesCase1(MutableDirectBufferEx buffer, final int offset)
     {
         int pos = offset;
         buffer.putByte(pos, (byte) 1);
@@ -58,7 +57,7 @@ public class UnionOctetsFWTest
         return pos - offset + "1234".length();
     }
 
-    static int setAllTestValuesCase2(MutableDirectBuffer buffer, final int offset)
+    static int setAllTestValuesCase2(MutableDirectBufferEx buffer, final int offset)
     {
         int pos = offset;
         buffer.putByte(pos, (byte) 2);
@@ -66,7 +65,7 @@ public class UnionOctetsFWTest
         return pos - offset + "1234567890123456".length();
     }
 
-    static int setAllTestValuesCase3(MutableDirectBuffer buffer, final int offset)
+    static int setAllTestValuesCase3(MutableDirectBufferEx buffer, final int offset)
     {
         int pos = offset;
         buffer.putByte(pos, (byte) 3);

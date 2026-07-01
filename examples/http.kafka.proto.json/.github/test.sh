@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -14,8 +16,12 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(curl -w "%{http_code}" http://localhost:$PORT/requests -H "Content-Type: application/json" -d "$INPUT")
-RESULT=$?
+post_valid() {
+  OUTPUT=$(curl -w "%{http_code}" http://localhost:$PORT/requests -H "Content-Type: application/json" -d "$INPUT")
+  RESULT=$?
+  [ "$RESULT" -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 5 2 post_valid
 echo RESULT="$RESULT"
 
 # THEN
@@ -40,8 +46,12 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(curl -w "%{http_code}" http://localhost:$PORT/requests -H "Content-Type: application/json" -d "$INPUT")
-RESULT=$?
+post_invalid() {
+  OUTPUT=$(curl -w "%{http_code}" http://localhost:$PORT/requests -H "Content-Type: application/json" -d "$INPUT")
+  RESULT=$?
+  [ "$RESULT" -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 5 2 post_invalid
 echo RESULT="$RESULT"
 
 # THEN

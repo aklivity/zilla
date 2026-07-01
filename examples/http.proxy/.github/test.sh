@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -21,7 +23,11 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(docker compose -p zilla-http-proxy exec nghttp nghttp --no-verify https://zilla.examples.dev:$PORT/demo.html)
+get_demo() {
+  OUTPUT=$(docker compose -p zilla-http-proxy exec nghttp nghttp --no-verify https://zilla.examples.dev:$PORT/demo.html)
+  [ $? -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 5 2 get_demo
 RESULT=$?
 echo RESULT="$RESULT"
 

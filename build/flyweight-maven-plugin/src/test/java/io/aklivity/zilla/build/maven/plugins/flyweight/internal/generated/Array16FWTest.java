@@ -26,8 +26,6 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Array16FW;
@@ -37,16 +35,18 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Strin
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.StringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class Array16FWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(150000))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(150000));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
 
     private final Array16FW<VariantEnumKindOfStringFW> flyweightRO =
         new Array16FW<>(new VariantEnumKindOfStringFW());
@@ -56,7 +56,7 @@ public class Array16FWTest
     private final int arrayItemKindSize = Byte.BYTES;
 
     private int setVariantItems(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         String item1 = String.format("%1000s", "0");
@@ -225,18 +225,18 @@ public class Array16FWTest
     {
         int length = value.length();
         int highestByteIndex = Integer.numberOfTrailingZeros(Integer.highestOneBit(length)) >> 3;
-        MutableDirectBuffer buffer;
+        MutableDirectBufferEx buffer;
         switch (highestByteIndex)
         {
         case 0:
-            buffer = new UnsafeBuffer(allocateDirect(Byte.BYTES + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Byte.BYTES + value.length()));
             return new String8FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 1:
-            buffer = new UnsafeBuffer(allocateDirect(Short.BYTES + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Short.BYTES + value.length()));
             return new String16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         case 2:
         case 3:
-            buffer = new UnsafeBuffer(allocateDirect(Integer.BYTES + value.length()));
+            buffer = new UnsafeBufferEx(allocateDirect(Integer.BYTES + value.length()));
             return new String32FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
         default:
             throw new IllegalArgumentException("Illegal value: " + value);

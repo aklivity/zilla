@@ -135,6 +135,10 @@ public final class ZpmInstall extends ZpmCommand
         hidden = true)
     public boolean ignoreMissingDependencies;
 
+    @Option(name = {"--unsafe-memory-access"},
+        hidden = true)
+    public String unsafeMemoryAccess = "deny";
+
     @Override
     public void invoke()
     {
@@ -187,7 +191,7 @@ public final class ZpmInstall extends ZpmCommand
 
             List<RemoteRepository> remoteRepositories = asRemoteRepositories(settings, repositories);
 
-            ZpmCache cache = new ZpmCache(remoteRepositories, cacheDir, logger);
+            ZpmCache cache = new ZpmCache(remoteRepositories, excludeRemoteRepos, cacheDir, logger);
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
 
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
@@ -602,22 +606,51 @@ public final class ZpmInstall extends ZpmCommand
         logger.info(String.format("Generated module info for delegate module\n"));
 
         String moduleInfoContents = Files.readString(generatedModuleInfo);
-        Pattern pattern = Pattern.compile("(?:provides\\s+)([^\\s]+)(?:\\s+with)");
-        Matcher matcher = pattern.matcher(moduleInfoContents);
+
+        Pattern providesPattern = Pattern.compile("(?m)^\\s*provides\\s+([^\\s;]+)\\s+with\\s+[^;]+;\\R?");
+        Matcher providesMatcher = providesPattern.matcher(moduleInfoContents);
+        StringBuilder cleanedModuleInfo = new StringBuilder();
+
         List<String> uses = new ArrayList<>();
-        while (matcher.find())
+
+        while (providesMatcher.find())
         {
-            String service = matcher.group(1);
-            uses.add(String.format("uses %s;", service));
+            String serviceInterface = providesMatcher.group(1);
+            boolean serviceClassPresent = false;
+            try
+            {
+                Class.forName(serviceInterface, false, this.getClass().getClassLoader());
+                serviceClassPresent = true;
+            }
+            catch (ClassNotFoundException e)
+            {
+                serviceClassPresent = false;
+            }
+            if (serviceClassPresent)
+            {
+                providesMatcher.appendReplacement(cleanedModuleInfo, providesMatcher.group(0));
+                uses.add(String.format("    uses %s;", serviceInterface));
+            }
+            else
+            {
+                providesMatcher.appendReplacement(cleanedModuleInfo, "");
+            }
         }
+        providesMatcher.appendTail(cleanedModuleInfo);
+        moduleInfoContents = cleanedModuleInfo.toString();
 
         if (!uses.isEmpty())
         {
-            Files.writeString(generatedModuleInfo,
-                moduleInfoContents.replace(
-                    "}",
-                    String.join("\n", uses) + "\n}"));
+            int lastBraceIndex = moduleInfoContents.lastIndexOf('}');
+            if (lastBraceIndex != -1)
+            {
+                moduleInfoContents = moduleInfoContents.substring(0, lastBraceIndex) +
+                    String.join("\n", uses) +
+                    "\n}";
+            }
         }
+
+        Files.writeString(generatedModuleInfo, moduleInfoContents);
 
         expandJar(generatedDelegateDir, generatedDelegatePath);
 
@@ -759,7 +792,8 @@ public final class ZpmInstall extends ZpmCommand
             "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.directory=$ZILLA_DIRECTORY\"",
             "JAVA_OPTIONS=\"$JAVA_OPTIONS --add-opens java.base/jdk.internal.misc=ALL-UNNAMED " +
                 "--add-opens java.base/jdk.internal.misc=org.agrona " +
-                "--enable-native-access=ALL-UNNAMED\"",
+                "--enable-native-access=io.aklivity.zilla.runtime.common.agrona " +
+                "--sun-misc-unsafe-memory-access=%s\"".formatted(unsafeMemoryAccess),
             String.format(String.join(" ", Arrays.asList(
                     "exec $ZILLA_DIRECTORY/%s/bin/java",
                     "$JAVA_OPTIONS",

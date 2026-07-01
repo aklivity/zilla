@@ -14,13 +14,13 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * A runnable, resumable {@code common-json} pipeline assembled from a {@link JsonStream} description
  * terminated with a {@link JsonSink}. Reuse a single instance per thread: call {@link #reset()}
- * once per top-level value, then {@link #transform(DirectBuffer, int, int)} per frame, resuming a value left
+ * once per top-level value, then {@link #transform(DirectBufferEx, int, int)} per frame, resuming a value left
  * {@link Status#ADVANCED} by an earlier frame.
  * <p>
  * Output is bounded by the terminal generator's limit: when it fills at an event boundary,
@@ -53,11 +53,11 @@ public interface JsonPipeline
     boolean identity();
 
     /**
-     * Transforms a whole value in one shot (equivalent to {@link #transform(DirectBuffer, int, int, boolean)} with
+     * Transforms a whole value in one shot (equivalent to {@link #transform(DirectBufferEx, int, int, boolean)} with
      * {@code last == true}), for callers that reassemble the value before feeding it.
      */
     default Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -73,7 +73,7 @@ public interface JsonPipeline
      * {@code last == false}; an incomplete value under {@code last == true} yields {@code REJECTED}.
      */
     Status transform(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last);
@@ -100,11 +100,11 @@ public interface JsonPipeline
      * {@link JsonStream#into(JsonGeneratorEx)} so the pipeline owns the generator it re-targets.
      */
     JsonPipelineResult transform(
-        DirectBuffer src,
+        DirectBufferEx src,
         int offset,
         int limit,
         boolean last,
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int dstOffset,
         int dstLimit);
 }

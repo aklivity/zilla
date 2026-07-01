@@ -25,10 +25,10 @@ import java.util.Map;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonValidatorChainTest
@@ -37,7 +37,7 @@ class JsonValidatorChainTest
         "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}," +
         "\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]}";
 
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
     @Test
     void shouldForwardFullStreamWhenValid()
@@ -103,7 +103,7 @@ class JsonValidatorChainTest
         {
             limit = Math.min(limit + step, bytes.length);
             boolean last = limit >= bytes.length;
-            status = pipeline.transform(new UnsafeBuffer(bytes), progress, limit, last);
+            status = pipeline.transform(new UnsafeBufferEx(bytes), progress, limit, last);
             progress = limit - pipeline.remaining();
         }
         return status;
@@ -165,7 +165,7 @@ class JsonValidatorChainTest
             .into(JsonEx.createSink(gen));
 
         byte[] bytes = "{\"id\":1,\"name\":\"x\"} ".getBytes(UTF_8);
-        UnsafeBuffer in = new UnsafeBuffer(bytes);
+        UnsafeBufferEx in = new UnsafeBufferEx(bytes);
 
         pipeline.reset();
         assertEquals(Status.STARVED, pipeline.transform(in, 0, 8, false));
@@ -265,7 +265,7 @@ class JsonValidatorChainTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         pipeline.reset();
-        return pipeline.transform(new UnsafeBuffer(bytes), 0, bytes.length);
+        return pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
     }
 
     private static JsonParser parserFor(
@@ -279,7 +279,7 @@ class JsonValidatorChainTest
     {
         byte[] bytes = text.getBytes(UTF_8);
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-        in.wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         return in;
     }
 }

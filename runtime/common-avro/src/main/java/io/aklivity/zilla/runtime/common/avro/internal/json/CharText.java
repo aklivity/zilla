@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.avro.internal.json;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * A reusable {@link CharSequence} backed by a growable {@code char[]}, filled in place by decoding raw
@@ -38,7 +38,7 @@ final class CharText implements CharSequence
     }
 
     void utf8(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length)
     {
@@ -119,7 +119,7 @@ final class CharText implements CharSequence
     }
 
     void base64(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length)
     {

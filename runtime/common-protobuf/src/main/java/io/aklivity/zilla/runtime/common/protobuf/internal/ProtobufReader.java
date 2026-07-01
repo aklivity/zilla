@@ -16,8 +16,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 
 import java.nio.ByteOrder;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
@@ -37,7 +36,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  */
 public final class ProtobufReader
 {
-    private DirectBuffer buffer;
+    private DirectBufferEx buffer;
     private int offset;
     private long start;
     private int progress;
@@ -47,7 +46,7 @@ public final class ProtobufReader
     private boolean starved;
 
     public ProtobufReader wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -55,7 +54,7 @@ public final class ProtobufReader
     }
 
     public ProtobufReader wrap(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -72,7 +71,7 @@ public final class ProtobufReader
     }
 
     public ProtobufReader resume(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         boolean last)
@@ -227,7 +226,7 @@ public final class ProtobufReader
         return length;
     }
 
-    public DirectBuffer buffer()
+    public DirectBufferEx buffer()
     {
         return buffer;
     }

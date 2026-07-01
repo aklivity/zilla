@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.common.json.bench;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -34,6 +33,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -123,13 +123,13 @@ public class JsonSchemaBM
     private JsonParserEx uniqueScalarsValidator;
     private JsonParserEx uniqueObjectsValidator;
 
-    private UnsafeBuffer flatObjectBuffer;
-    private UnsafeBuffer arrayObjectsBuffer;
-    private UnsafeBuffer oneOfBuffer;
-    private UnsafeBuffer containsBuffer;
-    private UnsafeBuffer numbersBuffer;
-    private UnsafeBuffer uniqueScalarsBuffer;
-    private UnsafeBuffer uniqueObjectsBuffer;
+    private UnsafeBufferEx flatObjectBuffer;
+    private UnsafeBufferEx arrayObjectsBuffer;
+    private UnsafeBufferEx oneOfBuffer;
+    private UnsafeBufferEx containsBuffer;
+    private UnsafeBufferEx numbersBuffer;
+    private UnsafeBufferEx uniqueScalarsBuffer;
+    private UnsafeBufferEx uniqueObjectsBuffer;
 
     private int flatObjectLength;
     private int arrayObjectsLength;
@@ -159,13 +159,13 @@ public class JsonSchemaBM
         byte[] uniqueScalarsBytes = UNIQUE_SCALARS_INSTANCE.getBytes(UTF_8);
         byte[] uniqueObjectsBytes = UNIQUE_OBJECTS_INSTANCE.getBytes(UTF_8);
 
-        flatObjectBuffer = new UnsafeBuffer(flatObjectBytes);
-        arrayObjectsBuffer = new UnsafeBuffer(arrayObjectsBytes);
-        oneOfBuffer = new UnsafeBuffer(oneOfBytes);
-        containsBuffer = new UnsafeBuffer(containsBytes);
-        numbersBuffer = new UnsafeBuffer(numbersBytes);
-        uniqueScalarsBuffer = new UnsafeBuffer(uniqueScalarsBytes);
-        uniqueObjectsBuffer = new UnsafeBuffer(uniqueObjectsBytes);
+        flatObjectBuffer = new UnsafeBufferEx(flatObjectBytes);
+        arrayObjectsBuffer = new UnsafeBufferEx(arrayObjectsBytes);
+        oneOfBuffer = new UnsafeBufferEx(oneOfBytes);
+        containsBuffer = new UnsafeBufferEx(containsBytes);
+        numbersBuffer = new UnsafeBufferEx(numbersBytes);
+        uniqueScalarsBuffer = new UnsafeBufferEx(uniqueScalarsBytes);
+        uniqueObjectsBuffer = new UnsafeBufferEx(uniqueObjectsBytes);
 
         flatObjectLength = flatObjectBytes.length;
         arrayObjectsLength = arrayObjectsBytes.length;
@@ -233,7 +233,7 @@ public class JsonSchemaBM
     // re-wrap the input over the next instance and reset the validating parser, then drive it to completion
     private int drive(
         JsonParserEx validator,
-        UnsafeBuffer buffer,
+        UnsafeBufferEx buffer,
         int length)
     {
         inputRO.wrap(buffer, 0, length);

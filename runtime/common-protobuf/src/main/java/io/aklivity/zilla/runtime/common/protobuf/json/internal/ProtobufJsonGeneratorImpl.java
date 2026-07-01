@@ -16,10 +16,9 @@ package io.aklivity.zilla.runtime.common.protobuf.json.internal;
 
 import java.util.BitSet;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
@@ -61,7 +60,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     private final boolean protoFieldNames;
     private final boolean includeDefaults;
     private final StringBuilder scratch;
-    private final UnsafeBuffer byteView;
+    private final UnsafeBufferEx byteView;
 
     private Scope[] scopes;
     private int depth;
@@ -100,7 +99,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         this.protoFieldNames = protoFieldNames;
         this.includeDefaults = includeDefaults;
         this.scratch = new StringBuilder();
-        this.byteView = new UnsafeBuffer();
+        this.byteView = new UnsafeBufferEx();
         this.scopes = new Scope[8];
         for (int i = 0; i < scopes.length; i++)
         {
@@ -116,7 +115,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
 
     @Override
     public ProtobufGenerator wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -410,7 +409,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator writeBytes(
         int field,
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length)
     {
@@ -420,7 +419,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator writeMessage(
         int field,
-        DirectBuffer message,
+        DirectBufferEx message,
         int offset,
         int length)
     {
@@ -430,7 +429,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     @Override
     public ProtobufGenerator writeSegment(
         int field,
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length,
         int deferred)
@@ -499,7 +498,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
 
     @Override
     public ProtobufGenerator writeRaw(
-        DirectBuffer source,
+        DirectBufferEx source,
         int offset,
         int length)
     {
@@ -510,7 +509,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     public ProtobufGenerator writeValue(
         int field,
         ProtobufWireType wireType,
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length)
     {
@@ -842,7 +841,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     // A map key is small and renders to no output until its value follows, so it is accumulated whole across
     // its (rare) fragments and captured once complete — consuming every offered byte, so the key never suspends.
     private void writeKeySegment(
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length,
         int deferred)
@@ -865,7 +864,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     // escaping, quoting), then map the chars json took back to source bytes (a code-point boundary, so exact)
     // and consume only those — the unconsumed remainder streams in on resume with the string still open.
     private void writeStringSegment(
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length,
         int deferred)
@@ -891,7 +890,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     // their source bytes consumed; any groups that do not fit are left unconsumed for output back-pressure. The
     // chars go through the same consumption-driven json string write for quoting.
     private void writeBytesSegment(
-        DirectBuffer value,
+        DirectBufferEx value,
         int offset,
         int length,
         int deferred)
@@ -1051,7 +1050,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     }
 
     private void appendUtf8(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int length)
     {

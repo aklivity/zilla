@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+. "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
+
 EXIT=0
 
 # GIVEN
@@ -15,7 +17,11 @@ echo EXPECTED="$EXPECTED"
 echo
 
 # WHEN
-OUTPUT=$(curl -sf -d "$INPUT" http://localhost:$PORT/items)
+post_items() {
+  OUTPUT=$(curl -sf -d "$INPUT" http://localhost:$PORT/items)
+  [ $? -eq 0 ] && [ "$OUTPUT" = "$EXPECTED" ]
+}
+retry_until 5 2 post_items
 RESULT=$?
 echo RESULT="$RESULT"
 
@@ -31,8 +37,12 @@ else
 fi
 
 # Verify metrics endpoint responds
-METRICS=$(curl -sf http://localhost:$METRICS_PORT/metrics)
-RESULT=$?
+get_metrics() {
+  METRICS=$(curl -sf http://localhost:$METRICS_PORT/metrics)
+  RESULT=$?
+  [ "$RESULT" -eq 0 ]
+}
+retry_until 5 2 get_metrics
 echo METRICS_RESULT="$RESULT"
 if [ "$RESULT" -ne 0 ]; then
   echo ❌ Metrics endpoint failed

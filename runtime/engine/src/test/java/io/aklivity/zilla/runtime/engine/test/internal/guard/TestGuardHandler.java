@@ -175,7 +175,8 @@ public final class TestGuardHandler implements GuardHandler
         return expiresAt != 0L && challengeAt <= now && now < expiresAt;
     }
 
-    boolean verify(
+    @Override
+    public boolean verify(
         long sessionId,
         List<String> roles)
     {

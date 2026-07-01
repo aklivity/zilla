@@ -20,8 +20,8 @@ import java.math.BigInteger;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonGenerator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * A {@link JsonGenerator} extended with the streaming-to-buffer surface the standard
@@ -58,7 +58,7 @@ public interface JsonGeneratorEx extends JsonGenerator
      * single instance per thread across values.
      */
     JsonGeneratorEx wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit);
 
@@ -122,7 +122,7 @@ public interface JsonGeneratorEx extends JsonGenerator
      * re-encoding.
      */
     JsonGeneratorEx writeRaw(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length);
 
@@ -136,22 +136,22 @@ public interface JsonGeneratorEx extends JsonGenerator
      * on resume from the unconsumed remainder.
      */
     JsonGeneratorEx writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length);
 
     /**
      * Appends a value's verbatim bytes that may arrive in fragments, owning the value's leading structural
      * separator so the caller holds no per-value state. The separator is emitted before the first fragment;
-     * each fragment appends bounded, consumption-driven content exactly as {@link #writeSegment(DirectBuffer,
+     * each fragment appends bounded, consumption-driven content exactly as {@link #writeSegment(DirectBufferEx,
      * int, int)} (track via {@link #consumed()}); the value ends — readying the next value's separator — on
      * {@link Completion#COMPLETE} once the final fragment is fully written. Pass {@link Completion#INCOMPLETE}
      * while the source reports more deferred bytes, so a value delivered across fragments forms one spliced
      * value. {@code writeSegment(source, index, length, COMPLETE)} for a value that fits one fragment is
-     * equivalent to {@link #writeRaw(DirectBuffer, int, int)}.
+     * equivalent to {@link #writeRaw(DirectBufferEx, int, int)}.
      */
     JsonGeneratorEx writeSegment(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length,
         Completion completion);

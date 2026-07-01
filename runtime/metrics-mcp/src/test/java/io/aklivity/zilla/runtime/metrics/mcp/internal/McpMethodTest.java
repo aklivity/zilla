@@ -20,9 +20,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.function.Consumer;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.McpBeginExFW;
 
 public class McpMethodTest
@@ -84,7 +84,7 @@ public class McpMethodTest
         Consumer<McpBeginExFW.Builder> mutator)
     {
         McpBeginExFW.Builder builder = new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[256]), 0, 256)
+            .wrap(new UnsafeBufferEx(new byte[256]), 0, 256)
             .typeId(0);
         mutator.accept(builder);
         return builder.build();

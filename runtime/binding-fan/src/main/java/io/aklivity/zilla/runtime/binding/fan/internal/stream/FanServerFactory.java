@@ -24,8 +24,6 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.fan.internal.FanConfiguration;
@@ -37,6 +35,8 @@ import io.aklivity.zilla.runtime.binding.fan.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.fan.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.fan.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.fan.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -67,7 +67,7 @@ public final class FanServerFactory implements FanStreamFactory
 
     private final Long2ObjectHashMap<BindingConfig> bindings;
 
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
     private final BindingHandler streamFactory;
     private final EngineContext context;
     private final LongUnaryOperator supplyInitialId;
@@ -109,7 +109,7 @@ public final class FanServerFactory implements FanStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer replyTo)
@@ -196,7 +196,7 @@ public final class FanServerFactory implements FanStreamFactory
 
         private void onGroupMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -538,7 +538,7 @@ public final class FanServerFactory implements FanStreamFactory
 
         private void onMemberMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {

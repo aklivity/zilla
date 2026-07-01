@@ -18,9 +18,10 @@ package io.aklivity.zilla.runtime.binding.http.internal.codec;
 import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameType.WINDOW_UPDATE;
 import static org.junit.Assert.assertEquals;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Http2WindowUpdateFWTest
 {
@@ -29,7 +30,7 @@ public class Http2WindowUpdateFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         Http2WindowUpdateFW window = new Http2WindowUpdateFW.Builder()
                 .wrap(buf, 1, buf.capacity())   // non-zero offset

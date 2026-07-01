@@ -19,10 +19,9 @@ import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteral
 
 import java.util.function.Consumer;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /*
  * Flyweight for HPACK Header Field
@@ -105,7 +104,7 @@ public class HpackHeaderFieldFW extends Flyweight
     }
 
     @Override
-    public HpackHeaderFieldFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public HpackHeaderFieldFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
 
@@ -139,7 +138,7 @@ public class HpackHeaderFieldFW extends Flyweight
         }
 
         @Override
-        public HpackHeaderFieldFW.Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public HpackHeaderFieldFW.Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             return this;

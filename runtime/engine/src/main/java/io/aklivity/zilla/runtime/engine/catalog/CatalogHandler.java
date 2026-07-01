@@ -15,8 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 /**
@@ -103,7 +102,7 @@ public interface CatalogHandler
             long traceId,
             long bindingId,
             int schemaId,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length,
             ValueConsumer next);
@@ -145,7 +144,7 @@ public interface CatalogHandler
             long traceId,
             long bindingId,
             int schemaId,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length,
             ValueConsumer next);
@@ -179,7 +178,7 @@ public interface CatalogHandler
             long traceId,
             long bindingId,
             int schemaId,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length,
             ValueConsumer next);
@@ -252,7 +251,7 @@ public interface CatalogHandler
      * @return the embedded schema id, or {@link #NO_SCHEMA_ID} if not present
      */
     default int resolve(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {
@@ -275,7 +274,7 @@ public interface CatalogHandler
     default int decode(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
@@ -300,7 +299,7 @@ public interface CatalogHandler
     default boolean validate(
         long traceId,
         long bindingId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
@@ -326,7 +325,7 @@ public interface CatalogHandler
         long traceId,
         long bindingId,
         int schemaId,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length,
         ValueConsumer next,
@@ -358,7 +357,7 @@ public interface CatalogHandler
      * @return the framing byte count to skip (0 for catalogs without embedded framing)
      */
     default int decodePadding(
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length)
     {

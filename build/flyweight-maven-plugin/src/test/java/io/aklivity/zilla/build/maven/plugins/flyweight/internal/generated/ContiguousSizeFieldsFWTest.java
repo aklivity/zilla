@@ -24,29 +24,27 @@ import static org.junit.Assert.fail;
 
 import java.util.stream.IntStream;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.ContiguousSizeFieldsFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class ContiguousSizeFieldsFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(new byte[100]);
-    private final MutableDirectBuffer expected = new UnsafeBuffer(new byte[100]);
+    private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[100]);
+    private final MutableDirectBufferEx expected = new UnsafeBufferEx(new byte[100]);
 
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
-            expected.setMemory(0, expected.capacity(), (byte) 0xab);
-        }
+        buffer.setMemory(0, buffer.capacity(), (byte) 0xab);
+        expected.setMemory(0, expected.capacity(), (byte) 0xab);
     }
 
     private final ContiguousSizeFieldsFW.Builder builder = new ContiguousSizeFieldsFW.Builder();
     private final ContiguousSizeFieldsFW flyweightRO = new ContiguousSizeFieldsFW();
 
-    static int setAllTestValues(MutableDirectBuffer buffer, int offset)
+    static int setAllTestValues(MutableDirectBufferEx buffer, int offset)
     {
         int pos = offset;
         buffer.putByte(pos, (byte) 1); // length1

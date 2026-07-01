@@ -14,18 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaConditionFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class KafkaGrpcFetchFilterHeaderResult
 {
-    public final DirectBuffer name;
-    public final DirectBuffer value;
+    public final DirectBufferEx name;
+    public final DirectBufferEx value;
 
     KafkaGrpcFetchFilterHeaderResult(
-        DirectBuffer name,
-        DirectBuffer value)
+        DirectBufferEx name,
+        DirectBufferEx value)
     {
         this.name = name;
         this.value = value;

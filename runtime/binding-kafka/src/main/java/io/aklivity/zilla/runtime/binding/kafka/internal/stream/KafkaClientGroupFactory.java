@@ -36,14 +36,11 @@ import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.IntObjectToObjectFunction;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
@@ -109,6 +106,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -156,7 +156,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private static final String GROUP_MAX_SESSION_TIMEOUT = "group.max.session.timeout.ms";
     private static final String GROUP_INITIAL_REBALANCE_DELAY = "group.initial.rebalance.delay.ms";
     private static final byte GROUP_KEY_TYPE = 0x00;
-    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -297,9 +297,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
     private final int kafkaTypeId;
     private final int proxyTypeId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer userdataBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx userdataBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final IntFunction<Signaler> supplySignaler;
@@ -333,9 +333,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.supplyInstanceId = config.clientInstanceIdSupplier();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.userdataBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.userdataBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
@@ -358,7 +358,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer application)
@@ -515,7 +515,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length,
         Consumer<OctetsFW.Builder> extension)
@@ -720,7 +720,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -735,7 +735,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -750,7 +750,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -765,7 +765,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -777,7 +777,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -880,7 +880,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -896,7 +896,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -959,7 +959,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -975,7 +975,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -991,7 +991,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1007,7 +1007,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1021,7 +1021,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1108,7 +1108,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1168,7 +1168,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1231,7 +1231,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         long budgetId,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
@@ -1320,7 +1320,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private MessageConsumer sender;
         private String nodeId;
         private int timeout;
-        private MutableDirectBuffer metadataBuffer;
+        private MutableDirectBufferEx metadataBuffer;
 
         private int state;
 
@@ -1371,12 +1371,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             this.guard = guard;
             this.cluster = new ClusterClient(routedId, resolvedId, servers, this);
             this.client = cluster;
-            this.metadataBuffer = new UnsafeBuffer(new byte[2048]);
+            this.metadataBuffer = new UnsafeBufferEx(new byte[2048]);
         }
 
         private void onStream(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1616,7 +1616,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private void doStreamData(
             long traceId,
             long authorization,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -1878,7 +1878,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private void onNetwork(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1967,7 +1967,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     int offset = payload.offset();
                     int limit = payload.limit();
 
-                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                     buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -2054,7 +2054,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
 
                 encodeNetwork(traceId, authorization, initialBudgetId, buffer, 0, limit);
@@ -2122,13 +2122,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         protected void doNetworkData(
             long traceId,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
 
@@ -2241,7 +2241,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long budgetId)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -2285,7 +2285,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -2335,7 +2335,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -2351,7 +2351,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -2376,7 +2376,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -2653,7 +2653,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private void onNetwork(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2741,7 +2741,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     int offset = payload.offset();
                     int limit = payload.limit();
 
-                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                     buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -2828,7 +2828,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
 
                 encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
@@ -2891,13 +2891,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         protected void doNetworkData(
             long traceId,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -3004,7 +3004,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 System.out.format("[client] %s DESCRIBE\n", delegate.nodeId);
             }
 
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -3071,7 +3071,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -3121,7 +3121,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -3137,7 +3137,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -3162,7 +3162,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -3407,7 +3407,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private void onNetwork(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -3495,7 +3495,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     int offset = payload.offset();
                     int limit = payload.limit();
 
-                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                     buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -3588,7 +3588,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
 
                 encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
@@ -3650,13 +3650,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         protected void doNetworkData(
             long traceId,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -3789,7 +3789,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long budgetId)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -3851,7 +3851,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private int doGenerateSubscriptionMetadata()
         {
-            final MutableDirectBuffer encodeBuffer = extBuffer;
+            final MutableDirectBufferEx encodeBuffer = extBuffer;
             final int encodeOffset = 0;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -3893,7 +3893,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private int doGenerateEmptySubscriptionMetadata()
         {
-            final MutableDirectBuffer encodeBuffer = extBuffer;
+            final MutableDirectBufferEx encodeBuffer = extBuffer;
             final int encodeOffset = 0;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -3936,7 +3936,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -3986,7 +3986,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -4002,7 +4002,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -4027,7 +4027,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -4178,7 +4178,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         .members(gm -> members.forEach(m ->
                         {
                             OctetsFW metadata = m.metadata;
-                            DirectBuffer buffer = metadata.value();
+                            DirectBufferEx buffer = metadata.value();
                             final int limit = metadata.sizeof();
 
                             int progress = 0;
@@ -4333,7 +4333,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private void onNetwork(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -4421,7 +4421,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     int offset = payload.offset();
                     int limit = payload.limit();
 
-                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                     buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -4514,7 +4514,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 final int limit = encodeSlotOffset;
 
                 encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, 0, limit);
@@ -4539,7 +4539,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 if (decoder != decodeSyncGroupResponse)
                 {
-                    final DirectBuffer buffer = payload.value();
+                    final DirectBufferEx buffer = payload.value();
                     final int offset = 0;
                     final int sizeof = payload.sizeof();
 
@@ -4603,13 +4603,13 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         protected void doNetworkData(
             long traceId,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
             if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                 encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
                 encodeSlotOffset += limit - offset;
                 encodeSlotTraceId = traceId;
@@ -4696,7 +4696,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
         }
 
-
         @Override
         protected void onStreamMigrate(
             long traceId)
@@ -4756,7 +4755,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             ConsumerAssignmentTopicsUserdataFW.Builder assignmentTopicsUserdataRW,
             int progressOffset)
         {
-            final MutableDirectBuffer encodeBuffer = extBuffer;
+            final MutableDirectBufferEx encodeBuffer = extBuffer;
             final int encodeOffset = progressOffset;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -4810,7 +4809,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long budgetId)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -4878,7 +4877,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 });
             }
 
-
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress.get() - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
 
@@ -4899,7 +4897,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long budgetId)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -4947,7 +4945,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long budgetId)
         {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
 
@@ -5001,7 +4999,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long budgetId,
             OctetsFW assignment)
         {
-            final DirectBuffer buffer = assignment.value();
+            final DirectBufferEx buffer = assignment.value();
             final int offset = 0;
             final int sizeof = assignment.sizeof();
 
@@ -5009,7 +5007,6 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_SYNC_GROUP_REQUEST, 0,
                 buffer, offset, sizeof);
         }
-
 
         private void doHeartbeatRequest(
             long traceId)
@@ -5044,7 +5041,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long traceId,
             long authorization,
             long budgetId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5094,7 +5091,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                     encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
                     encodeSlotOffset = remaining;
                 }
@@ -5110,7 +5107,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBuffer buffer,
+            MutableDirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -5135,7 +5132,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
                 else
                 {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
@@ -5280,7 +5277,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 Array32FW.Builder<TopicAssignmentFW.Builder, TopicAssignmentFW> topicAssignmentBuilder =
                     topicPartitionsRW.wrap(extBuffer, 0, extBuffer.capacity());
 
-                final DirectBuffer buffer = newAssignment.value();
+                final DirectBufferEx buffer = newAssignment.value();
                 final int limit = newAssignment.sizeof();
 
                 MutableInteger progress = new MutableInteger();

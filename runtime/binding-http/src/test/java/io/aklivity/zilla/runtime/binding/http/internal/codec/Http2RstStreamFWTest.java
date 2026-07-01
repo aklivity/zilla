@@ -19,9 +19,10 @@ import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ErrorCo
 import static io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameType.RST_STREAM;
 import static org.junit.Assert.assertEquals;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class Http2RstStreamFWTest
 {
@@ -30,7 +31,7 @@ public class Http2RstStreamFWTest
     public void encode()
     {
         byte[] bytes = new byte[100];
-        MutableDirectBuffer buf = new UnsafeBuffer(bytes);
+        MutableDirectBufferEx buf = new UnsafeBufferEx(bytes);
 
         Http2RstStreamFW reset = new Http2RstStreamFW.Builder()
                 .wrap(buf, 1, buf.capacity())       // non-zero offset

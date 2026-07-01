@@ -19,10 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 
@@ -144,14 +144,14 @@ public class JsonParserSegmentHardeningTest
         String json)
     {
         final byte[] bytes = json.getBytes(UTF_8);
-        final UnsafeBuffer buffer = new UnsafeBuffer(bytes);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
         parser.wrap(buffer, 0, bytes.length);
     }
 
     private static String segment(
         JsonParserImpl parser)
     {
-        final DirectBuffer seg = parser.getSegment();
+        final DirectBufferEx seg = parser.getSegment();
         final byte[] out = new byte[seg.capacity()];
         seg.getBytes(0, out);
         return new String(out, UTF_8);

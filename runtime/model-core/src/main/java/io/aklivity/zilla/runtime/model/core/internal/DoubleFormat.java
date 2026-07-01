@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public enum DoubleFormat
 {
@@ -26,7 +26,7 @@ public enum DoubleFormat
         public int decode(
             DoubleState state,
             int flags,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length)
         {
@@ -123,7 +123,7 @@ public enum DoubleFormat
         public int decode(
             DoubleState state,
             int flags,
-            DirectBuffer data,
+            DirectBufferEx data,
             int index,
             int length)
         {
@@ -168,7 +168,7 @@ public enum DoubleFormat
     public abstract int decode(
         DoubleState state,
         int flags,
-        DirectBuffer data,
+        DirectBufferEx data,
         int index,
         int length);
 

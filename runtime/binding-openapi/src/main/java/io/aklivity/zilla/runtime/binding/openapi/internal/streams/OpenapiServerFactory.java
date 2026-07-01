@@ -16,10 +16,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
@@ -41,6 +38,9 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiView;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 public final class OpenapiServerFactory implements OpenapiStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -77,8 +77,8 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
 
     private final Long2ObjectHashMap<OpenapiBindingConfig> bindings;
     private final int openapiTypeId;
@@ -93,7 +93,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -153,7 +153,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer receiver)
@@ -255,7 +255,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         private void onCompositeMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -549,7 +549,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
         private void onOpenapiMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -684,7 +684,6 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
             delegate.doCompositeReset(sequence, acknowledge, maximum, traceId);
         }
-
 
         private void onOpenapiWindow(
             WindowFW window)

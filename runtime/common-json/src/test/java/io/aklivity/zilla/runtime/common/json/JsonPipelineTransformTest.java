@@ -22,10 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonPipelineTransformTest
@@ -45,7 +45,7 @@ class JsonPipelineTransformTest
 
         byte[] in = "{\"a\":1}".getBytes(UTF_8);
         int dstCap = 64;
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         JsonPipelineResult result = pipeline.transform(srcOf(in), SRC_OFFSET, SRC_OFFSET + in.length, true,
             dst, DST_OFFSET, DST_OFFSET + dstCap);
 
@@ -65,7 +65,7 @@ class JsonPipelineTransformTest
 
         byte[] in = "{\"a\":1}\n".getBytes(UTF_8);
         int dstCap = 64;
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         JsonPipelineResult result = pipeline.transform(srcOf(in), SRC_OFFSET, SRC_OFFSET + in.length, true,
             dst, DST_OFFSET, DST_OFFSET + dstCap);
 
@@ -131,7 +131,7 @@ class JsonPipelineTransformTest
         byte[] f1 = "{\"a\":1,".getBytes(UTF_8);
         byte[] f2 = "\"b\":2} ".getBytes(UTF_8);
         int dstCap = 64;
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         ByteArrayOutputStream drained = new ByteArrayOutputStream();
 
         JsonPipelineResult first = pipeline.transform(srcOf(f1), SRC_OFFSET, SRC_OFFSET + f1.length, false,
@@ -172,8 +172,8 @@ class JsonPipelineTransformTest
         byte[] in,
         int dstCap)
     {
-        MutableDirectBuffer src = srcOf(in);
-        MutableDirectBuffer dst = new UnsafeBuffer(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBufferEx src = srcOf(in);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
         ByteArrayOutputStream drained = new ByteArrayOutputStream();
         JsonPipelineResult result;
         int guard = 0;
@@ -193,7 +193,7 @@ class JsonPipelineTransformTest
     }
 
     private static void drainChunk(
-        MutableDirectBuffer dst,
+        MutableDirectBufferEx dst,
         int produced,
         ByteArrayOutputStream sink)
     {
@@ -202,10 +202,10 @@ class JsonPipelineTransformTest
         sink.writeBytes(chunk);
     }
 
-    private static MutableDirectBuffer srcOf(
+    private static MutableDirectBufferEx srcOf(
         byte[] bytes)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[SRC_OFFSET + bytes.length]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[SRC_OFFSET + bytes.length]);
         buffer.putBytes(SRC_OFFSET, bytes);
         return buffer;
     }

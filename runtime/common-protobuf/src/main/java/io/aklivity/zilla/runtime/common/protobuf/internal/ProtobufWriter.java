@@ -16,10 +16,9 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 
 import java.nio.ByteOrder;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
@@ -34,22 +33,22 @@ public final class ProtobufWriter
 {
     // shared empty target so an unwrapped writer is in a defensible state (length reads zero) before it is
     // wrapped over the caller's destination, rather than holding a null buffer
-    private static final MutableDirectBuffer EMPTY = new UnsafeBuffer(new byte[0]);
+    private static final MutableDirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
 
-    private MutableDirectBuffer buffer = EMPTY;
+    private MutableDirectBufferEx buffer = EMPTY;
     private int start;
     private int offset;
     private int limit;
 
     public ProtobufWriter wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         return wrap(buffer, offset, Integer.MAX_VALUE);
     }
 
     public ProtobufWriter wrap(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         int limit)
     {
@@ -131,7 +130,7 @@ public final class ProtobufWriter
     }
 
     public void writeBytes(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {
@@ -155,7 +154,7 @@ public final class ProtobufWriter
      * unknown field through unchanged, tag and value together.
      */
     public void writeRaw(
-        DirectBuffer source,
+        DirectBufferEx source,
         int index,
         int length)
     {

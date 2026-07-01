@@ -21,10 +21,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -145,14 +145,14 @@ public class ProtobufJsonDefaultsTest
         config.put(ProtobufJson.FIELD_NAMES,
             protoFieldNames ? ProtobufJson.FieldNames.PROTO : ProtobufJson.FieldNames.JSON);
         config.put(ProtobufJson.INCLUDE_DEFAULTS, includeDefaults);
-        MutableDirectBuffer out = new UnsafeBuffer(new byte[8192]);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator =
             ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, config);
         generator.wrap(out, 0, out.capacity());
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, messageName))
             .into(ProtobufSink.of(generator, schema, messageName));
         pipeline.reset();
-        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBuffer(wire), 0, wire.length));
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(wire), 0, wire.length));
         generator.flush();
         byte[] bytes = new byte[generator.length()];
         out.getBytes(0, bytes);
@@ -162,7 +162,7 @@ public class ProtobufJsonDefaultsTest
     private static byte[] wire(
         Consumer<ProtobufGenerator> body)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[8192]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[8192]);
         ProtobufGenerator generator = Protobuf.generator().wrap(buffer, 0, buffer.capacity());
         body.accept(generator);
         byte[] bytes = new byte[generator.length()];

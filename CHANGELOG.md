@@ -1,5 +1,79 @@
 # Changelog
 
+## [2.0.0-alpha-16](https://github.com/aklivity/zilla/tree/2.0.0-alpha-16) (2026-06-30)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-15...2.0.0-alpha-16)
+
+## [2.0.0-alpha-15](https://github.com/aklivity/zilla/tree/2.0.0-alpha-15) (2026-06-30)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-14...2.0.0-alpha-15)
+
+## [2.0.0-alpha-14](https://github.com/aklivity/zilla/tree/2.0.0-alpha-14) (2026-06-29)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-13...2.0.0-alpha-14)
+
+**Fixed bugs:**
+
+- KafkaCacheServerProduceFan: IndexOutOfBoundsException on DefaultBudgetCreditor under concurrent HTTP-Kafka   produce load \(1.2.4\) [\#1788](https://github.com/aklivity/zilla/issues/1788)
+- Engine worker crash: KafkaCacheFile IndexOutOfBoundsException under sustained produce load [\#1787](https://github.com/aklivity/zilla/issues/1787)
+- `java.lang.InternalError: a fault occurred in an unsafe memory access operation` \(Zilla 0.9.173\) [\#1610](https://github.com/aklivity/zilla/issues/1610)
+
+**Closed issues:**
+
+- Remove Jackson dependency from binding-asyncapi [\#1967](https://github.com/aklivity/zilla/issues/1967)
+- binding-mcp: per-client `tools/list` filtering by per-tool authorization metadata [\#1831](https://github.com/aklivity/zilla/issues/1831)
+
+**Merged pull requests:**
+
+- perf\(binding-mcp-http\): stream the proxy request and response paths, removing per-message JSON DOM/String allocations [\#1975](https://github.com/aklivity/zilla/pull/1975) ([jfallows](https://github.com/jfallows))
+- Add offline mode support to ZPM cache resolution [\#1974](https://github.com/aklivity/zilla/pull/1974) ([jfallows](https://github.com/jfallows))
+- Enforce --sun-misc-unsafe-memory-access=deny [\#1973](https://github.com/aklivity/zilla/pull/1973) ([jfallows](https://github.com/jfallows))
+- Add scope-based filtering for MCP tools list with guard support [\#1972](https://github.com/aklivity/zilla/pull/1972) ([jfallows](https://github.com/jfallows))
+- chore\(binding-asyncapi\): remove unused Jackson dependency [\#1971](https://github.com/aklivity/zilla/pull/1971) ([jfallows](https://github.com/jfallows))
+- Replace Unsafe with Foreign Function & Memory API in UnsafeBufferEx [\#1968](https://github.com/aklivity/zilla/pull/1968) ([jfallows](https://github.com/jfallows))
+
+## [2.0.0-alpha-13](https://github.com/aklivity/zilla/tree/2.0.0-alpha-13) (2026-06-26)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-12...2.0.0-alpha-13)
+
+**Implemented enhancements:**
+
+- Enable MemorySegment field accessors via DirectBufferEx buffer migration [\#1723](https://github.com/aklivity/zilla/issues/1723)
+
+**Closed issues:**
+
+- engine: add identity\(\) capability to ModelPipeline so callers can skip buffer-and-hold for validators [\#1956](https://github.com/aklivity/zilla/issues/1956)
+- Make common-avro / common-protobuf transforms consumption-driven for a uniform src-authoritative resume [\#1932](https://github.com/aklivity/zilla/issues/1932)
+
+**Merged pull requests:**
+
+- test\(examples\): make smoke-test CI deterministic with readiness gating [\#1966](https://github.com/aklivity/zilla/pull/1966) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): migrate Agrona buffer types to UnsafeBufferEx extension library [\#1733](https://github.com/aklivity/zilla/pull/1733) ([jfallows](https://github.com/jfallows))
+
+## [2.0.0-alpha-12](https://github.com/aklivity/zilla/tree/2.0.0-alpha-12) (2026-06-25)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-11...2.0.0-alpha-12)
+
+**Implemented enhancements:**
+
+- feat\(binding-mcp\): validate tools/call arguments at the proxy against cached tools/list inputSchema [\#1962](https://github.com/aklivity/zilla/issues/1962)
+
+**Closed issues:**
+
+- Move replica identity from per-binding serverRef to engine-level service config [\#1800](https://github.com/aklivity/zilla/issues/1800)
+- Move MQTT QoS state into mqtt-sessions topic and consolidate session keys [\#1799](https://github.com/aklivity/zilla/issues/1799)
+- Migrate mqtt-kafka session ownership to Store SPI [\#1798](https://github.com/aklivity/zilla/issues/1798)
+
+**Merged pull requests:**
+
+- ci: share one cached image set across examples tests [\#1965](https://github.com/aklivity/zilla/pull/1965) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mqtt\)!: require store on mqtt server binding [\#1964](https://github.com/aklivity/zilla/pull/1964) ([jfallows](https://github.com/jfallows))
+- Enforce store requirement for MQTT server bindings [\#1963](https://github.com/aklivity/zilla/pull/1963) ([jfallows](https://github.com/jfallows))
+- refactor\(engine\): remove legacy ValidatorHandler and ConverterHandler SPI [\#1961](https://github.com/aklivity/zilla/pull/1961) ([jfallows](https://github.com/jfallows))
+- test\(binding-mcp-http\): cover config adapters and prune dead McpHttpState helpers [\#1960](https://github.com/aklivity/zilla/pull/1960) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): validate tools/call arguments at the proxy [\#1877](https://github.com/aklivity/zilla/pull/1877) ([jfallows](https://github.com/jfallows))
+- \[2.0\] Refactor MQTT session management to use store-based persistence [\#1806](https://github.com/aklivity/zilla/pull/1806) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0-alpha-11](https://github.com/aklivity/zilla/tree/2.0.0-alpha-11) (2026-06-23)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-10...2.0.0-alpha-11)

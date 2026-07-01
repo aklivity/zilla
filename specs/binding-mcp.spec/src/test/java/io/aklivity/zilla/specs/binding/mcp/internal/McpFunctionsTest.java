@@ -21,10 +21,10 @@ import static org.junit.Assert.assertNull;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.McpCapabilities;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpAbortExFW;
@@ -71,7 +71,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .lifecycle(b -> b.sessionId("session-1"))
             .build();
@@ -92,7 +92,7 @@ public class McpFunctionsTest
 
         assertNotNull(bytes);
 
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals(30000L, beginEx.toolsList().timeout());
     }
 
@@ -110,7 +110,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsList(b -> b.sessionId("session-1").timeout(30000L))
             .build();
@@ -133,7 +133,7 @@ public class McpFunctionsTest
 
         assertNotNull(bytes);
 
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals(45000L, beginEx.toolsCall().timeout());
     }
 
@@ -153,7 +153,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsCall(b -> b
                 .sessionId("session-1")
@@ -178,7 +178,7 @@ public class McpFunctionsTest
 
         assertNotNull(bytes);
 
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals(15000L, beginEx.promptsList().timeout());
     }
 
@@ -196,7 +196,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsList(b -> b
                 .sessionId("session-1")
@@ -221,7 +221,7 @@ public class McpFunctionsTest
 
         assertNotNull(bytes);
 
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals(20000L, beginEx.promptsGet().timeout());
     }
 
@@ -241,7 +241,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsGet(b -> b
                 .sessionId("session-1")
@@ -266,7 +266,7 @@ public class McpFunctionsTest
 
         assertNotNull(bytes);
 
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals(10000L, beginEx.resourcesList().timeout());
     }
 
@@ -284,7 +284,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesList(b -> b
                 .sessionId("session-1")
@@ -309,7 +309,7 @@ public class McpFunctionsTest
 
         assertNotNull(bytes);
 
-        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBuffer(bytes), 0, bytes.length);
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals(25000L, beginEx.resourcesRead().timeout());
     }
 
@@ -329,7 +329,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesRead(b -> b
                 .sessionId("session-1")
@@ -353,7 +353,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsList(b -> b.sessionId("session-1"))
             .build();
@@ -393,7 +393,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason("connection reset")
             .build();
@@ -421,7 +421,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason("actual reason")
             .build();
@@ -436,7 +436,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason(new String16FW("string-fw-reason"))
             .build();
@@ -451,7 +451,7 @@ public class McpFunctionsTest
         byteBuf.clear();
 
         new McpAbortExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .reason(b -> b.set("consumer-reason", StandardCharsets.UTF_8))
             .build();
@@ -485,7 +485,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpEndExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .outcome(o -> o.set(McpOutcome.ERROR))
             .build();
@@ -503,7 +503,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpEndExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .outcome(o -> o.set(McpOutcome.OK))
             .build();
@@ -531,7 +531,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpEndExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .outcome(o -> o.set(McpOutcome.ERROR))
             .build();
@@ -543,7 +543,7 @@ public class McpFunctionsTest
     public void shouldWrapAndReadAbortEx()
     {
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer buffer = new UnsafeBuffer(byteBuf);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(byteBuf);
 
         new McpAbortExFW.Builder()
             .wrap(buffer, 0, buffer.capacity())
@@ -561,7 +561,7 @@ public class McpFunctionsTest
     public void shouldCopyAbortEx()
     {
         ByteBuffer srcBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer srcBuffer = new UnsafeBuffer(srcBuf);
+        final UnsafeBufferEx srcBuffer = new UnsafeBufferEx(srcBuf);
 
         final McpAbortExFW source = new McpAbortExFW.Builder()
             .wrap(srcBuffer, 0, srcBuffer.capacity())
@@ -570,7 +570,7 @@ public class McpFunctionsTest
             .build();
 
         ByteBuffer dstBuf = ByteBuffer.allocate(256);
-        final UnsafeBuffer dstBuffer = new UnsafeBuffer(dstBuf);
+        final UnsafeBufferEx dstBuffer = new UnsafeBufferEx(dstBuf);
 
         final McpAbortExFW copy = new McpAbortExFW.Builder()
             .wrap(dstBuffer, 0, dstBuffer.capacity())
@@ -606,7 +606,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resumable(b -> b.id("2:0"))
             .build();
@@ -640,7 +640,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsListChanged(b -> b.id("1"))
             .build();
@@ -674,7 +674,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsListChanged(b -> b.id("1"))
             .build();
@@ -708,7 +708,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesListChanged(b -> b.id("1"))
             .build();
@@ -750,7 +750,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .progress(b -> b
                 .id("2:1")
@@ -798,7 +798,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .suspend(b -> b.retry(60000L))
             .build();
@@ -844,7 +844,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resume(b -> b.id("2:0"))
             .build();
@@ -876,7 +876,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .suspended(b ->
             {
@@ -923,7 +923,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitCreate(b -> b
                 .id("elicit-1")
@@ -965,7 +965,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitCreate(b -> b
                 .id("elicit-1")
@@ -990,7 +990,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitCreate(b -> b
                 .id("elicit-1")
@@ -1014,7 +1014,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpChallengeExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitCreate(b -> b
                 .id("elicit-1")
@@ -1053,7 +1053,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitResponse(b -> b
                 .correlationId("3")
@@ -1075,7 +1075,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitResponse(b -> b
                 .correlationId("3")
@@ -1099,7 +1099,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitResponse(b -> b
                 .correlationId("4")
@@ -1123,7 +1123,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitResponse(b -> b
                 .correlationId("3")
@@ -1159,7 +1159,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitCallback(b -> b
                 .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c"))
@@ -1196,7 +1196,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitCallback(b -> b
                 .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
@@ -1219,7 +1219,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitCallback(b -> b
                 .url("https://zilla.example/mcp/auth/callback?code=xyz&state=7f3a9b1c")
@@ -1255,7 +1255,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitComplete(b -> b
                 .id("elicit-1"))
@@ -1276,7 +1276,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpFlushExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .elicitComplete(b -> b
                 .id("elicit-1"))
@@ -1328,7 +1328,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .bearer(b -> b.realm("github").scopes("repo").error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
             .build();
@@ -1364,7 +1364,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .error(e -> e.code(-32603).message("unresolved expression: args.ownerr"))
             .build();
@@ -1394,7 +1394,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .bearer(b -> b.realm("actual").error(s -> s.set(McpBearerError.INVALID_TOKEN)))
             .build();
@@ -1415,7 +1415,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .bearer(b -> b.scopes("actual").error(s -> s.set(McpBearerError.INVALID_TOKEN)))
             .build();
@@ -1436,7 +1436,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .bearer(b -> b.error(s -> s.set(McpBearerError.INSUFFICIENT_SCOPE)))
             .build();
@@ -1472,7 +1472,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .lifecycle(b -> b
                 .sessionId("session-1")
@@ -1495,7 +1495,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .lifecycle(b -> b
                 .sessionId("session-1")
@@ -1537,7 +1537,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .bearer(b -> b
                 .realm("github")
@@ -1562,7 +1562,7 @@ public class McpFunctionsTest
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
         new McpResetExFW.Builder()
-            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .bearer(b -> b
                 .resourceMetadata("https://server.example.com/.well-known/actual")

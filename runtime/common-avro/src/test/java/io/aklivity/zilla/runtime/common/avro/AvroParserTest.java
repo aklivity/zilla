@@ -38,9 +38,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.nio.ByteOrder;
 import java.util.List;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Entry;
 import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 
@@ -100,7 +100,7 @@ public class AvroParserTest
     @Test
     public void shouldParseFloat()
     {
-        UnsafeBuffer encoded = new UnsafeBuffer(new byte[4]);
+        UnsafeBufferEx encoded = new UnsafeBufferEx(new byte[4]);
         encoded.putFloat(0, 1.5f, ByteOrder.LITTLE_ENDIAN);
         byte[] bytes = new byte[4];
         encoded.getBytes(0, bytes);
@@ -112,7 +112,7 @@ public class AvroParserTest
     @Test
     public void shouldParseDouble()
     {
-        UnsafeBuffer encoded = new UnsafeBuffer(new byte[8]);
+        UnsafeBufferEx encoded = new UnsafeBufferEx(new byte[8]);
         encoded.putDouble(0, 2.25d, ByteOrder.LITTLE_ENDIAN);
         byte[] bytes = new byte[8];
         encoded.getBytes(0, bytes);

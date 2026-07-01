@@ -24,8 +24,6 @@ import static org.junit.Assert.fail;
 
 import java.nio.charset.StandardCharsets;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Array32FW;
@@ -36,16 +34,18 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.StructWithNonPrimitiveFieldsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.UnionOctetsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfInt8FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class StructWithNonPrimitiveFieldsFWTest
 {
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
 
     private final StructWithNonPrimitiveFieldsFW.Builder structWithNonPrimitiveFieldsRW =
         new StructWithNonPrimitiveFieldsFW.Builder();
@@ -59,7 +59,7 @@ public class StructWithNonPrimitiveFieldsFWTest
     private final VariantEnumKindOfInt8FW.Builder variantEnumKindOfInt8RW = new VariantEnumKindOfInt8FW.Builder();
 
     static int setStringValue(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         final int offset)
     {
         buffer.putByte(offset, (byte) "stringValue".length());
@@ -98,7 +98,6 @@ public class StructWithNonPrimitiveFieldsFWTest
         buffer.putByte(offsetVariantFieldValue, (byte) 10);
         return Byte.BYTES + offsetVariantFieldValue - offset;
     }
-
 
     @Test
     public void shouldNotWrapWhenLengthInsufficientForMinimumRequiredLength()
@@ -173,13 +172,8 @@ public class StructWithNonPrimitiveFieldsFWTest
     @Test
     public void shouldSetFieldsWithFlyweights() throws Exception
     {
-        final MutableDirectBuffer fieldBuffer = new UnsafeBuffer(allocateDirect(100))
-        {
-            {
-                // Make sure the code is not secretly relying upon memory being initialized to 0
-                setMemory(0, capacity(), (byte) 0xab);
-            }
-        };
+        final MutableDirectBufferEx fieldBuffer = new UnsafeBufferEx(allocateDirect(100));
+        fieldBuffer.setMemory(0, fieldBuffer.capacity(), (byte) 0xab);
 
         final EnumWithUint8FW enumWithUint8 = enumWithUint8RW.wrap(fieldBuffer, 0, fieldBuffer.capacity())
             .set(EnumWithUint8.ICHI)

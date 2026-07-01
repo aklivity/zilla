@@ -25,8 +25,8 @@ import java.util.function.LongSupplier;
 
 import org.agrona.collections.Hashing;
 import org.agrona.collections.Long2LongHashMap;
-import org.agrona.concurrent.AtomicBuffer;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
@@ -41,7 +41,7 @@ public class DefaultBudgetCreditor implements BudgetCreditor, AutoCloseable
 
     private final long budgetMask;
     private final BudgetsLayout layout;
-    private final AtomicBuffer storage;
+    private final AtomicBufferEx storage;
     private final int entries;
     private final BudgetFlusher flusher;
     private final LongSupplier supplyBudgetId;

@@ -15,10 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.hpack;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /*
  * Flyweight for HPACK Literal Header Field
@@ -120,7 +119,7 @@ public class HpackLiteralHeaderFieldFW extends Flyweight
     }
 
     @Override
-    public HpackLiteralHeaderFieldFW wrap(DirectBuffer buffer, int offset, int maxLimit)
+    public HpackLiteralHeaderFieldFW wrap(DirectBufferEx buffer, int offset, int maxLimit)
     {
         super.wrap(buffer, offset, maxLimit);
 
@@ -169,7 +168,7 @@ public class HpackLiteralHeaderFieldFW extends Flyweight
         }
 
         @Override
-        public HpackLiteralHeaderFieldFW.Builder wrap(MutableDirectBuffer buffer, int offset, int maxLimit)
+        public HpackLiteralHeaderFieldFW.Builder wrap(MutableDirectBufferEx buffer, int offset, int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
             return this;
@@ -245,7 +244,7 @@ public class HpackLiteralHeaderFieldFW extends Flyweight
             return this;
         }
 
-        public HpackLiteralHeaderFieldFW.Builder name(DirectBuffer nameBuffer, int offset, int length)
+        public HpackLiteralHeaderFieldFW.Builder name(DirectBufferEx nameBuffer, int offset, int length)
         {
             nameRW.wrap(buffer(), offset() + 1, maxLimit());
             nameRW.string(nameBuffer, offset, length);
@@ -261,12 +260,12 @@ public class HpackLiteralHeaderFieldFW extends Flyweight
             return this;
         }
 
-        public HpackLiteralHeaderFieldFW.Builder value(DirectBuffer valueBuffer)
+        public HpackLiteralHeaderFieldFW.Builder value(DirectBufferEx valueBuffer)
         {
             return value(valueBuffer, 0, valueBuffer.capacity());
         }
 
-        public HpackLiteralHeaderFieldFW.Builder value(DirectBuffer valueBuffer, int offset, int length)
+        public HpackLiteralHeaderFieldFW.Builder value(DirectBufferEx valueBuffer, int offset, int length)
         {
             valueRW.string(valueBuffer, offset, length);
             limit(valueRW.limit());

@@ -19,19 +19,18 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import java.nio.charset.StandardCharsets;
 import java.util.function.LongFunction;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class McpProxyResourcesListFactory extends McpProxyListFactory
 {
-    private final DirectBuffer prelude =
-        new UnsafeBuffer("{\"resources\":[".getBytes(StandardCharsets.UTF_8));
+    private final DirectBufferEx prelude =
+        new UnsafeBufferEx("{\"resources\":[".getBytes(StandardCharsets.UTF_8));
 
     McpProxyResourcesListFactory(
         McpConfiguration config,
@@ -65,7 +64,7 @@ final class McpProxyResourcesListFactory extends McpProxyListFactory
     }
 
     @Override
-    protected DirectBuffer listReplyOpenPrelude()
+    protected DirectBufferEx listReplyOpenPrelude()
     {
         return prelude;
     }

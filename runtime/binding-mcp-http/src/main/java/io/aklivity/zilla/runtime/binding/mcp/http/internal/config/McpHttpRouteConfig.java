@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
@@ -41,6 +42,7 @@ public final class McpHttpRouteConfig
     public final String tool;
     public final String resource;
     public final McpHttpWithConfig with;
+    public final List<GuardedConfig> guarded;
     public final List<String> bodyTemplatePointers;
     public final Map<String, String> bodyTemplateRenames;
     public final List<String> argAccessors;
@@ -53,6 +55,7 @@ public final class McpHttpRouteConfig
     {
         this.id = route.id;
         this.with = (McpHttpWithConfig) route.with;
+        this.guarded = route.guarded;
         this.authorized = route.authorized;
 
         final ConditionConfig when = route.when.isEmpty() ? null : route.when.get(0);

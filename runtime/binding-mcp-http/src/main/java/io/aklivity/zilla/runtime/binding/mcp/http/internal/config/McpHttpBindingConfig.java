@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -68,6 +69,11 @@ public final class McpHttpBindingConfig
     private final Map<String, List<String>> resourceCaptures;
     private final Map<ModelConfig, JsonSchema> jsonSchemas;
     private final Map<McpHttpRouteConfig, List<String>> unsatisfiedAccessors;
+
+    // memoized list replies; derived solely from static binding config, built once on first request
+    private String toolsListJson;
+    private String resourcesListJson;
+    private String promptsListJson;
 
     public McpHttpBindingConfig(
         BindingConfig binding,
@@ -171,6 +177,21 @@ public final class McpHttpBindingConfig
             .orElse(null);
     }
 
+    public List<GuardedConfig> toolGuarded(
+        String name)
+    {
+        List<GuardedConfig> result = List.of();
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.matchesTool(name))
+            {
+                result = route.guarded;
+                break;
+            }
+        }
+        return result;
+    }
+
     public Collection<McpHttpToolConfig> tools()
     {
         return toolsByName.values();
@@ -184,6 +205,39 @@ public final class McpHttpBindingConfig
     public Collection<McpHttpPromptConfig> prompts()
     {
         return promptsByName.values();
+    }
+
+    public String toolsListJson()
+    {
+        return toolsListJson;
+    }
+
+    public void toolsListJson(
+        String json)
+    {
+        this.toolsListJson = json;
+    }
+
+    public String resourcesListJson()
+    {
+        return resourcesListJson;
+    }
+
+    public void resourcesListJson(
+        String json)
+    {
+        this.resourcesListJson = json;
+    }
+
+    public String promptsListJson()
+    {
+        return promptsListJson;
+    }
+
+    public void promptsListJson(
+        String json)
+    {
+        this.promptsListJson = json;
     }
 
     public McpHttpPromptConfig prompt(

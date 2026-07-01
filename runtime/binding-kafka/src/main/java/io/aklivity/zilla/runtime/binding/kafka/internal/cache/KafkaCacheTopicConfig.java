@@ -21,10 +21,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class KafkaCacheTopicConfig
 {
@@ -200,21 +199,21 @@ public final class KafkaCacheTopicConfig
     private static int parseIntAscii(
         String16FW value)
     {
-        final DirectBuffer text = value.value();
+        final DirectBufferEx text = value.value();
         return text.parseIntAscii(0, text.capacity());
     }
 
     private static long parseLongAscii(
         String16FW value)
     {
-        final DirectBuffer text = value.value();
+        final DirectBufferEx text = value.value();
         return text.parseLongAscii(0, text.capacity());
     }
 
     private static double parseDoubleAscii(
         String16FW value)
     {
-        final DirectBuffer text = value.value();
+        final DirectBufferEx text = value.value();
         return parseDouble(text.getStringWithoutLengthAscii(0, text.capacity()));
     }
 }

@@ -22,36 +22,35 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithString16;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithString16FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 
 public class EnumWithString16FWTest
 {
     private static final int LENGTH_SIZE = 2;
 
-    private final MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(100000))
+    private final MutableDirectBufferEx buffer;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
-    private final MutableDirectBuffer expected = new UnsafeBuffer(allocateDirect(100000))
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100000));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        buffer = unsafe;
+    }
+    private final MutableDirectBufferEx expected;
     {
-        {
-            // Make sure the code is not secretly relying upon memory being initialized to 0
-            setMemory(0, capacity(), (byte) 0xab);
-        }
-    };
+        UnsafeBufferEx unsafe = new UnsafeBufferEx(allocateDirect(100000));
+        unsafe.setMemory(0, unsafe.capacity(), (byte) 0xab);
+        expected = unsafe;
+    }
     private final EnumWithString16FW.Builder flyweightRW = new EnumWithString16FW.Builder();
     private final EnumWithString16FW flyweightRO = new EnumWithString16FW();
 
     static int setAllTestValues(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         final int offset,
         String value)
     {
@@ -190,7 +189,7 @@ public class EnumWithString16FWTest
 
     private static EnumWithString16FW asEnumWithString16FW(EnumWithString16 value)
     {
-        MutableDirectBuffer buffer = new UnsafeBuffer(allocateDirect(LENGTH_SIZE + value.value().length()));
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(allocateDirect(LENGTH_SIZE + value.value().length()));
         return new EnumWithString16FW.Builder().wrap(buffer, 0, buffer.capacity()).set(value, UTF_8).build();
     }
 }

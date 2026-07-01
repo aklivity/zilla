@@ -22,6 +22,7 @@ This project includes:
   zilla::runtime::binding-tcp under The Apache Software License, Version 2.0
   zilla::runtime::binding-tls under The Apache Software License, Version 2.0
   zilla::runtime::catalog-inline under Aklivity Community License Agreement
+  zilla::runtime::common-agrona under The Apache Software License, Version 2.0
   zilla::runtime::common-json under Aklivity Community License Agreement
   zilla::runtime::common-yaml under Aklivity Community License Agreement
   zilla::runtime::model-core under Aklivity Community License Agreement

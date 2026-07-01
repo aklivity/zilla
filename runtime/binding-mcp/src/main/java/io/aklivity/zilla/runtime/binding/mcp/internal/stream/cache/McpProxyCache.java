@@ -22,6 +22,7 @@ import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,10 +32,15 @@ import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import java.util.zip.CRC32;
 
+import jakarta.json.stream.JsonParser;
+
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -51,6 +57,10 @@ public final class McpProxyCache
     private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_LIFECYCLE = "lifecycle.lock";
     private static final Duration STORE_TTL_FOREVER = null;
+
+    private static final List<String> EMPTY_ROLES = List.of();
+    // identity sentinel distinct from EMPTY_ROLES, signalling a scheme that requires no authorization
+    private static final List<String> NO_AUTH = new ArrayList<>(0);
 
     public final long bindingId;
     public final GuardHandler guard;
@@ -241,6 +251,7 @@ public final class McpProxyCache
         private final String storeKey;
         private final String storeLockKey;
         private final Map<String, String> fragments;
+        private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
         private long lastChecksum = -1L;
         private String lockToken;
 
@@ -255,6 +266,11 @@ public final class McpProxyCache
         public boolean degraded()
         {
             return degraded;
+        }
+
+        public Map<CharSequence, List<String>> scopesByName()
+        {
+            return scopesByName;
         }
 
         private McpListCache(
@@ -330,6 +346,7 @@ public final class McpProxyCache
             final long newChecksum = crc32.getValue();
             final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
             lastChecksum = newChecksum;
+            scopesByName = indexScopesByName(value);
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
         }
@@ -382,6 +399,7 @@ public final class McpProxyCache
                 final long newChecksum = crc32.getValue();
                 changed = lastChecksum != -1L && lastChecksum != newChecksum;
                 lastChecksum = newChecksum;
+                scopesByName = indexScopesByName(value);
             }
             else
             {
@@ -402,6 +420,237 @@ public final class McpProxyCache
             populated = true;
             degraded = false;
             checkReady();
+        }
+
+        private Map<CharSequence, List<String>> indexScopesByName(
+            String value)
+        {
+            final Map<CharSequence, List<String>> index = new TreeMap<>(CharSequence::compare);
+
+            if (kind == KIND_TOOLS_LIST && value != null)
+            {
+                final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+                final JsonParserEx parser = JsonEx.createParser();
+                parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+                try
+                {
+                    scanToolsList(parser, index);
+                }
+                catch (Exception ex)
+                {
+                    index.clear();
+                }
+            }
+
+            return index;
+        }
+
+        private void scanToolsList(
+            JsonParserEx parser,
+            Map<CharSequence, List<String>> index)
+        {
+            if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
+            {
+                int depth = 1;
+                while (depth > 0 && parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case START_OBJECT:
+                    case START_ARRAY:
+                        depth++;
+                        break;
+                    case END_OBJECT:
+                    case END_ARRAY:
+                        depth--;
+                        break;
+                    case KEY_NAME:
+                        if (depth == 1 && "tools".contentEquals(parser.getStringView()))
+                        {
+                            scanTools(parser, index);
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void scanTools(
+            JsonParserEx parser,
+            Map<CharSequence, List<String>> index)
+        {
+            if (parser.hasNext() && parser.next() == JsonParser.Event.START_ARRAY)
+            {
+                boolean items = true;
+                while (items && parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case START_OBJECT:
+                        scanTool(parser, index);
+                        break;
+                    case END_ARRAY:
+                        items = false;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void scanTool(
+            JsonParserEx parser,
+            Map<CharSequence, List<String>> index)
+        {
+            String name = null;
+            List<String> roles = null;
+            int depth = 1;
+            while (depth > 0 && parser.hasNext())
+            {
+                final JsonParser.Event event = parser.next();
+                switch (event)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    if (depth == 1)
+                    {
+                        final CharSequence key = parser.getStringView();
+                        if ("name".contentEquals(key))
+                        {
+                            parser.next();
+                            name = parser.getString();
+                        }
+                        else if ("securitySchemes".contentEquals(key))
+                        {
+                            roles = scanSchemes(parser);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            if (name != null && roles != null)
+            {
+                index.put(name, roles);
+            }
+        }
+
+        // returns the required roles for the first decisive scheme: empty when schemes are present but
+        // none constrain roles, or null (NO_AUTH sentinel) when a scheme declares no authorization
+        private List<String> scanSchemes(
+            JsonParserEx parser)
+        {
+            List<String> roles = EMPTY_ROLES;
+
+            if (parser.hasNext() && parser.next() == JsonParser.Event.START_ARRAY)
+            {
+                boolean settled = false;
+                boolean schemes = true;
+                while (schemes && parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case START_OBJECT:
+                        final List<String> scheme = scanScheme(parser);
+                        if (!settled && scheme != null)
+                        {
+                            roles = scheme == NO_AUTH ? null : scheme;
+                            settled = true;
+                        }
+                        break;
+                    case END_ARRAY:
+                        schemes = false;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+
+            return roles;
+        }
+
+        private List<String> scanScheme(
+            JsonParserEx parser)
+        {
+            boolean noauth = false;
+            List<String> scopes = null;
+            int depth = 1;
+            while (depth > 0 && parser.hasNext())
+            {
+                final JsonParser.Event event = parser.next();
+                switch (event)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    if (depth == 1)
+                    {
+                        final CharSequence key = parser.getStringView();
+                        if ("type".contentEquals(key))
+                        {
+                            parser.next();
+                            noauth = "noauth".contentEquals(parser.getStringView());
+                        }
+                        else if ("scopes".contentEquals(key))
+                        {
+                            scopes = scanStrings(parser);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            return noauth ? NO_AUTH : scopes;
+        }
+
+        private List<String> scanStrings(
+            JsonParserEx parser)
+        {
+            final List<String> result = new ArrayList<>();
+            if (parser.hasNext() && parser.next() == JsonParser.Event.START_ARRAY)
+            {
+                boolean values = true;
+                while (values && parser.hasNext())
+                {
+                    final JsonParser.Event event = parser.next();
+                    switch (event)
+                    {
+                    case VALUE_STRING:
+                        result.add(parser.getString());
+                        break;
+                    case END_ARRAY:
+                        values = false;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+            return result;
         }
     }
 }

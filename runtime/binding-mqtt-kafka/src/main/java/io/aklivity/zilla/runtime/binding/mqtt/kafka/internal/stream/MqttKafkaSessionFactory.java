@@ -38,8 +38,6 @@ import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayQueue;
@@ -49,7 +47,6 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongArrayList;
 import org.agrona.collections.Object2LongHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.InstanceId;
@@ -114,12 +111,14 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSe
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-
 
 public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 {
@@ -141,7 +140,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final String16FW EXPIRY_SIGNAL_NAME = new String16FW("expiry-signal");
     private static final OctetsFW EXPIRY_SIGNAL_NAME_OCTETS =
         new OctetsFW().wrap(EXPIRY_SIGNAL_NAME.value(), 0, EXPIRY_SIGNAL_NAME.length());
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final String16FW DEFAULT_REASON = new String16FW(null, UTF_8);
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
@@ -168,7 +167,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     public static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
     public static final String MQTT_INVALID_SESSION_TIMEOUT_REASON = "Invalid session expiry interval";
     private static final KafkaConfigFW CONFIG_COMPACT_CLEANUP_POLICY = new KafkaConfigFW.Builder()
-        .wrap(new UnsafeBuffer(new byte[25]), 0, 25)
+        .wrap(new UnsafeBufferEx(new byte[25]), 0, 25)
         .name("cleanup.policy")
         .value("compact")
         .build();
@@ -237,14 +236,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final String16FW binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
     private final String16FW textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer kafkaHeadersBuffer;
-    private final MutableDirectBuffer willMessageBuffer;
-    private final MutableDirectBuffer sessionSignalBuffer;
-    private final MutableDirectBuffer willKeyBuffer;
-    private final MutableDirectBuffer sessionSignalKeyBuffer;
-    private final MutableDirectBuffer sessionExtBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx kafkaHeadersBuffer;
+    private final MutableDirectBufferEx willMessageBuffer;
+    private final MutableDirectBufferEx sessionSignalBuffer;
+    private final MutableDirectBufferEx willKeyBuffer;
+    private final MutableDirectBufferEx sessionSignalKeyBuffer;
+    private final MutableDirectBufferEx sessionExtBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
     private final Signaler signaler;
@@ -294,14 +293,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     {
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.kafkaHeadersBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.willMessageBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.sessionSignalBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.willKeyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.sessionSignalKeyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.sessionExtBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.kafkaHeadersBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.willMessageBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.sessionSignalBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.willKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.sessionSignalKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.sessionExtBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.helper = new MqttKafkaHeaderHelper();
         this.streamFactory = context.streamFactory();
@@ -329,8 +328,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.qosLevels.put(1, new String16FW("1"));
         this.qosLevels.put(2, new String16FW("2"));
         this.clientMetadata = clientMetadata;
-        this.offsetMetadataHelper = new KafkaOffsetMetadataHelper(new UnsafeBuffer(new byte[context.writeBuffer().capacity()]));
-        this.sessionOffsetsHelper = new KafkaSessionOffsetsHelper(new UnsafeBuffer(new byte[context.writeBuffer().capacity()]));
+        this.offsetMetadataHelper = new KafkaOffsetMetadataHelper(new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]));
+        this.sessionOffsetsHelper = new KafkaSessionOffsetsHelper(new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]));
         this.groupIdPrefixFormat = config.groupIdPrefixFormat();
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
@@ -340,7 +339,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer mqtt)
@@ -531,7 +530,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void onMqttMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -654,7 +653,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             final int offset = payload.offset();
             final int limit = payload.limit();
 
@@ -731,7 +730,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long budgetId,
             int flags,
             OctetsFW payload,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -794,7 +793,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int flags,
             int reserved,
             OctetsFW payload,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -809,7 +808,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .value(clientId.value(), 0, clientId.length()))))
                 .build();
 
-            Flyweight kafkaPayload = payload.sizeof() > 0 ? mqttSessionStateRO.wrap(buffer, offset, limit) : EMPTY_OCTETS;
+            Flyweight kafkaPayload = payload.sizeof() > 0
+                ? mqttSessionStateRO.wrap(buffer, offset, limit) : EMPTY_OCTETS;
 
             session.doKafkaData(traceId, authorization, budgetId, reserved,
                 sessionPadding, flags, kafkaPayload, kafkaDataEx);
@@ -1078,7 +1078,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             MqttSessionStateFW sessionState)
         {
             Flyweight state = sessionState == null ? EMPTY_OCTETS : sessionState;
-            final DirectBuffer buffer = state.buffer();
+            final DirectBufferEx buffer = state.buffer();
             final int offset = state.offset();
             final int limit = state.limit();
             final int length = limit - offset;
@@ -1220,7 +1220,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             if (publishQosMax != 2)
             {
-                Flyweight mqttBeginEx = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                Flyweight mqttBeginEx = mqttSessionBeginExRW
+                    .wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                     .typeId(mqttTypeId)
                     .session(sessionBuilder -> sessionBuilder
                         .flags(sessionFlags)
@@ -1423,7 +1424,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            Flyweight mqttBeginEx = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+            Flyweight mqttBeginEx = mqttSessionBeginExRW
+                .wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                 .typeId(mqttTypeId)
                 .session(sessionBuilder ->
                 {
@@ -1488,7 +1490,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void onSignalMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -1611,7 +1613,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         break reactToSignal;
                     }
 
-                    DirectBuffer buffer = payload.buffer();
+                    DirectBufferEx buffer = payload.buffer();
                     int offset = payload.offset();
                     int limit = payload.limit();
                     int length = limit - offset;
@@ -1624,7 +1626,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             assert decodeSlotOffset == 0;
                         }
 
-                        final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                        final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
                         slotBuffer.putBytes(decodeSlotOffset, buffer, offset, length);
                         decodeSlotOffset += length;
                     }
@@ -1632,7 +1634,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     {
                         if (decodeSlot != NO_SLOT)
                         {
-                            final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
+                            final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
                             slotBuffer.putBytes(decodeSlotOffset, buffer, offset, length);
                             buffer = slotBuffer;
                             offset = 0;
@@ -2030,7 +2032,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2130,7 +2132,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             doKafkaAbort(traceId, authorization);
                         }
 
-                        final MutableDirectBuffer dataBuffer = bufferPool.buffer(dataSlot);
+                        final MutableDirectBufferEx dataBuffer = bufferPool.buffer(dataSlot);
                         dataBuffer.putBytes(0, willMessage.buffer(), willMessage.offset(), willMessage.sizeof());
                         int payloadSize = payload.sizeof() - willMessage.sizeof();
                         dataBuffer.putBytes(willMessage.sizeof(), payload.buffer(), willMessage.limit(), payloadSize);
@@ -2396,7 +2398,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2597,8 +2599,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             long budgetId)
         {
-            final MutableDirectBuffer dataBuffer = bufferPool.buffer(delegate.dataSlot);
-            final MqttWillMessageFW will = mqttWillRO.wrap(dataBuffer, delegate.messageSlotOffset, dataBuffer.capacity());
+            final MutableDirectBufferEx dataBuffer = bufferPool.buffer(delegate.dataSlot);
+            final MqttWillMessageFW will =
+                mqttWillRO.wrap(dataBuffer, delegate.messageSlotOffset, dataBuffer.capacity());
 
             int payloadLimit = Math.min(will.limit() + will.payloadSize(), dataBuffer.capacity());
 
@@ -2612,9 +2615,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             String topicName = will.topic().asString();
             assert topicName != null;
 
-            final DirectBuffer topicNameBuffer = will.topic().value();
+            final DirectBufferEx topicNameBuffer = will.topic().value();
 
-            final MutableDirectBuffer keyBuffer = new UnsafeBuffer(new byte[topicNameBuffer.capacity() + 4]);
+            final MutableDirectBufferEx keyBuffer = new UnsafeBufferEx(new byte[topicNameBuffer.capacity() + 4]);
             final KafkaKeyFW key = new KafkaKeyFW.Builder()
                 .wrap(keyBuffer, 0, keyBuffer.capacity())
                 .length(topicNameBuffer.capacity())
@@ -2630,7 +2633,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (will.expiryInterval() != -1)
             {
-                final MutableDirectBuffer expiryBuffer = new UnsafeBuffer(new byte[4]);
+                final MutableDirectBufferEx expiryBuffer = new UnsafeBufferEx(new byte[4]);
                 expiryBuffer.putInt(0, will.expiryInterval(), ByteOrder.BIG_ENDIAN);
                 kafkaHeadersRW.item(h ->
                 {
@@ -2701,7 +2704,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private void addFiltersHeader(
             String16FW responseTopic)
         {
-            final DirectBuffer responseBuffer = responseTopic.value();
+            final DirectBufferEx responseBuffer = responseTopic.value();
             final int capacity = responseBuffer.capacity();
 
             int offset = 0;
@@ -2730,7 +2733,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             OctetsFW key,
             String16FW value)
         {
-            DirectBuffer buffer = value.value();
+            DirectBufferEx buffer = value.value();
             kafkaHeadersRW.item(h ->
             {
                 h.nameLen(key.sizeof());
@@ -2742,7 +2745,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void addHeader(
             OctetsFW key,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -2757,8 +2760,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void addHeader(String16FW key, String16FW value)
         {
-            DirectBuffer keyBuffer = key.value();
-            DirectBuffer valueBuffer = value.value();
+            DirectBufferEx keyBuffer = key.value();
+            DirectBufferEx valueBuffer = value.value();
             kafkaHeadersRW.item(h ->
             {
                 h.nameLen(key.length());
@@ -2770,7 +2773,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     }
 
     private static int indexOfByte(
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int offset,
         int limit,
         byte value)
@@ -2841,7 +2844,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -2901,7 +2904,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (isSetWillFlag(delegate.sessionFlags))
             {
-                Flyweight mqttBeginEx = mqttSessionBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                Flyweight mqttBeginEx = mqttSessionBeginExRW
+                    .wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                     .typeId(mqttTypeId)
                     .session(sessionBuilder -> sessionBuilder
                         .flags(delegate.sessionFlags)
@@ -3029,7 +3033,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int reserved,
             int padding,
             int flags,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit,
             Flyweight extension)
@@ -3070,7 +3074,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight payload,
             Flyweight extension)
         {
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             final int offset = payload.offset();
             final int limit = payload.limit();
             final int length = limit - offset;
@@ -3299,7 +3303,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                     if (cleanupPolicyConfig == null)
                     {
-                        Flyweight mqttResetEx = mqttSessionResetExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                        Flyweight mqttResetEx = mqttSessionResetExRW
+                            .wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
                             .typeId(mqttTypeId)
                             .reasonCode(MQTT_IMPLEMENTATION_SPECIFIC_ERROR)
                             .build();
@@ -3614,7 +3619,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void onMetaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -3850,7 +3855,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void onOffsetFetchMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -4110,7 +4115,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void onInitProducerMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -4324,7 +4329,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void onOffsetCommitMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -4464,7 +4469,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight payload,
             Flyweight extension)
         {
-            final DirectBuffer buffer = payload.buffer();
+            final DirectBufferEx buffer = payload.buffer();
             final int offset = payload.offset();
             final int limit = payload.limit();
             final int length = limit - offset;
@@ -4626,7 +4631,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         Flyweight extension)

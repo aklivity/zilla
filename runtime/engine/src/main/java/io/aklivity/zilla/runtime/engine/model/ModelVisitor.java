@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.model;
 
-import org.agrona.DirectBuffer;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Receives field values extracted from a value as a {@link ModelPipeline} transforms it.
@@ -47,7 +47,7 @@ public interface ModelVisitor
      */
     void onField(
         String path,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length);
 }

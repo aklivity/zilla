@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+
 public class AsyncapiChannelsConfigBuilder<T> extends ConfigBuilder<T, AsyncapiChannelsConfigBuilder<T>>
 {
     private final Function<AsyncapiChannelsConfig, T> mapper;

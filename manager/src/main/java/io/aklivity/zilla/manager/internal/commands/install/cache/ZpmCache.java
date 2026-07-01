@@ -39,8 +39,11 @@ import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.collection.CollectRequest;
+import org.eclipse.aether.collection.CollectResult;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.internal.impl.scope.OptionalDependencySelector;
+import org.eclipse.aether.internal.impl.scope.ScopeDependencySelector;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactDescriptorException;
 import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
@@ -54,6 +57,14 @@ import org.eclipse.aether.transfer.AbstractTransferListener;
 import org.eclipse.aether.transfer.TransferEvent;
 import org.eclipse.aether.transfer.TransferResource;
 import org.eclipse.aether.transport.apache.ApacheTransporterFactory;
+import org.eclipse.aether.util.graph.selector.AndDependencySelector;
+import org.eclipse.aether.util.graph.selector.ExclusionDependencySelector;
+import org.eclipse.aether.util.graph.transformer.ChainedDependencyGraphTransformer;
+import org.eclipse.aether.util.graph.transformer.ConfigurableVersionSelector;
+import org.eclipse.aether.util.graph.transformer.ConflictIdSorter;
+import org.eclipse.aether.util.graph.transformer.ConflictMarker;
+import org.eclipse.aether.util.graph.transformer.ConflictResolver;
+import org.eclipse.aether.util.graph.transformer.SimpleOptionalitySelector;
 import org.eclipse.aether.util.graph.visitor.NodeListGenerator;
 import org.eclipse.aether.util.graph.visitor.PreorderDependencyNodeConsumerVisitor;
 
@@ -77,12 +88,13 @@ public final class ZpmCache
 
     public ZpmCache(
         List<RemoteRepository> repositories,
+        boolean excludeRemote,
         Path directory,
         ConsoleLogger logger)
     {
         this.logger = logger;
         this.repositorySystem = ZpmSupplierRepositorySystemFactory.newRepositorySystem();
-        this.session = newRepositorySystemSession(repositorySystem, directory);
+        this.session = newRepositorySystemSession(repositorySystem, directory, excludeRemote);
 
         this.repositories = repositories;
     }
@@ -93,6 +105,8 @@ public final class ZpmCache
     {
         final List<ZpmArtifact> artifacts = new ArrayList<>();
         Map<ZpmDependency, String> imported = new HashMap<>();
+        List<Dependency> managedDependencies = new ArrayList<>();
+        List<RemoteRepository> aggregatedRepositories = new ArrayList<>(repositories);
         if (imports != null)
         {
             for (ZpmDependency imp : imports)
@@ -105,14 +119,16 @@ public final class ZpmCache
                 {
                     ArtifactDescriptorResult descriptorResult =
                         repositorySystem.readArtifactDescriptor(session, descriptorRequest);
-                    final List<Dependency> managedDependencies = descriptorResult.getManagedDependencies();
-                    managedDependencies.forEach(dep ->
+                    aggregatedRepositories.addAll(descriptorResult.getRepositories());
+                    List<Dependency> bomManaged = descriptorResult.getManagedDependencies();
+                    bomManaged.forEach(dep ->
                     {
                         final Artifact managedArtifact = dep.getArtifact();
                         imported.put(ZpmDependency.of(managedArtifact.getGroupId(), managedArtifact.getArtifactId(), null),
                             managedArtifact.getVersion());
 
                     });
+                    managedDependencies.addAll(bomManaged);
                 }
                 catch (ArtifactDescriptorException e)
                 {
@@ -121,18 +137,20 @@ public final class ZpmCache
             }
         }
         CollectRequest collectRequest = new CollectRequest();
+        collectRequest.setManagedDependencies(managedDependencies);
         for (ZpmDependency dep : dependencies)
         {
             String version = ofNullable(dep.version).orElse(imported.get(dep));
             Artifact artifact = new DefaultArtifact(dep.groupId, dep.artifactId, "jar", version);
-            collectRequest.addDependency(new Dependency(artifact, null));
+            collectRequest.addDependency(new Dependency(artifact, "compile"));
         }
-        repositories.forEach(collectRequest::addRepository);
+        aggregatedRepositories.forEach(collectRequest::addRepository);
 
         DependencyResult result;
         try
         {
-            DependencyRequest dependencyRequest = new DependencyRequest(collectRequest, null);
+            CollectResult collectResult = repositorySystem.collectDependencies(session, collectRequest);
+            DependencyRequest dependencyRequest = new DependencyRequest(collectResult.getRoot(), null);
             result = repositorySystem.resolveDependencies(session, dependencyRequest);
         }
         catch (Exception e)
@@ -163,7 +181,7 @@ public final class ZpmCache
                         new ZpmArtifactId(cArtifact.getGroupId(), cArtifact.getArtifactId(), cArtifact.getVersion());
                     depends.add(cid);
                 });
-                artifacts.add(new ZpmArtifact(id, artifact.getFile().toPath(), depends));
+                artifacts.add(new ZpmArtifact(id, artifact.getPath(), depends));
             }
         });
 
@@ -172,15 +190,54 @@ public final class ZpmCache
 
     private RepositorySystemSession newRepositorySystemSession(
         RepositorySystem system,
-        Path dir)
+        Path dir,
+        boolean excludeRemote)
     {
+        ConflictResolver conflictResolver = new ConflictResolver(
+            new ConfigurableVersionSelector(new ConfigurableVersionSelector.Nearest()),
+            new ConflictResolver.ScopeSelector()
+            {
+                @Override
+                public void selectScope(
+                    ConflictResolver.ConflictContext context)
+                {
+                    if (context.getWinner() != null && context.getWinner().getDependency() != null)
+                    {
+                        context.setScope(context.getWinner().getDependency().getScope());
+                    }
+                }
+            },
+            new SimpleOptionalitySelector(),
+            new ConflictResolver.ScopeDeriver()
+            {
+                @Override
+                public void deriveScope(
+                    ConflictResolver.ScopeContext context)
+                {
+                    // Pass the parent's target scope down to the child vertex
+                    context.setDerivedScope(context.getChildScope());
+                }
+            }
+        );
+
         return new SessionBuilderSupplier(system)
             .get()
                 .withLocalRepositoryBaseDirectories(dir)
+                .setDependencyGraphTransformer(
+                    new ChainedDependencyGraphTransformer(
+                        new ConflictMarker(),
+                        new ConflictIdSorter(),
+                        conflictResolver))
+                .setDependencySelector(
+                    new AndDependencySelector(
+                        OptionalDependencySelector.fromRoot(),
+                        new ExclusionDependencySelector(),
+                        ScopeDependencySelector.fromRoot(null, List.of("test", "provided"))))
                 .setRepositoryListener(new ZpmConsoleRepositoryListener())
                 .setTransferListener(new ZpmConsoleTransferListener())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
+                .setIgnoreArtifactDescriptorRepositories(excludeRemote)
                 .build();
     }
 

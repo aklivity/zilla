@@ -24,8 +24,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Properties;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -47,6 +45,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -65,7 +65,7 @@ public class TlsHandshakeBM
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
-    private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[BUFFER_SIZE]);
+    private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[BUFFER_SIZE]);
 
     private BindingHandler streamFactory;
     private TlsWorker worker;

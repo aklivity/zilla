@@ -32,10 +32,7 @@ import static org.junit.Assert.assertSame;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -53,6 +50,9 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedValueFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
@@ -65,7 +65,7 @@ public class KafkaCachePartitionTest
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private final MutableDirectBuffer scratch = new UnsafeBuffer(new byte[8192]);
+    private final MutableDirectBufferEx scratch = new UnsafeBufferEx(new byte[8192]);
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
     private final KafkaCachePaddedValueFW paddedValueRO = new KafkaCachePaddedValueFW();
 
@@ -216,7 +216,7 @@ public class KafkaCachePartitionTest
         Node head = partition.append(10L);
         MutableInteger entryMark = new MutableInteger(0);
         MutableInteger valueMark = new MutableInteger(0);
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
         KafkaKeyFW key = key(buffer, "abc");
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
@@ -243,7 +243,7 @@ public class KafkaCachePartitionTest
         Node head = partition.append(10L);
         MutableInteger entryMark = new MutableInteger(0);
         MutableInteger valueMark = new MutableInteger(0);
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
         KafkaKeyFW key = key(buffer, "abc");
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
@@ -266,7 +266,7 @@ public class KafkaCachePartitionTest
         Node head = partition.append(10L);
         MutableInteger entryMark = new MutableInteger(0);
         MutableInteger valueMark = new MutableInteger(0);
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
         KafkaKeyFW key = key(buffer, "key1");
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
@@ -307,7 +307,7 @@ public class KafkaCachePartitionTest
         Node head = partition.append(10L);
         MutableInteger entryMark = new MutableInteger(0);
         MutableInteger valueMark = new MutableInteger(0);
-        MutableDirectBuffer buffer = new UnsafeBuffer(new byte[1024]);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
         KafkaTopicTransformsType transforms = new KafkaTopicTransformsType(null,
             singletonList(new KafkaTopicHeaderType("region", "$.region")));
@@ -329,7 +329,7 @@ public class KafkaCachePartitionTest
         Node head,
         MutableInteger entryMark,
         MutableInteger valueMark,
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         long offset,
         String valueText,
         KafkaCacheModel transformValue,
@@ -363,7 +363,7 @@ public class KafkaCachePartitionTest
     }
 
     private static KafkaKeyFW key(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         String text)
     {
         byte[] bytes = text.getBytes(UTF_8);
@@ -374,7 +374,7 @@ public class KafkaCachePartitionTest
     }
 
     private static Array32FW<KafkaHeaderFW> noHeaders(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset)
     {
         return new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
@@ -383,7 +383,7 @@ public class KafkaCachePartitionTest
     }
 
     private static OctetsFW value(
-        MutableDirectBuffer buffer,
+        MutableDirectBufferEx buffer,
         int offset,
         String text)
     {
@@ -420,10 +420,10 @@ public class KafkaCachePartitionTest
             long traceId,
             long bindingId,
             int flags,
-            DirectBuffer src,
+            DirectBufferEx src,
             int srcIndex,
             int srcLimit,
-            MutableDirectBuffer dst,
+            MutableDirectBufferEx dst,
             int dstIndex,
             int dstLimit)
         {
@@ -458,7 +458,7 @@ public class KafkaCachePartitionTest
             KafkaCacheTopicConfig topic = new KafkaCacheTopicConfig(config);
 
             int slotCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(slotCapacity * 2));
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(slotCapacity * 2));
             MutableInteger entryMark = new MutableInteger(0);
             MutableInteger valueMark = new MutableInteger(0);
             MutableInteger valueLimit = new MutableInteger(0);
@@ -520,7 +520,7 @@ public class KafkaCachePartitionTest
             Path location = tempFolder.newFolder().toPath();
             KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
 
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1024));
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(1024));
             MutableInteger entryMark = new MutableInteger(0);
             MutableInteger valueMark = new MutableInteger(0);
             MutableInteger valueLimit = new MutableInteger(0);

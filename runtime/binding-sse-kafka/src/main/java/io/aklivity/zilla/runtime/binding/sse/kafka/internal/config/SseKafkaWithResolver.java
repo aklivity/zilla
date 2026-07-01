@@ -25,8 +25,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterHeaderConfig;
@@ -36,6 +34,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 public final class SseKafkaWithResolver
@@ -133,7 +132,7 @@ public final class SseKafkaWithResolver
     {
         final long compositeId = with.compositeId;
         final String8FW lastId = sseBeginEx != null ? sseBeginEx.lastId() : null;
-        final DirectBuffer progress64 = sseEventId.findProgress(lastId);
+        final DirectBufferEx progress64 = sseEventId.findProgress(lastId);
         final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(progress64);
 
         // TODO: hoist to constructor if constant
@@ -146,7 +145,7 @@ public final class SseKafkaWithResolver
 
             for (SseKafkaWithFilterConfig filter : with.filters.get())
             {
-                DirectBuffer key = null;
+                DirectBufferEx key = null;
                 if (filter.key.isPresent())
                 {
                     String key0 = filter.key.get();
@@ -165,14 +164,14 @@ public final class SseKafkaWithResolver
                     for (SseKafkaWithFilterHeaderConfig header0 : filter.headers.get())
                     {
                         String name0 = header0.name;
-                        DirectBuffer name = new String16FW(name0).value();
+                        DirectBufferEx name = new String16FW(name0).value();
 
                         String value0 = header0.value;
                         value0 = findAndReplace(value0, paramsMatcher, paramsReplacer);
                         value0 = findAndReplace(value0, identityMatcher, r -> identityReplacer.apply(authorization, r));
                         value0 = findAndReplace(value0, attributeMatcher, r -> attributeReplacer.apply(authorization, r));
 
-                        DirectBuffer value = new String16FW(value0).value();
+                        DirectBufferEx value = new String16FW(value0).value();
 
                         headers.add(new SseKafkaWithFilterHeaderResult(name, value));
                     }

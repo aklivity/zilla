@@ -18,8 +18,7 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.ADVANCED
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
 
-import org.agrona.DirectBuffer;
-
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
@@ -68,7 +67,7 @@ public final class AvroSinkImpl implements AvroSink
         AvroEvent event)
     {
         Status status = ADVANCED;
-        DirectBuffer segment;
+        DirectBufferEx segment;
         switch (event)
         {
         case START_MESSAGE:
@@ -237,7 +236,7 @@ public final class AvroSinkImpl implements AvroSink
         Status status = atomic();
         if (status == ADVANCED)
         {
-            DirectBuffer segment = source.getSegment();
+            DirectBufferEx segment = source.getSegment();
             int available = segment.capacity();
             int deferred = source.deferredBytes();
             int written = generator.writeSegment(segment, 0, available, deferred);

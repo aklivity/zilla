@@ -16,9 +16,9 @@ package io.aklivity.zilla.runtime.metrics.grpc.internal;
 
 import java.util.function.LongConsumer;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2LongCounterMap;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
@@ -85,7 +85,7 @@ public final class GrpcCountPerRpcContext implements MetricContext
 
         public void accept(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
