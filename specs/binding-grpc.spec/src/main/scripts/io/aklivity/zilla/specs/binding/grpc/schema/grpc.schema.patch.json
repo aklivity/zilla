@@ -114,24 +114,7 @@
                             {
                                 "const": "server"
                             },
-                            "options":
-                            {
-                                "properties":
-                                {
-                                    "services":
-                                    {
-                                        "title": "Services",
-                                        "type": "array",
-                                        "items":
-                                        {
-                                            "title": "Service",
-                                            "type": "string"
-                                        },
-                                        "deprecated": true
-                                    }
-                                },
-                                "additionalProperties": false
-                            }
+                            "options": false
                         }
                     },
                     {
@@ -141,7 +124,6 @@
                             {
                                 "const": "client"
                             },
-                            "catalog": false,
                             "options": false
                         }
                     }

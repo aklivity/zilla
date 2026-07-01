@@ -43,6 +43,22 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerWhen()
+    {
+        JsonObject config = schema.validate("server.when.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWhenCatalog()
+    {
+        JsonObject config = schema.validate("server.when.catalog.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateClient()
     {
         JsonObject config = schema.validate("client.yaml");
@@ -59,25 +75,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateServerWhenBinaryMetadata()
+    public void shouldValidateClientWhenCatalog()
     {
-        JsonObject config = schema.validate("server.when.binary.metadata.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateClientWhenBinaryMetadata()
-    {
-        JsonObject config = schema.validate("client.when.binary.metadata.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateServerWhenCatalog()
-    {
-        JsonObject config = schema.validate("server.when.catalog.yaml");
+        JsonObject config = schema.validate("client.when.catalog.yaml");
 
         assertThat(config, not(nullValue()));
     }
