@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.Openapi;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 
 public class OpenapiNamespaceConfig
 {

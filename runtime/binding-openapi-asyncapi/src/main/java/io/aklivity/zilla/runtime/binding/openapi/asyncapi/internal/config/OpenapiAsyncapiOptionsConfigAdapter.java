@@ -35,9 +35,9 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationCo
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSpecificationConfig;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
