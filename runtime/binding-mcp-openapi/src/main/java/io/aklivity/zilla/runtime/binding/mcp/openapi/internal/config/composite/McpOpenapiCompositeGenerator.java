@@ -124,9 +124,9 @@ public final class McpOpenapiCompositeGenerator
             {
                 continue;
             }
-            final OpenapiView openapi = specsByLabel.get(with.apiId);
+            final OpenapiView openapi = specsByLabel.get(with.spec);
             final OpenapiOperationView operation = openapi != null && openapi.operations != null
-                ? openapi.operations.get(with.operationId)
+                ? openapi.operations.get(with.operation)
                 : null;
             if (operation == null)
             {
@@ -148,10 +148,10 @@ public final class McpOpenapiCompositeGenerator
             }
             if (tool == null && resource == null)
             {
-                tool = with.operationId;
+                tool = with.operation;
             }
 
-            final List<GuardedRef> guarded = guardedRefs(binding, openapi, operation, securityByLabel.get(with.apiId));
+            final List<GuardedRef> guarded = guardedRefs(binding, openapi, operation, securityByLabel.get(with.spec));
 
             routed.add(new RoutedOperation(tool, resource, operation, toolConfig(binding, tool), guarded));
         }

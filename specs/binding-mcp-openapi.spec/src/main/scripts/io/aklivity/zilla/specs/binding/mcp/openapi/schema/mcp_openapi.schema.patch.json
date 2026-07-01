@@ -191,18 +191,18 @@
                                     "type": "object",
                                     "properties":
                                     {
-                                        "api-id":
+                                        "spec":
                                         {
                                             "title": "API Id",
                                             "type": "string"
                                         },
-                                        "operation-id":
+                                        "operation":
                                         {
                                             "title": "Operation Id",
                                             "type": "string"
                                         }
                                     },
-                                    "required": [ "api-id", "operation-id" ],
+                                    "required": [ "spec", "operation" ],
                                     "additionalProperties": false
                                 }
                             },

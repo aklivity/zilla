@@ -18,14 +18,14 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class McpOpenapiWithConfig extends WithConfig
 {
-    public final String apiId;
-    public final String operationId;
+    public final String spec;
+    public final String operation;
 
     public McpOpenapiWithConfig(
-        String apiId,
-        String operationId)
+        String spec,
+        String operation)
     {
-        this.apiId = apiId;
-        this.operationId = operationId;
+        this.spec = spec;
+        this.operation = operation;
     }
 }
