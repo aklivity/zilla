@@ -16,10 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.stream;
 
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiBindingConfig;
@@ -35,6 +32,9 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types.stream.EndFW
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -42,7 +42,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpOpenapiProxyFactory implements BindingHandler
 {
-    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -64,7 +64,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBufferEx writeBuffer;
 
     private final Long2ObjectHashMap<McpOpenapiBindingConfig> bindings;
     private final McpOpenapiCompositeGenerator generator;
@@ -112,7 +112,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer receiver)
@@ -185,7 +185,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
         private void onMcpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -454,7 +454,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
         private void onHttpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
