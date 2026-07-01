@@ -26,8 +26,8 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
 public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
-    private static final String API_ID_NAME = "api-id";
-    private static final String OPERATION_ID_NAME = "operation-id";
+    private static final String SPEC_NAME = "spec";
+    private static final String OPERATION_NAME = "operation";
 
     @Override
     public String type()
@@ -43,14 +43,14 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (mcpOpenapiWith.apiId != null)
+        if (mcpOpenapiWith.spec != null)
         {
-            object.add(API_ID_NAME, mcpOpenapiWith.apiId);
+            object.add(SPEC_NAME, mcpOpenapiWith.spec);
         }
 
-        if (mcpOpenapiWith.operationId != null)
+        if (mcpOpenapiWith.operation != null)
         {
-            object.add(OPERATION_ID_NAME, mcpOpenapiWith.operationId);
+            object.add(OPERATION_NAME, mcpOpenapiWith.operation);
         }
 
         return object.build();
@@ -60,14 +60,14 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
     public WithConfig adaptFromJson(
         JsonObject object)
     {
-        String apiId = object.containsKey(API_ID_NAME)
-            ? object.getString(API_ID_NAME)
+        String spec = object.containsKey(SPEC_NAME)
+            ? object.getString(SPEC_NAME)
             : null;
 
-        String operationId = object.containsKey(OPERATION_ID_NAME)
-            ? object.getString(OPERATION_ID_NAME)
+        String operation = object.containsKey(OPERATION_NAME)
+            ? object.getString(OPERATION_NAME)
             : null;
 
-        return new McpOpenapiWithConfig(apiId, operationId);
+        return new McpOpenapiWithConfig(spec, operation);
     }
 }

@@ -118,10 +118,10 @@ bindings:
       - when:
           - tool: create_pr
         with:
-          api-id: github
-          operation-id: create_pr
+          spec: github
+          operation: create_pr
       - when:
           - resource: read_order
         with:
-          api-id: github
-          operation-id: read_order
+          spec: github
+          operation: read_order

@@ -70,10 +70,15 @@ public class McpOpenapiCompositeGeneratorTest
         "  \"openapi\": \"3.1.0\"," +
         "  \"info\": { \"title\": \"github\", \"version\": \"1.0.0\" }," +
         "  \"servers\": [ { \"url\": \"https://api.github.com\" } ]," +
+        "  \"components\": { \"securitySchemes\": {" +
+        "    \"bearerAuth\": { \"type\": \"http\", \"scheme\": \"bearer\", \"bearerFormat\": \"jwt\" }," +
+        "    \"oauthScheme\": { \"type\": \"oauth2\", \"flows\": {} }" +
+        "  } }," +
         "  \"paths\": {" +
         "    \"/repos/{owner}/{repo}/pulls\": {" +
         "      \"post\": {" +
         "        \"operationId\": \"pulls/create\"," +
+        "        \"security\": [ { \"bearerAuth\": [ \"repo\", \"pr:write\" ] } ]," +
         "        \"parameters\": [" +
         "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
         "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }" +
@@ -104,6 +109,7 @@ public class McpOpenapiCompositeGeneratorTest
         "    \"/search/code\": {" +
         "      \"get\": {" +
         "        \"operationId\": \"search/code\"," +
+        "        \"security\": [ { \"oauthScheme\": [ \"read\" ] } ]," +
         "        \"parameters\": [" +
         "          { \"name\": \"q\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
         "          { \"name\": \"page\", \"in\": \"query\", \"schema\": { \"type\": \"integer\" } }" +
