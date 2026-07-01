@@ -14,7 +14,9 @@
  */
 module io.aklivity.zilla.runtime.common.openapi
 {
-    requires transitive io.aklivity.zilla.runtime.engine;
+    requires transitive jakarta.json;
+    requires transitive org.agrona;
+    requires jakarta.json.bind;
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.yaml;
 

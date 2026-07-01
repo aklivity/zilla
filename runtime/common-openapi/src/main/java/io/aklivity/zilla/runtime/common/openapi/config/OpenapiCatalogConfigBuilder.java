@@ -16,9 +16,7 @@ package io.aklivity.zilla.runtime.common.openapi.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-
-public final class OpenapiCatalogConfigBuilder<T> extends ConfigBuilder<T, OpenapiCatalogConfigBuilder<T>>
+public final class OpenapiCatalogConfigBuilder<T>
 {
     private final Function<OpenapiCatalogConfig, T> mapper;
 
@@ -30,13 +28,6 @@ public final class OpenapiCatalogConfigBuilder<T> extends ConfigBuilder<T, Opena
         Function<OpenapiCatalogConfig, T> mapper)
     {
         this.mapper = mapper;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<OpenapiCatalogConfigBuilder<T>> thisType()
-    {
-        return (Class<OpenapiCatalogConfigBuilder<T>>) getClass();
     }
 
     public OpenapiCatalogConfigBuilder<T> name(
@@ -60,7 +51,6 @@ public final class OpenapiCatalogConfigBuilder<T> extends ConfigBuilder<T, Opena
         return this;
     }
 
-    @Override
     public T build()
     {
         return mapper.apply(new OpenapiCatalogConfig(name, subject, version));
