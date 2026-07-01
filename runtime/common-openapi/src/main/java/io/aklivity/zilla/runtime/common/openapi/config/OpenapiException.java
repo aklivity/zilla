@@ -14,29 +14,20 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.config;
 
-import java.util.function.Function;
-
-public class OpenapiServerConfigBuilder<T>
+public final class OpenapiException extends RuntimeException
 {
-    private final Function<OpenapiServerConfig, T> mapper;
+    private static final long serialVersionUID = 1L;
 
-    private String url;
-    OpenapiServerConfigBuilder(
-        Function<OpenapiServerConfig, T> mapper)
+    public OpenapiException(
+        String message)
     {
-        this.mapper = mapper;
+        super(message);
     }
 
-    public OpenapiServerConfigBuilder<T> url(
-        String url)
+    public OpenapiException(
+        String message,
+        Throwable cause)
     {
-        this.url = url;
-        return this;
-    }
-
-    public T build()
-    {
-        return mapper.apply(
-            new OpenapiServerConfig(url));
+        super(message, cause);
     }
 }

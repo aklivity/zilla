@@ -39,7 +39,6 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public class OpenapiParser
 {
@@ -70,7 +69,7 @@ public class OpenapiParser
 
             try (JsonParser parser = provider.createParser(new StringReader(openapiText)))
             {
-                schema.validate(parser, problem -> errors.add(new ConfigException(problem.toString())));
+                schema.validate(parser, problem -> errors.add(new OpenapiException(problem.toString())));
             }
 
             Jsonb jsonb = JsonbBuilder.newBuilder()
