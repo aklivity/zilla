@@ -24,6 +24,29 @@ jobs:
       with:
         require: admin
 
+    - name: Validate release version against branch
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION="${{ inputs.version }}"
+        REF="${{ github.ref_name }}"
+        REPO="${{ github.repository }}"
+        if [[ "$REF" == support/* ]]; then
+          MAJOR="${REF#support/}"; MAJOR="${MAJOR%%.*}"
+          if [[ "$VERSION" != "$MAJOR".* ]]; then
+            echo "::error::Release version '$VERSION' is not part of the '$REF' line (expected ${MAJOR}.x). Aborting."
+            exit 1
+          fi
+        elif [[ "$REF" == "develop" ]]; then
+          MAJOR="${VERSION%%.*}"
+          if git ls-remote --exit-code --heads \
+               "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" \
+               "support/${MAJOR}.x" >/dev/null 2>&1; then
+            echo "::error::A 'support/${MAJOR}.x' branch exists; release version '$VERSION' from that branch, not develop. Aborting."
+            exit 1
+          fi
+        fi
+
     - name: Cache Homebrew
       uses: actions/cache@v5
       with:
@@ -52,10 +75,10 @@ jobs:
         git config --global credential.helper store
         echo "https://x-access-token:${{ secrets.GITFLOW_RELEASES_TOKEN }}@github.com" > ~/.git-credentials
 
-    - name: Checkout sources on develop
+    - name: Checkout sources on base branch
       uses: actions/checkout@v6
       with:
-        ref: develop
+        ref: ${{ github.ref_name }}
         fetch-depth: 0
         persist-credentials: false
 
@@ -63,13 +86,15 @@ jobs:
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
         git fetch origin main
-        git branch main origin/main
+        git branch main origin/main || true
+        git fetch origin develop
+        git branch develop origin/develop || true
         git flow init -df
 
     - name: Start GitFlow release
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-        git flow release start ${{ inputs.version }}
+        git flow release start ${{ inputs.version }} ${{ github.ref_name }}
 
     - name: Setup JDK
       uses: actions/setup-java@v5
@@ -90,6 +115,7 @@ jobs:
       run: git commit -a -m "Prepare release ${{ inputs.version }}"
 
     - name: No-merge release branch into develop branch
+      if: github.ref_name == 'develop'
       run: |
         git config merge.ours.driver true
         git fetch origin develop
@@ -98,8 +124,14 @@ jobs:
             -m "No-merge release ${{ inputs.version }} into develop"
 
     - name: Push changes to develop and release branch
+      if: github.ref_name == 'develop'
       run: |
         git push origin develop release/${{ inputs.version }}
+
+    - name: Push release branch
+      if: startsWith(github.ref_name, 'support/')
+      run: |
+        git push origin release/${{ inputs.version }}
 
   deploy:
     name: Deploy ${{ inputs.version }}
@@ -155,16 +187,26 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Determine docker tag
+    - name: Determine docker tags
       id: tag
       run: |
-        VERSION="${{ github.event.inputs.version }}"
-        if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          TAG="latest"
-        else
-          TAG=""
+        VERSION="${{ inputs.version }}"
+        MAJOR=""
+        MINOR=""
+        LATEST=""
+        if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+          HIGHEST=$({ git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; echo "$VERSION"; } | sort -V | tail -n1)
+          if [[ "$HIGHEST" == "$VERSION" ]]; then
+            LATEST="latest"
+          fi
         fi
-        echo "latest=$TAG" >> $GITHUB_OUTPUT
+        {
+          echo "major=$MAJOR"
+          echo "minor=$MINOR"
+          echo "latest=$LATEST"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Deploy via Maven
       run: |
@@ -212,7 +254,9 @@ jobs:
         cache-to: type=registry,ref=ghcr.io/aklivity/zilla:buildcache,mode=max
         tags: |
           ghcr.io/aklivity/zilla:${{ inputs.version }}
-          ${{ steps.tag.outputs.latest && format('ghcr.io/aklivity/zilla:{0}', steps.tag.outputs.latest) || '' }}
+          ${{ steps.tag.outputs.minor && format('ghcr.io/aklivity/zilla:{0}', steps.tag.outputs.minor) || '' }}
+          ${{ steps.tag.outputs.major && format('ghcr.io/aklivity/zilla:{0}', steps.tag.outputs.major) || '' }}
+          ${{ steps.tag.outputs.latest && 'ghcr.io/aklivity/zilla:latest' || '' }}
 
     - name: Publish zilla-alpine image to GitHub Container Registry
       uses: docker/build-push-action@v6
@@ -226,6 +270,8 @@ jobs:
         cache-to: type=registry,ref=ghcr.io/aklivity/zilla:buildcache-alpine,mode=max
         tags: |
           ghcr.io/aklivity/zilla:${{ inputs.version }}-alpine
+          ${{ steps.tag.outputs.minor && format('ghcr.io/aklivity/zilla:{0}-alpine', steps.tag.outputs.minor) || '' }}
+          ${{ steps.tag.outputs.major && format('ghcr.io/aklivity/zilla:{0}-alpine', steps.tag.outputs.major) || '' }}
           ${{ steps.tag.outputs.latest && 'ghcr.io/aklivity/zilla:alpine' || '' }}
 
     - name: Setup helm
@@ -280,23 +326,30 @@ jobs:
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
         git fetch origin main
-        git branch main origin/main
+        git branch main origin/main || true
         git fetch origin develop
-        git branch develop origin/develop
+        git branch develop origin/develop || true
+        git fetch origin ${{ github.ref_name }}
+        git branch ${{ github.ref_name }} origin/${{ github.ref_name }} || true
         git flow init -df
 
     - name: Finish release
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        git config --local "gitflow.branch.release/${{ inputs.version }}.base" ${{ github.ref_name }}
         git flow release finish -p ${{ inputs.version }} -m "${{ inputs.version }}"
 
-    - name: Generate CHANGELOG on develop
+    - name: Checkout base branch for CHANGELOG
+      run: |
+        git fetch origin ${{ github.ref_name }}
+        git checkout ${{ github.ref_name }}
+
+    - name: Generate CHANGELOG on base branch
       uses: janheinrichmerker/action-github-changelog-generator@v2.4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Commit CHANGELOG on develop branch (if needed)
-      run: git diff --quiet && git diff --cached --quiet || git commit -a -m "Update CHANGELOG.md"
-
-    - name: Push CHANGELOG commit to develop
-      run: git push origin develop
+    - name: Commit and push CHANGELOG on base branch (if needed)
+      run: |
+        git diff --quiet && git diff --cached --quiet || git commit -a -m "Update CHANGELOG.md"
+        git push origin ${{ github.ref_name }}
