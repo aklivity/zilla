@@ -24,9 +24,6 @@ jobs:
       with:
         require: admin
 
-    # The release runs from the branch it is dispatched on (github.ref_name),
-    # which is also the base for the release. Guard against releasing a version
-    # from the wrong line.
     - name: Validate release version against branch
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -35,14 +32,12 @@ jobs:
         REF="${{ github.ref_name }}"
         REPO="${{ github.repository }}"
         if [[ "$REF" == support/* ]]; then
-          # support/N.x may only cut N.* releases
           MAJOR="${REF#support/}"; MAJOR="${MAJOR%%.*}"
           if [[ "$VERSION" != "$MAJOR".* ]]; then
             echo "::error::Release version '$VERSION' is not part of the '$REF' line (expected ${MAJOR}.x). Aborting."
             exit 1
           fi
         elif [[ "$REF" == "develop" ]]; then
-          # develop must not release a major that is maintained on its own support branch
           MAJOR="${VERSION%%.*}"
           if git ls-remote --exit-code --heads \
                "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" \
@@ -119,9 +114,6 @@ jobs:
     - name: Commit POM versions and CHANGELOG on release branch
       run: git commit -a -m "Prepare release ${{ inputs.version }}"
 
-    # Mainline only: record the release on develop without taking the version bump,
-    # so develop keeps its own (next) version. Support releases skip this and merge
-    # for real during finalize (see below).
     - name: No-merge release branch into develop branch
       if: github.ref_name == 'develop'
       run: |
@@ -190,13 +182,9 @@ jobs:
         MAJOR=""
         MINOR=""
         LATEST=""
-        # Only stable X.Y.Z releases get the moving major / major.minor / latest tags;
-        # pre-releases (alpha, beta, rc, ...) publish only the exact version tag.
         if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-          # `latest` moves only when this is the highest stable release across all tags,
-          # so a 1.x release cut after 2.x has shipped never reclaims `latest`.
           HIGHEST=$({ git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; echo "$VERSION"; } | sort -V | tail -n1)
           if [[ "$HIGHEST" == "$VERSION" ]]; then
             LATEST="latest"
@@ -319,8 +307,6 @@ jobs:
         git branch develop origin/develop
         git flow init -df
 
-    # Mainline release (develop): finish through git-flow — merge into main, tag,
-    # and back-merge into develop.
     - name: Finish mainline release
       if: github.ref_name == 'develop'
       run: |
@@ -341,8 +327,6 @@ jobs:
       if: github.ref_name == 'develop'
       run: git push origin develop
 
-    # Support release (support/*): merge into the support branch and tag only.
-    # Never advance main and never back-merge into develop, which now holds the next major.
     - name: Finish support release
       if: startsWith(github.ref_name, 'support/')
       run: |
