@@ -313,20 +313,6 @@ jobs:
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
         git flow release finish -p ${{ inputs.version }} -m "${{ inputs.version }}"
 
-    - name: Generate CHANGELOG on develop
-      if: github.ref_name == 'develop'
-      uses: janheinrichmerker/action-github-changelog-generator@v2.4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Commit CHANGELOG on develop branch (if needed)
-      if: github.ref_name == 'develop'
-      run: git diff --quiet && git diff --cached --quiet || git commit -a -m "Update CHANGELOG.md"
-
-    - name: Push CHANGELOG commit to develop
-      if: github.ref_name == 'develop'
-      run: git push origin develop
-
     - name: Finish support release
       if: startsWith(github.ref_name, 'support/')
       run: |
@@ -338,14 +324,17 @@ jobs:
         git push origin ${{ github.ref_name }} refs/tags/${{ inputs.version }}
         git push origin --delete release/${{ inputs.version }} || true
 
-    - name: Generate CHANGELOG on support branch
-      if: startsWith(github.ref_name, 'support/')
+    - name: Checkout base branch for CHANGELOG
+      run: |
+        git fetch origin ${{ github.ref_name }}
+        git checkout ${{ github.ref_name }}
+
+    - name: Generate CHANGELOG on base branch
       uses: janheinrichmerker/action-github-changelog-generator@v2.4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Commit and push CHANGELOG on support branch (if needed)
-      if: startsWith(github.ref_name, 'support/')
+    - name: Commit and push CHANGELOG on base branch (if needed)
       run: |
         git diff --quiet && git diff --cached --quiet || git commit -a -m "Update CHANGELOG.md"
         git push origin ${{ github.ref_name }}
