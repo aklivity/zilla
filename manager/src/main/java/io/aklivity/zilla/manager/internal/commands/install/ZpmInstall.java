@@ -123,6 +123,11 @@ public final class ZpmInstall extends ZpmCommand
         hidden = true)
     public Boolean instrument = false;
 
+    @Option(name = {"--incubator"},
+        description = "Link an incubator module",
+        hidden = true)
+    public List<String> incubator = new ArrayList<>();
+
     @Option(name = {"--exclude-local-repository"},
         description = "Exclude the local Maven repository")
     public boolean excludeLocalRepo;
@@ -905,6 +910,13 @@ public final class ZpmInstall extends ZpmCommand
         }
     }
 
+    private List<String> incubatorModules()
+    {
+        return incubator.stream()
+            .map(name -> String.format("jdk.incubator.%s", name))
+            .collect(toList());
+    }
+
     private void linkModules(
         Collection<ZpmModule> modules) throws IOException
     {
@@ -921,6 +933,7 @@ public final class ZpmInstall extends ZpmCommand
         {
             extraModuleNames.add("java.instrument");
         }
+        extraModuleNames.addAll(incubatorModules());
 
         extraModuleNames.add("java.management");
         extraModuleNames.add("jdk.management");
