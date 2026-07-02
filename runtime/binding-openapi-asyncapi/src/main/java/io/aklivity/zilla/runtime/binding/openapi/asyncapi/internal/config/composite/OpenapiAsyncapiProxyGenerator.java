@@ -26,10 +26,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiReplyView;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
@@ -42,6 +38,10 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.Openap
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiRouteConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiReplyView;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.extensions.http.kafka.OpenapiHttpKafkaFilter;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
