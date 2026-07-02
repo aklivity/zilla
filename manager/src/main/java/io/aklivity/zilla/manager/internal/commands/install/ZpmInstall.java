@@ -124,7 +124,7 @@ public final class ZpmInstall extends ZpmCommand
     public Boolean instrument = false;
 
     @Option(name = {"--incubator"},
-        description = "Enable an incubator module (repeatable), e.g. --incubator vector",
+        description = "Link an incubator module",
         hidden = true)
     public List<String> incubator = new ArrayList<>();
 

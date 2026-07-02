@@ -117,6 +117,8 @@ public class ZpmInstallTest
     public void shouldGenerateLauncherWithIncubatorModule() throws Exception
     {
         Path configDir = Paths.get(getClass().getResource("/conf/install/zpm.json").toURI()).getParent();
+        Path launcherDir = Paths.get("target/launcher-incubator");
+        Files.createDirectories(launcherDir);
 
         String[] args =
         {
@@ -124,7 +126,7 @@ public class ZpmInstallTest
             "--config-directory", configDir.toString(),
             "--lock-directory", "target/test-locks/install-incubator",
             "--output-directory", "target/zpm-incubator",
-            "--launcher-directory", "target/launcher-incubator",
+            "--launcher-directory", launcherDir.toString(),
             "--exclude-remote-repositories",
             "--incubator", "vector",
             "--silent"
@@ -137,10 +139,10 @@ public class ZpmInstallTest
 
         assertThat(install, instanceOf(ZpmInstall.class));
 
-        File launcherFile = new File("target/launcher-incubator/zilla");
-        assertThat(launcherFile, anExistingFile());
+        Path launcherPath = launcherDir.resolve("zilla");
+        assertThat(launcherPath.toFile(), anExistingFile());
 
-        String launcher = Files.readString(launcherFile.toPath());
+        String launcher = Files.readString(launcherPath);
         assertThat(launcher, containsString("--add-modules jdk.incubator.vector"));
     }
 }
