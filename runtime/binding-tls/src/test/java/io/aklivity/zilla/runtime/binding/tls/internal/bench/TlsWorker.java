@@ -167,6 +167,22 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
+    public long affinity(
+        long bindingId,
+        long affinity)
+    {
+        return affinity;
+    }
+
+    @Override
+    public boolean isLocalAffinity(
+        long bindingId,
+        long affinity)
+    {
+        return true;
+    }
+
+    @Override
     public long supplyReplyId(
         long initialId)
     {

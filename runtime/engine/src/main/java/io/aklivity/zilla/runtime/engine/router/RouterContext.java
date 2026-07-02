@@ -49,4 +49,36 @@ public interface RouterContext
      */
     void detach(
         long routerId);
+
+    /**
+     * Resolves the stream affinity for the given binding. A composing router may map the
+     * supplied affinity onto a different value; the encoding of the resolved affinity is
+     * router-specific. The default resolution returns the affinity unchanged.
+     *
+     * @param bindingId  the binding id whose affinity to resolve
+     * @param affinity   the affinity to resolve
+     * @return the resolved affinity
+     */
+    default long affinity(
+        long bindingId,
+        long affinity)
+    {
+        return affinity;
+    }
+
+    /**
+     * Returns {@code true} if the given affinity is local to this router, {@code false}
+     * otherwise. The interpretation of locality is router-specific. The default treats every
+     * affinity as local.
+     *
+     * @param bindingId  the binding id whose affinity to consult
+     * @param affinity   the affinity to test
+     * @return {@code true} if the affinity is local to this router; otherwise {@code false}
+     */
+    default boolean isLocalAffinity(
+        long bindingId,
+        long affinity)
+    {
+        return true;
+    }
 }

@@ -560,6 +560,22 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public long affinity(
+        long bindingId,
+        long affinity)
+    {
+        return router.affinity(bindingId, affinity);
+    }
+
+    @Override
+    public boolean isLocalAffinity(
+        long bindingId,
+        long affinity)
+    {
+        return router.isLocalAffinity(bindingId, affinity);
+    }
+
+    @Override
     public long supplyReplyId(
         long initialId)
     {
