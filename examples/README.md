@@ -21,7 +21,7 @@ docker compose --project-directory <example.name> up -d
 ![demo](.assets/demo.gif)
 
 > [!NOTE]
-Make sure you have the `latest` version of Zilla by running the `docker pull ghcr.io/aklivity/zilla:latest` command. To specify a specific Zilla image version you can set the `ZILLA_VERSION` environment variable before running an example.
+Make sure you have the latest 1.x version of Zilla by running the `docker pull ghcr.io/aklivity/zilla:1` command. To specify a specific Zilla image version you can set the `ZILLA_VERSION` environment variable before running an example.
 
 ## Examples
 
