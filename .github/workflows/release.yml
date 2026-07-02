@@ -121,24 +121,17 @@ jobs:
     - name: Commit POM versions and CHANGELOG on release branch
       run: git commit -a -m "Prepare release ${{ inputs.version }}"
 
-    - name: No-merge release branch into develop branch
-      if: github.ref_name == 'develop'
+    - name: No-merge release branch into base branch
       run: |
         git config merge.ours.driver true
-        git fetch origin develop
-        git checkout develop
+        git fetch origin ${{ github.ref_name }}
+        git checkout ${{ github.ref_name }}
         git merge -s ours release/${{ inputs.version }} \
-            -m "No-merge release ${{ inputs.version }} into develop"
+            -m "No-merge release ${{ inputs.version }} into ${{ github.ref_name }}"
 
-    - name: Push changes to develop and release branch
-      if: github.ref_name == 'develop'
+    - name: Push changes to base branch and release branch
       run: |
-        git push origin develop release/${{ inputs.version }}
-
-    - name: Push release branch
-      if: startsWith(github.ref_name, 'support/')
-      run: |
-        git push origin release/${{ inputs.version }}
+        git push origin ${{ github.ref_name }} release/${{ inputs.version }}
 
   deploy:
     name: Deploy ${{ inputs.version }}
@@ -323,11 +316,16 @@ jobs:
         git branch ${{ github.ref_name }} origin/${{ github.ref_name }} || true
         git flow init -df
 
+    - name: Tag the release
+      run: |
+        git tag -a ${{ inputs.version }} -m "${{ inputs.version }}" release/${{ inputs.version }}
+        git push origin refs/tags/${{ inputs.version }}
+
     - name: Finish release
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
         git config --local "gitflow.branch.release/${{ inputs.version }}.base" ${{ github.ref_name }}
-        git flow release finish -p ${{ inputs.version }} -m "${{ inputs.version }}"
+        git flow release finish -p -n ${{ inputs.version }}
 
     - name: Checkout base branch for CHANGELOG
       run: |
