@@ -18,6 +18,12 @@ jobs:
     steps:
     - name: Checkout GitHub sources
       uses: actions/checkout@v6
+    - name: Pin maven.packages.aklivity.io to IPv4
+      run: |
+        ipv4=$(getent ahostsv4 maven.packages.aklivity.io | awk 'NR==1{print $1}')
+        if [ -n "$ipv4" ]; then
+          echo "$ipv4 maven.packages.aklivity.io" | sudo tee -a /etc/hosts
+        fi
     - name: Setup JDK ${{ matrix.java }}
       uses: actions/setup-java@v5
       with:

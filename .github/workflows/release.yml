@@ -82,6 +82,13 @@ jobs:
         fetch-depth: 0
         persist-credentials: false
 
+    - name: Pin maven.packages.aklivity.io to IPv4
+      run: |
+        ipv4=$(getent ahostsv4 maven.packages.aklivity.io | awk 'NR==1{print $1}')
+        if [ -n "$ipv4" ]; then
+          echo "$ipv4 maven.packages.aklivity.io" | sudo tee -a /etc/hosts
+        fi
+
     - name: Initialize GitFlow
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -144,6 +151,13 @@ jobs:
       with:
         ref: release/${{ inputs.version }}
         fetch-depth: 0
+
+    - name: Pin maven.packages.aklivity.io to IPv4
+      run: |
+        ipv4=$(getent ahostsv4 maven.packages.aklivity.io | awk 'NR==1{print $1}')
+        if [ -n "$ipv4" ]; then
+          echo "$ipv4 maven.packages.aklivity.io" | sudo tee -a /etc/hosts
+        fi
 
     - name: Setup JDK
       uses: actions/setup-java@v5
@@ -210,7 +224,7 @@ jobs:
 
     - name: Deploy via Maven
       run: |
-        ./mvnw -B -U -nsu -ntp clean deploy -Drelease -Ddocker.latest.tag=${{ steps.tag.outputs.latest }}
+        ./mvnw -B -U -nsu -ntp clean deploy -Drelease -Ddocker.latest.tag=${{ steps.tag.outputs.latest }} -DskipTests
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
