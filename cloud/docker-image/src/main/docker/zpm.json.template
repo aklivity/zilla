@@ -49,6 +49,7 @@
     "io.aklivity.zilla:common-feature",
     "io.aklivity.zilla:common-json",
     "io.aklivity.zilla:common-lang",
+    "io.aklivity.zilla:common-openapi",
     "io.aklivity.zilla:common-protobuf",
     "io.aklivity.zilla:common-yaml",
     "io.aklivity.zilla:command",

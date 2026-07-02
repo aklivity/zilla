@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>2.0.0-alpha-18</version>
+    <version>2.0.0-alpha-19</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -43,7 +43,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>common-json</artifactId>
+      <artifactId>common-openapi</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -178,9 +178,7 @@
               <includes>io/aklivity/zilla/specs/binding/openapi/schema/openapi.schema.patch.json,
                 io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json,
                 io/aklivity/zilla/specs/binding/tcp/schema/tcp.schema.patch.json,
-                io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json,
-                io/aklivity/zilla/specs/binding/openapi/schema/openapi.3.0.3.schema.json,
-                io/aklivity/zilla/specs/binding/openapi/schema/openapi.3.1.0.schema.json
+                io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json
               </includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
@@ -255,7 +253,6 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/types/**/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/binding/openapi/internal/model/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
