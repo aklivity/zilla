@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.5](https://github.com/aklivity/zilla/tree/1.2.5) (2026-07-02)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.5-rc3...1.2.5)
+
+## [1.2.5-rc3](https://github.com/aklivity/zilla/tree/1.2.5-rc3) (2026-07-02)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-16...1.2.5-rc3)
+
+## [2.0.0-alpha-16](https://github.com/aklivity/zilla/tree/2.0.0-alpha-16) (2026-06-30)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-15...2.0.0-alpha-16)
+
 ## [2.0.0-alpha-15](https://github.com/aklivity/zilla/tree/2.0.0-alpha-15) (2026-06-30)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-14...2.0.0-alpha-15)
