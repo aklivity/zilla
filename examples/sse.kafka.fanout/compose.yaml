@@ -1,7 +1,7 @@
 name: ${NAMESPACE:-zilla-sse-kafka-fanout}
 services:
   zilla:
-    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-1}
     restart: unless-stopped
     hostname: zilla.examples.dev
     ports:
