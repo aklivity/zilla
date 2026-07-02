@@ -51,6 +51,7 @@
     <module>common-feature</module>
     <module>common-json</module>
     <module>common-lang</module>
+    <module>common-openapi</module>
     <module>common-protobuf</module>
     <module>common-yaml</module>
     <module>command</module>
@@ -242,6 +243,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>common-lang</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common-openapi</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
