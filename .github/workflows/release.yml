@@ -13,9 +13,6 @@ permissions:
   packages: write
   pull-requests: read
 
-env:
-  MAVEN_OPTS: -Djava.net.preferIPv4Stack=true
-
 jobs:
   prepare:
     name: Prepare ${{ inputs.version }}
@@ -85,6 +82,13 @@ jobs:
         fetch-depth: 0
         persist-credentials: false
 
+    - name: Pin maven.packages.aklivity.io to IPv4
+      run: |
+        ipv4=$(getent ahostsv4 maven.packages.aklivity.io | awk 'NR==1{print $1}')
+        if [ -n "$ipv4" ]; then
+          echo "$ipv4 maven.packages.aklivity.io" | sudo tee -a /etc/hosts
+        fi
+
     - name: Initialize GitFlow
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -147,6 +151,13 @@ jobs:
       with:
         ref: release/${{ inputs.version }}
         fetch-depth: 0
+
+    - name: Pin maven.packages.aklivity.io to IPv4
+      run: |
+        ipv4=$(getent ahostsv4 maven.packages.aklivity.io | awk 'NR==1{print $1}')
+        if [ -n "$ipv4" ]; then
+          echo "$ipv4 maven.packages.aklivity.io" | sudo tee -a /etc/hosts
+        fi
 
     - name: Setup JDK
       uses: actions/setup-java@v5
