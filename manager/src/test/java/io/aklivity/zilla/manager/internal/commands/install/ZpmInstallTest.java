@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -114,7 +116,7 @@ public class ZpmInstallTest
     }
 
     @Test
-    public void shouldGenerateLauncherWithIncubatorModule() throws Exception
+    public void shouldLinkIncubatorModuleIntoImage() throws Exception
     {
         Path configDir = Paths.get(getClass().getResource("/conf/install/zpm.json").toURI()).getParent();
         Path launcherDir = Paths.get("target/launcher-incubator");
@@ -139,10 +141,15 @@ public class ZpmInstallTest
 
         assertThat(install, instanceOf(ZpmInstall.class));
 
-        Path launcherPath = launcherDir.resolve("zilla");
-        assertThat(launcherPath.toFile(), anExistingFile());
+        Path imageJava = Paths.get("target/zpm-incubator/image/bin/java");
+        assertThat(imageJava.toFile(), anExistingFile());
 
-        String launcher = Files.readString(launcherPath);
-        assertThat(launcher, containsString("--add-modules jdk.incubator.vector"));
+        Process listModules = new ProcessBuilder(imageJava.toString(), "--list-modules")
+            .redirectErrorStream(true)
+            .start();
+        String modules = new String(listModules.getInputStream().readAllBytes(), UTF_8);
+        listModules.waitFor();
+
+        assertThat(modules, containsString("jdk.incubator.vector"));
     }
 }
