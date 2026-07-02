@@ -16,7 +16,6 @@
 package io.aklivity.zilla.manager.internal.commands.install;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
