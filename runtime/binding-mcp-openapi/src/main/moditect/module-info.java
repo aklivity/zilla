@@ -19,7 +19,7 @@ module io.aklivity.zilla.runtime.binding.mcp.openapi
 
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.mcp.http;
-    requires io.aklivity.zilla.runtime.binding.openapi;
+    requires io.aklivity.zilla.runtime.common.openapi;
     requires io.aklivity.zilla.runtime.catalog.inline;
     requires io.aklivity.zilla.runtime.model.core;
     requires io.aklivity.zilla.runtime.model.json;
