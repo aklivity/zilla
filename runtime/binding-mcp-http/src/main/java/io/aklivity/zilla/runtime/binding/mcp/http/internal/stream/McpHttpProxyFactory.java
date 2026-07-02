@@ -540,25 +540,25 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId,
             String reply)
         {
-            stage(reply.getBytes(UTF_8));
+            doEncodeReply(reply.getBytes(UTF_8));
             replyComplete = true;
             doMcpBegin(traceId);
             flushReply(traceId);
         }
 
-        // Stages a reply envelope already assembled into replyBuffer[0..length], avoiding a jakarta DOM
+        // Encodes a reply envelope already assembled into replyBuffer[0..length], avoiding a jakarta DOM
         // round-trip and the intermediate String/byte[] that doMcpReply(String) requires.
         void doMcpReplyBytes(
             long traceId,
             int length)
         {
-            stageBytes(replyBuffer, 0, length);
+            doEncodeReply(replyBuffer, 0, length);
             replyComplete = true;
             doMcpBegin(traceId);
             flushReply(traceId);
         }
 
-        void stage(
+        void doEncodeReply(
             byte[] bytes)
         {
             if (encodeSlot == NO_SLOT)
@@ -577,7 +577,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
         }
 
-        void stageBytes(
+        void doEncodeReply(
             DirectBufferEx buffer,
             int offset,
             int length)
@@ -903,7 +903,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
                 if (bodyLength > 0)
                 {
-                    delegate.stageRequestBody(traceId, projectBuffer, 0, bodyLength);
+                    delegate.doEncodeRequestBody(traceId, projectBuffer, 0, bodyLength);
                 }
             }
             delegate.requestComplete();
@@ -951,7 +951,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 final int produced = requestGenerator.length();
                 if (produced > 0)
                 {
-                    delegate.stageRequestBody(traceId, projectBuffer, 0, produced);
+                    delegate.doEncodeRequestBody(traceId, projectBuffer, 0, produced);
                 }
 
                 switch (status)
@@ -1085,7 +1085,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             final int produced = responseGenerator.length();
             if (produced > 0)
             {
-                stageBytes(projectBuffer, 0, produced);
+                doEncodeReply(projectBuffer, 0, produced);
             }
             return status;
         }
@@ -1099,7 +1099,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId)
         {
             responseDone = true;
-            stage(REPLY_SUFFIX);
+            doEncodeReply(REPLY_SUFFIX);
             replyComplete = true;
             flushReply(traceId);
         }
@@ -1296,11 +1296,11 @@ public final class McpHttpProxyFactory implements BindingHandler
             int summaryLength,
             int length)
         {
-            stage(TOOL_SUCCESS_PREFIX);
-            stageBytes(replyBuffer, 0, summaryLength);
-            stage(TOOL_SUCCESS_INFIX);
-            stageBytes(projectBuffer, 0, length);
-            stage(TOOL_SUCCESS_SUFFIX);
+            doEncodeReply(TOOL_SUCCESS_PREFIX);
+            doEncodeReply(replyBuffer, 0, summaryLength);
+            doEncodeReply(TOOL_SUCCESS_INFIX);
+            doEncodeReply(projectBuffer, 0, length);
+            doEncodeReply(TOOL_SUCCESS_SUFFIX);
             replyComplete = true;
             doMcpBegin(traceId);
             flushReply(traceId);
@@ -1381,7 +1381,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             final String mimeType = resource != null && resource.mimeType != null
                 ? resource.mimeType
                 : contentType;
-            stageBytes(replyBuffer, 0, replyPrefix(uri, mimeType));
+            doEncodeReply(replyBuffer, 0, replyPrefix(uri, mimeType));
             doMcpBegin(traceId);
         }
 
@@ -1583,7 +1583,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, httpBeginEx);
         }
 
-        private void stageRequestBody(
+        private void doEncodeRequestBody(
             long traceId,
             DirectBufferEx buffer,
             int offset,
