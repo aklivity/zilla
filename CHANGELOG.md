@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0-alpha-18](https://github.com/aklivity/zilla/tree/2.0.0-alpha-18) (2026-07-02)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-17...2.0.0-alpha-18)
+
+**Merged pull requests:**
+
+- ci\(release\): make CHANGELOG generation resilient to transient failures [\#1990](https://github.com/aklivity/zilla/pull/1990) ([jfallows](https://github.com/jfallows))
+
+## [2.0.0-alpha-17](https://github.com/aklivity/zilla/tree/2.0.0-alpha-17) (2026-07-02)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.5...2.0.0-alpha-17)
+
+**Merged pull requests:**
+
+- ci\(release\): force Maven to IPv4 and skip tests on release deploy [\#1983](https://github.com/aklivity/zilla/pull/1983) ([jfallows](https://github.com/jfallows))
+- ci\(release\): support/1.x-aware release workflow with major/minor docker tags [\#1981](https://github.com/aklivity/zilla/pull/1981) ([jfallows](https://github.com/jfallows))
+
 ## [1.2.5](https://github.com/aklivity/zilla/tree/1.2.5) (2026-07-02)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.5-rc3...1.2.5)
