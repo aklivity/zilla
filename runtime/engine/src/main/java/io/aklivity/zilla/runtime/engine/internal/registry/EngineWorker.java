@@ -432,7 +432,7 @@ public class EngineWorker implements EngineContext, Agent
 
         this.routerConfig = routerConfig;
         EngineRouteable routeable = new EngineRouteable(config, this::newStream,
-            this::attachComposite, this::detachComposite);
+            this::attachComposite, this::detachComposite, this::supplyStore);
         this.router = router.supply(routeable);
 
         this.bindings = bindings;
@@ -812,6 +812,23 @@ public class EngineWorker implements EngineContext, Agent
     {
         StoreRegistry store = registry.resolveStore(storeId);
         return store != null ? store.handler() : null;
+    }
+
+    private StoreHandler supplyStore(
+        String name)
+    {
+        StoreHandler handler = null;
+        if (name != null)
+        {
+            final int colon = name.indexOf(':');
+            if (colon >= 0)
+            {
+                final int namespaceId = labels.supplyLabelId(name.substring(0, colon));
+                final int localId = labels.supplyLabelId(name.substring(colon + 1));
+                handler = supplyStore(NamespacedId.id(namespaceId, localId));
+            }
+        }
+        return handler;
     }
 
     @Override

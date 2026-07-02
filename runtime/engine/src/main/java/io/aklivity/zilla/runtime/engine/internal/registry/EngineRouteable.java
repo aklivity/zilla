@@ -16,12 +16,14 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
 import io.aklivity.zilla.runtime.engine.router.RouterContext;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 final class EngineRouteable implements RouteableContext
 {
@@ -29,18 +31,21 @@ final class EngineRouteable implements RouteableContext
     private final BindingHandler streamFactory;
     private final Consumer<NamespaceConfig> attachComposite;
     private final Consumer<NamespaceConfig> detachComposite;
+    private final Function<String, StoreHandler> supplyStore;
     private final RouterContext engineRouter;
 
     EngineRouteable(
         Configuration config,
         BindingHandler streamFactory,
         Consumer<NamespaceConfig> attachComposite,
-        Consumer<NamespaceConfig> detachComposite)
+        Consumer<NamespaceConfig> detachComposite,
+        Function<String, StoreHandler> supplyStore)
     {
         this.config = config;
         this.streamFactory = streamFactory;
         this.attachComposite = attachComposite;
         this.detachComposite = detachComposite;
+        this.supplyStore = supplyStore;
         this.engineRouter = new EngineRouterContext(streamFactory);
     }
 
@@ -74,5 +79,12 @@ final class EngineRouteable implements RouteableContext
     public RouterContext engineRouter()
     {
         return engineRouter;
+    }
+
+    @Override
+    public StoreHandler supplyStore(
+        String name)
+    {
+        return supplyStore.apply(name);
     }
 }
