@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-19...HEAD)
+
+**Implemented enhancements:**
+
+- Hoist AsyncAPI model/view/parser APIs into a runtime/common-asyncapi module [\#1890](https://github.com/aklivity/zilla/issues/1890)
+
 ## [2.0.0-alpha-19](https://github.com/aklivity/zilla/tree/2.0.0-alpha-19) (2026-07-02)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.6-rc3...2.0.0-alpha-19)
