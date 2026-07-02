@@ -123,6 +123,11 @@ public final class ZpmInstall extends ZpmCommand
         hidden = true)
     public Boolean instrument = false;
 
+    @Option(name = {"--incubator"},
+        description = "Enable an incubator module (repeatable), e.g. --incubator vector",
+        hidden = true)
+    public List<String> incubator = new ArrayList<>();
+
     @Option(name = {"--exclude-local-repository"},
         description = "Exclude the local Maven repository")
     public boolean excludeLocalRepo;
@@ -732,6 +737,13 @@ public final class ZpmInstall extends ZpmCommand
         }
     }
 
+    private List<String> incubatorModuleNames()
+    {
+        return incubator.stream()
+            .map(name -> String.format("jdk.incubator.%s", name))
+            .collect(toList());
+    }
+
     private void linkModules(
         Collection<ZpmModule> modules) throws IOException
     {
@@ -748,6 +760,7 @@ public final class ZpmInstall extends ZpmCommand
         {
             extraModuleNames.add("java.instrument");
         }
+        extraModuleNames.addAll(incubatorModuleNames());
 
         extraModuleNames.add("java.management");
         extraModuleNames.add("jdk.management");
@@ -782,8 +795,7 @@ public final class ZpmInstall extends ZpmCommand
 
     private void generateLauncher() throws IOException
     {
-        Path zillaPath = launcherDir.resolve("zilla");
-        Files.write(zillaPath, Arrays.asList(
+        List<String> lines = new ArrayList<>(Arrays.asList(
             "#!/bin/sh",
             "if [ -n \"$ZILLA_INCUBATOR_ENABLED\" ]; then",
             "JAVA_OPTIONS=\"$JAVA_OPTIONS -Dzilla.incubator.enabled=$ZILLA_INCUBATOR_ENABLED\"",
@@ -793,12 +805,23 @@ public final class ZpmInstall extends ZpmCommand
             "JAVA_OPTIONS=\"$JAVA_OPTIONS --add-opens java.base/jdk.internal.misc=ALL-UNNAMED " +
                 "--add-opens java.base/jdk.internal.misc=org.agrona " +
                 "--enable-native-access=io.aklivity.zilla.runtime.common.agrona " +
-                "--sun-misc-unsafe-memory-access=%s\"".formatted(unsafeMemoryAccess),
-            String.format(String.join(" ", Arrays.asList(
-                    "exec $ZILLA_DIRECTORY/%s/bin/java",
-                    "$JAVA_OPTIONS",
-                    "-m io.aklivity.zilla.runtime.command/io.aklivity.zilla.runtime.command.internal.ZillaMain \"$@\"")),
-                imageDir)));
+                "--sun-misc-unsafe-memory-access=%s\"".formatted(unsafeMemoryAccess)));
+
+        List<String> incubatorModuleNames = incubatorModuleNames();
+        if (!incubatorModuleNames.isEmpty())
+        {
+            lines.add(String.format("JAVA_OPTIONS=\"$JAVA_OPTIONS --add-modules %s\"",
+                String.join(",", incubatorModuleNames)));
+        }
+
+        lines.add(String.format(String.join(" ", Arrays.asList(
+                "exec $ZILLA_DIRECTORY/%s/bin/java",
+                "$JAVA_OPTIONS",
+                "-m io.aklivity.zilla.runtime.command/io.aklivity.zilla.runtime.command.internal.ZillaMain \"$@\"")),
+            imageDir));
+
+        Path zillaPath = launcherDir.resolve("zilla");
+        Files.write(zillaPath, lines);
         zillaPath.toFile().setExecutable(true);
     }
 

@@ -15,12 +15,14 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.io.FileMatchers.anExistingFile;
 
 import java.io.File;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -109,5 +111,36 @@ public class ZpmInstallTest
             anExistingFile());
         assertThat(new File(String.format("target/zpm-offline/cache/org/agrona/agrona/%1$s/agrona-%1$s.jar", agronaVersion)),
             anExistingFile());
+    }
+
+    @Test
+    public void shouldGenerateLauncherWithIncubatorModule() throws Exception
+    {
+        Path configDir = Paths.get(getClass().getResource("/conf/install/zpm.json").toURI()).getParent();
+
+        String[] args =
+        {
+            "install",
+            "--config-directory", configDir.toString(),
+            "--lock-directory", "target/test-locks/install-incubator",
+            "--output-directory", "target/zpm-incubator",
+            "--launcher-directory", "target/launcher-incubator",
+            "--exclude-remote-repositories",
+            "--incubator", "vector",
+            "--silent"
+        };
+
+        Cli<Runnable> parser = new Cli<>(ZpmCli.class);
+        Runnable install = parser.parse(args);
+
+        install.run();
+
+        assertThat(install, instanceOf(ZpmInstall.class));
+
+        File launcherFile = new File("target/launcher-incubator/zilla");
+        assertThat(launcherFile, anExistingFile());
+
+        String launcher = Files.readString(launcherFile.toPath());
+        assertThat(launcher, containsString("--add-modules jdk.incubator.vector"));
     }
 }
