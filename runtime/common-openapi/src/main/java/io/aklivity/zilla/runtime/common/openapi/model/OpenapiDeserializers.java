@@ -27,6 +27,8 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiExtension;
+
 public final class OpenapiDeserializers
 {
     private OpenapiDeserializers()
@@ -34,8 +36,8 @@ public final class OpenapiDeserializers
     }
 
     static Supplier<Jsonb> plain(
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes,
+        Map<OpenapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<OpenapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes,
         Class<?> exclude)
     {
         Jsonb[] cache = new Jsonb[1];
@@ -112,8 +114,8 @@ public final class OpenapiDeserializers
     }
 
     public static List<JsonbDeserializer<?>> all(
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes)
+        Map<OpenapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<OpenapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         return List.of(
             new OpenapiDeserializer(extensionTypes, prefixExtensionTypes),
