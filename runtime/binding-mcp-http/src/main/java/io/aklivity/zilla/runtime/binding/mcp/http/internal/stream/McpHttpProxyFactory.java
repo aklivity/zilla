@@ -180,12 +180,14 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final Map<JsonSchema, JsonPipeline> validatingProjectors;
     private final Map<JsonSchema, JsonPipeline> validators;
     private final Map<McpHttpRouteConfig, JsonPipeline> templates;
+    private final Map<McpHttpRouteConfig, List<String>> routePathArgReferences;
 
     // hoisted to avoid reallocating a capturing method-reference object on every computeIfAbsent call
     private final Function<JsonSchema, JsonPipeline> newProjectorFn = this::newProjector;
     private final Function<JsonSchema, JsonPipeline> newValidatingProjectorFn = this::newValidatingProjector;
     private final Function<JsonSchema, JsonPipeline> newValidatorFn = this::newValidator;
     private final Function<McpHttpRouteConfig, JsonPipeline> newTemplateFn = this::newTemplate;
+    private final Function<McpHttpRouteConfig, List<String>> newPathArgReferencesFn = this::newPathArgReferences;
 
     private final Map<String, McpSession> sessions;
     private final Supplier<String> supplySessionId;
@@ -222,6 +224,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.validatingProjectors = new IdentityHashMap<>();
         this.validators = new IdentityHashMap<>();
         this.templates = new IdentityHashMap<>();
+        this.routePathArgReferences = new IdentityHashMap<>();
         this.sessions = new Object2ObjectHashMap<>();
         this.supplySessionId = config.sessionIdSupplier();
         this.sessionIdAttempts = config.sessionIdAttempts();
@@ -1187,7 +1190,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 requestStreaming = true;
                 requestArgs = new HashMap<>();
-                requestPathArgs = argReferences(route.with.headers.get(HEADER_PATH));
+                requestPathArgs = pathArgReferences(route);
                 requestGenerator = JsonEx.createGenerator();
                 requestPipeline = JsonEx.stream(JsonEx.createParser())
                     .transform(new McpHttpArguments(requestArgs))
@@ -2250,6 +2253,20 @@ public final class McpHttpProxyFactory implements BindingHandler
         return runInto(templates.computeIfAbsent(route, newTemplateFn), buffer, offset, length);
     }
 
+    // Memoizes argReferences(route.with.headers.get(HEADER_PATH)) per route: the result depends only on
+    // immutable route config, so re-parsing it on every streaming tools/call stream open is wasted work.
+    private List<String> pathArgReferences(
+        McpHttpRouteConfig route)
+    {
+        return routePathArgReferences.computeIfAbsent(route, newPathArgReferencesFn);
+    }
+
+    private List<String> newPathArgReferences(
+        McpHttpRouteConfig route)
+    {
+        return argReferences(route.with.headers.get(HEADER_PATH));
+    }
+
     // Runs a pipeline over the input window into projectBuffer, returning the bytes produced, or -1 when the
     // value did not complete. The output stays in projectBuffer so the caller can stream it onward (a request
     // body) or walk it (a query object) without materializing an intermediate String.
@@ -2781,29 +2798,59 @@ public final class McpHttpProxyFactory implements BindingHandler
         return result;
     }
 
+    // ASCII input (the common case for tool args, ids, route params) is percent-encoded by iterating
+    // chars directly, skipping the UTF-8 byte conversion the general case requires below: a single-byte
+    // ASCII char and its UTF-8 byte are bit-identical, so this produces the same output either way.
     private static String encode(
         String value)
     {
         final StringBuilder builder = new StringBuilder();
-        final byte[] bytes = value.getBytes(UTF_8);
-        for (byte b : bytes)
+        if (isAscii(value))
         {
-            final int c = b & 0xff;
-            if (c >= 'A' && c <= 'Z' ||
-                c >= 'a' && c <= 'z' ||
-                c >= '0' && c <= '9' ||
-                c == '-' || c == '.' || c == '_' || c == '~')
+            for (int i = 0; i < value.length(); i++)
             {
-                builder.append((char) c);
+                encodeByte(builder, value.charAt(i));
             }
-            else
+        }
+        else
+        {
+            final byte[] bytes = value.getBytes(UTF_8);
+            for (byte b : bytes)
             {
-                builder.append('%');
-                builder.append(Character.toUpperCase(Character.forDigit(c >> 4 & 0xf, 16)));
-                builder.append(Character.toUpperCase(Character.forDigit(c & 0xf, 16)));
+                encodeByte(builder, b & 0xff);
             }
         }
         return builder.toString();
+    }
+
+    private static boolean isAscii(
+        String value)
+    {
+        boolean ascii = true;
+        for (int i = 0; ascii && i < value.length(); i++)
+        {
+            ascii = value.charAt(i) < 0x80;
+        }
+        return ascii;
+    }
+
+    private static void encodeByte(
+        StringBuilder builder,
+        int c)
+    {
+        if (c >= 'A' && c <= 'Z' ||
+            c >= 'a' && c <= 'z' ||
+            c >= '0' && c <= '9' ||
+            c == '-' || c == '.' || c == '_' || c == '~')
+        {
+            builder.append((char) c);
+        }
+        else
+        {
+            builder.append('%');
+            builder.append(Character.toUpperCase(Character.forDigit(c >> 4 & 0xf, 16)));
+            builder.append(Character.toUpperCase(Character.forDigit(c & 0xf, 16)));
+        }
     }
 
     private static int put(
