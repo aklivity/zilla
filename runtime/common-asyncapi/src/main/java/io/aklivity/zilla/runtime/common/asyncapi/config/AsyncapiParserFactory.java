@@ -22,8 +22,8 @@ public final class AsyncapiParserFactory
     private final Map<String, Class<?>> operationBindingTypes;
     private final Map<String, Class<?>> messageBindingTypes;
     private final Map<String, Class<?>> serverBindingTypes;
-    private final Map<String, Class<?>> extensionTypes;
-    private final Map<String, Class<?>> prefixExtensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes;
 
     public AsyncapiParserFactory()
     {
@@ -58,18 +58,14 @@ public final class AsyncapiParserFactory
         return this;
     }
 
-    public <T> AsyncapiParserFactory withExtension(
-        String name,
-        Class<T> type)
+    public AsyncapiParserFactory withExtension(
+        AsyncapiExtension extension)
     {
-        if (name.endsWith("*"))
-        {
-            prefixExtensionTypes.put(name, type);
-        }
-        else
-        {
-            extensionTypes.put(name, type);
-        }
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> target = extension.name().endsWith("*")
+            ? prefixExtensionTypes
+            : extensionTypes;
+        target.computeIfAbsent(extension.scope(), scope -> new LinkedHashMap<>())
+            .put(extension.name(), extension.type());
         return this;
     }
 

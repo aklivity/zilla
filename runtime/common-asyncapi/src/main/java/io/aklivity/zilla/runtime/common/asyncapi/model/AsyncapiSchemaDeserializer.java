@@ -26,18 +26,20 @@ import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
+
 public final class AsyncapiSchemaDeserializer implements JsonbDeserializer<AsyncapiSchema>
 {
-    private final Map<String, Class<?>> extensionTypes;
-    private final Map<String, Class<?>> prefixExtensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes;
     private final Supplier<Jsonb> plain;
 
     public AsyncapiSchemaDeserializer(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes)
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         this.extensionTypes = extensionTypes;
         this.prefixExtensionTypes = prefixExtensionTypes;
@@ -57,8 +59,8 @@ public final class AsyncapiSchemaDeserializer implements JsonbDeserializer<Async
 
     static AsyncapiSchema bind(
         JsonObject object,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes,
         Supplier<Jsonb> plain)
     {
         AsyncapiSchema model = plain.get().fromJson(object.toString(), AsyncapiSchema.class);
@@ -95,7 +97,8 @@ public final class AsyncapiSchemaDeserializer implements JsonbDeserializer<Async
             bindAll(model.anyOf, object.getJsonArray("anyOf"), extensionTypes, prefixExtensionTypes, plain);
         }
 
-        model.extensions = AsyncapiDeserializers.extensions(object, extensionTypes, prefixExtensionTypes, plain);
+        model.extensions = AsyncapiDeserializers.extensions(
+            object, AsyncapiExtension.Scope.SCHEMA, extensionTypes, prefixExtensionTypes, plain);
 
         return model;
     }
@@ -103,8 +106,8 @@ public final class AsyncapiSchemaDeserializer implements JsonbDeserializer<Async
     private static void bindAll(
         List<AsyncapiSchema> schemas,
         JsonArray objects,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes,
         Supplier<Jsonb> plain)
     {
         for (int i = 0; i < schemas.size(); i++)
