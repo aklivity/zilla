@@ -17,13 +17,17 @@ package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,6 +35,7 @@ import static org.mockito.Mockito.lenient;
 
 import java.io.StringReader;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -58,6 +63,8 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigException;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -72,7 +79,8 @@ public class McpOpenapiCompositeGeneratorTest
         "  \"servers\": [ { \"url\": \"https://api.github.com\" } ]," +
         "  \"components\": { \"securitySchemes\": {" +
         "    \"bearerAuth\": { \"type\": \"http\", \"scheme\": \"bearer\", \"bearerFormat\": \"jwt\" }," +
-        "    \"oauthScheme\": { \"type\": \"oauth2\", \"flows\": {} }" +
+        "    \"oauthScheme\": { \"type\": \"oauth2\", \"flows\": {} }," +
+        "    \"apiKeyScheme\": { \"type\": \"apiKey\", \"in\": \"header\", \"name\": \"X-Api-Key\" }" +
         "  } }," +
         "  \"paths\": {" +
         "    \"/repos/{owner}/{repo}/pulls\": {" +
@@ -117,6 +125,75 @@ public class McpOpenapiCompositeGeneratorTest
         "        \"responses\": { \"200\": { \"description\": \"ok\"," +
         "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
         "      }" +
+        "    }," +
+        "    \"/repos/{owner}/{repo}/issues\": {" +
+        "      \"post\": {" +
+        "        \"operationId\": \"issues/create\"," +
+        "        \"security\": [ { \"apiKeyScheme\": [] } ]," +
+        "        \"parameters\": [" +
+        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
+        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }" +
+        "        ]," +
+        "        \"responses\": { \"201\": { \"description\": \"created\"," +
+        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
+        "      }," +
+        "      \"get\": {" +
+        "        \"operationId\": \"issues/list\"," +
+        "        \"security\": []," +
+        "        \"parameters\": [" +
+        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
+        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }" +
+        "        ]," +
+        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
+        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
+        "      }" +
+        "    }," +
+        "    \"/repos/{owner}/{repo}/pulls/{number}/merge\": {" +
+        "      \"put\": {" +
+        "        \"operationId\": \"pulls/merge\"," +
+        "        \"security\": [ { \"bearerAuth\": [ \"repo\", \"pr:write\" ]," +
+        "          \"apiKeyScheme\": [ \"pr:write\", \"admin\" ] } ]," +
+        "        \"parameters\": [" +
+        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
+        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
+        "          { \"name\": \"number\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"integer\" } }" +
+        "        ]," +
+        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
+        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
+        "      }" +
+        "    }," +
+        "    \"/repos/{owner}/{repo}/pulls/{number}/close\": {" +
+        "      \"post\": {" +
+        "        \"operationId\": \"pulls/close\"," +
+        "        \"security\": [ { \"bearerAuth\": [ \"repo\" ] }, { \"apiKeyScheme\": [ \"repo\" ] } ]," +
+        "        \"parameters\": [" +
+        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
+        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
+        "          { \"name\": \"number\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"integer\" } }" +
+        "        ]," +
+        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
+        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
+        "      }" +
+        "    }" +
+        "  }" +
+        "}";
+
+    private static final String SPEC_WITH_DEFAULT_SECURITY =
+        "{" +
+        "  \"openapi\": \"3.1.0\"," +
+        "  \"info\": { \"title\": \"internal\", \"version\": \"1.0.0\" }," +
+        "  \"servers\": [ { \"url\": \"https://api.internal.example\" } ]," +
+        "  \"security\": [ { \"bearerAuth\": [ \"repo\" ] } ]," +
+        "  \"components\": { \"securitySchemes\": {" +
+        "    \"bearerAuth\": { \"type\": \"http\", \"scheme\": \"bearer\", \"bearerFormat\": \"jwt\" }" +
+        "  } }," +
+        "  \"paths\": {" +
+        "    \"/ping\": {" +
+        "      \"get\": {" +
+        "        \"operationId\": \"ping\"," +
+        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
+        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
+        "      }" +
         "    }" +
         "  }" +
         "}";
@@ -137,6 +214,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         lenient().when(context.supplyCatalog(eq(1L))).thenReturn(catalog);
         lenient().when(context.supplyBindingId(any(), any())).thenReturn(42L);
+        lenient().when(context.supplyQName(eq(2L))).thenReturn("test0");
+        lenient().when(context.supplyQName(eq(3L))).thenReturn("test1");
         lenient().when(catalog.resolve(eq("rest-api"), eq("latest"))).thenReturn(7);
         lenient().when(catalog.resolve(anyInt())).thenReturn(SPEC);
     }
@@ -222,7 +301,8 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
                 of("https://api.github.com"),
-                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                Map.of("bearerAuth", "guard0")))
             .tool(new McpOpenapiToolConfig("create_pr", "Create a pull request.", override))
             .build();
 
@@ -258,10 +338,12 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("api_a",
                 of("https://api.github.com"),
-                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                Map.of("bearerAuth", "guard0")))
             .spec(new McpOpenapiSpecificationConfig("api_b",
                 of("https://api.github.com"),
-                of(new McpOpenapiCatalogConfig("catalog0", "other-api", "latest"))))
+                of(new McpOpenapiCatalogConfig("catalog0", "other-api", "latest")),
+                Map.of("oauthScheme", "guard0")))
             .build();
 
         BindingConfig binding = bindingOf(options,
@@ -280,6 +362,172 @@ public class McpOpenapiCompositeGeneratorTest
         NamespaceConfig namespace = composite.namespaces.get(0);
         assertThat(inlineSubjectSchema(namespace, "create_pr-input"), notNullValue());
         assertThat(inlineSubjectSchema(namespace, "search_code-input"), notNullValue());
+    }
+
+    @Test
+    public void shouldPassThroughRolesForGuardedScheme()
+    {
+        BindingConfig binding = bindingWithRoutes(route(0, "create_pr", null, "pulls/create"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        List<GuardedConfig> guarded = routeForMethod(mcpHttp(composite), "POST").guarded;
+        assertThat(guarded, hasSize(1));
+        assertThat(guarded.get(0).name, equalTo("test0"));
+        assertThat(guarded.get(0).roles, containsInAnyOrder("repo", "pr:write"));
+    }
+
+    @Test
+    public void shouldGuardApiKeySecurityScheme()
+    {
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                Map.of("apiKeyScheme", "guard0")))
+            .build();
+
+        BindingConfig binding = bindingOf(options, route(0, "create_issue", null, "issues/create"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        List<GuardedConfig> guarded = routeForMethod(mcpHttp(composite), "POST").guarded;
+        assertThat(guarded, hasSize(1));
+        assertThat(guarded.get(0).roles, empty());
+    }
+
+    @Test
+    public void shouldUnionRolesWhenSameAlternativeSchemesMapToSameGuard()
+    {
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard0")))
+            .build();
+
+        BindingConfig binding = bindingOf(options, route(0, "merge_pr", null, "pulls/merge"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        List<GuardedConfig> guarded = routeForMethod(mcpHttp(composite), "PUT").guarded;
+        assertThat(guarded, hasSize(1));
+        assertThat(guarded.get(0).roles, containsInAnyOrder("repo", "pr:write", "admin"));
+        assertThat(guarded.get(0).roles, hasSize(3));
+    }
+
+    @Test
+    public void shouldThrowWhenAlternativeRequiresMultipleDistinctGuards()
+    {
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard1")))
+            .build();
+
+        BindingConfig binding = bindingOf(options, route(0, "merge_pr", null, "pulls/merge"));
+
+        ConfigException exception = assertThrows(ConfigException.class,
+            () -> generator.generate(new McpOpenapiBindingConfig(context, binding)));
+        assertThat(exception.getMessage(), containsString("pulls/merge"));
+        assertThat(exception.getMessage(), containsString("multiple distinct guards"));
+    }
+
+    @Test
+    public void shouldThrowWhenSecurityHasOrAlternatives()
+    {
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard0")))
+            .build();
+
+        BindingConfig binding = bindingOf(options, route(0, "close_pr", null, "pulls/close"));
+
+        ConfigException exception = assertThrows(ConfigException.class,
+            () -> generator.generate(new McpOpenapiBindingConfig(context, binding)));
+        assertThat(exception.getMessage(), containsString("pulls/close"));
+        assertThat(exception.getMessage(), containsString("alternative security requirements"));
+    }
+
+    @Test
+    public void shouldThrowWhenSchemeHasNoGuardConfigured()
+    {
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                Map.of("bearerAuth", "guard0")))
+            .build();
+
+        BindingConfig binding = bindingOf(options, route(0, "search_code", null, "search/code"));
+
+        ConfigException exception = assertThrows(ConfigException.class,
+            () -> generator.generate(new McpOpenapiBindingConfig(context, binding)));
+        assertThat(exception.getMessage(), containsString("search/code"));
+        assertThat(exception.getMessage(), containsString("oauthScheme"));
+        assertThat(exception.getMessage(), containsString("no guard configured"));
+    }
+
+    @Test
+    public void shouldThrowWhenSecurityMapAbsentButOperationRequiresSecurity()
+    {
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
+            .build();
+
+        BindingConfig binding = bindingOf(options, route(0, "create_pr", null, "pulls/create"));
+
+        ConfigException exception = assertThrows(ConfigException.class,
+            () -> generator.generate(new McpOpenapiBindingConfig(context, binding)));
+        assertThat(exception.getMessage(), containsString("pulls/create"));
+        assertThat(exception.getMessage(), containsString("bearerAuth"));
+    }
+
+    @Test
+    public void shouldAllowExplicitEmptySecurityWithoutGuard()
+    {
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                of("https://api.github.com"),
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
+            .build();
+
+        BindingConfig binding = bindingOf(options, route(0, "list_issues", null, "issues/list"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        assertThat(routeForMethod(mcpHttp(composite), "GET").guarded, empty());
+    }
+
+    @Test
+    public void shouldFallBackToDocumentLevelDefaultSecurity()
+    {
+        lenient().when(catalog.resolve(eq("internal-api"), eq("latest"))).thenReturn(55);
+        lenient().when(catalog.resolve(eq(55))).thenReturn(SPEC_WITH_DEFAULT_SECURITY);
+
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec(new McpOpenapiSpecificationConfig("internal",
+                of("https://api.internal.example"),
+                of(new McpOpenapiCatalogConfig("catalog0", "internal-api", "latest")),
+                Map.of("bearerAuth", "guard0")))
+            .build();
+
+        BindingConfig binding = bindingOf(options, route(0, "internal", "ping_tool", null, "ping"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        List<GuardedConfig> guarded = routeForMethod(mcpHttp(composite), "GET").guarded;
+        assertThat(guarded, hasSize(1));
+        assertThat(guarded.get(0).roles, containsInAnyOrder("repo"));
+    }
+
+    @Test
+    public void shouldNotGuardOperationWithNoSecurityRequirement()
+    {
+        BindingConfig binding = bindingWithRoutes(route(0, null, "repo://{owner}/{repo}", "repos/get"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        assertThat(mcpHttp(composite).routes.get(0).guarded, empty());
     }
 
     private static BindingConfig mcpHttp(
@@ -303,7 +551,12 @@ public class McpOpenapiCompositeGeneratorTest
             .options(options)
             .routes(of(routes))
             .build();
-        binding.resolveId = name -> 1L;
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         return binding;
     }
@@ -314,7 +567,8 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
                 of("https://api.github.com"),
-                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
+                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
             .build();
 
         return bindingOf(options, routes);
@@ -350,6 +604,16 @@ public class McpOpenapiCompositeGeneratorTest
         return mcpHttp.routes.stream()
             .map(r -> (McpHttpWithConfig) r.with)
             .filter(w -> method.equals(w.headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private static RouteConfig routeForMethod(
+        BindingConfig mcpHttp,
+        String method)
+    {
+        return mcpHttp.routes.stream()
+            .filter(r -> method.equals(((McpHttpWithConfig) r.with).headers.get(":method")))
             .findFirst()
             .orElse(null);
     }

@@ -125,4 +125,33 @@ public class McpOpenapiProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.guarded.yaml")
+    @Specification({
+        "${mcp}/create.pr/client",
+        "${http}/create.pr/server"})
+    public void shouldCallToolWhenAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guarded.yaml")
+    @Specification({
+        "${mcp}/search.code.forbidden/client"})
+    public void shouldRejectToolWhenUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guarded.yaml")
+    @Specification({
+        "${mcp}/read.order/client",
+        "${http}/read.order/server"})
+    public void shouldReadResourceWithoutGuard() throws Exception
+    {
+        k3po.finish();
+    }
 }

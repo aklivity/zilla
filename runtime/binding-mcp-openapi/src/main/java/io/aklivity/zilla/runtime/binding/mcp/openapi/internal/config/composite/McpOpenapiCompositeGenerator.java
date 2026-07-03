@@ -60,11 +60,11 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiParameterView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecurityRequirementView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -359,43 +359,85 @@ public final class McpOpenapiCompositeGenerator
         OpenapiOperationView operation,
         Map<String, String> securityMap)
     {
-        final List<GuardedRef> result = new LinkedList<>();
-
         final List<List<OpenapiSecurityRequirementView>> security = operation.security != null
             ? operation.security
             : openapi.security;
-        final Map<String, OpenapiSecuritySchemeView> schemes = openapi.components != null
-            ? openapi.components.securitySchemes
-            : null;
 
-        if (securityMap != null && !securityMap.isEmpty() && security != null && schemes != null)
+        List<GuardedRef> result = List.of();
+
+        if (security != null && !security.isEmpty())
         {
-            security.stream()
-                .flatMap(List::stream)
-                .filter(r -> securityMap.containsKey(r.name))
-                .filter(r -> qualifies(schemes.get(r.name)))
-                .forEach(r ->
-                {
-                    final String guard = securityMap.get(r.name);
-                    final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guard));
-                    final List<String> roles = r.scopes != null ? r.scopes : List.of();
-                    result.add(new GuardedRef(qname, roles));
-                });
+            if (security.size() > 1)
+            {
+                throw new ConfigException(
+                    "mcp_openapi operation \"%s\" declares %d alternative security requirements; "
+                        .formatted(operation.id, security.size()) +
+                    "OpenAPI OR-alternative security is not supported because a route can reference only one guard");
+            }
+
+            final List<OpenapiSecurityRequirementView> alternative = security.get(0);
+            if (!alternative.isEmpty())
+            {
+                result = resolveAlternative(binding, openapi, operation, securityMap, alternative);
+            }
         }
 
         return result;
     }
 
-    private static boolean qualifies(
-        OpenapiSecuritySchemeView scheme)
+    private static List<GuardedRef> resolveAlternative(
+        McpOpenapiBindingConfig binding,
+        OpenapiView openapi,
+        OpenapiOperationView operation,
+        Map<String, String> securityMap,
+        List<OpenapiSecurityRequirementView> alternative)
     {
-        final boolean bearerJwt = "http".equals(scheme != null ? scheme.type : null) &&
-            "bearer".equalsIgnoreCase(scheme.scheme) &&
-            "jwt".equalsIgnoreCase(scheme.bearerFormat);
-        return scheme != null &&
-            (bearerJwt ||
-             "oauth2".equals(scheme.type) ||
-             "openIdConnect".equals(scheme.type));
+        final List<GuardedRef> refs = alternative.stream()
+            .map(r -> guardedRef(binding, openapi, operation, securityMap, r))
+            .toList();
+
+        final List<String> qnames = refs.stream()
+            .map(r -> r.qname)
+            .distinct()
+            .toList();
+
+        if (qnames.size() > 1)
+        {
+            throw new ConfigException(
+                "mcp_openapi operation \"%s\" requires multiple distinct guards (%s) simultaneously, "
+                    .formatted(operation.id, String.join(", ", qnames)) +
+                "which is not supported because Zilla guards cannot be combined with AND semantics");
+        }
+
+        final List<String> roles = refs.stream()
+            .flatMap(r -> r.roles.stream())
+            .distinct()
+            .toList();
+
+        return List.of(new GuardedRef(qnames.get(0), roles));
+    }
+
+    private static GuardedRef guardedRef(
+        McpOpenapiBindingConfig binding,
+        OpenapiView openapi,
+        OpenapiOperationView operation,
+        Map<String, String> securityMap,
+        OpenapiSecurityRequirementView requirement)
+    {
+        final String guard = securityMap != null ? securityMap.get(requirement.name) : null;
+
+        if (guard == null)
+        {
+            throw new ConfigException(
+                "mcp_openapi operation \"%s\" requires security scheme \"%s\" but options.specs[\"%s\"].security "
+                    .formatted(operation.id, requirement.name, openapi.label) +
+                "has no guard configured for it");
+        }
+
+        final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guard));
+        final List<String> roles = requirement.scopes != null ? requirement.scopes : List.of();
+
+        return new GuardedRef(qname, roles);
     }
 
     private McpHttpWithConfig withConfig(
