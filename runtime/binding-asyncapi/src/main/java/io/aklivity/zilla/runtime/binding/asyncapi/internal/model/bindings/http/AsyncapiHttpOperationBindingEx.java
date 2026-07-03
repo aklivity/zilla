@@ -12,21 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.asyncapi.view;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http;
 
-import io.aklivity.zilla.runtime.common.asyncapi.model.bindings.AsyncapiMessageBindings;
-import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
-
-public final class AsyncapiMessageBindingsView
+public class AsyncapiHttpOperationBindingEx
 {
-    public final AsyncapiKafkaMessageBindingView kafka;
-
-    AsyncapiMessageBindingsView(
-        AsyncapiResolver resolver,
-        AsyncapiMessageBindings model)
-    {
-        this.kafka = model.kafka != null
-            ? new AsyncapiKafkaMessageBindingView(resolver, model.kafka)
-            : null;
-    }
+    public String method;
 }

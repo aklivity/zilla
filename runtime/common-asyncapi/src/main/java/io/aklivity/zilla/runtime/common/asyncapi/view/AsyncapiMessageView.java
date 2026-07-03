@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiMessage;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
@@ -28,11 +30,25 @@ public final class AsyncapiMessageView
     public final AsyncapiSchemaItemView payload;
     public final List<AsyncapiTraitView> traits;
     public final AsyncapiCorrelationIdView correlationId;
-    public final AsyncapiMessageBindingsView bindings;
+
+    private final Map<String, Object> bindings;
 
     public boolean hasTraits()
     {
         return traits != null && !traits.isEmpty();
+    }
+
+    public boolean hasBinding(
+        String name)
+    {
+        return bindings != null && bindings.containsKey(name);
+    }
+
+    public <T> Optional<T> binding(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(bindings != null ? type.cast(bindings.get(name)) : null);
     }
 
     AsyncapiMessageView(
@@ -70,9 +86,7 @@ public final class AsyncapiMessageView
         this.correlationId = resolved.correlationId != null
                 ? new AsyncapiCorrelationIdView(resolver, resolved.correlationId)
                 : null;
-        this.bindings = resolved.bindings != null
-                ? new AsyncapiMessageBindingsView(resolver, resolved.bindings)
-                : null;
+        this.bindings = resolved.bindings;
     }
 
     AsyncapiMessageView(
@@ -103,8 +117,6 @@ public final class AsyncapiMessageView
         this.correlationId = resolved.correlationId != null
                 ? new AsyncapiCorrelationIdView(resolver, resolved.correlationId)
                 : null;
-        this.bindings = resolved.bindings != null
-                ? new AsyncapiMessageBindingsView(resolver, resolved.bindings)
-                : null;
+        this.bindings = resolved.bindings;
     }
 }

@@ -22,21 +22,9 @@ module io.aklivity.zilla.runtime.common.asyncapi
 
     exports io.aklivity.zilla.runtime.common.asyncapi.config;
     exports io.aklivity.zilla.runtime.common.asyncapi.model;
-    exports io.aklivity.zilla.runtime.common.asyncapi.model.bindings;
-    exports io.aklivity.zilla.runtime.common.asyncapi.model.bindings.http;
-    exports io.aklivity.zilla.runtime.common.asyncapi.model.bindings.http.kafka;
-    exports io.aklivity.zilla.runtime.common.asyncapi.model.bindings.kafka;
-    exports io.aklivity.zilla.runtime.common.asyncapi.model.bindings.sse;
-    exports io.aklivity.zilla.runtime.common.asyncapi.model.bindings.sse.kafka;
     exports io.aklivity.zilla.runtime.common.asyncapi.model.resolver;
     exports io.aklivity.zilla.runtime.common.asyncapi.view;
 
     opens io.aklivity.zilla.runtime.common.asyncapi.model;
-    opens io.aklivity.zilla.runtime.common.asyncapi.model.bindings;
-    opens io.aklivity.zilla.runtime.common.asyncapi.model.bindings.http;
-    opens io.aklivity.zilla.runtime.common.asyncapi.model.bindings.http.kafka;
-    opens io.aklivity.zilla.runtime.common.asyncapi.model.bindings.kafka;
-    opens io.aklivity.zilla.runtime.common.asyncapi.model.bindings.sse;
-    opens io.aklivity.zilla.runtime.common.asyncapi.model.bindings.sse.kafka;
     opens io.aklivity.zilla.runtime.common.asyncapi.view;
 }

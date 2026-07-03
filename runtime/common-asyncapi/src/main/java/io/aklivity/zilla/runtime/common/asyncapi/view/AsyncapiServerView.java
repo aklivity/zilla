@@ -20,13 +20,13 @@ import static java.util.stream.Collectors.toMap;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiServer;
-import io.aklivity.zilla.runtime.common.asyncapi.model.bindings.AsyncapiServerBindings;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiServerView
@@ -38,7 +38,21 @@ public final class AsyncapiServerView
     public final int port;
     public final String pathname;
     public final String protocol;
-    public final AsyncapiServerBindings bindings;
+
+    private final Map<String, Object> bindings;
+
+    public boolean hasBinding(
+        String name)
+    {
+        return bindings != null && bindings.containsKey(name);
+    }
+
+    public <T> Optional<T> binding(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(bindings != null ? type.cast(bindings.get(name)) : null);
+    }
 
     AsyncapiServerView(
         AsyncapiResolver resolver,

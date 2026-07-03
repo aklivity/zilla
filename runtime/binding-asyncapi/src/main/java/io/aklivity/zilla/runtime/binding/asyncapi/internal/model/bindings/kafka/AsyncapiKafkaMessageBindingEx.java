@@ -12,12 +12,11 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.asyncapi.model.bindings.sse.kafka;
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka;
 
-import java.util.Map;
+import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiMultiFormatSchema;
 
-public class AsyncapiSseKafkaFilter
+public class AsyncapiKafkaMessageBindingEx
 {
-    public String key;
-    public Map<String, String> headers;
+    public AsyncapiMultiFormatSchema key;
 }

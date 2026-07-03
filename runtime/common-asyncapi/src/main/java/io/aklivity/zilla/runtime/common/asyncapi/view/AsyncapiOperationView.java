@@ -15,9 +15,10 @@
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiOperation;
-import io.aklivity.zilla.runtime.common.asyncapi.model.bindings.AsyncapiOperationBindings;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiOperationView
@@ -26,31 +27,25 @@ public final class AsyncapiOperationView
     public final long compositeId;
     public final String name;
 
-    public final AsyncapiOperationBindings bindings;
     public final AsyncapiChannelView channel;
     public final String action;
     public final AsyncapiReplyView reply;
     public final List<AsyncapiMessageView> messages;
     public final List<AsyncapiSecuritySchemeView> security;
 
-    public boolean hasBindingsHttp()
+    private final Map<String, Object> bindings;
+
+    public boolean hasBinding(
+        String name)
     {
-        return bindings != null && bindings.http != null;
+        return bindings != null && bindings.containsKey(name);
     }
 
-    public boolean hasBindingsSse()
+    public <T> Optional<T> binding(
+        String name,
+        Class<T> type)
     {
-        return bindings != null && bindings.sse != null;
-    }
-
-    public boolean hasBindingsHttpKafka()
-    {
-        return bindings != null && bindings.httpKafka != null;
-    }
-
-    public boolean hasBindingsSseKafka()
-    {
-        return bindings != null && bindings.sseKafka != null;
+        return Optional.ofNullable(bindings != null ? type.cast(bindings.get(name)) : null);
     }
 
     public boolean hasMessagesOrParameters()

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.asyncapi.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -31,12 +32,15 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
+import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
+import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiBindingDeserializers;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
@@ -45,13 +49,27 @@ public class AsyncapiParser
     private static final Pattern VERSION_PATTERN = Pattern.compile("(?!\\.)(\\d+(\\.\\d+)+)(?:[-.][a-zA-Z]+)?(?![\\d.])$");
 
     private final Map<String, JsonSchema> schemas;
+    private final Map<String, Class<?>> operationBindingTypes;
+    private final Map<String, Class<?>> messageBindingTypes;
+    private final Map<String, Class<?>> serverBindingTypes;
 
     public AsyncapiParser()
+    {
+        this(emptyMap(), emptyMap(), emptyMap());
+    }
+
+    AsyncapiParser(
+        Map<String, Class<?>> operationBindingTypes,
+        Map<String, Class<?>> messageBindingTypes,
+        Map<String, Class<?>> serverBindingTypes)
     {
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
         schemas.put("2.6.0", schema("2.6.0"));
         schemas.put("3.0.0", schema("3.0.1"));
         this.schemas = unmodifiableMap(schemas);
+        this.operationBindingTypes = operationBindingTypes;
+        this.messageBindingTypes = messageBindingTypes;
+        this.serverBindingTypes = serverBindingTypes;
     }
 
     public Asyncapi parse(
@@ -74,7 +92,12 @@ public class AsyncapiParser
                 schema.validate(parser, problem -> errors.add(new AsyncapiException(problem.toString())));
             }
 
-            Jsonb jsonb = JsonbBuilder.create();
+            List<JsonbDeserializer<?>> deserializers = AsyncapiBindingDeserializers.all(
+                operationBindingTypes, messageBindingTypes, serverBindingTypes);
+            Jsonb jsonb = JsonbBuilder.newBuilder()
+                    .withConfig(new JsonbConfig()
+                        .withDeserializers(deserializers.toArray(JsonbDeserializer[]::new)))
+                    .build();
 
             asyncapi = jsonb.fromJson(asyncapiObject.toString(), Asyncapi.class);
         }
