@@ -24,18 +24,20 @@ import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
+
 public final class AsyncapiMultiFormatSchemaDeserializer implements JsonbDeserializer<AsyncapiMultiFormatSchema>
 {
-    private final Map<String, Class<?>> extensionTypes;
-    private final Map<String, Class<?>> prefixExtensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes;
     private final Supplier<Jsonb> plain;
 
     public AsyncapiMultiFormatSchemaDeserializer(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes)
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         this.extensionTypes = extensionTypes;
         this.prefixExtensionTypes = prefixExtensionTypes;
@@ -55,12 +57,13 @@ public final class AsyncapiMultiFormatSchemaDeserializer implements JsonbDeseria
 
     static AsyncapiMultiFormatSchema bind(
         JsonObject object,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes,
         Supplier<Jsonb> plain)
     {
         AsyncapiMultiFormatSchema model = plain.get().fromJson(object.toString(), AsyncapiMultiFormatSchema.class);
-        model.extensions = AsyncapiDeserializers.extensions(object, extensionTypes, prefixExtensionTypes, plain);
+        model.extensions = AsyncapiDeserializers.extensions(
+            object, AsyncapiExtension.Scope.SCHEMA, extensionTypes, prefixExtensionTypes, plain);
 
         return model;
     }

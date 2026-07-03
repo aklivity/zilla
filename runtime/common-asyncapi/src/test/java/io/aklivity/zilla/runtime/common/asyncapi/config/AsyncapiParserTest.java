@@ -135,6 +135,11 @@ public class AsyncapiParserTest
         public String key;
     }
 
+    public static final class CountExtension
+    {
+        public String key;
+    }
+
     public static final class GoogleJwtExtension
     {
         public String issuer;
@@ -211,7 +216,8 @@ public class AsyncapiParserTest
     public void shouldExposeSpecificationExtensionsGenerically()
     {
         AsyncapiParser parser = new AsyncapiParserFactory()
-            .withExtension("x-zilla-sample", SampleExtension.class)
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.ASYNCAPI, "x-zilla-sample", SampleExtension.class))
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.OPERATION, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Asyncapi model = parser.parse(EXT_SPEC);
@@ -236,7 +242,7 @@ public class AsyncapiParserTest
     public void shouldExposeMessageExtensionGenerically()
     {
         AsyncapiParser parser = new AsyncapiParserFactory()
-            .withExtension("x-zilla-sample", SampleExtension.class)
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.MESSAGE, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Asyncapi model = parser.parse(EXT_SPEC);
@@ -252,7 +258,7 @@ public class AsyncapiParserTest
     public void shouldExposeServerExtensionGenerically()
     {
         AsyncapiParser parser = new AsyncapiParserFactory()
-            .withExtension("x-zilla-sample", SampleExtension.class)
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.SERVER, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Asyncapi model = parser.parse(EXT_SPEC);
@@ -267,7 +273,7 @@ public class AsyncapiParserTest
     public void shouldExposeSchemaExtensionGenerically()
     {
         AsyncapiParser parser = new AsyncapiParserFactory()
-            .withExtension("x-zilla-sample", SampleExtension.class)
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.SCHEMA, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Asyncapi model = parser.parse(EXT_SPEC);
@@ -282,7 +288,7 @@ public class AsyncapiParserTest
     public void shouldExposeSecuritySchemeExtensionGenerically()
     {
         AsyncapiParser parser = new AsyncapiParserFactory()
-            .withExtension("x-zilla-sample", SampleExtension.class)
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.SECURITY_SCHEME, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Asyncapi model = parser.parse(EXT_SPEC);
@@ -300,7 +306,7 @@ public class AsyncapiParserTest
     public void shouldNotExposeUnregisteredExtensionType()
     {
         AsyncapiParser parser = new AsyncapiParserFactory()
-            .withExtension("x-zilla-sample", SampleExtension.class)
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.ASYNCAPI, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Asyncapi model = parser.parse(EXT_SPEC);
@@ -331,7 +337,7 @@ public class AsyncapiParserTest
             """;
 
         AsyncapiParser parser = new AsyncapiParserFactory()
-            .withExtension("x-google-*", GoogleJwtExtension.class)
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.SECURITY_SCHEME, "x-google-*", GoogleJwtExtension.class))
             .createParser();
 
         Asyncapi model = parser.parse(spec);
@@ -353,7 +359,7 @@ public class AsyncapiParserTest
     public void shouldNotExposePrefixWildcardExtensionWhenAbsent()
     {
         AsyncapiParser parser = new AsyncapiParserFactory()
-            .withExtension("x-google-*", GoogleJwtExtension.class)
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.SECURITY_SCHEME, "x-google-*", GoogleJwtExtension.class))
             .createParser();
 
         Asyncapi model = parser.parse(EXT_SPEC);
@@ -365,5 +371,27 @@ public class AsyncapiParserTest
 
         assertFalse(scheme.hasExtension("x-google-*"));
         assertEquals(Optional.empty(), scheme.extension("x-google-*", GoogleJwtExtension.class));
+    }
+
+    @Test
+    public void shouldReuseExtensionNameWithDifferentTypesAcrossScopes()
+    {
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.OPERATION, "x-zilla-sample", SampleExtension.class))
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.MESSAGE, "x-zilla-sample", CountExtension.class))
+            .createParser();
+
+        Asyncapi model = parser.parse(EXT_SPEC);
+        AsyncapiView view = AsyncapiView.of(model);
+        AsyncapiOperationView operation = view.operations.get("doSend");
+        AsyncapiMessageView message = operation.messages.get(0);
+
+        assertTrue(operation.hasExtension("x-zilla-sample"));
+        assertEquals("operation-value", operation.extension("x-zilla-sample", SampleExtension.class).get().key);
+
+        assertTrue(message.hasExtension("x-zilla-sample"));
+        assertEquals("message-value", message.extension("x-zilla-sample", CountExtension.class).get().key);
+
+        assertFalse(view.hasExtension("x-zilla-sample"));
     }
 }

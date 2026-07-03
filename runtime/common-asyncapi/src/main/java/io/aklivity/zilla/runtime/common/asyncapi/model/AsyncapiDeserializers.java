@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
+import static java.util.Collections.emptyMap;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,8 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
+
 public final class AsyncapiDeserializers
 {
     private AsyncapiDeserializers()
@@ -39,8 +43,8 @@ public final class AsyncapiDeserializers
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes)
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         return List.of(
             new AsyncapiDeserializer(
@@ -79,8 +83,8 @@ public final class AsyncapiDeserializers
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes,
         Class<?>... excludes)
     {
         Jsonb[] cache = new Jsonb[1];
@@ -132,17 +136,21 @@ public final class AsyncapiDeserializers
 
     static Map<String, Object> extensions(
         JsonObject object,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes,
+        AsyncapiExtension.Scope scope,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes,
         Supplier<Jsonb> plain)
     {
+        Map<String, Class<?>> scopedExtensionTypes = extensionTypes.getOrDefault(scope, emptyMap());
+        Map<String, Class<?>> scopedPrefixExtensionTypes = prefixExtensionTypes.getOrDefault(scope, emptyMap());
+
         Map<String, Object> extensions = null;
 
         for (String name : object.keySet())
         {
             if (name.startsWith("x-"))
             {
-                Class<?> extensionType = extensionTypes.get(name);
+                Class<?> extensionType = scopedExtensionTypes.get(name);
                 if (extensionType != null)
                 {
                     if (extensions == null)
@@ -154,7 +162,7 @@ public final class AsyncapiDeserializers
             }
         }
 
-        for (Map.Entry<String, Class<?>> prefixExtensionType : prefixExtensionTypes.entrySet())
+        for (Map.Entry<String, Class<?>> prefixExtensionType : scopedPrefixExtensionTypes.entrySet())
         {
             String registeredName = prefixExtensionType.getKey();
             String prefix = registeredName.substring(0, registeredName.length() - 1);

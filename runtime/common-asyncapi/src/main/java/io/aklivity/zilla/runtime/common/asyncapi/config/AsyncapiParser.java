@@ -52,8 +52,8 @@ public class AsyncapiParser
     private final Map<String, Class<?>> operationBindingTypes;
     private final Map<String, Class<?>> messageBindingTypes;
     private final Map<String, Class<?>> serverBindingTypes;
-    private final Map<String, Class<?>> extensionTypes;
-    private final Map<String, Class<?>> prefixExtensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes;
 
     public AsyncapiParser()
     {
@@ -64,8 +64,8 @@ public class AsyncapiParser
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes)
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
         schemas.put("2.6.0", schema("2.6.0"));

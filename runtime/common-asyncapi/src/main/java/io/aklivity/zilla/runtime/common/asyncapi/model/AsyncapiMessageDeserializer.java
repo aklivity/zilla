@@ -24,19 +24,21 @@ import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
+
 public final class AsyncapiMessageDeserializer implements JsonbDeserializer<AsyncapiMessage>
 {
     private final Map<String, Class<?>> messageBindingTypes;
-    private final Map<String, Class<?>> extensionTypes;
-    private final Map<String, Class<?>> prefixExtensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes;
+    private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes;
     private final Supplier<Jsonb> plain;
 
     public AsyncapiMessageDeserializer(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes)
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         this.messageBindingTypes = messageBindingTypes;
         this.extensionTypes = extensionTypes;
@@ -56,7 +58,8 @@ public final class AsyncapiMessageDeserializer implements JsonbDeserializer<Asyn
         AsyncapiMessage model = plain.get().fromJson(object.toString(), AsyncapiMessage.class);
 
         model.bindings = AsyncapiDeserializers.bindings(object, messageBindingTypes, plain.get());
-        model.extensions = AsyncapiDeserializers.extensions(object, extensionTypes, prefixExtensionTypes, plain);
+        model.extensions = AsyncapiDeserializers.extensions(
+            object, AsyncapiExtension.Scope.MESSAGE, extensionTypes, prefixExtensionTypes, plain);
 
         return model;
     }
