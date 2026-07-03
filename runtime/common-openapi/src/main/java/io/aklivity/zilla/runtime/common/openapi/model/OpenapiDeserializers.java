@@ -68,6 +68,8 @@ public final class OpenapiDeserializers
             new OpenapiHeaderDeserializer(extensionTypes),
             new OpenapiLinkDeserializer(extensionTypes),
             new OpenapiOperationDeserializer(extensionTypes),
-            new OpenapiSecuritySchemeDeserializer(extensionTypes));
+            new OpenapiSecuritySchemeDeserializer(extensionTypes),
+            new OpenapiOAuthFlowDeserializer(extensionTypes),
+            new OpenapiOAuthFlowsDeserializer(extensionTypes));
     }
 }
