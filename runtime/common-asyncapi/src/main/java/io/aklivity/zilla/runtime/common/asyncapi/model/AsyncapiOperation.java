@@ -15,8 +15,7 @@
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
 import java.util.List;
-
-import io.aklivity.zilla.runtime.common.asyncapi.model.bindings.AsyncapiOperationBindings;
+import java.util.Map;
 
 public class AsyncapiOperation extends AbstractAsyncapiResolvable
 {
@@ -25,5 +24,5 @@ public class AsyncapiOperation extends AbstractAsyncapiResolvable
     public AsyncapiReply reply;
     public List<AsyncapiMessage> messages;
     public List<AsyncapiSecurityScheme> security;
-    public AsyncapiOperationBindings bindings;
+    public Map<String, Object> bindings;
 }

@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.common.asyncapi.model;
 import java.util.List;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.common.asyncapi.model.bindings.AsyncapiServerBindings;
-
 public class AsyncapiServer
 {
     public String host;
@@ -27,5 +25,5 @@ public class AsyncapiServer
     public String protocol;
     public List<AsyncapiSecurityScheme> security;
     public Map<String, AsyncapiServerVariable> variables;
-    public AsyncapiServerBindings bindings;
+    public Map<String, Object> bindings;
 }

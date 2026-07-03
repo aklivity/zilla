@@ -28,6 +28,7 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
+import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiMultiFormatSchema;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiView
@@ -55,12 +56,18 @@ public final class AsyncapiView
 
     public boolean hasOperationBindingsHttp()
     {
-        return operations.values().stream().anyMatch(AsyncapiOperationView::hasBindingsHttp);
+        return operations.values().stream().anyMatch(o -> o.hasBinding("http"));
     }
 
     public boolean hasOperationBindingsSse()
     {
-        return operations.values().stream().anyMatch(AsyncapiOperationView::hasBindingsSse);
+        return operations.values().stream().anyMatch(o -> o.hasBinding("x-zilla-sse"));
+    }
+
+    public AsyncapiMultiFormatSchemaView resolveSchema(
+        AsyncapiMultiFormatSchema schema)
+    {
+        return new AsyncapiMultiFormatSchemaView(resolver, schema);
     }
 
     public static AsyncapiView of(
