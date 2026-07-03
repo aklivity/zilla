@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonStep;
+import io.aklivity.zilla.runtime.common.json.JsonStringView;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
@@ -241,7 +242,25 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         // closing quote on the final fragment); report the source chars taken via consumed() so a chunking
         // driver advances its cursor and resumes from the remainder, the char-domain analog of writeSegment
         final int reserve = completion == Completion.COMPLETE ? 1 : 0;
-        final int written = writeStringBody(value, reserve);
+        final int written;
+        if (value instanceof JsonStringView view && view.getSegment() != null &&
+            view.getSegment().capacity() <= limit - progress - reserve)
+        {
+            // whole segment fits the current output window: splice its (guaranteed plain-ASCII, see
+            // JsonStringView's javadoc) bytes directly instead of the codepoint-by-codepoint path below.
+            // A segment too large for one call falls through unchanged -- that path already knows how
+            // to bound and correctly resume a partial write, which this fast path does not attempt to
+            // duplicate.
+            final DirectBufferEx segment = view.getSegment();
+            final int length = segment.capacity();
+            buffer.putBytes(progress, segment, 0, length);
+            progress += length;
+            written = value.length();
+        }
+        else
+        {
+            written = writeStringBody(value, reserve);
+        }
         consumed += written;
         if (written == value.length() && completion == Completion.COMPLETE)
         {

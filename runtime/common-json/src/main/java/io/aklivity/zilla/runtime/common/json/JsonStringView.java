@@ -28,6 +28,16 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * an unmodified value straight through instead of re-encoding it — treats this as an opportunistic hint,
  * not a requirement, and falls back to ordinary {@link CharSequence} access whenever it is {@code null}.
  * <p>
+ * <strong>When non-{@code null}, every byte in the returned segment must be plain ASCII and must never
+ * require escaping to appear unmodified in a JSON string body</strong> (no quote, backslash, control
+ * character, or byte outside the 7-bit ASCII range) — exactly the same guarantee a decoded value would
+ * need to have required zero transformation from source to canonical form in the first place. This is
+ * what lets a caller such as a generator copy the segment's bytes directly into JSON string-body output
+ * with no re-encoding or re-escaping pass, and lets {@link #getSegment()}'s byte length be relied on as
+ * equal to this view's {@link #length()} (one byte, one char). An implementation must never return a
+ * non-{@code null} segment for content it has not itself verified satisfies this — returning {@code null}
+ * is always the safe, correct answer when in doubt.
+ * <p>
  * The instance is non-owning and reused across calls; a caller must not retain it, or any segment obtained
  * from it, past the current call.
  */
