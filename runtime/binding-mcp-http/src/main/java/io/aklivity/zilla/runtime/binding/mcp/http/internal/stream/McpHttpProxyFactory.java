@@ -181,6 +181,12 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final Map<JsonSchema, JsonPipeline> validators;
     private final Map<McpHttpRouteConfig, JsonPipeline> templates;
 
+    // hoisted to avoid reallocating a capturing method-reference object on every computeIfAbsent call
+    private final Function<JsonSchema, JsonPipeline> newProjectorFn = this::newProjector;
+    private final Function<JsonSchema, JsonPipeline> newValidatingProjectorFn = this::newValidatingProjector;
+    private final Function<JsonSchema, JsonPipeline> newValidatorFn = this::newValidator;
+    private final Function<McpHttpRouteConfig, JsonPipeline> newTemplateFn = this::newTemplate;
+
     private final Map<String, McpSession> sessions;
     private final Supplier<String> supplySessionId;
     private final int sessionIdAttempts;
@@ -538,16 +544,16 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         void doMcpReply(
             long traceId,
-            String reply)
+            byte[] reply)
         {
-            doEncodeReply(reply.getBytes(UTF_8));
+            doEncodeReply(reply);
             replyComplete = true;
             doMcpBegin(traceId);
             flushReply(traceId);
         }
 
         // Encodes a reply envelope already assembled into replyBuffer[0..length], avoiding a jakarta DOM
-        // round-trip and the intermediate String/byte[] that doMcpReply(String) requires.
+        // round-trip and the intermediate String/byte[] that doMcpReply(byte[]) requires.
         void doMcpReplyBytes(
             long traceId,
             int length)
@@ -2206,7 +2212,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         int length)
     {
         final JsonPipeline pipeline = schema != null
-            ? validatingProjectors.computeIfAbsent(schema, this::newValidatingProjector)
+            ? validatingProjectors.computeIfAbsent(schema, newValidatingProjectorFn)
             : canonicalizer;
         return runInto(pipeline, buffer, offset, length);
     }
@@ -2223,7 +2229,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         int offset,
         int length)
     {
-        return runInto(validators.computeIfAbsent(schema, this::newValidator), buffer, offset, length) >= 0;
+        return runInto(validators.computeIfAbsent(schema, newValidatorFn), buffer, offset, length) >= 0;
     }
 
     private int projectInto(
@@ -2232,7 +2238,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         int offset,
         int length)
     {
-        return runInto(projectors.computeIfAbsent(schema, this::newProjector), buffer, offset, length);
+        return runInto(projectors.computeIfAbsent(schema, newProjectorFn), buffer, offset, length);
     }
 
     private int templateInto(
@@ -2241,7 +2247,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         int offset,
         int length)
     {
-        return runInto(templates.computeIfAbsent(route, this::newTemplate), buffer, offset, length);
+        return runInto(templates.computeIfAbsent(route, newTemplateFn), buffer, offset, length);
     }
 
     // Runs a pipeline over the input window into projectBuffer, returning the bytes produced, or -1 when the
@@ -2500,37 +2506,37 @@ public final class McpHttpProxyFactory implements BindingHandler
         return progress;
     }
 
-    private String toolsList(
+    private byte[] toolsList(
         McpHttpBindingConfig binding)
     {
-        String json = binding.toolsListJson();
+        byte[] json = binding.toolsListJson();
         if (json == null)
         {
-            json = buildToolsList(binding);
+            json = buildToolsList(binding).getBytes(UTF_8);
             binding.toolsListJson(json);
         }
         return json;
     }
 
-    private String resourcesList(
+    private byte[] resourcesList(
         McpHttpBindingConfig binding)
     {
-        String json = binding.resourcesListJson();
+        byte[] json = binding.resourcesListJson();
         if (json == null)
         {
-            json = buildResourcesList(binding);
+            json = buildResourcesList(binding).getBytes(UTF_8);
             binding.resourcesListJson(json);
         }
         return json;
     }
 
-    private String promptsList(
+    private byte[] promptsList(
         McpHttpBindingConfig binding)
     {
-        String json = binding.promptsListJson();
+        byte[] json = binding.promptsListJson();
         if (json == null)
         {
-            json = buildPromptsList(binding);
+            json = buildPromptsList(binding).getBytes(UTF_8);
             binding.promptsListJson(json);
         }
         return json;
