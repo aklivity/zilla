@@ -14,6 +14,9 @@
  */
 module io.aklivity.zilla.runtime.binding.asyncapi
 {
+    requires transitive io.aklivity.zilla.runtime.common.asyncapi;
+    requires io.aklivity.zilla.runtime.common.yaml;
+
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.mqtt;
     requires io.aklivity.zilla.runtime.binding.http;
@@ -34,18 +37,6 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires io.aklivity.zilla.runtime.model.json;
     requires io.aklivity.zilla.runtime.model.avro;
     requires io.aklivity.zilla.runtime.model.protobuf;
-    requires io.aklivity.zilla.runtime.common.json;
-    requires io.aklivity.zilla.runtime.common.yaml;
-
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model;
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings;
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http;
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka;
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka;
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse;
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka;
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser;
-    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.view;
 
     exports io.aklivity.zilla.runtime.binding.asyncapi.config;
 

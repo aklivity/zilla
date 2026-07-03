@@ -49,6 +49,7 @@ import org.eclipse.aether.resolution.ArtifactDescriptorException;
 import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
 import org.eclipse.aether.resolution.ArtifactDescriptorResult;
 import org.eclipse.aether.resolution.DependencyRequest;
+import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.resolution.DependencyResult;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.supplier.RepositorySystemSupplier;
@@ -82,6 +83,7 @@ public final class ZpmCache
     private final RepositorySystem repositorySystem;
 
     private final RepositorySystemSession session;
+    private final RepositorySystemSession optionalSession;
 
     private final List<RemoteRepository> repositories;
     private final ConsoleLogger logger;
@@ -94,7 +96,8 @@ public final class ZpmCache
     {
         this.logger = logger;
         this.repositorySystem = ZpmSupplierRepositorySystemFactory.newRepositorySystem();
-        this.session = newRepositorySystemSession(repositorySystem, directory, excludeRemote);
+        this.session = newRepositorySystemSession(repositorySystem, directory, excludeRemote, false);
+        this.optionalSession = newRepositorySystemSession(repositorySystem, directory, excludeRemote, true);
 
         this.repositories = repositories;
     }
@@ -102,6 +105,22 @@ public final class ZpmCache
     public List<ZpmArtifact> resolve(
         List<ZpmDependency> imports,
         List<ZpmDependency> dependencies)
+    {
+        return resolve(imports, dependencies, session, false);
+    }
+
+    public List<ZpmArtifact> resolveOptional(
+        List<ZpmDependency> imports,
+        List<ZpmDependency> dependencies)
+    {
+        return resolve(imports, dependencies, optionalSession, true);
+    }
+
+    private List<ZpmArtifact> resolve(
+        List<ZpmDependency> imports,
+        List<ZpmDependency> dependencies,
+        RepositorySystemSession session,
+        boolean lenient)
     {
         final List<ZpmArtifact> artifacts = new ArrayList<>();
         Map<ZpmDependency, String> imported = new HashMap<>();
@@ -153,10 +172,33 @@ public final class ZpmCache
             DependencyRequest dependencyRequest = new DependencyRequest(collectResult.getRoot(), null);
             result = repositorySystem.resolveDependencies(session, dependencyRequest);
         }
+        catch (DependencyResolutionException e)
+        {
+            // when resolving the optional validation-only tree, tolerate artifacts that cannot be
+            // resolved (for example when remote repositories are excluded) and continue with whatever
+            // was resolved successfully
+            if (!lenient)
+            {
+                throw new RuntimeException("Failed to resolve dependencies", e);
+            }
+            result = e.getResult();
+        }
         catch (Exception e)
         {
-            throw new RuntimeException("Failed to resolve dependencies", e);
+            // the optional validation-only tree is best-effort; if it cannot be collected at all
+            // (for example offline with missing descriptors) skip validation rather than fail install
+            if (!lenient)
+            {
+                throw new RuntimeException("Failed to resolve dependencies", e);
+            }
+            result = null;
         }
+
+        if (result == null)
+        {
+            return artifacts;
+        }
+
         DependencyNode root = result.getRoot();
 
         NodeListGenerator nlg = new NodeListGenerator();
@@ -181,7 +223,10 @@ public final class ZpmCache
                         new ZpmArtifactId(cArtifact.getGroupId(), cArtifact.getArtifactId(), cArtifact.getVersion());
                     depends.add(cid);
                 });
-                artifacts.add(new ZpmArtifact(id, artifact.getPath(), depends));
+                if (artifact.getPath() != null)
+                {
+                    artifacts.add(new ZpmArtifact(id, artifact.getPath(), depends));
+                }
             }
         });
 
@@ -191,7 +236,8 @@ public final class ZpmCache
     private RepositorySystemSession newRepositorySystemSession(
         RepositorySystem system,
         Path dir,
-        boolean excludeRemote)
+        boolean excludeRemote,
+        boolean includeOptional)
     {
         ConflictResolver conflictResolver = new ConflictResolver(
             new ConfigurableVersionSelector(new ConfigurableVersionSelector.Nearest()),
@@ -228,8 +274,14 @@ public final class ZpmCache
                         new ConflictMarker(),
                         new ConflictIdSorter(),
                         conflictResolver))
-                .setDependencySelector(
-                    new AndDependencySelector(
+                .setDependencySelector(includeOptional
+                    // the validation-only tree also pulls in provided-scope dependencies (for example
+                    // Netty's provided org.jetbrains:annotations-java5) so jdeps can resolve their
+                    // static bytecode references; these artifacts are never linked into the runtime image
+                    ? new AndDependencySelector(
+                        new ExclusionDependencySelector(),
+                        ScopeDependencySelector.fromRoot(null, List.of("test")))
+                    : new AndDependencySelector(
                         OptionalDependencySelector.fromRoot(),
                         new ExclusionDependencySelector(),
                         ScopeDependencySelector.fromRoot(null, List.of("test", "provided"))))

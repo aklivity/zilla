@@ -15,12 +15,15 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.io.FileMatchers.anExistingFile;
 
 import java.io.File;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -109,5 +112,43 @@ public class ZpmInstallTest
             anExistingFile());
         assertThat(new File(String.format("target/zpm-offline/cache/org/agrona/agrona/%1$s/agrona-%1$s.jar", agronaVersion)),
             anExistingFile());
+    }
+
+    @Test
+    public void shouldLinkIncubatorModuleIntoImage() throws Exception
+    {
+        Path configDir = Paths.get(getClass().getResource("/conf/install/zpm.json").toURI()).getParent();
+        Path launcherDir = Paths.get("target/launcher-incubator");
+        Files.createDirectories(launcherDir);
+
+        String[] args =
+        {
+            "install",
+            "--config-directory", configDir.toString(),
+            "--lock-directory", "target/test-locks/install-incubator",
+            "--output-directory", "target/zpm-incubator",
+            "--launcher-directory", launcherDir.toString(),
+            "--exclude-remote-repositories",
+            "--incubator", "vector",
+            "--silent"
+        };
+
+        Cli<Runnable> parser = new Cli<>(ZpmCli.class);
+        Runnable install = parser.parse(args);
+
+        install.run();
+
+        assertThat(install, instanceOf(ZpmInstall.class));
+
+        Path imageJava = Paths.get("target/zpm-incubator/image/bin/java");
+        assertThat(imageJava.toFile(), anExistingFile());
+
+        Process listModules = new ProcessBuilder(imageJava.toString(), "--list-modules")
+            .redirectErrorStream(true)
+            .start();
+        String modules = new String(listModules.getInputStream().readAllBytes(), UTF_8);
+        listModules.waitFor();
+
+        assertThat(modules, containsString("jdk.incubator.vector"));
     }
 }

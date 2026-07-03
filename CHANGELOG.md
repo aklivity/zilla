@@ -2,11 +2,24 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.6-rc3...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-19...HEAD)
+
+**Implemented enhancements:**
+
+- Hoist AsyncAPI model/view/parser APIs into a runtime/common-asyncapi module [\#1890](https://github.com/aklivity/zilla/issues/1890)
+
+## [2.0.0-alpha-19](https://github.com/aklivity/zilla/tree/2.0.0-alpha-19) (2026-07-02)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.6-rc3...2.0.0-alpha-19)
 
 **Implemented enhancements:**
 
 - Hoist OpenAPI model/view/parser APIs into a runtime/common-openapi module [\#1889](https://github.com/aklivity/zilla/issues/1889)
+
+**Merged pull requests:**
+
+- ci\(release\): generalize no-merge/tag-first protection on develop's own release.yml [\#1993](https://github.com/aklivity/zilla/pull/1993) ([jfallows](https://github.com/jfallows))
+- feat\(common-openapi\): hoist OpenAPI model/view/parser API into shared module [\#1978](https://github.com/aklivity/zilla/pull/1978) ([jfallows](https://github.com/jfallows))
 
 ## [1.2.6-rc3](https://github.com/aklivity/zilla/tree/1.2.6-rc3) (2026-07-02)
 
