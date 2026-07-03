@@ -225,7 +225,15 @@ public final class YamlJsonParser implements JsonParser
         {
             throw new IllegalStateException("No value is available for current event");
         }
-        return value(new int[] {current});
+        int[] at = new int[] {current};
+        JsonValue value = value(at);
+        // per the JsonParser contract, materializing a structured value advances the parser to the
+        // matching END_OBJECT/END_ARRAY event; a scalar value is already positioned there, so this is a
+        // no-op for scalars. Skipping this step leaves cursor/current stale, so a subsequent next() replays
+        // the just-materialized value's events instead of continuing after it.
+        current = at[0] - 1;
+        cursor = at[0];
+        return value;
     }
 
     @Override
