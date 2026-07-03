@@ -37,6 +37,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>common-asyncapi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>engine.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -46,11 +51,6 @@
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>common-json</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -262,9 +262,7 @@
                 </artifactItem>
               </artifactItems>
               <includes>
-                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json,
-                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.2.6.0.schema.json,
-                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.3.0.1.schema.json
+                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json
               </includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>

@@ -30,6 +30,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,7 +57,6 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -122,6 +122,11 @@ public final class ZpmInstall extends ZpmCommand
         description = "Link java.instrument module",
         hidden = true)
     public Boolean instrument = false;
+
+    @Option(name = {"--incubator"},
+        description = "Link an incubator module",
+        hidden = true)
+    public List<String> incubator = new ArrayList<>();
 
     @Option(name = {"--exclude-local-repository"},
         description = "Exclude the local Maven repository")
@@ -226,7 +231,8 @@ public final class ZpmInstall extends ZpmCommand
 
             if (!delegate.paths.isEmpty())
             {
-                generateDelegate(logger, delegate);
+                Collection<ZpmArtifact> optional = cache.resolveOptional(config.imports, config.dependencies);
+                generateDelegate(logger, delegate, optional);
                 generateDelegating(modules);
             }
 
@@ -511,13 +517,155 @@ public final class ZpmInstall extends ZpmCommand
 
     private void generateDelegate(
         ConsoleLogger logger,
-        ZpmModule delegate) throws IOException
+        ZpmModule delegate,
+        Collection<ZpmArtifact> optional) throws IOException
     {
         Path generatedModulesDir = generatedDir.resolve("modules");
         Path generatedDelegateDir = generatedModulesDir.resolve(delegate.name);
         Files.createDirectories(generatedModulesDir);
 
         Path generatedDelegatePath = generatedModulesDir.resolve(String.format("%s.jar", delegate.name));
+        generateDelegateJar(delegate, generatedDelegatePath);
+
+        // Merge the optional dependency tree resolved via Aether into a single validation-only module so
+        // jdeps can resolve the delegate's static references to optional third-party libraries (for
+        // example Netty's Brotli/LZ4/Zstd/Protobuf codecs). As one flat automatic module it avoids the
+        // split-package and inter-module resolution failures of supplying the optional jars separately,
+        // and lets jdeps run strictly: any reference not satisfied by the delegate or this module is a
+        // genuinely missing dependency rather than one silently ignored.
+        Path optionalModulesDir = generatedDir.resolve("optional-modules");
+        deleteDirectories(optionalModulesDir);
+        Files.createDirectories(optionalModulesDir);
+        String optionalName = String.format("%s.optional", delegate.name);
+        Path optionalPath = optionalModulesDir.resolve(String.format("%s.jar", optionalName));
+        generateDelegateOptional(optionalPath, optional, jarPackages(generatedDelegatePath));
+
+        deleteDirectories(generatedDelegateDir);
+
+        Path generatedModuleInfo = generatedDelegateDir.resolve(MODULE_INFO_JAVA_FILENAME);
+        ToolProvider jdeps = ToolProvider.findFirst("jdeps").get();
+
+        boolean strict = !ignoreMissingDependencies;
+        if (strict)
+        {
+            int result = jdeps.run(
+                System.out,
+                System.err,
+                "--generate-module-info", generatedModulesDir.toString(),
+                "--module-path", optionalModulesDir.toString(),
+                generatedDelegatePath.toString());
+            strict = result == 0 && Files.exists(generatedModuleInfo);
+        }
+
+        if (!strict)
+        {
+            // jdeps could not resolve every reference against the optional dependency tree (for example
+            // offline with an incomplete tree); fall back to generating while ignoring missing
+            // dependencies and report what forced the fallback so accidental prunes remain visible
+            Set<String> missing = missingDependencies(generatedDelegatePath, optionalModulesDir);
+            if (!missing.isEmpty())
+            {
+                String details = missing.stream()
+                    .sorted()
+                    .map(c -> String.format("    %s", c))
+                    .collect(Collectors.joining("\n"));
+                logger.warn(String.format(
+                    "delegate module references %d dependencies not resolved by the optional dependency tree;" +
+                    " generating module info while ignoring them:%n%s", missing.size(), details));
+            }
+            deleteDirectories(generatedDelegateDir);
+            jdeps.run(
+                System.out,
+                System.err,
+                "--generate-module-info", generatedModulesDir.toString(),
+                "--ignore-missing-deps",
+                generatedDelegatePath.toString());
+        }
+
+        if (!Files.exists(generatedModuleInfo))
+        {
+            throw new IOException("Failed to generate module info for delegate module");
+        }
+
+        logger.info(String.format("Generated module info for delegate module\n"));
+
+        String moduleInfoContents = Files.readString(generatedModuleInfo);
+
+        // drop the requires on the validation-only optional module; it is never linked into the image
+        moduleInfoContents = moduleInfoContents.replaceAll(
+            String.format("(?m)^\\s*requires\\s+(transitive\\s+)?%s\\s*;\\R?", Pattern.quote(optionalName)), "");
+
+        // keep only service providers whose service interface is present in the delegate module, pruning
+        // phantom provides declarations whose interface lives solely in the optional dependency tree
+        Set<String> delegateClasses = jarClasses(generatedDelegatePath);
+        Pattern providesPattern = Pattern.compile("(?m)^\\s*provides\\s+([^\\s;]+)\\s+with\\s+[^;]+;\\R?");
+        Matcher providesMatcher = providesPattern.matcher(moduleInfoContents);
+        StringBuilder cleanedModuleInfo = new StringBuilder();
+
+        List<String> uses = new ArrayList<>();
+
+        while (providesMatcher.find())
+        {
+            String serviceInterface = providesMatcher.group(1);
+            if (delegateClasses.contains(serviceInterface))
+            {
+                providesMatcher.appendReplacement(cleanedModuleInfo, Matcher.quoteReplacement(providesMatcher.group(0)));
+                uses.add(String.format("    uses %s;", serviceInterface));
+            }
+            else
+            {
+                providesMatcher.appendReplacement(cleanedModuleInfo, "");
+            }
+        }
+        providesMatcher.appendTail(cleanedModuleInfo);
+        moduleInfoContents = cleanedModuleInfo.toString();
+
+        if (!uses.isEmpty())
+        {
+            int lastBraceIndex = moduleInfoContents.lastIndexOf('}');
+            if (lastBraceIndex != -1)
+            {
+                moduleInfoContents = moduleInfoContents.substring(0, lastBraceIndex) +
+                    String.join("\n", uses) +
+                    "\n}";
+            }
+        }
+
+        Files.writeString(generatedModuleInfo, moduleInfoContents);
+
+        expandJar(generatedDelegateDir, generatedDelegatePath);
+
+        ToolProvider javac = ToolProvider.findFirst("javac").get();
+
+        List<String> args = new ArrayList<>();
+        if (atLeastVersion(javac, 21))
+        {
+            args.add("-proc:none");
+        }
+
+        args.add("-d");
+        args.add(generatedDelegateDir.toString());
+
+        args.add(generatedModuleInfo.toString());
+
+        javac.run(
+            System.out,
+            System.err,
+            args.toArray(String[]::new));
+
+        Path compiledModuleInfo = generatedDelegateDir.resolve(MODULE_INFO_CLASS_FILENAME);
+        assert Files.exists(compiledModuleInfo);
+
+        Path delegatePath = modulePath(delegate);
+        JarEntry moduleInfoEntry = new JarEntry(MODULE_INFO_CLASS_FILENAME);
+        moduleInfoEntry.setTime(318240000000L);
+        extendJar(generatedDelegatePath, delegatePath, moduleInfoEntry, compiledModuleInfo);
+    }
+
+    private void generateDelegateJar(
+        ZpmModule delegate,
+        Path generatedDelegatePath) throws IOException
+    {
         try (JarOutputStream moduleJar = new JarOutputStream(Files.newOutputStream(generatedDelegatePath)))
         {
             Path moduleInfoPath = Paths.get(MODULE_INFO_CLASS_FILENAME);
@@ -581,104 +729,134 @@ public final class ZpmInstall extends ZpmCommand
                 moduleJar.closeEntry();
             }
         }
+    }
 
-        List<String> jdepsArgs = Arrays.asList(
-            "--generate-module-info", generatedModulesDir.toString(),
-            generatedDelegatePath.toString());
-        if (ignoreMissingDependencies)
+    private void generateDelegateOptional(
+        Path optionalPath,
+        Collection<ZpmArtifact> optional,
+        Set<String> delegatePackages) throws IOException
+    {
+        // packages owned by JDK system modules must be excluded, otherwise the merged automatic module
+        // would split a package the boot layer already exports (for example javax.xml)
+        Set<String> systemPackages = ModuleFinder.ofSystem().findAll().stream()
+            .flatMap(reference -> reference.descriptor().packages().stream())
+            .collect(Collectors.toSet());
+
+        Set<String> entryNames = new HashSet<>();
+        try (JarOutputStream optionalJar = new JarOutputStream(Files.newOutputStream(optionalPath)))
         {
-            jdepsArgs = new LinkedList<>(jdepsArgs);
-            jdepsArgs.add(0, "--ignore-missing-deps");
+            for (ZpmArtifact artifact : optional)
+            {
+                Path path = artifact.path;
+                if (path == null || !Files.exists(path))
+                {
+                    continue;
+                }
+
+                try (JarFile artifactJar = new JarFile(path.toFile()))
+                {
+                    for (JarEntry entry : list(artifactJar.entries()))
+                    {
+                        String entryName = entry.getName();
+                        if (entry.isDirectory() ||
+                            !entryName.endsWith(".class") ||
+                            entryName.endsWith(MODULE_INFO_CLASS_FILENAME) ||
+                            entryName.startsWith("META-INF/"))
+                        {
+                            continue;
+                        }
+
+                        int lastSlash = entryName.lastIndexOf('/');
+                        String packageName = lastSlash < 0 ? "" : entryName.substring(0, lastSlash).replace('/', '.');
+                        if (delegatePackages.contains(packageName) ||
+                            systemPackages.contains(packageName) ||
+                            !entryNames.add(entryName))
+                        {
+                            continue;
+                        }
+
+                        try (InputStream input = artifactJar.getInputStream(entry))
+                        {
+                            JarEntry newEntry = new JarEntry(entryName);
+                            newEntry.setTime(318240000000L);
+                            optionalJar.putNextEntry(newEntry);
+                            optionalJar.write(input.readAllBytes());
+                            optionalJar.closeEntry();
+                        }
+                    }
+                }
+                catch (IOException ex)
+                {
+                    // ignore artifacts that are not readable jars (for example sources or native
+                    // classifier archives); they cannot contribute classes to the validation module
+                }
+            }
         }
+    }
+
+    private Set<String> missingDependencies(
+        Path delegatePath,
+        Path optionalModulesDir)
+    {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        PrintStream capture = new PrintStream(buffer);
+        PrintStream nullOutput = new PrintStream(nullOutputStream());
         ToolProvider jdeps = ToolProvider.findFirst("jdeps").get();
         jdeps.run(
-            System.out,
-            System.err,
-            jdepsArgs.toArray(String[]::new));
+            capture,
+            nullOutput,
+            "--missing-deps",
+            "--module-path", optionalModulesDir.toString(),
+            delegatePath.toString());
 
-        Path generatedModuleInfo = generatedDelegateDir.resolve(MODULE_INFO_JAVA_FILENAME);
-
-        if (!Files.exists(generatedModuleInfo))
+        Pattern missingPattern = Pattern.compile("->\\s+(\\S+)\\s+not found");
+        Matcher missingMatcher = missingPattern.matcher(buffer.toString(UTF_8));
+        Set<String> missing = new HashSet<>();
+        while (missingMatcher.find())
         {
-            throw new IOException("Failed to generate module info for delegate module");
+            missing.add(missingMatcher.group(1));
         }
+        return missing;
+    }
 
-        logger.info(String.format("Generated module info for delegate module\n"));
-
-        String moduleInfoContents = Files.readString(generatedModuleInfo);
-
-        Pattern providesPattern = Pattern.compile("(?m)^\\s*provides\\s+([^\\s;]+)\\s+with\\s+[^;]+;\\R?");
-        Matcher providesMatcher = providesPattern.matcher(moduleInfoContents);
-        StringBuilder cleanedModuleInfo = new StringBuilder();
-
-        List<String> uses = new ArrayList<>();
-
-        while (providesMatcher.find())
+    private Set<String> jarPackages(
+        Path path) throws IOException
+    {
+        Set<String> packages = new HashSet<>();
+        try (JarFile jar = new JarFile(path.toFile()))
         {
-            String serviceInterface = providesMatcher.group(1);
-            boolean serviceClassPresent = false;
-            try
+            for (JarEntry entry : list(jar.entries()))
             {
-                Class.forName(serviceInterface, false, this.getClass().getClassLoader());
-                serviceClassPresent = true;
-            }
-            catch (ClassNotFoundException e)
-            {
-                serviceClassPresent = false;
-            }
-            if (serviceClassPresent)
-            {
-                providesMatcher.appendReplacement(cleanedModuleInfo, providesMatcher.group(0));
-                uses.add(String.format("    uses %s;", serviceInterface));
-            }
-            else
-            {
-                providesMatcher.appendReplacement(cleanedModuleInfo, "");
+                String name = entry.getName();
+                if (!entry.isDirectory() && name.endsWith(".class"))
+                {
+                    int lastSlash = name.lastIndexOf('/');
+                    if (lastSlash > 0)
+                    {
+                        packages.add(name.substring(0, lastSlash).replace('/', '.'));
+                    }
+                }
             }
         }
-        providesMatcher.appendTail(cleanedModuleInfo);
-        moduleInfoContents = cleanedModuleInfo.toString();
+        return packages;
+    }
 
-        if (!uses.isEmpty())
+    private Set<String> jarClasses(
+        Path path) throws IOException
+    {
+        Set<String> classes = new HashSet<>();
+        try (JarFile jar = new JarFile(path.toFile()))
         {
-            int lastBraceIndex = moduleInfoContents.lastIndexOf('}');
-            if (lastBraceIndex != -1)
+            for (JarEntry entry : list(jar.entries()))
             {
-                moduleInfoContents = moduleInfoContents.substring(0, lastBraceIndex) +
-                    String.join("\n", uses) +
-                    "\n}";
+                String name = entry.getName();
+                if (!entry.isDirectory() && name.endsWith(".class") && !name.endsWith(MODULE_INFO_CLASS_FILENAME))
+                {
+                    classes.add(name.substring(0, name.length() - ".class".length()).replace('/', '.'));
+                }
             }
         }
-
-        Files.writeString(generatedModuleInfo, moduleInfoContents);
-
-        expandJar(generatedDelegateDir, generatedDelegatePath);
-
-        ToolProvider javac = ToolProvider.findFirst("javac").get();
-
-        List<String> args = new ArrayList<>();
-        if (atLeastVersion(javac, 21))
-        {
-            args.add("-proc:none");
-        }
-
-        args.add("-d");
-        args.add(generatedDelegateDir.toString());
-
-        args.add(generatedModuleInfo.toString());
-
-        javac.run(
-            System.out,
-            System.err,
-            args.toArray(String[]::new));
-
-        Path compiledModuleInfo = generatedDelegateDir.resolve(MODULE_INFO_CLASS_FILENAME);
-        assert Files.exists(compiledModuleInfo);
-
-        Path delegatePath = modulePath(delegate);
-        JarEntry moduleInfoEntry = new JarEntry(MODULE_INFO_CLASS_FILENAME);
-        moduleInfoEntry.setTime(318240000000L);
-        extendJar(generatedDelegatePath, delegatePath, moduleInfoEntry, compiledModuleInfo);
+        return classes;
     }
 
     private void generateDelegating(
@@ -732,6 +910,13 @@ public final class ZpmInstall extends ZpmCommand
         }
     }
 
+    private List<String> incubatorModules()
+    {
+        return incubator.stream()
+            .map(name -> String.format("jdk.incubator.%s", name))
+            .collect(toList());
+    }
+
     private void linkModules(
         Collection<ZpmModule> modules) throws IOException
     {
@@ -748,6 +933,7 @@ public final class ZpmInstall extends ZpmCommand
         {
             extraModuleNames.add("java.instrument");
         }
+        extraModuleNames.addAll(incubatorModules());
 
         extraModuleNames.add("java.management");
         extraModuleNames.add("jdk.management");

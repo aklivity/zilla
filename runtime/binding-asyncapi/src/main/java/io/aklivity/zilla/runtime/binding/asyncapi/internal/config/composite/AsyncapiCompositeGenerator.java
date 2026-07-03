@@ -40,24 +40,31 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiServerConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.AsyncapiSchemaItem;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.parser.AsyncapiParser;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaItemView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.AsyncapiHttpOperationBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka.AsyncapiHttpKafkaOperationBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaMessageBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.AsyncapiSseOperationBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.SchemaRegistryOptionsConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParserFactory;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiSchemaItem;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaItemView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -108,7 +115,14 @@ public abstract class AsyncapiCompositeGenerator
     public final AsyncapiCompositeConfig generate(
         AsyncapiBindingConfig binding)
     {
-        final AsyncapiParser parser = new AsyncapiParser();
+        final AsyncapiParser parser = new AsyncapiParserFactory()
+            .withOperationBinding("http", AsyncapiHttpOperationBindingEx.class)
+            .withOperationBinding("x-zilla-http-kafka", AsyncapiHttpKafkaOperationBindingEx.class)
+            .withOperationBinding("x-zilla-sse", AsyncapiSseOperationBindingEx.class)
+            .withOperationBinding("x-zilla-sse-kafka", AsyncapiSseKafkaOperationBindingEx.class)
+            .withMessageBinding("kafka", AsyncapiKafkaMessageBindingEx.class)
+            .withServerBinding("kafka", AsyncapiKafkaServerBindingEx.class)
+            .createParser();
         final List<AsyncapiSchemaConfig> schemas = new ArrayList<>();
 
         int tagIndex = 1;
@@ -264,17 +278,16 @@ public abstract class AsyncapiCompositeGenerator
                 Optional<AsyncapiServerView> serverRef = Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
-                    .filter(s -> s.bindings != null)
-                    .filter(s -> s.bindings.kafka != null)
-                    .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
+                    .filter(s -> s.binding("kafka", AsyncapiKafkaServerBindingEx.class)
+                        .map(b -> b.schemaRegistryUrl).isPresent())
                     .findFirst();
 
                 if (serverRef.isPresent())
                 {
                     final AsyncapiServerView server = serverRef.get();
 
-                    final String vendor = Optional
-                            .ofNullable(server.bindings.kafka.schemaRegistryVendor)
+                    final String vendor = server.binding("kafka", AsyncapiKafkaServerBindingEx.class)
+                            .map(b -> b.schemaRegistryVendor)
                             .orElse("schema-registry");
 
                     switch (vendor)
@@ -308,7 +321,7 @@ public abstract class AsyncapiCompositeGenerator
                         .name("catalog0")
                         .type("schema-registry")
                         .options(SchemaRegistryOptionsConfig::builder)
-                            .url(server.bindings.kafka.schemaRegistryUrl)
+                            .url(server.binding("kafka", AsyncapiKafkaServerBindingEx.class).get().schemaRegistryUrl)
                             .context("default")
                             .maxAge(Duration.ofHours(1))
                             .build()
@@ -324,7 +337,7 @@ public abstract class AsyncapiCompositeGenerator
                         .name("catalog0")
                         .type("apicurio-registry")
                         .options(ApicurioOptionsConfig::builder)
-                            .url(server.bindings.kafka.schemaRegistryUrl)
+                            .url(server.binding("kafka", AsyncapiKafkaServerBindingEx.class).get().schemaRegistryUrl)
                             .groupId("default")
                             .maxAge(Duration.ofHours(1))
                             .build()
@@ -340,7 +353,7 @@ public abstract class AsyncapiCompositeGenerator
                         .name("catalog0")
                         .type("karapace-schema-registry")
                         .options(KarapaceOptionsConfig::builder)
-                            .url(server.bindings.kafka.schemaRegistryUrl)
+                            .url(server.binding("kafka", AsyncapiKafkaServerBindingEx.class).get().schemaRegistryUrl)
                             .context("default")
                             .maxAge(Duration.ofHours(1))
                             .build()

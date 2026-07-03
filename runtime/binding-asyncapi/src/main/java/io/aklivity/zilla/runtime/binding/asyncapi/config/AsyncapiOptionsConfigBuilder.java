@@ -28,6 +28,8 @@ import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -147,7 +149,7 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
 
     public AsyncapiSpecificationConfigBuilder<AsyncapiOptionsConfigBuilder<T>> spec()
     {
-        return new AsyncapiSpecificationConfigBuilder<>(this::spec);
+        return AsyncapiSpecificationConfig.builder(this::spec);
     }
 
     public AsyncapiOptionsConfigBuilder<T> spec(

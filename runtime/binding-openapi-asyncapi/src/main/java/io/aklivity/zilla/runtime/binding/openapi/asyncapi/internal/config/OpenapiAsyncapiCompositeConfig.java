@@ -23,9 +23,9 @@ import java.util.function.ToLongFunction;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2LongHashMap;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 

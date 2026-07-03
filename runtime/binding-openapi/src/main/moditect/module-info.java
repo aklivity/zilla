@@ -14,7 +14,7 @@
  */
 module io.aklivity.zilla.runtime.binding.openapi
 {
-    requires io.aklivity.zilla.runtime.common.json;
+    requires transitive io.aklivity.zilla.runtime.common.openapi;
     requires io.aklivity.zilla.runtime.common.yaml;
 
     requires io.aklivity.zilla.runtime.engine;
@@ -28,10 +28,6 @@ module io.aklivity.zilla.runtime.binding.openapi
     requires io.aklivity.zilla.runtime.model.json;
 
     exports io.aklivity.zilla.runtime.binding.openapi.config;
-
-    opens io.aklivity.zilla.runtime.binding.openapi.internal.model;
-    opens io.aklivity.zilla.runtime.binding.openapi.internal.model.extensions.http.kafka;
-    opens io.aklivity.zilla.runtime.binding.openapi.internal.view;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBindingFactorySpi;

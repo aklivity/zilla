@@ -35,7 +35,7 @@ import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.TestFactory;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.agrona.io.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;

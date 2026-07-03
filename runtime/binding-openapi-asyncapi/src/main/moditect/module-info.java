@@ -15,6 +15,8 @@
 module io.aklivity.zilla.runtime.binding.openapi.asyncapi
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.common.openapi;
+    requires io.aklivity.zilla.runtime.common.asyncapi;
     requires io.aklivity.zilla.runtime.binding.asyncapi;
     requires io.aklivity.zilla.runtime.binding.openapi;
     requires io.aklivity.zilla.runtime.binding.http;

@@ -47,10 +47,12 @@
     <module>catalog-karapace</module>
     <module>catalog-schema-registry</module>
     <module>common-agrona</module>
+    <module>common-asyncapi</module>
     <module>common-avro</module>
     <module>common-feature</module>
     <module>common-json</module>
     <module>common-lang</module>
+    <module>common-openapi</module>
     <module>common-protobuf</module>
     <module>common-yaml</module>
     <module>command</module>
@@ -231,6 +233,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>common-asyncapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>common-avro</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -242,6 +249,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>common-lang</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common-openapi</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

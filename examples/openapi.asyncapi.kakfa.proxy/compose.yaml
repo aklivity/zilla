@@ -11,6 +11,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 15s
       test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092

@@ -28,25 +28,17 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka.AsyncapiHttpKafkaFilter;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka.AsyncapiHttpKafkaOperationBinding;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaFilter;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.AsyncapiHttpOperationBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka.AsyncapiHttpKafkaFilterEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka.AsyncapiHttpKafkaOperationBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaFilterEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.MqttQoS;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiChannelView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiCorrelationIdView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiReplyView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaItemView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSchemaView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiSecuritySchemeView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiView;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
@@ -61,6 +53,16 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfi
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfigBuilder;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiCorrelationIdView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiReplyView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaItemView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSecuritySchemeView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -436,7 +438,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     AsyncapiOperationView sseOperation,
                     AsyncapiOperationView kafkaOperation)
                 {
-                    if (sseOperation.hasBindingsSse())
+                    if (sseOperation.hasBinding("x-zilla-sse"))
                     {
                         binding.route()
                             .exit(config.qname)
@@ -475,12 +477,14 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     SseKafkaWithConfigBuilder<C> with,
                     AsyncapiOperationView sseOperation)
                 {
-                    if (sseOperation.hasBindingsSseKafka())
+                    if (sseOperation.hasBinding("x-zilla-sse-kafka"))
                     {
-                        List<AsyncapiSseKafkaFilter> filters = sseOperation.bindings.sseKafka.filters;
+                        List<AsyncapiSseKafkaFilterEx> filters = sseOperation
+                            .binding("x-zilla-sse-kafka", AsyncapiSseKafkaOperationBindingEx.class)
+                            .get().filters;
                         if (filters != null)
                         {
-                            for (AsyncapiSseKafkaFilter filter : filters)
+                            for (AsyncapiSseKafkaFilterEx filter : filters)
                             {
                                 SseKafkaWithFilterConfigBuilder<?> withFilter = with.filter();
 
@@ -630,10 +634,11 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     AsyncapiOperationView httpOperation,
                     AsyncapiOperationView kafkaOperation)
                 {
-                    if (httpOperation.hasBindingsHttp())
+                    if (httpOperation.hasBinding("http"))
                     {
                         final AsyncapiChannelView httpChannel = httpOperation.channel;
-                        final String httpMethod = httpOperation.bindings.http.method;
+                        final String httpMethod = httpOperation
+                            .binding("http", AsyncapiHttpOperationBindingEx.class).get().method;
                         final String httpPath = httpChannel.address;
 
                         boolean async = httpOperation.messages.stream()
@@ -652,7 +657,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                                         binding.route()
                                             .exit(config.qname)
                                             .when(HttpKafkaConditionConfig::builder)
-                                                .method(httpPeerOp.bindings.http.method)
+                                                .method(httpPeerOp
+                                                    .binding("http", AsyncapiHttpOperationBindingEx.class).get().method)
                                                 .path(httpPeerOp.channel.address)
                                                 .build()
                                             .with(HttpKafkaWithConfig::builder)
@@ -746,12 +752,14 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                             .build();
                     }
 
-                    if (httpOperation.hasBindingsHttpKafka())
+                    if (httpOperation.hasBinding("x-zilla-http-kafka"))
                     {
-                        List<AsyncapiHttpKafkaFilter> filters = httpOperation.bindings.httpKafka.filters;
+                        List<AsyncapiHttpKafkaFilterEx> filters = httpOperation
+                            .binding("x-zilla-http-kafka", AsyncapiHttpKafkaOperationBindingEx.class)
+                            .get().filters;
                         if (filters != null)
                         {
-                            for (AsyncapiHttpKafkaFilter filter : filters)
+                            for (AsyncapiHttpKafkaFilterEx filter : filters)
                             {
                                 HttpKafkaWithFetchFilterConfigBuilder<?> withFilter = fetch.filter();
 
@@ -835,7 +843,9 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         }
                     }
 
-                    AsyncapiHttpKafkaOperationBinding httpKafkaBinding = httpOperation.bindings.httpKafka;
+                    AsyncapiHttpKafkaOperationBindingEx httpKafkaBinding = httpOperation
+                        .binding("x-zilla-http-kafka", AsyncapiHttpKafkaOperationBindingEx.class)
+                        .orElse(null);
                     if (httpKafkaBinding != null)
                     {
                         String httpKafkaKey = httpKafkaBinding.key;

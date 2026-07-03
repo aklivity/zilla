@@ -21,15 +21,12 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiMessageView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiOperationView;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.view.AsyncapiReplyView;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
@@ -42,15 +39,20 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.Openap
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiRouteConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiSchemaConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaFilter;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiHeaderView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiOperationView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiResponseView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSchemaView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecurityRequirementView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiSecuritySchemeView;
-import io.aklivity.zilla.runtime.binding.openapi.internal.view.OpenapiServerView;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaFilter;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationEx;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiReplyView;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecurityRequirementView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -405,9 +407,11 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                             .build();
                     }
 
-                    if (httpOperation.hasExtensionHttpKafka())
+                    Optional<OpenapiHttpKafkaOperationEx> httpKafka =
+                        httpOperation.extension("x-zilla-http-kafka", OpenapiHttpKafkaOperationEx.class);
+                    if (httpKafka.isPresent())
                     {
-                        List<OpenapiHttpKafkaFilter> filters = httpOperation.httpKafka.filters;
+                        List<OpenapiHttpKafkaFilter> filters = httpKafka.get().filters;
                         if (filters != null)
                         {
                             for (OpenapiHttpKafkaFilter filter : filters)
