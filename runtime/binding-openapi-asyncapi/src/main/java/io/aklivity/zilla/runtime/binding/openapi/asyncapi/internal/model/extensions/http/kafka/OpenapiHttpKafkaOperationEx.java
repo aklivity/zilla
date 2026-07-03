@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extens
 import java.util.List;
 import java.util.Map;
 
-public class OpenapiHttpKafkaOperationExtension
+public class OpenapiHttpKafkaOperationEx
 {
     public String key;
     public Map<String, String> overrides;

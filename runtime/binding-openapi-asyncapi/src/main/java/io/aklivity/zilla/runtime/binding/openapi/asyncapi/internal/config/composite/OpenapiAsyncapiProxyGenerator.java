@@ -40,7 +40,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.Openap
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaFilter;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationExtension;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationEx;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
@@ -407,8 +407,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                             .build();
                     }
 
-                    Optional<OpenapiHttpKafkaOperationExtension> httpKafka =
-                        httpOperation.extension("x-zilla-http-kafka", OpenapiHttpKafkaOperationExtension.class);
+                    Optional<OpenapiHttpKafkaOperationEx> httpKafka =
+                        httpOperation.extension("x-zilla-http-kafka", OpenapiHttpKafkaOperationEx.class);
                     if (httpKafka.isPresent())
                     {
                         List<OpenapiHttpKafkaFilter> filters = httpKafka.get().filters;
