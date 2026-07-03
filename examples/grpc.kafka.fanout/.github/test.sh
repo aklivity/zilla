@@ -20,8 +20,14 @@ echo
 # WHEN
 
 # produce the record once; the fanout stream replays it from the topic on every
-# connection, so re-reading below is safe and must not re-produce
-docker compose -p zilla-grpc-kafka-fanout exec kafkacat kafkacat -P -b kafka.examples.dev:29092 -t messages -k -e /tmp/binary.data
+# connection, so re-reading below is safe and must not re-produce.
+# the topic can exist (kafka-init's create call succeeded) before its metadata
+# has propagated to the point where a produce is accepted, so retry on failure
+# rather than leaving the topic empty and failing every read below
+produce_fanout() {
+  docker compose -p zilla-grpc-kafka-fanout exec kafkacat kafkacat -P -b kafka.examples.dev:29092 -t messages -k -e /tmp/binary.data
+}
+retry_until 10 3 produce_fanout
 
 # the grpc-kafka route warms up after the TCP healthcheck passes; retry the
 # streamed read until it returns the produced record or attempts are exhausted
