@@ -18,6 +18,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -182,6 +184,56 @@ public class OpenapiParserTest
 
         assertTrue(schema.hasExtension("x-zilla-sample"));
         assertEquals("schema-value", schema.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldResolveOAuthFlowsAndScopesFromSecurityScheme()
+    {
+        String spec =
+            """
+            {
+              "openapi": "3.1.0",
+              "info": { "title": "sample", "version": "1.0.0" },
+              "paths": {},
+              "components": {
+                "securitySchemes": {
+                  "oauth2Auth": {
+                    "type": "oauth2",
+                    "flows": {
+                      "authorizationCode": {
+                        "authorizationUrl": "https://example.com/authorize",
+                        "tokenUrl": "https://example.com/token",
+                        "refreshUrl": "https://example.com/refresh",
+                        "scopes": {
+                          "read": "Read access",
+                          "write": "Write access"
+                        },
+                        "x-zilla-sample": { "key": "flow-value" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Openapi model = parser.parse(spec);
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiSecuritySchemeView scheme = view.components.securitySchemes.get("oauth2Auth");
+
+        assertEquals("https://example.com/authorize", scheme.flows.authorizationCode.authorizationUrl);
+        assertEquals("https://example.com/token", scheme.flows.authorizationCode.tokenUrl);
+        assertEquals("https://example.com/refresh", scheme.flows.authorizationCode.refreshUrl);
+        assertEquals(Map.of("read", "Read access", "write", "Write access"), scheme.flows.authorizationCode.scopes);
+        assertEquals(List.of("read", "write"), scheme.scopes);
+
+        assertTrue(scheme.flows.authorizationCode.hasExtension("x-zilla-sample"));
+        assertEquals("flow-value",
+            scheme.flows.authorizationCode.extension("x-zilla-sample", SampleExtension.class).get().key);
     }
 
     @Test

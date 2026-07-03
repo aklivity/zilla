@@ -23,6 +23,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -30,6 +31,8 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiComponents;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiMediaType;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOAuthFlow;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOAuthFlows;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiPath;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiRequestBody;
@@ -243,6 +246,63 @@ public class OpenapiViewTest
 
         assertTrue(schemeView.hasExtension("x-zilla-sample"));
         assertEquals("scheme-value", schemeView.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldResolveSecuritySchemeOAuthFlowsAndScopes() throws Exception
+    {
+        OpenapiOAuthFlow implicit = new OpenapiOAuthFlow();
+        implicit.authorizationUrl = "https://example.com/authorize";
+        implicit.refreshUrl = "https://example.com/refresh";
+        implicit.scopes = Map.of("read", "Read access");
+
+        OpenapiOAuthFlow clientCredentials = new OpenapiOAuthFlow();
+        clientCredentials.tokenUrl = "https://example.com/token";
+        clientCredentials.scopes = Map.of("read", "Read access", "write", "Write access");
+
+        OpenapiOAuthFlows flows = new OpenapiOAuthFlows();
+        flows.implicit = implicit;
+        flows.clientCredentials = clientCredentials;
+
+        OpenapiSecurityScheme scheme = new OpenapiSecurityScheme();
+        scheme.type = "oauth2";
+        scheme.flows = flows;
+
+        OpenapiComponents components = new OpenapiComponents();
+        components.securitySchemes = Map.of("oauth2Auth", scheme);
+
+        Openapi model = new Openapi();
+        model.components = components;
+
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiSecuritySchemeView schemeView = view.components.securitySchemes.get("oauth2Auth");
+
+        assertEquals("https://example.com/authorize", schemeView.flows.implicit.authorizationUrl);
+        assertEquals("https://example.com/refresh", schemeView.flows.implicit.refreshUrl);
+        assertEquals("https://example.com/token", schemeView.flows.clientCredentials.tokenUrl);
+        assertNull(schemeView.flows.password);
+        assertNull(schemeView.flows.authorizationCode);
+        assertEquals(Set.of("read", "write"), Set.copyOf(schemeView.scopes));
+    }
+
+    @Test
+    public void shouldNotResolveScopesWithoutFlows() throws Exception
+    {
+        OpenapiSecurityScheme scheme = new OpenapiSecurityScheme();
+        scheme.type = "http";
+        scheme.scheme = "bearer";
+
+        OpenapiComponents components = new OpenapiComponents();
+        components.securitySchemes = Map.of("bearerAuth", scheme);
+
+        Openapi model = new Openapi();
+        model.components = components;
+
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiSecuritySchemeView schemeView = view.components.securitySchemes.get("bearerAuth");
+
+        assertNull(schemeView.flows);
+        assertEquals(List.of(), schemeView.scopes);
     }
 
     public static final class SampleExtension
