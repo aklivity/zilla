@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.openapi.view;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiParameter;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public class OpenapiParameterView
+public class OpenapiParameterView extends OpenapiExtensibleView
 {
     public final OpenapiOperationView operation;
     public final String name;
@@ -30,6 +30,8 @@ public class OpenapiParameterView
         OpenapiResolver resolver,
         OpenapiParameter model)
     {
+        super(resolver.parameters.resolve(model).extensions);
+
         this.operation = operation;
 
         OpenapiParameter resolved = resolver.parameters.resolve(model);

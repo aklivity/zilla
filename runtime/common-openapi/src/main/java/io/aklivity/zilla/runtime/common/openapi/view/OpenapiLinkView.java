@@ -19,7 +19,7 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiLink;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiLinkView
+public final class OpenapiLinkView extends OpenapiExtensibleView
 {
     public final String name;
 
@@ -34,6 +34,8 @@ public final class OpenapiLinkView
         String name,
         OpenapiLink model)
     {
+        super(resolver.links.resolve(model).extensions);
+
         this.name = name;
 
         OpenapiLink resolved = resolver.links.resolve(model);

@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.openapi.view;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiHeader;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiHeaderView
+public final class OpenapiHeaderView extends OpenapiExtensibleView
 {
     public final String name;
     public final boolean required;
@@ -29,6 +29,8 @@ public final class OpenapiHeaderView
         String name,
         OpenapiHeader model)
     {
+        super(resolver.headers.resolve(model).extensions);
+
         this.name = name;
 
         OpenapiHeader resolved = resolver.headers.resolve(model);

@@ -26,7 +26,5 @@ public class OpenapiOperation
     public List<Map<String, List<String>>> security;
     public List<OpenapiServer> servers;
 
-    // populated during the main parse by OpenapiOperationAdapter, since x-* extensions
-    // are siblings of the known properties, not nested under a property named "extensions"
-    public transient Map<String, OpenapiExtension> extensions;
+    public Map<String, Object> extensions;
 }

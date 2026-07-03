@@ -26,7 +26,7 @@ import jakarta.json.bind.annotation.JsonbPropertyOrder;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiSchemaView
+public final class OpenapiSchemaView extends OpenapiExtensibleView
 {
     public final String name;
     public final OpenapiJsonSchema model;
@@ -58,6 +58,8 @@ public final class OpenapiSchemaView
         OpenapiSchema resolved,
         OpenapiResolver resolver)
     {
+        super(resolved.extensions);
+
         this.name = name;
         this.model = OpenapiJsonSchema.of(resolved);
 

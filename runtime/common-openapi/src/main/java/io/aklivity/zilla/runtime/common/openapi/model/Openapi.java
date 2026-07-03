@@ -25,11 +25,5 @@ public class Openapi
     public List<Map<String, List<String>>> security;
     public OpenapiComponents components;
 
-    // populated by OpenapiParser right after the main parse, not via JSON-B field binding,
-    // since x-* extensions are siblings of the known properties, not nested under
-    // a JSON property named "extensions"; captured as-is with no $ref resolution, since
-    // OpenAPI defines no $ref semantics for specification extension values (only for
-    // specific schema/component positions), and cross-document reuse is already handled
-    // by YAML anchors/aliases, resolved transparently before parsing reaches here
-    public transient Map<String, OpenapiExtension> extensions;
+    public Map<String, Object> extensions;
 }

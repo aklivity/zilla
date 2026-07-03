@@ -15,25 +15,26 @@
 package io.aklivity.zilla.runtime.common.openapi.model;
 
 import java.lang.reflect.Type;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import jakarta.json.JsonObject;
 import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
 public final class OpenapiOperationDeserializer implements JsonbDeserializer<OpenapiOperation>
 {
-    private static final Jsonb PLAIN = JsonbBuilder.create();
-
     private final Map<String, Class<?>> extensionTypes;
+    private final Supplier<Jsonb> plain;
 
     public OpenapiOperationDeserializer(
         Map<String, Class<?>> extensionTypes)
     {
         this.extensionTypes = extensionTypes;
+        this.plain = OpenapiDeserializers.plain(extensionTypes, OpenapiOperationDeserializer.class);
     }
 
     @Override
@@ -43,8 +44,26 @@ public final class OpenapiOperationDeserializer implements JsonbDeserializer<Ope
         Type type)
     {
         JsonObject object = parser.getObject();
-        OpenapiOperation operation = PLAIN.fromJson(object.toString(), OpenapiOperation.class);
-        operation.extensions = OpenapiExtension.capture(object, extensionTypes);
-        return operation;
+        OpenapiOperation model = plain.get().fromJson(object.toString(), OpenapiOperation.class);
+
+        Map<String, Object> extensions = null;
+        for (String name : object.keySet())
+        {
+            if (name.startsWith("x-"))
+            {
+                Class<?> extensionType = extensionTypes.get(name);
+                if (extensionType != null)
+                {
+                    if (extensions == null)
+                    {
+                        extensions = new LinkedHashMap<>();
+                    }
+                    extensions.put(name, plain.get().fromJson(object.get(name).toString(), extensionType));
+                }
+            }
+        }
+        model.extensions = extensions;
+
+        return model;
     }
 }

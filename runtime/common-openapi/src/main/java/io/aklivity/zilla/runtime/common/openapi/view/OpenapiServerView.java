@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiServerView
+public final class OpenapiServerView extends OpenapiExtensibleView
 {
     public final URI url;
 
@@ -47,6 +47,8 @@ public final class OpenapiServerView
         OpenapiServer model,
         OpenapiServerConfig config)
     {
+        super(model.extensions);
+
         Map<String, OpenapiVariableView> variables = model.variables != null
                 ? model.variables.entrySet().stream()
                     .map(e -> new OpenapiVariableView(e.getKey(), e.getValue()))

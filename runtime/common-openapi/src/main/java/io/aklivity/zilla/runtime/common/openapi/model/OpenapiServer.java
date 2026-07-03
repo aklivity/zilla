@@ -20,4 +20,6 @@ public class OpenapiServer
 {
     public String url;
     public Map<String, OpenapiServerVariable> variables;
+
+    public Map<String, Object> extensions;
 }

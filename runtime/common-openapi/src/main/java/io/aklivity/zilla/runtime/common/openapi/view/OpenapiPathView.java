@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiPath;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiPathView
+public final class OpenapiPathView extends OpenapiExtensibleView
 {
     public final OpenapiView specification;
     public final String path;
@@ -71,6 +71,8 @@ public final class OpenapiPathView
         String path,
         OpenapiPath model)
     {
+        super(model.extensions);
+
         this.specification = specification;
         this.path = path;
         this.methods = METHOD_ACCESSORS.entrySet().stream()

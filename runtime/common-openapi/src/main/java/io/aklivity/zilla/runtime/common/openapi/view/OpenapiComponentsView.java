@@ -21,7 +21,7 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiComponents;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiComponentsView
+public final class OpenapiComponentsView extends OpenapiExtensibleView
 {
     public final Map<String, OpenapiSecuritySchemeView> securitySchemes;
     public final Map<String, OpenapiSchemaView> schemas;
@@ -30,6 +30,8 @@ public final class OpenapiComponentsView
         OpenapiResolver resolver,
         OpenapiComponents model)
     {
+        super(model.extensions);
+
         this.securitySchemes = model.securitySchemes != null
                 ? model.securitySchemes.entrySet().stream()
                     .collect(toMap(e -> e.getKey(), e -> new OpenapiSecuritySchemeView(resolver, e.getKey(), e.getValue())))

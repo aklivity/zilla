@@ -23,4 +23,6 @@ public class OpenapiEncoding
     public String style;
     public boolean explode;
     public boolean allowReserved;
+
+    public Map<String, Object> extensions;
 }

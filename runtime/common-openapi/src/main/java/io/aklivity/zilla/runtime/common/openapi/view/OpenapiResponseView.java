@@ -22,7 +22,7 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiResponse;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiResponseView
+public final class OpenapiResponseView extends OpenapiExtensibleView
 {
     public final OpenapiOperationView operation;
     public final String status;
@@ -39,6 +39,8 @@ public final class OpenapiResponseView
         String status,
         OpenapiResponse model)
     {
+        super(model.extensions);
+
         this.operation = operation;
         this.status = status;
 

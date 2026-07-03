@@ -16,35 +16,73 @@ package io.aklivity.zilla.runtime.common.openapi.model;
 
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
-public final class OpenapiSecuritySchemeDeserializer implements JsonbDeserializer<OpenapiSecurityScheme>
+public final class OpenapiSchemaDeserializer implements JsonbDeserializer<OpenapiSchema>
 {
     private final Map<String, Class<?>> extensionTypes;
     private final Supplier<Jsonb> plain;
 
-    public OpenapiSecuritySchemeDeserializer(
+    public OpenapiSchemaDeserializer(
         Map<String, Class<?>> extensionTypes)
     {
         this.extensionTypes = extensionTypes;
-        this.plain = OpenapiDeserializers.plain(extensionTypes, OpenapiSecuritySchemeDeserializer.class);
+        this.plain = OpenapiDeserializers.plain(extensionTypes, OpenapiSchemaDeserializer.class);
     }
 
     @Override
-    public OpenapiSecurityScheme deserialize(
+    public OpenapiSchema deserialize(
         JsonParser parser,
         DeserializationContext ctx,
         Type type)
     {
-        JsonObject object = parser.getObject();
-        OpenapiSecurityScheme model = plain.get().fromJson(object.toString(), OpenapiSecurityScheme.class);
+        return bind(parser.getObject());
+    }
+
+    private OpenapiSchema bind(
+        JsonObject object)
+    {
+        OpenapiSchema model = plain.get().fromJson(object.toString(), OpenapiSchema.class);
+
+        if (model.items != null)
+        {
+            model.items = bind(object.getJsonObject("items"));
+        }
+
+        if (model.schema != null)
+        {
+            model.schema = bind(object.getJsonObject("schema"));
+        }
+
+        if (model.properties != null)
+        {
+            JsonObject properties = object.getJsonObject("properties");
+            model.properties.replaceAll((name, property) -> bind(properties.getJsonObject(name)));
+        }
+
+        if (model.oneOf != null)
+        {
+            bindAll(model.oneOf, object.getJsonArray("oneOf"));
+        }
+
+        if (model.allOf != null)
+        {
+            bindAll(model.allOf, object.getJsonArray("allOf"));
+        }
+
+        if (model.anyOf != null)
+        {
+            bindAll(model.anyOf, object.getJsonArray("anyOf"));
+        }
 
         Map<String, Object> extensions = null;
         for (String name : object.keySet())
@@ -65,5 +103,15 @@ public final class OpenapiSecuritySchemeDeserializer implements JsonbDeserialize
         model.extensions = extensions;
 
         return model;
+    }
+
+    private void bindAll(
+        List<OpenapiSchema> schemas,
+        JsonArray objects)
+    {
+        for (int i = 0; i < schemas.size(); i++)
+        {
+            schemas.set(i, bind(objects.getJsonObject(i)));
+        }
     }
 }

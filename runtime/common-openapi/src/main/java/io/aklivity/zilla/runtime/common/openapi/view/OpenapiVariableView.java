@@ -18,7 +18,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServerVariable;
 
-public final class OpenapiVariableView
+public final class OpenapiVariableView extends OpenapiExtensibleView
 {
     public String name;
     public final String defaultValue;
@@ -28,6 +28,8 @@ public final class OpenapiVariableView
         String name,
         OpenapiServerVariable model)
     {
+        super(model.extensions);
+
         this.name = name;
         this.defaultValue = model.defaultValue;
         this.values = model.values;

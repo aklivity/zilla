@@ -22,7 +22,7 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiRequestBody;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiRequestBodyView
+public final class OpenapiRequestBodyView extends OpenapiExtensibleView
 {
     public final OpenapiOperationView operation;
     public final Map<String, OpenapiMediaTypeView> content;
@@ -33,6 +33,8 @@ public final class OpenapiRequestBodyView
         OpenapiResolver resolver,
         OpenapiRequestBody model)
     {
+        super(resolver.requestBodies.resolve(model).extensions);
+
         this.operation = operation;
 
         OpenapiRequestBody resolved = resolver.requestBodies.resolve(model);

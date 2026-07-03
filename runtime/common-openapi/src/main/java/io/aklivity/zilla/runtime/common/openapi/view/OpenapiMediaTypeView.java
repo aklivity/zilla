@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.openapi.view;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiMediaType;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public class OpenapiMediaTypeView
+public class OpenapiMediaTypeView extends OpenapiExtensibleView
 {
     public final String name;
     public final OpenapiSchemaView schema;
@@ -28,6 +28,8 @@ public class OpenapiMediaTypeView
         String name,
         OpenapiMediaType model)
     {
+        super(model.extensions);
+
         this.name = name;
         this.schema = model.schema != null
             ? new OpenapiSchemaView(resolver, model.schema)

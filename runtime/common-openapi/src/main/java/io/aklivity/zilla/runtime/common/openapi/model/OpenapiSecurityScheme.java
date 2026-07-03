@@ -26,7 +26,5 @@ public class OpenapiSecurityScheme extends AbstractOpenapiResolvable
     public String openidConnectUrl;
     public Object flows;
 
-    // populated during the main parse by OpenapiSecuritySchemeAdapter, since x-* extensions
-    // are siblings of the known properties, not nested under a property named "extensions"
-    public transient Map<String, OpenapiExtension> extensions;
+    public Map<String, Object> extensions;
 }

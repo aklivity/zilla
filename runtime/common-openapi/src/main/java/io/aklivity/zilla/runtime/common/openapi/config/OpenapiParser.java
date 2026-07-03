@@ -33,6 +33,7 @@ import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
+import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
@@ -40,9 +41,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
-import io.aklivity.zilla.runtime.common.openapi.model.OpenapiExtension;
-import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperationDeserializer;
-import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSecuritySchemeDeserializer;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiDeserializers;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class OpenapiParser
@@ -91,16 +90,14 @@ public class OpenapiParser
                 schema.validate(parser, problem -> errors.add(new OpenapiException(problem.toString())));
             }
 
+            List<JsonbDeserializer<?>> deserializers = OpenapiDeserializers.all(extensionTypes);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                     .withProvider(provider)
                     .withConfig(new JsonbConfig()
-                        .withDeserializers(
-                            new OpenapiOperationDeserializer(extensionTypes),
-                            new OpenapiSecuritySchemeDeserializer(extensionTypes)))
+                        .withDeserializers(deserializers.toArray(JsonbDeserializer[]::new)))
                     .build();
 
             openapi = jsonb.fromJson(openapiText, Openapi.class);
-            openapi.extensions = OpenapiExtension.capture(document, extensionTypes);
         }
         catch (Exception ex)
         {

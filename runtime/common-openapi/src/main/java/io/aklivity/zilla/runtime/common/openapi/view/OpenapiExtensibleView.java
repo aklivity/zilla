@@ -17,19 +17,12 @@ package io.aklivity.zilla.runtime.common.openapi.view;
 import java.util.Map;
 import java.util.Optional;
 
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-
-import io.aklivity.zilla.runtime.common.openapi.model.OpenapiExtension;
-
 abstract class OpenapiExtensibleView
 {
-    private static final Jsonb JSONB = JsonbBuilder.create();
-
-    private final Map<String, OpenapiExtension> extensions;
+    private final Map<String, Object> extensions;
 
     OpenapiExtensibleView(
-        Map<String, OpenapiExtension> extensions)
+        Map<String, Object> extensions)
     {
         this.extensions = extensions;
     }
@@ -44,14 +37,6 @@ abstract class OpenapiExtensibleView
         String name,
         Class<T> type)
     {
-        T value = null;
-
-        if (extensions != null && extensions.containsKey(name))
-        {
-            OpenapiExtension extension = extensions.get(name);
-            value = extension.bound != null ? type.cast(extension.bound) : JSONB.fromJson(extension.value.toString(), type);
-        }
-
-        return Optional.ofNullable(value);
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

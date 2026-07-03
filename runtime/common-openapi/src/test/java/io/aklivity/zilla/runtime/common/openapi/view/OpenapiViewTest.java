@@ -24,14 +24,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import jakarta.json.Json;
-
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiComponents;
-import io.aklivity.zilla.runtime.common.openapi.model.OpenapiExtension;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiMediaType;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiPath;
@@ -167,10 +164,8 @@ public class OpenapiViewTest
     @Test
     public void shouldDetectAndBindOperationExtension() throws Exception
     {
-        OpenapiExtension modelExtension = new OpenapiExtension();
-        modelExtension.value = Json.createObjectBuilder()
-            .add("key", "value")
-            .build();
+        SampleExtension modelExtension = new SampleExtension();
+        modelExtension.key = "value";
 
         OpenapiOperation operation = new OpenapiOperation();
         operation.operationId = "ReadItems";
@@ -213,10 +208,8 @@ public class OpenapiViewTest
     @Test
     public void shouldDetectAndBindSpecificationExtension() throws Exception
     {
-        OpenapiExtension extension = new OpenapiExtension();
-        extension.value = Json.createObjectBuilder()
-            .add("key", "root-value")
-            .build();
+        SampleExtension extension = new SampleExtension();
+        extension.key = "root-value";
 
         Openapi model = new Openapi();
         model.extensions = Map.of("x-zilla-sample", extension);
@@ -230,10 +223,8 @@ public class OpenapiViewTest
     @Test
     public void shouldDetectAndBindSecuritySchemeExtension() throws Exception
     {
-        OpenapiExtension extension = new OpenapiExtension();
-        extension.value = Json.createObjectBuilder()
-            .add("key", "scheme-value")
-            .build();
+        SampleExtension extension = new SampleExtension();
+        extension.key = "scheme-value";
 
         OpenapiSecurityScheme scheme = new OpenapiSecurityScheme();
         scheme.type = "http";

@@ -25,26 +25,26 @@ import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
-public final class OpenapiSecuritySchemeDeserializer implements JsonbDeserializer<OpenapiSecurityScheme>
+public final class OpenapiHeaderDeserializer implements JsonbDeserializer<OpenapiHeader>
 {
     private final Map<String, Class<?>> extensionTypes;
     private final Supplier<Jsonb> plain;
 
-    public OpenapiSecuritySchemeDeserializer(
+    public OpenapiHeaderDeserializer(
         Map<String, Class<?>> extensionTypes)
     {
         this.extensionTypes = extensionTypes;
-        this.plain = OpenapiDeserializers.plain(extensionTypes, OpenapiSecuritySchemeDeserializer.class);
+        this.plain = OpenapiDeserializers.plain(extensionTypes, OpenapiHeaderDeserializer.class);
     }
 
     @Override
-    public OpenapiSecurityScheme deserialize(
+    public OpenapiHeader deserialize(
         JsonParser parser,
         DeserializationContext ctx,
         Type type)
     {
         JsonObject object = parser.getObject();
-        OpenapiSecurityScheme model = plain.get().fromJson(object.toString(), OpenapiSecurityScheme.class);
+        OpenapiHeader model = plain.get().fromJson(object.toString(), OpenapiHeader.class);
 
         Map<String, Object> extensions = null;
         for (String name : object.keySet())

@@ -22,7 +22,7 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiEncoding;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiEncodingView
+public final class OpenapiEncodingView extends OpenapiExtensibleView
 {
     public final Map<String, OpenapiHeaderView> headers;
     public final String contentType;
@@ -34,6 +34,8 @@ public final class OpenapiEncodingView
         OpenapiResolver resolver,
         OpenapiEncoding model)
     {
+        super(model.extensions);
+
         this.headers = model.headers != null
                 ? model.headers.entrySet().stream()
                     .map(e -> new OpenapiHeaderView(resolver, e.getKey(), e.getValue()))

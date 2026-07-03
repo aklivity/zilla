@@ -24,7 +24,10 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 
 public class OpenapiParserTest
@@ -34,16 +37,31 @@ public class OpenapiParserTest
         "  \"openapi\": \"3.1.0\"," +
         "  \"info\": { \"title\": \"sample\", \"version\": \"1.0.0\" }," +
         "  \"x-zilla-sample\": { \"key\": \"root-value\" }," +
+        "  \"x-zilla-unregistered\": { \"key\": \"unregistered-value\" }," +
+        "  \"servers\": [" +
+        "    { \"url\": \"https://example.com\", \"x-zilla-sample\": { \"key\": \"server-value\" } }" +
+        "  ]," +
         "  \"paths\": {" +
         "    \"/items\": {" +
         "      \"get\": {" +
         "        \"operationId\": \"listItems\"," +
         "        \"x-zilla-sample\": { \"key\": \"operation-value\" }," +
-        "        \"responses\": { \"200\": { \"description\": \"ok\" } }" +
+        "        \"responses\": {" +
+        "          \"200\": {" +
+        "            \"description\": \"ok\"," +
+        "            \"x-zilla-sample\": { \"key\": \"response-value\" }" +
+        "          }" +
+        "        }" +
         "      }" +
         "    }" +
         "  }," +
         "  \"components\": {" +
+        "    \"schemas\": {" +
+        "      \"Item\": {" +
+        "        \"type\": \"object\"," +
+        "        \"x-zilla-sample\": { \"key\": \"schema-value\" }" +
+        "      }" +
+        "    }," +
         "    \"securitySchemes\": {" +
         "      \"bearerAuth\": {" +
         "        \"type\": \"http\"," +
@@ -62,7 +80,9 @@ public class OpenapiParserTest
     @Test
     public void shouldExposeSpecificationExtensionsGenerically()
     {
-        OpenapiParser parser = new OpenapiParser();
+        OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
 
         Openapi model = parser.parse(SPEC);
         OpenapiView view = OpenapiView.of(model);
@@ -85,7 +105,9 @@ public class OpenapiParserTest
     @Test
     public void shouldExposeSecuritySchemeExtensionGenerically()
     {
-        OpenapiParser parser = new OpenapiParser();
+        OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
 
         Openapi model = parser.parse(SPEC);
         OpenapiView view = OpenapiView.of(model);
@@ -112,5 +134,65 @@ public class OpenapiParserTest
         assertEquals("root-value", view.extension("x-zilla-sample", SampleExtension.class).get().key);
         assertEquals("operation-value", operation.extension("x-zilla-sample", SampleExtension.class).get().key);
         assertEquals("scheme-value", scheme.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldExposeServerExtensionGenerically()
+    {
+        OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Openapi model = parser.parse(SPEC);
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiServerView server = view.servers.get(0);
+
+        assertTrue(server.hasExtension("x-zilla-sample"));
+        assertEquals("server-value", server.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldExposeResponseExtensionGenerically()
+    {
+        OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Openapi model = parser.parse(SPEC);
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiOperationView operation = view.operations.get("listItems");
+        OpenapiResponseView response = operation.responses.get("200");
+
+        assertTrue(response.hasExtension("x-zilla-sample"));
+        assertEquals("response-value", response.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldExposeSchemaExtensionGenerically()
+    {
+        OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Openapi model = parser.parse(SPEC);
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiSchemaView schema = view.components.schemas.get("Item");
+
+        assertTrue(schema.hasExtension("x-zilla-sample"));
+        assertEquals("schema-value", schema.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldNotExposeUnregisteredExtensionType()
+    {
+        OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Openapi model = parser.parse(SPEC);
+        OpenapiView view = OpenapiView.of(model);
+
+        assertFalse(view.hasExtension("x-zilla-unregistered"));
+        assertEquals(Optional.empty(), view.extension("x-zilla-unregistered", SampleExtension.class));
     }
 }
