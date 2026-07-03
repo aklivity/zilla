@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
+import java.util.Map;
+import java.util.Optional;
+
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiParameter;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
@@ -22,6 +25,21 @@ public final class AsyncapiParameterView
     public final AsyncapiChannelView channel;
     public final String name;
     public final AsyncapiSchemaView schema;
+
+    private final Map<String, Object> extensions;
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
+    }
 
     AsyncapiParameterView(
         AsyncapiChannelView channel,
@@ -34,5 +52,6 @@ public final class AsyncapiParameterView
         this.schema = model.schema != null
             ? new AsyncapiSchemaView(resolver, model.schema)
             : null;
+        this.extensions = model.extensions;
     }
 }

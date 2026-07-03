@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.asyncapi.view;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiChannel;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
@@ -28,6 +30,8 @@ public final class AsyncapiChannelView
     public final List<AsyncapiMessageView> messages;
     public final List<AsyncapiParameterView> parameters;
 
+    private final Map<String, Object> extensions;
+
     public boolean hasMessages()
     {
         return messages != null && !messages.isEmpty();
@@ -36,6 +40,19 @@ public final class AsyncapiChannelView
     public boolean hasParameters()
     {
         return parameters != null && !parameters.isEmpty();
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 
     AsyncapiChannelView(
@@ -64,5 +81,6 @@ public final class AsyncapiChannelView
                 .map(e -> new AsyncapiParameterView(this, resolver, e.getKey(), e.getValue()))
                 .toList()
             : null;
+        this.extensions = resolved.extensions;
     }
 }

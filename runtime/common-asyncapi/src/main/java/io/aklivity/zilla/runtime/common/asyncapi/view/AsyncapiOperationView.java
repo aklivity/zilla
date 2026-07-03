@@ -34,6 +34,7 @@ public final class AsyncapiOperationView
     public final List<AsyncapiSecuritySchemeView> security;
 
     private final Map<String, Object> bindings;
+    private final Map<String, Object> extensions;
 
     public boolean hasBinding(
         String name)
@@ -46,6 +47,19 @@ public final class AsyncapiOperationView
         Class<T> type)
     {
         return Optional.ofNullable(bindings != null ? type.cast(bindings.get(name)) : null);
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 
     public boolean hasMessagesOrParameters()
@@ -67,6 +81,7 @@ public final class AsyncapiOperationView
 
         final AsyncapiOperation resolved = resolver.operations.resolve(model);
         this.bindings = resolved.bindings;
+        this.extensions = resolved.extensions;
         this.channel = resolved.channel != null
                 ? new AsyncapiChannelView(resolver, resolved.channel)
                 : null;

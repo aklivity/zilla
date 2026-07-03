@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
 import java.util.List;
+import java.util.Map;
 
 public class AsyncapiSecurityScheme extends AbstractAsyncapiResolvable
 {
@@ -25,4 +26,6 @@ public class AsyncapiSecurityScheme extends AbstractAsyncapiResolvable
     public Object flows;
     public String openIdConnectUrl;
     public List<String> scopes;
+
+    public Map<String, Object> extensions;
 }

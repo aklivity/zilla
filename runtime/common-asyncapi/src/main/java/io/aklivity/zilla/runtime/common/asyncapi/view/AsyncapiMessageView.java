@@ -32,6 +32,7 @@ public final class AsyncapiMessageView
     public final AsyncapiCorrelationIdView correlationId;
 
     private final Map<String, Object> bindings;
+    private final Map<String, Object> extensions;
 
     public boolean hasTraits()
     {
@@ -49,6 +50,19 @@ public final class AsyncapiMessageView
         Class<T> type)
     {
         return Optional.ofNullable(bindings != null ? type.cast(bindings.get(name)) : null);
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 
     AsyncapiMessageView(
@@ -87,6 +101,7 @@ public final class AsyncapiMessageView
                 ? new AsyncapiCorrelationIdView(resolver, resolved.correlationId)
                 : null;
         this.bindings = resolved.bindings;
+        this.extensions = resolved.extensions;
     }
 
     AsyncapiMessageView(
@@ -118,5 +133,6 @@ public final class AsyncapiMessageView
                 ? new AsyncapiCorrelationIdView(resolver, resolved.correlationId)
                 : null;
         this.bindings = resolved.bindings;
+        this.extensions = resolved.extensions;
     }
 }

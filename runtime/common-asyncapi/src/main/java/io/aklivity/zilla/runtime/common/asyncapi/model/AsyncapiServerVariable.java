@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbProperty;
 
@@ -24,4 +25,6 @@ public class AsyncapiServerVariable extends AbstractAsyncapiResolvable
     public String defaultValue;
     @JsonbProperty("enum")
     public List<String> values;
+
+    public Map<String, Object> extensions;
 }

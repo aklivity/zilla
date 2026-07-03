@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Predicate;
 
@@ -41,6 +42,20 @@ public final class AsyncapiView
     public final AsyncapiComponentsView components;
 
     private final AsyncapiResolver resolver;
+    private final Map<String, Object> extensions;
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
+    }
 
     public boolean hasProtocol(
         String protocol)
@@ -102,6 +117,7 @@ public final class AsyncapiView
         this.compositeId = compositeId(id, 0);
 
         this.resolver = new AsyncapiResolver(asyncapi);
+        this.extensions = asyncapi.extensions;
 
         this.servers = asyncapi.servers != null
             ? asyncapi.servers.entrySet().stream()

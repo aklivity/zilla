@@ -40,6 +40,7 @@ public final class AsyncapiServerView
     public final String protocol;
 
     private final Map<String, Object> bindings;
+    private final Map<String, Object> extensions;
 
     public boolean hasBinding(
         String name)
@@ -52,6 +53,19 @@ public final class AsyncapiServerView
         Class<T> type)
     {
         return Optional.ofNullable(bindings != null ? type.cast(bindings.get(name)) : null);
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 
     AsyncapiServerView(
@@ -93,6 +107,7 @@ public final class AsyncapiServerView
 
         this.protocol = model.protocol;
         this.bindings = model.bindings;
+        this.extensions = model.extensions;
     }
 
     public static final class VariableMatcher

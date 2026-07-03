@@ -21,11 +21,15 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.json.bind.annotation.JsonbProperty;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaItemView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 
@@ -73,9 +77,70 @@ public class AsyncapiParserTest
                 type: string
         """;
 
+    private static final String EXT_SPEC =
+        """
+        asyncapi: 3.0.0
+        info:
+          title: Test API
+          version: 0.1.0
+        x-zilla-sample:
+          key: root-value
+        x-zilla-unregistered:
+          key: root-unregistered-value
+        servers:
+          local:
+            host: localhost:9092
+            protocol: kafka
+            x-zilla-sample:
+              key: server-value
+        operations:
+          doSend:
+            action: send
+            channel:
+              $ref: '#/channels/output'
+            x-zilla-sample:
+              key: operation-value
+        channels:
+          output:
+            messages:
+              note:
+                $ref: '#/components/messages/note'
+        components:
+          messages:
+            note:
+              payload:
+                $ref: '#/components/schemas/note.payload'
+              x-zilla-sample:
+                key: message-value
+          schemas:
+            note.payload:
+              schema:
+                type: string
+              x-zilla-sample:
+                key: schema-value
+          securitySchemes:
+            sampleAuth:
+              type: scramSha256
+              x-zilla-sample:
+                key: scheme-value
+        """;
+
     public static final class SampleBinding
     {
         public String key;
+    }
+
+    public static final class SampleExtension
+    {
+        public String key;
+    }
+
+    public static final class GoogleJwtExtension
+    {
+        public String issuer;
+        @JsonbProperty("jwks_uri")
+        public String jwksUri;
+        public String audiences;
     }
 
     @Test
@@ -140,5 +205,165 @@ public class AsyncapiParserTest
 
         assertFalse(operation.hasBinding("x-zilla-sample"));
         assertEquals(Optional.empty(), operation.binding("x-zilla-sample", SampleBinding.class));
+    }
+
+    @Test
+    public void shouldExposeSpecificationExtensionsGenerically()
+    {
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Asyncapi model = parser.parse(EXT_SPEC);
+        AsyncapiView view = AsyncapiView.of(model);
+        AsyncapiOperationView operation = view.operations.get("doSend");
+
+        assertTrue(view.hasExtension("x-zilla-sample"));
+        Optional<SampleExtension> rootExtension = view.extension("x-zilla-sample", SampleExtension.class);
+        assertTrue(rootExtension.isPresent());
+        assertEquals("root-value", rootExtension.get().key);
+
+        assertTrue(operation.hasExtension("x-zilla-sample"));
+        Optional<SampleExtension> operationExtension = operation.extension("x-zilla-sample", SampleExtension.class);
+        assertTrue(operationExtension.isPresent());
+        assertEquals("operation-value", operationExtension.get().key);
+
+        assertFalse(operation.hasExtension("x-zilla-unknown"));
+        assertFalse(operation.extension("x-zilla-unknown", SampleExtension.class).isPresent());
+    }
+
+    @Test
+    public void shouldExposeMessageExtensionGenerically()
+    {
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Asyncapi model = parser.parse(EXT_SPEC);
+        AsyncapiView view = AsyncapiView.of(model);
+        AsyncapiOperationView operation = view.operations.get("doSend");
+        AsyncapiMessageView message = operation.messages.get(0);
+
+        assertTrue(message.hasExtension("x-zilla-sample"));
+        assertEquals("message-value", message.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldExposeServerExtensionGenerically()
+    {
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Asyncapi model = parser.parse(EXT_SPEC);
+        AsyncapiView view = AsyncapiView.of(model, List.of(AsyncapiServerConfig.builder().build()));
+        AsyncapiServerView server = view.servers.get(0);
+
+        assertTrue(server.hasExtension("x-zilla-sample"));
+        assertEquals("server-value", server.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldExposeSchemaExtensionGenerically()
+    {
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Asyncapi model = parser.parse(EXT_SPEC);
+        AsyncapiView view = AsyncapiView.of(model);
+        AsyncapiSchemaItemView schema = view.components.schemas.get("note.payload");
+
+        assertTrue(schema.hasExtension("x-zilla-sample"));
+        assertEquals("schema-value", schema.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldExposeSecuritySchemeExtensionGenerically()
+    {
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Asyncapi model = parser.parse(EXT_SPEC);
+        AsyncapiView view = AsyncapiView.of(model);
+        AsyncapiSecuritySchemeView scheme = view.components.securitySchemes.stream()
+            .filter(s -> "sampleAuth".equals(s.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertTrue(scheme.hasExtension("x-zilla-sample"));
+        assertEquals("scheme-value", scheme.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldNotExposeUnregisteredExtensionType()
+    {
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension("x-zilla-sample", SampleExtension.class)
+            .createParser();
+
+        Asyncapi model = parser.parse(EXT_SPEC);
+        AsyncapiView view = AsyncapiView.of(model);
+
+        assertFalse(view.hasExtension("x-zilla-unregistered"));
+        assertEquals(Optional.empty(), view.extension("x-zilla-unregistered", SampleExtension.class));
+    }
+
+    @Test
+    public void shouldExposePrefixWildcardExtensionGenerically()
+    {
+        String spec =
+            """
+            asyncapi: 3.0.0
+            info:
+              title: Test API
+              version: 0.1.0
+            components:
+              securitySchemes:
+                googleJwt:
+                  type: httpApiKey
+                  name: Authorization
+                  in: header
+                  x-google-issuer: https://accounts.google.com
+                  x-google-jwks_uri: https://www.googleapis.com/oauth2/v1/certs
+                  x-google-audiences: 848149964201.apps.googleusercontent.com
+            """;
+
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension("x-google-*", GoogleJwtExtension.class)
+            .createParser();
+
+        Asyncapi model = parser.parse(spec);
+        AsyncapiView view = AsyncapiView.of(model);
+        AsyncapiSecuritySchemeView scheme = view.components.securitySchemes.stream()
+            .filter(s -> "googleJwt".equals(s.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertTrue(scheme.hasExtension("x-google-*"));
+        Optional<GoogleJwtExtension> extension = scheme.extension("x-google-*", GoogleJwtExtension.class);
+        assertTrue(extension.isPresent());
+        assertEquals("https://accounts.google.com", extension.get().issuer);
+        assertEquals("https://www.googleapis.com/oauth2/v1/certs", extension.get().jwksUri);
+        assertEquals("848149964201.apps.googleusercontent.com", extension.get().audiences);
+    }
+
+    @Test
+    public void shouldNotExposePrefixWildcardExtensionWhenAbsent()
+    {
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension("x-google-*", GoogleJwtExtension.class)
+            .createParser();
+
+        Asyncapi model = parser.parse(EXT_SPEC);
+        AsyncapiView view = AsyncapiView.of(model);
+        AsyncapiSecuritySchemeView scheme = view.components.securitySchemes.stream()
+            .filter(s -> "sampleAuth".equals(s.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertFalse(scheme.hasExtension("x-google-*"));
+        assertEquals(Optional.empty(), scheme.extension("x-google-*", GoogleJwtExtension.class));
     }
 }

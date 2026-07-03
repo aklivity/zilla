@@ -23,4 +23,6 @@ public class Asyncapi
     public Map<String, AsyncapiOperation> operations;
     public AsyncapiComponents components;
     public String defaultContentType;
+
+    public Map<String, Object> extensions;
 }

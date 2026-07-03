@@ -27,16 +27,23 @@ import jakarta.json.stream.JsonParser;
 public final class AsyncapiMessageDeserializer implements JsonbDeserializer<AsyncapiMessage>
 {
     private final Map<String, Class<?>> messageBindingTypes;
+    private final Map<String, Class<?>> extensionTypes;
+    private final Map<String, Class<?>> prefixExtensionTypes;
     private final Supplier<Jsonb> plain;
 
     public AsyncapiMessageDeserializer(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
-        Map<String, Class<?>> serverBindingTypes)
+        Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> extensionTypes,
+        Map<String, Class<?>> prefixExtensionTypes)
     {
         this.messageBindingTypes = messageBindingTypes;
-        this.plain = AsyncapiBindingDeserializers.plain(
-            operationBindingTypes, messageBindingTypes, serverBindingTypes, AsyncapiMessageDeserializer.class);
+        this.extensionTypes = extensionTypes;
+        this.prefixExtensionTypes = prefixExtensionTypes;
+        this.plain = AsyncapiDeserializers.plain(
+            operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes,
+            AsyncapiMessageDeserializer.class);
     }
 
     @Override
@@ -48,7 +55,8 @@ public final class AsyncapiMessageDeserializer implements JsonbDeserializer<Asyn
         JsonObject object = parser.getObject();
         AsyncapiMessage model = plain.get().fromJson(object.toString(), AsyncapiMessage.class);
 
-        model.bindings = AsyncapiBindingDeserializers.bindings(object, messageBindingTypes, plain.get());
+        model.bindings = AsyncapiDeserializers.bindings(object, messageBindingTypes, plain.get());
+        model.extensions = AsyncapiDeserializers.extensions(object, extensionTypes, prefixExtensionTypes, plain);
 
         return model;
     }

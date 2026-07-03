@@ -14,12 +14,30 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
+import java.util.Map;
+import java.util.Optional;
+
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiTrait;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiTraitView
 {
     public final AsyncapiSchemaView headers;
+
+    private final Map<String, Object> extensions;
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
+    }
 
     AsyncapiTraitView(
         AsyncapiResolver resolver,
@@ -30,5 +48,6 @@ public final class AsyncapiTraitView
         this.headers = resolved.headers != null
             ? new AsyncapiSchemaView(resolver, resolved.headers)
             : null;
+        this.extensions = resolved.extensions;
     }
 }

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
+import java.util.Optional;
+
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiMultiFormatSchema;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiSchema;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiSchemaItem;
@@ -23,6 +25,19 @@ public abstract class AsyncapiSchemaItemView
 {
     public final String name;
     public final AsyncapiSchemaItem model;
+
+    public boolean hasExtension(
+        String name)
+    {
+        return model.extensions != null && model.extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(model.extensions != null ? type.cast(model.extensions.get(name)) : null);
+    }
 
     public static AsyncapiSchemaItemView of(
         AsyncapiResolver resolver,
