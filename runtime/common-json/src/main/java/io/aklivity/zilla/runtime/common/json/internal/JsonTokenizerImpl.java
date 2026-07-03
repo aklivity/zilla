@@ -22,6 +22,8 @@ import java.util.Deque;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonStringView;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 
 public final class JsonTokenizerImpl implements JsonTokenizer
@@ -65,6 +67,54 @@ public final class JsonTokenizerImpl implements JsonTokenizer
         EXP_INT
     }
 
+    // Reused view over an already-decoded CharSequence (scratch mid-decode, or a materialized String once
+    // taken) -- getSegment() is always null since this tokenizer never retains a byte-backed alternative;
+    // see stringViewRO's field comment for why that is always the correct answer here.
+    private static final class DecodedStringView implements JsonStringView
+    {
+        private CharSequence base;
+
+        private DecodedStringView wrap(
+            CharSequence base)
+        {
+            this.base = base;
+            return this;
+        }
+
+        @Override
+        public int length()
+        {
+            return base.length();
+        }
+
+        @Override
+        public char charAt(
+            int index)
+        {
+            return base.charAt(index);
+        }
+
+        @Override
+        public CharSequence subSequence(
+            int start,
+            int end)
+        {
+            return base.subSequence(start, end);
+        }
+
+        @Override
+        public String toString()
+        {
+            return base.toString();
+        }
+
+        @Override
+        public DirectBufferEx getSegment()
+        {
+            return null;
+        }
+    }
+
     private static final int MAX_DEPTH = 64;
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
@@ -73,6 +123,11 @@ public final class JsonTokenizerImpl implements JsonTokenizer
     // unconsumed remainder accumulates, letting a consumer that declines fragments (consumed(0)) receive
     // the value whole. Set by the parser from its consumed cursor before each resuming advance.
     private int scratchConsumed;
+    // reused view returned by stringView(): this tokenizer always decodes into scratch, so its chars
+    // never correspond to a single contiguous run of source bytes once escapes or multi-byte UTF-8 are
+    // involved -- getSegment() is unconditionally null here, correctly signaling to a caller that there
+    // is no direct-byte-splice shortcut available for a canonically-decoded value.
+    private final DecodedStringView stringViewRO = new DecodedStringView();
     // cap on the decoded chars retained for one value/key; appendScratch fails closed past it so a
     // consumer that declines fragments cannot grow scratch without bound
     private final int maxValueSize;
@@ -419,9 +474,9 @@ public final class JsonTokenizerImpl implements JsonTokenizer
     // a downstream stage copy or compare the chars without a String; returns the materialized value if it
     // was already taken.
     @Override
-    public CharSequence stringView()
+    public JsonStringView stringView()
     {
-        return valuePending ? scratch : pendingString;
+        return stringViewRO.wrap(valuePending ? scratch : pendingString);
     }
 
     // The parser reports, before a resuming advance, how many chars of the current fragment the consumer

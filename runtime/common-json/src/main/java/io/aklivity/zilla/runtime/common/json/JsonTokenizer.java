@@ -41,7 +41,7 @@ public interface JsonTokenizer
 
     String stringValue();
 
-    CharSequence stringView();
+    JsonStringView stringView();
 
     void markScratchConsumed(
         int consumed);
