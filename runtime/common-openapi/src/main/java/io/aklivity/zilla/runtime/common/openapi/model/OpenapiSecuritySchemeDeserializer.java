@@ -24,8 +24,6 @@ import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
-// see OpenapiOperationDeserializer for why this uses OpenapiJsonValues instead of
-// JsonParser.getObject() or a JsonbAdapter<T, JsonObject>
 public final class OpenapiSecuritySchemeDeserializer implements JsonbDeserializer<OpenapiSecurityScheme>
 {
     private static final Jsonb PLAIN = JsonbBuilder.create();
@@ -44,7 +42,7 @@ public final class OpenapiSecuritySchemeDeserializer implements JsonbDeserialize
         DeserializationContext ctx,
         Type type)
     {
-        JsonObject object = OpenapiJsonValues.readObject(parser);
+        JsonObject object = parser.getObject();
         OpenapiSecurityScheme scheme = PLAIN.fromJson(object.toString(), OpenapiSecurityScheme.class);
         scheme.extensions = OpenapiExtension.capture(object, extensionTypes);
         return scheme;

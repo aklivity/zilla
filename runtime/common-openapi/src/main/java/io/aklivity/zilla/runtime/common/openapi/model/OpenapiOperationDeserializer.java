@@ -24,11 +24,6 @@ import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
-// JsonParser.getObject()/getValue(), and likewise JsonbAdapter<T, JsonObject> (which relies on
-// the same internal materialization), lose position tracking and silently corrupt the parent
-// document's parse cursor in this Yasson + YamlJsonParser combination (verified empirically);
-// OpenapiJsonValues.readObject(), driven only by primitive JsonParser events, is the one
-// materialization technique that works here
 public final class OpenapiOperationDeserializer implements JsonbDeserializer<OpenapiOperation>
 {
     private static final Jsonb PLAIN = JsonbBuilder.create();
@@ -47,7 +42,7 @@ public final class OpenapiOperationDeserializer implements JsonbDeserializer<Ope
         DeserializationContext ctx,
         Type type)
     {
-        JsonObject object = OpenapiJsonValues.readObject(parser);
+        JsonObject object = parser.getObject();
         OpenapiOperation operation = PLAIN.fromJson(object.toString(), OpenapiOperation.class);
         operation.extensions = OpenapiExtension.capture(object, extensionTypes);
         return operation;
