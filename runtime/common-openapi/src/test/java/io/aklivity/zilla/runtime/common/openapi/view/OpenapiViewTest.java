@@ -15,21 +15,29 @@
 package io.aklivity.zilla.runtime.common.openapi.view;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
+import jakarta.json.Json;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiComponents;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiExtension;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiMediaType;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiPath;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiRequestBody;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSchema;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSecurityScheme;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 
 public class OpenapiViewTest
@@ -154,5 +162,100 @@ public class OpenapiViewTest
         OpenapiServerView serverView = view.servers.get(0);
 
         assertEquals(URI.create("https://localhost:9090/path"), serverView.url);
+    }
+
+    @Test
+    public void shouldDetectAndBindOperationExtension() throws Exception
+    {
+        OpenapiExtension modelExtension = new OpenapiExtension();
+        modelExtension.value = Json.createObjectBuilder()
+            .add("key", "value")
+            .build();
+
+        OpenapiOperation operation = new OpenapiOperation();
+        operation.operationId = "ReadItems";
+        operation.extensions = Map.of("x-zilla-sample", modelExtension);
+
+        OpenapiPath path = new OpenapiPath();
+        path.get = operation;
+
+        Openapi model = new Openapi();
+        model.paths = Map.of("/items", path);
+
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiOperationView operationView = view.paths.get("/items").methods.get("GET");
+
+        assertTrue(operationView.hasExtension("x-zilla-sample"));
+        Optional<SampleExtension> extension = operationView.extension("x-zilla-sample", SampleExtension.class);
+        assertTrue(extension.isPresent());
+        assertEquals("value", extension.get().key);
+    }
+
+    @Test
+    public void shouldNotDetectAbsentOperationExtension() throws Exception
+    {
+        OpenapiOperation operation = new OpenapiOperation();
+        operation.operationId = "ReadItems";
+
+        OpenapiPath path = new OpenapiPath();
+        path.get = operation;
+
+        Openapi model = new Openapi();
+        model.paths = Map.of("/items", path);
+
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiOperationView operationView = view.paths.get("/items").methods.get("GET");
+
+        assertFalse(operationView.hasExtension("x-zilla-sample"));
+        assertEquals(Optional.empty(), operationView.extension("x-zilla-sample", SampleExtension.class));
+    }
+
+    @Test
+    public void shouldDetectAndBindSpecificationExtension() throws Exception
+    {
+        OpenapiExtension extension = new OpenapiExtension();
+        extension.value = Json.createObjectBuilder()
+            .add("key", "root-value")
+            .build();
+
+        Openapi model = new Openapi();
+        model.extensions = Map.of("x-zilla-sample", extension);
+
+        OpenapiView view = OpenapiView.of(model);
+
+        assertTrue(view.hasExtension("x-zilla-sample"));
+        assertEquals("root-value", view.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldDetectAndBindSecuritySchemeExtension() throws Exception
+    {
+        OpenapiExtension extension = new OpenapiExtension();
+        extension.value = Json.createObjectBuilder()
+            .add("key", "scheme-value")
+            .build();
+
+        OpenapiSecurityScheme scheme = new OpenapiSecurityScheme();
+        scheme.type = "http";
+        scheme.scheme = "bearer";
+        scheme.bearerFormat = "jwt";
+        scheme.extensions = Map.of("x-zilla-sample", extension);
+
+        OpenapiComponents components = new OpenapiComponents();
+        components.securitySchemes = Map.of("bearerAuth", scheme);
+
+        Openapi model = new Openapi();
+        model.components = components;
+
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiSecuritySchemeView schemeView = view.components.securitySchemes.get("bearerAuth");
+
+        assertTrue(schemeView.hasExtension("x-zilla-sample"));
+        assertEquals("scheme-value", schemeView.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    public static final class SampleExtension
+    {
+        public String key;
     }
 }

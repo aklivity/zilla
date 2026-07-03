@@ -19,6 +19,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationExtension;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
@@ -27,6 +28,7 @@ import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationCon
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParserFactory;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
@@ -43,7 +45,9 @@ public abstract class OpenapiAsyncapiCompositeGenerator
     {
         int tagIndex = 1;
 
-        final OpenapiParser openapiParser = new OpenapiParser();
+        final OpenapiParser openapiParser = new OpenapiParserFactory()
+            .withExtension("x-zilla-http-kafka", OpenapiHttpKafkaOperationExtension.class)
+            .createParser();
         final List<OpenapiSchemaConfig> openapiSchemas = new ArrayList<>();
         for (OpenapiSpecificationConfig openapiSpec : binding.options.specs.openapi)
         {

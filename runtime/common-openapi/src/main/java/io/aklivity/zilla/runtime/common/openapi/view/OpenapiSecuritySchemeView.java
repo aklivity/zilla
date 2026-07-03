@@ -19,7 +19,7 @@ import java.util.List;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSecurityScheme;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiSecuritySchemeView
+public final class OpenapiSecuritySchemeView extends OpenapiExtensibleView
 {
     public final String name;
     public final String type;
@@ -41,6 +41,8 @@ public final class OpenapiSecuritySchemeView
         String name,
         OpenapiSecurityScheme model)
     {
+        super(resolver.securitySchemes.resolve(model).extensions);
+
         final OpenapiSecurityScheme resolved = resolver.securitySchemes.resolve(model);
 
         this.name = name;

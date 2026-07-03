@@ -22,10 +22,9 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
-import io.aklivity.zilla.runtime.common.openapi.model.extensions.http.kafka.OpenapiHttpKafkaOperationExtension;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiOperationView
+public final class OpenapiOperationView extends OpenapiExtensibleView
 {
     public static final String DEFAULT = "default";
 
@@ -40,7 +39,6 @@ public final class OpenapiOperationView
     public final Map<String, OpenapiResponseView> responses;
     public final List<List<OpenapiSecurityRequirementView>> security;
     public final List<OpenapiServerView> servers;
-    public final OpenapiHttpKafkaOperationExtension httpKafka;
 
     OpenapiOperationView(
         OpenapiView specification,
@@ -51,6 +49,8 @@ public final class OpenapiOperationView
         String path,
         OpenapiOperation model)
     {
+        super(model.extensions);
+
         this.specification = specification;
         this.compositeId = compositeId;
         this.method = method;
@@ -87,8 +87,6 @@ public final class OpenapiOperationView
                     .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
                     .toList()
                 : specification.servers;
-
-        this.httpKafka = model.httpKafka;
     }
 
     public boolean hasRequestBodyOrParameters()
@@ -109,10 +107,5 @@ public final class OpenapiOperationView
     public boolean hasResponses()
     {
         return responses != null;
-    }
-
-    public boolean hasExtensionHttpKafka()
-    {
-        return httpKafka != null;
     }
 }

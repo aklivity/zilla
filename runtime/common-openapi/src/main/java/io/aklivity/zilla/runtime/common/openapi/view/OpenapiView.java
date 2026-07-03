@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiView
+public final class OpenapiView extends OpenapiExtensibleView
 {
     public final String label;
     public final long compositeId;
@@ -62,19 +62,21 @@ public final class OpenapiView
         Openapi model,
         List<OpenapiServerConfig> configs)
     {
-        return new OpenapiView(id, label, model, configs);
+        return new OpenapiView(id, label, model, configs, new OpenapiResolver(model));
     }
 
     private OpenapiView(
         int id,
         String label,
         Openapi model,
-        List<OpenapiServerConfig> configs)
+        List<OpenapiServerConfig> configs,
+        OpenapiResolver resolver)
     {
+        super(model.extensions);
+
         this.label = label;
         this.compositeId = compositeId(id, 0);
-
-        this.resolver = new OpenapiResolver(model);
+        this.resolver = resolver;
 
         this.servers = model.servers != null
             ? model.servers.stream()

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.openapi.model.extensions.http.kafka;
+package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka;
 
 import java.util.Map;
 

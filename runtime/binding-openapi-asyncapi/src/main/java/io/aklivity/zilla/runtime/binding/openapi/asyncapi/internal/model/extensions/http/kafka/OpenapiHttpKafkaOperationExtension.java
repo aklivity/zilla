@@ -12,21 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.openapi.model;
+package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka;
 
+import java.util.List;
 import java.util.Map;
 
-public class OpenapiSecurityScheme extends AbstractOpenapiResolvable
+public class OpenapiHttpKafkaOperationExtension
 {
-    public String type;
-    public String name;
-    public String in;
-    public String scheme;
-    public String bearerFormat;
-    public String openidConnectUrl;
-    public Object flows;
+    public String key;
+    public Map<String, String> overrides;
 
-    // populated during the main parse by OpenapiSecuritySchemeAdapter, since x-* extensions
-    // are siblings of the known properties, not nested under a property named "extensions"
-    public transient Map<String, OpenapiExtension> extensions;
+    public List<OpenapiHttpKafkaFilter> filters;
 }
