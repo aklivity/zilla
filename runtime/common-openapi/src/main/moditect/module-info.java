@@ -22,7 +22,6 @@ module io.aklivity.zilla.runtime.common.openapi
 
     exports io.aklivity.zilla.runtime.common.openapi.config;
     exports io.aklivity.zilla.runtime.common.openapi.model;
-    exports io.aklivity.zilla.runtime.common.openapi.model.resolver;
     exports io.aklivity.zilla.runtime.common.openapi.view;
 
     opens io.aklivity.zilla.runtime.common.openapi.model;
