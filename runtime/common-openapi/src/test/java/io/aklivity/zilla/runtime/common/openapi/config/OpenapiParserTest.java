@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import jakarta.json.bind.annotation.JsonbProperty;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
@@ -79,6 +81,14 @@ public class OpenapiParserTest
     public static final class SampleExtension
     {
         public String key;
+    }
+
+    public static final class GoogleJwtExtension
+    {
+        public String issuer;
+        @JsonbProperty("jwks_uri")
+        public String jwksUri;
+        public String audiences;
     }
 
     @Test
@@ -234,6 +244,61 @@ public class OpenapiParserTest
         assertTrue(scheme.flows.authorizationCode.hasExtension("x-zilla-sample"));
         assertEquals("flow-value",
             scheme.flows.authorizationCode.extension("x-zilla-sample", SampleExtension.class).get().key);
+    }
+
+    @Test
+    public void shouldExposePrefixWildcardExtensionGenerically()
+    {
+        String spec =
+            """
+            {
+              "openapi": "3.1.0",
+              "info": { "title": "sample", "version": "1.0.0" },
+              "paths": {},
+              "components": {
+                "securitySchemes": {
+                  "googleJwt": {
+                    "type": "apiKey",
+                    "name": "Authorization",
+                    "in": "header",
+                    "x-google-issuer": "https://accounts.google.com",
+                    "x-google-jwks_uri": "https://www.googleapis.com/oauth2/v1/certs",
+                    "x-google-audiences": "848149964201.apps.googleusercontent.com"
+                  }
+                }
+              }
+            }
+            """;
+
+        OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension("x-google-*", GoogleJwtExtension.class)
+            .createParser();
+
+        Openapi model = parser.parse(spec);
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiSecuritySchemeView scheme = view.components.securitySchemes.get("googleJwt");
+
+        assertTrue(scheme.hasExtension("x-google-*"));
+        Optional<GoogleJwtExtension> extension = scheme.extension("x-google-*", GoogleJwtExtension.class);
+        assertTrue(extension.isPresent());
+        assertEquals("https://accounts.google.com", extension.get().issuer);
+        assertEquals("https://www.googleapis.com/oauth2/v1/certs", extension.get().jwksUri);
+        assertEquals("848149964201.apps.googleusercontent.com", extension.get().audiences);
+    }
+
+    @Test
+    public void shouldNotExposePrefixWildcardExtensionWhenAbsent()
+    {
+        OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension("x-google-*", GoogleJwtExtension.class)
+            .createParser();
+
+        Openapi model = parser.parse(SPEC);
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiSecuritySchemeView scheme = view.components.securitySchemes.get("bearerAuth");
+
+        assertFalse(scheme.hasExtension("x-google-*"));
+        assertEquals(Optional.empty(), scheme.extension("x-google-*", GoogleJwtExtension.class));
     }
 
     @Test

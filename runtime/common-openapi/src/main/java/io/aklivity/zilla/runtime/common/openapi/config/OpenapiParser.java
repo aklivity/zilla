@@ -49,20 +49,23 @@ public class OpenapiParser
     private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d\\.\\d)\\.\\d+");
     private final Map<String, JsonSchema> schemas;
     private final Map<String, Class<?>> extensionTypes;
+    private final Map<String, Class<?>> prefixExtensionTypes;
 
     public OpenapiParser()
     {
-        this(emptyMap());
+        this(emptyMap(), emptyMap());
     }
 
     OpenapiParser(
-        Map<String, Class<?>> extensionTypes)
+        Map<String, Class<?>> extensionTypes,
+        Map<String, Class<?>> prefixExtensionTypes)
     {
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
         schemas.put("3.0", schema("3.0.3"));
         schemas.put("3.1", schema("3.1.0"));
         this.schemas = unmodifiableMap(schemas);
         this.extensionTypes = extensionTypes;
+        this.prefixExtensionTypes = prefixExtensionTypes;
     }
 
     public Openapi parse(
@@ -90,7 +93,7 @@ public class OpenapiParser
                 schema.validate(parser, problem -> errors.add(new OpenapiException(problem.toString())));
             }
 
-            List<JsonbDeserializer<?>> deserializers = OpenapiDeserializers.all(extensionTypes);
+            List<JsonbDeserializer<?>> deserializers = OpenapiDeserializers.all(extensionTypes, prefixExtensionTypes);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                     .withProvider(provider)
                     .withConfig(new JsonbConfig()
