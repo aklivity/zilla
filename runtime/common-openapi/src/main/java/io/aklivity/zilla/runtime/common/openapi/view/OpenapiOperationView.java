@@ -19,10 +19,10 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
-import io.aklivity.zilla.runtime.common.openapi.model.extensions.http.kafka.OpenapiHttpKafkaOperationExtension;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
 public final class OpenapiOperationView
@@ -40,7 +40,8 @@ public final class OpenapiOperationView
     public final Map<String, OpenapiResponseView> responses;
     public final List<List<OpenapiSecurityRequirementView>> security;
     public final List<OpenapiServerView> servers;
-    public final OpenapiHttpKafkaOperationExtension httpKafka;
+
+    private final Map<String, Object> extensions;
 
     OpenapiOperationView(
         OpenapiView specification,
@@ -88,7 +89,7 @@ public final class OpenapiOperationView
                     .toList()
                 : specification.servers;
 
-        this.httpKafka = model.httpKafka;
+        this.extensions = model.extensions;
     }
 
     public boolean hasRequestBodyOrParameters()
@@ -111,8 +112,16 @@ public final class OpenapiOperationView
         return responses != null;
     }
 
-    public boolean hasExtensionHttpKafka()
+    public boolean hasExtension(
+        String name)
     {
-        return httpKafka != null;
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

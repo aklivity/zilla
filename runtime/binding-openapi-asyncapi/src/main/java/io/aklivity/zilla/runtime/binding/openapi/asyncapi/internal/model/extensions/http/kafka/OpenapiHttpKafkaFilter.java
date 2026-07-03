@@ -12,14 +12,12 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.openapi.model;
+package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka;
 
 import java.util.Map;
 
-public class OpenapiRequestBody extends AbstractOpenapiResolvable
+public class OpenapiHttpKafkaFilter
 {
-    public Map<String, OpenapiMediaType> content;
-    public boolean required;
-
-    public Map<String, Object> extensions;
+    public String key;
+    public Map<String, String> headers;
 }

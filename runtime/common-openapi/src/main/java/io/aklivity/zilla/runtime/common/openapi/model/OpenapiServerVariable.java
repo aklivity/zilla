@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.openapi.model;
 
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.bind.annotation.JsonbProperty;
 
@@ -24,4 +25,6 @@ public class OpenapiServerVariable extends AbstractOpenapiResolvable
     public List<String> values;
     @JsonbProperty("default")
     public String defaultValue;
+
+    public Map<String, Object> extensions;
 }

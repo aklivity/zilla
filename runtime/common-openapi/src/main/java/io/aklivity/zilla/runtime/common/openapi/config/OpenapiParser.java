@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.openapi.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -31,6 +32,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
+import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
@@ -38,19 +41,28 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiDeserializers;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class OpenapiParser
 {
     private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d\\.\\d)\\.\\d+");
     private final Map<String, JsonSchema> schemas;
+    private final Map<String, Class<?>> extensionTypes;
 
     public OpenapiParser()
+    {
+        this(emptyMap());
+    }
+
+    OpenapiParser(
+        Map<String, Class<?>> extensionTypes)
     {
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
         schemas.put("3.0", schema("3.0.3"));
         schemas.put("3.1", schema("3.1.0"));
         this.schemas = unmodifiableMap(schemas);
+        this.extensionTypes = extensionTypes;
     }
 
     public Openapi parse(
@@ -62,9 +74,15 @@ public class OpenapiParser
 
         try
         {
-            String openApiVersion = detectOpenApiVersion(openapiText);
-
             JsonProvider provider = YamlJson.provider();
+
+            JsonObject document;
+            try (JsonReader reader = YamlJson.createReader(new StringReader(openapiText)))
+            {
+                document = reader.readObject();
+            }
+
+            String openApiVersion = detectOpenApiVersion(document);
             JsonSchema schema = schemas.get(openApiVersion);
 
             try (JsonParser parser = provider.createParser(new StringReader(openapiText)))
@@ -72,8 +90,11 @@ public class OpenapiParser
                 schema.validate(parser, problem -> errors.add(new OpenapiException(problem.toString())));
             }
 
+            List<JsonbDeserializer<?>> deserializers = OpenapiDeserializers.all(extensionTypes);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                     .withProvider(provider)
+                    .withConfig(new JsonbConfig()
+                        .withDeserializers(deserializers.toArray(JsonbDeserializer[]::new)))
                     .build();
 
             openapi = jsonb.fromJson(openapiText, Openapi.class);
@@ -108,28 +129,16 @@ public class OpenapiParser
     }
 
     private String detectOpenApiVersion(
-        String openapiText)
+        JsonObject document)
     {
-        try (JsonReader reader = YamlJson.createReader(new StringReader(openapiText)))
+        if (!document.containsKey("openapi"))
         {
-            JsonObject json = reader.readObject();
-            if (json.containsKey("openapi"))
-            {
-                final String versionString = json.getString("openapi");
-
-                final Matcher matcher = VERSION_PATTERN.matcher(versionString);
-
-                final String majorMinorVersion = matcher.matches() ? matcher.group(1) : null;
-                return majorMinorVersion;
-            }
-            else
-            {
-                throw new IllegalArgumentException("Unable to determine OpenAPI version.");
-            }
+            throw new IllegalArgumentException("Unable to determine OpenAPI version.");
         }
-        catch (Exception e)
-        {
-            throw new RuntimeException("Error reading OpenAPI document.", e);
-        }
+
+        final String versionString = document.getString("openapi");
+        final Matcher matcher = VERSION_PATTERN.matcher(versionString);
+
+        return matcher.matches() ? matcher.group(1) : null;
     }
 }

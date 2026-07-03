@@ -49,4 +49,5 @@ public class OpenapiSchema extends AbstractOpenapiResolvable
     public List<OpenapiSchema> anyOf;
     public Map<String, String> discriminator;
 
+    public Map<String, Object> extensions;
 }

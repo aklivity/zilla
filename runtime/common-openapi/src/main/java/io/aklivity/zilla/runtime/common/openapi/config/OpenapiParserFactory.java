@@ -12,15 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.openapi.model.extensions.http.kafka;
+package io.aklivity.zilla.runtime.common.openapi.config;
 
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class OpenapiHttpKafkaOperationExtension
+public final class OpenapiParserFactory
 {
-    public String key;
-    public Map<String, String> overrides;
+    private final Map<String, Class<?>> extensionTypes;
 
-    public List<OpenapiHttpKafkaFilter> filters;
+    public OpenapiParserFactory()
+    {
+        this.extensionTypes = new LinkedHashMap<>();
+    }
+
+    public <T> OpenapiParserFactory withExtension(
+        String name,
+        Class<T> type)
+    {
+        extensionTypes.put(name, type);
+        return this;
+    }
+
+    public OpenapiParser createParser()
+    {
+        return new OpenapiParser(extensionTypes);
+    }
 }

@@ -23,4 +23,6 @@ public class OpenapiResponse extends AbstractOpenapiResolvable
     public Map<String, OpenapiLink> links;
 
     public OpenapiSchema schema;
+
+    public Map<String, Object> extensions;
 }

@@ -24,4 +24,6 @@ public class Openapi
     public Map<String, OpenapiPath> paths;
     public List<Map<String, List<String>>> security;
     public OpenapiComponents components;
+
+    public Map<String, Object> extensions;
 }

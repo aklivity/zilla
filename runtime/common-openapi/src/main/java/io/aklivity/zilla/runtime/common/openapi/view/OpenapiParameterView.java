@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.view;
 
+import java.util.Map;
+import java.util.Optional;
+
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiParameter;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
@@ -25,18 +28,33 @@ public class OpenapiParameterView
     public final boolean required;
     public final OpenapiSchemaView schema;
 
+    private final Map<String, Object> extensions;
+
     OpenapiParameterView(
         OpenapiOperationView operation,
         OpenapiResolver resolver,
         OpenapiParameter model)
     {
-        this.operation = operation;
-
         OpenapiParameter resolved = resolver.parameters.resolve(model);
 
+        this.operation = operation;
         this.name = resolved.name;
         this.in = resolved.in;
         this.required = resolved.required;
         this.schema = new OpenapiSchemaView(resolver, model.schema);
+        this.extensions = resolved.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

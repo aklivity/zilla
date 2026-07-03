@@ -17,10 +17,6 @@ package io.aklivity.zilla.runtime.common.openapi.model;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.json.bind.annotation.JsonbProperty;
-
-import io.aklivity.zilla.runtime.common.openapi.model.extensions.http.kafka.OpenapiHttpKafkaOperationExtension;
-
 public class OpenapiOperation
 {
     public String operationId;
@@ -30,6 +26,5 @@ public class OpenapiOperation
     public List<Map<String, List<String>>> security;
     public List<OpenapiServer> servers;
 
-    @JsonbProperty("x-zilla-http-kafka")
-    public OpenapiHttpKafkaOperationExtension httpKafka;
+    public Map<String, Object> extensions;
 }

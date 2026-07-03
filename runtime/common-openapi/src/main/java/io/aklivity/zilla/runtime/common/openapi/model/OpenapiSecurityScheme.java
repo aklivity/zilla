@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.model;
 
+import java.util.Map;
+
 public class OpenapiSecurityScheme extends AbstractOpenapiResolvable
 {
     public String type;
@@ -23,4 +25,6 @@ public class OpenapiSecurityScheme extends AbstractOpenapiResolvable
     public String bearerFormat;
     public String openidConnectUrl;
     public Object flows;
+
+    public Map<String, Object> extensions;
 }

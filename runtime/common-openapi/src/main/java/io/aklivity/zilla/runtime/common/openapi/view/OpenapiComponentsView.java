@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.openapi.view;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiComponents;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
@@ -25,6 +26,8 @@ public final class OpenapiComponentsView
 {
     public final Map<String, OpenapiSecuritySchemeView> securitySchemes;
     public final Map<String, OpenapiSchemaView> schemas;
+
+    private final Map<String, Object> extensions;
 
     OpenapiComponentsView(
         OpenapiResolver resolver,
@@ -39,5 +42,20 @@ public final class OpenapiComponentsView
                 ? model.schemas.entrySet().stream()
                     .collect(toMap(e -> e.getKey(), e -> new OpenapiSchemaView(resolver, e.getValue())))
                 : null;
+
+        this.extensions = model.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

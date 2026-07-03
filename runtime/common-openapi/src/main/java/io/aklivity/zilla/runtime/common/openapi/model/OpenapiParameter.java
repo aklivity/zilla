@@ -14,10 +14,14 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.model;
 
+import java.util.Map;
+
 public class OpenapiParameter extends AbstractOpenapiResolvable
 {
     public String name;
     public String in;
     public boolean required;
     public OpenapiSchema schema;
+
+    public Map<String, Object> extensions;
 }

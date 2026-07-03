@@ -25,4 +25,6 @@ public class OpenapiComponents
     public Map<String, OpenapiResponse> responses;
     public Map<String, OpenapiSecurityScheme> securitySchemes;
     public Map<String, OpenapiLink> links;
+
+    public Map<String, Object> extensions;
 }

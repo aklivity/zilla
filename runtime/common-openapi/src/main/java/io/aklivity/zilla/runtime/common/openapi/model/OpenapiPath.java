@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.openapi.model;
 
 import java.util.List;
+import java.util.Map;
 
 public class OpenapiPath extends AbstractOpenapiResolvable
 {
@@ -30,4 +31,6 @@ public class OpenapiPath extends AbstractOpenapiResolvable
     public List<OpenapiServer> servers;
 
     public List<OpenapiParameter> parameters;
+
+    public Map<String, Object> extensions;
 }
