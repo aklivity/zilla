@@ -804,18 +804,108 @@ class YamlJsonParserTest
         assertThrows(IllegalStateException.class, parser::getValue);
         assertEquals(START_OBJECT, parser.next());
         assertEquals(START_OBJECT, parser.currentEvent());
+        assertThrows(IllegalStateException.class, parser::skipArray);
         JsonObject object = parser.getObject();
         assertEquals("test", object.getString("name"));
         assertEquals(1, object.getJsonArray("values").getInt(0));
-        assertEquals(2, parser.getObjectStream().count());
-        assertEquals(1, parser.getValueStream().count());
-        assertThrows(IllegalStateException.class, parser::skipArray);
-
-        while (parser.hasNext())
-        {
-            parser.next();
-        }
+        // getObject() must advance the parser to the matching END_OBJECT, consuming the whole document
+        assertEquals(END_OBJECT, parser.currentEvent());
+        assertFalse(parser.hasNext());
         assertThrows(JsonParsingException.class, parser::next);
+    }
+
+    @Test
+    void shouldExposeObjectAndValueStreams()
+    {
+        JsonParser parser = parserFor("""
+            name: test
+            values: [1]
+            """);
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(2, parser.getObjectStream().count());
+        assertFalse(parser.hasNext());
+
+        parser = parserFor("""
+            name: test
+            """);
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(1, parser.getValueStream().count());
+        assertFalse(parser.hasNext());
+    }
+
+    @Test
+    void shouldAdvancePastMaterializedObjectSoSiblingPropertiesRemainReadable()
+    {
+        // reproduces the corruption from GH-1997: getObject()/getValue() must not leave the parser
+        // positioned back at the start of the value it just materialized, or the sibling properties that
+        // follow it in the document are misread or skipped entirely
+        JsonParser parser = parserFor("""
+            first:
+              nested: value
+            second: after
+            """);
+
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("first", parser.getString());
+        assertEquals(START_OBJECT, parser.next());
+
+        JsonObject nested = parser.getObject();
+        assertEquals("value", nested.getString("nested"));
+        assertEquals(END_OBJECT, parser.currentEvent());
+
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("second", parser.getString());
+        assertEquals(VALUE_STRING, parser.next());
+        assertEquals("after", parser.getString());
+        assertEquals(END_OBJECT, parser.next());
+        assertFalse(parser.hasNext());
+    }
+
+    @Test
+    void shouldAdvancePastMaterializedArraySoSiblingPropertiesRemainReadable()
+    {
+        JsonParser parser = parserFor("""
+            first: [1, 2]
+            second: after
+            """);
+
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("first", parser.getString());
+        assertEquals(START_ARRAY, parser.next());
+
+        assertEquals(2, parser.getArray().size());
+        assertEquals(END_ARRAY, parser.currentEvent());
+
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("second", parser.getString());
+        assertEquals(VALUE_STRING, parser.next());
+        assertEquals("after", parser.getString());
+        assertEquals(END_OBJECT, parser.next());
+        assertFalse(parser.hasNext());
+    }
+
+    @Test
+    void shouldLeaveScalarValuePositionUnchangedAfterGetValue()
+    {
+        JsonParser parser = parserFor("""
+            first: alpha
+            second: beta
+            """);
+
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals(VALUE_STRING, parser.next());
+        assertEquals("alpha", ((jakarta.json.JsonString) parser.getValue()).getString());
+        assertEquals(VALUE_STRING, parser.currentEvent());
+
+        assertEquals(KEY_NAME, parser.next());
+        assertEquals("second", parser.getString());
+        assertEquals(VALUE_STRING, parser.next());
+        assertEquals("beta", parser.getString());
+        assertEquals(END_OBJECT, parser.next());
+        assertFalse(parser.hasNext());
     }
 
     @Test
