@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +24,7 @@ import jakarta.json.stream.JsonParser;
 
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 
 public class JsonTokenizerPathTest
@@ -125,7 +125,6 @@ public class JsonTokenizerPathTest
         String json)
     {
         final byte[] bytes = json.getBytes(UTF_8);
-        tokenizer.wrap(MemorySegment.ofArray(bytes), 0, bytes.length);
-        tokenizer.terminal(true);
+        tokenizer.wrap(new UnsafeBufferEx(bytes), 0, bytes.length, true);
     }
 }

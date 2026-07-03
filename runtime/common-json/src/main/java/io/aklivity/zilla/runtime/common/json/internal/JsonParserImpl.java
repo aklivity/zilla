@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.foreign.MemorySegment;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -60,7 +59,7 @@ public final class JsonParserImpl implements JsonParserEx
 
     // DirectBufferInputStreamEx here is only a convenient (buffer, offset, length) holder for segment/verbatim
     // view construction (bufferOffset(), getSegment(), getVerbatim()) — it no longer feeds the tokenizer,
-    // which reads directly from a MemorySegment. See zilla#1999 for its other, unrelated call sites.
+    // which reads directly from the DirectBufferEx. See zilla#1999 for its other, unrelated call sites.
     private final DirectBufferInputStreamEx ownedInput;
     // non-null only for the InputStream-constructor (compatibility) path; null when fed via wrap(DirectBufferEx).
     // A DirectBufferInputStreamEx may be re-wrapped by the caller between hasNext() calls (see
@@ -183,11 +182,7 @@ public final class JsonParserImpl implements JsonParserEx
         frameBaseStreamOffset = tokenizer.streamOffset();
         tokenizer.window(limit - offset);
         ownedInput.wrap(buffer, offset, limit - offset);
-        // segment() is the raw, unadjusted backing segment (agrona's own getByte()-family accessors all add
-        // wrapAdjustment() to the logical index) — add it here so the tokenizer reads the same bytes buffer's
-        // own [offset, limit) would.
-        final int adjustment = buffer.wrapAdjustment();
-        tokenizer.wrap(buffer.segment(), adjustment + offset, adjustment + limit);
+        tokenizer.wrap(buffer, offset, limit);
         windowLast = true;
         return this;
     }
@@ -202,8 +197,10 @@ public final class JsonParserImpl implements JsonParserEx
         int limit,
         boolean last)
     {
-        tokenizer.terminal(last);
-        wrap(buffer, offset, limit);
+        frameBaseStreamOffset = tokenizer.streamOffset();
+        tokenizer.window(limit - offset);
+        ownedInput.wrap(buffer, offset, limit - offset);
+        tokenizer.wrap(buffer, offset, limit, last);
         windowLast = last;
         return this;
     }
@@ -289,8 +286,7 @@ public final class JsonParserImpl implements JsonParserEx
             final int length = rewrappable.length();
             if (buffer != rawInputBuffer || offset != rawInputOffset || length != rawInputLength)
             {
-                final int adjustment = buffer.wrapAdjustment();
-                tokenizer.wrap(buffer.segment(), adjustment + offset, adjustment + offset + length);
+                tokenizer.wrap(buffer, offset, offset + length);
                 rawInputBuffer = buffer;
                 rawInputOffset = offset;
                 rawInputLength = length;
@@ -307,7 +303,7 @@ public final class JsonParserImpl implements JsonParserEx
             {
                 throw new JsonParsingException(ex.getMessage(), ex, location);
             }
-            tokenizer.wrap(MemorySegment.ofArray(bytes), 0, bytes.length);
+            tokenizer.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
             rawInputWrapped = true;
         }
     }

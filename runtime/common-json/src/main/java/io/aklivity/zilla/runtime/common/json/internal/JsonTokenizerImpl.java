@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -140,9 +138,9 @@ public final class JsonTokenizerImpl implements JsonTokenizer
     private int windowLength = Integer.MAX_VALUE;
 
     // the currently wrapped input: advance() may be called many times against the same wrapped
-    // segment (once per token drained from it); cursor is the next unread position, persisting
+    // buffer (once per token drained from it); cursor is the next unread position, persisting
     // across those calls until the next wrap() rebinds it to a new window.
-    private MemorySegment segment;
+    private DirectBufferEx buffer;
     private int cursor;
     private int limit;
 
@@ -289,13 +287,28 @@ public final class JsonTokenizerImpl implements JsonTokenizer
     // particular wrapped range is.
     @Override
     public void wrap(
-        MemorySegment segment,
+        DirectBufferEx buffer,
         int offset,
         int limit)
     {
-        this.segment = segment;
+        this.buffer = buffer;
         this.cursor = offset;
         this.limit = limit;
+    }
+
+    // The last == true shorthand folds a terminal(true) into the rebind: this window's EOF is the
+    // terminal delimiter (one-shot or final window), so a trailing scalar completes at EOF and an
+    // incomplete value is rejected. last == false leaves EOF as a frame boundary with more bytes still
+    // to come, same as the three-argument overload.
+    @Override
+    public void wrap(
+        DirectBufferEx buffer,
+        int offset,
+        int limit,
+        boolean last)
+    {
+        wrap(buffer, offset, limit);
+        this.terminalEof = last;
     }
 
     // Set per input window: its byte length is the fragmentation bound — a value whose own bytes reach
@@ -323,16 +336,6 @@ public final class JsonTokenizerImpl implements JsonTokenizer
         boolean scalarSegment)
     {
         this.scalarSegment = scalarSegment;
-    }
-
-    // Set per input window: when true this window's EOF is the terminal delimiter (one-shot or final
-    // window), so a trailing scalar completes at EOF and an incomplete value is rejected; when false EOF
-    // is a frame boundary with more bytes still to come.
-    @Override
-    public void terminal(
-        boolean terminalEof)
-    {
-        this.terminalEof = terminalEof;
     }
 
     @Override
@@ -1310,7 +1313,7 @@ public final class JsonTokenizerImpl implements JsonTokenizer
             {
                 // peek: a plain index read, no mark/reset needed — only advance the cursor if this byte
                 // actually belongs to the number, leaving it unconsumed as the next token's first byte
-                int c = segment.get(ValueLayout.JAVA_BYTE, cursor) & 0xff;
+                int c = buffer.getByte(cursor) & 0xff;
                 if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
                 {
                     cursor++;
@@ -1406,7 +1409,7 @@ public final class JsonTokenizerImpl implements JsonTokenizer
         }
         else
         {
-            c = segment.get(ValueLayout.JAVA_BYTE, cursor) & 0xff;
+            c = buffer.getByte(cursor) & 0xff;
             cursor++;
             streamOffset++;
             advance(c);

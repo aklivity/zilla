@@ -19,10 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.lang.foreign.MemorySegment;
-
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonStringView;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 
@@ -79,7 +78,6 @@ public class JsonTokenizerStringViewTest
         String json)
     {
         final byte[] bytes = json.getBytes(UTF_8);
-        tokenizer.wrap(MemorySegment.ofArray(bytes), 0, bytes.length);
-        tokenizer.terminal(true);
+        tokenizer.wrap(new UnsafeBufferEx(bytes), 0, bytes.length, true);
     }
 }

@@ -14,21 +14,24 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import java.lang.foreign.MemorySegment;
-
 import jakarta.json.stream.JsonParser;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public interface JsonTokenizer
 {
     void reset();
 
     void wrap(
-        MemorySegment segment,
+        DirectBufferEx buffer,
         int offset,
         int limit);
 
-    void terminal(
-        boolean terminalEof);
+    void wrap(
+        DirectBufferEx buffer,
+        int offset,
+        int limit,
+        boolean last);
 
     void window(
         int length);
