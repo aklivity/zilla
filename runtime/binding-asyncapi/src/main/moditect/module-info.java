@@ -40,6 +40,12 @@ module io.aklivity.zilla.runtime.binding.asyncapi
 
     exports io.aklivity.zilla.runtime.binding.asyncapi.config;
 
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka;
+
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBindingFactorySpi;
 
