@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
+import java.util.Map;
+import java.util.Optional;
+
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiReply;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
@@ -21,6 +24,21 @@ public class AsyncapiReplyView
 {
     public String address;
     public AsyncapiChannelView channel;
+
+    private final Map<String, Object> extensions;
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
+    }
 
     AsyncapiReplyView(
         AsyncapiResolver resolver,
@@ -32,5 +50,6 @@ public class AsyncapiReplyView
         this.channel = model.channel != null
             ? new AsyncapiChannelView(resolver, model.channel)
             : null;
+        this.extensions = model.extensions;
     }
 }

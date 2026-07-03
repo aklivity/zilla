@@ -15,10 +15,13 @@
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class AsyncapiChannel extends AbstractAsyncapiResolvable
 {
     public String address;
     public LinkedHashMap<String, AsyncapiMessage> messages;
     public LinkedHashMap<String, AsyncapiParameter> parameters;
+
+    public Map<String, Object> extensions;
 }

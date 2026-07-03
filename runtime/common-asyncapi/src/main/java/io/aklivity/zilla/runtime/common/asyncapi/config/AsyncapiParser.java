@@ -40,7 +40,7 @@ import jakarta.json.stream.JsonParser;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
-import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiBindingDeserializers;
+import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiDeserializers;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
@@ -52,16 +52,20 @@ public class AsyncapiParser
     private final Map<String, Class<?>> operationBindingTypes;
     private final Map<String, Class<?>> messageBindingTypes;
     private final Map<String, Class<?>> serverBindingTypes;
+    private final Map<String, Class<?>> extensionTypes;
+    private final Map<String, Class<?>> prefixExtensionTypes;
 
     public AsyncapiParser()
     {
-        this(emptyMap(), emptyMap(), emptyMap());
+        this(emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyMap());
     }
 
     AsyncapiParser(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
-        Map<String, Class<?>> serverBindingTypes)
+        Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> extensionTypes,
+        Map<String, Class<?>> prefixExtensionTypes)
     {
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
         schemas.put("2.6.0", schema("2.6.0"));
@@ -70,6 +74,8 @@ public class AsyncapiParser
         this.operationBindingTypes = operationBindingTypes;
         this.messageBindingTypes = messageBindingTypes;
         this.serverBindingTypes = serverBindingTypes;
+        this.extensionTypes = extensionTypes;
+        this.prefixExtensionTypes = prefixExtensionTypes;
     }
 
     public Asyncapi parse(
@@ -92,8 +98,8 @@ public class AsyncapiParser
                 schema.validate(parser, problem -> errors.add(new AsyncapiException(problem.toString())));
             }
 
-            List<JsonbDeserializer<?>> deserializers = AsyncapiBindingDeserializers.all(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes);
+            List<JsonbDeserializer<?>> deserializers = AsyncapiDeserializers.all(
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                     .withConfig(new JsonbConfig()
                         .withDeserializers(deserializers.toArray(JsonbDeserializer[]::new)))

@@ -26,4 +26,6 @@ public class AsyncapiServer
     public List<AsyncapiSecurityScheme> security;
     public Map<String, AsyncapiServerVariable> variables;
     public Map<String, Object> bindings;
+
+    public Map<String, Object> extensions;
 }

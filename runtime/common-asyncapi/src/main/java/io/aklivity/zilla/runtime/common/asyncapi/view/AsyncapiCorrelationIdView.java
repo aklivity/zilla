@@ -14,12 +14,30 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
+import java.util.Map;
+import java.util.Optional;
+
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiCorrelationId;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiCorrelationIdView
 {
     public final String location;
+
+    private final Map<String, Object> extensions;
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
+    }
 
     AsyncapiCorrelationIdView(
         AsyncapiResolver resolver,
@@ -28,5 +46,6 @@ public final class AsyncapiCorrelationIdView
         final AsyncapiCorrelationId resolved = resolver.correlationIds.resolve(model);
 
         this.location = resolved.location;
+        this.extensions = resolved.extensions;
     }
 }

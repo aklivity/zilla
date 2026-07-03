@@ -14,7 +14,11 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
+import java.util.Map;
+
 public class AsyncapiTrait extends AbstractAsyncapiResolvable
 {
     public AsyncapiSchema headers;
+
+    public Map<String, Object> extensions;
 }

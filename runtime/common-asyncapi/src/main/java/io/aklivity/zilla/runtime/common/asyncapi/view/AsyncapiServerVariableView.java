@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiServerVariable;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
@@ -24,6 +26,21 @@ public final class AsyncapiServerVariableView
     public String name;
     public final String defaultValue;
     public final List<String> values;
+
+    private final Map<String, Object> extensions;
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
+    }
 
     AsyncapiServerVariableView(
         AsyncapiResolver resolver,
@@ -35,5 +52,6 @@ public final class AsyncapiServerVariableView
         this.name = name;
         this.defaultValue = resolved.defaultValue;
         this.values = resolved.values;
+        this.extensions = resolved.extensions;
     }
 }

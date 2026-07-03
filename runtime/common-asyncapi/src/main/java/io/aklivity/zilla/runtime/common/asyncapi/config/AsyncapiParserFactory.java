@@ -22,12 +22,16 @@ public final class AsyncapiParserFactory
     private final Map<String, Class<?>> operationBindingTypes;
     private final Map<String, Class<?>> messageBindingTypes;
     private final Map<String, Class<?>> serverBindingTypes;
+    private final Map<String, Class<?>> extensionTypes;
+    private final Map<String, Class<?>> prefixExtensionTypes;
 
     public AsyncapiParserFactory()
     {
         this.operationBindingTypes = new LinkedHashMap<>();
         this.messageBindingTypes = new LinkedHashMap<>();
         this.serverBindingTypes = new LinkedHashMap<>();
+        this.extensionTypes = new LinkedHashMap<>();
+        this.prefixExtensionTypes = new LinkedHashMap<>();
     }
 
     public <T> AsyncapiParserFactory withOperationBinding(
@@ -54,8 +58,24 @@ public final class AsyncapiParserFactory
         return this;
     }
 
+    public <T> AsyncapiParserFactory withExtension(
+        String name,
+        Class<T> type)
+    {
+        if (name.endsWith("*"))
+        {
+            prefixExtensionTypes.put(name, type);
+        }
+        else
+        {
+            extensionTypes.put(name, type);
+        }
+        return this;
+    }
+
     public AsyncapiParser createParser()
     {
-        return new AsyncapiParser(operationBindingTypes, messageBindingTypes, serverBindingTypes);
+        return new AsyncapiParser(
+            operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes);
     }
 }

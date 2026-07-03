@@ -24,38 +24,34 @@ import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
-public final class AsyncapiOperationDeserializer implements JsonbDeserializer<AsyncapiOperation>
+public final class AsyncapiComponentsDeserializer implements JsonbDeserializer<AsyncapiComponents>
 {
-    private final Map<String, Class<?>> operationBindingTypes;
     private final Map<String, Class<?>> extensionTypes;
     private final Map<String, Class<?>> prefixExtensionTypes;
     private final Supplier<Jsonb> plain;
 
-    public AsyncapiOperationDeserializer(
+    public AsyncapiComponentsDeserializer(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
         Map<String, Class<?>> extensionTypes,
         Map<String, Class<?>> prefixExtensionTypes)
     {
-        this.operationBindingTypes = operationBindingTypes;
         this.extensionTypes = extensionTypes;
         this.prefixExtensionTypes = prefixExtensionTypes;
         this.plain = AsyncapiDeserializers.plain(
             operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes,
-            AsyncapiOperationDeserializer.class);
+            AsyncapiComponentsDeserializer.class);
     }
 
     @Override
-    public AsyncapiOperation deserialize(
+    public AsyncapiComponents deserialize(
         JsonParser parser,
         DeserializationContext ctx,
         Type type)
     {
         JsonObject object = parser.getObject();
-        AsyncapiOperation model = plain.get().fromJson(object.toString(), AsyncapiOperation.class);
-
-        model.bindings = AsyncapiDeserializers.bindings(object, operationBindingTypes, plain.get());
+        AsyncapiComponents model = plain.get().fromJson(object.toString(), AsyncapiComponents.class);
         model.extensions = AsyncapiDeserializers.extensions(object, extensionTypes, prefixExtensionTypes, plain);
 
         return model;

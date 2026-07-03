@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.asyncapi.view;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiComponents;
@@ -29,6 +30,21 @@ public final class AsyncapiComponentsView
     public final List<AsyncapiCorrelationIdView> correlationIds;
     public final List<AsyncapiTraitView> messageTraits;
     public final List<AsyncapiServerVariableView> serverVariables;
+
+    private final Map<String, Object> extensions;
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
+    }
 
     AsyncapiComponentsView(
         AsyncapiResolver resolver,
@@ -69,5 +85,6 @@ public final class AsyncapiComponentsView
                     .toList()
                 : null;
 
+        this.extensions = model.extensions;
     }
 }

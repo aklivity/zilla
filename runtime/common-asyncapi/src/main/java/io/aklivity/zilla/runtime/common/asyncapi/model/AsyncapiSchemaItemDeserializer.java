@@ -24,40 +24,51 @@ import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
-public final class AsyncapiOperationDeserializer implements JsonbDeserializer<AsyncapiOperation>
+public final class AsyncapiSchemaItemDeserializer implements JsonbDeserializer<AsyncapiSchemaItem>
 {
-    private final Map<String, Class<?>> operationBindingTypes;
     private final Map<String, Class<?>> extensionTypes;
     private final Map<String, Class<?>> prefixExtensionTypes;
     private final Supplier<Jsonb> plain;
 
-    public AsyncapiOperationDeserializer(
+    public AsyncapiSchemaItemDeserializer(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
         Map<String, Class<?>> extensionTypes,
         Map<String, Class<?>> prefixExtensionTypes)
     {
-        this.operationBindingTypes = operationBindingTypes;
         this.extensionTypes = extensionTypes;
         this.prefixExtensionTypes = prefixExtensionTypes;
         this.plain = AsyncapiDeserializers.plain(
             operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes,
-            AsyncapiOperationDeserializer.class);
+            AsyncapiSchemaItemDeserializer.class, AsyncapiSchemaDeserializer.class, AsyncapiMultiFormatSchemaDeserializer.class);
     }
 
     @Override
-    public AsyncapiOperation deserialize(
+    public AsyncapiSchemaItem deserialize(
         JsonParser parser,
         DeserializationContext ctx,
         Type type)
     {
         JsonObject object = parser.getObject();
-        AsyncapiOperation model = plain.get().fromJson(object.toString(), AsyncapiOperation.class);
 
-        model.bindings = AsyncapiDeserializers.bindings(object, operationBindingTypes, plain.get());
-        model.extensions = AsyncapiDeserializers.extensions(object, extensionTypes, prefixExtensionTypes, plain);
+        AsyncapiSchemaItem item = null;
 
-        return model;
+        if (object.containsKey("$ref"))
+        {
+            AsyncapiSchemaItem schemaItem = new AsyncapiSchemaItem();
+            schemaItem.ref = object.getString("$ref");
+            item = schemaItem;
+        }
+        else if (object.containsKey("type"))
+        {
+            item = AsyncapiSchemaDeserializer.bind(object, extensionTypes, prefixExtensionTypes, plain);
+        }
+        else
+        {
+            item = AsyncapiMultiFormatSchemaDeserializer.bind(object, extensionTypes, prefixExtensionTypes, plain);
+        }
+
+        return item;
     }
 }
