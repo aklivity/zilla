@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiExtensionScope;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParserFactory;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
@@ -46,7 +47,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
         int tagIndex = 1;
 
         final OpenapiParser openapiParser = new OpenapiParserFactory()
-            .withExtension("x-zilla-http-kafka", OpenapiHttpKafkaOperationEx.class)
+            .withExtension(OpenapiExtensionScope.OPERATION, "x-zilla-http-kafka", OpenapiHttpKafkaOperationEx.class)
             .createParser();
         final List<OpenapiSchemaConfig> openapiSchemas = new ArrayList<>();
         for (OpenapiSpecificationConfig openapiSpec : binding.options.specs.openapi)

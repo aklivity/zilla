@@ -48,8 +48,8 @@ public class OpenapiParser
 {
     private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d\\.\\d)\\.\\d+");
     private final Map<String, JsonSchema> schemas;
-    private final Map<String, Class<?>> extensionTypes;
-    private final Map<String, Class<?>> prefixExtensionTypes;
+    private final Map<OpenapiExtensionScope, Map<String, Class<?>>> extensionTypes;
+    private final Map<OpenapiExtensionScope, Map<String, Class<?>>> prefixExtensionTypes;
 
     public OpenapiParser()
     {
@@ -57,8 +57,8 @@ public class OpenapiParser
     }
 
     OpenapiParser(
-        Map<String, Class<?>> extensionTypes,
-        Map<String, Class<?>> prefixExtensionTypes)
+        Map<OpenapiExtensionScope, Map<String, Class<?>>> extensionTypes,
+        Map<OpenapiExtensionScope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         Map<String, JsonSchema> schemas = new Object2ObjectHashMap<>();
         schemas.put("3.0", schema("3.0.3"));
