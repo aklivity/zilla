@@ -14,35 +14,30 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import jakarta.json.stream.JsonLocation;
-
 import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
+import io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
 
-final class JsonLocationImpl implements JsonLocation
+// Always-present baseline provider: lowest priority, always available, so any registered
+// alternative provider wins selection but the engine never fails to find a tokenizer.
+public final class JsonTokenizerImplFactory implements JsonTokenizerFactory
 {
-    private final JsonTokenizer tokenizer;
-
-    JsonLocationImpl(
-        JsonTokenizer tokenizer)
+    @Override
+    public JsonTokenizer create(
+        boolean terminalEof,
+        int maxValueSize)
     {
-        this.tokenizer = tokenizer;
+        return new JsonTokenizerImpl(terminalEof, maxValueSize);
     }
 
     @Override
-    public long getLineNumber()
+    public int priority()
     {
-        return tokenizer.line();
+        return 0;
     }
 
     @Override
-    public long getColumnNumber()
+    public boolean available()
     {
-        return tokenizer.column();
-    }
-
-    @Override
-    public long getStreamOffset()
-    {
-        return tokenizer.streamOffset();
+        return true;
     }
 }

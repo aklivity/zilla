@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.foreign.MemorySegment;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -42,6 +43,8 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonStep;
+import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
+import io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
@@ -55,8 +58,18 @@ public final class JsonParserImpl implements JsonParserEx
     // generous enough for any reasonable value, bounding only adversarial accumulation
     private static final int DEFAULT_MAX_VALUE_SIZE = 1 << 24;
 
-    private final InputStream in;
+    // DirectBufferInputStreamEx here is only a convenient (buffer, offset, length) holder for segment/verbatim
+    // view construction (bufferOffset(), getSegment(), getVerbatim()) — it no longer feeds the tokenizer,
+    // which reads directly from a MemorySegment. See zilla#1999 for its other, unrelated call sites.
     private final DirectBufferInputStreamEx ownedInput;
+    // non-null only for the InputStream-constructor (compatibility) path; null when fed via wrap(DirectBufferEx).
+    // A DirectBufferInputStreamEx may be re-wrapped by the caller between hasNext() calls (see
+    // rewrapRawInputIfNeeded()); any other InputStream is read once, lazily, on first use.
+    private final InputStream rawInput;
+    private boolean rawInputWrapped;
+    private DirectBufferEx rawInputBuffer;
+    private int rawInputOffset;
+    private int rawInputLength;
     private final JsonTokenizer tokenizer;
     private final JsonLocationImpl location;
     private final UnsafeBufferEx segmentView = new UnsafeBufferEx(0, 0);
@@ -121,8 +134,8 @@ public final class JsonParserImpl implements JsonParserEx
         Map<String, ?> config)
     {
         this.ownedInput = new DirectBufferInputStreamEx();
-        this.in = ownedInput;
-        this.tokenizer = new JsonTokenizer(false, maxValueSize(config));
+        this.rawInput = null;
+        this.tokenizer = JsonTokenizerFactory.instantiate().create(false, maxValueSize(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -132,6 +145,13 @@ public final class JsonParserImpl implements JsonParserEx
         this(in, Map.of());
     }
 
+    // Compatibility path for an arbitrary caller-supplied InputStream (e.g. JsonEx.createParser(InputStream)).
+    // A DirectBufferInputStreamEx is a resumable frame source the caller may re-wrap directly between hasNext()
+    // calls — each re-wrap is detected and re-bound to the tokenizer by rewrapRawInputIfNeeded() — so its EOF is
+    // a frame boundary, not the terminal delimiter. Any other stream cannot be re-wrapped like that, so it is
+    // one-shot: read lazily in full on first use (not here — mark/reset support is required so this is a
+    // faithful replay of the original stream either way) and its EOF is the terminal delimiter for a trailing
+    // number.
     public JsonParserImpl(
         InputStream in,
         Map<String, ?> config)
@@ -140,11 +160,9 @@ public final class JsonParserImpl implements JsonParserEx
         {
             throw new IllegalArgumentException("InputStream must support mark/reset");
         }
-        this.in = in;
         this.ownedInput = null;
-        // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
-        // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
-        this.tokenizer = new JsonTokenizer(
+        this.rawInput = in;
+        this.tokenizer = JsonTokenizerFactory.instantiate().create(
             !(in instanceof DirectBufferInputStreamEx), maxValueSize(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
@@ -165,6 +183,11 @@ public final class JsonParserImpl implements JsonParserEx
         frameBaseStreamOffset = tokenizer.streamOffset();
         tokenizer.window(limit - offset);
         ownedInput.wrap(buffer, offset, limit - offset);
+        // segment() is the raw, unadjusted backing segment (agrona's own getByte()-family accessors all add
+        // wrapAdjustment() to the logical index) — add it here so the tokenizer reads the same bytes buffer's
+        // own [offset, limit) would.
+        final int adjustment = buffer.wrapAdjustment();
+        tokenizer.wrap(buffer.segment(), adjustment + offset, adjustment + limit);
         windowLast = true;
         return this;
     }
@@ -247,16 +270,46 @@ public final class JsonParserImpl implements JsonParserEx
             {
                 tokenizer.markScratchConsumed(stringViewOffset);
             }
+            rewrapRawInputIfNeeded();
+            result = tokenizer.advance();
+        }
+        return result;
+    }
+
+    // Only does anything on the InputStream-constructor path (rawInput != null). A DirectBufferInputStreamEx
+    // may have been re-wrapped by the caller directly (outside this class) since the last check — detected by
+    // its (buffer, offset, length) tuple changing — in which case the tokenizer is re-bound to the new window.
+    // Any other InputStream is read once, in full, on the first call, and never again.
+    private void rewrapRawInputIfNeeded()
+    {
+        if (rawInput instanceof DirectBufferInputStreamEx rewrappable)
+        {
+            final DirectBufferEx buffer = rewrappable.buffer();
+            final int offset = rewrappable.offset();
+            final int length = rewrappable.length();
+            if (buffer != rawInputBuffer || offset != rawInputOffset || length != rawInputLength)
+            {
+                final int adjustment = buffer.wrapAdjustment();
+                tokenizer.wrap(buffer.segment(), adjustment + offset, adjustment + offset + length);
+                rawInputBuffer = buffer;
+                rawInputOffset = offset;
+                rawInputLength = length;
+            }
+        }
+        else if (rawInput != null && !rawInputWrapped)
+        {
+            byte[] bytes;
             try
             {
-                result = tokenizer.advance(in);
+                bytes = rawInput.readAllBytes();
             }
             catch (IOException ex)
             {
                 throw new JsonParsingException(ex.getMessage(), ex, location);
             }
+            tokenizer.wrap(MemorySegment.ofArray(bytes), 0, bytes.length);
+            rawInputWrapped = true;
         }
-        return result;
     }
 
     private int bufferOffset(
