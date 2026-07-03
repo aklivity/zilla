@@ -18,33 +18,46 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiRequestBody;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiRequestBodyView extends OpenapiExtensibleView
+public final class OpenapiRequestBodyView
 {
     public final OpenapiOperationView operation;
     public final Map<String, OpenapiMediaTypeView> content;
     public final boolean required;
+
+    private final Map<String, Object> extensions;
 
     OpenapiRequestBodyView(
         OpenapiOperationView operation,
         OpenapiResolver resolver,
         OpenapiRequestBody model)
     {
-        super(resolver.requestBodies.resolve(model).extensions);
-
-        this.operation = operation;
-
         OpenapiRequestBody resolved = resolver.requestBodies.resolve(model);
 
+        this.operation = operation;
         this.content = model.content != null
                 ? model.content.entrySet().stream()
                     .map(e -> new OpenapiMediaTypeView(resolver, e.getKey(), e.getValue()))
                     .collect(toMap(c -> c.name, identity()))
                 : null;
-
         this.required = resolved.required;
+        this.extensions = resolved.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

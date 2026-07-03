@@ -14,22 +14,25 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.view;
 
+import java.util.Map;
+import java.util.Optional;
+
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiMediaType;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public class OpenapiMediaTypeView extends OpenapiExtensibleView
+public class OpenapiMediaTypeView
 {
     public final String name;
     public final OpenapiSchemaView schema;
     public final OpenapiEncodingView encoding;
+
+    private final Map<String, Object> extensions;
 
     OpenapiMediaTypeView(
         OpenapiResolver resolver,
         String name,
         OpenapiMediaType model)
     {
-        super(model.extensions);
-
         this.name = name;
         this.schema = model.schema != null
             ? new OpenapiSchemaView(resolver, model.schema)
@@ -37,5 +40,19 @@ public class OpenapiMediaTypeView extends OpenapiExtensibleView
         this.encoding = model.encoding != null
             ? new OpenapiEncodingView(resolver, model.encoding)
             : null;
+        this.extensions = model.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

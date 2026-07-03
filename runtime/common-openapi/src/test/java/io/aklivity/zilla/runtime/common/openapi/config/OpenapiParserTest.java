@@ -33,44 +33,46 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 public class OpenapiParserTest
 {
     private static final String SPEC =
-        "{" +
-        "  \"openapi\": \"3.1.0\"," +
-        "  \"info\": { \"title\": \"sample\", \"version\": \"1.0.0\" }," +
-        "  \"x-zilla-sample\": { \"key\": \"root-value\" }," +
-        "  \"x-zilla-unregistered\": { \"key\": \"unregistered-value\" }," +
-        "  \"servers\": [" +
-        "    { \"url\": \"https://example.com\", \"x-zilla-sample\": { \"key\": \"server-value\" } }" +
-        "  ]," +
-        "  \"paths\": {" +
-        "    \"/items\": {" +
-        "      \"get\": {" +
-        "        \"operationId\": \"listItems\"," +
-        "        \"x-zilla-sample\": { \"key\": \"operation-value\" }," +
-        "        \"responses\": {" +
-        "          \"200\": {" +
-        "            \"description\": \"ok\"," +
-        "            \"x-zilla-sample\": { \"key\": \"response-value\" }" +
-        "          }" +
-        "        }" +
-        "      }" +
-        "    }" +
-        "  }," +
-        "  \"components\": {" +
-        "    \"schemas\": {" +
-        "      \"Item\": {" +
-        "        \"type\": \"object\"," +
-        "        \"x-zilla-sample\": { \"key\": \"schema-value\" }" +
-        "      }" +
-        "    }," +
-        "    \"securitySchemes\": {" +
-        "      \"bearerAuth\": {" +
-        "        \"type\": \"http\"," +
-        "        \"scheme\": \"bearer\"," +
-        "        \"x-zilla-sample\": { \"key\": \"scheme-value\" }" +
-        "      }" +
-        "    }" +
-        "  }" +
-        "}";
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "sample", "version": "1.0.0" },
+          "x-zilla-sample": { "key": "root-value" },
+          "x-zilla-unregistered": { "key": "unregistered-value" },
+          "servers": [
+            { "url": "https://example.com", "x-zilla-sample": { "key": "server-value" } }
+          ],
+          "paths": {
+            "/items": {
+              "get": {
+                "operationId": "listItems",
+                "x-zilla-sample": { "key": "operation-value" },
+                "responses": {
+                  "200": {
+                    "description": "ok",
+                    "x-zilla-sample": { "key": "response-value" }
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "schemas": {
+              "Item": {
+                "type": "object",
+                "x-zilla-sample": { "key": "schema-value" }
+              }
+            },
+            "securitySchemes": {
+              "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "x-zilla-sample": { "key": "scheme-value" }
+              }
+            }
+          }
+        }
+        """;
 
     public static final class SampleExtension
     {

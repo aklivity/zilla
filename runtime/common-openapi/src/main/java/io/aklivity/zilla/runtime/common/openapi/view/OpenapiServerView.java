@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toMap;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,9 +32,11 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiServerView extends OpenapiExtensibleView
+public final class OpenapiServerView
 {
     public final URI url;
+
+    private final Map<String, Object> extensions;
 
     OpenapiServerView(
         OpenapiResolver resolver,
@@ -47,8 +50,6 @@ public final class OpenapiServerView extends OpenapiExtensibleView
         OpenapiServer model,
         OpenapiServerConfig config)
     {
-        super(model.extensions);
-
         Map<String, OpenapiVariableView> variables = model.variables != null
                 ? model.variables.entrySet().stream()
                     .map(e -> new OpenapiVariableView(e.getKey(), e.getValue()))
@@ -59,6 +60,20 @@ public final class OpenapiServerView extends OpenapiExtensibleView
                 ? resolvePorts(URI.create(new VariableMatcher(variables::get, model.url)
                         .resolve(config != null ? config.url : null)))
                 : null;
+        this.extensions = model.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 
 

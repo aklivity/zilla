@@ -19,12 +19,13 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiOperationView extends OpenapiExtensibleView
+public final class OpenapiOperationView
 {
     public static final String DEFAULT = "default";
 
@@ -40,6 +41,8 @@ public final class OpenapiOperationView extends OpenapiExtensibleView
     public final List<List<OpenapiSecurityRequirementView>> security;
     public final List<OpenapiServerView> servers;
 
+    private final Map<String, Object> extensions;
+
     OpenapiOperationView(
         OpenapiView specification,
         long compositeId,
@@ -49,8 +52,6 @@ public final class OpenapiOperationView extends OpenapiExtensibleView
         String path,
         OpenapiOperation model)
     {
-        super(model.extensions);
-
         this.specification = specification;
         this.compositeId = compositeId;
         this.method = method;
@@ -87,6 +88,8 @@ public final class OpenapiOperationView extends OpenapiExtensibleView
                     .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
                     .toList()
                 : specification.servers;
+
+        this.extensions = model.extensions;
     }
 
     public boolean hasRequestBodyOrParameters()
@@ -107,5 +110,18 @@ public final class OpenapiOperationView extends OpenapiExtensibleView
     public boolean hasResponses()
     {
         return responses != null;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

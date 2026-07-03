@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import jakarta.json.bind.annotation.JsonbProperty;
@@ -26,7 +27,7 @@ import jakarta.json.bind.annotation.JsonbPropertyOrder;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiSchemaView extends OpenapiExtensibleView
+public final class OpenapiSchemaView
 {
     public final String name;
     public final OpenapiJsonSchema model;
@@ -46,6 +47,8 @@ public final class OpenapiSchemaView extends OpenapiExtensibleView
     public final List<OpenapiSchemaView> anyOf;
     public final Map<String, String> discriminator;
 
+    private final Map<String, Object> extensions;
+
     OpenapiSchemaView(
         OpenapiResolver resolver,
         OpenapiSchema model)
@@ -58,8 +61,6 @@ public final class OpenapiSchemaView extends OpenapiExtensibleView
         OpenapiSchema resolved,
         OpenapiResolver resolver)
     {
-        super(resolved.extensions);
-
         this.name = name;
         this.model = OpenapiJsonSchema.of(resolved);
 
@@ -96,6 +97,20 @@ public final class OpenapiSchemaView extends OpenapiExtensibleView
             .collect(Collectors.toList())
             : null;
         this.discriminator = resolved.discriminator;
+        this.extensions = resolved.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 
     @JsonbPropertyOrder({

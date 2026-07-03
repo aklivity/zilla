@@ -26,5 +26,4 @@ module io.aklivity.zilla.runtime.common.openapi
     exports io.aklivity.zilla.runtime.common.openapi.view;
 
     opens io.aklivity.zilla.runtime.common.openapi.model;
-    opens io.aklivity.zilla.runtime.common.openapi.view;
 }

@@ -21,6 +21,7 @@ import java.lang.invoke.VarHandle;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -32,11 +33,13 @@ import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiPath;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiPathView extends OpenapiExtensibleView
+public final class OpenapiPathView
 {
     public final OpenapiView specification;
     public final String path;
     public final Map<String, OpenapiOperationView> methods;
+
+    private final Map<String, Object> extensions;
 
     private static final Map<String, Function<OpenapiPath, OpenapiOperation>> METHOD_ACCESSORS;
 
@@ -71,8 +74,6 @@ public final class OpenapiPathView extends OpenapiExtensibleView
         String path,
         OpenapiPath model)
     {
-        super(model.extensions);
-
         this.specification = specification;
         this.path = path;
         this.methods = METHOD_ACCESSORS.entrySet().stream()
@@ -80,5 +81,19 @@ public final class OpenapiPathView extends OpenapiExtensibleView
             .collect(Collectors.toMap(Map.Entry::getKey, e ->
                 new OpenapiOperationView(specification, supplyCompositeId.getAsLong(),
                         configs, resolver, e.getKey(), path, e.getValue().apply(model))));
+        this.extensions = model.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

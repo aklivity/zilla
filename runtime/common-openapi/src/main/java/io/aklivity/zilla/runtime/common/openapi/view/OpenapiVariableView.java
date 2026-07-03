@@ -15,23 +15,39 @@
 package io.aklivity.zilla.runtime.common.openapi.view;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServerVariable;
 
-public final class OpenapiVariableView extends OpenapiExtensibleView
+public final class OpenapiVariableView
 {
     public String name;
     public final String defaultValue;
     public final List<String> values;
 
+    private final Map<String, Object> extensions;
+
     OpenapiVariableView(
         String name,
         OpenapiServerVariable model)
     {
-        super(model.extensions);
-
         this.name = name;
         this.defaultValue = model.defaultValue;
         this.values = model.values;
+        this.extensions = model.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

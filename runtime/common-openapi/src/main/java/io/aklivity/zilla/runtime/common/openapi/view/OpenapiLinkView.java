@@ -15,11 +15,12 @@
 package io.aklivity.zilla.runtime.common.openapi.view;
 
 import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiLink;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiLinkView extends OpenapiExtensibleView
+public final class OpenapiLinkView
 {
     public final String name;
 
@@ -29,21 +30,34 @@ public final class OpenapiLinkView extends OpenapiExtensibleView
     public final String requestBody;
     public final OpenapiServerView server;
 
+    private final Map<String, Object> extensions;
+
     OpenapiLinkView(
         OpenapiResolver resolver,
         String name,
         OpenapiLink model)
     {
-        super(resolver.links.resolve(model).extensions);
-
-        this.name = name;
-
         OpenapiLink resolved = resolver.links.resolve(model);
 
+        this.name = name;
         this.operationRef = resolved.operationRef;
         this.operationId = resolved.operationId;
         this.parameters = resolved.parameters;
         this.requestBody = resolved.requestBody;
         this.server = new OpenapiServerView(resolver, model.server);
+        this.extensions = resolved.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

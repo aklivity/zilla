@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.LongSupplier;
 import java.util.stream.Stream;
 
@@ -30,7 +31,7 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiView extends OpenapiExtensibleView
+public final class OpenapiView
 {
     public final String label;
     public final long compositeId;
@@ -42,6 +43,7 @@ public final class OpenapiView extends OpenapiExtensibleView
     public final List<List<OpenapiSecurityRequirementView>> security;
 
     private final OpenapiResolver resolver;
+    private final Map<String, Object> extensions;
 
     public static OpenapiView of(
         Openapi model)
@@ -72,11 +74,10 @@ public final class OpenapiView extends OpenapiExtensibleView
         List<OpenapiServerConfig> configs,
         OpenapiResolver resolver)
     {
-        super(model.extensions);
-
         this.label = label;
         this.compositeId = compositeId(id, 0);
         this.resolver = resolver;
+        this.extensions = model.extensions;
 
         this.servers = model.servers != null
             ? model.servers.stream()
@@ -117,5 +118,18 @@ public final class OpenapiView extends OpenapiExtensibleView
     public Collection<String> unresolvedRefs()
     {
         return resolver.unresolvedRefs();
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

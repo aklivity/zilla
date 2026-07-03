@@ -15,11 +15,13 @@
 package io.aklivity.zilla.runtime.common.openapi.view;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSecurityScheme;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
-public final class OpenapiSecuritySchemeView extends OpenapiExtensibleView
+public final class OpenapiSecuritySchemeView
 {
     public final String name;
     public final String type;
@@ -28,6 +30,8 @@ public final class OpenapiSecuritySchemeView extends OpenapiExtensibleView
     public final String bearerFormat;
     public final String openidConnectUrl;
     public final List<String> scopes;
+
+    private final Map<String, Object> extensions;
 
     OpenapiSecuritySchemeView(
         OpenapiResolver resolver,
@@ -41,8 +45,6 @@ public final class OpenapiSecuritySchemeView extends OpenapiExtensibleView
         String name,
         OpenapiSecurityScheme model)
     {
-        super(resolver.securitySchemes.resolve(model).extensions);
-
         final OpenapiSecurityScheme resolved = resolver.securitySchemes.resolve(model);
 
         this.name = name;
@@ -52,5 +54,19 @@ public final class OpenapiSecuritySchemeView extends OpenapiExtensibleView
         this.bearerFormat = resolved.bearerFormat;
         this.openidConnectUrl = resolved.openidConnectUrl;
         this.scopes = List.of(); // TODO: resolved.scopes;
+        this.extensions = resolved.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }
