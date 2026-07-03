@@ -100,8 +100,8 @@ public class OpenapiParserTest
     public void shouldExposeSpecificationExtensionsGenerically()
     {
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.OPENAPI, "x-zilla-sample", SampleExtension.class)
-            .withExtension(OpenapiExtensionScope.OPERATION, "x-zilla-sample", SampleExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OPENAPI, "x-zilla-sample", SampleExtension.class))
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OPERATION, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Openapi model = parser.parse(SPEC);
@@ -126,7 +126,7 @@ public class OpenapiParserTest
     public void shouldExposeSecuritySchemeExtensionGenerically()
     {
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.SECURITY_SCHEME, "x-zilla-sample", SampleExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.SECURITY_SCHEME, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Openapi model = parser.parse(SPEC);
@@ -143,9 +143,9 @@ public class OpenapiParserTest
     public void shouldBindRegisteredExtensionTypeEagerly()
     {
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.OPENAPI, "x-zilla-sample", SampleExtension.class)
-            .withExtension(OpenapiExtensionScope.OPERATION, "x-zilla-sample", SampleExtension.class)
-            .withExtension(OpenapiExtensionScope.SECURITY_SCHEME, "x-zilla-sample", SampleExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OPENAPI, "x-zilla-sample", SampleExtension.class))
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OPERATION, "x-zilla-sample", SampleExtension.class))
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.SECURITY_SCHEME, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Openapi model = parser.parse(SPEC);
@@ -162,7 +162,7 @@ public class OpenapiParserTest
     public void shouldExposeServerExtensionGenerically()
     {
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.SERVER, "x-zilla-sample", SampleExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.SERVER, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Openapi model = parser.parse(SPEC);
@@ -177,7 +177,7 @@ public class OpenapiParserTest
     public void shouldExposeResponseExtensionGenerically()
     {
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.RESPONSE, "x-zilla-sample", SampleExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.RESPONSE, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Openapi model = parser.parse(SPEC);
@@ -193,7 +193,7 @@ public class OpenapiParserTest
     public void shouldExposeSchemaExtensionGenerically()
     {
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.SCHEMA, "x-zilla-sample", SampleExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.SCHEMA, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Openapi model = parser.parse(SPEC);
@@ -236,7 +236,7 @@ public class OpenapiParserTest
             """;
 
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.OAUTH_FLOW, "x-zilla-sample", SampleExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OAUTH_FLOW, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Openapi model = parser.parse(spec);
@@ -279,7 +279,7 @@ public class OpenapiParserTest
             """;
 
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.SECURITY_SCHEME, "x-google-*", GoogleJwtExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.SECURITY_SCHEME, "x-google-*", GoogleJwtExtension.class))
             .createParser();
 
         Openapi model = parser.parse(spec);
@@ -298,7 +298,7 @@ public class OpenapiParserTest
     public void shouldNotExposePrefixWildcardExtensionWhenAbsent()
     {
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.SECURITY_SCHEME, "x-google-*", GoogleJwtExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.SECURITY_SCHEME, "x-google-*", GoogleJwtExtension.class))
             .createParser();
 
         Openapi model = parser.parse(SPEC);
@@ -335,8 +335,8 @@ public class OpenapiParserTest
             """;
 
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.OPERATION, "x-zilla-sample", SampleExtension.class)
-            .withExtension(OpenapiExtensionScope.RESPONSE, "x-zilla-sample", CountExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OPERATION, "x-zilla-sample", SampleExtension.class))
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.RESPONSE, "x-zilla-sample", CountExtension.class))
             .createParser();
 
         Openapi model = parser.parse(spec);
@@ -352,7 +352,7 @@ public class OpenapiParserTest
     public void shouldNotExposeUnregisteredExtensionType()
     {
         OpenapiParser parser = new OpenapiParserFactory()
-            .withExtension(OpenapiExtensionScope.OPENAPI, "x-zilla-sample", SampleExtension.class)
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OPENAPI, "x-zilla-sample", SampleExtension.class))
             .createParser();
 
         Openapi model = parser.parse(SPEC);

@@ -26,7 +26,7 @@ import jakarta.json.bind.serializer.DeserializationContext;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 import jakarta.json.stream.JsonParser;
 
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiExtensionScope;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiExtension;
 
 public final class OpenapiDeserializer implements JsonbDeserializer<Openapi>
 {
@@ -35,11 +35,11 @@ public final class OpenapiDeserializer implements JsonbDeserializer<Openapi>
     private final Supplier<Jsonb> plain;
 
     public OpenapiDeserializer(
-        Map<OpenapiExtensionScope, Map<String, Class<?>>> extensionTypes,
-        Map<OpenapiExtensionScope, Map<String, Class<?>>> prefixExtensionTypes)
+        Map<OpenapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
+        Map<OpenapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
-        this.extensionTypes = extensionTypes.getOrDefault(OpenapiExtensionScope.OPENAPI, emptyMap());
-        this.prefixExtensionTypes = prefixExtensionTypes.getOrDefault(OpenapiExtensionScope.OPENAPI, emptyMap());
+        this.extensionTypes = extensionTypes.getOrDefault(OpenapiExtension.Scope.OPENAPI, emptyMap());
+        this.prefixExtensionTypes = prefixExtensionTypes.getOrDefault(OpenapiExtension.Scope.OPENAPI, emptyMap());
         this.plain = OpenapiDeserializers.plain(extensionTypes, prefixExtensionTypes, OpenapiDeserializer.class);
     }
 

@@ -19,8 +19,8 @@ import java.util.Map;
 
 public final class OpenapiParserFactory
 {
-    private final Map<OpenapiExtensionScope, Map<String, Class<?>>> extensionTypes;
-    private final Map<OpenapiExtensionScope, Map<String, Class<?>>> prefixExtensionTypes;
+    private final Map<OpenapiExtension.Scope, Map<String, Class<?>>> extensionTypes;
+    private final Map<OpenapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes;
 
     public OpenapiParserFactory()
     {
@@ -28,18 +28,19 @@ public final class OpenapiParserFactory
         this.prefixExtensionTypes = new LinkedHashMap<>();
     }
 
-    public <T> OpenapiParserFactory withExtension(
-        OpenapiExtensionScope scope,
-        String name,
-        Class<T> type)
+    public OpenapiParserFactory withExtension(
+        OpenapiExtension<?> extension)
     {
+        String name = extension.name();
         if (name.endsWith("*"))
         {
-            prefixExtensionTypes.computeIfAbsent(scope, s -> new LinkedHashMap<>()).put(name, type);
+            prefixExtensionTypes.computeIfAbsent(extension.scope(), s -> new LinkedHashMap<>())
+                .put(name, extension.type());
         }
         else
         {
-            extensionTypes.computeIfAbsent(scope, s -> new LinkedHashMap<>()).put(name, type);
+            extensionTypes.computeIfAbsent(extension.scope(), s -> new LinkedHashMap<>())
+                .put(name, extension.type());
         }
         return this;
     }
