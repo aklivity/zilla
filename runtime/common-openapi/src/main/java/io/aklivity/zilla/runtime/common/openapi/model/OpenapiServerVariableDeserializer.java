@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.common.openapi.model;
 
 import java.lang.reflect.Type;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -28,13 +27,16 @@ import jakarta.json.stream.JsonParser;
 public final class OpenapiServerVariableDeserializer implements JsonbDeserializer<OpenapiServerVariable>
 {
     private final Map<String, Class<?>> extensionTypes;
+    private final Map<String, Class<?>> prefixExtensionTypes;
     private final Supplier<Jsonb> plain;
 
     public OpenapiServerVariableDeserializer(
-        Map<String, Class<?>> extensionTypes)
+        Map<String, Class<?>> extensionTypes,
+        Map<String, Class<?>> prefixExtensionTypes)
     {
         this.extensionTypes = extensionTypes;
-        this.plain = OpenapiDeserializers.plain(extensionTypes, OpenapiServerVariableDeserializer.class);
+        this.prefixExtensionTypes = prefixExtensionTypes;
+        this.plain = OpenapiDeserializers.plain(extensionTypes, prefixExtensionTypes, OpenapiServerVariableDeserializer.class);
     }
 
     @Override
@@ -45,24 +47,7 @@ public final class OpenapiServerVariableDeserializer implements JsonbDeserialize
     {
         JsonObject object = parser.getObject();
         OpenapiServerVariable model = plain.get().fromJson(object.toString(), OpenapiServerVariable.class);
-
-        Map<String, Object> extensions = null;
-        for (String name : object.keySet())
-        {
-            if (name.startsWith("x-"))
-            {
-                Class<?> extensionType = extensionTypes.get(name);
-                if (extensionType != null)
-                {
-                    if (extensions == null)
-                    {
-                        extensions = new LinkedHashMap<>();
-                    }
-                    extensions.put(name, plain.get().fromJson(object.get(name).toString(), extensionType));
-                }
-            }
-        }
-        model.extensions = extensions;
+        model.extensions = OpenapiDeserializers.extensions(object, extensionTypes, prefixExtensionTypes, plain);
 
         return model;
     }

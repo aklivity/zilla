@@ -20,22 +20,31 @@ import java.util.Map;
 public final class OpenapiParserFactory
 {
     private final Map<String, Class<?>> extensionTypes;
+    private final Map<String, Class<?>> prefixExtensionTypes;
 
     public OpenapiParserFactory()
     {
         this.extensionTypes = new LinkedHashMap<>();
+        this.prefixExtensionTypes = new LinkedHashMap<>();
     }
 
     public <T> OpenapiParserFactory withExtension(
         String name,
         Class<T> type)
     {
-        extensionTypes.put(name, type);
+        if (name.endsWith("*"))
+        {
+            prefixExtensionTypes.put(name, type);
+        }
+        else
+        {
+            extensionTypes.put(name, type);
+        }
         return this;
     }
 
     public OpenapiParser createParser()
     {
-        return new OpenapiParser(extensionTypes);
+        return new OpenapiParser(extensionTypes, prefixExtensionTypes);
     }
 }
