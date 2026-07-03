@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.0.0-alpha-20](https://github.com/aklivity/zilla/tree/2.0.0-alpha-20) (2026-07-03)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-19...2.0.0-alpha-20)
+
+**Implemented enhancements:**
+
+- Hoist AsyncAPI model/view/parser APIs into a runtime/common-asyncapi module [\#1890](https://github.com/aklivity/zilla/issues/1890)
+
+**Merged pull requests:**
+
+- feat\(common-asyncapi\): hoist AsyncAPI model/view/parser API into shared module [\#1996](https://github.com/aklivity/zilla/pull/1996) ([jfallows](https://github.com/jfallows))
+- feat\(manager\): support enabling incubator modules via --incubator [\#1995](https://github.com/aklivity/zilla/pull/1995) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): generate delegate module-info with strict jdeps validation [\#1979](https://github.com/aklivity/zilla/pull/1979) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0-alpha-19](https://github.com/aklivity/zilla/tree/2.0.0-alpha-19) (2026-07-02)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.6-rc3...2.0.0-alpha-19)
