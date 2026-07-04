@@ -766,9 +766,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         JsonGeneratorEx requestGenerator;
         Map<String, String> requestArgs;
         List<String> requestPathArgs;
-        boolean requestBegun;
         boolean requestProjected;
-        boolean requestEndedMcp;
 
         JsonPipeline responsePipeline;
         JsonGeneratorEx responseGenerator;
@@ -955,8 +953,8 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
 
                 requestGenerator.wrap(projectBuffer, 0, RESPONSE_GEN_BOUND);
-                final JsonPipeline.Status status =
-                    requestPipeline.transform(bufferPool.buffer(decodeSlot), 0, decodeSlotOffset, requestEndedMcp);
+                final JsonPipeline.Status status = requestPipeline.transform(
+                    bufferPool.buffer(decodeSlot), 0, decodeSlotOffset, McpHttpState.initialClosed(state));
                 final int produced = requestGenerator.length();
                 if (produced > 0)
                 {
@@ -986,13 +984,12 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
             }
 
-            if (!requestBegun && requestPathReady())
+            if (!McpHttpState.initialOpening(delegate.state) && requestPathReady())
             {
                 sendRequestBegin(traceId);
-                requestBegun = true;
             }
 
-            if (requestBegun)
+            if (McpHttpState.initialOpening(delegate.state))
             {
                 if (requestProjected)
                 {
@@ -1253,7 +1250,6 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (requestStreaming)
             {
-                requestEndedMcp = true;
                 pumpRequest(traceId);
             }
             else if (!requestHandled)
@@ -1535,8 +1531,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         private int decodeSlotOffset;
         private String responseStatus;
         private String responseContentType;
-        private boolean responseStreaming;
-        private boolean responseEnded;
 
         private long initialSeq;
         private long initialAck;
@@ -1777,13 +1771,12 @@ public final class McpHttpProxyFactory implements BindingHandler
                     slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
 
-                    if (!responseStreaming && server.responseStreamable(decodeSlotOffset))
+                    if (!server.responseStreaming && server.responseStreamable(decodeSlotOffset))
                     {
                         server.responseBegin(traceId, responseContentType);
-                        responseStreaming = true;
                     }
 
-                    if (responseStreaming)
+                    if (server.responseStreaming)
                     {
                         pumpResponse(traceId);
                     }
@@ -1801,9 +1794,8 @@ public final class McpHttpProxyFactory implements BindingHandler
             final long traceId = end.traceId();
             replySeq = end.sequence();
             state = McpHttpState.closedReply(state);
-            responseEnded = true;
 
-            if (responseStreaming)
+            if (server.responseStreaming)
             {
                 pumpResponse(traceId);
             }
@@ -1841,7 +1833,8 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
 
                 final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
-                final JsonPipeline.Status status = server.responseStep(slot, 0, decodeSlotOffset, responseEnded);
+                final JsonPipeline.Status status =
+                    server.responseStep(slot, 0, decodeSlotOffset, McpHttpState.replyClosed(state));
                 if (status != JsonPipeline.Status.SUSPENDED)
                 {
                     // compact only at a terminal status: across suspend cycles the pipeline re-feeds the same
@@ -1890,7 +1883,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         private void resumeResponse(
             long traceId)
         {
-            if (responseStreaming && !server.responseDone)
+            if (server.responseStreaming && !server.responseDone)
             {
                 pumpResponse(traceId);
             }
