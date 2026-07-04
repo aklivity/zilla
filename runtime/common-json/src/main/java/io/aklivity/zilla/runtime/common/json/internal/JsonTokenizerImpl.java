@@ -189,6 +189,17 @@ public final class JsonTokenizerImpl implements JsonTokenizer
     // windows needs no retained whole lexeme to validate; the state persists across fragments.
     private NumberState numberState;
 
+    // Fused alongside numberState, one leading-integer-part digit at a time (see validateNumberChar):
+    // lets getInt()/getLong() skip a second CharSequence pass through Integer.parseInt/Long.parseLong
+    // for the common case of a plain integral value. numberMagnitude stops accumulating past
+    // LONG_SAFE_DIGITS -- at or under that many digits the running value cannot overflow a signed long
+    // regardless of sign, so no per-digit overflow check is needed; a longer integer (rare) reports
+    // numberInLongRange() false and the caller falls back to the CharSequence-based path unchanged.
+    private static final int LONG_SAFE_DIGITS = 18;
+    private boolean numberNegative;
+    private long numberMagnitude;
+    private int numberDigitCount;
+
     // set at each VALUE_STRING delivery: true when the value-string was streamed verbatim as raw bytes
     // (a segment scan or an armed scalar leaf), so the caller splices its raw token bytes; false when it
     // was decoded into scratch, so the caller renders it canonically from the decoded chars.
@@ -252,6 +263,9 @@ public final class JsonTokenizerImpl implements JsonTokenizer
         scratch.setLength(0);
         scratchConsumed = 0;
         numberState = NumberState.START;
+        numberNegative = false;
+        numberMagnitude = 0L;
+        numberDigitCount = 0;
         stringVerbatim = false;
         memberSeparated = false;
         separatorBefore = false;
@@ -480,6 +494,30 @@ public final class JsonTokenizerImpl implements JsonTokenizer
     public JsonStringView stringView()
     {
         return stringViewRO.wrap(valuePending ? scratch : pendingString);
+    }
+
+    // Whether the just-completed VALUE_NUMBER has no fractional part or exponent -- the only two
+    // accepting states validateNumberComplete() allows that were never reached via a DOT/EXP transition.
+    @Override
+    public boolean numberIntegral()
+    {
+        return numberState == NumberState.ZERO || numberState == NumberState.INT;
+    }
+
+    // Whether numberLongValue() is safe to read: numberMagnitude only accumulates up to LONG_SAFE_DIGITS
+    // leading digits (see validateNumberChar), past which it stops -- so a digit count beyond that bound
+    // correctly reports false here rather than returning a truncated value.
+    @Override
+    public boolean numberInLongRange()
+    {
+        return numberDigitCount <= LONG_SAFE_DIGITS;
+    }
+
+    // Valid only when numberIntegral() && numberInLongRange() both hold for the current VALUE_NUMBER.
+    @Override
+    public long numberLongValue()
+    {
+        return numberNegative ? -numberMagnitude : numberMagnitude;
     }
 
     // The parser reports, before a resuming advance, how many chars of the current fragment the consumer
@@ -956,6 +994,9 @@ public final class JsonTokenizerImpl implements JsonTokenizer
                 scratch.setLength(0);
                 scratchConsumed = 0;
                 numberState = NumberState.START;
+                numberNegative = false;
+                numberMagnitude = 0L;
+                numberDigitCount = 0;
                 appendScratch((char) c);
                 validateNumberChar(c);
                 resumeOp = ResumeOp.VALUE_NUMBER;
@@ -1337,6 +1378,24 @@ public final class JsonTokenizerImpl implements JsonTokenizer
     private void validateNumberChar(
         int c)
     {
+        // Fuses numberMagnitude/numberDigitCount accumulation into the same one-char-at-a-time scan:
+        // only the leading integer-part digits count (START/SIGN/INT, checked against the state before
+        // this char's own transition below), matching exactly the digits getLong()/getInt()'s fast path
+        // needs -- a fractional or exponent digit never reaches here since numberIntegral() (numberState
+        // == ZERO or INT once the number completes) is what gates whether that fast path is even tried.
+        if (c == '-' && numberState == NumberState.START)
+        {
+            numberNegative = true;
+        }
+        else if (isDigit((char) c) &&
+            (numberState == NumberState.START || numberState == NumberState.SIGN || numberState == NumberState.INT))
+        {
+            numberDigitCount++;
+            if (numberDigitCount <= LONG_SAFE_DIGITS)
+            {
+                numberMagnitude = numberMagnitude * 10 + (c - '0');
+            }
+        }
         switch (numberState)
         {
         case START:

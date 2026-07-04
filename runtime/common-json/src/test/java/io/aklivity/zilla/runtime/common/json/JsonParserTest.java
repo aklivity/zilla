@@ -320,6 +320,42 @@ class JsonParserTest
         assertThrows(NumberFormatException.class, parser::getInt);
     }
 
+    // getLong()/getInt() fuse digit accumulation into the tokenizer's own scan for a leading-digit run of
+    // at most 18 (JsonTokenizerImpl.LONG_SAFE_DIGITS -- the most digits a signed long can hold with zero
+    // overflow risk regardless of sign), falling back to the CharSequence-based Long.parseLong/
+    // Integer.parseInt path above that bound (already exercised by the Long.MIN/MAX_VALUE boundaries
+    // above, both 19 digits). This pins the fused path's own internal boundary specifically: an 18-digit
+    // value (positive and negative) takes the fused path, a 19-digit value one either side of it falls
+    // back, and both must agree exactly on the resulting value.
+    @Test
+    void shouldGetLongAtFusedPathDigitBoundary()
+    {
+        JsonParser parser = parserFor("[999999999999999999,-999999999999999999,1000000000000000000,-1000000000000000001]");
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(999999999999999999L, parser.getLong());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(-999999999999999999L, parser.getLong());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(1000000000000000000L, parser.getLong());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(-1000000000000000001L, parser.getLong());
+        assertEquals(END_ARRAY, parser.next());
+    }
+
+    @Test
+    void shouldGetLongAndIntForNegativeZero()
+    {
+        JsonParser parser = parserFor("[-0]");
+
+        assertEquals(START_ARRAY, parser.next());
+        assertEquals(VALUE_NUMBER, parser.next());
+        assertEquals(0, parser.getInt());
+        assertEquals(0L, parser.getLong());
+        assertTrue(parser.isIntegralNumber());
+    }
+
     @Test
     void shouldDecodeTwoByteUtf8()
     {

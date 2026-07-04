@@ -46,6 +46,12 @@ public interface JsonTokenizer
 
     JsonStringView stringView();
 
+    boolean numberIntegral();
+
+    boolean numberInLongRange();
+
+    long numberLongValue();
+
     void markScratchConsumed(
         int consumed);
 

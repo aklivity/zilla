@@ -621,20 +621,7 @@ public final class JsonParserImpl implements JsonParserEx
     public boolean isIntegralNumber()
     {
         assert currentEvent == Event.VALUE_NUMBER;
-        // the current number's char view (not stringValue()), so scanning it materializes no String; with
-        // consumed(0) accumulation a value the caller needs whole is fully present in scratch by this point
-        final CharSequence v = tokenizer.stringView();
-        if (v == null)
-        {
-            throw new IllegalStateException("Not a number");
-        }
-        boolean integral = true;
-        for (int i = 0; integral && i < v.length(); i++)
-        {
-            final char c = v.charAt(i);
-            integral = c != '.' && c != 'e' && c != 'E';
-        }
-        return integral;
+        return tokenizer.numberIntegral();
     }
 
     @Override
@@ -642,6 +629,32 @@ public final class JsonParserImpl implements JsonParserEx
     {
         assert currentEvent == Event.VALUE_NUMBER;
         assert !deferredBytes();
+        final int value;
+        if (tokenizer.numberIntegral() && tokenizer.numberInLongRange())
+        {
+            final long longValue = tokenizer.numberLongValue();
+            value = longValue >= Integer.MIN_VALUE && longValue <= Integer.MAX_VALUE ? (int) longValue : legacyGetInt();
+        }
+        else
+        {
+            value = legacyGetInt();
+        }
+        return value;
+    }
+
+    @Override
+    public long getLong()
+    {
+        assert currentEvent == Event.VALUE_NUMBER;
+        assert !deferredBytes();
+        return tokenizer.numberIntegral() && tokenizer.numberInLongRange() ? tokenizer.numberLongValue() : legacyGetLong();
+    }
+
+    // Fallback for a non-integral number, one whose leading-digit run exceeds the fused fast path's
+    // LONG_SAFE_DIGITS bound (see JsonTokenizerImpl), or whose fused value narrows out of int range --
+    // the same CharSequence-based parse getInt()/getLong() always used before the fused fast path existed.
+    private int legacyGetInt()
+    {
         final CharSequence lexeme = tokenizer.stringView();
         if (integerDigits(lexeme) > LONG_DIGITS)
         {
@@ -650,11 +663,8 @@ public final class JsonParserImpl implements JsonParserEx
         return Integer.parseInt(lexeme, 0, lexeme.length(), 10);
     }
 
-    @Override
-    public long getLong()
+    private long legacyGetLong()
     {
-        assert currentEvent == Event.VALUE_NUMBER;
-        assert !deferredBytes();
         final CharSequence lexeme = tokenizer.stringView();
         if (integerDigits(lexeme) > LONG_DIGITS)
         {
