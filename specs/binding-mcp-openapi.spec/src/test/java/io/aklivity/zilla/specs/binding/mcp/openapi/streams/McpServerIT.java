@@ -98,4 +98,13 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/search.code.forbidden/client",
+        "${mcp}/search.code.forbidden/server"})
+    public void shouldRejectToolWhenUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
 }
