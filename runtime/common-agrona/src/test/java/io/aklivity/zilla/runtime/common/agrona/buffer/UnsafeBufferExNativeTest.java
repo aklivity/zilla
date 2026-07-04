@@ -67,6 +67,24 @@ public class UnsafeBufferExNativeTest
     }
 
     @Test
+    public void asNativeOnSubRangeWrapPreservesOffset()
+    {
+        ByteBuffer source = ByteBuffer.allocateDirect(64);
+        UnsafeBufferEx whole = new UnsafeBufferEx(source);
+        UnsafeBufferEx subRange = new UnsafeBufferEx(source, 16, 32);
+        UnsafeBufferEx.Native native0 = subRange.asNative();
+
+        assertEquals(32, native0.capacity());
+        assertEquals(0, native0.wrapAdjustment());
+        assertEquals(subRange.addressOffset(), native0.addressOffset());
+
+        native0.putLong(0, 0x0123456789abcdefL);
+
+        assertEquals(0x0123456789abcdefL, subRange.getLong(0));
+        assertEquals(0x0123456789abcdefL, whole.getLong(16));
+    }
+
+    @Test
     public void wrapByteArrayUnsupported()
     {
         UnsafeBufferEx.Native native0 = new UnsafeBufferEx(ByteBuffer.allocateDirect(64)).asNative();

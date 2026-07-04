@@ -2477,7 +2477,10 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             throw new IllegalStateException(
                 "UnsafeBufferEx.asNative requires a direct ByteBuffer-backed buffer");
         }
-        return new Native(segment, byteBuffer);
+        // Native's own base must already correspond to wrapAdjustment (it always reports 0), so a
+        // sub-range wrap(ByteBuffer, offset, length) is sliced to that sub-range here rather than
+        // carrying the whole-buffer segment forward.
+        return new Native(segment.asSlice(wrapAdjustment, capacity), byteBuffer);
     }
 
     public static final class Native implements AtomicBufferEx, DirectBufferViewEx
