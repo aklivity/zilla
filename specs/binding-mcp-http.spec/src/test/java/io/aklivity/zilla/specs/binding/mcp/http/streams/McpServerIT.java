@@ -110,6 +110,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/create.pr.fragmented/client",
+        "${mcp}/create.pr.fragmented/server"})
+    public void shouldCallToolCreatePrFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/create.pr.rich/client",
         "${mcp}/create.pr.rich/server"})
     public void shouldCallToolCreatePrWithStructuredArguments() throws Exception

@@ -171,6 +171,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final MutableDirectBufferEx projectBuffer;
     private final MutableDirectBufferEx replyBuffer;
     private final UnsafeBufferEx escapeRO = new UnsafeBufferEx(new byte[0]);
+    private final UnsafeBufferEx emptyRequestRO = new UnsafeBufferEx(new byte[0]);
     private final UnsafeBufferEx argsRO;
     private final Map<String, String> argsCaptured = new HashMap<>();
     private final JsonGeneratorEx argsGenerator;
@@ -761,7 +762,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         final HttpProxy delegate;
         final Map<String, String> credentials = new HashMap<>();
 
-        boolean requestStreaming;
         JsonPipeline requestPipeline;
         JsonGeneratorEx requestGenerator;
         Map<String, String> requestArgs;
@@ -952,13 +952,28 @@ public final class McpHttpProxyFactory implements BindingHandler
                     }
                 }
 
+                final DirectBufferEx buffer = decodeSlot != NO_SLOT ? bufferPool.buffer(decodeSlot) : emptyRequestRO;
                 requestGenerator.wrap(projectBuffer, 0, RESPONSE_GEN_BOUND);
                 final JsonPipeline.Status status = requestPipeline.transform(
-                    bufferPool.buffer(decodeSlot), 0, decodeSlotOffset, McpHttpState.initialClosed(state));
+                    buffer, 0, decodeSlotOffset, McpHttpState.initialClosed(state));
                 final int produced = requestGenerator.length();
                 if (produced > 0)
                 {
                     delegate.doEncodeRequestBody(traceId, projectBuffer, 0, produced);
+                }
+
+                // compact only at a terminal status: across suspend cycles the pipeline re-feeds the same
+                // window, so dropping consumed bytes mid-cycle would corrupt its positioning; here the
+                // window-relative remaining() is the tail to keep, so the consumed prefix is the rest
+                if (status != JsonPipeline.Status.SUSPENDED && decodeSlot != NO_SLOT)
+                {
+                    final int consumed = decodeSlotOffset - requestPipeline.remaining();
+                    if (consumed > 0 && consumed < decodeSlotOffset)
+                    {
+                        final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
+                        slot.putBytes(0, slot, consumed, decodeSlotOffset - consumed);
+                    }
+                    decodeSlotOffset -= consumed;
                 }
 
                 switch (status)
@@ -966,7 +981,6 @@ public final class McpHttpProxyFactory implements BindingHandler
                 case SUSPENDED:
                     break;
                 case STARVED:
-                    decodeSlotOffset = 0;
                     progress = false;
                     break;
                 case COMPLETED:
@@ -1183,9 +1197,8 @@ public final class McpHttpProxyFactory implements BindingHandler
             state = McpHttpState.openingInitial(state);
 
             if (route.with.body != null && route.with.bodyTemplate == null &&
-                contentLength > bufferPool.slotCapacity())
+                (contentLength < 0 || contentLength > bufferPool.slotCapacity()))
             {
-                requestStreaming = true;
                 requestArgs = new HashMap<>();
                 requestPathArgs = pathArgReferences(route);
                 requestGenerator = JsonEx.createGenerator();
@@ -1206,7 +1219,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         void onMcpData(
             DataFW data)
         {
-            if (requestStreaming)
+            if (requestPipeline != null)
             {
                 final long traceId = data.traceId();
                 final int reserved = data.reserved();
@@ -1248,7 +1261,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             initialSeq = end.sequence();
             state = McpHttpState.closedInitial(state);
 
-            if (requestStreaming)
+            if (requestPipeline != null)
             {
                 pumpRequest(traceId);
             }
@@ -1658,7 +1671,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         private void resumeRequest(
             long traceId)
         {
-            if (server.requestStreaming && !server.requestProjected)
+            if (server.requestPipeline != null && !server.requestProjected)
             {
                 server.pumpRequest(traceId);
             }

@@ -74,6 +74,15 @@ public class HttpClientIT
 
     @Test
     @Specification({
+        "${http}/create.pr.fragmented/client",
+        "${http}/create.pr.fragmented/server"})
+    public void shouldProxyCreatePrFragmentedToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/create.pr.rich/client",
         "${http}/create.pr.rich/server"})
     public void shouldProxyCreatePrWithStructuredArgumentsToHttp() throws Exception
