@@ -44,21 +44,20 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("session-1")
                                .name("create_pr")
-                               .contentLength(13592)
+                               .contentLength(118)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"create_pr","_meta":{"trace":"t1","tags":["a","b"]},"arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main","reviewers":2,"approved":true,"labels":["bug","urgent"],"meta":{"priority":1,"tag":"x"},"body":"'
-write ${core:randomBase64(10000)}
-write '"}}'
+write '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main"}}'
 
-read  '{'
-        '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
-        '"content":[{"type":"text","text":"Created pull request #42"}],'
-        '"isError":false'
-      '}'
+# a ~100KB upstream error body proves the non-2xx relay is genuinely streamed (windowed, with no
+# MAX_ERROR_BODY-style cap) rather than needing to fit a single buffer: the full body comes back verbatim
+# as escaped text, not a truncated prefix
+read '{"content":[{"type":"text","text":"'
+read ${core:randomBase64(100000)}
+read '"}],"isError":true}'
 read closed
 
 write close

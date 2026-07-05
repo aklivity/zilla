@@ -143,4 +143,22 @@ public class HttpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/create.pr.error.100k/client",
+        "${http}/create.pr.error.100k/server"})
+    public void shouldProxyCreatePrError100kToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/search.code.100k/client",
+        "${http}/search.code.100k/server"})
+    public void shouldProxySearchCode100kToHttp() throws Exception
+    {
+        k3po.finish();
+    }
 }

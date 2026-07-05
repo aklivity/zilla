@@ -52,8 +52,11 @@ connected
 
 write '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main"}}'
 
-# upstream response violates schemas.output (number is a string, not an integer) -> rejected
-read  '{"content":[{"type":"text","text":"invalid response"}],"isError":true}'
-read closed
+# upstream response violates schemas.output (number is a string, not an integer) -> rejected mid-stream;
+# structuredContent has already started streaming (TOOL_RESULT_PREFIX is on the wire) by the time the
+# violation is discovered, so there is no way back to a well-formed {"content":...,"isError":true} reply —
+# the mcp reply is aborted instead, the same fallback resources/read and the error-relay path already use
+read '{"structuredContent":'
+read abort
 
 write close

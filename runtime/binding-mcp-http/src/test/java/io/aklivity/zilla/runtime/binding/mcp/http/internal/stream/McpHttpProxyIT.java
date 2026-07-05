@@ -254,12 +254,37 @@ public class McpHttpProxyIT
         k3po.finish();
     }
 
+    // a ~100KB tools/call response, streamed across many suspend/resume cycles; the leading total_count
+    // field is captured well before the large trailing items[].path value finishes streaming, proving
+    // tool.summary interpolation survives more than one window (see McpHttpResults)
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/search.code.100k/client",
+        "${http}/search.code.100k/server"})
+    public void shouldCallToolSearchCode100k() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${mcp}/create.pr.error/client",
         "${http}/create.pr.error/server"})
     public void shouldRejectToolCreatePr() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // a ~100KB non-2xx upstream error body, relayed back verbatim as escaped text; proves the error relay
+    // genuinely streams (windowed, no MAX_ERROR_BODY-style cap) rather than needing to fit one buffer
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.error.100k/client",
+        "${http}/create.pr.error.100k/server"})
+    public void shouldRejectToolCreatePr100k() throws Exception
     {
         k3po.finish();
     }

@@ -43,20 +43,25 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("create_pr")
-                               .contentLength(13592)
+                               .name("search_code")
+                               .contentLength(64)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"create_pr","_meta":{"trace":"t1","tags":["a","b"]},"arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main","reviewers":2,"approved":true,"labels":["bug","urgent"],"meta":{"priority":1,"tag":"x"},"body":"'
-write ${core:randomBase64(10000)}
-write '"}}'
+write '{"name":"search_code","arguments":{"q":"addClass","per_page":5}}'
 
+# a ~100KB upstream response (a single large items[].path value) proves tools/call streams the success
+# reply rather than buffering it: total_count sits at the front and is captured via McpHttpResults well
+# before the large value has finished streaming past, then resolved into the summary only once the whole
+# structuredContent value has completed — i.e. the summary interpolation survives many suspend/resume cycles,
+# not just a response that completes within a single window
 read  '{'
-        '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
-        '"content":[{"type":"text","text":"Created pull request #42"}],'
+        '"structuredContent":{"total_count":2,"items":[{"path":"'
+read ${core:randomBase64(100000)}
+read  '"}]},'
+        '"content":[{"type":"text","text":"Found 2 matches"}],'
         '"isError":false'
       '}'
 read closed

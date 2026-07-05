@@ -44,23 +44,19 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("session-1")
                               .name("create_pr")
-                              .contentLength(13592)
+                              .contentLength(118)
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"create_pr","_meta":{"trace":"t1","tags":["a","b"]},"arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main","reviewers":2,"approved":true,"labels":["bug","urgent"],"meta":{"priority":1,"tag":"x"},"body":"'
-read ${core:randomBase64(10000)}
-read '"}}'
+read  '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main"}}'
 
 write flush
 
-write '{'
-        '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
-        '"content":[{"type":"text","text":"Created pull request #42"}],'
-        '"isError":false'
-      '}'
+write '{"content":[{"type":"text","text":"'
+write ${core:randomBase64(100000)}
+write '"}],"isError":true}'
 write flush
 
 write close

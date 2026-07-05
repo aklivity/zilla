@@ -224,4 +224,22 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/create.pr.error.100k/client",
+        "${mcp}/create.pr.error.100k/server"})
+    public void shouldRejectToolCreatePr100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/search.code.100k/client",
+        "${mcp}/search.code.100k/server"})
+    public void shouldCallToolSearchCode100k() throws Exception
+    {
+        k3po.finish();
+    }
 }
