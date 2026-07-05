@@ -304,6 +304,15 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.malformed.request/client"})
+    public void shouldRejectToolWhenRequestMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.unresolved.yaml")
     @Specification({
         "${mcp}/create.pr.unresolved/client"})

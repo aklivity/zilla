@@ -82,6 +82,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -767,6 +768,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         Map<String, String> requestArgs;
         List<String> requestPathArgs;
         boolean requestProjected;
+        boolean requestRejected;
+        String unresolvedAccessor;
 
         JsonPipeline responsePipeline;
         JsonGeneratorEx responseGenerator;
@@ -939,6 +942,15 @@ public final class McpHttpProxyFactory implements BindingHandler
         void pumpRequest(
             long traceId)
         {
+            if (unresolvedAccessor != null)
+            {
+                events.schemaAccessorUnresolved(traceId, binding.id, name != null ? name : uri, unresolvedAccessor);
+                doMcpReset(traceId, JSON_RPC_INTERNAL_ERROR, "unresolved expression: ${" + unresolvedAccessor + "}");
+                cleanupDecodeSlot();
+                unresolvedAccessor = null;
+                return;
+            }
+
             boolean progress = true;
             while (progress && !requestProjected)
             {
@@ -990,7 +1002,10 @@ public final class McpHttpProxyFactory implements BindingHandler
                     break;
                 case REJECTED:
                     progress = false;
-                    cleanup(traceId);
+                    requestRejected = true;
+                    delegate.doHttpAbort(traceId);
+                    doMcpReplyBytes(traceId, buildToolError("invalid arguments"));
+                    cleanupDecodeSlot();
                     break;
                 default:
                     progress = false;
@@ -998,7 +1013,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
             }
 
-            if (!McpHttpState.initialOpening(delegate.state) && requestPathReady())
+            if (!requestRejected && !McpHttpState.initialOpening(delegate.state) && requestPathReady())
             {
                 sendRequestBegin(traceId);
             }
@@ -1012,7 +1027,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 delegate.flushRequestStream(traceId);
             }
 
-            if (!requestProjected)
+            if (!requestProjected && !requestRejected)
             {
                 grantMcpWindow(traceId);
             }
@@ -1196,17 +1211,36 @@ public final class McpHttpProxyFactory implements BindingHandler
             initialAck = begin.acknowledge();
             state = McpHttpState.openingInitial(state);
 
-            if (route.with.body != null && route.with.bodyTemplate == null &&
-                (contentLength < 0 || contentLength > bufferPool.slotCapacity()))
+            if (route.with.body != null && route.with.bodyTemplate == null)
             {
                 requestArgs = new HashMap<>();
                 requestPathArgs = pathArgReferences(route);
                 requestGenerator = JsonEx.createGenerator();
-                requestPipeline = JsonEx.stream(JsonEx.createParser())
-                    .transform(new McpHttpArguments(requestArgs))
+
+                final McpHttpToolConfig tool = tool();
+                JsonStream stream = JsonEx.stream(JsonEx.createParser())
+                    .transform(new McpHttpArguments(requestArgs));
+                if (tool != null && tool.input != null &&
+                    contentLength >= 0 && contentLength <= bufferPool.slotCapacity())
+                {
+                    // the schema validator must fully reassemble any scalar spanning multiple windows
+                    // before validating it (common-json's Eval is not fragment-aware), so it only composes
+                    // safely here when the whole body is guaranteed to arrive within one bounded decode
+                    // slot; a request whose length is unknown or exceeds the slot skips validation rather
+                    // than risk the decode slot filling with an unconsumed in-flight scalar
+                    stream = stream.transform(binding.jsonSchema(tool.input).validator());
+                }
+                requestPipeline = stream
                     .transform(JsonEx.projector(binding.jsonSchema(route.with.body)))
                     .into(JsonEx.createSink(requestGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
                 requestPipeline.reset();
+
+                // route accessors are static config, resolvable now, but the reset itself is deferred to
+                // pumpRequest: sending it here, before the client has had a chance to use the just-granted
+                // window, closes the initial direction out from under a write already in flight
+                final List<String> unsatisfied = binding.unsatisfiedAccessors(route);
+                unresolvedAccessor = unsatisfied.isEmpty() ? null : unsatisfied.get(0);
+
                 grantMcpWindow(traceId);
             }
             else
