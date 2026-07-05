@@ -1032,7 +1032,6 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         int offset,
         int length)
     {
-        // copies directly into dst, avoiding a per-call MemorySegment.ofArray(dst) allocation
         MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index, dst, offset, length);
     }
 
@@ -3292,7 +3291,6 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             int offset,
             int length)
         {
-            // copies directly into dst, avoiding a per-call MemorySegment.ofArray(dst) allocation
             MemorySegment.copy(segment, BYTE_LAYOUT, index, dst, offset, length);
         }
 
