@@ -133,6 +133,8 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final byte[] PROMPT_SUFFIX = "]}".getBytes(UTF_8);
 
     private static final Map<String, String> EMPTY_PARAMS = Map.of();
+    private static final Map<String, Object> SINK_STRUCTURED = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED);
+    private static final Map<String, Object> SINK_SEGMENTABLE = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -222,7 +224,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.argsBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.argsPipeline = JsonEx.stream(JsonEx.createParser())
             .transform(new McpHttpArguments(argsCaptured))
-            .into(JsonEx.createSink(argsGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+            .into(JsonEx.createSink(argsGenerator, SINK_STRUCTURED));
         this.projectors = new IdentityHashMap<>();
         this.validatingProjectors = new IdentityHashMap<>();
         this.validators = new IdentityHashMap<>();
@@ -378,7 +380,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         int encodeSlot = NO_SLOT;
         int encodeSlotOffset;
         boolean replyDataStarted;
-        boolean replyComplete;
 
         long initialSeq;
         long initialAck;
@@ -553,7 +554,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             byte[] reply)
         {
             doEncodeReply(reply);
-            replyComplete = true;
+            state = McpHttpState.closingReply(state);
             doMcpBegin(traceId);
             flushReply(traceId);
         }
@@ -565,7 +566,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             int length)
         {
             doEncodeReply(replyBuffer, 0, length);
-            replyComplete = true;
+            state = McpHttpState.closingReply(state);
             doMcpBegin(traceId);
             flushReply(traceId);
         }
@@ -621,7 +622,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 {
                     final int length = Math.min(maxPayload, encodeSlotOffset);
                     final int reserved = length + replyPad;
-                    final boolean fin = replyComplete && length == encodeSlotOffset;
+                    final boolean fin = McpHttpState.replyClosing(state) && length == encodeSlotOffset;
                     final int flags = (replyDataStarted ? 0 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0);
                     doMcpData(traceId, flags, reserved, slot, 0, length);
                     replyDataStarted = true;
@@ -634,7 +635,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     maxPayload = replyMax - (int)(replySeq - replyAck) - replyPad;
                 }
 
-                if (replyComplete && encodeSlotOffset == 0)
+                if (McpHttpState.replyClosing(state) && encodeSlotOffset == 0)
                 {
                     doMcpEnd(traceId);
                     cleanupEncodeSlot();
@@ -772,7 +773,6 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         JsonPipeline responsePipeline;
         JsonGeneratorEx responseGenerator;
-        boolean responseStreaming;
         boolean responseDone;
 
         private McpHttpProxy(
@@ -823,7 +823,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             super.onMcpWindow(window);
 
-            if (responseStreaming && !responseDone)
+            if (responsePipeline != null && !responseDone)
             {
                 delegate.resumeResponse(window.traceId());
             }
@@ -1135,7 +1135,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             responseDone = true;
             doEncodeReply(REPLY_SUFFIX);
-            replyComplete = true;
+            state = McpHttpState.closingReply(state);
             flushReply(traceId);
         }
 
@@ -1162,7 +1162,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             responsePipeline = null;
             responseGenerator = null;
-            responseStreaming = false;
         }
 
         @Override
@@ -1236,7 +1235,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
                 requestPipeline = stream
                     .transform(JsonEx.projector(binding.jsonSchema(route.with.body)))
-                    .into(JsonEx.createSink(requestGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
+                    .into(JsonEx.createSink(requestGenerator, SINK_SEGMENTABLE));
                 requestPipeline.reset();
                 grantMcpWindow(traceId);
             }
@@ -1350,7 +1349,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             doEncodeReply(TOOL_SUCCESS_INFIX);
             doEncodeReply(projectBuffer, 0, length);
             doEncodeReply(TOOL_SUCCESS_SUFFIX);
-            replyComplete = true;
+            state = McpHttpState.closingReply(state);
             doMcpBegin(traceId);
             flushReply(traceId);
         }
@@ -1415,16 +1414,14 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId,
             String contentType)
         {
-            responseStreaming = true;
-
             final JsonSchema schema = resource != null ? binding.jsonSchema(resource.output) : null;
             responseGenerator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
             responsePipeline = schema != null
                 ? JsonEx.stream(JsonEx.createParser())
                     .transform(JsonEx.projector(schema))
-                    .into(JsonEx.createSink(responseGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)))
+                    .into(JsonEx.createSink(responseGenerator, SINK_SEGMENTABLE))
                 : JsonEx.stream(JsonEx.createParser())
-                    .into(JsonEx.createSink(responseGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
+                    .into(JsonEx.createSink(responseGenerator, SINK_SEGMENTABLE));
             responsePipeline.reset();
 
             final String mimeType = resource != null && resource.mimeType != null
@@ -1569,7 +1566,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
         private boolean requestDataStarted;
-        private boolean requestEnd;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -1659,7 +1655,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         private void requestComplete()
         {
-            requestEnd = true;
+            state = McpHttpState.closingInitial(state);
         }
 
         private void flushRequestStream(
@@ -1675,7 +1671,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     {
                         final int length = Math.min(maxPayload, encodeSlotOffset);
                         final int reserved = length + initialPad;
-                        final boolean fin = requestEnd && length == encodeSlotOffset;
+                        final boolean fin = McpHttpState.initialClosing(state) && length == encodeSlotOffset;
                         final int flags = (requestDataStarted ? 0 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0);
                         doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, server.authorization, flags, 0L, reserved, slot, 0, length);
@@ -1691,7 +1687,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     }
                 }
 
-                if (requestEnd && encodeSlotOffset == 0)
+                if (McpHttpState.initialClosing(state) && encodeSlotOffset == 0)
                 {
                     cleanupEncodeSlot();
                     doHttpEnd(traceId);
@@ -1815,12 +1811,12 @@ public final class McpHttpProxyFactory implements BindingHandler
                     slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
 
-                    if (!server.responseStreaming && server.responseStreamable(decodeSlotOffset))
+                    if (server.responsePipeline == null && server.responseStreamable(decodeSlotOffset))
                     {
                         server.responseBegin(traceId, responseContentType);
                     }
 
-                    if (server.responseStreaming)
+                    if (server.responsePipeline != null)
                     {
                         pumpResponse(traceId);
                     }
@@ -1839,7 +1835,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             replySeq = end.sequence();
             state = McpHttpState.closedReply(state);
 
-            if (server.responseStreaming)
+            if (server.responsePipeline != null)
             {
                 pumpResponse(traceId);
             }
@@ -1927,7 +1923,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         private void resumeResponse(
             long traceId)
         {
-            if (server.responseStreaming && !server.responseDone)
+            if (server.responsePipeline != null && !server.responseDone)
             {
                 pumpResponse(traceId);
             }

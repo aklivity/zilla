@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -69,6 +70,7 @@ public final class McpHttpBindingConfig
     private final Map<String, List<String>> resourceCaptures;
     private final Map<ModelConfig, JsonSchema> jsonSchemas;
     private final Map<McpHttpRouteConfig, List<String>> unsatisfiedAccessors;
+    private final Function<ModelConfig, JsonSchema> resolveJsonSchemaFn = this::resolveJsonSchema;
 
     // memoized list replies; derived solely from static binding config, built once on first request
     private byte[] toolsListJson;
@@ -299,7 +301,7 @@ public final class McpHttpBindingConfig
         ModelConfig model)
     {
         return model != null
-            ? jsonSchemas.computeIfAbsent(model, this::resolveJsonSchema)
+            ? jsonSchemas.computeIfAbsent(model, resolveJsonSchemaFn)
             : null;
     }
 
@@ -340,7 +342,7 @@ public final class McpHttpBindingConfig
         List<String> verdict = unsatisfiedAccessors.get(route);
         if (verdict == null)
         {
-            final List<String> unsatisfied = new ArrayList<>();
+            List<String> unsatisfied = null;
             boolean deferred = false;
 
             if (route.tool != null && !route.argAccessors.isEmpty())
@@ -358,6 +360,10 @@ public final class McpHttpBindingConfig
                     {
                         if (!argPathValid(text, accessor))
                         {
+                            if (unsatisfied == null)
+                            {
+                                unsatisfied = new ArrayList<>();
+                            }
                             unsatisfied.add("args." + accessor);
                         }
                     }
@@ -371,12 +377,16 @@ public final class McpHttpBindingConfig
                 {
                     if (!captures.contains(accessor))
                     {
+                        if (unsatisfied == null)
+                        {
+                            unsatisfied = new ArrayList<>();
+                        }
                         unsatisfied.add("params." + accessor);
                     }
                 }
             }
 
-            verdict = unsatisfied;
+            verdict = unsatisfied != null ? unsatisfied : List.of();
             if (!deferred)
             {
                 unsatisfiedAccessors.put(route, verdict);
