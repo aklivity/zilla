@@ -782,7 +782,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     // Shared base for the two request kinds that proxy to an upstream HTTP endpoint (tools/call and
     // resources/read): owns the paired HttpProxy, the request-shaping path built from route.with, and
-    // the streaming request/response machinery. Per-kind response mapping is left to onUpstreamResponse.
+    // the streaming request/response machinery. Per-kind response mapping is left to onHttpResponse.
     private abstract class McpHttpProxy extends McpProxy
     {
         final HttpProxy delegate;
@@ -939,7 +939,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
             }
             delegate.requestComplete();
-            delegate.flushRequestStream(traceId);
+            delegate.flushRequest(traceId);
 
             cleanupDecodeSlot();
         }
@@ -980,7 +980,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 if (!delegate.encodeHasRoom())
                 {
-                    delegate.flushRequestStream(traceId);
+                    delegate.flushRequest(traceId);
                     if (!delegate.encodeHasRoom())
                     {
                         progress = false;
@@ -1047,7 +1047,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 {
                     delegate.requestComplete();
                 }
-                delegate.flushRequestStream(traceId);
+                delegate.flushRequest(traceId);
             }
 
             if (!requestProjected && !McpHttpState.initialClosed(state))
@@ -1099,7 +1099,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         // Maps the fully-buffered upstream response into the MCP reply for this kind.
-        abstract void onUpstreamResponse(
+        abstract void onHttpResponse(
             long traceId,
             String status,
             String contentType,
@@ -1107,7 +1107,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             int offset,
             int length);
 
-        void onUpstreamAbort(
+        void onHttpAbort(
             long traceId)
         {
             cleanupResponse();
@@ -1153,7 +1153,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             return responsePipeline.remaining();
         }
 
-        void responseComplete(
+        void completeResponse(
             long traceId)
         {
             responseDone = true;
@@ -1325,7 +1325,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         @Override
-        void onUpstreamResponse(
+        void onHttpResponse(
             long traceId,
             String status,
             String contentType,
@@ -1414,7 +1414,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
 
         @Override
-        void onUpstreamResponse(
+        void onHttpResponse(
             long traceId,
             String status,
             String contentType,
@@ -1641,7 +1641,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private final class HttpProxy
     {
-        private final McpHttpProxy server;
+        private final McpHttpProxy mcp;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -1669,149 +1669,14 @@ public final class McpHttpProxyFactory implements BindingHandler
         private int replyMax;
 
         private HttpProxy(
-            McpHttpProxy server,
+            McpHttpProxy mcp,
             long resolvedId)
         {
-            this.server = server;
-            this.originId = server.routedId;
+            this.mcp = mcp;
+            this.originId = mcp.routedId;
             this.routedId = resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-        }
-
-        private void doHttpBegin(
-            long traceId,
-            Map<String, String> headers,
-            Map<String, String> credentials,
-            String path,
-            String contentType)
-        {
-            final HttpBeginExFW httpBeginEx = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
-                .headers(hs ->
-                {
-                    for (Map.Entry<String, String> entry : headers.entrySet())
-                    {
-                        final String header = entry.getKey();
-                        final String value = HEADER_PATH.equals(header) ? path : entry.getValue();
-                        hs.item(h -> h.name(header).value(value));
-                    }
-                    if (contentType != null)
-                    {
-                        hs.item(h -> h.name(HEADER_CONTENT_TYPE).value(contentType));
-                    }
-                    for (Map.Entry<String, String> entry : credentials.entrySet())
-                    {
-                        hs.item(h -> h.name(entry.getKey()).value(entry.getValue()));
-                    }
-                })
-                .build();
-
-            state = McpHttpState.openingInitial(state);
-
-            receiver = newStream(this::onHttpMessage, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, httpBeginEx);
-        }
-
-        private void doEncodeRequestBody(
-            long traceId,
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            if (encodeSlot == NO_SLOT)
-            {
-                encodeSlot = bufferPool.acquire(initialId);
-            }
-
-            if (encodeSlot == NO_SLOT || encodeSlotOffset + length > bufferPool.slotCapacity())
-            {
-                server.cleanup(traceId);
-            }
-            else
-            {
-                bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
-                encodeSlotOffset += length;
-            }
-        }
-
-        private boolean encodeHasRoom()
-        {
-            return bufferPool.slotCapacity() - encodeSlotOffset >= RESPONSE_GEN_BOUND;
-        }
-
-        private void requestComplete()
-        {
-            state = McpHttpState.closingInitial(state);
-        }
-
-        private void flushRequestStream(
-            long traceId)
-        {
-            if (receiver != null && !McpHttpState.initialClosed(state))
-            {
-                if (encodeSlot != NO_SLOT)
-                {
-                    final MutableDirectBufferEx slot = bufferPool.buffer(encodeSlot);
-                    int maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
-                    while (encodeSlotOffset > 0 && maxPayload > 0)
-                    {
-                        final int length = Math.min(maxPayload, encodeSlotOffset);
-                        final int reserved = length + initialPad;
-                        final boolean fin = McpHttpState.initialClosing(state) && length == encodeSlotOffset;
-                        final int flags = (requestDataStarted ? 0 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0);
-                        doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                            traceId, server.authorization, flags, 0L, reserved, slot, 0, length);
-                        initialSeq += reserved;
-                        requestDataStarted = true;
-                        final int remaining = encodeSlotOffset - length;
-                        if (remaining > 0)
-                        {
-                            slot.putBytes(0, slot, length, remaining);
-                        }
-                        encodeSlotOffset = remaining;
-                        maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
-                    }
-                }
-
-                if (McpHttpState.initialClosing(state) && encodeSlotOffset == 0)
-                {
-                    cleanupEncodeSlot();
-                    doHttpEnd(traceId);
-                }
-            }
-        }
-
-        private void resumeRequest(
-            long traceId)
-        {
-            if (server.requestPipeline != null && !server.requestProjected)
-            {
-                server.pumpRequest(traceId);
-            }
-        }
-
-        private void doHttpEnd(
-            long traceId)
-        {
-            if (!McpHttpState.initialClosed(state))
-            {
-                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, server.authorization);
-                state = McpHttpState.closedInitial(state);
-            }
-        }
-
-        private void doHttpAbort(
-            long traceId)
-        {
-            if (McpHttpState.initialOpening(state) && !McpHttpState.initialClosed(state))
-            {
-                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, server.authorization);
-                state = McpHttpState.closedInitial(state);
-            }
-            cleanupEncodeSlot();
         }
 
         private void onHttpMessage(
@@ -1890,7 +1755,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
                 if (decodeSlot == NO_SLOT || decodeSlotOffset + payload.sizeof() > bufferPool.slotCapacity())
                 {
-                    server.cleanup(traceId);
+                    mcp.cleanup(traceId);
                 }
                 else
                 {
@@ -1898,12 +1763,12 @@ public final class McpHttpProxyFactory implements BindingHandler
                     slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
 
-                    if (server.responsePipeline == null && server.responseStreamable(decodeSlotOffset))
+                    if (mcp.responsePipeline == null && mcp.responseStreamable(decodeSlotOffset))
                     {
-                        server.responseBegin(traceId, responseContentType);
+                        mcp.responseBegin(traceId, responseContentType);
                     }
 
-                    if (server.responsePipeline != null)
+                    if (mcp.responsePipeline != null)
                     {
                         pumpResponse(traceId);
                     }
@@ -1922,14 +1787,14 @@ public final class McpHttpProxyFactory implements BindingHandler
             replySeq = end.sequence();
             state = McpHttpState.closedReply(state);
 
-            if (server.responsePipeline != null)
+            if (mcp.responsePipeline != null)
             {
                 pumpResponse(traceId);
             }
             else
             {
                 final DirectBufferEx body = decodeSlot != NO_SLOT ? bufferPool.buffer(decodeSlot) : null;
-                server.onUpstreamResponse(traceId, responseStatus, responseContentType, body, 0, decodeSlotOffset);
+                mcp.onHttpResponse(traceId, responseStatus, responseContentType, body, 0, decodeSlotOffset);
                 cleanupDecodeSlot();
             }
         }
@@ -1939,20 +1804,197 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
             state = McpHttpState.closedReply(state);
-            server.onUpstreamAbort(traceId);
+            mcp.onHttpAbort(traceId);
             cleanupDecodeSlot();
+        }
+
+        private void onHttpWindow(
+            WindowFW window)
+        {
+            initialAck = window.acknowledge();
+            initialMax = window.maximum();
+            initialPad = window.padding();
+
+            final long traceId = window.traceId();
+            flushRequest(traceId);
+            resumeRequest(traceId);
+        }
+
+        private void onHttpReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+            state = McpHttpState.closedInitial(state);
+            cleanupEncodeSlot();
+            mcp.onHttpAbort(traceId);
+        }
+
+        private void doHttpBegin(
+            long traceId,
+            Map<String, String> headers,
+            Map<String, String> credentials,
+            String path,
+            String contentType)
+        {
+            final HttpBeginExFW httpBeginEx = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headers(hs ->
+                {
+                    for (Map.Entry<String, String> entry : headers.entrySet())
+                    {
+                        final String header = entry.getKey();
+                        final String value = HEADER_PATH.equals(header) ? path : entry.getValue();
+                        hs.item(h -> h.name(header).value(value));
+                    }
+                    if (contentType != null)
+                    {
+                        hs.item(h -> h.name(HEADER_CONTENT_TYPE).value(contentType));
+                    }
+                    for (Map.Entry<String, String> entry : credentials.entrySet())
+                    {
+                        hs.item(h -> h.name(entry.getKey()).value(entry.getValue()));
+                    }
+                })
+                .build();
+
+            state = McpHttpState.openingInitial(state);
+
+            receiver = newStream(this::onHttpMessage, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, mcp.authorization, mcp.affinity, httpBeginEx);
+        }
+
+        private void doHttpEnd(
+            long traceId)
+        {
+            if (!McpHttpState.initialClosed(state))
+            {
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, mcp.authorization);
+                state = McpHttpState.closedInitial(state);
+            }
+        }
+
+        private void doHttpAbort(
+            long traceId)
+        {
+            if (McpHttpState.initialOpening(state) && !McpHttpState.initialClosed(state))
+            {
+                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, mcp.authorization);
+                state = McpHttpState.closedInitial(state);
+            }
+            cleanupEncodeSlot();
+        }
+
+        private void doHttpReplyWindow(
+            long traceId)
+        {
+            replyAck = replySeq - decodeSlotOffset;
+            replyMax = bufferPool.slotCapacity();
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, mcp.authorization, 0L, 0);
+        }
+
+        private void grantHttpReplyWindow(
+            long traceId)
+        {
+            if (!McpHttpState.replyClosed(state))
+            {
+                replyAck = replySeq - decodeSlotOffset;
+                replyMax = decodeSlotOffset + (mcp.encodeHasRoom() ? RESPONSE_WINDOW : 0);
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, mcp.authorization, 0L, 0);
+            }
+        }
+
+        private void doEncodeRequestBody(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (encodeSlot == NO_SLOT)
+            {
+                encodeSlot = bufferPool.acquire(initialId);
+            }
+
+            if (encodeSlot == NO_SLOT || encodeSlotOffset + length > bufferPool.slotCapacity())
+            {
+                mcp.cleanup(traceId);
+            }
+            else
+            {
+                bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
+                encodeSlotOffset += length;
+            }
+        }
+
+        private boolean encodeHasRoom()
+        {
+            return bufferPool.slotCapacity() - encodeSlotOffset >= RESPONSE_GEN_BOUND;
+        }
+
+        private void requestComplete()
+        {
+            state = McpHttpState.closingInitial(state);
+        }
+
+        private void flushRequest(
+            long traceId)
+        {
+            if (receiver != null && !McpHttpState.initialClosed(state))
+            {
+                if (encodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slot = bufferPool.buffer(encodeSlot);
+                    int maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
+                    while (encodeSlotOffset > 0 && maxPayload > 0)
+                    {
+                        final int length = Math.min(maxPayload, encodeSlotOffset);
+                        final int reserved = length + initialPad;
+                        final boolean fin = McpHttpState.initialClosing(state) && length == encodeSlotOffset;
+                        final int flags = (requestDataStarted ? 0 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0);
+                        doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                            traceId, mcp.authorization, flags, 0L, reserved, slot, 0, length);
+                        initialSeq += reserved;
+                        requestDataStarted = true;
+                        final int remaining = encodeSlotOffset - length;
+                        if (remaining > 0)
+                        {
+                            slot.putBytes(0, slot, length, remaining);
+                        }
+                        encodeSlotOffset = remaining;
+                        maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
+                    }
+                }
+
+                if (McpHttpState.initialClosing(state) && encodeSlotOffset == 0)
+                {
+                    cleanupEncodeSlot();
+                    doHttpEnd(traceId);
+                }
+            }
+        }
+
+        private void resumeRequest(
+            long traceId)
+        {
+            if (mcp.requestPipeline != null && !mcp.requestProjected)
+            {
+                mcp.pumpRequest(traceId);
+            }
         }
 
         private void pumpResponse(
             long traceId)
         {
             boolean progress = true;
-            while (progress && !server.responseDone)
+            while (progress && !mcp.responseDone)
             {
-                if (!server.encodeHasRoom())
+                if (!mcp.encodeHasRoom())
                 {
-                    server.flushReply(traceId);
-                    if (!server.encodeHasRoom())
+                    mcp.flushReply(traceId);
+                    if (!mcp.encodeHasRoom())
                     {
                         progress = false;
                         continue;
@@ -1961,13 +2003,13 @@ public final class McpHttpProxyFactory implements BindingHandler
 
                 final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
                 final JsonPipeline.Status status =
-                    server.responseStep(slot, 0, decodeSlotOffset, McpHttpState.replyClosed(state));
+                    mcp.responseStep(slot, 0, decodeSlotOffset, McpHttpState.replyClosed(state));
                 if (status != JsonPipeline.Status.SUSPENDED)
                 {
                     // compact only at a terminal status: across suspend cycles the pipeline re-feeds the same
                     // window, so dropping consumed bytes mid-cycle would corrupt its positioning; here the
                     // window-relative remaining() is the tail to keep, so the consumed prefix is the rest
-                    final int consumed = decodeSlotOffset - server.responseRemaining();
+                    final int consumed = decodeSlotOffset - mcp.responseRemaining();
                     if (consumed > 0 && consumed < decodeSlotOffset)
                     {
                         slot.putBytes(0, slot, consumed, decodeSlotOffset - consumed);
@@ -1982,11 +2024,11 @@ public final class McpHttpProxyFactory implements BindingHandler
                     progress = false;
                     break;
                 case COMPLETED:
-                    server.responseComplete(traceId);
+                    mcp.completeResponse(traceId);
                     progress = false;
                     break;
                 case REJECTED:
-                    server.responseReject(traceId);
+                    mcp.responseReject(traceId);
                     progress = false;
                     break;
                 default:
@@ -1995,67 +2037,25 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
             }
 
-            server.flushReply(traceId);
+            mcp.flushReply(traceId);
 
-            if (server.responseDone)
+            if (mcp.responseDone)
             {
                 cleanupDecodeSlot();
             }
             else
             {
-                grantHttpReply(traceId);
+                grantHttpReplyWindow(traceId);
             }
         }
 
         private void resumeResponse(
             long traceId)
         {
-            if (server.responsePipeline != null && !server.responseDone)
+            if (mcp.responsePipeline != null && !mcp.responseDone)
             {
                 pumpResponse(traceId);
             }
-        }
-
-        private void grantHttpReply(
-            long traceId)
-        {
-            if (!McpHttpState.replyClosed(state))
-            {
-                replyAck = replySeq - decodeSlotOffset;
-                replyMax = decodeSlotOffset + (server.encodeHasRoom() ? RESPONSE_WINDOW : 0);
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, server.authorization, 0L, 0);
-            }
-        }
-
-        private void onHttpWindow(
-            WindowFW window)
-        {
-            initialAck = window.acknowledge();
-            initialMax = window.maximum();
-            initialPad = window.padding();
-
-            final long traceId = window.traceId();
-            flushRequestStream(traceId);
-            resumeRequest(traceId);
-        }
-
-        private void onHttpReset(
-            ResetFW reset)
-        {
-            final long traceId = reset.traceId();
-            state = McpHttpState.closedInitial(state);
-            cleanupEncodeSlot();
-            server.onUpstreamAbort(traceId);
-        }
-
-        private void doHttpReplyWindow(
-            long traceId)
-        {
-            replyAck = replySeq - decodeSlotOffset;
-            replyMax = bufferPool.slotCapacity();
-            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, server.authorization, 0L, 0);
         }
 
         private void cleanupDecodeSlot()
