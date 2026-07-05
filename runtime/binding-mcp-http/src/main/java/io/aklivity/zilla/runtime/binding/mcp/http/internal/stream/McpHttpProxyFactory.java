@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.events.McpHttpEventCo
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpArguments;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpRename;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpResults;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpToolResult;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.OctetsFW;
@@ -119,12 +120,6 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final int MIN_ENCODE_ROOM = 1024;
 
     private static final byte[] REPLY_SUFFIX = "\"}]}".getBytes(UTF_8);
-    // tools/call success streams structuredContent first (as it arrives from upstream) and only appends the
-    // content/summary once the whole response has passed the McpHttpResults capture stage and completed —
-    // see McpToolsCallProxy.doEncodeResponseSuffix for why the envelope is ordered this way
-    private static final byte[] TOOL_RESULT_PREFIX = "{\"structuredContent\":".getBytes(UTF_8);
-    private static final byte[] TOOL_RESULT_INFIX = ",\"content\":[{\"type\":\"text\",\"text\":".getBytes(UTF_8);
-    private static final byte[] TOOL_RESULT_SUFFIX = "}],\"isError\":false}".getBytes(UTF_8);
     private static final byte[] TOOL_ERROR_PREFIX = "{\"content\":[{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_ERROR_SUFFIX = "\"}],\"isError\":true}".getBytes(UTF_8);
     private static final byte[] EMPTY_OBJECT = "{}".getBytes(UTF_8);
@@ -1171,7 +1166,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId)
         {
             responseDone = true;
-            doEncodeResponseSuffix();
+            doEncodeResponseSuffix(traceId);
             state = McpHttpState.closingReply(state);
             flushReply(traceId);
         }
@@ -1179,8 +1174,12 @@ public final class McpHttpProxyFactory implements BindingHandler
         // Writes the reply's closing bytes once the streamed body completes; the resources/read shape (the
         // only base-level user) closes the escaped text value and the surrounding contents envelope. Overridden
         // by tools/call, whose envelope shape depends on which of its two response modes (success/error) ran.
-        void doEncodeResponseSuffix()
+        // Self-contained: checks for room and flushes first if needed, rather than relying on the caller to
+        // have reserved headroom for it.
+        void doEncodeResponseSuffix(
+            long traceId)
         {
+            ensureEncodeRoom(traceId, REPLY_SUFFIX.length);
             doEncodeReply(REPLY_SUFFIX);
         }
 
@@ -1207,6 +1206,19 @@ public final class McpHttpProxyFactory implements BindingHandler
         private int encodeFree()
         {
             return encodePool.slotCapacity() - encodeSlotOffset;
+        }
+
+        // Guarantees at least `length` bytes are free before a fixed-size, non-generator-tracked write
+        // (a closing suffix): a full flush always frees the whole slot, vastly more than any of this
+        // file's small fixed suffixes, so one flush attempt is always sufficient for them.
+        void ensureEncodeRoom(
+            long traceId,
+            int length)
+        {
+            if (encodeFree() < length)
+            {
+                flushReply(traceId);
+            }
         }
 
         void cleanupResponse()
@@ -1382,6 +1394,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 final McpHttpToolConfig tool = binding.tool(name);
                 final JsonSchema outputSchema = tool != null ? binding.jsonSchema(tool.output) : null;
                 final List<String> resultPaths = tool != null ? toolResultReferences(tool) : List.of();
+                final String summaryTemplate = tool != null ? tool.summary : null;
 
                 responseGenerator = JsonEx.createGenerator();
                 JsonStream stream = JsonEx.stream(JsonEx.createParser());
@@ -1393,13 +1406,16 @@ public final class McpHttpProxyFactory implements BindingHandler
                     stream = stream.transform(outputSchema.validator()).transform(JsonEx.projector(outputSchema));
                 }
                 // captures result.* references from exactly the events reaching the sink (i.e. after any
-                // projection), matching the pre-streaming behavior of scanning the already-projected buffer
+                // projection), matching the pre-streaming behavior of scanning the already-projected buffer;
+                // McpHttpToolResult wraps the whole envelope around that same event stream, injecting
+                // content/isError as more generator-tracked events once structuredContent's value closes —
+                // see its class doc for why that is what keeps the (potentially large) summary text bounded
                 responsePipeline = stream
                     .transform(new McpHttpResults(capturedResults, resultPaths))
+                    .transform(new McpHttpToolResult(() -> interpolate(summaryTemplate, this::resolveCapturedResult)))
                     .into(JsonEx.createSink(responseGenerator, SINK_SEGMENTABLE));
                 responsePipeline.reset();
 
-                doEncodeReply(TOOL_RESULT_PREFIX);
                 doMcpBegin(traceId);
             }
             else
@@ -1484,46 +1500,37 @@ public final class McpHttpProxyFactory implements BindingHandler
             return value;
         }
 
+        // The success envelope (structuredContent, content, isError, and the closing brace) is written
+        // entirely by McpHttpToolResult as part of responsePipeline itself — including the interpolated
+        // tool.summary, injected as more generator-tracked events once structuredContent's value closes, so
+        // it shares the same bounded, resumable write path a large captured result value would otherwise
+        // overflow. By the time this runs (completeResponse only calls it once the pipeline reaches
+        // COMPLETED), that envelope is already fully written; only the error-relay mode — which streams the
+        // raw, non-JSON upstream body via errorGenerator directly, with no JsonPipeline of its own — still
+        // needs its closing suffix written here, self-contained (checks for room, flushing first if needed,
+        // rather than relying on the caller to have reserved headroom for it).
         @Override
-        void doEncodeResponseSuffix()
+        void doEncodeResponseSuffix(
+            long traceId)
         {
             if (errorRelay)
             {
+                ensureEncodeRoom(traceId, TOOL_ERROR_SUFFIX.length);
                 doEncodeReply(TOOL_ERROR_SUFFIX);
-            }
-            else
-            {
-                // structuredContent has already streamed by the time this runs (completeResponse only calls
-                // it once the pipeline reaches COMPLETED), so every result.* reference tool.summary needs is
-                // available in capturedResults now. Writing content after structuredContent — reversing the
-                // pre-streaming field order — is what makes this possible without buffering the response: the
-                // MCP client is a JSON-RPC/JSON reader, not a wire format with a fixed field order, and this
-                // repo's own binding-mcp client (McpClientFactory's decodeJsonRpcSkipObject) already reads a
-                // tools/call result generically, scanning for "isError" by key name wherever it falls rather
-                // than assuming a position, confirming member order is not load-bearing on the receiving side.
-                // When no summary is configured, tool.summary interpolates to null and content.text becomes
-                // the empty string rather than mirroring the (potentially unbounded) structuredContent a
-                // second time as escaped text — doing that would mean buffering the whole response again after
-                // having just finished streaming it once, defeating the point of this change.
-                final McpHttpToolConfig tool = binding.tool(name);
-                final String summary = tool != null ? tool.summary : null;
-                doEncodeReply(TOOL_RESULT_INFIX);
-                doEncodeReplyJsonString(interpolate(summary, this::resolveCapturedResult));
-                doEncodeReply(TOOL_RESULT_SUFFIX);
             }
         }
 
         // A schema-validation failure discovered while streaming structuredContent used to always produce a
         // proper {"content":...,"isError":true} reply (the pre-streaming buffered path always had, since it
         // never committed to a reply shape until the whole body had already been validated). Once the response
-        // genuinely streams, TOOL_RESULT_PREFIX has necessarily already gone out — even a validator that
-        // rejects on the very first field only reaches that verdict on a later pump cycle (e.g. once the
-        // response body's own end has been seen), and pumpResponse flushes whatever is pending after every
-        // cycle regardless of status, so by the time REJECTED is known the prefix is already on the wire. There
-        // is no way back at that point, so this falls through to the inherited abort behavior (the same
-        // fallback resources/read and the error-relay path already use) rather than attempting a
-        // sometimes-possible, sometimes-not recovery that would depend on upstream framing details a client
-        // cannot rely on.
+        // genuinely streams, the envelope's opening bytes (now McpHttpToolResult's own injected START_OBJECT
+        // and "structuredContent" key) have necessarily already gone out — even a validator that rejects on
+        // the very first field only reaches that verdict on a later pump cycle (e.g. once the response body's
+        // own end has been seen), and pumpResponse flushes whatever is pending after every cycle regardless of
+        // status, so by the time REJECTED is known the opening is already on the wire. There is no way back at
+        // that point, so this falls through to the inherited abort behavior (the same fallback resources/read
+        // and the error-relay path already use) rather than attempting a sometimes-possible, sometimes-not
+        // recovery that would depend on upstream framing details a client cannot rely on.
         @Override
         void cleanupResponse()
         {
