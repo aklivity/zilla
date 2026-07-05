@@ -1032,11 +1032,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         int offset,
         int length)
     {
-        // the MemorySegment-to-array overload copies directly into dst without ever
-        // constructing a MemorySegment.ofArray(dst) wrapper for it -- profiling found that
-        // per-call wrapper construction (a fresh heap-session-scoped MemorySegment, with no
-        // cacheable form for an arbitrary caller-supplied array) was the dominant cost of
-        // this method for small documents with many verbatim key/value deliveries.
+        // copies directly into dst, avoiding a per-call MemorySegment.ofArray(dst) allocation
         MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index, dst, offset, length);
     }
 
@@ -3296,8 +3292,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             int offset,
             int length)
         {
-            // see the outer class's getBytes(int, byte[], int, int): copies directly into dst,
-            // avoiding a per-call MemorySegment.ofArray(dst) wrapper allocation
+            // copies directly into dst, avoiding a per-call MemorySegment.ofArray(dst) allocation
             MemorySegment.copy(segment, BYTE_LAYOUT, index, dst, offset, length);
         }
 
