@@ -87,9 +87,6 @@ public class UnsafeBufferExNativeTest
     @Test
     public void putBytesOnSubRangeWrapUsesCorrectByteBufferOffset()
     {
-        // putBytes(index, byte[], offset, length) copies through byteBufferView, which must be
-        // sliced in step with segment/addressOffset or the write lands at the whole buffer's
-        // offset 0 instead of the sub-range's true position
         ByteBuffer source = ByteBuffer.allocateDirect(64);
         UnsafeBufferEx whole = new UnsafeBufferEx(source);
         UnsafeBufferEx subRange = new UnsafeBufferEx(source, 16, 32);
