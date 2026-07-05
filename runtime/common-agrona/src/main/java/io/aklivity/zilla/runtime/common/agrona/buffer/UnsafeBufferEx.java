@@ -2498,8 +2498,6 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
                 : "UnsafeBufferEx.Native requires a native MemorySegment";
             assert byteBuffer != null && byteBuffer.isDirect()
                 : "UnsafeBufferEx.Native requires a direct ByteBuffer";
-            // Native's own base always corresponds to wrapAdjustment 0 (see wrapAdjustment() below), so
-            // a sub-range wrap(ByteBuffer, offset, length) is sliced here to that sub-range.
             this.segment = segment.asSlice(wrapAdjustment, capacity);
             this.addressOffset = this.segment.address();
             this.capacity = capacity;
