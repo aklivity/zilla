@@ -147,10 +147,16 @@ public final class McpHttpBindingConfig
         String name,
         long authorization)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesTool(name))
-            .findFirst()
-            .orElse(null);
+        McpHttpRouteConfig matched = null;
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.authorized(authorization) && route.matchesTool(name))
+            {
+                matched = route;
+                break;
+            }
+        }
+        return matched;
     }
 
     public McpHttpResourceConfig resolveResource(
@@ -173,10 +179,16 @@ public final class McpHttpBindingConfig
         String name,
         long authorization)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesResource(name))
-            .findFirst()
-            .orElse(null);
+        McpHttpRouteConfig matched = null;
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.authorized(authorization) && route.matchesResource(name))
+            {
+                matched = route;
+                break;
+            }
+        }
+        return matched;
     }
 
     public List<GuardedConfig> toolGuarded(
