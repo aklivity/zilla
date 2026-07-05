@@ -103,7 +103,7 @@ catalogs:
 bindings:
   app0:
     type: mcp_openapi
-    kind: proxy
+    kind: client
     options:
       specs:
         github:

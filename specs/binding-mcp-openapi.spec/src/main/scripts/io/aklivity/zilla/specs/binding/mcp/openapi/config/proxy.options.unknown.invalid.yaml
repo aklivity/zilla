@@ -18,6 +18,6 @@ name: test
 bindings:
   app0:
     type: mcp_openapi
-    kind: proxy
+    kind: client
     options:
       bogus: true

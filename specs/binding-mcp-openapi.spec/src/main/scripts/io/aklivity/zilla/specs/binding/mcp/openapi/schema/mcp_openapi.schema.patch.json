@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "proxy" ]
+                        "enum": [ "client" ]
                     },
                     "vault": false,
                     "entry": false,

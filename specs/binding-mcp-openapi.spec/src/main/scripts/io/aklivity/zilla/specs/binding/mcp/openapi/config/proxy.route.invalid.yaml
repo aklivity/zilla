@@ -18,7 +18,7 @@ name: test
 bindings:
   app0:
     type: mcp_openapi
-    kind: proxy
+    kind: client
     routes:
       - when:
           - tool: create_pr

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -547,7 +548,7 @@ public class McpOpenapiCompositeGeneratorTest
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
-            .kind(PROXY)
+            .kind(CLIENT)
             .options(options)
             .routes(of(routes))
             .build();

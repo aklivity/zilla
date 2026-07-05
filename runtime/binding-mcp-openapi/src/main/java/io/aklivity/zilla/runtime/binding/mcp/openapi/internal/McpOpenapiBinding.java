@@ -48,14 +48,14 @@ public final class McpOpenapiBinding implements Binding
     public String originType(
         KindConfig kind)
     {
-        return kind == KindConfig.PROXY ? NAME : null;
+        return kind == KindConfig.CLIENT ? NAME : null;
     }
 
     @Override
     public String routedType(
         KindConfig kind)
     {
-        return kind == KindConfig.PROXY ? NAME : null;
+        return kind == KindConfig.CLIENT ? NAME : null;
     }
 
     @Override
