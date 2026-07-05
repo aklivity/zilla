@@ -1032,8 +1032,12 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         int offset,
         int length)
     {
-        MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index,
-            MemorySegment.ofArray(dst), BYTE_LAYOUT, offset, length);
+        // the MemorySegment-to-array overload copies directly into dst without ever
+        // constructing a MemorySegment.ofArray(dst) wrapper for it -- profiling found that
+        // per-call wrapper construction (a fresh heap-session-scoped MemorySegment, with no
+        // cacheable form for an arbitrary caller-supplied array) was the dominant cost of
+        // this method for small documents with many verbatim key/value deliveries.
+        MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index, dst, offset, length);
     }
 
     @Override
@@ -1054,7 +1058,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             {
                 final int adjustment = dstBuffer.wrapAdjustment();
                 MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index,
-                    MemorySegment.ofArray(dstArray), BYTE_LAYOUT, adjustment + dstIndex, length);
+                    dstArray, adjustment + dstIndex, length);
             }
             else
             {
@@ -3292,8 +3296,9 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             int offset,
             int length)
         {
-            MemorySegment.copy(segment, BYTE_LAYOUT, index,
-                MemorySegment.ofArray(dst), BYTE_LAYOUT, offset, length);
+            // see the outer class's getBytes(int, byte[], int, int): copies directly into dst,
+            // avoiding a per-call MemorySegment.ofArray(dst) wrapper allocation
+            MemorySegment.copy(segment, BYTE_LAYOUT, index, dst, offset, length);
         }
 
         @Override
@@ -3314,7 +3319,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
                 {
                     final int adjustment = dstBuffer.wrapAdjustment();
                     MemorySegment.copy(segment, BYTE_LAYOUT, index,
-                        MemorySegment.ofArray(dstArray), BYTE_LAYOUT, adjustment + dstIndex, length);
+                        dstArray, adjustment + dstIndex, length);
                 }
                 else
                 {
