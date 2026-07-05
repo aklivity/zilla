@@ -80,7 +80,7 @@ public final class OpenapiPathView
             .filter(e -> e.getValue().apply(model) != null)
             .collect(Collectors.toMap(Map.Entry::getKey, e ->
                 new OpenapiOperationView(specification, supplyCompositeId.getAsLong(),
-                        configs, resolver, e.getKey(), path, e.getValue().apply(model))));
+                        configs, resolver, e.getKey(), path, model.servers, e.getValue().apply(model))));
         this.extensions = model.extensions;
     }
 
