@@ -2477,10 +2477,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             throw new IllegalStateException(
                 "UnsafeBufferEx.asNative requires a direct ByteBuffer-backed buffer");
         }
-        // Native's own base must already correspond to wrapAdjustment (it always reports 0), so a
-        // sub-range wrap(ByteBuffer, offset, length) is sliced to that sub-range here rather than
-        // carrying the whole-buffer segment forward.
-        return new Native(segment.asSlice(wrapAdjustment, capacity), byteBuffer);
+        return new Native(segment, wrapAdjustment, capacity, byteBuffer);
     }
 
     public static final class Native implements AtomicBufferEx, DirectBufferViewEx
@@ -2493,15 +2490,20 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
 
         private Native(
             MemorySegment segment,
+            int wrapAdjustment,
+            int capacity,
             ByteBuffer byteBuffer)
         {
             assert segment.heapBase().isEmpty()
                 : "UnsafeBufferEx.Native requires a native MemorySegment";
             assert byteBuffer != null && byteBuffer.isDirect()
                 : "UnsafeBufferEx.Native requires a direct ByteBuffer";
-            this.segment = segment;
-            this.addressOffset = segment.address();
-            this.capacity = (int) segment.byteSize();
+            // Native's own base always corresponds to wrapAdjustment 0 (see wrapAdjustment() below), so
+            // a sub-range wrap(ByteBuffer, offset, length) is sliced to that sub-range here rather than
+            // carrying the whole-buffer segment forward.
+            this.segment = segment.asSlice(wrapAdjustment, capacity);
+            this.addressOffset = this.segment.address();
+            this.capacity = capacity;
             this.byteBuffer = byteBuffer;
             // clean duplicate (position 0, limit capacity) so the ByteBuffer.put bulk-copy fast path
             // is always in bounds without consulting the wrapped buffer's NIO limit (Agrona scratch
