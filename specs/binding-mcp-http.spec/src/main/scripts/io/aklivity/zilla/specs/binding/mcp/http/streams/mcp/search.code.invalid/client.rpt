@@ -43,18 +43,15 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("create_pr")
-                               .contentLength(20000)
+                               .name("search_code")
+                               .contentLength(49)
                                .build()
                            .build()}
 
 connected
 
-# body is truncated before "repo" is captured and before the arguments object closes,
-# then the client half-closes; the streaming pipeline sees a genuinely incomplete value
-# and rejects it, without ever having enough path args to open the upstream connection
-write '{"name":"create_pr","arguments":{"owner":"acme"'
-write flush
-write close
+# arguments fail schemas.input validation (required "q" is absent) -> rejected before dispatch;
+# this tool has no with.body configured, so this exercises onMcpRequest's own validate() branch
+write '{"name":"search_code","arguments":{"per_page":5}}'
 
 read abort

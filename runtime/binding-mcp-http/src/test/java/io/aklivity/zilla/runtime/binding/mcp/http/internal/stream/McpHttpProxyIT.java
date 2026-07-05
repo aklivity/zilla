@@ -248,6 +248,15 @@ public class McpHttpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/search.code.invalid/client"})
+    public void shouldRejectToolSearchCodeWhenArgumentsInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/create.pr.error/client",
         "${http}/create.pr.error/server"})
     public void shouldRejectToolCreatePr() throws Exception

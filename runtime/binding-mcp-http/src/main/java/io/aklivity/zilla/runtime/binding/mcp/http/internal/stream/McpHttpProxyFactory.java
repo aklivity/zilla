@@ -107,6 +107,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final int FLAGS_COMPLETE = 0x03;
     private static final int WINDOW_MAX = 65536;
     private static final int MAX_ERROR_BODY = 8192;
+    private static final int JSON_RPC_INVALID_PARAMS = -32602;
     private static final int JSON_RPC_INTERNAL_ERROR = -32603;
     private static final int RESPONSE_WINDOW = 1024;
     private static final int RESPONSE_GEN_BOUND = 1024;
@@ -768,8 +769,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         Map<String, String> requestArgs;
         List<String> requestPathArgs;
         boolean requestProjected;
-        boolean requestRejected;
-        String unresolvedAccessor;
 
         JsonPipeline responsePipeline;
         JsonGeneratorEx responseGenerator;
@@ -856,7 +855,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 argsRO.wrap(argsBuffer, 0, argsLength);
                 if (!validate(binding.jsonSchema(tool.input), argsRO, 0, argsLength))
                 {
-                    doMcpReplyBytes(traceId, buildToolError("invalid arguments"));
+                    doMcpReset(traceId, JSON_RPC_INVALID_PARAMS, "Invalid params");
                     cleanupDecodeSlot();
                     return;
                 }
@@ -942,12 +941,14 @@ public final class McpHttpProxyFactory implements BindingHandler
         void pumpRequest(
             long traceId)
         {
-            if (unresolvedAccessor != null)
+            final List<String> unsatisfied = McpHttpState.initialClosed(state)
+                ? List.of() : binding.unsatisfiedAccessors(route);
+            if (!unsatisfied.isEmpty())
             {
-                events.schemaAccessorUnresolved(traceId, binding.id, name != null ? name : uri, unresolvedAccessor);
-                doMcpReset(traceId, JSON_RPC_INTERNAL_ERROR, "unresolved expression: ${" + unresolvedAccessor + "}");
+                final String accessor = unsatisfied.get(0);
+                events.schemaAccessorUnresolved(traceId, binding.id, name != null ? name : uri, accessor);
+                doMcpReset(traceId, JSON_RPC_INTERNAL_ERROR, "unresolved expression: ${" + accessor + "}");
                 cleanupDecodeSlot();
-                unresolvedAccessor = null;
                 return;
             }
 
@@ -1002,9 +1003,8 @@ public final class McpHttpProxyFactory implements BindingHandler
                     break;
                 case REJECTED:
                     progress = false;
-                    requestRejected = true;
                     delegate.doHttpAbort(traceId);
-                    doMcpReplyBytes(traceId, buildToolError("invalid arguments"));
+                    doMcpReset(traceId, JSON_RPC_INVALID_PARAMS, "Invalid params");
                     cleanupDecodeSlot();
                     break;
                 default:
@@ -1013,7 +1013,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
             }
 
-            if (!requestRejected && !McpHttpState.initialOpening(delegate.state) && requestPathReady())
+            if (!McpHttpState.initialClosed(state) && !McpHttpState.initialOpening(delegate.state) && requestPathReady())
             {
                 sendRequestBegin(traceId);
             }
@@ -1027,7 +1027,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 delegate.flushRequestStream(traceId);
             }
 
-            if (!requestProjected && !requestRejected)
+            if (!requestProjected && !McpHttpState.initialClosed(state))
             {
                 grantMcpWindow(traceId);
             }
@@ -1223,24 +1223,21 @@ public final class McpHttpProxyFactory implements BindingHandler
                 if (tool != null && tool.input != null &&
                     contentLength >= 0 && contentLength <= bufferPool.slotCapacity())
                 {
-                    // the schema validator must fully reassemble any scalar spanning multiple windows
-                    // before validating it (common-json's Eval is not fragment-aware), so it only composes
-                    // safely here when the whole body is guaranteed to arrive within one bounded decode
-                    // slot; a request whose length is unknown or exceeds the slot skips validation rather
-                    // than risk the decode slot filling with an unconsumed in-flight scalar
+                    // the schema validator must fully reassemble any individual scalar value spanning
+                    // multiple windows before validating it (common-json's Eval is not fragment-aware) —
+                    // the constraint is per-value, not per-request, but bounding the whole request to one
+                    // decode slot is a simple sufficient (not necessary) proxy for "no value can possibly
+                    // exceed the window", since no field can be larger than the whole document; a request
+                    // whose length is unknown or exceeds the slot skips validation rather than risk the
+                    // decode slot filling with an unconsumed in-flight value (see common-json issue for
+                    // the underlying gap: a value that never fits any window stalls the pipeline forever
+                    // rather than resolving to REJECTED)
                     stream = stream.transform(binding.jsonSchema(tool.input).validator());
                 }
                 requestPipeline = stream
                     .transform(JsonEx.projector(binding.jsonSchema(route.with.body)))
                     .into(JsonEx.createSink(requestGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
                 requestPipeline.reset();
-
-                // route accessors are static config, resolvable now, but the reset itself is deferred to
-                // pumpRequest: sending it here, before the client has had a chance to use the just-granted
-                // window, closes the initial direction out from under a write already in flight
-                final List<String> unsatisfied = binding.unsatisfiedAccessors(route);
-                unresolvedAccessor = unsatisfied.isEmpty() ? null : unsatisfied.get(0);
-
                 grantMcpWindow(traceId);
             }
             else
