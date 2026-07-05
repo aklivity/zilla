@@ -64,7 +64,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -78,16 +77,20 @@ public final class McpOpenapiCompositeGenerator
     private static final String BINDING_NAME = "mcp_http0";
 
     private final String httpClientExit;
+    private final List<String> denied;
 
     public McpOpenapiCompositeGenerator(
         String httpClientExit)
     {
         this.httpClientExit = httpClientExit;
+        this.denied = new ArrayList<>();
     }
 
     public McpOpenapiCompositeConfig generate(
         McpOpenapiBindingConfig binding)
     {
+        denied.clear();
+
         final OpenapiParser parser = new OpenapiParser();
         final Map<String, OpenapiView> specsByLabel = new LinkedHashMap<>();
         final Map<String, Map<String, String>> securityByLabel = new LinkedHashMap<>();
@@ -151,9 +154,13 @@ public final class McpOpenapiCompositeGenerator
                 tool = with.operation;
             }
 
-            final List<GuardedRef> guarded = guardedRefs(binding, openapi, operation, securityByLabel.get(with.spec));
+            final GuardedResolution resolution = guardedRefs(binding, openapi, operation, securityByLabel.get(with.spec));
+            if (resolution.denied())
+            {
+                continue;
+            }
 
-            routed.add(new RoutedOperation(tool, resource, operation, toolConfig(binding, tool), guarded));
+            routed.add(new RoutedOperation(tool, resource, operation, toolConfig(binding, tool), resolution.guarded));
         }
 
         final NamespaceConfig namespace = NamespaceConfig.builder()
@@ -172,6 +179,11 @@ public final class McpOpenapiCompositeGenerator
             });
 
         return new McpOpenapiCompositeConfig(List.of(namespace), routes);
+    }
+
+    public List<String> deniedOperations()
+    {
+        return denied;
     }
 
     private McpOpenapiToolConfig toolConfig(
@@ -353,7 +365,7 @@ public final class McpOpenapiCompositeGenerator
         return guarded;
     }
 
-    private static List<GuardedRef> guardedRefs(
+    private GuardedResolution guardedRefs(
         McpOpenapiBindingConfig binding,
         OpenapiView openapi,
         OpenapiOperationView operation,
@@ -363,81 +375,89 @@ public final class McpOpenapiCompositeGenerator
             ? operation.security
             : openapi.security;
 
-        List<GuardedRef> result = List.of();
+        GuardedResolution result = GuardedResolution.allowed(List.of());
 
         if (security != null && !security.isEmpty())
         {
             if (security.size() > 1)
             {
-                throw new ConfigException(
+                result = GuardedResolution.denied(
                     "mcp_openapi operation \"%s\" declares %d alternative security requirements; "
                         .formatted(operation.id, security.size()) +
                     "OpenAPI OR-alternative security is not supported because a route can reference only one guard");
             }
-
-            final List<OpenapiSecurityRequirementView> alternative = security.get(0);
-            if (!alternative.isEmpty())
+            else
             {
-                result = resolveAlternative(binding, openapi, operation, securityMap, alternative);
+                final List<OpenapiSecurityRequirementView> alternative = security.get(0);
+                if (!alternative.isEmpty())
+                {
+                    result = resolveAlternative(binding, openapi, operation, securityMap, alternative);
+                }
             }
+        }
+
+        if (result.denied())
+        {
+            denied.add(result.reason);
         }
 
         return result;
     }
 
-    private static List<GuardedRef> resolveAlternative(
+    private static GuardedResolution resolveAlternative(
         McpOpenapiBindingConfig binding,
         OpenapiView openapi,
         OpenapiOperationView operation,
         Map<String, String> securityMap,
         List<OpenapiSecurityRequirementView> alternative)
     {
-        final List<GuardedRef> refs = alternative.stream()
-            .map(r -> guardedRef(binding, openapi, operation, securityMap, r))
-            .toList();
+        final List<GuardedRef> refs = new ArrayList<>();
+        String reason = null;
 
-        final List<String> qnames = refs.stream()
-            .map(r -> r.qname)
-            .distinct()
-            .toList();
-
-        if (qnames.size() > 1)
+        for (OpenapiSecurityRequirementView requirement : alternative)
         {
-            throw new ConfigException(
-                "mcp_openapi operation \"%s\" requires multiple distinct guards (%s) simultaneously, "
-                    .formatted(operation.id, String.join(", ", qnames)) +
-                "which is not supported because Zilla guards cannot be combined with AND semantics");
+            final String guard = securityMap != null ? securityMap.get(requirement.name) : null;
+            if (guard == null)
+            {
+                reason =
+                    "mcp_openapi operation \"%s\" requires security scheme \"%s\" but options.specs[\"%s\"].security "
+                        .formatted(operation.id, requirement.name, openapi.label) +
+                    "has no guard configured for it";
+                break;
+            }
+
+            final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guard));
+            final List<String> roles = requirement.scopes != null ? requirement.scopes : List.of();
+            refs.add(new GuardedRef(qname, roles));
         }
 
-        final List<String> roles = refs.stream()
-            .flatMap(r -> r.roles.stream())
-            .distinct()
-            .toList();
-
-        return List.of(new GuardedRef(qnames.get(0), roles));
-    }
-
-    private static GuardedRef guardedRef(
-        McpOpenapiBindingConfig binding,
-        OpenapiView openapi,
-        OpenapiOperationView operation,
-        Map<String, String> securityMap,
-        OpenapiSecurityRequirementView requirement)
-    {
-        final String guard = securityMap != null ? securityMap.get(requirement.name) : null;
-
-        if (guard == null)
+        if (reason == null)
         {
-            throw new ConfigException(
-                "mcp_openapi operation \"%s\" requires security scheme \"%s\" but options.specs[\"%s\"].security "
-                    .formatted(operation.id, requirement.name, openapi.label) +
-                "has no guard configured for it");
+            final List<String> qnames = refs.stream().map(r -> r.qname).distinct().toList();
+            if (qnames.size() > 1)
+            {
+                reason =
+                    "mcp_openapi operation \"%s\" requires multiple distinct guards (%s) simultaneously, "
+                        .formatted(operation.id, String.join(", ", qnames)) +
+                    "which is not supported because Zilla guards cannot be combined with AND semantics";
+            }
         }
 
-        final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guard));
-        final List<String> roles = requirement.scopes != null ? requirement.scopes : List.of();
+        GuardedResolution result;
+        if (reason != null)
+        {
+            result = GuardedResolution.denied(reason);
+        }
+        else
+        {
+            final List<String> roles = refs.stream()
+                .flatMap(r -> r.roles.stream())
+                .distinct()
+                .toList();
+            result = GuardedResolution.allowed(List.of(new GuardedRef(refs.get(0).qname, roles)));
+        }
 
-        return new GuardedRef(qname, roles);
+        return result;
     }
 
     private McpHttpWithConfig withConfig(
@@ -712,6 +732,37 @@ public final class McpOpenapiCompositeGenerator
         {
             this.qname = qname;
             this.roles = roles;
+        }
+    }
+
+    private static final class GuardedResolution
+    {
+        private final List<GuardedRef> guarded;
+        private final String reason;
+
+        private GuardedResolution(
+            List<GuardedRef> guarded,
+            String reason)
+        {
+            this.guarded = guarded;
+            this.reason = reason;
+        }
+
+        private static GuardedResolution allowed(
+            List<GuardedRef> guarded)
+        {
+            return new GuardedResolution(guarded, null);
+        }
+
+        private static GuardedResolution denied(
+            String reason)
+        {
+            return new GuardedResolution(null, reason);
+        }
+
+        private boolean denied()
+        {
+            return reason != null;
         }
     }
 }

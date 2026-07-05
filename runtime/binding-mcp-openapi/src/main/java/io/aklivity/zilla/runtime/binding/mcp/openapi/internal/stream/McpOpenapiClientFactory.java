@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiB
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite.McpOpenapiCompositeGenerator;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.event.McpOpenapiEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types.stream.AbortFW;
@@ -68,6 +69,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
 
     private final Long2ObjectHashMap<McpOpenapiBindingConfig> bindings;
     private final McpOpenapiCompositeGenerator generator;
+    private final McpOpenapiEventContext event;
     private final long compositeRouteId;
 
     public McpOpenapiClientFactory(
@@ -81,6 +83,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
         this.generator = new McpOpenapiCompositeGenerator(config.httpClientExit());
+        this.event = new McpOpenapiEventContext(context);
         this.compositeRouteId = config.compositeRouteId();
     }
 
@@ -91,6 +94,10 @@ public final class McpOpenapiClientFactory implements BindingHandler
         bindings.put(binding.id, attached);
 
         McpOpenapiCompositeConfig composite = generator.generate(attached);
+        for (String reason : generator.deniedOperations())
+        {
+            event.operationDenied(binding.id, reason);
+        }
         assert composite != null;
 
         composite.namespaces.forEach(context::attachComposite);

@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -64,7 +63,6 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -415,7 +413,7 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
-    public void shouldThrowWhenAlternativeRequiresMultipleDistinctGuards()
+    public void shouldDenyOperationRequiringMultipleDistinctGuards()
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
@@ -425,15 +423,17 @@ public class McpOpenapiCompositeGeneratorTest
             .build();
 
         BindingConfig binding = bindingOf(options, route(0, "merge_pr", null, "pulls/merge"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
-        ConfigException exception = assertThrows(ConfigException.class,
-            () -> generator.generate(new McpOpenapiBindingConfig(context, binding)));
-        assertThat(exception.getMessage(), containsString("pulls/merge"));
-        assertThat(exception.getMessage(), containsString("multiple distinct guards"));
+        assertThat(routeForMethod(mcpHttp(composite), "PUT"), nullValue());
+        assertThat(generator.deniedOperations(), hasSize(1));
+        String reason = generator.deniedOperations().get(0);
+        assertThat(reason, containsString("pulls/merge"));
+        assertThat(reason, containsString("multiple distinct guards"));
     }
 
     @Test
-    public void shouldThrowWhenSecurityHasOrAlternatives()
+    public void shouldDenyOperationWithOrAlternativeSecurity()
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
@@ -443,15 +443,17 @@ public class McpOpenapiCompositeGeneratorTest
             .build();
 
         BindingConfig binding = bindingOf(options, route(0, "close_pr", null, "pulls/close"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
-        ConfigException exception = assertThrows(ConfigException.class,
-            () -> generator.generate(new McpOpenapiBindingConfig(context, binding)));
-        assertThat(exception.getMessage(), containsString("pulls/close"));
-        assertThat(exception.getMessage(), containsString("alternative security requirements"));
+        assertThat(routeForMethod(mcpHttp(composite), "POST"), nullValue());
+        assertThat(generator.deniedOperations(), hasSize(1));
+        String reason = generator.deniedOperations().get(0);
+        assertThat(reason, containsString("pulls/close"));
+        assertThat(reason, containsString("alternative security requirements"));
     }
 
     @Test
-    public void shouldThrowWhenSchemeHasNoGuardConfigured()
+    public void shouldDenyOperationWhenSchemeHasNoGuardConfigured()
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
@@ -461,16 +463,18 @@ public class McpOpenapiCompositeGeneratorTest
             .build();
 
         BindingConfig binding = bindingOf(options, route(0, "search_code", null, "search/code"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
-        ConfigException exception = assertThrows(ConfigException.class,
-            () -> generator.generate(new McpOpenapiBindingConfig(context, binding)));
-        assertThat(exception.getMessage(), containsString("search/code"));
-        assertThat(exception.getMessage(), containsString("oauthScheme"));
-        assertThat(exception.getMessage(), containsString("no guard configured"));
+        assertThat(routeForMethod(mcpHttp(composite), "GET"), nullValue());
+        assertThat(generator.deniedOperations(), hasSize(1));
+        String reason = generator.deniedOperations().get(0);
+        assertThat(reason, containsString("search/code"));
+        assertThat(reason, containsString("oauthScheme"));
+        assertThat(reason, containsString("no guard configured"));
     }
 
     @Test
-    public void shouldThrowWhenSecurityMapAbsentButOperationRequiresSecurity()
+    public void shouldDenyOperationWhenSecurityMapAbsentButOperationRequiresSecurity()
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
@@ -479,11 +483,13 @@ public class McpOpenapiCompositeGeneratorTest
             .build();
 
         BindingConfig binding = bindingOf(options, route(0, "create_pr", null, "pulls/create"));
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
-        ConfigException exception = assertThrows(ConfigException.class,
-            () -> generator.generate(new McpOpenapiBindingConfig(context, binding)));
-        assertThat(exception.getMessage(), containsString("pulls/create"));
-        assertThat(exception.getMessage(), containsString("bearerAuth"));
+        assertThat(routeForMethod(mcpHttp(composite), "POST"), nullValue());
+        assertThat(generator.deniedOperations(), hasSize(1));
+        String reason = generator.deniedOperations().get(0);
+        assertThat(reason, containsString("pulls/create"));
+        assertThat(reason, containsString("bearerAuth"));
     }
 
     @Test

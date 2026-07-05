@@ -129,7 +129,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
+          <scopeNames>core mcp_openapi</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types</packageName>
         </configuration>
         <executions>

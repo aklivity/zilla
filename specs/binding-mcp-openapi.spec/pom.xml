@@ -70,6 +70,9 @@
   <build>
     <resources>
       <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
         <directory>src/main/scripts</directory>
       </resource>
     </resources>
@@ -82,6 +85,23 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>flyweight-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <scopeNames>core mcp_openapi</scopeNames>
+          <packageName>io.aklivity.zilla.specs.binding.mcp.openapi.internal.types</packageName>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>validate</goal>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -123,6 +143,9 @@
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
+          <excludes>
+            <exclude>io/aklivity/zilla/specs/binding/mcp/openapi/internal/types/**/*.class</exclude>
+          </excludes>
           <rules>
             <rule>
               <element>BUNDLE</element>
