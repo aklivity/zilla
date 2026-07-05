@@ -40,7 +40,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-public final class McpOpenapiProxyFactory implements BindingHandler
+public final class McpOpenapiClientFactory implements BindingHandler
 {
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
@@ -70,7 +70,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
     private final McpOpenapiCompositeGenerator generator;
     private final long compositeRouteId;
 
-    public McpOpenapiProxyFactory(
+    public McpOpenapiClientFactory(
         McpOpenapiConfiguration config,
         EngineContext context)
     {
@@ -137,23 +137,23 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             {
                 final long resolvedId = compositeRouteId != -1L ? compositeRouteId : route.id;
 
-                newStream = new McpStream(
+                newStream = new McpOpenapiStream(
                     receiver,
                     originId,
                     routedId,
                     initialId,
                     affinity,
                     authorization,
-                    resolvedId)::onMcpMessage;
+                    resolvedId)::onMcpOpenapiMessage;
             }
         }
 
         return newStream;
     }
 
-    private final class McpStream
+    private final class McpOpenapiStream
     {
-        private final HttpStream composite;
+        private final HttpStream http;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -164,7 +164,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
         private int state;
 
-        private McpStream(
+        private McpOpenapiStream(
             MessageConsumer sender,
             long originId,
             long routedId,
@@ -173,7 +173,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             long authorization,
             long resolvedId)
         {
-            this.composite = new HttpStream(this, routedId, resolvedId, authorization);
+            this.http = new HttpStream(this, routedId, resolvedId, authorization);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -183,7 +183,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             this.authorization = authorization;
         }
 
-        private void onMcpMessage(
+        private void onMcpOpenapiMessage(
             int msgTypeId,
             DirectBufferEx buffer,
             int index,
@@ -193,38 +193,38 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onMcpBegin(begin);
+                onMcpOpenapiBegin(begin);
                 break;
             case DataFW.TYPE_ID:
                 final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onMcpData(data);
+                onMcpOpenapiData(data);
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                onMcpEnd(end);
+                onMcpOpenapiEnd(end);
                 break;
             case FlushFW.TYPE_ID:
                 final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onMcpFlush(flush);
+                onMcpOpenapiFlush(flush);
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onMcpAbort(abort);
+                onMcpOpenapiAbort(abort);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onMcpWindow(window);
+                onMcpOpenapiWindow(window);
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onMcpReset(reset);
+                onMcpOpenapiReset(reset);
                 break;
             default:
                 break;
             }
         }
 
-        private void onMcpBegin(
+        private void onMcpOpenapiBegin(
             BeginFW begin)
         {
             final long sequence = begin.sequence();
@@ -235,10 +235,10 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
             state = McpOpenapiState.openingInitial(state);
 
-            composite.doBegin(sequence, acknowledge, maximum, traceId, affinity, extension);
+            http.doHttpBegin(sequence, acknowledge, maximum, traceId, affinity, extension);
         }
 
-        private void onMcpData(
+        private void onMcpOpenapiData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -252,11 +252,11 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             final OctetsFW payload = data.payload();
             final OctetsFW extension = data.extension();
 
-            composite.doData(sequence, acknowledge, maximum, traceId, authorization,
+            http.doHttpData(sequence, acknowledge, maximum, traceId, authorization,
                 budgetId, flags, reserved, payload, extension);
         }
 
-        private void onMcpEnd(
+        private void onMcpOpenapiEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -267,10 +267,10 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
             state = McpOpenapiState.closeInitial(state);
 
-            composite.doEnd(sequence, acknowledge, maximum, traceId, extension);
+            http.doHttpEnd(sequence, acknowledge, maximum, traceId, extension);
         }
 
-        private void onMcpFlush(
+        private void onMcpOpenapiFlush(
             FlushFW flush)
         {
             final long sequence = flush.sequence();
@@ -281,10 +281,10 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             final int reserved = flush.reserved();
             final OctetsFW extension = flush.extension();
 
-            composite.doFlush(sequence, acknowledge, maximum, traceId, budgetId, reserved, extension);
+            http.doHttpFlush(sequence, acknowledge, maximum, traceId, budgetId, reserved, extension);
         }
 
-        private void onMcpAbort(
+        private void onMcpOpenapiAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -295,10 +295,10 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
             state = McpOpenapiState.closeInitial(state);
 
-            composite.doAbort(sequence, acknowledge, maximum, traceId, extension);
+            http.doHttpAbort(sequence, acknowledge, maximum, traceId, extension);
         }
 
-        private void onMcpReset(
+        private void onMcpOpenapiReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -308,10 +308,10 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
             state = McpOpenapiState.closeReply(state);
 
-            composite.doReset(sequence, acknowledge, maximum, traceId);
+            http.doHttpReset(sequence, acknowledge, maximum, traceId);
         }
 
-        private void onMcpWindow(
+        private void onMcpOpenapiWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -321,10 +321,10 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
-            composite.doWindow(sequence, acknowledge, maximum, traceId, authorization, budgetId, padding);
+            http.doHttpWindow(sequence, acknowledge, maximum, traceId, authorization, budgetId, padding);
         }
 
-        private void doBegin(
+        private void doMcpOpenapiBegin(
             long sequence,
             long acknowledge,
             int maximum,
@@ -333,11 +333,11 @@ public final class McpOpenapiProxyFactory implements BindingHandler
         {
             state = McpOpenapiState.openingReply(state);
 
-            McpOpenapiProxyFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                 traceId, authorization, affinity, extension);
         }
 
-        private void doData(
+        private void doMcpOpenapiData(
             long sequence,
             long acknowledge,
             int maximum,
@@ -348,11 +348,11 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             OctetsFW payload,
             OctetsFW extension)
         {
-            McpOpenapiProxyFactory.this.doData(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doData(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
         }
 
-        private void doFlush(
+        private void doMcpOpenapiFlush(
             long sequence,
             long acknowledge,
             int maximum,
@@ -361,11 +361,11 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
-            McpOpenapiProxyFactory.this.doFlush(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doFlush(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                 traceId, authorization, budgetId, reserved, extension);
         }
 
-        private void doEnd(
+        private void doMcpOpenapiEnd(
             long sequence,
             long acknowledge,
             int maximum,
@@ -374,14 +374,14 @@ public final class McpOpenapiProxyFactory implements BindingHandler
         {
             if (McpOpenapiState.replyOpening(state) && !McpOpenapiState.replyClosed(state))
             {
-                McpOpenapiProxyFactory.this.doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                McpOpenapiClientFactory.this.doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
             }
 
             state = McpOpenapiState.closeReply(state);
         }
 
-        private void doAbort(
+        private void doMcpOpenapiAbort(
             long sequence,
             long acknowledge,
             int maximum,
@@ -390,14 +390,14 @@ public final class McpOpenapiProxyFactory implements BindingHandler
         {
             if (McpOpenapiState.replyOpening(state) && !McpOpenapiState.replyClosed(state))
             {
-                McpOpenapiProxyFactory.this.doAbort(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                McpOpenapiClientFactory.this.doAbort(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
             }
 
             state = McpOpenapiState.closeReply(state);
         }
 
-        private void doReset(
+        private void doMcpOpenapiReset(
             long sequence,
             long acknowledge,
             int maximum,
@@ -407,12 +407,12 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             {
                 state = McpOpenapiState.closeInitial(state);
 
-                McpOpenapiProxyFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
+                McpOpenapiClientFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization);
             }
         }
 
-        private void doWindow(
+        private void doMcpOpenapiWindow(
             long sequence,
             long acknowledge,
             int maximum,
@@ -420,14 +420,14 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            McpOpenapiProxyFactory.this.doWindow(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doWindow(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
                 traceId, authorization, budgetId, padding);
         }
     }
 
     private final class HttpStream
     {
-        private final McpStream delegate;
+        private final McpOpenapiStream delegate;
         private final long originId;
         private final long routedId;
         private final long authorization;
@@ -438,7 +438,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
         private int state;
 
         private HttpStream(
-            McpStream delegate,
+            McpOpenapiStream delegate,
             long originId,
             long routedId,
             long authorization)
@@ -504,7 +504,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
             state = McpOpenapiState.openingReply(state);
 
-            delegate.doBegin(sequence, acknowledge, maximum, traceId, extension);
+            delegate.doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
         }
 
         private void onHttpData(
@@ -520,7 +520,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             final OctetsFW payload = data.payload();
             final OctetsFW extension = data.extension();
 
-            delegate.doData(sequence, acknowledge, maximum, traceId, budgetId,
+            delegate.doMcpOpenapiData(sequence, acknowledge, maximum, traceId, budgetId,
                 flags, reserved, payload, extension);
         }
 
@@ -535,7 +535,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             final int reserved = flush.reserved();
             final OctetsFW extension = flush.extension();
 
-            delegate.doFlush(sequence, acknowledge, maximum, traceId, budgetId, reserved, extension);
+            delegate.doMcpOpenapiFlush(sequence, acknowledge, maximum, traceId, budgetId, reserved, extension);
         }
 
         private void onHttpEnd(
@@ -549,7 +549,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
             state = McpOpenapiState.closingReply(state);
 
-            delegate.doEnd(sequence, acknowledge, maximum, traceId, extension);
+            delegate.doMcpOpenapiEnd(sequence, acknowledge, maximum, traceId, extension);
         }
 
         private void onHttpAbort(
@@ -563,7 +563,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
             state = McpOpenapiState.closingReply(state);
 
-            delegate.doAbort(sequence, acknowledge, maximum, traceId, extension);
+            delegate.doMcpOpenapiAbort(sequence, acknowledge, maximum, traceId, extension);
         }
 
         private void onHttpReset(
@@ -576,7 +576,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
             state = McpOpenapiState.closeInitial(state);
 
-            delegate.doReset(sequence, acknowledge, maximum, traceId);
+            delegate.doMcpOpenapiReset(sequence, acknowledge, maximum, traceId);
         }
 
         private void onHttpWindow(
@@ -591,10 +591,10 @@ public final class McpOpenapiProxyFactory implements BindingHandler
 
             state = McpOpenapiState.openingInitial(state);
 
-            delegate.doWindow(sequence, acknowledge, maximum, traceId, budgetId, padding);
+            delegate.doMcpOpenapiWindow(sequence, acknowledge, maximum, traceId, budgetId, padding);
         }
 
-        private void doBegin(
+        private void doHttpBegin(
             long sequence,
             long acknowledge,
             int maximum,
@@ -606,13 +606,13 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             {
                 assert state == 0;
 
-                this.receiver = McpOpenapiProxyFactory.this.newStream(this::onHttpMessage, originId, routedId, initialId,
+                this.receiver = McpOpenapiClientFactory.this.newStream(this::onHttpMessage, originId, routedId, initialId,
                     sequence, acknowledge, maximum, traceId, authorization, affinity, extension);
                 state = McpOpenapiState.openingInitial(state);
             }
         }
 
-        private void doData(
+        private void doHttpData(
             long sequence,
             long acknowledge,
             int maximum,
@@ -624,11 +624,11 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             OctetsFW payload,
             OctetsFW extension)
         {
-            McpOpenapiProxyFactory.this.doData(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doData(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
         }
 
-        private void doFlush(
+        private void doHttpFlush(
             long sequence,
             long acknowledge,
             int maximum,
@@ -637,11 +637,11 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
-            McpOpenapiProxyFactory.this.doFlush(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doFlush(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                 traceId, authorization, budgetId, reserved, extension);
         }
 
-        private void doEnd(
+        private void doHttpEnd(
             long sequence,
             long acknowledge,
             int maximum,
@@ -650,14 +650,14 @@ public final class McpOpenapiProxyFactory implements BindingHandler
         {
             if (!McpOpenapiState.initialClosed(state))
             {
-                McpOpenapiProxyFactory.this.doEnd(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+                McpOpenapiClientFactory.this.doEnd(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
 
                 state = McpOpenapiState.closeInitial(state);
             }
         }
 
-        private void doAbort(
+        private void doHttpAbort(
             long sequence,
             long acknowledge,
             int maximum,
@@ -666,14 +666,14 @@ public final class McpOpenapiProxyFactory implements BindingHandler
         {
             if (!McpOpenapiState.initialClosed(state))
             {
-                McpOpenapiProxyFactory.this.doAbort(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+                McpOpenapiClientFactory.this.doAbort(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
 
                 state = McpOpenapiState.closeInitial(state);
             }
         }
 
-        private void doReset(
+        private void doHttpReset(
             long sequence,
             long acknowledge,
             int maximum,
@@ -681,14 +681,14 @@ public final class McpOpenapiProxyFactory implements BindingHandler
         {
             if (!McpOpenapiState.replyClosed(state))
             {
-                McpOpenapiProxyFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+                McpOpenapiClientFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization);
 
                 state = McpOpenapiState.closeReply(state);
             }
         }
 
-        private void doWindow(
+        private void doHttpWindow(
             long sequence,
             long acknowledge,
             int maximum,
@@ -697,7 +697,7 @@ public final class McpOpenapiProxyFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            McpOpenapiProxyFactory.this.doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
                 traceId, authorization, budgetId, padding);
         }
     }

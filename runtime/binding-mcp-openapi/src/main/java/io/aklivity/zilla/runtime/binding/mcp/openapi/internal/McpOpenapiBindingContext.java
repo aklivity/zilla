@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal;
 
-import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.stream.McpOpenapiProxyFactory;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.stream.McpOpenapiClientFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -23,13 +23,13 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class McpOpenapiBindingContext implements BindingContext
 {
-    private final McpOpenapiProxyFactory factory;
+    private final McpOpenapiClientFactory factory;
 
     McpOpenapiBindingContext(
         McpOpenapiConfiguration config,
         EngineContext context)
     {
-        this.factory = new McpOpenapiProxyFactory(config, context);
+        this.factory = new McpOpenapiClientFactory(config, context);
     }
 
     @Override

@@ -29,7 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class McpOpenapiProxyIT
+public class McpOpenapiClientIT
 {
     private static final String HTTP_CLIENT_EXIT_NAME = "zilla.binding.mcp.openapi.http.client.exit";
     private static final String SESSION_ID_NAME = "zilla.binding.mcp.http.session.id";
@@ -45,7 +45,7 @@ public class McpOpenapiProxyIT
         .countersBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(HTTP_CLIENT_EXIT_NAME, "test:http0")
-        .configure(SESSION_ID_NAME, "%s::sessionId".formatted(McpOpenapiProxyIT.class.getName()))
+        .configure(SESSION_ID_NAME, "%s::sessionId".formatted(McpOpenapiClientIT.class.getName()))
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/openapi/config")
         .external("http0")
         .clean();
