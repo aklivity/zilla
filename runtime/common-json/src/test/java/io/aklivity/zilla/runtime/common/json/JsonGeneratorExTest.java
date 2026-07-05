@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -232,6 +233,61 @@ class JsonGeneratorExTest
         // "[1,2" fills the usable region [0,4) exactly; the next write must not spill past the limit
         assertThrows(AssertionError.class, () -> generator
             .writeStartArray().writeNumber("1").writeNumber("2").writeNumber("3"));
+    }
+
+    @Test
+    void shouldReportPartialConsumptionWhenPlainWriteExceedsLimit()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 0, 8);
+
+        generator.write("abcdefghij");
+
+        int written = generator.consumed();
+        assertTrue(written > 0 && written < "abcdefghij".length());
+        assertEquals("\"" + "abcdefghij".substring(0, written), drain(generator, buffer));
+    }
+
+    @Test
+    void shouldReportPartialConsumptionWhenPlainWriteKeyExceedsLimit()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 0, 6);
+
+        generator.writeStartObject().writeKey("abcdefgh");
+
+        int written = generator.consumed();
+        assertTrue(written > 0 && written < "abcdefgh".length());
+    }
+
+    @Test
+    void shouldReportPartialConsumptionWhenPlainWriteNumberExceedsLimit()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 0, 3);
+
+        generator.writeNumber("123456789");
+
+        int written = generator.consumed();
+        assertTrue(written > 0 && written < "123456789".length());
+    }
+
+    @Test
+    void shouldAllowResumingAPlainWriteThatDidNotFullyFit()
+    {
+        MutableDirectBufferEx first = new UnsafeBufferEx(new byte[8]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(first, 0, 8);
+
+        generator.write("abcdefghij");
+        int firstConsumed = generator.consumed();
+        String chunk1 = drain(generator, first);
+
+        MutableDirectBufferEx second = new UnsafeBufferEx(new byte[32]);
+        generator.wrap(second, 0, 32);
+        generator.write("abcdefghij".substring(firstConsumed), Completion.COMPLETE);
+        String chunk2 = drain(generator, second);
+
+        assertEquals("\"abcdefghij\"", chunk1 + chunk2);
     }
 
     @Test

@@ -170,15 +170,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeKey(
         CharSequence name)
     {
-        if (hasMembers[depth - 1])
-        {
-            putByte.accept(',');
-        }
-        hasMembers[depth - 1] = true;
-        writeString(name);
-        putByte.accept(':');
-        pending = Pending.AFTER_KEY;
-        return this;
+        return writeKey(name, Completion.COMPLETE);
     }
 
     @Override
@@ -231,9 +223,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         CharSequence value)
     {
-        preValue();
-        writeString(value);
-        return this;
+        return write(value, Completion.COMPLETE);
     }
 
     @Override
@@ -454,9 +444,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeNumber(
         CharSequence literal)
     {
-        preValue();
-        writeAscii(literal);
-        return this;
+        return writeNumber(literal, Completion.COMPLETE);
     }
 
     @Override
@@ -665,27 +653,6 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
                 putByte.accept(',');
             }
             hasMembers[depth - 1] = true;
-        }
-    }
-
-    private void writeString(
-        CharSequence value)
-    {
-        putByte.accept('"');
-        writeStringBody(value);
-        putByte.accept('"');
-    }
-
-    private void writeStringBody(
-        CharSequence value)
-    {
-        int index = 0;
-        int length = value.length();
-        while (index < length)
-        {
-            int codePoint = Character.codePointAt(value, index);
-            index += Character.charCount(codePoint);
-            emitStringCodePoint(codePoint);
         }
     }
 
