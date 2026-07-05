@@ -1032,8 +1032,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         int offset,
         int length)
     {
-        MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index,
-            MemorySegment.ofArray(dst), BYTE_LAYOUT, offset, length);
+        MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index, dst, offset, length);
     }
 
     @Override
@@ -1054,7 +1053,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             {
                 final int adjustment = dstBuffer.wrapAdjustment();
                 MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index,
-                    MemorySegment.ofArray(dstArray), BYTE_LAYOUT, adjustment + dstIndex, length);
+                    dstArray, adjustment + dstIndex, length);
             }
             else
             {
@@ -3292,8 +3291,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             int offset,
             int length)
         {
-            MemorySegment.copy(segment, BYTE_LAYOUT, index,
-                MemorySegment.ofArray(dst), BYTE_LAYOUT, offset, length);
+            MemorySegment.copy(segment, BYTE_LAYOUT, index, dst, offset, length);
         }
 
         @Override
@@ -3314,7 +3312,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
                 {
                     final int adjustment = dstBuffer.wrapAdjustment();
                     MemorySegment.copy(segment, BYTE_LAYOUT, index,
-                        MemorySegment.ofArray(dstArray), BYTE_LAYOUT, adjustment + dstIndex, length);
+                        dstArray, adjustment + dstIndex, length);
                 }
                 else
                 {
