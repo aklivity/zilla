@@ -131,6 +131,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final byte[] PROMPT_MESSAGE_CONTENT = ",\"content\":{\"type\":\"text\",\"text\":".getBytes(UTF_8);
     private static final byte[] PROMPT_MESSAGE_END = "}}".getBytes(UTF_8);
     private static final byte[] PROMPT_SUFFIX = "]}".getBytes(UTF_8);
+    private static final byte[] COMMA = ",".getBytes(UTF_8);
 
     private static final Map<String, String> EMPTY_PARAMS = Map.of();
     private static final Map<String, Object> SINK_STRUCTURED = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED);
@@ -173,7 +174,6 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final JsonParserEx queryParser = JsonEx.createParser();
     private final JsonPipeline canonicalizer;
     private final MutableDirectBufferEx projectBuffer;
-    private final MutableDirectBufferEx replyBuffer;
     private final UnsafeBufferEx escapeRO = new UnsafeBufferEx(new byte[0]);
     private final UnsafeBufferEx emptyRequestRO = new UnsafeBufferEx(new byte[0]);
     private final UnsafeBufferEx argsRO;
@@ -218,7 +218,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.canonicalizer = JsonEx.stream(JsonEx.createParser())
             .into(JsonEx.createSink(projectGenerator));
         this.projectBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.replyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.argsRO = new UnsafeBufferEx(new byte[0]);
         this.argsGenerator = JsonEx.createGenerator();
         this.argsBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
@@ -554,39 +553,38 @@ public final class McpHttpProxyFactory implements BindingHandler
             byte[] reply)
         {
             doEncodeReply(reply);
-            state = McpHttpState.closingReply(state);
-            doMcpBegin(traceId);
-            flushReply(traceId);
+            completeReply(traceId);
         }
 
-        // Encodes a reply envelope already assembled into replyBuffer[0..length], avoiding a jakarta DOM
-        // round-trip and the intermediate String/byte[] that doMcpReply(byte[]) requires.
-        void doMcpReplyBytes(
-            long traceId,
-            int length)
+        void completeReply(
+            long traceId)
         {
-            doEncodeReply(replyBuffer, 0, length);
             state = McpHttpState.closingReply(state);
             doMcpBegin(traceId);
             flushReply(traceId);
         }
 
-        void doEncodeReply(
-            byte[] bytes)
+        boolean acquireEncodeSlot()
         {
             if (encodeSlot == NO_SLOT)
             {
                 encodeSlot = bufferPool.acquire(replyId);
             }
 
-            if (encodeSlot == NO_SLOT)
-            {
-                cleanup(0L);
-            }
-            else
+            return encodeSlot != NO_SLOT;
+        }
+
+        void doEncodeReply(
+            byte[] bytes)
+        {
+            if (acquireEncodeSlot())
             {
                 bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, bytes);
                 encodeSlotOffset += bytes.length;
+            }
+            else
+            {
+                cleanup(0L);
             }
         }
 
@@ -595,19 +593,44 @@ public final class McpHttpProxyFactory implements BindingHandler
             int offset,
             int length)
         {
-            if (encodeSlot == NO_SLOT)
-            {
-                encodeSlot = bufferPool.acquire(replyId);
-            }
-
-            if (encodeSlot == NO_SLOT)
-            {
-                cleanup(0L);
-            }
-            else
+            if (acquireEncodeSlot())
             {
                 bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
                 encodeSlotOffset += length;
+            }
+            else
+            {
+                cleanup(0L);
+            }
+        }
+
+        // Writes an escaped JSON string directly into encodeSlot at encodeSlotOffset, avoiding a
+        // separate scratch buffer for content that is only ever appended once, in order.
+        void doEncodeReplyJsonString(
+            String value)
+        {
+            if (acquireEncodeSlot())
+            {
+                encodeSlotOffset = putJsonString(bufferPool.buffer(encodeSlot), encodeSlotOffset, value);
+            }
+            else
+            {
+                cleanup(0L);
+            }
+        }
+
+        void doEncodeReplyJsonString(
+            DirectBufferEx source,
+            int offset,
+            int length)
+        {
+            if (acquireEncodeSlot())
+            {
+                encodeSlotOffset = putJsonString(bufferPool.buffer(encodeSlot), encodeSlotOffset, source, offset, length);
+            }
+            else
+            {
+                cleanup(0L);
             }
         }
 
@@ -1318,40 +1341,52 @@ public final class McpHttpProxyFactory implements BindingHandler
                 final int produced = projectResponse(outputSchema, body, offset, length);
                 if (outputSchema != null && produced < 0)
                 {
-                    doMcpReplyBytes(traceId, buildToolError("invalid response"));
+                    doEncodeToolError("invalid response");
+                    completeReply(traceId);
                 }
                 else
                 {
                     final int structuredLength = produced >= 0 ? produced : emptyResponse();
-                    final int summaryLength = tool != null && tool.summary != null
-                        ? putJsonString(replyBuffer, 0,
-                            interpolate(tool.summary, expr -> resolveResult(structuredLength, expr)))
-                        : putJsonString(replyBuffer, 0, projectBuffer, 0, structuredLength);
-                    doMcpToolSuccess(traceId, summaryLength, structuredLength);
+                    doEncodeToolSuccess(tool, structuredLength);
+                    completeReply(traceId);
                 }
             }
             else
             {
-                doMcpReplyBytes(traceId, buildToolError(cap(text(body, offset, length))));
+                doEncodeToolError(cap(text(body, offset, length)));
+                completeReply(traceId);
             }
         }
 
-        // Assembles the tools/call success reply by staging the static envelope around the escaped summary
-        // (already written into replyBuffer[0..summaryLength]) and the projected structuredContent spliced
-        // verbatim from projectBuffer, avoiding a jakarta DOM round-trip of the upstream response body.
-        private void doMcpToolSuccess(
-            long traceId,
-            int summaryLength,
+        // Assembles the tools/call success reply directly into encodeSlot: the static envelope around the
+        // escaped summary and the projected structuredContent spliced verbatim from projectBuffer, avoiding
+        // a jakarta DOM round-trip of the upstream response body and any separate scratch buffer.
+        private void doEncodeToolSuccess(
+            McpHttpToolConfig tool,
             int length)
         {
             doEncodeReply(TOOL_SUCCESS_PREFIX);
-            doEncodeReply(replyBuffer, 0, summaryLength);
+            if (tool != null && tool.summary != null)
+            {
+                doEncodeReplyJsonString(interpolate(tool.summary, expr -> resolveResult(length, expr)));
+            }
+            else
+            {
+                doEncodeReplyJsonString(projectBuffer, 0, length);
+            }
             doEncodeReply(TOOL_SUCCESS_INFIX);
             doEncodeReply(projectBuffer, 0, length);
             doEncodeReply(TOOL_SUCCESS_SUFFIX);
-            state = McpHttpState.closingReply(state);
-            doMcpBegin(traceId);
-            flushReply(traceId);
+        }
+
+        // Assembles {"content":[{"type":"text","text":<escaped>}],"isError":true} directly into encodeSlot
+        // from static byte[] fragments and the escaped error text — no jakarta DOM, no String round-trip.
+        private void doEncodeToolError(
+            String bodyText)
+        {
+            doEncodeReply(TOOL_SUCCESS_PREFIX);
+            doEncodeReplyJsonString(bodyText);
+            doEncodeReply(TOOL_ERROR_SUFFIX);
         }
     }
 
@@ -1398,8 +1433,25 @@ public final class McpHttpProxyFactory implements BindingHandler
                 final String mimeType = resource != null && resource.mimeType != null
                     ? resource.mimeType
                     : contentType;
-                doMcpReplyBytes(traceId, buildResource(uri, mimeType, produced));
+                doEncodeResource(uri, mimeType, produced);
+                completeReply(traceId);
             }
+        }
+
+        // Assembles {"contents":[{"uri":<u>,"mimeType":<m>,"text":<escaped>}]} directly into encodeSlot,
+        // escaping the projected resource text spliced directly from projectBuffer[0..length].
+        private void doEncodeResource(
+            String uri,
+            String mimeType,
+            int length)
+        {
+            doEncodeReply(RESOURCE_PREFIX);
+            doEncodeReplyJsonString(uri);
+            doEncodeReply(RESOURCE_MIME);
+            doEncodeReplyJsonString(mimeType);
+            doEncodeReply(RESOURCE_TEXT);
+            doEncodeReplyJsonString(projectBuffer, 0, length);
+            doEncodeReply(RESOURCE_SUFFIX);
         }
 
         @Override
@@ -1427,23 +1479,21 @@ public final class McpHttpProxyFactory implements BindingHandler
             final String mimeType = resource != null && resource.mimeType != null
                 ? resource.mimeType
                 : contentType;
-            doEncodeReply(replyBuffer, 0, replyPrefix(uri, mimeType));
+            doEncodeReplyPrefix(uri, mimeType);
             doMcpBegin(traceId);
         }
 
-        // Writes the streaming resource reply prefix up to the open quote of the text value into
-        // replyBuffer and returns its length; the escaped resource text and REPLY_SUFFIX follow as the
-        // projected body streams in.
-        private int replyPrefix(
+        // Writes the streaming resource reply prefix up to the open quote of the text value directly into
+        // encodeSlot; the escaped resource text and RESOURCE_SUFFIX follow as the projected body streams in.
+        private void doEncodeReplyPrefix(
             String uri,
             String mimeType)
         {
-            int progress = put(replyBuffer, 0, RESOURCE_PREFIX);
-            progress = putJsonString(replyBuffer, progress, uri);
-            progress = put(replyBuffer, progress, RESOURCE_MIME);
-            progress = putJsonString(replyBuffer, progress, mimeType);
-            progress = put(replyBuffer, progress, RESOURCE_TEXT_OPEN);
-            return progress;
+            doEncodeReply(RESOURCE_PREFIX);
+            doEncodeReplyJsonString(uri);
+            doEncodeReply(RESOURCE_MIME);
+            doEncodeReplyJsonString(mimeType);
+            doEncodeReply(RESOURCE_TEXT_OPEN);
         }
     }
 
@@ -1547,8 +1597,45 @@ public final class McpHttpProxyFactory implements BindingHandler
             final int argsLength = decodeSlot != NO_SLOT
                 ? extractArgs(bufferPool.buffer(decodeSlot), 0, decodeSlotOffset)
                 : emptyArgs();
-            doMcpReplyBytes(traceId, buildPromptGet(binding.prompt(name), argsLength));
+            doEncodePromptGet(binding.prompt(name), argsLength);
+            completeReply(traceId);
             cleanupDecodeSlot();
+        }
+
+        // Assembles {"description":<d>,"messages":[{"role":<r>,"content":{"type":"text","text":<t>}},...]}
+        // directly into encodeSlot (description optional), interpolating each message text into the escaped
+        // value directly — replaces the per-request jakarta DOM + compact round-trip.
+        private void doEncodePromptGet(
+            McpHttpPromptConfig prompt,
+            int argsLength)
+        {
+            if (prompt.description != null)
+            {
+                doEncodeReply(PROMPT_DESCRIPTION);
+                doEncodeReplyJsonString(prompt.description);
+                doEncodeReply(PROMPT_MESSAGES);
+            }
+            else
+            {
+                doEncodeReply(PROMPT_MESSAGES_OPEN);
+            }
+            boolean first = true;
+            for (McpHttpPromptMessageConfig message : prompt.messages)
+            {
+                if (!first)
+                {
+                    doEncodeReply(COMMA);
+                }
+                first = false;
+                final String text = interpolate(message.text,
+                    expr -> expr.startsWith("args.") ? navigateBytes(argsBuffer, argsLength, expr.substring(5)) : "");
+                doEncodeReply(PROMPT_MESSAGE_ROLE);
+                doEncodeReplyJsonString(message.role);
+                doEncodeReply(PROMPT_MESSAGE_CONTENT);
+                doEncodeReplyJsonString(text);
+                doEncodeReply(PROMPT_MESSAGE_END);
+            }
+            doEncodeReply(PROMPT_SUFFIX);
         }
     }
 
@@ -2528,34 +2615,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         builder.append(encode(key)).append('=').append(encode(value));
     }
 
-    // Assembles {"content":[{"type":"text","text":<escaped>}],"isError":true} into replyBuffer from static
-    // byte[] fragments and the escaped error text, returning its length — no jakarta DOM, no String round-trip.
-    private int buildToolError(
-        String bodyText)
-    {
-        int progress = put(replyBuffer, 0, TOOL_SUCCESS_PREFIX);
-        progress = putJsonString(replyBuffer, progress, bodyText);
-        progress = put(replyBuffer, progress, TOOL_ERROR_SUFFIX);
-        return progress;
-    }
-
-    // Assembles {"contents":[{"uri":<u>,"mimeType":<m>,"text":<escaped>}]} into replyBuffer, escaping the
-    // projected resource text spliced directly from projectBuffer[0..length], returning its length.
-    private int buildResource(
-        String uri,
-        String mimeType,
-        int length)
-    {
-        int progress = put(replyBuffer, 0, RESOURCE_PREFIX);
-        progress = putJsonString(replyBuffer, progress, uri);
-        progress = put(replyBuffer, progress, RESOURCE_MIME);
-        progress = putJsonString(replyBuffer, progress, mimeType);
-        progress = put(replyBuffer, progress, RESOURCE_TEXT);
-        progress = putJsonString(replyBuffer, progress, projectBuffer, 0, length);
-        progress = put(replyBuffer, progress, RESOURCE_SUFFIX);
-        return progress;
-    }
-
     private byte[] toolsList(
         McpHttpBindingConfig binding)
     {
@@ -2698,43 +2757,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         return compact(Json.createObjectBuilder().add("prompts", prompts).build());
     }
 
-    // Assembles {"description":<d>,"messages":[{"role":<r>,"content":{"type":"text","text":<t>}},...]} into
-    // replyBuffer (description optional), interpolating each message text into the escaped value directly,
-    // returning its length — replaces the per-request jakarta DOM + compact round-trip.
-    private int buildPromptGet(
-        McpHttpPromptConfig prompt,
-        int argsLength)
-    {
-        int progress;
-        if (prompt.description != null)
-        {
-            progress = put(replyBuffer, 0, PROMPT_DESCRIPTION);
-            progress = putJsonString(replyBuffer, progress, prompt.description);
-            progress = put(replyBuffer, progress, PROMPT_MESSAGES);
-        }
-        else
-        {
-            progress = put(replyBuffer, 0, PROMPT_MESSAGES_OPEN);
-        }
-        boolean first = true;
-        for (McpHttpPromptMessageConfig message : prompt.messages)
-        {
-            if (!first)
-            {
-                replyBuffer.putByte(progress++, (byte) ',');
-            }
-            first = false;
-            final String text = interpolate(message.text,
-                expr -> expr.startsWith("args.") ? navigateBytes(argsBuffer, argsLength, expr.substring(5)) : "");
-            progress = put(replyBuffer, progress, PROMPT_MESSAGE_ROLE);
-            progress = putJsonString(replyBuffer, progress, message.role);
-            progress = put(replyBuffer, progress, PROMPT_MESSAGE_CONTENT);
-            progress = putJsonString(replyBuffer, progress, text);
-            progress = put(replyBuffer, progress, PROMPT_MESSAGE_END);
-        }
-        progress = put(replyBuffer, progress, PROMPT_SUFFIX);
-        return progress;
-    }
 
     private JsonObject schemaObject(
         McpHttpBindingConfig binding,
