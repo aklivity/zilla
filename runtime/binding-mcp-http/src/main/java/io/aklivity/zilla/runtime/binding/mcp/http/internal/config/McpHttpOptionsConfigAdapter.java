@@ -107,13 +107,13 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
             for (McpHttpToolConfig tool : tools)
             {
                 JsonObjectBuilder toolObject = Json.createObjectBuilder();
-                if (tool.description != null)
-                {
-                    toolObject.add(DESCRIPTION_NAME, tool.description);
-                }
                 if (tool.summary != null)
                 {
                     toolObject.add(SUMMARY_NAME, tool.summary);
+                }
+                if (tool.description != null)
+                {
+                    toolObject.add(DESCRIPTION_NAME, tool.description);
                 }
                 JsonObjectBuilder schemas = Json.createObjectBuilder();
                 if (tool.input != null)
@@ -240,12 +240,12 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
             for (String name : toolsObject.keySet())
             {
                 JsonObject toolObject = toolsObject.getJsonObject(name);
-                String description = toolObject.containsKey(DESCRIPTION_NAME)
-                    ? toolObject.getString(DESCRIPTION_NAME)
-                    : null;
-
                 String summary = toolObject.containsKey(SUMMARY_NAME)
                     ? toolObject.getString(SUMMARY_NAME)
+                    : null;
+
+                String description = toolObject.containsKey(DESCRIPTION_NAME)
+                    ? toolObject.getString(DESCRIPTION_NAME)
                     : null;
 
                 ModelConfig input = null;
@@ -263,7 +263,7 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
                     }
                 }
 
-                tools.add(new McpHttpToolConfig(name, description, summary, input, output));
+                tools.add(new McpHttpToolConfig(name, summary, description, input, output));
             }
         }
 
