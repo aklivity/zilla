@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiException;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiComponents;
@@ -433,8 +432,8 @@ public class OpenapiViewTest
         assertEquals(URI.create("http://staging.example.com:80"), view.servers.get(0).url);
     }
 
-    @Test(expected = OpenapiException.class)
-    public void shouldRejectServerUrlOverrideNotMatchingVariablePattern() throws Exception
+    @Test
+    public void shouldDefaultServerUrlVariableWhenOverrideDoesNotMatchPattern() throws Exception
     {
         OpenapiServerVariable variable = new OpenapiServerVariable();
         variable.values = List.of("prod", "staging");
@@ -450,8 +449,9 @@ public class OpenapiViewTest
         OpenapiServerConfig config = OpenapiServerConfig.builder()
             .url("http://dev.example.com")
             .build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
 
-        OpenapiView.of(model, List.of(config));
+        assertEquals(URI.create("http://prod.example.com:80"), view.servers.get(0).url);
     }
 
     public static final class SampleExtension
