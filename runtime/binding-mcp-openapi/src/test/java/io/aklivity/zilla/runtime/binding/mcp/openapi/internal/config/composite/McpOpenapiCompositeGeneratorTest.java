@@ -299,7 +299,7 @@ public class McpOpenapiCompositeGeneratorTest
         ModelConfig override = StringModelConfig.builder().build();
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
                 Map.of("bearerAuth", "guard0")))
             .tool(new McpOpenapiToolConfig("create_pr", "Create a pull request.", override))
@@ -336,11 +336,11 @@ public class McpOpenapiCompositeGeneratorTest
 
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("api_a",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
                 Map.of("bearerAuth", "guard0")))
             .spec(new McpOpenapiSpecificationConfig("api_b",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "other-api", "latest")),
                 Map.of("oauthScheme", "guard0")))
             .build();
@@ -380,7 +380,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
                 Map.of("apiKeyScheme", "guard0")))
             .build();
@@ -398,7 +398,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
                 Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard0")))
             .build();
@@ -417,7 +417,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
                 Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard1")))
             .build();
@@ -437,7 +437,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
                 Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard0")))
             .build();
@@ -457,7 +457,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
                 Map.of("bearerAuth", "guard0")))
             .build();
@@ -478,7 +478,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
             .build();
 
@@ -497,7 +497,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
             .build();
 
@@ -515,7 +515,7 @@ public class McpOpenapiCompositeGeneratorTest
 
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("internal",
-                of("https://api.internal.example"),
+                "https://api.internal.example",
                 of(new McpOpenapiCatalogConfig("catalog0", "internal-api", "latest")),
                 Map.of("bearerAuth", "guard0")))
             .build();
@@ -573,7 +573,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
                 Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
             .build();

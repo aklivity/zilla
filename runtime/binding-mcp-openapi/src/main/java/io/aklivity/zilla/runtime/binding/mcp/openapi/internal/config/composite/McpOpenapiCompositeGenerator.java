@@ -19,6 +19,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -53,7 +54,6 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiR
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiParameterView;
@@ -94,6 +94,7 @@ public final class McpOpenapiCompositeGenerator
         final OpenapiParser parser = new OpenapiParser();
         final Map<String, OpenapiView> specsByLabel = new LinkedHashMap<>();
         final Map<String, Map<String, String>> securityByLabel = new LinkedHashMap<>();
+        final Map<String, String> serverByLabel = new LinkedHashMap<>();
 
         int tagIndex = 1;
         if (binding.options != null && binding.options.specs != null)
@@ -102,18 +103,14 @@ public final class McpOpenapiCompositeGenerator
             {
                 final String label = specification.label;
                 securityByLabel.put(label, specification.security);
+                serverByLabel.put(label, specification.server);
                 for (McpOpenapiCatalogConfig catalog : specification.catalogs)
                 {
                     final long catalogId = binding.resolveId.applyAsLong(catalog.name);
                     final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                     final int schemaId = handler.resolve(catalog.subject, catalog.version);
                     final String payload = handler.resolve(schemaId);
-                    final List<OpenapiServerConfig> servers = specification.servers == null
-                        ? List.of()
-                        : specification.servers.stream()
-                            .map(url -> OpenapiServerConfig.builder().url(url).build())
-                            .toList();
-                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), servers);
+                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), List.of());
                     specsByLabel.put(label, openapi);
                 }
             }
@@ -160,7 +157,8 @@ public final class McpOpenapiCompositeGenerator
                 continue;
             }
 
-            routed.add(new RoutedOperation(tool, resource, operation, toolConfig(binding, tool), resolution.guarded));
+            routed.add(new RoutedOperation(tool, resource, operation, toolConfig(binding, tool), resolution.guarded,
+                serverByLabel.get(with.spec)));
         }
 
         final NamespaceConfig namespace = NamespaceConfig.builder()
@@ -464,18 +462,12 @@ public final class McpOpenapiCompositeGenerator
         RoutedOperation entry)
     {
         final OpenapiOperationView operation = entry.operation;
-        final OpenapiServerView server = operation.servers != null && !operation.servers.isEmpty()
-            ? operation.servers.get(0)
-            : null;
-
-        final String authority = server != null && server.url != null ? server.url.getHost() : null;
-        final String scheme = server != null && server.url != null ? server.url.getScheme() : "https";
-        final String base = server != null && server.url != null && server.url.getPath() != null
-            ? server.url.getPath()
-            : "";
+        final ResolvedServer resolved = entry.server != null
+            ? resolveServerOverride(entry.server)
+            : resolveServerFromSpec(operation);
 
         final String accessor = entry.tool != null ? "args" : "params";
-        final StringBuilder path = new StringBuilder(base);
+        final StringBuilder path = new StringBuilder(resolved.base);
         path.append(lowerPathParams(operation.path, accessor));
 
         final String query = queryString(operation, accessor);
@@ -486,13 +478,13 @@ public final class McpOpenapiCompositeGenerator
 
         final Map<String, String> headers = new LinkedHashMap<>();
         headers.put(":method", operation.method);
-        if (scheme != null)
+        if (resolved.scheme != null)
         {
-            headers.put(":scheme", scheme);
+            headers.put(":scheme", resolved.scheme);
         }
-        if (authority != null)
+        if (resolved.authority != null)
         {
-            headers.put(":authority", authority);
+            headers.put(":authority", resolved.authority);
         }
         headers.put(":path", path.toString());
 
@@ -501,6 +493,34 @@ public final class McpOpenapiCompositeGenerator
             : null;
 
         return new McpHttpWithConfig(headers, null, body, null);
+    }
+
+    private static ResolvedServer resolveServerFromSpec(
+        OpenapiOperationView operation)
+    {
+        final OpenapiServerView server = operation.servers != null && !operation.servers.isEmpty()
+            ? operation.servers.get(0)
+            : null;
+
+        final String authority = server != null && server.url != null ? server.url.getHost() : null;
+        final String scheme = server != null && server.url != null ? server.url.getScheme() : "https";
+        final String base = server != null && server.url != null && server.url.getPath() != null
+            ? server.url.getPath()
+            : "";
+
+        return new ResolvedServer(scheme, authority, base);
+    }
+
+    private static ResolvedServer resolveServerOverride(
+        String server)
+    {
+        final URI uri = URI.create(server);
+        final String authority = uri.getPort() != -1
+            ? "%s:%d".formatted(uri.getHost(), uri.getPort())
+            : uri.getHost();
+        final String base = uri.getPath() != null ? uri.getPath() : "";
+
+        return new ResolvedServer(uri.getScheme(), authority, base);
     }
 
     private static String lowerPathParams(
@@ -700,19 +720,22 @@ public final class McpOpenapiCompositeGenerator
         private final OpenapiOperationView operation;
         private final McpOpenapiToolConfig toolConfig;
         private final List<GuardedRef> guarded;
+        private final String server;
 
         private RoutedOperation(
             String tool,
             String resource,
             OpenapiOperationView operation,
             McpOpenapiToolConfig toolConfig,
-            List<GuardedRef> guarded)
+            List<GuardedRef> guarded,
+            String server)
         {
             this.tool = tool;
             this.resource = resource;
             this.operation = operation;
             this.toolConfig = toolConfig;
             this.guarded = guarded;
+            this.server = server;
         }
 
         private String subjectName()
@@ -763,6 +786,23 @@ public final class McpOpenapiCompositeGenerator
         private boolean denied()
         {
             return reason != null;
+        }
+    }
+
+    private static final class ResolvedServer
+    {
+        private final String scheme;
+        private final String authority;
+        private final String base;
+
+        private ResolvedServer(
+            String scheme,
+            String authority,
+            String base)
+        {
+            this.scheme = scheme;
+            this.authority = authority;
+            this.base = base;
         }
     }
 }

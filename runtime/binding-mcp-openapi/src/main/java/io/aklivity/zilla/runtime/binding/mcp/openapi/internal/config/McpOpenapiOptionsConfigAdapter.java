@@ -16,13 +16,10 @@ package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -43,8 +40,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
 {
     private static final String SPECS_NAME = "specs";
     private static final String SECURITY_NAME = "security";
-    private static final String SERVERS_NAME = "servers";
-    private static final String SERVER_URL_NAME = "url";
+    private static final String SERVER_NAME = "server";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
@@ -94,12 +90,9 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 }
                 specObject.add(CATALOG_NAME, catalogObject);
 
-                if (spec.servers != null && !spec.servers.isEmpty())
+                if (spec.server != null)
                 {
-                    final JsonArrayBuilder servers = Json.createArrayBuilder();
-                    spec.servers.forEach(s ->
-                        servers.add(Json.createObjectBuilder().add(SERVER_URL_NAME, s)));
-                    specObject.add(SERVERS_NAME, servers);
+                    specObject.add(SERVER_NAME, spec.server);
                 }
 
                 if (spec.security != null && !spec.security.isEmpty())
@@ -152,21 +145,9 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 final String label = entry.getKey();
                 final JsonObject specObject = entry.getValue().asJsonObject();
 
-                final List<String> servers = new LinkedList<>();
-                final JsonArray serversJson = specObject.containsKey(SERVERS_NAME)
-                    ? specObject.getJsonArray(SERVERS_NAME)
+                final String server = specObject.containsKey(SERVER_NAME)
+                    ? specObject.getString(SERVER_NAME)
                     : null;
-                if (serversJson != null)
-                {
-                    serversJson.forEach(s ->
-                    {
-                        JsonObject serverObject = s.asJsonObject();
-                        if (serverObject.containsKey(SERVER_URL_NAME))
-                        {
-                            servers.add(serverObject.getString(SERVER_URL_NAME));
-                        }
-                    });
-                }
 
                 final List<McpOpenapiCatalogConfig> catalogs = new ArrayList<>();
                 if (specObject.containsKey(CATALOG_NAME))
@@ -196,7 +177,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     }
                 }
 
-                mcpOpenapiOptions.spec(new McpOpenapiSpecificationConfig(label, servers, catalogs, security));
+                mcpOpenapiOptions.spec(new McpOpenapiSpecificationConfig(label, server, catalogs, security));
             }
         }
 

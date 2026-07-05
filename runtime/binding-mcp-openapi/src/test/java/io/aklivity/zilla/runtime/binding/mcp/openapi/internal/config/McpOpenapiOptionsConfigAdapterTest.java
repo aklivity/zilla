@@ -70,12 +70,7 @@ public class McpOpenapiOptionsConfigAdapterTest
                 "{" +
                     "\"openapi_github0\":" +
                     "{" +
-                        "\"servers\":" +
-                        "[" +
-                            "{" +
-                                "\"url\": \"https://api.github.com\"" +
-                            "}" +
-                        "]," +
+                        "\"server\": \"https://api.github.com\"," +
                         "\"catalog\":" +
                         "{" +
                             "\"catalog0\":" +
@@ -101,7 +96,7 @@ public class McpOpenapiOptionsConfigAdapterTest
         assertThat(options.specs, not(nullValue()));
         assertThat(options.specs.size(), equalTo(1));
         assertThat(options.specs.get(0).label, equalTo("openapi_github0"));
-        assertThat(options.specs.get(0).servers, equalTo(of("https://api.github.com")));
+        assertThat(options.specs.get(0).server, equalTo("https://api.github.com"));
         assertThat(options.specs.get(0).catalogs.get(0).name, equalTo("catalog0"));
         assertThat(options.specs.get(0).catalogs.get(0).subject, equalTo("rest-api"));
         assertThat(options.tools, not(nullValue()));
@@ -114,12 +109,12 @@ public class McpOpenapiOptionsConfigAdapterTest
     {
         String expected =
             "{\"specs\":{\"openapi_github0\":{\"catalog\":{\"catalog0\":" +
-            "{\"subject\":\"rest-api\",\"version\":\"latest\"}},\"servers\":[{\"url\":\"https://api.github.com\"}]}}," +
+            "{\"subject\":\"rest-api\",\"version\":\"latest\"}},\"server\":\"https://api.github.com\"}}," +
             "\"tools\":{\"create_pr\":{\"description\":\"Create a pull request.\"}}}";
 
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                of("https://api.github.com"),
+                "https://api.github.com",
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
             .tool(new McpOpenapiToolConfig("create_pr", "Create a pull request.", null))
             .build();

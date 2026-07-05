@@ -20,26 +20,26 @@ import java.util.Map;
 public final class McpOpenapiSpecificationConfig
 {
     public final String label;
-    public final List<String> servers;
+    public final String server;
     public final List<McpOpenapiCatalogConfig> catalogs;
     public final Map<String, String> security;
 
     public McpOpenapiSpecificationConfig(
         String label,
-        List<String> servers,
+        String server,
         List<McpOpenapiCatalogConfig> catalogs)
     {
-        this(label, servers, catalogs, null);
+        this(label, server, catalogs, null);
     }
 
     public McpOpenapiSpecificationConfig(
         String label,
-        List<String> servers,
+        String server,
         List<McpOpenapiCatalogConfig> catalogs,
         Map<String, String> security)
     {
         this.label = label;
-        this.servers = servers;
+        this.server = server;
         this.catalogs = catalogs;
         this.security = security;
     }

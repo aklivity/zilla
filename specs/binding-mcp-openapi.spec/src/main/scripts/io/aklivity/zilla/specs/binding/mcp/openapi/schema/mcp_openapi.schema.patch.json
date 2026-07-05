@@ -48,23 +48,10 @@
                                         "type": "object",
                                         "properties":
                                         {
-                                            "servers":
+                                            "server":
                                             {
-                                                "title": "Servers",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "url":
-                                                        {
-                                                            "title": "URL",
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
+                                                "title": "Server",
+                                                "type": "string"
                                             },
                                             "catalog":
                                             {
