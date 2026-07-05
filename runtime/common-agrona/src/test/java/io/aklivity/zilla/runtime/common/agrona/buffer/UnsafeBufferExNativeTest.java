@@ -85,6 +85,29 @@ public class UnsafeBufferExNativeTest
     }
 
     @Test
+    public void putBytesOnSubRangeWrapUsesCorrectByteBufferOffset()
+    {
+        // putBytes(index, byte[], offset, length) copies through byteBufferView, which must be
+        // sliced in step with segment/addressOffset or the write lands at the whole buffer's
+        // offset 0 instead of the sub-range's true position
+        ByteBuffer source = ByteBuffer.allocateDirect(64);
+        UnsafeBufferEx whole = new UnsafeBufferEx(source);
+        UnsafeBufferEx subRange = new UnsafeBufferEx(source, 16, 32);
+        UnsafeBufferEx.Native native0 = subRange.asNative();
+
+        byte[] payload = "hello-sub-range-bytes".getBytes();
+        native0.putBytes(0, payload);
+
+        byte[] readback = new byte[payload.length];
+        native0.getBytes(0, readback);
+        assertArrayEquals(payload, readback);
+
+        byte[] wholeReadback = new byte[payload.length];
+        whole.getBytes(16, wholeReadback);
+        assertArrayEquals(payload, wholeReadback);
+    }
+
+    @Test
     public void wrapByteArrayUnsupported()
     {
         UnsafeBufferEx.Native native0 = new UnsafeBufferEx(ByteBuffer.allocateDirect(64)).asNative();

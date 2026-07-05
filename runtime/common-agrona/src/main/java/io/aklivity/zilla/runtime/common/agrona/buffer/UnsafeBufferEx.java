@@ -2499,16 +2499,18 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             assert byteBuffer != null && byteBuffer.isDirect()
                 : "UnsafeBufferEx.Native requires a direct ByteBuffer";
             // Native's own base always corresponds to wrapAdjustment 0 (see wrapAdjustment() below), so
-            // a sub-range wrap(ByteBuffer, offset, length) is sliced to that sub-range here rather than
-            // carrying the whole-buffer segment forward.
+            // a sub-range wrap(ByteBuffer, offset, length) is sliced to that sub-range here for both the
+            // segment and the ByteBuffer — byteBufferView is derived from the latter, and every bulk-copy
+            // call site below indexes it without adding wrapAdjustment, so the two views must stay in
+            // sync or a sub-range write lands at the whole buffer's offset 0 instead of its true position.
             this.segment = segment.asSlice(wrapAdjustment, capacity);
             this.addressOffset = this.segment.address();
             this.capacity = capacity;
-            this.byteBuffer = byteBuffer;
+            this.byteBuffer = wrapAdjustment == 0 ? byteBuffer : byteBuffer.slice(wrapAdjustment, capacity);
             // clean duplicate (position 0, limit capacity) so the ByteBuffer.put bulk-copy fast path
             // is always in bounds without consulting the wrapped buffer's NIO limit (Agrona scratch
             // state, e.g. dirtied by CRC32.update)
-            this.byteBufferView = byteBuffer.duplicate();
+            this.byteBufferView = this.byteBuffer.duplicate();
             this.byteBufferView.clear();
         }
 
