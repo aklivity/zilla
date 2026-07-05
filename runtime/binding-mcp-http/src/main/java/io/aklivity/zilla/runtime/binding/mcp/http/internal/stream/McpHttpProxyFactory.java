@@ -540,7 +540,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             flushReply(traceId);
         }
 
-        private void onMcpReset(
+        void onMcpReset(
             ResetFW reset)
         {
             state = McpHttpState.closedReply(state);
@@ -840,6 +840,16 @@ public final class McpHttpProxyFactory implements BindingHandler
             state = McpHttpState.closedInitial(state);
             delegate.doHttpAbort(traceId);
             cleanupDecodeSlot();
+        }
+
+        @Override
+        void onMcpReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+            state = McpHttpState.closedReply(state);
+            delegate.doHttpReset(traceId);
+            cleanupEncodeSlot();
         }
 
         @Override
@@ -1434,19 +1444,27 @@ public final class McpHttpProxyFactory implements BindingHandler
             int offset,
             int length)
         {
-            final JsonSchema responseSchema = resource != null ? binding.jsonSchema(resource.output) : null;
-            final int produced = projectResponse(responseSchema, body, offset, length);
-            if (produced < 0)
+            final boolean ok = status != null && status.startsWith("2");
+            if (!ok)
             {
                 doMcpAbort(traceId);
             }
             else
             {
-                final String mimeType = resource != null && resource.mimeType != null
-                    ? resource.mimeType
-                    : contentType;
-                doEncodeResource(uri, mimeType, produced);
-                completeReply(traceId);
+                final JsonSchema responseSchema = resource != null ? binding.jsonSchema(resource.output) : null;
+                final int produced = projectResponse(responseSchema, body, offset, length);
+                if (produced < 0)
+                {
+                    doMcpAbort(traceId);
+                }
+                else
+                {
+                    final String mimeType = resource != null && resource.mimeType != null
+                        ? resource.mimeType
+                        : contentType;
+                    doEncodeResource(uri, mimeType, produced);
+                    completeReply(traceId);
+                }
             }
         }
 
@@ -1473,6 +1491,9 @@ public final class McpHttpProxyFactory implements BindingHandler
             return length > RESPONSE_BUFFER_MAX;
         }
 
+        // Unlike onHttpResponse (the buffered path), this streaming path has no upstream status available here
+        // to check before committing to a reply: doMcpBegin below has already opened the mcp reply by the time
+        // any non-2xx status would be known. Narrower gap than the buffered path fixed above; left unaddressed.
         @Override
         void responseBegin(
             long traceId,
@@ -1896,6 +1917,16 @@ public final class McpHttpProxyFactory implements BindingHandler
                 state = McpHttpState.closedInitial(state);
             }
             cleanupEncodeSlot();
+        }
+
+        private void doHttpReset(
+            long traceId)
+        {
+            if (McpHttpState.initialOpening(state) && !McpHttpState.replyClosed(state))
+            {
+                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, mcp.authorization);
+                state = McpHttpState.closedReply(state);
+            }
         }
 
         private void doHttpReplyWindow(

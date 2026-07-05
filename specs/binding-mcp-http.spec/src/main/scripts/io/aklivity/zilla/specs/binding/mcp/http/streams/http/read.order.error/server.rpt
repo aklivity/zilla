@@ -33,13 +33,13 @@ connected
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "200")
+                            .header(":status", "500")
                             .header("content-type", "application/json")
                             .build()}
 write flush
 
-# total is a string -> violates order_result (total: number)
-write '{"id":"12345","status":"shipped","total":"lots"}'
+# body would satisfy order_result (total: number) if the status were 2xx
+write '{"id":"12345","status":"shipped","total":42.5}'
 write flush
 
 write close
@@ -47,5 +47,5 @@ write close
 read closed
 
 # only once the full response round trip has completed can the client safely expect the
-# proxy to have already reacted to the malformed body and sent its abort
+# proxy to have already reacted to the non-2xx status and sent its abort
 write notify RESPONSE_SENT

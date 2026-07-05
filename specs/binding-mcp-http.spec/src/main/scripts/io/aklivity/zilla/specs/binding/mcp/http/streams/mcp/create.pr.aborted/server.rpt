@@ -54,4 +54,6 @@ read  '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"
 
 write flush
 
+write notify REQUEST_RECEIVED
+
 write abort

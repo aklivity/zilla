@@ -56,6 +56,6 @@ write '{"uri":"order://12345"}'
 # this isn't racing the response delivery itself
 read await RESPONSE_SENT
 
-# upstream response violates with.response (total is a string, not a number); resources/read
-# carries no isError, so the reply stream is aborted
+# upstream responds with a non-2xx status even though the body would otherwise satisfy
+# with.response; resources/read carries no isError, so the reply stream is aborted
 read abort

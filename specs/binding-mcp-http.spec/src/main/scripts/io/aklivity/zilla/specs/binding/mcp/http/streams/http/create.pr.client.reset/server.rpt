@@ -23,29 +23,19 @@ accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":method", "GET")
+                           .header(":method", "POST")
                            .header(":scheme", "https")
-                           .header(":authority", "api.orders.internal")
-                           .header(":path", "/orders/12345")
+                           .header(":authority", "api.github.com")
+                           .header(":path", "/repos/acme/widget/pulls")
+                           .header("content-type", "application/json")
                            .build()}
 
 connected
 
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":status", "200")
-                            .header("content-type", "application/json")
-                            .build()}
-write flush
+read  '{"title":"Add feature","head":"feature","base":"main"}'
 
-# total is a string -> violates order_result (total: number)
-write '{"id":"12345","status":"shipped","total":"lots"}'
-write flush
+write notify REQUEST_RECEIVED
 
-write close
-
+# never responds; the client resets the reply before any response arrives, and the proxy
+# resets this reply direction in turn
 read closed
-
-# only once the full response round trip has completed can the client safely expect the
-# proxy to have already reacted to the malformed body and sent its abort
-write notify RESPONSE_SENT

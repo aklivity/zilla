@@ -275,6 +275,16 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.client.reset/client",
+        "${http}/create.pr.client.reset/server"})
+    public void shouldAbortUpstreamWhenReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.guarded.yaml")
     @Specification({
         "${mcp}/create.pr/client",
@@ -355,6 +365,16 @@ public class McpHttpProxyIT
         "${mcp}/read.order.malformed/client",
         "${http}/read.order.malformed/server"})
     public void shouldRejectResourceWhenResponseInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/read.order.error/client",
+        "${http}/read.order.error/server"})
+    public void shouldAbortResourceReadWhenUpstreamStatusNotOk() throws Exception
     {
         k3po.finish();
     }

@@ -41,21 +41,22 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourcesRead()
+                           .toolsCall()
                                .sessionId("session-1")
-                               .uri("order://12345")
-                               .contentLength(23)
+                               .name("create_pr")
+                               .contentLength(118)
                                .build()
                            .build()}
 
 connected
 
-write '{"uri":"order://12345"}'
+write '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main"}}'
 
-# wait for the full upstream response round trip to complete before expecting the abort, so
-# this isn't racing the response delivery itself
-read await RESPONSE_SENT
+# wait for the upstream request to have actually arrived before rejecting the reply, so the
+# proxy is provably resetting an upstream request that is genuinely open, not a race against
+# request delivery
+read await REQUEST_RECEIVED
 
-# upstream response violates with.response (total is a string, not a number); resources/read
-# carries no isError, so the reply stream is aborted
+# client rejects the reply before any response arrives; the proxy must reset the upstream
+# request's reply in turn rather than leave it dangling
 read abort
