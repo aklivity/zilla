@@ -160,7 +160,8 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final BufferPool bufferPool;
+    private final BufferPool decodePool;
+    private final BufferPool encodePool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -206,7 +207,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.bufferPool = context.bufferPool();
+        this.decodePool = context.bufferPool();
+        this.encodePool = context.bufferPool().duplicate();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -480,7 +482,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 if (decodeSlot == NO_SLOT)
                 {
-                    decodeSlot = bufferPool.acquire(initialId);
+                    decodeSlot = decodePool.acquire(initialId);
                 }
 
                 if (decodeSlot == NO_SLOT)
@@ -489,7 +491,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
                 else
                 {
-                    final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
                     slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
                 }
@@ -568,7 +570,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (encodeSlot == NO_SLOT)
             {
-                encodeSlot = bufferPool.acquire(replyId);
+                encodeSlot = encodePool.acquire(replyId);
             }
 
             return encodeSlot != NO_SLOT;
@@ -579,7 +581,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (acquireEncodeSlot())
             {
-                bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, bytes);
+                encodePool.buffer(encodeSlot).putBytes(encodeSlotOffset, bytes);
                 encodeSlotOffset += bytes.length;
             }
             else
@@ -595,7 +597,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (acquireEncodeSlot())
             {
-                bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
+                encodePool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
                 encodeSlotOffset += length;
             }
             else
@@ -611,7 +613,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (acquireEncodeSlot())
             {
-                encodeSlotOffset = putJsonString(bufferPool.buffer(encodeSlot), encodeSlotOffset, value);
+                encodeSlotOffset = putJsonString(encodePool.buffer(encodeSlot), encodeSlotOffset, value);
             }
             else
             {
@@ -626,7 +628,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (acquireEncodeSlot())
             {
-                encodeSlotOffset = putJsonString(bufferPool.buffer(encodeSlot), encodeSlotOffset, source, offset, length);
+                encodeSlotOffset = putJsonString(encodePool.buffer(encodeSlot), encodeSlotOffset, source, offset, length);
             }
             else
             {
@@ -639,7 +641,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (encodeSlot != NO_SLOT && McpHttpState.replyOpened(state))
             {
-                final MutableDirectBufferEx slot = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                 int maxPayload = replyMax - (int)(replySeq - replyAck) - replyPad;
                 while (encodeSlotOffset > 0 && maxPayload > 0)
                 {
@@ -763,7 +765,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (decodeSlot != NO_SLOT)
             {
-                bufferPool.release(decodeSlot);
+                decodePool.release(decodeSlot);
                 decodeSlot = NO_SLOT;
                 decodeSlotOffset = 0;
             }
@@ -773,7 +775,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (encodeSlot != NO_SLOT)
             {
-                bufferPool.release(encodeSlot);
+                encodePool.release(encodeSlot);
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
             }
@@ -870,7 +872,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             final boolean needArgs = tool != null && tool.input != null ||
                 with.query != null || with.body != null || with.bodyTemplate != null;
             final int argsLength = needArgs
-                ? decodeSlot != NO_SLOT ? extractArgs(bufferPool.buffer(decodeSlot), 0, decodeSlotOffset) : emptyArgs()
+                ? decodeSlot != NO_SLOT ? extractArgs(decodePool.buffer(decodeSlot), 0, decodeSlotOffset) : emptyArgs()
                 : 0;
 
             if (tool != null && tool.input != null)
@@ -988,7 +990,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     }
                 }
 
-                final DirectBufferEx buffer = decodeSlot != NO_SLOT ? bufferPool.buffer(decodeSlot) : emptyRequestRO;
+                final DirectBufferEx buffer = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : emptyRequestRO;
                 requestGenerator.wrap(projectBuffer, 0, RESPONSE_GEN_BOUND);
                 final JsonPipeline.Status status = requestPipeline.transform(
                     buffer, 0, decodeSlotOffset, McpHttpState.initialClosed(state));
@@ -1006,7 +1008,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     final int consumed = decodeSlotOffset - requestPipeline.remaining();
                     if (consumed > 0 && consumed < decodeSlotOffset)
                     {
-                        final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
+                        final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
                         slot.putBytes(0, slot, consumed, decodeSlotOffset - consumed);
                     }
                     decodeSlotOffset -= consumed;
@@ -1178,7 +1180,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         private int encodeFree()
         {
-            return bufferPool.slotCapacity() - encodeSlotOffset;
+            return encodePool.slotCapacity() - encodeSlotOffset;
         }
 
         void cleanupResponse()
@@ -1243,7 +1245,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 JsonStream stream = JsonEx.stream(JsonEx.createParser())
                     .transform(new McpHttpArguments(requestArgs));
                 if (tool != null && tool.input != null &&
-                    contentLength >= 0 && contentLength <= bufferPool.slotCapacity())
+                    contentLength >= 0 && contentLength <= decodePool.slotCapacity())
                 {
                     // the schema validator must fully reassemble any individual scalar value spanning
                     // multiple windows before validating it (common-json's Eval is not fragment-aware) —
@@ -1284,16 +1286,16 @@ public final class McpHttpProxyFactory implements BindingHandler
                 {
                     if (decodeSlot == NO_SLOT)
                     {
-                        decodeSlot = bufferPool.acquire(initialId);
+                        decodeSlot = decodePool.acquire(initialId);
                     }
 
-                    if (decodeSlot == NO_SLOT || decodeSlotOffset + payload.sizeof() > bufferPool.slotCapacity())
+                    if (decodeSlot == NO_SLOT || decodeSlotOffset + payload.sizeof() > decodePool.slotCapacity())
                     {
                         cleanup(traceId);
                     }
                     else
                     {
-                        final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
+                        final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
                         slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                         decodeSlotOffset += payload.sizeof();
                         pumpRequest(traceId);
@@ -1353,7 +1355,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
             else
             {
-                doEncodeToolError(cap(text(body, offset, length)));
+                doEncodeToolError(body, offset, length);
                 completeReply(traceId);
             }
         }
@@ -1386,6 +1388,16 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             doEncodeReply(TOOL_SUCCESS_PREFIX);
             doEncodeReplyJsonString(bodyText);
+            doEncodeReply(TOOL_ERROR_SUFFIX);
+        }
+
+        private void doEncodeToolError(
+            DirectBufferEx body,
+            int offset,
+            int length)
+        {
+            doEncodeReply(TOOL_SUCCESS_PREFIX);
+            doEncodeReplyJsonString(body, offset, Math.min(length, MAX_ERROR_BODY));
             doEncodeReply(TOOL_ERROR_SUFFIX);
         }
     }
@@ -1595,7 +1607,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             requestHandled = true;
             final int argsLength = decodeSlot != NO_SLOT
-                ? extractArgs(bufferPool.buffer(decodeSlot), 0, decodeSlotOffset)
+                ? extractArgs(decodePool.buffer(decodeSlot), 0, decodeSlotOffset)
                 : emptyArgs();
             doEncodePromptGet(binding.prompt(name), argsLength);
             completeReply(traceId);
@@ -1750,16 +1762,16 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 if (decodeSlot == NO_SLOT)
                 {
-                    decodeSlot = bufferPool.acquire(replyId);
+                    decodeSlot = decodePool.acquire(replyId);
                 }
 
-                if (decodeSlot == NO_SLOT || decodeSlotOffset + payload.sizeof() > bufferPool.slotCapacity())
+                if (decodeSlot == NO_SLOT || decodeSlotOffset + payload.sizeof() > decodePool.slotCapacity())
                 {
                     mcp.cleanup(traceId);
                 }
                 else
                 {
-                    final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
                     slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
 
@@ -1793,7 +1805,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
             else
             {
-                final DirectBufferEx body = decodeSlot != NO_SLOT ? bufferPool.buffer(decodeSlot) : null;
+                final DirectBufferEx body = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : null;
                 mcp.onHttpResponse(traceId, responseStatus, responseContentType, body, 0, decodeSlotOffset);
                 cleanupDecodeSlot();
             }
@@ -1890,7 +1902,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId)
         {
             replyAck = replySeq - decodeSlotOffset;
-            replyMax = bufferPool.slotCapacity();
+            replyMax = decodePool.slotCapacity();
             doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, mcp.authorization, 0L, 0);
         }
@@ -1915,23 +1927,23 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (encodeSlot == NO_SLOT)
             {
-                encodeSlot = bufferPool.acquire(initialId);
+                encodeSlot = encodePool.acquire(initialId);
             }
 
-            if (encodeSlot == NO_SLOT || encodeSlotOffset + length > bufferPool.slotCapacity())
+            if (encodeSlot == NO_SLOT || encodeSlotOffset + length > encodePool.slotCapacity())
             {
                 mcp.cleanup(traceId);
             }
             else
             {
-                bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
+                encodePool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
                 encodeSlotOffset += length;
             }
         }
 
         private boolean encodeHasRoom()
         {
-            return bufferPool.slotCapacity() - encodeSlotOffset >= RESPONSE_GEN_BOUND;
+            return encodePool.slotCapacity() - encodeSlotOffset >= RESPONSE_GEN_BOUND;
         }
 
         private void requestComplete()
@@ -1946,7 +1958,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 if (encodeSlot != NO_SLOT)
                 {
-                    final MutableDirectBufferEx slot = bufferPool.buffer(encodeSlot);
+                    final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                     int maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
                     while (encodeSlotOffset > 0 && maxPayload > 0)
                     {
@@ -2001,7 +2013,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     }
                 }
 
-                final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
+                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
                 final JsonPipeline.Status status =
                     mcp.responseStep(slot, 0, decodeSlotOffset, McpHttpState.replyClosed(state));
                 if (status != JsonPipeline.Status.SUSPENDED)
@@ -2062,7 +2074,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (decodeSlot != NO_SLOT)
             {
-                bufferPool.release(decodeSlot);
+                decodePool.release(decodeSlot);
                 decodeSlot = NO_SLOT;
                 decodeSlotOffset = 0;
             }
@@ -2072,7 +2084,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (encodeSlot != NO_SLOT)
             {
-                bufferPool.release(encodeSlot);
+                encodePool.release(encodeSlot);
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
             }
@@ -2764,22 +2776,6 @@ public final class McpHttpProxyFactory implements BindingHandler
     {
         final String text = model != null ? binding.schemaText(model) : null;
         return text != null ? parseObject(text) : null;
-    }
-
-    private static String text(
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        final byte[] bytes = new byte[length];
-        buffer.getBytes(offset, bytes);
-        return new String(bytes, UTF_8);
-    }
-
-    private static String cap(
-        String text)
-    {
-        return text.length() > MAX_ERROR_BODY ? text.substring(0, MAX_ERROR_BODY) : text;
     }
 
     private static JsonObject parseObject(
