@@ -1032,8 +1032,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         int offset,
         int length)
     {
-        MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index,
-            MemorySegment.ofArray(dst), BYTE_LAYOUT, offset, length);
+        MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index, dst, offset, length);
     }
 
     @Override
@@ -1054,7 +1053,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             {
                 final int adjustment = dstBuffer.wrapAdjustment();
                 MemorySegment.copy(segment, BYTE_LAYOUT, wrapAdjustment + index,
-                    MemorySegment.ofArray(dstArray), BYTE_LAYOUT, adjustment + dstIndex, length);
+                    dstArray, adjustment + dstIndex, length);
             }
             else
             {
@@ -2477,7 +2476,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             throw new IllegalStateException(
                 "UnsafeBufferEx.asNative requires a direct ByteBuffer-backed buffer");
         }
-        return new Native(segment, byteBuffer);
+        return new Native(segment, wrapAdjustment, capacity, byteBuffer);
     }
 
     public static final class Native implements AtomicBufferEx, DirectBufferViewEx
@@ -2490,20 +2489,22 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
 
         private Native(
             MemorySegment segment,
+            int wrapAdjustment,
+            int capacity,
             ByteBuffer byteBuffer)
         {
             assert segment.heapBase().isEmpty()
                 : "UnsafeBufferEx.Native requires a native MemorySegment";
             assert byteBuffer != null && byteBuffer.isDirect()
                 : "UnsafeBufferEx.Native requires a direct ByteBuffer";
-            this.segment = segment;
-            this.addressOffset = segment.address();
-            this.capacity = (int) segment.byteSize();
-            this.byteBuffer = byteBuffer;
+            this.segment = segment.asSlice(wrapAdjustment, capacity);
+            this.addressOffset = this.segment.address();
+            this.capacity = capacity;
+            this.byteBuffer = wrapAdjustment == 0 ? byteBuffer : byteBuffer.slice(wrapAdjustment, capacity);
             // clean duplicate (position 0, limit capacity) so the ByteBuffer.put bulk-copy fast path
             // is always in bounds without consulting the wrapped buffer's NIO limit (Agrona scratch
             // state, e.g. dirtied by CRC32.update)
-            this.byteBufferView = byteBuffer.duplicate();
+            this.byteBufferView = this.byteBuffer.duplicate();
             this.byteBufferView.clear();
         }
 
@@ -3290,8 +3291,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             int offset,
             int length)
         {
-            MemorySegment.copy(segment, BYTE_LAYOUT, index,
-                MemorySegment.ofArray(dst), BYTE_LAYOUT, offset, length);
+            MemorySegment.copy(segment, BYTE_LAYOUT, index, dst, offset, length);
         }
 
         @Override
@@ -3312,7 +3312,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
                 {
                     final int adjustment = dstBuffer.wrapAdjustment();
                     MemorySegment.copy(segment, BYTE_LAYOUT, index,
-                        MemorySegment.ofArray(dstArray), BYTE_LAYOUT, adjustment + dstIndex, length);
+                        dstArray, adjustment + dstIndex, length);
                 }
                 else
                 {

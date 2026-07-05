@@ -20,9 +20,11 @@ import static java.util.stream.Collectors.toMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
 public final class OpenapiOperationView
@@ -50,6 +52,7 @@ public final class OpenapiOperationView
         OpenapiResolver resolver,
         String method,
         String path,
+        List<OpenapiServer> pathServers,
         OpenapiOperation model)
     {
         this.specification = specification;
@@ -83,9 +86,13 @@ public final class OpenapiOperationView
                     .toList()
                 : specification.security;
 
-        this.servers = model.servers != null
-                ? model.servers.stream()
-                    .flatMap(s -> configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
+        List<OpenapiServer> effectiveServers = model.servers != null ? model.servers : pathServers;
+
+        this.servers = effectiveServers != null
+                ? effectiveServers.stream()
+                    .flatMap(s -> configs.isEmpty()
+                        ? Stream.of(new OpenapiServerView(resolver, s, null))
+                        : configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
                     .toList()
                 : specification.servers;
 

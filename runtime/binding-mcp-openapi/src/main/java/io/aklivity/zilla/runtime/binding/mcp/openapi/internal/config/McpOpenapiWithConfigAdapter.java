@@ -1,0 +1,73 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiBinding;
+import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
+
+public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+{
+    private static final String SPEC_NAME = "spec";
+    private static final String OPERATION_NAME = "operation";
+
+    @Override
+    public String type()
+    {
+        return McpOpenapiBinding.NAME;
+    }
+
+    @Override
+    public JsonObject adaptToJson(
+        WithConfig with)
+    {
+        McpOpenapiWithConfig mcpOpenapiWith = (McpOpenapiWithConfig) with;
+
+        JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (mcpOpenapiWith.spec != null)
+        {
+            object.add(SPEC_NAME, mcpOpenapiWith.spec);
+        }
+
+        if (mcpOpenapiWith.operation != null)
+        {
+            object.add(OPERATION_NAME, mcpOpenapiWith.operation);
+        }
+
+        return object.build();
+    }
+
+    @Override
+    public WithConfig adaptFromJson(
+        JsonObject object)
+    {
+        String spec = object.containsKey(SPEC_NAME)
+            ? object.getString(SPEC_NAME)
+            : null;
+
+        String operation = object.containsKey(OPERATION_NAME)
+            ? object.getString(OPERATION_NAME)
+            : null;
+
+        return new McpOpenapiWithConfig(spec, operation);
+    }
+}
