@@ -54,7 +54,6 @@ write '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"
 write ${core:randomBase64(10000)}
 write '"}}'
 
-# openapi operation summary "Create a pull request" is used as the content text
 read  '{"content":[{"type":"text","text":"Create a pull request"}],'
       '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
       '"isError":false'
