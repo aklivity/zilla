@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiException;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
@@ -91,13 +92,31 @@ public final class OpenapiServerView
     {
         private static final Pattern VARIABLE = Pattern.compile("\\{([^}]*.?)\\}");
 
+        private final String template;
+        private final boolean templated;
         private final Matcher matcher;
         private final String defaultValue;
 
         public String resolve(
             String value)
         {
-            return value != null && matcher.reset(value).matches() ? value : defaultValue;
+            String resolved;
+
+            if (!templated || value == null)
+            {
+                resolved = defaultValue;
+            }
+            else if (matcher.reset(value).matches())
+            {
+                resolved = value;
+            }
+            else
+            {
+                throw new OpenapiException(String.format(
+                    "openapi server url \"%s\" does not match variable pattern of template \"%s\"", value, template));
+            }
+
+            return resolved;
         }
 
         private VariableMatcher(
@@ -108,6 +127,8 @@ public final class OpenapiServerView
                 .replaceAll(mr -> resolver.apply(mr.group(1)).values.stream()
                     .collect(joining("|", "(", ")")));
 
+            this.template = value;
+            this.templated = VARIABLE.matcher(value).find();
             this.matcher = Pattern.compile(regex).matcher("");
             this.defaultValue = VARIABLE.matcher(value)
                     .replaceAll(mr -> resolver.apply(mr.group(1)).defaultValue);

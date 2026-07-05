@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiException;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiComponents;
@@ -39,6 +40,7 @@ import io.aklivity.zilla.runtime.common.openapi.model.OpenapiRequestBody;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSchema;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSecurityScheme;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServerVariable;
 
 public class OpenapiViewTest
 {
@@ -303,6 +305,153 @@ public class OpenapiViewTest
 
         assertNull(schemeView.flows);
         assertEquals(List.of(), schemeView.scopes);
+    }
+
+    @Test
+    public void shouldResolveOperationLevelServersOverPathAndRoot() throws Exception
+    {
+        OpenapiServer rootServer = new OpenapiServer();
+        rootServer.url = "http://root.example.com";
+
+        OpenapiServer pathServer = new OpenapiServer();
+        pathServer.url = "http://path.example.com";
+
+        OpenapiServer operationServer = new OpenapiServer();
+        operationServer.url = "http://operation.example.com";
+
+        OpenapiOperation operation = new OpenapiOperation();
+        operation.operationId = "ReadItems";
+        operation.servers = List.of(operationServer);
+
+        OpenapiPath path = new OpenapiPath();
+        path.get = operation;
+        path.servers = List.of(pathServer);
+
+        Openapi model = new Openapi();
+        model.servers = List.of(rootServer);
+        model.paths = Map.of("/items", path);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder().build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
+        OpenapiOperationView operationView = view.paths.get("/items").methods.get("GET");
+
+        assertEquals(1, operationView.servers.size());
+        assertEquals(URI.create("http://operation.example.com:80"), operationView.servers.get(0).url);
+    }
+
+    @Test
+    public void shouldResolvePathLevelServersOverRootWhenOperationHasNone() throws Exception
+    {
+        OpenapiServer rootServer = new OpenapiServer();
+        rootServer.url = "http://root.example.com";
+
+        OpenapiServer pathServer = new OpenapiServer();
+        pathServer.url = "http://path.example.com";
+
+        OpenapiOperation operation = new OpenapiOperation();
+        operation.operationId = "ReadItems";
+
+        OpenapiPath path = new OpenapiPath();
+        path.get = operation;
+        path.servers = List.of(pathServer);
+
+        Openapi model = new Openapi();
+        model.servers = List.of(rootServer);
+        model.paths = Map.of("/items", path);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder().build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
+        OpenapiOperationView operationView = view.paths.get("/items").methods.get("GET");
+
+        assertEquals(1, operationView.servers.size());
+        assertEquals(URI.create("http://path.example.com:80"), operationView.servers.get(0).url);
+    }
+
+    @Test
+    public void shouldResolveRootLevelServersWhenNoOperationOrPathServers() throws Exception
+    {
+        OpenapiServer rootServer = new OpenapiServer();
+        rootServer.url = "http://root.example.com";
+
+        OpenapiOperation operation = new OpenapiOperation();
+        operation.operationId = "ReadItems";
+
+        OpenapiPath path = new OpenapiPath();
+        path.get = operation;
+
+        Openapi model = new Openapi();
+        model.servers = List.of(rootServer);
+        model.paths = Map.of("/items", path);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder().build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
+        OpenapiOperationView operationView = view.paths.get("/items").methods.get("GET");
+
+        assertEquals(1, operationView.servers.size());
+        assertEquals(URI.create("http://root.example.com:80"), operationView.servers.get(0).url);
+    }
+
+    @Test
+    public void shouldResolveServerUrlVariableDefaultWhenNoOverride() throws Exception
+    {
+        OpenapiServerVariable variable = new OpenapiServerVariable();
+        variable.values = List.of("prod", "staging");
+        variable.defaultValue = "prod";
+
+        OpenapiServer server = new OpenapiServer();
+        server.url = "http://{env}.example.com";
+        server.variables = Map.of("env", variable);
+
+        Openapi model = new Openapi();
+        model.servers = List.of(server);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder().build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
+
+        assertEquals(URI.create("http://prod.example.com:80"), view.servers.get(0).url);
+    }
+
+    @Test
+    public void shouldResolveServerUrlVariableOverrideMatchingPattern() throws Exception
+    {
+        OpenapiServerVariable variable = new OpenapiServerVariable();
+        variable.values = List.of("prod", "staging");
+        variable.defaultValue = "prod";
+
+        OpenapiServer server = new OpenapiServer();
+        server.url = "http://{env}.example.com";
+        server.variables = Map.of("env", variable);
+
+        Openapi model = new Openapi();
+        model.servers = List.of(server);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder()
+            .url("http://staging.example.com")
+            .build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
+
+        assertEquals(URI.create("http://staging.example.com:80"), view.servers.get(0).url);
+    }
+
+    @Test(expected = OpenapiException.class)
+    public void shouldRejectServerUrlOverrideNotMatchingVariablePattern() throws Exception
+    {
+        OpenapiServerVariable variable = new OpenapiServerVariable();
+        variable.values = List.of("prod", "staging");
+        variable.defaultValue = "prod";
+
+        OpenapiServer server = new OpenapiServer();
+        server.url = "http://{env}.example.com";
+        server.variables = Map.of("env", variable);
+
+        Openapi model = new Openapi();
+        model.servers = List.of(server);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder()
+            .url("http://dev.example.com")
+            .build();
+
+        OpenapiView.of(model, List.of(config));
     }
 
     public static final class SampleExtension
