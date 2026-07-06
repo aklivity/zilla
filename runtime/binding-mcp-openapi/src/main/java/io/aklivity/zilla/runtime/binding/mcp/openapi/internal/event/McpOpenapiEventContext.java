@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.event;
 
 import static io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types.event.McpOpenapiEventType.OPERATION_DENIED;
-import static io.aklivity.zilla.runtime.binding.mcp.openapi.internal.types.event.McpOpenapiEventType.ROUTES_EMPTY;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -38,7 +37,6 @@ public class McpOpenapiEventContext
     private final McpOpenapiEventExFW.Builder mcpOpenapiEventExRW = new McpOpenapiEventExFW.Builder();
     private final int mcpOpenapiTypeId;
     private final int operationDeniedId;
-    private final int routesEmptyId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -47,7 +45,6 @@ public class McpOpenapiEventContext
     {
         this.mcpOpenapiTypeId = context.supplyTypeId(McpOpenapiBinding.NAME);
         this.operationDeniedId = context.supplyEventId("binding.mcp.openapi.operation.denied");
-        this.routesEmptyId = context.supplyEventId("binding.mcp.openapi.routes.empty");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -66,26 +63,6 @@ public class McpOpenapiEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(operationDeniedId)
-            .timestamp(clock.millis())
-            .traceId(0L)
-            .namespacedId(bindingId)
-            .extension(extension.buffer(), extension.offset(), extension.limit())
-            .build();
-        eventWriter.accept(mcpOpenapiTypeId, event.buffer(), event.offset(), event.limit());
-    }
-
-    public void routesEmpty(
-        long bindingId)
-    {
-        McpOpenapiEventExFW extension = mcpOpenapiEventExRW
-            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
-            .routesEmpty(e -> e
-                .typeId(ROUTES_EMPTY.value())
-            )
-            .build();
-        EventFW event = eventRW
-            .wrap(eventBuffer, 0, eventBuffer.capacity())
-            .id(routesEmptyId)
             .timestamp(clock.millis())
             .traceId(0L)
             .namespacedId(bindingId)

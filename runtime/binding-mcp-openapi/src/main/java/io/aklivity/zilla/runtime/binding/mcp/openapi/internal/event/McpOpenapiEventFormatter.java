@@ -49,9 +49,6 @@ public final class McpOpenapiEventFormatter implements EventFormatterSpi
             result = String.format("Operation denied (%s).", asString(ex.detail()));
             break;
         }
-        case ROUTES_EMPTY:
-            result = "No routes configured; binding exposes no tools or resources.";
-            break;
         }
         return result;
     }

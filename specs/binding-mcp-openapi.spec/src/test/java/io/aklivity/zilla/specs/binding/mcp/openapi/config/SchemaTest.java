@@ -80,4 +80,16 @@ public class SchemaTest
     {
         schema.validate("proxy.route.capability.invalid.yaml");
     }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectMissingRoutes()
+    {
+        schema.validate("proxy.routes.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectEmptyRoutes()
+    {
+        schema.validate("proxy.routes.empty.invalid.yaml");
+    }
 }
