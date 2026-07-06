@@ -119,6 +119,15 @@ public class HttpClientIT
 
     @Test
     @Specification({
+        "${http}/search.code.query.array/client",
+        "${http}/search.code.query.array/server"})
+    public void shouldProxySearchCodeWithArrayAndBooleanQueryToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/create.pr.error/client",
         "${http}/create.pr.error/server"})
     public void shouldProxyCreatePrErrorToHttp() throws Exception

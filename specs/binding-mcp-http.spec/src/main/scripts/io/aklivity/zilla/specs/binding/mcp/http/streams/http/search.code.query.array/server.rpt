@@ -21,33 +21,25 @@ accept ${serverAddress}
 
 accepted
 
-# assert the binding injected the guard credentials as the authorization header, and substituted the
-# guard identity into the x-user-identity header (the {identity} substitution path, distinct from the
-# {credentials} path also asserted here)
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":method", "POST")
+                           .header(":method", "GET")
                            .header(":scheme", "https")
                            .header(":authority", "api.github.com")
-                           .header(":path", "/repos/acme/widget/pulls")
-                           .header("content-type", "application/json")
-                           .header("authorization", "Bearer ghp_secret")
-                           .header("x-user-identity", "test")
+                           .header(":path", "/search/code?q=addClass&labels=bug&labels=urgent&archived=true")
                            .build()}
 
 connected
 
-read  '{"title":"Add feature","head":"feature","base":"main"}'
-
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "201")
+                            .header(":status", "200")
                             .header("content-type", "application/json")
                             .build()}
 write flush
 
-write '{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature",'
-      '"body":"please review","draft":false,"merged":false,"user":{"login":"acme-bot"}}'
+write '{"total_count":1,"incomplete_results":false,"items":['
+      '{"path":"src/c.js","sha":"ccc","repository":{"name":"widget"}}]}'
 write flush
 
 write close

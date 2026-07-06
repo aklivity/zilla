@@ -209,6 +209,15 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.discovery.yaml")
+    @Specification({
+        "${mcp}/read.resource.unknown/client"})
+    public void shouldRejectResourceReadWhenUriUnmatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${mcp}/read.order/client",
@@ -224,6 +233,16 @@ public class McpHttpProxyIT
         "${mcp}/search.code/client",
         "${http}/search.code/server"})
     public void shouldCallToolSearchCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/search.code.query.array/client",
+        "${http}/search.code.query.array/server"})
+    public void shouldCallToolSearchCodeWithArrayAndBooleanQuery() throws Exception
     {
         k3po.finish();
     }
@@ -426,6 +445,19 @@ public class McpHttpProxyIT
     @Specification({
         "${mcp}/create.pr.unresolved/client"})
     public void shouldEmitSchemaAccessorUnresolvedEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // reuses create.pr.unresolved's wire script against a route that mistakenly references
+    // ${params.owner} (a resource-uri capture) from a tool route instead of ${args.owner}: tool routes
+    // never have resource captures, so this always rejects, exercising the paramAccessors branch of
+    // McpHttpBindingConfig.unsatisfiedAccessors distinct from the argAccessors branch covered above
+    @Test
+    @Configuration("proxy.unresolved.params.yaml")
+    @Specification({
+        "${mcp}/create.pr.unresolved/client"})
+    public void shouldRejectToolWhenParamsExpressionUnresolved() throws Exception
     {
         k3po.finish();
     }

@@ -412,61 +412,21 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
         }
 
+        // Every concrete kind reaching this base implementation (listings, resources/read) already
+        // dispatches its request synchronously from onMcpBegin — see McpHttpProxy.sendTrivialRequestBegin
+        // and the contentLength < 0 branch below — so requestHandled is always true by the time any
+        // further DATA or END arrives; there is nothing left to buffer or dispatch here.
         void onMcpData(
             DataFW data)
         {
-            final long traceId = data.traceId();
-            final int reserved = data.reserved();
-            final OctetsFW payload = data.payload();
-
-            initialSeq = data.sequence() + reserved;
-
-            // once the request has already been dispatched (e.g. a kind that decides at onMcpBegin time,
-            // before any body byte arrives — see McpHttpProxy.sendTrivialRequestBegin), any further body
-            // bytes the client still sends are irrelevant and must not be accumulated: onMcpRequest (the
-            // only place that used to call cleanupDecodeSlot for this path) never runs again once handled,
-            // so a decode slot acquired here would never be released until the stream closes
-            if (!requestHandled && payload != null)
-            {
-                if (decodeSlot == NO_SLOT)
-                {
-                    decodeSlot = decodePool.acquire(initialId);
-                }
-
-                if (decodeSlot == NO_SLOT)
-                {
-                    cleanup(traceId);
-                }
-                else
-                {
-                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                    slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                    decodeSlotOffset += payload.sizeof();
-                }
-            }
-
-            if (!requestHandled && payload != null && (contentLength < 0 || decodeSlotOffset < contentLength))
-            {
-                doMcpWindow(traceId);
-            }
-
-            if (!requestHandled && contentLength >= 0 && decodeSlotOffset >= contentLength)
-            {
-                onMcpRequest(traceId);
-            }
+            initialSeq = data.sequence() + data.reserved();
         }
 
         void onMcpEnd(
             EndFW end)
         {
-            final long traceId = end.traceId();
             initialSeq = end.sequence();
             state = McpHttpState.closedInitial(state);
-
-            if (!requestHandled)
-            {
-                onMcpRequest(traceId);
-            }
         }
 
         void onMcpAbort(

@@ -94,7 +94,9 @@ catalogs:
               "properties": {
                 "q":        { "type": "string" },
                 "per_page": { "type": "integer" },
-                "page":     { "type": "integer" }
+                "page":     { "type": "integer" },
+                "labels":   { "type": "array", "items": { "type": "string" } },
+                "archived": { "type": "boolean" }
               }
             }
         search_code_result:

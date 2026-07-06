@@ -182,6 +182,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/search.code.query.array/client",
+        "${mcp}/search.code.query.array/server"})
+    public void shouldCallToolSearchCodeWithArrayAndBooleanQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/create.pr.error/client",
         "${mcp}/create.pr.error/server"})
     public void shouldRejectToolCreatePr() throws Exception
