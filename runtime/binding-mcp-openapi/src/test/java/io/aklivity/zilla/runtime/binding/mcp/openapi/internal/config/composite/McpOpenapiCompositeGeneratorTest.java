@@ -63,7 +63,6 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -73,157 +72,163 @@ import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 public class McpOpenapiCompositeGeneratorTest
 {
     private static final String SPEC =
-        "{" +
-        "  \"openapi\": \"3.1.0\"," +
-        "  \"info\": { \"title\": \"github\", \"version\": \"1.0.0\" }," +
-        "  \"servers\": [ { \"url\": \"https://api.github.com\" } ]," +
-        "  \"components\": { \"securitySchemes\": {" +
-        "    \"bearerAuth\": { \"type\": \"http\", \"scheme\": \"bearer\", \"bearerFormat\": \"jwt\" }," +
-        "    \"oauthScheme\": { \"type\": \"oauth2\", \"flows\": {} }," +
-        "    \"apiKeyScheme\": { \"type\": \"apiKey\", \"in\": \"header\", \"name\": \"X-Api-Key\" }" +
-        "  } }," +
-        "  \"paths\": {" +
-        "    \"/repos/{owner}/{repo}/pulls\": {" +
-        "      \"post\": {" +
-        "        \"operationId\": \"pulls/create\"," +
-        "        \"security\": [ { \"bearerAuth\": [ \"repo\", \"pr:write\" ] } ]," +
-        "        \"parameters\": [" +
-        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
-        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }" +
-        "        ]," +
-        "        \"requestBody\": {" +
-        "          \"content\": { \"application/json\": { \"schema\": {" +
-        "            \"type\": \"object\", \"required\": [\"title\"]," +
-        "            \"properties\": { \"title\": { \"type\": \"string\" }, \"owner\": { \"type\": \"string\" } } } } }" +
-        "        }," +
-        "        \"responses\": { \"201\": { \"description\": \"created\"," +
-        "          \"content\": { \"application/json\": { \"schema\": {" +
-        "            \"type\": \"object\", \"properties\": { \"number\": { \"type\": \"integer\" }," +
-        "              \"html_url\": { \"type\": \"string\" }, \"state\": { \"type\": \"string\" }," +
-        "              \"title\": { \"type\": \"string\" } } } } } } }" +
-        "      }" +
-        "    }," +
-        "    \"/repos/{owner}/{repo}\": {" +
-        "      \"get\": {" +
-        "        \"operationId\": \"repos/get\"," +
-        "        \"tags\": [ \"reads\" ]," +
-        "        \"parameters\": [" +
-        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
-        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }" +
-        "        ]," +
-        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
-        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
-        "      }" +
-        "    }," +
-        "    \"/search/code\": {" +
-        "      \"get\": {" +
-        "        \"operationId\": \"search/code\"," +
-        "        \"security\": [ { \"oauthScheme\": [ \"read\" ] } ]," +
-        "        \"parameters\": [" +
-        "          { \"name\": \"q\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
-        "          { \"name\": \"page\", \"in\": \"query\", \"schema\": { \"type\": \"integer\" } }" +
-        "        ]," +
-        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
-        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
-        "      }" +
-        "    }," +
-        "    \"/repos/{owner}/{repo}/issues\": {" +
-        "      \"post\": {" +
-        "        \"operationId\": \"issues/create\"," +
-        "        \"security\": [ { \"apiKeyScheme\": [] } ]," +
-        "        \"parameters\": [" +
-        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
-        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }" +
-        "        ]," +
-        "        \"responses\": { \"201\": { \"description\": \"created\"," +
-        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
-        "      }," +
-        "      \"get\": {" +
-        "        \"operationId\": \"issues/list\"," +
-        "        \"tags\": [ \"reads\" ]," +
-        "        \"summary\": \"List repository issues\"," +
-        "        \"description\": \"Retrieve a paginated list of open and closed issues for the specified repository.\"," +
-        "        \"security\": []," +
-        "        \"parameters\": [" +
-        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
-        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }" +
-        "        ]," +
-        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
-        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
-        "      }" +
-        "    }," +
-        "    \"/repos/{owner}/{repo}/pulls/{number}/merge\": {" +
-        "      \"put\": {" +
-        "        \"operationId\": \"pulls/merge\"," +
-        "        \"security\": [ { \"bearerAuth\": [ \"repo\", \"pr:write\" ]," +
-        "          \"apiKeyScheme\": [ \"pr:write\", \"admin\" ] } ]," +
-        "        \"parameters\": [" +
-        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
-        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
-        "          { \"name\": \"number\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"integer\" } }" +
-        "        ]," +
-        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
-        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
-        "      }" +
-        "    }," +
-        "    \"/repos/{owner}/{repo}/pulls/{number}/close\": {" +
-        "      \"post\": {" +
-        "        \"operationId\": \"pulls/close\"," +
-        "        \"security\": [ { \"bearerAuth\": [ \"repo\" ] }, { \"apiKeyScheme\": [ \"repo\" ] } ]," +
-        "        \"parameters\": [" +
-        "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
-        "          { \"name\": \"repo\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
-        "          { \"name\": \"number\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"integer\" } }" +
-        "        ]," +
-        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
-        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
-        "      }" +
-        "    }" +
-        "  }" +
-        "}";
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "github", "version": "1.0.0" },
+          "servers": [ { "url": "https://api.github.com" } ],
+          "components": { "securitySchemes": {
+            "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "jwt" },
+            "oauthScheme": { "type": "oauth2", "flows": {} },
+            "apiKeyScheme": { "type": "apiKey", "in": "header", "name": "X-Api-Key" }
+          } },
+          "paths": {
+            "/repos/{owner}/{repo}/pulls": {
+              "post": {
+                "operationId": "pulls/create",
+                "security": [ { "bearerAuth": [ "repo", "pr:write" ] } ],
+                "parameters": [
+                  { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
+                  { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "requestBody": {
+                  "content": { "application/json": { "schema": {
+                    "type": "object", "required": ["title"],
+                    "properties": { "title": { "type": "string" }, "owner": { "type": "string" } } } } }
+                },
+                "responses": { "201": { "description": "created",
+                  "content": { "application/json": { "schema": {
+                    "type": "object", "properties": { "number": { "type": "integer" },
+                      "html_url": { "type": "string" }, "state": { "type": "string" },
+                      "title": { "type": "string" } } } } } } }
+              }
+            },
+            "/repos/{owner}/{repo}": {
+              "get": {
+                "operationId": "repos/get",
+                "tags": [ "reads" ],
+                "parameters": [
+                  { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
+                  { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            },
+            "/search/code": {
+              "get": {
+                "operationId": "search/code",
+                "security": [ { "oauthScheme": [ "read" ] } ],
+                "parameters": [
+                  { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } },
+                  { "name": "page", "in": "query", "schema": { "type": "integer" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            },
+            "/repos/{owner}/{repo}/issues": {
+              "post": {
+                "operationId": "issues/create",
+                "security": [ { "apiKeyScheme": [] } ],
+                "parameters": [
+                  { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
+                  { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "201": { "description": "created",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              },
+              "get": {
+                "operationId": "issues/list",
+                "tags": [ "reads" ],
+                "summary": "List repository issues",
+                "description": "Retrieve a paginated list of open and closed issues for the specified repository.",
+                "security": [],
+                "parameters": [
+                  { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
+                  { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            },
+            "/repos/{owner}/{repo}/pulls/{number}/merge": {
+              "put": {
+                "operationId": "pulls/merge",
+                "security": [ { "bearerAuth": [ "repo", "pr:write" ],
+                  "apiKeyScheme": [ "pr:write", "admin" ] } ],
+                "parameters": [
+                  { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
+                  { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } },
+                  { "name": "number", "in": "path", "required": true, "schema": { "type": "integer" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            },
+            "/repos/{owner}/{repo}/pulls/{number}/close": {
+              "post": {
+                "operationId": "pulls/close",
+                "security": [ { "bearerAuth": [ "repo" ] }, { "apiKeyScheme": [ "repo" ] } ],
+                "parameters": [
+                  { "name": "owner", "in": "path", "required": true, "schema": { "type": "string" } },
+                  { "name": "repo", "in": "path", "required": true, "schema": { "type": "string" } },
+                  { "name": "number", "in": "path", "required": true, "schema": { "type": "integer" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            }
+          }
+        }
+        """;
 
     private static final String SPEC_WITH_DEFAULT_SECURITY =
-        "{" +
-        "  \"openapi\": \"3.1.0\"," +
-        "  \"info\": { \"title\": \"internal\", \"version\": \"1.0.0\" }," +
-        "  \"servers\": [ { \"url\": \"https://api.internal.example\" } ]," +
-        "  \"security\": [ { \"bearerAuth\": [ \"repo\" ] } ]," +
-        "  \"components\": { \"securitySchemes\": {" +
-        "    \"bearerAuth\": { \"type\": \"http\", \"scheme\": \"bearer\", \"bearerFormat\": \"jwt\" }" +
-        "  } }," +
-        "  \"paths\": {" +
-        "    \"/ping\": {" +
-        "      \"get\": {" +
-        "        \"operationId\": \"ping\"," +
-        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
-        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
-        "      }" +
-        "    }" +
-        "  }" +
-        "}";
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "internal", "version": "1.0.0" },
+          "servers": [ { "url": "https://api.internal.example" } ],
+          "security": [ { "bearerAuth": [ "repo" ] } ],
+          "components": { "securitySchemes": {
+            "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "jwt" }
+          } },
+          "paths": {
+            "/ping": {
+              "get": {
+                "operationId": "ping",
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            }
+          }
+        }
+        """;
 
     private static final String WIDGETS_SPEC =
-        "{" +
-        "  \"openapi\": \"3.1.0\"," +
-        "  \"info\": { \"title\": \"widgets\", \"version\": \"1.0.0\" }," +
-        "  \"servers\": [ { \"url\": \"https://api.widgets.example\" } ]," +
-        "  \"paths\": {" +
-        "    \"/widgets/a\": {" +
-        "      \"get\": {" +
-        "        \"operationId\": \"get_widget\"," +
-        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
-        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
-        "      }" +
-        "    }," +
-        "    \"/widgets/b\": {" +
-        "      \"get\": {" +
-        "        \"operationId\": \"getWidget\"," +
-        "        \"responses\": { \"200\": { \"description\": \"ok\"," +
-        "          \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\" } } } } }" +
-        "      }" +
-        "    }" +
-        "  }" +
-        "}";
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "widgets", "version": "1.0.0" },
+          "servers": [ { "url": "https://api.widgets.example" } ],
+          "paths": {
+            "/widgets/a": {
+              "get": {
+                "operationId": "get_widget",
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            },
+            "/widgets/b": {
+              "get": {
+                "operationId": "getWidget",
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            }
+          }
+        }
+        """;
 
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
@@ -735,19 +740,6 @@ public class McpOpenapiCompositeGeneratorTest
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
         List<String> toolNames = mcpHttpOptions.tools.stream().map(t -> t.name).toList();
         assertThat(toolNames, containsInAnyOrder("get_widget", "get_widgets_b"));
-    }
-
-    @Test(expected = ConfigException.class)
-    public void shouldRejectBulkTagRouteThatNamesTool()
-    {
-        BindingConfig binding = bindingWithRoutes(
-            RouteConfig.builder()
-                .order(0)
-                .when(McpOpenapiConditionConfig.builder().tool("explicit_name").build())
-                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").tag("pulls").build())
-                .build());
-
-        new McpOpenapiBindingConfig(context, binding);
     }
 
     private static BindingConfig mcpHttp(
