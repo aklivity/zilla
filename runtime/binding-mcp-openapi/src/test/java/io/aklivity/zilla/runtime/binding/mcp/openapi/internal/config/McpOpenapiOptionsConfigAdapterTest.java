@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config;
 
-import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -33,10 +32,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -65,30 +61,26 @@ public class McpOpenapiOptionsConfigAdapterTest
     public void shouldReadOptions()
     {
         String text =
-            "{" +
-                "\"specs\":" +
-                "{" +
-                    "\"openapi_github0\":" +
-                    "{" +
-                        "\"server\": \"https://api.github.com\"," +
-                        "\"catalog\":" +
-                        "{" +
-                            "\"catalog0\":" +
-                            "{" +
-                                "\"subject\": \"rest-api\"," +
-                                "\"version\": \"latest\"" +
-                            "}" +
-                        "}" +
-                    "}" +
-                "}," +
-                "\"tools\":" +
-                "{" +
-                    "\"create_pr\":" +
-                    "{" +
-                        "\"description\": \"Create a pull request.\"" +
-                    "}" +
-                "}" +
-            "}";
+            """
+            {
+              "specs": {
+                "openapi_github0": {
+                  "server": "https://api.github.com",
+                  "catalog": {
+                    "catalog0": {
+                      "subject": "rest-api",
+                      "version": "latest"
+                    }
+                  }
+                }
+              },
+              "tools": {
+                "create_pr": {
+                  "description": "Create a pull request."
+                }
+              }
+            }
+            """;
 
         McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
 
@@ -113,10 +105,19 @@ public class McpOpenapiOptionsConfigAdapterTest
             "\"tools\":{\"create_pr\":{\"description\":\"Create a pull request.\"}}}";
 
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
-            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                "https://api.github.com",
-                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
-            .tool(new McpOpenapiToolConfig("create_pr", "Create a pull request.", null))
+            .spec()
+                .label("openapi_github0")
+                .server("https://api.github.com")
+                .catalog()
+                    .name("catalog0")
+                    .subject("rest-api")
+                    .version("latest")
+                    .build()
+                .build()
+            .tool()
+                .name("create_pr")
+                .description("Create a pull request.")
+                .build()
             .build();
 
         String text = jsonb.toJson(options);

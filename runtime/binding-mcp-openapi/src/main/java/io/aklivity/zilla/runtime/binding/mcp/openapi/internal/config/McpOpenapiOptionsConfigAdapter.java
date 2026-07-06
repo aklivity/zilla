@@ -14,9 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
@@ -29,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogCon
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiBinding;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
@@ -149,7 +148,11 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     ? specObject.getString(SERVER_NAME)
                     : null;
 
-                final List<McpOpenapiCatalogConfig> catalogs = new ArrayList<>();
+                McpOpenapiSpecificationConfigBuilder<McpOpenapiOptionsConfigBuilder<McpOpenapiOptionsConfig>> spec =
+                    mcpOpenapiOptions.spec()
+                        .label(label)
+                        .server(server);
+
                 if (specObject.containsKey(CATALOG_NAME))
                 {
                     final JsonObject catalog = specObject.getJsonObject(CATALOG_NAME);
@@ -162,22 +165,26 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                         String version = catalogObject.containsKey(VERSION_NAME)
                             ? catalogObject.getString(VERSION_NAME)
                             : "latest";
-                        catalogs.add(new McpOpenapiCatalogConfig(catalogEntry.getKey(), subject, version));
+                        spec.catalog()
+                            .name(catalogEntry.getKey())
+                            .subject(subject)
+                            .version(version)
+                            .build();
                     }
                 }
 
-                Map<String, String> security = null;
                 if (specObject.containsKey(SECURITY_NAME))
                 {
-                    security = new LinkedHashMap<>();
+                    Map<String, String> security = new LinkedHashMap<>();
                     final JsonObject securityObject = specObject.getJsonObject(SECURITY_NAME);
                     for (String scheme : securityObject.keySet())
                     {
                         security.put(scheme, securityObject.getString(scheme));
                     }
+                    spec.security(security);
                 }
 
-                mcpOpenapiOptions.spec(new McpOpenapiSpecificationConfig(label, server, catalogs, security));
+                spec.build();
             }
         }
 
@@ -201,7 +208,11 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     }
                 }
 
-                mcpOpenapiOptions.tool(new McpOpenapiToolConfig(name, description, output));
+                mcpOpenapiOptions.tool()
+                    .name(name)
+                    .description(description)
+                    .output(output)
+                    .build();
             }
         }
 

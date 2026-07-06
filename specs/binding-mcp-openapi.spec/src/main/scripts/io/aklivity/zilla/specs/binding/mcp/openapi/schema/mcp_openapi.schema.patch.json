@@ -144,6 +144,7 @@
                     {
                         "title": "Routes",
                         "type": "array",
+                        "minItems": 1,
                         "items":
                         {
                             "type": "object",
@@ -167,6 +168,17 @@
                                             {
                                                 "title": "Resource",
                                                 "type": "string"
+                                            },
+                                            "capability":
+                                            {
+                                                "title": "Capability",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "enum": [ "tool", "resource" ]
+                                                },
+                                                "minItems": 1,
+                                                "uniqueItems": true
                                             }
                                         },
                                         "additionalProperties": false
@@ -185,19 +197,66 @@
                                         },
                                         "operation":
                                         {
-                                            "title": "Operation Id",
+                                            "title": "Operation Id or glob pattern",
+                                            "type": "string"
+                                        },
+                                        "tag":
+                                        {
+                                            "title": "Tag",
                                             "type": "string"
                                         }
                                     },
-                                    "required": [ "spec", "operation" ],
-                                    "additionalProperties": false
+                                    "required": [ "spec" ],
+                                    "additionalProperties": false,
+                                    "not":
+                                    {
+                                        "required": [ "tag", "operation" ]
+                                    }
                                 }
                             },
                             "required": [ "with" ],
-                            "additionalProperties": false
+                            "additionalProperties": false,
+                            "if":
+                            {
+                                "properties":
+                                {
+                                    "with":
+                                    {
+                                        "required": [ "operation" ],
+                                        "properties":
+                                        {
+                                            "operation":
+                                            {
+                                                "pattern": "^[^*]*$"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "else":
+                            {
+                                "properties":
+                                {
+                                    "when":
+                                    {
+                                        "items":
+                                        {
+                                            "not":
+                                            {
+                                                "anyOf":
+                                                [
+                                                    { "required": [ "tool" ] },
+                                                    { "required": [ "resource" ] }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                }
+                },
+                "required": [ "routes" ]
             }
         }
     }

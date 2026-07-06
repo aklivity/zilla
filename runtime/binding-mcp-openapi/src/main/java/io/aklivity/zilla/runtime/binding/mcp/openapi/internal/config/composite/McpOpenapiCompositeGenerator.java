@@ -21,11 +21,16 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -75,6 +80,8 @@ public final class McpOpenapiCompositeGenerator
 {
     private static final String CATALOG_NAME = "catalog0";
     private static final String BINDING_NAME = "mcp_http0";
+    private static final String CAPABILITY_TOOL = "tool";
+    private static final String CAPABILITY_RESOURCE = "resource";
 
     private final String httpClientExit;
     private final List<String> denied;
@@ -116,6 +123,8 @@ public final class McpOpenapiCompositeGenerator
             }
         }
 
+        final Set<OpenapiOperationView> claimed = new HashSet<>();
+        final Set<String> usedNames = new HashSet<>();
         final List<RoutedOperation> routed = new LinkedList<>();
         for (McpOpenapiRouteConfig route : binding.routes)
         {
@@ -125,16 +134,14 @@ public final class McpOpenapiCompositeGenerator
                 continue;
             }
             final OpenapiView openapi = specsByLabel.get(with.spec);
-            final OpenapiOperationView operation = openapi != null && openapi.operations != null
-                ? openapi.operations.get(with.operation)
-                : null;
-            if (operation == null)
+            if (openapi == null)
             {
                 continue;
             }
 
             String tool = null;
             String resource = null;
+            List<String> capability = null;
             for (McpOpenapiConditionConfig when : route.when)
             {
                 if (when.tool != null)
@@ -145,20 +152,40 @@ public final class McpOpenapiCompositeGenerator
                 {
                     resource = when.resource;
                 }
-            }
-            if (tool == null && resource == null)
-            {
-                tool = with.operation;
+                if (when.capability != null)
+                {
+                    capability = when.capability;
+                }
             }
 
-            final GuardedResolution resolution = guardedRefs(binding, openapi, operation, securityByLabel.get(with.spec));
-            if (resolution.denied())
+            final boolean wantsResource = resource != null;
+            if (capability != null && !capability.contains(wantsResource ? CAPABILITY_RESOURCE : CAPABILITY_TOOL))
             {
                 continue;
             }
 
-            routed.add(new RoutedOperation(tool, resource, operation, toolConfig(binding, tool), resolution.guarded,
-                serverByLabel.get(with.spec)));
+            if (tool != null)
+            {
+                usedNames.add(tool);
+            }
+
+            for (OpenapiOperationView operation : candidateOperations(openapi, route, claimed))
+            {
+                claimed.add(operation);
+
+                final String routeTool = tool != null || resource != null
+                    ? tool
+                    : McpOpenapiToolNamer.defaultName(operation, usedNames);
+
+                final GuardedResolution resolution = guardedRefs(binding, openapi, operation, securityByLabel.get(with.spec));
+                if (resolution.denied())
+                {
+                    continue;
+                }
+
+                routed.add(new RoutedOperation(routeTool, resource, operation, toolConfig(binding, routeTool),
+                    resolution.guarded, serverByLabel.get(with.spec)));
+            }
         }
 
         final NamespaceConfig namespace = NamespaceConfig.builder()
@@ -368,6 +395,87 @@ public final class McpOpenapiCompositeGenerator
     {
         roles.forEach(guarded::role);
         return guarded;
+    }
+
+    private static List<OpenapiOperationView> candidateOperations(
+        OpenapiView openapi,
+        McpOpenapiRouteConfig route,
+        Set<OpenapiOperationView> claimed)
+    {
+        final McpOpenapiWithConfig with = route.with;
+        final List<OpenapiOperationView> candidates = route.isBulk()
+            ? bulkCandidates(openapi, with)
+            : explicitCandidate(openapi, with);
+
+        return candidates.stream()
+            .filter(operation -> !claimed.contains(operation))
+            .toList();
+    }
+
+    private static List<OpenapiOperationView> explicitCandidate(
+        OpenapiView openapi,
+        McpOpenapiWithConfig with)
+    {
+        final OpenapiOperationView operation = openapi.operations != null
+            ? openapi.operations.get(with.operation)
+            : null;
+
+        return operation != null ? List.of(operation) : List.of();
+    }
+
+    private static List<OpenapiOperationView> bulkCandidates(
+        OpenapiView openapi,
+        McpOpenapiWithConfig with)
+    {
+        final Predicate<OpenapiOperationView> matches;
+        if (with.tag != null)
+        {
+            matches = operation -> operation.tags != null && operation.tags.contains(with.tag);
+        }
+        else if (with.operation != null)
+        {
+            final Pattern pattern = compileGlob(with.operation);
+            matches = operation -> operation.id != null && pattern.matcher(operation.id).matches();
+        }
+        else
+        {
+            matches = operation -> true;
+        }
+
+        return allOperations(openapi).stream()
+            .filter(matches)
+            .sorted(Comparator.comparing((OpenapiOperationView operation) -> operation.path)
+                .thenComparing(operation -> operation.method))
+            .toList();
+    }
+
+    private static List<OpenapiOperationView> allOperations(
+        OpenapiView openapi)
+    {
+        return openapi.paths == null
+            ? List.of()
+            : openapi.paths.values().stream()
+                .flatMap(path -> path.methods.values().stream())
+                .toList();
+    }
+
+    private static Pattern compileGlob(
+        String glob)
+    {
+        final StringBuilder regex = new StringBuilder();
+        final String[] literals = glob.split("\\*", -1);
+        for (int index = 0; index < literals.length; index++)
+        {
+            if (index > 0)
+            {
+                regex.append(".*");
+            }
+            if (!literals[index].isEmpty())
+            {
+                regex.append(Pattern.quote(literals[index]));
+            }
+        }
+        return Pattern.compile(regex.toString());
     }
 
     private GuardedResolution guardedRefs(

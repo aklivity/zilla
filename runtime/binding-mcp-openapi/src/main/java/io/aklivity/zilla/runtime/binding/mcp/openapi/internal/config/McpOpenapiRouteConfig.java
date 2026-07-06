@@ -37,4 +37,11 @@ public final class McpOpenapiRouteConfig
             .collect(toList());
         this.with = (McpOpenapiWithConfig) route.with;
     }
+
+    public boolean isBulk()
+    {
+        return with.tag != null ||
+            with.operation == null ||
+            with.operation.indexOf('*') != -1;
+    }
 }

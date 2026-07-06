@@ -41,6 +41,11 @@ public final class McpOpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Mc
         return (Class<McpOpenapiOptionsConfigBuilder<T>>) getClass();
     }
 
+    public McpOpenapiSpecificationConfigBuilder<McpOpenapiOptionsConfigBuilder<T>> spec()
+    {
+        return new McpOpenapiSpecificationConfigBuilder<>(this::spec);
+    }
+
     public McpOpenapiOptionsConfigBuilder<T> spec(
         McpOpenapiSpecificationConfig spec)
     {
@@ -50,6 +55,11 @@ public final class McpOpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Mc
         }
         specs.add(spec);
         return this;
+    }
+
+    public McpOpenapiToolConfigBuilder<McpOpenapiOptionsConfigBuilder<T>> tool()
+    {
+        return new McpOpenapiToolConfigBuilder<>(this::tool);
     }
 
     public McpOpenapiOptionsConfigBuilder<T> tool(
