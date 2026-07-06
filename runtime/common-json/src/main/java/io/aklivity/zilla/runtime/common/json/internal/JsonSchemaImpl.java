@@ -2429,13 +2429,21 @@ public final class JsonSchemaImpl implements JsonSchema
             return downstreamVerbatim && body ? JsonEvent.VERBATIM : event;
         }
 
+        // SUSPENDED must outrank a VALID verdict: a schema verdict of VALID only means the document read so
+        // far satisfies the schema, not that the downstream write actually completed. Checking verdict before
+        // downstream would report COMPLETED while a write is still backed up mid-value (e.g. a mediating
+        // stage injecting more content once the validated value closes, per binding-mcp-http's
+        // McpHttpToolResult), silently truncating everything the caller still owed downstream.
         private Status verdictStatus(
             Verdict verdict,
             Status downstream)
         {
-            return downstream == Status.REJECTED ? Status.REJECTED
-                : verdict == Verdict.VALID ? Status.COMPLETED
-                : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
+            return switch (downstream)
+            {
+            case REJECTED -> Status.REJECTED;
+            case SUSPENDED -> Status.SUSPENDED;
+            default -> verdict == Verdict.VALID ? Status.COMPLETED : Status.ADVANCED;
+            };
         }
 
         private Status leniently(

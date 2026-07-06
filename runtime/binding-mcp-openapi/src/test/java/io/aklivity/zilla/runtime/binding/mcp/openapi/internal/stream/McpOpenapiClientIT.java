@@ -119,6 +119,16 @@ public class McpOpenapiClientIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/create.pr.error.aborted/client",
+        "${http}/create.pr.error.aborted/server"})
+    public void shouldAbortToolCreatePrDuringErrorRelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/create.pr.error/client",
         "${http}/create.pr.error/server"})
     public void shouldRejectToolCreatePr() throws Exception

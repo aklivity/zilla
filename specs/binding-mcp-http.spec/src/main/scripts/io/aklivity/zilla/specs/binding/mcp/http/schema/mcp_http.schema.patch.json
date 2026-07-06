@@ -119,7 +119,7 @@
                                                 "additionalProperties": false
                                             }
                                         },
-                                        "required": [ "schemas" ],
+                                        "required": [ "summary", "schemas" ],
                                         "additionalProperties": false
                                     }
                                 },

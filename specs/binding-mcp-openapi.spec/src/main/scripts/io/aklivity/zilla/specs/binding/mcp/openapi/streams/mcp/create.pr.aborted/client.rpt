@@ -52,4 +52,8 @@ connected
 
 write '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main"}}'
 
+# wait for the upstream request to have actually arrived before expecting the abort, so this
+# isn't racing the request delivery itself
+read await REQUEST_RECEIVED
+
 read abort

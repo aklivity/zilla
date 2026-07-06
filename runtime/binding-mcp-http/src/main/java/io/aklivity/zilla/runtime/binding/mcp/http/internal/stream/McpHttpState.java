@@ -37,6 +37,12 @@ final class McpHttpState
         return state | INITIAL_OPENING | INITIAL_OPENED;
     }
 
+    static int closingInitial(
+        int state)
+    {
+        return state | INITIAL_CLOSING;
+    }
+
     static int closedInitial(
         int state)
     {
@@ -47,6 +53,12 @@ final class McpHttpState
         int state)
     {
         return (state & INITIAL_OPENING) != 0;
+    }
+
+    static boolean initialClosing(
+        int state)
+    {
+        return (state & INITIAL_CLOSING) != 0;
     }
 
     static boolean initialClosed(
@@ -61,6 +73,12 @@ final class McpHttpState
         return state | REPLY_OPENING | REPLY_OPENED;
     }
 
+    static int closingReply(
+        int state)
+    {
+        return state | REPLY_CLOSING;
+    }
+
     static int closedReply(
         int state)
     {
@@ -71,6 +89,12 @@ final class McpHttpState
         int state)
     {
         return (state & REPLY_OPENED) != 0;
+    }
+
+    static boolean replyClosing(
+        int state)
+    {
+        return (state & REPLY_CLOSING) != 0;
     }
 
     static boolean replyClosed(

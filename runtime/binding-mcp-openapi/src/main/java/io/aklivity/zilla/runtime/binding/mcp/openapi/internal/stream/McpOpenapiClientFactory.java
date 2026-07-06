@@ -338,10 +338,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            state = McpOpenapiState.openingReply(state);
+            if (!McpOpenapiState.replyOpening(state))
+            {
+                state = McpOpenapiState.openingReply(state);
 
-            McpOpenapiClientFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
-                traceId, authorization, affinity, extension);
+                McpOpenapiClientFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                    traceId, authorization, affinity, extension);
+            }
         }
 
         private void doMcpOpenapiData(
@@ -379,7 +382,11 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (McpOpenapiState.replyOpening(state) && !McpOpenapiState.replyClosed(state))
+            // an END must always be deliverable even if the reply was never opened (e.g. mcp_http0 ends its
+            // reply before ever sending a BEGIN) — open the reply first, mirroring doMcpOpenapiAbort below
+            doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
+
+            if (!McpOpenapiState.replyClosed(state))
             {
                 McpOpenapiClientFactory.this.doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
@@ -395,7 +402,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (McpOpenapiState.replyOpening(state) && !McpOpenapiState.replyClosed(state))
+            // an ABORT must always be deliverable even if the reply was never opened — e.g. mcp_http0's
+            // upstream aborts before ever sending a response, so no reply BEGIN has gone out yet. Without
+            // opening the reply first, this abort is silently dropped and the real client hangs forever
+            // waiting for any reply frame at all
+            doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
+
+            if (!McpOpenapiState.replyClosed(state))
             {
                 McpOpenapiClientFactory.this.doAbort(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);

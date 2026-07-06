@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -69,11 +70,12 @@ public final class McpHttpBindingConfig
     private final Map<String, List<String>> resourceCaptures;
     private final Map<ModelConfig, JsonSchema> jsonSchemas;
     private final Map<McpHttpRouteConfig, List<String>> unsatisfiedAccessors;
+    private final Function<ModelConfig, JsonSchema> resolveJsonSchemaFn = this::resolveJsonSchema;
 
     // memoized list replies; derived solely from static binding config, built once on first request
-    private String toolsListJson;
-    private String resourcesListJson;
-    private String promptsListJson;
+    private byte[] toolsListJson;
+    private byte[] resourcesListJson;
+    private byte[] promptsListJson;
 
     public McpHttpBindingConfig(
         BindingConfig binding,
@@ -145,10 +147,16 @@ public final class McpHttpBindingConfig
         String name,
         long authorization)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesTool(name))
-            .findFirst()
-            .orElse(null);
+        McpHttpRouteConfig matched = null;
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.authorized(authorization) && route.matchesTool(name))
+            {
+                matched = route;
+                break;
+            }
+        }
+        return matched;
     }
 
     public McpHttpResourceConfig resolveResource(
@@ -171,10 +179,16 @@ public final class McpHttpBindingConfig
         String name,
         long authorization)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesResource(name))
-            .findFirst()
-            .orElse(null);
+        McpHttpRouteConfig matched = null;
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.authorized(authorization) && route.matchesResource(name))
+            {
+                matched = route;
+                break;
+            }
+        }
+        return matched;
     }
 
     public List<GuardedConfig> toolGuarded(
@@ -207,35 +221,35 @@ public final class McpHttpBindingConfig
         return promptsByName.values();
     }
 
-    public String toolsListJson()
+    public byte[] toolsListJson()
     {
         return toolsListJson;
     }
 
     public void toolsListJson(
-        String json)
+        byte[] json)
     {
         this.toolsListJson = json;
     }
 
-    public String resourcesListJson()
+    public byte[] resourcesListJson()
     {
         return resourcesListJson;
     }
 
     public void resourcesListJson(
-        String json)
+        byte[] json)
     {
         this.resourcesListJson = json;
     }
 
-    public String promptsListJson()
+    public byte[] promptsListJson()
     {
         return promptsListJson;
     }
 
     public void promptsListJson(
-        String json)
+        byte[] json)
     {
         this.promptsListJson = json;
     }
@@ -299,7 +313,7 @@ public final class McpHttpBindingConfig
         ModelConfig model)
     {
         return model != null
-            ? jsonSchemas.computeIfAbsent(model, this::resolveJsonSchema)
+            ? jsonSchemas.computeIfAbsent(model, resolveJsonSchemaFn)
             : null;
     }
 
@@ -340,7 +354,7 @@ public final class McpHttpBindingConfig
         List<String> verdict = unsatisfiedAccessors.get(route);
         if (verdict == null)
         {
-            final List<String> unsatisfied = new ArrayList<>();
+            List<String> unsatisfied = null;
             boolean deferred = false;
 
             if (route.tool != null && !route.argAccessors.isEmpty())
@@ -358,6 +372,10 @@ public final class McpHttpBindingConfig
                     {
                         if (!argPathValid(text, accessor))
                         {
+                            if (unsatisfied == null)
+                            {
+                                unsatisfied = new ArrayList<>();
+                            }
                             unsatisfied.add("args." + accessor);
                         }
                     }
@@ -371,12 +389,16 @@ public final class McpHttpBindingConfig
                 {
                     if (!captures.contains(accessor))
                     {
+                        if (unsatisfied == null)
+                        {
+                            unsatisfied = new ArrayList<>();
+                        }
                         unsatisfied.add("params." + accessor);
                     }
                 }
             }
 
-            verdict = unsatisfied;
+            verdict = unsatisfied != null ? unsatisfied : List.of();
             if (!deferred)
             {
                 unsatisfiedAccessors.put(route, verdict);

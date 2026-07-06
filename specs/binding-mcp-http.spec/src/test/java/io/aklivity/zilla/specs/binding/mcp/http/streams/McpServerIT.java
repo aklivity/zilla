@@ -110,6 +110,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/create.pr.fragmented/client",
+        "${mcp}/create.pr.fragmented/server"})
+    public void shouldCallToolCreatePrFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/create.pr.rich/client",
         "${mcp}/create.pr.rich/server"})
     public void shouldCallToolCreatePrWithStructuredArguments() throws Exception
@@ -212,6 +221,78 @@ public class McpServerIT
         "${mcp}/create.pr.aborted/client",
         "${mcp}/create.pr.aborted/server"})
     public void shouldAbortToolCreatePr() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/create.pr.error.100k/client",
+        "${mcp}/create.pr.error.100k/server"})
+    public void shouldRejectToolCreatePr100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/search.code.100k/client",
+        "${mcp}/search.code.100k/server"})
+    public void shouldCallToolSearchCode100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/get.report.large/client",
+        "${mcp}/get.report.large/server"})
+    public void shouldCallToolGetReportWithLargeSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/ping/client",
+        "${mcp}/ping/server"})
+    public void shouldCallToolPing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/list.tags/client",
+        "${mcp}/list.tags/server"})
+    public void shouldCallToolListTags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/count.items/client",
+        "${mcp}/count.items/server"})
+    public void shouldCallToolCountItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/echo.id.large/client",
+        "${mcp}/echo.id.large/server"})
+    public void shouldCallToolEchoIdWithLargeArgument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/get.profile/client",
+        "${mcp}/get.profile/server"})
+    public void shouldCallToolGetProfileWithNoSummary() throws Exception
     {
         k3po.finish();
     }

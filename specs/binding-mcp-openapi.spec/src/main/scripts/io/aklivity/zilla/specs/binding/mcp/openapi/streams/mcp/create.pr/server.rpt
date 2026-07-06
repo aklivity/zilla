@@ -55,8 +55,8 @@ read  '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"
 write flush
 
 write '{'
-        '"content":[{"type":"text","text":"Create a pull request"}],'
         '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
+        '"content":[{"type":"text","text":"Create a pull request"}],'
         '"isError":false'
       '}'
 write flush

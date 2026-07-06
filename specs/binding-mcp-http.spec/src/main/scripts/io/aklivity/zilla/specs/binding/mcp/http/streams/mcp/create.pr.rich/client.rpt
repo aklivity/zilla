@@ -55,8 +55,8 @@ write ${core:randomBase64(10000)}
 write '"}}'
 
 read  '{'
-        '"content":[{"type":"text","text":"Created pull request #42"}],'
         '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
+        '"content":[{"type":"text","text":"Created pull request #42"}],'
         '"isError":false'
       '}'
 read closed

@@ -53,7 +53,4 @@ connected
 # arguments fail schemas.input validation (required "base" is absent) -> rejected before dispatch
 write '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature"}}'
 
-read  '{"content":[{"type":"text","text":"invalid arguments"}],"isError":true}'
-read closed
-
-write close
+read abort

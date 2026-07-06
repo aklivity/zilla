@@ -19,14 +19,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.io.DirectBufferInputStreamEx;
@@ -191,6 +194,169 @@ class JsonValidatorChainTest
 
         gen.wrap(buffer, 0, buffer.capacity());
         assertEquals(Status.REJECTED, run(pipeline, "{\"id\":2} "));
+    }
+
+    // Reproduces a bug found via binding-mcp-http: a mediating stage positioned after the validator (e.g.
+    // McpHttpToolResult, wrapping a validated value in a larger envelope) can inject more content once the
+    // real value closes and have that injection alone be what backs up against the destination — so the
+    // downstream status for the closing event is SUSPENDED even though the validated value itself is now
+    // schema-VALID. verdictStatus() must let a SUSPENDED downstream outrank a VALID verdict; getting this
+    // wrong reports COMPLETED while the mediator's own write is still pending, silently truncating
+    // whatever it still owed downstream (the pipeline caller sees "done" and never resumes the drain).
+    @Test
+    void shouldSuspendNotCompleteWhenInjectorSuspendsAtValidVerdict()
+    {
+        JsonSchema schema = JsonSchema.of("{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}}}");
+        // enough room for the validated "{\"id\":1}" (8 bytes) plus headroom, but not enough left over for
+        // the injector's own additional value on top of it
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, 20);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(schema.validator())
+            .transform(new Injector())
+            .into(JsonEx.createSink(gen));
+
+        Status status = run(pipeline, "{\"id\":1}");
+
+        assertEquals(Status.SUSPENDED, status);
+    }
+
+    // Forwards every event unchanged; once the real root object closes, also injects one more value too
+    // large for the remaining destination room, so the combined status for that closing event is SUSPENDED
+    // even though the value forwarded just fine on its own.
+    private static final class Injector implements JsonTransform
+    {
+        private final JsonController injectControl = new JsonController()
+        {
+            @Override
+            public void segmentable()
+            {
+            }
+
+            @Override
+            public void verbatim()
+            {
+            }
+
+            @Override
+            public void consumed(
+                int sourceBytes)
+            {
+            }
+        };
+
+        private int depth;
+
+        @Override
+        public Status transform(
+            JsonController control,
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink)
+        {
+            switch (event)
+            {
+            case START_OBJECT:
+                depth++;
+                break;
+            case END_OBJECT:
+                depth--;
+                break;
+            default:
+                break;
+            }
+            Status status = sink.transform(control, source, event);
+            if (status != Status.SUSPENDED && status != Status.REJECTED &&
+                event == JsonEvent.END_OBJECT && depth == 0)
+            {
+                status = sink.transform(injectControl, new FixedSource("x".repeat(50)), JsonEvent.VALUE_STRING);
+            }
+            return status;
+        }
+
+        @Override
+        public void reset()
+        {
+            depth = 0;
+        }
+    }
+
+    // Supplies a fixed injected scalar value with no real source bytes to advance.
+    private static final class FixedSource implements JsonSource
+    {
+        private final CharSequence text;
+
+        private FixedSource(
+            CharSequence text)
+        {
+            this.text = text;
+        }
+
+        @Override
+        public CharSequence getStringView()
+        {
+            return text;
+        }
+
+        @Override
+        public boolean deferredBytes()
+        {
+            return false;
+        }
+
+        @Override
+        public String getString()
+        {
+            return text.toString();
+        }
+
+        @Override
+        public BigDecimal getBigDecimal()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isIntegralNumber()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getInt()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getLong()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public JsonLocation getLocation()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DirectBufferEx getSegment()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public JsonVerbatim getVerbatim(
+            int limit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void skipValue()
+        {
+            throw new UnsupportedOperationException();
+        }
     }
 
     @Test

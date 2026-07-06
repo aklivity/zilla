@@ -74,6 +74,15 @@ public class HttpClientIT
 
     @Test
     @Specification({
+        "${http}/create.pr.fragmented/client",
+        "${http}/create.pr.fragmented/server"})
+    public void shouldProxyCreatePrFragmentedToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/create.pr.rich/client",
         "${http}/create.pr.rich/server"})
     public void shouldProxyCreatePrWithStructuredArgumentsToHttp() throws Exception
@@ -131,6 +140,78 @@ public class HttpClientIT
         "${http}/create.pr.credentials/client",
         "${http}/create.pr.credentials/server"})
     public void shouldProxyCreatePrWithCredentialsToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/create.pr.error.100k/client",
+        "${http}/create.pr.error.100k/server"})
+    public void shouldProxyCreatePrError100kToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/search.code.100k/client",
+        "${http}/search.code.100k/server"})
+    public void shouldProxySearchCode100kToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.report.large/client",
+        "${http}/get.report.large/server"})
+    public void shouldProxyGetReportLargeToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/ping/client",
+        "${http}/ping/server"})
+    public void shouldProxyPingToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/list.tags/client",
+        "${http}/list.tags/server"})
+    public void shouldProxyListTagsToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/count.items/client",
+        "${http}/count.items/server"})
+    public void shouldProxyCountItemsToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/echo.id.large/client",
+        "${http}/echo.id.large/server"})
+    public void shouldProxyEchoIdLargeToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.profile/client",
+        "${http}/get.profile/server"})
+    public void shouldProxyGetProfileToHttp() throws Exception
     {
         k3po.finish();
     }

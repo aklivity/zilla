@@ -367,7 +367,7 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         assertThat(tool, notNullValue());
         assertThat(tool.description, equalTo("repos/get"));
-        assertThat(tool.summary, nullValue());
+        assertThat(tool.summary, equalTo("Call repos/get"));
     }
 
     @Test

@@ -69,9 +69,37 @@ from an existing module — this applies to all new projects regardless of type
 # Build a specific module
 ./mvnw install -pl runtime/binding-http -am
 
-# Run a single test class
-./mvnw test -pl runtime/binding-http -Dtest=HttpServerIT   # class names are type-prefixed: Http*
+# Run a single unit test class (*Test.java, no k3po) — class names are type-prefixed: Http*
+./mvnw test -pl runtime/binding-http -Dtest=HttpConfigurationTest
 ```
+
+**`*IT.java` classes require `verify`, never `test` — this is not optional.** Every
+k3po-based integration test class is named `*IT.java` and depends on the
+`k3po:start`/`k3po:stop` goals, which are bound to the `pre-integration-test`/
+`post-integration-test` lifecycle phases. Those phases only run as part of
+`verify` (or `integration-test`); the `test` phase never reaches them. Running
+`./mvnw test -Dtest=SomeIT` will still *find* and attempt the class (`-Dtest`
+bypasses Surefire's normal `*Test.java`-only file pattern), but the k3po
+control server is never started, so every test fails with a misleading
+`Failed to connect. Is K3PO ready?` — which looks like a test failure but is
+actually a wrong-command error. If you see that error, the fix is almost
+never in the test or the code — it's the command:
+
+```bash
+# WRONG for *IT.java — k3po never starts, fails with "Is K3PO ready?"
+./mvnw test -pl runtime/binding-http -Dtest=HttpServerIT
+
+# RIGHT — runs the full lifecycle including k3po:start/k3po:stop
+./mvnw verify -pl runtime/binding-http -Dit.test=HttpServerIT
+
+# RIGHT — no -Dit.test filter runs every IT in the module
+./mvnw verify -pl runtime/binding-http
+```
+
+A crash or hang from `test -Dtest=SomeIT` (SIGSEGV, "forked VM terminated
+without properly saying goodbye", event-assertion mismatches) is a symptom of
+this same root cause, not a real bug — before spending time diagnosing a
+crash from an `*IT` run, confirm it was launched with `verify`.
 
 The Maven plugin in `maven-plugin/` generates flyweight Java classes from `.idl`
 files. Always run a full build after modifying any `.idl` file.
