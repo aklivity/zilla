@@ -138,6 +138,8 @@ public class McpOpenapiCompositeGeneratorTest
         "      }," +
         "      \"get\": {" +
         "        \"operationId\": \"issues/list\"," +
+        "        \"summary\": \"List repository issues\"," +
+        "        \"description\": \"Retrieve a paginated list of open and closed issues for the specified repository.\"," +
         "        \"security\": []," +
         "        \"parameters\": [" +
         "          { \"name\": \"owner\", \"in\": \"path\", \"required\": true, \"schema\": { \"type\": \"string\" } }," +
@@ -316,6 +318,56 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(tool, notNullValue());
         assertThat(tool.description, equalTo("Create a pull request."));
         assertThat(tool.output, sameInstance(override));
+    }
+
+    @Test
+    public void shouldUseOpenapiSummaryAsToolSummary()
+    {
+        BindingConfig binding = bindingWithRoutes(route(0, "list_issues", null, "issues/list"));
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "list_issues".equals(t.name))
+            .findFirst()
+            .orElse(null);
+        assertThat(tool, notNullValue());
+        assertThat(tool.summary, equalTo("List repository issues"));
+    }
+
+    @Test
+    public void shouldDefaultToolDescriptionToOperationDescriptionWhenPresent()
+    {
+        BindingConfig binding = bindingWithRoutes(route(0, "list_issues", null, "issues/list"));
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "list_issues".equals(t.name))
+            .findFirst()
+            .orElse(null);
+        assertThat(tool, notNullValue());
+        assertThat(tool.description,
+            equalTo("Retrieve a paginated list of open and closed issues for the specified repository."));
+    }
+
+    @Test
+    public void shouldDefaultToolDescriptionToOperationIdWhenDescriptionAbsent()
+    {
+        BindingConfig binding = bindingWithRoutes(route(0, "get_repo", null, "repos/get"));
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "get_repo".equals(t.name))
+            .findFirst()
+            .orElse(null);
+        assertThat(tool, notNullValue());
+        assertThat(tool.description, equalTo("repos/get"));
+        assertThat(tool.summary, nullValue());
     }
 
     @Test

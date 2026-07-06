@@ -19,21 +19,21 @@ import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 public final class McpHttpToolConfig
 {
     public final String name;
-    public final String description;
     public final String summary;
+    public final String description;
     public final ModelConfig input;
     public final ModelConfig output;
 
     public McpHttpToolConfig(
         String name,
-        String description,
         String summary,
+        String description,
         ModelConfig input,
         ModelConfig output)
     {
         this.name = name;
-        this.description = description;
         this.summary = summary;
+        this.description = description;
         this.input = input;
         this.output = output;
     }
