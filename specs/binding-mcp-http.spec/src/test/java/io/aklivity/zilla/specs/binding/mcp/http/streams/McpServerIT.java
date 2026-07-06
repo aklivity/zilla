@@ -155,36 +155,9 @@ public class McpServerIT
 
     @Test
     @Specification({
-        "${mcp}/prompts.get/client",
-        "${mcp}/prompts.get/server"})
-    public void shouldGetPrompt() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mcp}/prompts.list.configured/client",
-        "${mcp}/prompts.list.configured/server"})
-    public void shouldListConfiguredPrompts() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mcp}/resources.list/client",
         "${mcp}/resources.list/server"})
     public void shouldListResources() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mcp}/prompts.list/client",
-        "${mcp}/prompts.list/server"})
-    public void shouldListPrompts() throws Exception
     {
         k3po.finish();
     }

@@ -200,37 +200,10 @@ public class McpHttpProxyIT
     }
 
     @Test
-    @Configuration("proxy.prompts.yaml")
-    @Specification({
-        "${mcp}/prompts.get/client"})
-    public void shouldGetPrompt() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.prompts.yaml")
-    @Specification({
-        "${mcp}/prompts.list.configured/client"})
-    public void shouldListConfiguredPrompts() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.discovery.yaml")
     @Specification({
         "${mcp}/resources.list/client"})
     public void shouldListResources() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.discovery.yaml")
-    @Specification({
-        "${mcp}/prompts.list/client"})
-    public void shouldListPrompts() throws Exception
     {
         k3po.finish();
     }

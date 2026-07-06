@@ -38,7 +38,6 @@ import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -65,7 +64,6 @@ public final class McpHttpBindingConfig
     private final ToLongFunction<String> resolveId;
     private final Map<String, McpHttpToolConfig> toolsByName;
     private final Map<String, McpHttpResourceConfig> resourcesByName;
-    private final Map<String, McpHttpPromptConfig> promptsByName;
     private final List<ResourceMatcher> resourceMatchers;
     private final Map<String, List<String>> resourceCaptures;
     private final Map<ModelConfig, JsonSchema> jsonSchemas;
@@ -75,7 +73,6 @@ public final class McpHttpBindingConfig
     // memoized list replies; derived solely from static binding config, built once on first request
     private byte[] toolsListJson;
     private byte[] resourcesListJson;
-    private byte[] promptsListJson;
 
     public McpHttpBindingConfig(
         BindingConfig binding,
@@ -106,16 +103,6 @@ public final class McpHttpBindingConfig
             .collect(toMap(
                 resource -> resource.name,
                 resource -> resource,
-                (existing, replacement) -> existing,
-                LinkedHashMap::new));
-
-        this.promptsByName = Optional.ofNullable(options)
-            .map(o -> o.prompts)
-            .stream()
-            .flatMap(List::stream)
-            .collect(toMap(
-                prompt -> prompt.name,
-                prompt -> prompt,
                 (existing, replacement) -> existing,
                 LinkedHashMap::new));
 
@@ -216,11 +203,6 @@ public final class McpHttpBindingConfig
         return resourcesByName.values();
     }
 
-    public Collection<McpHttpPromptConfig> prompts()
-    {
-        return promptsByName.values();
-    }
-
     public byte[] toolsListJson()
     {
         return toolsListJson;
@@ -241,23 +223,6 @@ public final class McpHttpBindingConfig
         byte[] json)
     {
         this.resourcesListJson = json;
-    }
-
-    public byte[] promptsListJson()
-    {
-        return promptsListJson;
-    }
-
-    public void promptsListJson(
-        byte[] json)
-    {
-        this.promptsListJson = json;
-    }
-
-    public McpHttpPromptConfig prompt(
-        String name)
-    {
-        return promptsByName.get(name);
     }
 
     public McpHttpResourceConfig resource(

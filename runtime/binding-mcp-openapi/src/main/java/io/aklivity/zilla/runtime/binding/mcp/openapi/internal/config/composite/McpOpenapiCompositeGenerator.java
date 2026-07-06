@@ -324,8 +324,7 @@ public final class McpOpenapiCompositeGenerator
 
         return new McpHttpOptionsConfig(null,
             tools.isEmpty() ? null : tools,
-            resources.isEmpty() ? null : resources,
-            null);
+            resources.isEmpty() ? null : resources);
     }
 
     private <C> BindingConfigBuilder<C> injectRoutes(

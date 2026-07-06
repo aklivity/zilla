@@ -23,17 +23,14 @@ public final class McpHttpOptionsConfig extends OptionsConfig
     public final McpHttpAuthorizationConfig authorization;
     public final List<McpHttpToolConfig> tools;
     public final List<McpHttpResourceConfig> resources;
-    public final List<McpHttpPromptConfig> prompts;
 
     public McpHttpOptionsConfig(
         McpHttpAuthorizationConfig authorization,
         List<McpHttpToolConfig> tools,
-        List<McpHttpResourceConfig> resources,
-        List<McpHttpPromptConfig> prompts)
+        List<McpHttpResourceConfig> resources)
     {
         this.authorization = authorization;
         this.tools = tools;
         this.resources = resources;
-        this.prompts = prompts;
     }
 }
