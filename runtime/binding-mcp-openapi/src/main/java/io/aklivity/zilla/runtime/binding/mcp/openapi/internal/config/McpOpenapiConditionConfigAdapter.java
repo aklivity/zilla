@@ -90,6 +90,10 @@ public final class McpOpenapiConditionConfigAdapter implements ConditionConfigAd
                 .collect(toList())
             : null;
 
-        return new McpOpenapiConditionConfig(tool, resource, capability);
+        return McpOpenapiConditionConfig.builder()
+            .tool(tool)
+            .resource(resource)
+            .capability(capability)
+            .build();
     }
 }

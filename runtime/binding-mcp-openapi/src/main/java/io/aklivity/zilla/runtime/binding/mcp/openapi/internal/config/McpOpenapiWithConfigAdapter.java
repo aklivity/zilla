@@ -78,6 +78,10 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
             ? object.getString(TAG_NAME)
             : null;
 
-        return new McpOpenapiWithConfig(spec, operation, tag);
+        return McpOpenapiWithConfig.builder()
+            .spec(spec)
+            .operation(operation)
+            .tag(tag)
+            .build();
     }
 }

@@ -169,7 +169,7 @@ public final class McpOpenapiCompositeGenerator
                 usedNames.add(tool);
             }
 
-            for (OpenapiOperationView operation : candidateOperations(openapi, with, claimed))
+            for (OpenapiOperationView operation : candidateOperations(openapi, route, claimed))
             {
                 claimed.add(operation);
 
@@ -400,10 +400,11 @@ public final class McpOpenapiCompositeGenerator
 
     private static List<OpenapiOperationView> candidateOperations(
         OpenapiView openapi,
-        McpOpenapiWithConfig with,
+        McpOpenapiRouteConfig route,
         Set<OpenapiOperationView> claimed)
     {
-        final List<OpenapiOperationView> candidates = McpOpenapiRouteConfig.isBulk(with)
+        final McpOpenapiWithConfig with = route.with;
+        final List<OpenapiOperationView> candidates = route.isBulk()
             ? bulkCandidates(openapi, with)
             : explicitCandidate(openapi, with);
 

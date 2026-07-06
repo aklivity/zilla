@@ -38,7 +38,7 @@ public final class McpOpenapiRouteConfig
             .collect(toList());
         this.with = (McpOpenapiWithConfig) route.with;
 
-        if (this.with != null && isBulk(this.with) && namesToolOrResource(this.when))
+        if (this.with != null && isBulk() && namesToolOrResource(this.when))
         {
             throw new ConfigException(
                 "mcp_openapi route with a bulk selector (with.tag, a glob with.operation pattern, or spec-only) " +
@@ -46,8 +46,7 @@ public final class McpOpenapiRouteConfig
         }
     }
 
-    public static boolean isBulk(
-        McpOpenapiWithConfig with)
+    public boolean isBulk()
     {
         return with.tag != null ||
             with.operation == null ||

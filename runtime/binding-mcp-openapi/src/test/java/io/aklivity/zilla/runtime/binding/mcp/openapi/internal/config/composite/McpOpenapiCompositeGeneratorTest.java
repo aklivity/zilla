@@ -743,8 +743,8 @@ public class McpOpenapiCompositeGeneratorTest
         BindingConfig binding = bindingWithRoutes(
             RouteConfig.builder()
                 .order(0)
-                .when(new McpOpenapiConditionConfig("explicit_name", null))
-                .with(new McpOpenapiWithConfig("openapi_github0", null, "pulls"))
+                .when(McpOpenapiConditionConfig.builder().tool("explicit_name").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").tag("pulls").build())
                 .build());
 
         new McpOpenapiBindingConfig(context, binding);
@@ -812,8 +812,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         return RouteConfig.builder()
             .order(order)
-            .when(new McpOpenapiConditionConfig(tool, resource))
-            .with(new McpOpenapiWithConfig(apiId, operationId))
+            .when(McpOpenapiConditionConfig.builder().tool(tool).resource(resource).build())
+            .with(McpOpenapiWithConfig.builder().spec(apiId).operation(operationId).build())
             .build();
     }
 
@@ -824,7 +824,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         return RouteConfig.builder()
             .order(order)
-            .with(new McpOpenapiWithConfig(apiId, operationPattern))
+            .with(McpOpenapiWithConfig.builder().spec(apiId).operation(operationPattern).build())
             .build();
     }
 
@@ -835,7 +835,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         return RouteConfig.builder()
             .order(order)
-            .with(new McpOpenapiWithConfig(apiId, null, tag))
+            .with(McpOpenapiWithConfig.builder().spec(apiId).tag(tag).build())
             .build();
     }
 
@@ -847,8 +847,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         return RouteConfig.builder()
             .order(order)
-            .when(new McpOpenapiConditionConfig(null, null, of(capability)))
-            .with(new McpOpenapiWithConfig(apiId, null, tag))
+            .when(McpOpenapiConditionConfig.builder().capability(of(capability)).build())
+            .with(McpOpenapiWithConfig.builder().spec(apiId).tag(tag).build())
             .build();
     }
 
