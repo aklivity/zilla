@@ -79,6 +79,26 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
+                          .resourceTemplatesList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+write '{"resourceTemplates":[]}'
+write flush
+
+write close
+
+read closed
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
                           .resourcesList()
                               .sessionId("hydrate-1")
                               .build()
@@ -151,6 +171,26 @@ connected
 write flush
 
 write '{"tools":[{"name":"get_current_time"}]}'
+write flush
+
+write close
+
+read closed
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourceTemplatesList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+write '{"resourceTemplates":[]}'
 write flush
 
 write close
