@@ -51,8 +51,10 @@ import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
@@ -185,8 +187,8 @@ public final class McpOpenapiCompositeGenerator
                     continue;
                 }
 
-                routed.add(new RoutedOperation(routeTool, resource, operation, toolConfig(binding, routeTool),
-                    resourceConfig(binding, resource), resolution.guarded, serverByLabel.get(with.spec)));
+                routed.add(new RoutedOperation(toolConfig(binding, routeTool), resourceConfig(binding, resource),
+                    operation, resolution.guarded, serverByLabel.get(with.spec)));
             }
         }
 
@@ -217,30 +219,56 @@ public final class McpOpenapiCompositeGenerator
         McpOpenapiBindingConfig binding,
         String tool)
     {
-        McpOpenapiToolConfig result = null;
-        if (tool != null && binding.options != null && binding.options.tools != null)
+        return tool != null
+            ? McpOpenapiToolConfig.builder()
+                .name(tool)
+                .inject(t -> injectToolOverrides(t, binding, tool))
+                .build()
+            : null;
+    }
+
+    private <C> McpOpenapiToolConfigBuilder<C> injectToolOverrides(
+        McpOpenapiToolConfigBuilder<C> tool,
+        McpOpenapiBindingConfig binding,
+        String name)
+    {
+        if (binding.options != null && binding.options.tools != null)
         {
-            result = binding.options.tools.stream()
-                .filter(t -> tool.equals(t.name))
+            binding.options.tools.stream()
+                .filter(t -> name.equals(t.name))
                 .findFirst()
-                .orElse(null);
+                .ifPresent(override -> tool.description(override.description).output(override.output));
         }
-        return result;
+
+        return tool;
     }
 
     private McpOpenapiResourceConfig resourceConfig(
         McpOpenapiBindingConfig binding,
         String resource)
     {
-        McpOpenapiResourceConfig result = null;
-        if (resource != null && binding.options != null && binding.options.resources != null)
+        return resource != null
+            ? McpOpenapiResourceConfig.builder()
+                .uri(resource)
+                .inject(r -> injectResourceOverrides(r, binding, resource))
+                .build()
+            : null;
+    }
+
+    private <C> McpOpenapiResourceConfigBuilder<C> injectResourceOverrides(
+        McpOpenapiResourceConfigBuilder<C> resource,
+        McpOpenapiBindingConfig binding,
+        String uri)
+    {
+        if (binding.options != null && binding.options.resources != null)
         {
-            result = binding.options.resources.stream()
-                .filter(r -> resource.equals(r.uri))
+            binding.options.resources.stream()
+                .filter(r -> uri.equals(r.uri))
                 .findFirst()
-                .orElse(null);
+                .ifPresent(override -> resource.description(override.description).output(override.output));
         }
-        return result;
+
+        return resource;
     }
 
     private <C> NamespaceConfigBuilder<C> injectCatalog(
@@ -337,11 +365,11 @@ public final class McpOpenapiCompositeGenerator
 
             if (entry.tool != null)
             {
-                final ModelConfig output = entry.toolConfig != null && entry.toolConfig.output != null
-                    ? entry.toolConfig.output
+                final ModelConfig output = entry.tool.output != null
+                    ? entry.tool.output
                     : jsonModel("%s-output".formatted(name));
-                final String description = entry.toolConfig != null && entry.toolConfig.description != null
-                    ? entry.toolConfig.description
+                final String description = entry.tool.description != null
+                    ? entry.tool.description
                     : entry.operation.description != null
                         ? entry.operation.description
                         : entry.operation.id;
@@ -351,20 +379,19 @@ public final class McpOpenapiCompositeGenerator
                 final String summary = entry.operation.summary != null
                     ? entry.operation.summary
                     : "Call %s".formatted(entry.operation.id);
-                tools.add(new McpHttpToolConfig(entry.tool, summary, description, input, output));
+                tools.add(new McpHttpToolConfig(entry.tool.name, summary, description, input, output));
             }
             else
             {
-                final ModelConfig output = entry.resourceConfig != null && entry.resourceConfig.output != null
-                    ? entry.resourceConfig.output
+                final ModelConfig output = entry.resource.output != null
+                    ? entry.resource.output
                     : jsonModel("%s-output".formatted(name));
-                final String description = entry.resourceConfig != null ? entry.resourceConfig.description : null;
                 final boolean template = entry.operation.path != null && entry.operation.path.indexOf('{') >= 0;
                 resources.add(McpHttpResourceConfig.builder()
-                    .name(entry.resource)
+                    .name(entry.resource.uri)
                     .uri(resourceUri(entry.operation))
                     .template(template)
-                    .description(description)
+                    .description(entry.resource.description)
                     .output(output)
                     .inject(r -> injectMimeType(r, entry.operation))
                     .build());
@@ -382,7 +409,9 @@ public final class McpOpenapiCompositeGenerator
     {
         for (RoutedOperation entry : routed)
         {
-            final McpHttpConditionConfig when = new McpHttpConditionConfig(entry.tool, entry.resource);
+            final McpHttpConditionConfig when = new McpHttpConditionConfig(
+                entry.tool != null ? entry.tool.name : null,
+                entry.resource != null ? entry.resource.uri : null);
             final McpHttpWithConfig with = withConfig(entry);
 
             binding.route()
@@ -900,35 +929,29 @@ public final class McpOpenapiCompositeGenerator
 
     private static final class RoutedOperation
     {
-        private final String tool;
-        private final String resource;
+        private final McpOpenapiToolConfig tool;
+        private final McpOpenapiResourceConfig resource;
         private final OpenapiOperationView operation;
-        private final McpOpenapiToolConfig toolConfig;
-        private final McpOpenapiResourceConfig resourceConfig;
         private final List<GuardedRef> guarded;
         private final String server;
 
         private RoutedOperation(
-            String tool,
-            String resource,
+            McpOpenapiToolConfig tool,
+            McpOpenapiResourceConfig resource,
             OpenapiOperationView operation,
-            McpOpenapiToolConfig toolConfig,
-            McpOpenapiResourceConfig resourceConfig,
             List<GuardedRef> guarded,
             String server)
         {
             this.tool = tool;
             this.resource = resource;
             this.operation = operation;
-            this.toolConfig = toolConfig;
-            this.resourceConfig = resourceConfig;
             this.guarded = guarded;
             this.server = server;
         }
 
         private String subjectName()
         {
-            return tool != null ? tool : resource;
+            return tool != null ? tool.name : resource.uri;
         }
     }
 
