@@ -35,10 +35,23 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * Each configured path tracks its own match progress independently against the shared document depth, mirroring
  * the depth/matched-segment algorithm a one-shot buffered lookup would use (match segment {@code n} of a path
  * only at a {@code KEY_NAME} seen at depth {@code n + 1}), extended to watch several paths — of possibly
- * different lengths and depths — over one incremental pass instead of one re-scan per path. Only non-segmented
- * scalar events ({@code VALUE_STRING}, {@code VALUE_NUMBER}, {@code VALUE_TRUE}, {@code VALUE_FALSE}) are
- * captured, mirroring {@link McpHttpArguments}: a value large enough to arrive as a {@code SEGMENT} run resolves
- * to the empty string, the same fallback an unresolved path already has.
+ * different lengths and depths — over one incremental pass instead of one re-scan per path. Only scalar events
+ * ({@code VALUE_STRING}, {@code VALUE_NUMBER}, {@code VALUE_TRUE}, {@code VALUE_FALSE}) are captured. A value
+ * spanning more than one input window accumulates across every fragment into {@code text} and only commits
+ * once {@link JsonSource#deferredBytes()} reports the value complete; since only one value can ever be
+ * captured "in flight" at a time (JSON parsing is strictly sequential), a single reused accumulator is
+ * sufficient.
+ * <p>
+ * This is a mediating, structure-inspecting transform sitting in front of a byte-preferring terminal sink
+ * (see {@code common-json}'s verbatim-validate design notes), so it cannot forward a downstream
+ * {@link JsonController#segmentable()} request upstream unchanged the way a purely forwarding stage would:
+ * granting it would let the whole document stream past as an opaque {@code SEGMENT} run, and the {@code
+ * KEY_NAME} events this class matches paths against would never be delivered at all. While any path remains
+ * configured, {@code segmentable()} is declined so its own upstream keeps delivering structured events, and
+ * {@link JsonController#verbatim()} is re-asserted upstream instead — the byte-preserving fidelity modifier
+ * that rides alongside structured events rather than substituting for them. When no paths are configured
+ * (nothing to watch), both requests pass through unchanged, so a tool with no {@code tool.summary} references
+ * keeps the full byte-passthrough optimization.
  */
 public final class McpHttpResults implements JsonTransform
 {
@@ -46,7 +59,33 @@ public final class McpHttpResults implements JsonTransform
     private final String[] paths;
     private final String[][] segments;
     private final int[] matched;
+    private final StringBuilder text = new StringBuilder();
+    private final JsonController downstreamControl = new JsonController()
+    {
+        @Override
+        public void segmentable()
+        {
+            if (paths.length == 0)
+            {
+                upstream.segmentable();
+            }
+        }
 
+        @Override
+        public void verbatim()
+        {
+            upstream.verbatim();
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            upstream.consumed(sourceBytes);
+        }
+    };
+
+    private JsonController upstream;
     private int depth;
     private int awaiting = -1;
 
@@ -69,6 +108,7 @@ public final class McpHttpResults implements JsonTransform
     {
         depth = 0;
         awaiting = -1;
+        text.setLength(0);
         for (int i = 0; i < matched.length; i++)
         {
             matched[i] = 0;
@@ -88,10 +128,10 @@ public final class McpHttpResults implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
+        upstream = control;
         if (awaiting != -1)
         {
             capture(awaiting, event, source);
-            awaiting = -1;
         }
 
         switch (event)
@@ -111,7 +151,28 @@ public final class McpHttpResults implements JsonTransform
             break;
         }
 
-        return sink.transform(control, source, event);
+        return sink.transform(downstreamControl, source, event);
+    }
+
+    @Override
+    public Status resume(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        upstream = control;
+        return sink.resume(downstreamControl, source, event);
+    }
+
+    @Override
+    public Status flush(
+        JsonController control,
+        JsonSource source,
+        JsonSink sink)
+    {
+        upstream = control;
+        return sink.flush(downstreamControl, source);
     }
 
     private void onKeyName(
@@ -132,6 +193,12 @@ public final class McpHttpResults implements JsonTransform
         }
     }
 
+    // Appends this fragment to the in-flight value's accumulator, committing to `captured` (and clearing
+    // `awaiting`, so the next KEY_NAME can arm a fresh capture) only once deferredBytes() reports no more
+    // fragments follow; a structural value (an object/array where a scalar was expected) gives up
+    // immediately, matching the existing unresolved-path fallback to the empty string. A VERBATIM event
+    // rides alongside the structured event stream for the same value rather than substituting for it (see
+    // the class Javadoc), so it is ignored here rather than treated as an unexpected structural event.
     private void capture(
         int index,
         JsonEvent event,
@@ -141,15 +208,26 @@ public final class McpHttpResults implements JsonTransform
         {
         case VALUE_STRING:
         case VALUE_NUMBER:
-            captured.put(paths[index], source.getString());
+            text.append(source.getStringView());
+            if (!source.deferredBytes())
+            {
+                captured.put(paths[index], text.toString());
+                text.setLength(0);
+                awaiting = -1;
+            }
             break;
         case VALUE_TRUE:
             captured.put(paths[index], "true");
+            awaiting = -1;
             break;
         case VALUE_FALSE:
             captured.put(paths[index], "false");
+            awaiting = -1;
+            break;
+        case VERBATIM:
             break;
         default:
+            awaiting = -1;
             break;
         }
     }

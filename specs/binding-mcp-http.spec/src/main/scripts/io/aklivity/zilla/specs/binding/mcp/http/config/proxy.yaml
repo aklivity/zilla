@@ -101,6 +101,65 @@ catalogs:
                 "total":  { "type": "number" }
               }
             }
+        report_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        report_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" }
+              }
+            }
+        ping_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        ping_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string" }
+              }
+            }
+        list_tags_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        list_tags_result:
+          version: latest
+          schema: |
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+        count_items_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        count_items_result:
+          version: latest
+          schema: |
+            {
+              "type": "integer"
+            }
 bindings:
   app0:
     type: mcp_http
@@ -141,6 +200,73 @@ bindings:
               catalog:
                 http_github0:
                   - subject: search_code_result
+                    version: latest
+        get_report:
+          description: >
+            Get a status report.
+          summary: "Report: ${result.message}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: report_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: report_result
+                    version: latest
+        ping:
+          description: >
+            Check service liveness.
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: ping_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: ping_result
+                    version: latest
+        list_tags:
+          description: >
+            List repository tags.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: list_tags_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: list_tags_result
+                    version: latest
+        count_items:
+          description: >
+            Count items in the backlog.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: count_items_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: count_items_result
                     version: latest
       resources:
         order:
@@ -194,3 +320,39 @@ bindings:
             ":scheme": https
             ":authority": api.orders.internal
             ":path": /orders/${params.orderId}
+      - when:
+          - tool: get_report
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /report
+      - when:
+          - tool: ping
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /ping
+      - when:
+          - tool: list_tags
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /tags
+      - when:
+          - tool: count_items
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /count

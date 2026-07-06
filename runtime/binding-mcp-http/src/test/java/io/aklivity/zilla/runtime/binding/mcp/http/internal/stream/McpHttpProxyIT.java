@@ -267,6 +267,55 @@ public class McpHttpProxyIT
         k3po.finish();
     }
 
+    // a ~100KB structuredContent.message value, also interpolated into tool.summary's content.text: proves
+    // the summary trailer (injected as more events once structuredContent's own value closes, see
+    // McpHttpToolResult) survives many suspend/resume cycles across the encode slot exactly like
+    // structuredContent's own streamed value does, not just when the destination has room left over
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/get.report.large/client",
+        "${http}/get.report.large/server"})
+    public void shouldCallToolGetReportWithLargeSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // ping has no tool.summary configured: content[0].text falls back to the empty string
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/ping/client",
+        "${http}/ping/server"})
+    public void shouldCallToolPing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // list_tags' output schema is array-rooted: structuredContent is the array itself, not an object
+    // wrapping it
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/list.tags/client",
+        "${http}/list.tags/server"})
+    public void shouldCallToolListTags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // count_items' output schema is a bare scalar: structuredContent is the scalar itself, not an
+    // object/array wrapping it
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/count.items/client",
+        "${http}/count.items/server"})
+    public void shouldCallToolCountItems() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.yaml")
     @Specification({

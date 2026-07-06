@@ -453,14 +453,25 @@ public final class McpHttpToolResult implements JsonTransform
             this.synthetic = synthetic;
         }
 
+        // Forwarded to the real delegate for a pass-through event (there is no reason to decline the
+        // downstream sink's byte-preserving preference just because this mediator sits in the chain — a
+        // synthetic event has no real source bytes to request in the first place, so it no-ops instead).
         @Override
         public void segmentable()
         {
+            if (!synthetic)
+            {
+                delegate.segmentable();
+            }
         }
 
         @Override
         public void verbatim()
         {
+            if (!synthetic)
+            {
+                delegate.verbatim();
+            }
         }
 
         @Override

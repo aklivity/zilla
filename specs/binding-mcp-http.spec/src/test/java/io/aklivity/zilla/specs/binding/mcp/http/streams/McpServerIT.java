@@ -242,4 +242,40 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/get.report.large/client",
+        "${mcp}/get.report.large/server"})
+    public void shouldCallToolGetReportWithLargeSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/ping/client",
+        "${mcp}/ping/server"})
+    public void shouldCallToolPing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/list.tags/client",
+        "${mcp}/list.tags/server"})
+    public void shouldCallToolListTags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/count.items/client",
+        "${mcp}/count.items/server"})
+    public void shouldCallToolCountItems() throws Exception
+    {
+        k3po.finish();
+    }
 }

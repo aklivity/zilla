@@ -161,4 +161,40 @@ public class HttpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/get.report.large/client",
+        "${http}/get.report.large/server"})
+    public void shouldProxyGetReportLargeToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/ping/client",
+        "${http}/ping/server"})
+    public void shouldProxyPingToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/list.tags/client",
+        "${http}/list.tags/server"})
+    public void shouldProxyListTagsToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/count.items/client",
+        "${http}/count.items/server"})
+    public void shouldProxyCountItemsToHttp() throws Exception
+    {
+        k3po.finish();
+    }
 }
