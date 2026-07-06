@@ -136,6 +136,42 @@
                                     }
                                 },
                                 "additionalProperties": false
+                            },
+                            "resources":
+                            {
+                                "title": "Resources",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^.+$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "description":
+                                            {
+                                                "title": "Resource Description",
+                                                "type": "string"
+                                            },
+                                            "schemas":
+                                            {
+                                                "title": "Schemas",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "output":
+                                                    {
+                                                        "title": "Output Schema",
+                                                        "$ref": "#/$defs/converter"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false

@@ -23,6 +23,7 @@ public final class McpOpenapiOptionsConfig extends OptionsConfig
 {
     public final List<McpOpenapiSpecificationConfig> specs;
     public final List<McpOpenapiToolConfig> tools;
+    public final List<McpOpenapiResourceConfig> resources;
 
     public static McpOpenapiOptionsConfigBuilder<McpOpenapiOptionsConfig> builder()
     {
@@ -37,9 +38,11 @@ public final class McpOpenapiOptionsConfig extends OptionsConfig
 
     McpOpenapiOptionsConfig(
         List<McpOpenapiSpecificationConfig> specs,
-        List<McpOpenapiToolConfig> tools)
+        List<McpOpenapiToolConfig> tools,
+        List<McpOpenapiResourceConfig> resources)
     {
         this.specs = specs;
         this.tools = tools;
+        this.resources = resources;
     }
 }

@@ -12,45 +12,36 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.http.config;
+package io.aklivity.zilla.runtime.binding.mcp.openapi.config;
 
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
-public final class McpHttpResourceConfig
+public final class McpOpenapiResourceConfig
 {
-    public final String name;
     public final String uri;
-    public final boolean template;
     public final String description;
-    public final String mimeType;
     public final ModelConfig output;
 
-    public static McpHttpResourceConfigBuilder<McpHttpResourceConfig> builder()
+    public static McpOpenapiResourceConfigBuilder<McpOpenapiResourceConfig> builder()
     {
-        return new McpHttpResourceConfigBuilder<>(McpHttpResourceConfig.class::cast);
+        return new McpOpenapiResourceConfigBuilder<>(McpOpenapiResourceConfig.class::cast);
     }
 
-    public static <T> McpHttpResourceConfigBuilder<T> builder(
-        Function<McpHttpResourceConfig, T> mapper)
+    public static <T> McpOpenapiResourceConfigBuilder<T> builder(
+        Function<McpOpenapiResourceConfig, T> mapper)
     {
-        return new McpHttpResourceConfigBuilder<>(mapper);
+        return new McpOpenapiResourceConfigBuilder<>(mapper);
     }
 
-    McpHttpResourceConfig(
-        String name,
+    McpOpenapiResourceConfig(
         String uri,
-        boolean template,
         String description,
-        String mimeType,
         ModelConfig output)
     {
-        this.name = name;
         this.uri = uri;
-        this.template = template;
         this.description = description;
-        this.mimeType = mimeType;
         this.output = output;
     }
 }

@@ -97,6 +97,15 @@ public class McpOpenapiClientIT
     }
 
     @Test
+    @Configuration("proxy.resource.override.yaml")
+    @Specification({
+        "${mcp}/resources.list.with.override/client"})
+    public void shouldListResourcesWithOverriddenDescription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${mcp}/create.pr.10k/client",
@@ -161,6 +170,26 @@ public class McpOpenapiClientIT
         "${mcp}/read.order/client",
         "${http}/read.order/server"})
     public void shouldReadResourceWithoutGuard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.query.yaml")
+    @Specification({
+        "${mcp}/search.items/client",
+        "${http}/search.items/server"})
+    public void shouldCallToolSearchItemsWithoutOptionalQueryParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.query.yaml")
+    @Specification({
+        "${mcp}/search.items.with.limit/client",
+        "${http}/search.items.with.limit/server"})
+    public void shouldCallToolSearchItemsWithOptionalQueryParameter() throws Exception
     {
         k3po.finish();
     }

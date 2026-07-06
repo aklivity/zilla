@@ -26,6 +26,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfig;
@@ -44,6 +45,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String TOOLS_NAME = "tools";
+    private static final String RESOURCES_NAME = "resources";
     private static final String DESCRIPTION_NAME = "description";
     private static final String SCHEMAS_NAME = "schemas";
     private static final String OUTPUT_NAME = "output";
@@ -125,6 +127,27 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 toolsObject.add(tool.name, toolObject);
             }
             object.add(TOOLS_NAME, toolsObject);
+        }
+
+        if (mcpOpenapiOptions.resources != null)
+        {
+            JsonObjectBuilder resourcesObject = Json.createObjectBuilder();
+            for (McpOpenapiResourceConfig resource : mcpOpenapiOptions.resources)
+            {
+                JsonObjectBuilder resourceObject = Json.createObjectBuilder();
+                if (resource.description != null)
+                {
+                    resourceObject.add(DESCRIPTION_NAME, resource.description);
+                }
+                if (resource.output != null)
+                {
+                    JsonObjectBuilder schemas = Json.createObjectBuilder();
+                    schemas.add(OUTPUT_NAME, model.adaptToJson(resource.output));
+                    resourceObject.add(SCHEMAS_NAME, schemas);
+                }
+                resourcesObject.add(resource.uri, resourceObject);
+            }
+            object.add(RESOURCES_NAME, resourcesObject);
         }
 
         return object.build();
@@ -210,6 +233,34 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
 
                 mcpOpenapiOptions.tool()
                     .name(name)
+                    .description(description)
+                    .output(output)
+                    .build();
+            }
+        }
+
+        if (object.containsKey(RESOURCES_NAME))
+        {
+            JsonObject resourcesObject = object.getJsonObject(RESOURCES_NAME);
+            for (String uri : resourcesObject.keySet())
+            {
+                JsonObject resourceObject = resourcesObject.getJsonObject(uri);
+                String description = resourceObject.containsKey(DESCRIPTION_NAME)
+                    ? resourceObject.getString(DESCRIPTION_NAME)
+                    : null;
+
+                ModelConfig output = null;
+                if (resourceObject.containsKey(SCHEMAS_NAME))
+                {
+                    JsonObject schemas = resourceObject.getJsonObject(SCHEMAS_NAME);
+                    if (schemas.containsKey(OUTPUT_NAME))
+                    {
+                        output = model.adaptFromJson(schemas.get(OUTPUT_NAME));
+                    }
+                }
+
+                mcpOpenapiOptions.resource()
+                    .uri(uri)
                     .description(description)
                     .output(output)
                     .build();

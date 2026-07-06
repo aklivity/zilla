@@ -74,6 +74,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/resources.list.with.override/client",
+        "${mcp}/resources.list.with.override/server"})
+    public void shouldListResourcesWithOverriddenDescription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/create.pr.10k/client",
         "${mcp}/create.pr.10k/server"})
     public void shouldCallToolCreatePr10k() throws Exception
@@ -104,6 +113,24 @@ public class McpServerIT
         "${mcp}/search.code.forbidden/client",
         "${mcp}/search.code.forbidden/server"})
     public void shouldRejectToolWhenUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/search.items/client",
+        "${mcp}/search.items/server"})
+    public void shouldCallToolSearchItemsWithoutOptionalQueryParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/search.items.with.limit/client",
+        "${mcp}/search.items.with.limit/server"})
+    public void shouldCallToolSearchItemsWithOptionalQueryParameter() throws Exception
     {
         k3po.finish();
     }

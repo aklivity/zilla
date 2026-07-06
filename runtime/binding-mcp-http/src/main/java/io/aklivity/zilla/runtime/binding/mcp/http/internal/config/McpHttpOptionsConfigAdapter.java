@@ -244,7 +244,15 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
                     }
                 }
 
-                resources.add(new McpHttpResourceConfig(name, uri, description, mimeType, output));
+                final boolean template = uri != null && uri.indexOf('{') >= 0;
+                resources.add(McpHttpResourceConfig.builder()
+                    .name(name)
+                    .uri(uri)
+                    .template(template)
+                    .description(description)
+                    .mimeType(mimeType)
+                    .output(output)
+                    .build());
             }
         }
 

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.function.UnaryOperator.identity;
 
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ public final class McpHttpRouteConfig
     private static final Pattern EXPRESSION_PATTERN = Pattern.compile("\\$\\{\\s*([^}]+?)\\s*\\}");
     private static final String ARGS_PREFIX = "args.";
     private static final String PARAMS_PREFIX = "params.";
+    private static final String HEADER_PATH = ":path";
 
     public final long id;
     public final String tool;
@@ -47,6 +49,8 @@ public final class McpHttpRouteConfig
     public final Map<String, String> bodyTemplateRenames;
     public final List<String> argAccessors;
     public final List<String> paramAccessors;
+    public final String pathBase;
+    public final List<McpHttpQueryFragment> pathQueryFragments;
 
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
@@ -108,6 +112,11 @@ public final class McpHttpRouteConfig
         }
         this.argAccessors = args;
         this.paramAccessors = params;
+
+        final String path = with != null && with.headers != null ? with.headers.get(HEADER_PATH) : null;
+        final int query = path != null ? path.indexOf('?') : -1;
+        this.pathBase = query >= 0 ? path.substring(0, query) : path;
+        this.pathQueryFragments = query >= 0 ? pathQueryFragments(path.substring(query + 1)) : List.of();
     }
 
     boolean authorized(
@@ -126,6 +135,159 @@ public final class McpHttpRouteConfig
         String name)
     {
         return resource != null && resource.equals(name);
+    }
+
+    public String resolvePath(
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        String result = interpolatePath(pathBase, args, params);
+
+        if (!pathQueryFragments.isEmpty())
+        {
+            final StringBuilder queryString = new StringBuilder();
+            for (McpHttpQueryFragment fragment : pathQueryFragments)
+            {
+                final String resolved = fragment.optional()
+                    ? resolveOptionalFragment(fragment, args, params)
+                    : interpolatePath(fragment.template, args, params);
+                if (resolved != null)
+                {
+                    if (queryString.length() > 0)
+                    {
+                        queryString.append('&');
+                    }
+                    queryString.append(resolved);
+                }
+            }
+            result = queryString.length() > 0 ? result + "?" + queryString : result;
+        }
+
+        return result;
+    }
+
+    private static String resolveOptionalFragment(
+        McpHttpQueryFragment fragment,
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        final String raw = rawValue(fragment.expression, args, params);
+        return raw != null ? fragment.name + "=" + encode(raw) : null;
+    }
+
+    private static String interpolatePath(
+        String template,
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        String result = template;
+
+        if (template != null && template.contains("${"))
+        {
+            final StringBuilder builder = new StringBuilder();
+            int index = 0;
+            while (index < template.length())
+            {
+                final int start = template.indexOf("${", index);
+                if (start < 0)
+                {
+                    builder.append(template, index, template.length());
+                    index = template.length();
+                }
+                else
+                {
+                    builder.append(template, index, start);
+                    final int end = template.indexOf('}', start + 2);
+                    if (end < 0)
+                    {
+                        builder.append(template, start, template.length());
+                        index = template.length();
+                    }
+                    else
+                    {
+                        final String expression = template.substring(start + 2, end);
+                        final String raw = rawValue(expression, args, params);
+                        builder.append(raw != null ? encode(raw) : "");
+                        index = end + 1;
+                    }
+                }
+            }
+            result = builder.toString();
+        }
+
+        return result;
+    }
+
+    private static String rawValue(
+        String expression,
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        String value = null;
+        if (expression.startsWith(ARGS_PREFIX) && args != null)
+        {
+            value = args.get(expression.substring(ARGS_PREFIX.length()));
+        }
+        else if (expression.startsWith(PARAMS_PREFIX) && params != null)
+        {
+            value = params.get(expression.substring(PARAMS_PREFIX.length()));
+        }
+        return value;
+    }
+
+    // ASCII input (the common case for tool args, ids, route params) is percent-encoded by iterating
+    // chars directly, skipping the UTF-8 byte conversion the general case requires below: a single-byte
+    // ASCII char and its UTF-8 byte are bit-identical, so this produces the same output either way.
+    public static String encode(
+        String value)
+    {
+        final StringBuilder builder = new StringBuilder();
+        if (isAscii(value))
+        {
+            for (int i = 0; i < value.length(); i++)
+            {
+                encodeByte(builder, value.charAt(i));
+            }
+        }
+        else
+        {
+            final byte[] bytes = value.getBytes(UTF_8);
+            for (byte b : bytes)
+            {
+                encodeByte(builder, b & 0xff);
+            }
+        }
+        return builder.toString();
+    }
+
+    private static boolean isAscii(
+        String value)
+    {
+        boolean ascii = true;
+        for (int i = 0; ascii && i < value.length(); i++)
+        {
+            ascii = value.charAt(i) < 0x80;
+        }
+        return ascii;
+    }
+
+    private static void encodeByte(
+        StringBuilder builder,
+        int c)
+    {
+        if (c >= 'A' && c <= 'Z' ||
+            c >= 'a' && c <= 'z' ||
+            c >= '0' && c <= '9' ||
+            c == '-' || c == '.' || c == '_' || c == '~')
+        {
+            builder.append((char) c);
+        }
+        else
+        {
+            builder.append('%');
+            builder.append(Character.toUpperCase(Character.forDigit(c >> 4 & 0xf, 16)));
+            builder.append(Character.toUpperCase(Character.forDigit(c & 0xf, 16)));
+        }
     }
 
     private static void collectAccessors(
@@ -157,6 +319,26 @@ public final class McpHttpRouteConfig
                 }
             }
         }
+    }
+
+    private static List<McpHttpQueryFragment> pathQueryFragments(
+        String query)
+    {
+        final List<McpHttpQueryFragment> fragments = new ArrayList<>();
+        for (String fragment : query.split("&"))
+        {
+            if (fragment.startsWith("${?") && fragment.endsWith("}"))
+            {
+                final String inner = fragment.substring(3, fragment.length() - 1);
+                final int equals = inner.indexOf('=');
+                fragments.add(McpHttpQueryFragment.optional(inner.substring(0, equals), inner.substring(equals + 1)));
+            }
+            else
+            {
+                fragments.add(McpHttpQueryFragment.required(fragment));
+            }
+        }
+        return fragments;
     }
 
     private static String pointer(

@@ -794,24 +794,12 @@ public final class McpHttpProxyFactory implements BindingHandler
             doMcpWindow(traceId);
 
             final McpHttpWithConfig with = route.with;
-            final String path = interpolate(with.headers.get(HEADER_PATH), this::resolveParam);
+            final String path = route.resolvePath(null, params);
             credentials.clear();
             binding.resolveCredentials(authorization, credentials);
             delegate.doHttpBegin(traceId, with.headers, credentials, path, null);
             delegate.requestComplete();
             delegate.flushRequest(traceId);
-        }
-
-        private String resolveParam(
-            String expression)
-        {
-            String value = "";
-            if (expression.startsWith("params."))
-            {
-                final String captured = params.get(expression.substring(7));
-                value = encode(captured != null ? captured : "");
-            }
-            return value;
         }
 
         // Unreachable for both concrete kinds: McpToolsCallProxy and McpResourcesReadProxy each fully
@@ -1251,7 +1239,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId)
         {
             final McpHttpWithConfig with = route.with;
-            String path = interpolate(with.headers.get(HEADER_PATH), this::resolveStreamingRequest);
+            String path = route.resolvePath(requestArgs, params);
             if (queryCaptured != null)
             {
                 final String query = buildQueryString(queryCaptured);
@@ -1278,23 +1266,6 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
             }
             return builder.toString();
-        }
-
-        private String resolveStreamingRequest(
-            String expression)
-        {
-            String value = "";
-            if (expression.startsWith("args."))
-            {
-                final String captured = requestArgs.get(expression.substring(5));
-                value = encode(captured != null ? captured : "");
-            }
-            else if (expression.startsWith("params."))
-            {
-                final String captured = params.get(expression.substring(7));
-                value = encode(captured != null ? captured : "");
-            }
-            return value;
         }
 
         void grantMcpWindow(
@@ -2337,7 +2308,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             builder.append('&');
         }
-        builder.append(encode(key)).append('=').append(encode(value));
+        builder.append(McpHttpRouteConfig.encode(key)).append('=').append(McpHttpRouteConfig.encode(value));
     }
 
     private byte[] toolsList(
@@ -2421,7 +2392,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 .add("name", resource.name);
             if (resource.uri != null)
             {
-                final String key = resource.uri.indexOf('{') >= 0 ? "uriTemplate" : "uri";
+                final String key = resource.template ? "uriTemplate" : "uri";
                 item.add(key, resource.uri);
             }
             if (resource.description != null)
@@ -2518,59 +2489,6 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     // ASCII input (the common case for tool args, ids, route params) is percent-encoded by iterating
     // chars directly, skipping the UTF-8 byte conversion the general case requires below: a single-byte
-    // ASCII char and its UTF-8 byte are bit-identical, so this produces the same output either way.
-    private static String encode(
-        String value)
-    {
-        final StringBuilder builder = new StringBuilder();
-        if (isAscii(value))
-        {
-            for (int i = 0; i < value.length(); i++)
-            {
-                encodeByte(builder, value.charAt(i));
-            }
-        }
-        else
-        {
-            final byte[] bytes = value.getBytes(UTF_8);
-            for (byte b : bytes)
-            {
-                encodeByte(builder, b & 0xff);
-            }
-        }
-        return builder.toString();
-    }
-
-    private static boolean isAscii(
-        String value)
-    {
-        boolean ascii = true;
-        for (int i = 0; ascii && i < value.length(); i++)
-        {
-            ascii = value.charAt(i) < 0x80;
-        }
-        return ascii;
-    }
-
-    private static void encodeByte(
-        StringBuilder builder,
-        int c)
-    {
-        if (c >= 'A' && c <= 'Z' ||
-            c >= 'a' && c <= 'z' ||
-            c >= '0' && c <= '9' ||
-            c == '-' || c == '.' || c == '_' || c == '~')
-        {
-            builder.append((char) c);
-        }
-        else
-        {
-            builder.append('%');
-            builder.append(Character.toUpperCase(Character.forDigit(c >> 4 & 0xf, 16)));
-            builder.append(Character.toUpperCase(Character.forDigit(c & 0xf, 16)));
-        }
-    }
-
     private static int put(
         MutableDirectBufferEx buffer,
         int offset,
