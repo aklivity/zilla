@@ -298,8 +298,10 @@ public final class McpOpenapiCompositeGenerator
             {
                 final String description = entry.toolConfig != null && entry.toolConfig.description != null
                     ? entry.toolConfig.description
-                    : entry.operation.id;
-                tools.add(new McpHttpToolConfig(entry.tool, description, null, input, output));
+                    : entry.operation.description != null
+                        ? entry.operation.description
+                        : entry.operation.id;
+                tools.add(new McpHttpToolConfig(entry.tool, entry.operation.summary, description, input, output));
             }
             else
             {

@@ -20,6 +20,8 @@ import java.util.Map;
 public class OpenapiOperation
 {
     public String operationId;
+    public String summary;
+    public String description;
     public List<OpenapiParameter> parameters;
     public OpenapiRequestBody requestBody;
     public Map<String, OpenapiResponse> responses;
