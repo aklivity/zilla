@@ -20,6 +20,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class McpOpenapiRouteConfig
@@ -36,5 +37,26 @@ public final class McpOpenapiRouteConfig
             .map(McpOpenapiConditionConfig.class::cast)
             .collect(toList());
         this.with = (McpOpenapiWithConfig) route.with;
+
+        if (this.with != null && isBulk(this.with) && namesToolOrResource(this.when))
+        {
+            throw new ConfigException(
+                "mcp_openapi route with a bulk selector (with.tag, a glob with.operation pattern, or spec-only) " +
+                "must not declare when.tool or when.resource");
+        }
+    }
+
+    public static boolean isBulk(
+        McpOpenapiWithConfig with)
+    {
+        return with.tag != null ||
+            with.operation == null ||
+            with.operation.indexOf('*') != -1;
+    }
+
+    private static boolean namesToolOrResource(
+        List<McpOpenapiConditionConfig> when)
+    {
+        return when.stream().anyMatch(w -> w.tool != null || w.resource != null);
     }
 }

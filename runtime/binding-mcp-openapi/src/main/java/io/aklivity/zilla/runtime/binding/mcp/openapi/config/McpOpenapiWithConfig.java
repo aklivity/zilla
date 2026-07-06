@@ -20,12 +20,22 @@ public final class McpOpenapiWithConfig extends WithConfig
 {
     public final String spec;
     public final String operation;
+    public final String tag;
 
     public McpOpenapiWithConfig(
         String spec,
         String operation)
     {
+        this(spec, operation, null);
+    }
+
+    public McpOpenapiWithConfig(
+        String spec,
+        String operation,
+        String tag)
+    {
         this.spec = spec;
         this.operation = operation;
+        this.tag = tag;
     }
 }

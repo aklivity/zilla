@@ -14,9 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
@@ -29,6 +35,7 @@ public final class McpOpenapiConditionConfigAdapter implements ConditionConfigAd
 {
     private static final String TOOL_NAME = "tool";
     private static final String RESOURCE_NAME = "resource";
+    private static final String CAPABILITY_NAME = "capability";
 
     @Override
     public String type()
@@ -54,6 +61,13 @@ public final class McpOpenapiConditionConfigAdapter implements ConditionConfigAd
             object.add(RESOURCE_NAME, mcpOpenapiCondition.resource);
         }
 
+        if (mcpOpenapiCondition.capability != null)
+        {
+            JsonArrayBuilder array = Json.createArrayBuilder();
+            mcpOpenapiCondition.capability.forEach(array::add);
+            object.add(CAPABILITY_NAME, array);
+        }
+
         return object.build();
     }
 
@@ -69,6 +83,13 @@ public final class McpOpenapiConditionConfigAdapter implements ConditionConfigAd
             ? object.getString(RESOURCE_NAME)
             : null;
 
-        return new McpOpenapiConditionConfig(tool, resource);
+        List<String> capability = object.containsKey(CAPABILITY_NAME)
+            ? object.getJsonArray(CAPABILITY_NAME).stream()
+                .map(JsonString.class::cast)
+                .map(JsonString::getString)
+                .collect(toList())
+            : null;
+
+        return new McpOpenapiConditionConfig(tool, resource, capability);
     }
 }

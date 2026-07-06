@@ -28,6 +28,7 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
+    private static final String TAG_NAME = "tag";
 
     @Override
     public String type()
@@ -53,6 +54,11 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
             object.add(OPERATION_NAME, mcpOpenapiWith.operation);
         }
 
+        if (mcpOpenapiWith.tag != null)
+        {
+            object.add(TAG_NAME, mcpOpenapiWith.tag);
+        }
+
         return object.build();
     }
 
@@ -68,6 +74,10 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
             ? object.getString(OPERATION_NAME)
             : null;
 
-        return new McpOpenapiWithConfig(spec, operation);
+        String tag = object.containsKey(TAG_NAME)
+            ? object.getString(TAG_NAME)
+            : null;
+
+        return new McpOpenapiWithConfig(spec, operation, tag);
     }
 }

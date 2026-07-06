@@ -38,6 +38,7 @@ public final class OpenapiOperationView
     public final String id;
     public final String summary;
     public final String description;
+    public final List<String> tags;
 
     public final List<OpenapiParameterView> parameters;
     public final OpenapiRequestBodyView requestBody;
@@ -65,6 +66,7 @@ public final class OpenapiOperationView
         this.id = model.operationId;
         this.summary = model.summary;
         this.description = model.description;
+        this.tags = model.tags;
 
         this.parameters = model.parameters != null
                 ? model.parameters.stream()

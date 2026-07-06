@@ -18,7 +18,8 @@ scope mcp_openapi
     {
         enum McpOpenapiEventType (uint8)
         {
-            OPERATION_DENIED (1)
+            OPERATION_DENIED (1),
+            ROUTES_EMPTY (2)
         }
 
         struct McpOpenapiOperationDeniedEx extends core::stream::Extension
@@ -26,9 +27,14 @@ scope mcp_openapi
             string16 detail;
         }
 
+        struct McpOpenapiRoutesEmptyEx extends core::stream::Extension
+        {
+        }
+
         union McpOpenapiEventEx switch (McpOpenapiEventType)
         {
             case OPERATION_DENIED: McpOpenapiOperationDeniedEx operationDenied;
+            case ROUTES_EMPTY: McpOpenapiRoutesEmptyEx routesEmpty;
         }
     }
 }

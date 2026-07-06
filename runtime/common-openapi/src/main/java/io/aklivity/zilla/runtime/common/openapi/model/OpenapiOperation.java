@@ -22,6 +22,7 @@ public class OpenapiOperation
     public String operationId;
     public String summary;
     public String description;
+    public List<String> tags;
     public List<OpenapiParameter> parameters;
     public OpenapiRequestBody requestBody;
     public Map<String, OpenapiResponse> responses;

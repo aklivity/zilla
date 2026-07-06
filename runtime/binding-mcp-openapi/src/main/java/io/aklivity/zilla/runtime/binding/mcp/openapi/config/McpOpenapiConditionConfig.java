@@ -14,18 +14,30 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.config;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class McpOpenapiConditionConfig extends ConditionConfig
 {
     public final String tool;
     public final String resource;
+    public final List<String> capability;
 
     public McpOpenapiConditionConfig(
         String tool,
         String resource)
     {
+        this(tool, resource, null);
+    }
+
+    public McpOpenapiConditionConfig(
+        String tool,
+        String resource,
+        List<String> capability)
+    {
         this.tool = tool;
         this.resource = resource;
+        this.capability = capability;
     }
 }

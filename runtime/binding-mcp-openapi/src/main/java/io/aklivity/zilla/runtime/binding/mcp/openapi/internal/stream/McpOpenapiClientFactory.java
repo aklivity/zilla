@@ -93,6 +93,11 @@ public final class McpOpenapiClientFactory implements BindingHandler
         McpOpenapiBindingConfig attached = new McpOpenapiBindingConfig(context, binding);
         bindings.put(binding.id, attached);
 
+        if (attached.routes.isEmpty())
+        {
+            event.routesEmpty(binding.id);
+        }
+
         McpOpenapiCompositeConfig composite = generator.generate(attached);
         for (String reason : generator.deniedOperations())
         {

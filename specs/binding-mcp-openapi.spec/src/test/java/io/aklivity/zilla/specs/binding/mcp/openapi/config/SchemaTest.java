@@ -56,8 +56,28 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectRouteWithoutOperationId()
+    public void shouldRejectBulkRouteNamingToolOrResource()
     {
         schema.validate("proxy.route.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateBulkRoutes()
+    {
+        JsonObject config = schema.validate("proxy.route.bulk.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectTagAndOperationTogether()
+    {
+        schema.validate("proxy.route.tag.and.operation.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectUnknownCapability()
+    {
+        schema.validate("proxy.route.capability.invalid.yaml");
     }
 }
