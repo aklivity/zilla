@@ -255,9 +255,35 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldGenerateToolAndResource()
     {
-        BindingConfig binding = bindingWithRoutes(
-            route(0, "create_pr", null, "pulls/create"),
-            route(1, null, "repo://{owner}/{repo}", "repos/get"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(
+                RouteConfig.builder()
+                    .order(0)
+                    .when(McpOpenapiConditionConfig.builder().tool("create_pr").build())
+                    .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/create").build())
+                    .build(),
+                RouteConfig.builder()
+                    .order(1)
+                    .when(McpOpenapiConditionConfig.builder().resource("repo://{owner}/{repo}").build())
+                    .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("repos/get").build())
+                    .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -306,7 +332,29 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldFlattenInputSchemaWithBodyCollisionSuffix()
     {
-        BindingConfig binding = bindingWithRoutes(route(0, "create_pr", null, "pulls/create"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("create_pr").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/create").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -338,7 +386,25 @@ public class McpOpenapiCompositeGeneratorTest
             .tool(new McpOpenapiToolConfig("create_pr", "Create a pull request.", override))
             .build();
 
-        BindingConfig binding = bindingOf(options, route(0, "create_pr", null, "pulls/create"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("create_pr").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/create").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
@@ -354,7 +420,29 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldUseOpenapiSummaryAsToolSummary()
     {
-        BindingConfig binding = bindingWithRoutes(route(0, "list_issues", null, "issues/list"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("list_issues").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("issues/list").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -370,7 +458,29 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDefaultToolDescriptionToOperationDescriptionWhenPresent()
     {
-        BindingConfig binding = bindingWithRoutes(route(0, "list_issues", null, "issues/list"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("list_issues").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("issues/list").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -387,7 +497,29 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDefaultToolDescriptionToOperationIdWhenDescriptionAbsent()
     {
-        BindingConfig binding = bindingWithRoutes(route(0, "get_repo", null, "repos/get"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("get_repo").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("repos/get").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -404,7 +536,30 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldInterpolateQueryParameters()
     {
-        BindingConfig binding = bindingWithRoutes(route(0, "search_code", null, "search/code"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("search_code").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("search/code").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         McpHttpWithConfig with = withForMethod(mcpHttp(composite), "GET");
@@ -428,9 +583,31 @@ public class McpOpenapiCompositeGeneratorTest
                 Map.of("oauthScheme", "guard0")))
             .build();
 
-        BindingConfig binding = bindingOf(options,
-            route(0, "api_a", "create_pr", null, "pulls/create"),
-            route(1, "api_b", "search_code", null, "search/code"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(
+                RouteConfig.builder()
+                    .order(0)
+                    .when(McpOpenapiConditionConfig.builder().tool("create_pr").build())
+                    .with(McpOpenapiWithConfig.builder().spec("api_a").operation("pulls/create").build())
+                    .build(),
+                RouteConfig.builder()
+                    .order(1)
+                    .when(McpOpenapiConditionConfig.builder().tool("search_code").build())
+                    .with(McpOpenapiWithConfig.builder().spec("api_b").operation("search/code").build())
+                    .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         assertThat(composite.namespaces.size(), equalTo(1));
@@ -449,7 +626,30 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldPassThroughRolesForGuardedScheme()
     {
-        BindingConfig binding = bindingWithRoutes(route(0, "create_pr", null, "pulls/create"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("create_pr").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/create").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         List<GuardedConfig> guarded = routeForMethod(mcpHttp(composite), "POST").guarded;
@@ -468,7 +668,25 @@ public class McpOpenapiCompositeGeneratorTest
                 Map.of("apiKeyScheme", "guard0")))
             .build();
 
-        BindingConfig binding = bindingOf(options, route(0, "create_issue", null, "issues/create"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("create_issue").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("issues/create").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         List<GuardedConfig> guarded = routeForMethod(mcpHttp(composite), "POST").guarded;
@@ -486,7 +704,25 @@ public class McpOpenapiCompositeGeneratorTest
                 Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard0")))
             .build();
 
-        BindingConfig binding = bindingOf(options, route(0, "merge_pr", null, "pulls/merge"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("merge_pr").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/merge").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         List<GuardedConfig> guarded = routeForMethod(mcpHttp(composite), "PUT").guarded;
@@ -505,7 +741,25 @@ public class McpOpenapiCompositeGeneratorTest
                 Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard1")))
             .build();
 
-        BindingConfig binding = bindingOf(options, route(0, "merge_pr", null, "pulls/merge"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("merge_pr").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/merge").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         assertThat(routeForMethod(mcpHttp(composite), "PUT"), nullValue());
@@ -525,7 +779,25 @@ public class McpOpenapiCompositeGeneratorTest
                 Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard0")))
             .build();
 
-        BindingConfig binding = bindingOf(options, route(0, "close_pr", null, "pulls/close"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("close_pr").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/close").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         assertThat(routeForMethod(mcpHttp(composite), "POST"), nullValue());
@@ -545,7 +817,25 @@ public class McpOpenapiCompositeGeneratorTest
                 Map.of("bearerAuth", "guard0")))
             .build();
 
-        BindingConfig binding = bindingOf(options, route(0, "search_code", null, "search/code"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("search_code").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("search/code").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         assertThat(routeForMethod(mcpHttp(composite), "GET"), nullValue());
@@ -565,7 +855,25 @@ public class McpOpenapiCompositeGeneratorTest
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
             .build();
 
-        BindingConfig binding = bindingOf(options, route(0, "create_pr", null, "pulls/create"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("create_pr").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/create").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         assertThat(routeForMethod(mcpHttp(composite), "POST"), nullValue());
@@ -584,7 +892,25 @@ public class McpOpenapiCompositeGeneratorTest
                 of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest"))))
             .build();
 
-        BindingConfig binding = bindingOf(options, route(0, "list_issues", null, "issues/list"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("list_issues").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("issues/list").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         assertThat(routeForMethod(mcpHttp(composite), "GET").guarded, empty());
@@ -603,7 +929,25 @@ public class McpOpenapiCompositeGeneratorTest
                 Map.of("bearerAuth", "guard0")))
             .build();
 
-        BindingConfig binding = bindingOf(options, route(0, "internal", "ping_tool", null, "ping"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().tool("ping_tool").build())
+                .with(McpOpenapiWithConfig.builder().spec("internal").operation("ping").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         List<GuardedConfig> guarded = routeForMethod(mcpHttp(composite), "GET").guarded;
@@ -614,7 +958,30 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldNotGuardOperationWithNoSecurityRequirement()
     {
-        BindingConfig binding = bindingWithRoutes(route(0, null, "repo://{owner}/{repo}", "repos/get"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().resource("repo://{owner}/{repo}").build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("repos/get").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         assertThat(mcpHttp(composite).routes.get(0).guarded, empty());
@@ -623,7 +990,28 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDefaultToolNameToSnakeCasedOperationId()
     {
-        BindingConfig binding = bindingWithRoutes(bulkRoute(0, "openapi_github0", "repos/get"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("repos/get").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -635,7 +1023,28 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldExpandAllOperationsForSpecOnlyRoute()
     {
-        BindingConfig binding = bindingWithRoutes(bulkRoute(0, "openapi_github0", null));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -648,7 +1057,28 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldExpandOperationsByTag()
     {
-        BindingConfig binding = bindingWithRoutes(tagRoute(0, "openapi_github0", "reads"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").tag("reads").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -667,7 +1097,24 @@ public class McpOpenapiCompositeGeneratorTest
                 Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard0")))
             .build();
 
-        BindingConfig binding = bindingOf(options, bulkRoute(0, "openapi_github0", "pulls/*"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/*").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
@@ -687,9 +1134,30 @@ public class McpOpenapiCompositeGeneratorTest
                 Map.of("bearerAuth", "guard0", "apiKeyScheme", "guard0")))
             .build();
 
-        BindingConfig binding = bindingOf(options,
-            route(0, "my_pr", null, "pulls/create"),
-            bulkRoute(1, "openapi_github0", "pulls/*"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(
+                RouteConfig.builder()
+                    .order(0)
+                    .when(McpOpenapiConditionConfig.builder().tool("my_pr").build())
+                    .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/create").build())
+                    .build(),
+                RouteConfig.builder()
+                    .order(1)
+                    .with(McpOpenapiWithConfig.builder().spec("openapi_github0").operation("pulls/*").build())
+                    .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
@@ -701,7 +1169,29 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldExcludeBulkOperationsFilteredOutByCapability()
     {
-        BindingConfig binding = bindingWithRoutes(tagRouteWithCapability(0, "openapi_github0", "reads", "resource"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().capability(of("resource")).build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").tag("reads").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -713,7 +1203,29 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldIncludeBulkOperationsAdmittedByCapability()
     {
-        BindingConfig binding = bindingWithRoutes(tagRouteWithCapability(0, "openapi_github0", "reads", "tool"));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec(new McpOpenapiSpecificationConfig("openapi_github0",
+                    "https://api.github.com",
+                    of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
+                    Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
+                .build())
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .when(McpOpenapiConditionConfig.builder().capability(of("tool")).build())
+                .with(McpOpenapiWithConfig.builder().spec("openapi_github0").tag("reads").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -734,7 +1246,24 @@ public class McpOpenapiCompositeGeneratorTest
                 of(new McpOpenapiCatalogConfig("catalog0", "widgets-api", "latest"))))
             .build();
 
-        BindingConfig binding = bindingOf(options, bulkRoute(0, "widgets", null));
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(options)
+            .routes(of(RouteConfig.builder()
+                .order(0)
+                .with(McpOpenapiWithConfig.builder().spec("widgets").build())
+                .build()))
+            .build();
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        case "guard1" -> 3L;
+        default -> 2L;
+        };
+
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp(composite).options;
@@ -749,99 +1278,6 @@ public class McpOpenapiCompositeGeneratorTest
             .filter(b -> "mcp_http0".equals(b.name))
             .findFirst()
             .orElse(null);
-    }
-
-    private BindingConfig bindingOf(
-        McpOpenapiOptionsConfig options,
-        RouteConfig... routes)
-    {
-        BindingConfig binding = BindingConfig.builder()
-            .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
-            .kind(CLIENT)
-            .options(options)
-            .routes(of(routes))
-            .build();
-        binding.resolveId = name -> switch (name)
-        {
-        case "catalog0" -> 1L;
-        case "guard1" -> 3L;
-        default -> 2L;
-        };
-
-        return binding;
-    }
-
-    private BindingConfig bindingWithRoutes(
-        RouteConfig... routes)
-    {
-        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
-            .spec(new McpOpenapiSpecificationConfig("openapi_github0",
-                "https://api.github.com",
-                of(new McpOpenapiCatalogConfig("catalog0", "rest-api", "latest")),
-                Map.of("bearerAuth", "guard0", "oauthScheme", "guard0")))
-            .build();
-
-        return bindingOf(options, routes);
-    }
-
-    private RouteConfig route(
-        int order,
-        String tool,
-        String resource,
-        String operationId)
-    {
-        return route(order, "openapi_github0", tool, resource, operationId);
-    }
-
-    private RouteConfig route(
-        int order,
-        String apiId,
-        String tool,
-        String resource,
-        String operationId)
-    {
-        return RouteConfig.builder()
-            .order(order)
-            .when(McpOpenapiConditionConfig.builder().tool(tool).resource(resource).build())
-            .with(McpOpenapiWithConfig.builder().spec(apiId).operation(operationId).build())
-            .build();
-    }
-
-    private RouteConfig bulkRoute(
-        int order,
-        String apiId,
-        String operationPattern)
-    {
-        return RouteConfig.builder()
-            .order(order)
-            .with(McpOpenapiWithConfig.builder().spec(apiId).operation(operationPattern).build())
-            .build();
-    }
-
-    private RouteConfig tagRoute(
-        int order,
-        String apiId,
-        String tag)
-    {
-        return RouteConfig.builder()
-            .order(order)
-            .with(McpOpenapiWithConfig.builder().spec(apiId).tag(tag).build())
-            .build();
-    }
-
-    private RouteConfig tagRouteWithCapability(
-        int order,
-        String apiId,
-        String tag,
-        String capability)
-    {
-        return RouteConfig.builder()
-            .order(order)
-            .when(McpOpenapiConditionConfig.builder().capability(of(capability)).build())
-            .with(McpOpenapiWithConfig.builder().spec(apiId).tag(tag).build())
-            .build();
     }
 
     private static McpHttpWithConfig withForMethod(
