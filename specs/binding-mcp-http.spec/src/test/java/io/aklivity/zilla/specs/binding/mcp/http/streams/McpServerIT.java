@@ -278,4 +278,22 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/echo.id.large/client",
+        "${mcp}/echo.id.large/server"})
+    public void shouldCallToolEchoIdWithLargeArgument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/get.profile/client",
+        "${mcp}/get.profile/server"})
+    public void shouldCallToolGetProfileWithNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
 }

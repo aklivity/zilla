@@ -43,21 +43,24 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("create_pr")
-                               .contentLength(13464)
+                               .name("get_profile")
+                               .contentLength(37)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main","body":"'
-write ${core:randomBase64(10000)}
-write '"}}'
+write '{"name":"get_profile","arguments":{}}'
 
-read  '{"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
-      '"content":[{"type":"text","text":'
-      '"{\\"number\\":42,\\"html_url\\":\\"https://github.com/acme/widget/pull/42\\",\\"state\\":\\"open\\",\\"title\\":\\"Add feature\\"}"}],'
-      '"isError":false'
+# no tool.summary configured for get_profile: content[0].text falls back to the escaped canonical
+# JSON of the (nested object + array + boolean + null) structuredContent value, proving the no-summary
+# fallback capture stage handles more than a trivial flat object
+read  '{'
+        '"structuredContent":{"user":{"id":1,"name":"Ann"},"roles":["admin","dev"],"active":true,"manager":null},'
+        '"content":[{"type":"text","text":'
+        '"{\\"user\\":{\\"id\\":1,\\"name\\":\\"Ann\\"},\\"roles\\":[\\"admin\\",\\"dev\\"],\\"active\\":true,\\"manager\\":null}"'
+        '}],'
+        '"isError":false'
       '}'
 read closed
 

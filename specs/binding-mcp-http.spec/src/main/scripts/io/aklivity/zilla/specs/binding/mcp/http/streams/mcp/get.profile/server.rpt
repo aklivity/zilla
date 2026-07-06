@@ -43,23 +43,23 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("create_pr")
-                              .contentLength(13464)
+                              .name("get_profile")
+                              .contentLength(37)
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main","body":"'
-read ${core:randomBase64(10000)}
-read '"}}'
+read  '{"name":"get_profile","arguments":{}}'
 
 write flush
 
-write '{"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
-      '"content":[{"type":"text","text":'
-      '"{\\"number\\":42,\\"html_url\\":\\"https://github.com/acme/widget/pull/42\\",\\"state\\":\\"open\\",\\"title\\":\\"Add feature\\"}"}],'
-      '"isError":false'
+write '{'
+        '"structuredContent":{"user":{"id":1,"name":"Ann"},"roles":["admin","dev"],"active":true,"manager":null},'
+        '"content":[{"type":"text","text":'
+        '"{\\"user\\":{\\"id\\":1,\\"name\\":\\"Ann\\"},\\"roles\\":[\\"admin\\",\\"dev\\"],\\"active\\":true,\\"manager\\":null}"'
+        '}],'
+        '"isError":false'
       '}'
 write flush
 

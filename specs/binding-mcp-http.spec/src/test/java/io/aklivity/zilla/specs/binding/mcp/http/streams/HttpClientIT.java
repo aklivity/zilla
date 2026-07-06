@@ -197,4 +197,22 @@ public class HttpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/echo.id.large/client",
+        "${http}/echo.id.large/server"})
+    public void shouldProxyEchoIdLargeToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.profile/client",
+        "${http}/get.profile/server"})
+    public void shouldProxyGetProfileToHttp() throws Exception
+    {
+        k3po.finish();
+    }
 }

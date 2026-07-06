@@ -160,6 +160,53 @@ catalogs:
             {
               "type": "integer"
             }
+        echo_id_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": { "type": "string" }
+              }
+            }
+        echo_id_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string" }
+              }
+            }
+        profile_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        profile_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "user": {
+                  "type": "object",
+                  "properties": {
+                    "id":   { "type": "integer" },
+                    "name": { "type": "string" }
+                  }
+                },
+                "roles": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "active":  { "type": "boolean" },
+                "manager": { "type": ["string", "null"] }
+              }
+            }
 bindings:
   app0:
     type: mcp_http
@@ -268,6 +315,38 @@ bindings:
                 http_github0:
                   - subject: count_items_result
                     version: latest
+        echo_id:
+          description: >
+            Echo the given identifier.
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: echo_id_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: echo_id_result
+                    version: latest
+        get_profile:
+          description: >
+            Get the caller's profile.
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: profile_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: profile_result
+                    version: latest
       resources:
         order:
           uri: "order://{orderId}"
@@ -356,3 +435,27 @@ bindings:
             ":scheme": https
             ":authority": api.github.com
             ":path": /count
+      - when:
+          - tool: echo_id
+        exit: http0
+        with:
+          headers:
+            ":method": POST
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /echo/${args.id}
+          body:
+            model: json
+            catalog:
+              http_github0:
+                - subject: echo_id_params
+                  version: latest
+      - when:
+          - tool: get_profile
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /profile

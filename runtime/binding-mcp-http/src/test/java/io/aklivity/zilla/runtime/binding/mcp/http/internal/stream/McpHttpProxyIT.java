@@ -316,6 +316,20 @@ public class McpHttpProxyIT
         k3po.finish();
     }
 
+    // a 12000-byte top-level argument value referenced by the route's :path template: proves
+    // McpHttpArguments captures a value spanning multiple decode windows correctly (see the
+    // mediating-transform rule / multi-window accumulation fix), not just short path arguments that
+    // always arrive in one window
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/echo.id.large/client",
+        "${http}/echo.id.large/server"})
+    public void shouldCallToolEchoIdWithLargeArgument() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -449,6 +463,16 @@ public class McpHttpProxyIT
         "${mcp}/read.order.error/client",
         "${http}/read.order.error/server"})
     public void shouldAbortResourceReadWhenUpstreamStatusNotOk() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/get.profile/client",
+        "${http}/get.profile/server"})
+    public void shouldCallToolGetProfileWithNoSummary() throws Exception
     {
         k3po.finish();
     }

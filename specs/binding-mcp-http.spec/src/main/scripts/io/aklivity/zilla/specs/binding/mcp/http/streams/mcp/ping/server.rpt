@@ -56,7 +56,7 @@ write flush
 
 write '{'
         '"structuredContent":{"status":"ok"},'
-        '"content":[{"type":"text","text":""}],'
+        '"content":[{"type":"text","text":"{\\"status\\":\\"ok\\"}"}],'
         '"isError":false'
       '}'
 write flush

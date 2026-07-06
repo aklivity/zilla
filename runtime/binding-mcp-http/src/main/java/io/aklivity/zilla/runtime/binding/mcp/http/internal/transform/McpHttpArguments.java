@@ -26,15 +26,45 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 /**
  * Re-roots a {@code tools/call} request to its {@code arguments} object — suppressing the outer
  * {@code name}/{@code arguments} wrapper so the downstream projector sees {@code arguments} as the top-level
- * document — while capturing each top-level argument's scalar string value as the bytes stream past, so a
- * mediating caller can interpolate the request path without materializing the whole request. Segment demand
- * raised by the downstream projector is propagated to the upstream parser, letting a large argument value
- * (e.g. a request body) stream verbatim across input frames.
+ * document — while capturing each top-level argument's scalar value as the bytes stream past, so a mediating
+ * caller can interpolate the request path without materializing the whole request.
+ * <p>
+ * This is a mediating, structure-inspecting transform (it must see the {@code name}/{@code arguments}
+ * wrapper's own {@code KEY_NAME} events, then every top-level argument's own {@code KEY_NAME}, to do its
+ * job), sitting in front of a byte-preferring projector/sink chain — so, per the same mediating-transform
+ * rule {@code common-json}'s {@code JsonSchemaImpl.Validator} follows, it cannot forward a downstream
+ * {@link JsonController#segmentable()} request upstream unchanged: granting it would let the whole document
+ * (or the whole {@code arguments} object) stream past as an opaque, structure-free run, and the
+ * {@code KEY_NAME} events this class matches against would never be delivered at all.
+ * {@code segmentable()} is always declined so the upstream keeps delivering structured events, and
+ * {@link JsonController#verbatim()} is re-asserted upstream instead — the byte-preserving fidelity modifier
+ * that rides alongside structured events rather than substituting for them, letting a large argument value
+ * (e.g. a request body) still stream without a canonical re-render.
  */
 public final class McpHttpArguments implements JsonTransform
 {
     private final Map<String, String> captured;
-    private final JsonController downstreamControl = this::onDownstreamSegmentable;
+    private final StringBuilder text = new StringBuilder();
+    private final JsonController downstreamControl = new JsonController()
+    {
+        @Override
+        public void segmentable()
+        {
+        }
+
+        @Override
+        public void verbatim()
+        {
+            upstream.verbatim();
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            upstream.consumed(sourceBytes);
+        }
+    };
 
     private JsonController upstream;
     private int depth;
@@ -57,6 +87,7 @@ public final class McpHttpArguments implements JsonTransform
         forwarding = false;
         forwardDepth = 0;
         captureKey = null;
+        text.setLength(0);
     }
 
     @Override
@@ -76,6 +107,27 @@ public final class McpHttpArguments implements JsonTransform
         return forwarding
             ? onForwarding(source, event, sink)
             : onWrapper(source, event, sink);
+    }
+
+    @Override
+    public Status resume(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        upstream = control;
+        return sink.resume(downstreamControl, source, event);
+    }
+
+    @Override
+    public Status flush(
+        JsonController control,
+        JsonSource source,
+        JsonSink sink)
+    {
+        upstream = control;
+        return sink.flush(downstreamControl, source);
     }
 
     private Status onWrapper(
@@ -140,17 +192,42 @@ public final class McpHttpArguments implements JsonTransform
             break;
         case KEY_NAME:
             captureKey = forwardDepth == 1 ? source.getStringView().toString() : null;
+            text.setLength(0);
             status = forward(sink, source, event);
             break;
         case VALUE_STRING:
+        case VALUE_NUMBER:
             if (captureKey != null)
             {
-                captured.put(captureKey, source.getString());
+                text.append(source.getStringView());
+                if (!source.deferredBytes())
+                {
+                    captured.put(captureKey, text.toString());
+                    text.setLength(0);
+                    captureKey = null;
+                }
+            }
+            status = forward(sink, source, event);
+            break;
+        case VALUE_TRUE:
+            if (captureKey != null)
+            {
+                captured.put(captureKey, "true");
                 captureKey = null;
             }
             status = forward(sink, source, event);
             break;
-        case SEGMENT:
+        case VALUE_FALSE:
+            if (captureKey != null)
+            {
+                captured.put(captureKey, "false");
+                captureKey = null;
+            }
+            status = forward(sink, source, event);
+            break;
+        case VERBATIM:
+            // rides alongside the structured event stream for the same value rather than substituting for
+            // it (see the class Javadoc), so it must not disturb an in-progress capture
             status = forward(sink, source, event);
             break;
         default:
@@ -167,13 +244,5 @@ public final class McpHttpArguments implements JsonTransform
         JsonEvent event)
     {
         return sink.transform(downstreamControl, source, event);
-    }
-
-    private void onDownstreamSegmentable()
-    {
-        if (upstream != null)
-        {
-            upstream.segmentable();
-        }
     }
 }

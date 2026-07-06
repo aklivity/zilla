@@ -55,9 +55,9 @@ read  '{"name":"create_pr","arguments":{"owner":"acme","repo":"widget","title":"
 write flush
 
 write '{'
+        '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
         '"content":[{"type":"text","text":'
         '"{\\"number\\":42,\\"html_url\\":\\"https://github.com/acme/widget/pull/42\\",\\"state\\":\\"open\\",\\"title\\":\\"Add feature\\"}"}],'
-        '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'
         '"isError":false'
       '}'
 write flush
