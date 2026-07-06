@@ -95,4 +95,54 @@ class JsonPipelineDeferralTest
 
         assertEquals(Status.REJECTED, status);
     }
+
+    // Unconditionally declines every scalar it sees, regardless of source.deferredBytes() — simulating a
+    // value that can never be reassembled (e.g. one that permanently exceeds some external bound the stage
+    // enforces on its own terms). Used to prove the pump's own last-driven contract independent of any
+    // particular decliner's reassembly logic.
+    private static final class AlwaysDeclineTransform implements JsonTransform
+    {
+        @Override
+        public Status transform(
+            JsonController control,
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink)
+        {
+            Status status;
+            boolean scalar = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
+            if (scalar)
+            {
+                control.consumed(0);
+                status = Status.STARVED;
+            }
+            else
+            {
+                status = sink.transform(control, source, event);
+            }
+            return status;
+        }
+    }
+
+    // Issue #2016: a stage that declines a scalar (consumed(0), STARVED) to force reassembly must still
+    // resolve to REJECTED once last == true, rather than stall in STARVED forever. JsonPipeline documents
+    // that STARVED is only returned when last == false (see JsonPipeline#transform javadoc), but the pump's
+    // last-driven STARVED-to-REJECTED conversion only fired when its own driving loop ran out of events
+    // (status == ADVANCED); a stage returning STARVED directly bypassed it entirely.
+    @Test
+    void shouldRejectPermanentlyDeclinedScalarOnTerminalWindow()
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(new AlwaysDeclineTransform())
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        pipeline.reset();
+
+        // the scalar arrives whole and well-formed, but the stage declines it unconditionally; since this
+        // is the final window, no further input is ever coming to satisfy the decliner
+        byte[] bytes = "42".getBytes(UTF_8);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true);
+
+        assertEquals(Status.REJECTED, status);
+    }
 }
