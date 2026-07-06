@@ -37,6 +37,7 @@ public final class McpHttpRouteConfig
     private static final Pattern EXPRESSION_PATTERN = Pattern.compile("\\$\\{\\s*([^}]+?)\\s*\\}");
     private static final String ARGS_PREFIX = "args.";
     private static final String PARAMS_PREFIX = "params.";
+    private static final String HEADER_PATH = ":path";
 
     public final long id;
     public final String tool;
@@ -47,6 +48,8 @@ public final class McpHttpRouteConfig
     public final Map<String, String> bodyTemplateRenames;
     public final List<String> argAccessors;
     public final List<String> paramAccessors;
+    public final String pathBase;
+    public final List<McpHttpQueryFragment> pathQueryFragments;
 
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
@@ -108,6 +111,11 @@ public final class McpHttpRouteConfig
         }
         this.argAccessors = args;
         this.paramAccessors = params;
+
+        final String path = with != null && with.headers != null ? with.headers.get(HEADER_PATH) : null;
+        final int query = path != null ? path.indexOf('?') : -1;
+        this.pathBase = query >= 0 ? path.substring(0, query) : path;
+        this.pathQueryFragments = query >= 0 ? pathQueryFragments(path.substring(query + 1)) : List.of();
     }
 
     boolean authorized(
@@ -157,6 +165,26 @@ public final class McpHttpRouteConfig
                 }
             }
         }
+    }
+
+    private static List<McpHttpQueryFragment> pathQueryFragments(
+        String query)
+    {
+        final List<McpHttpQueryFragment> fragments = new ArrayList<>();
+        for (String fragment : query.split("&"))
+        {
+            if (fragment.startsWith("${?") && fragment.endsWith("}"))
+            {
+                final String inner = fragment.substring(3, fragment.length() - 1);
+                final int equals = inner.indexOf('=');
+                fragments.add(McpHttpQueryFragment.optional(inner.substring(0, equals), inner.substring(equals + 1)));
+            }
+            else
+            {
+                fragments.add(McpHttpQueryFragment.required(fragment));
+            }
+        }
+        return fragments;
     }
 
     private static String pointer(
