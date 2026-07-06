@@ -42,14 +42,6 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
-    @Test
-    public void shouldValidateProxyPrompts()
-    {
-        JsonObject config = schema.validate("proxy.prompts.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
     @Test(expected = JsonException.class)
     public void shouldRejectInvalidKind()
     {

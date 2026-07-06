@@ -41,21 +41,23 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .promptsGet()
+                           .toolsCall()
                                .sessionId("session-1")
-                               .name("summarize")
-                               .contentLength(50)
+                               .name("search_code")
+                               .contentLength(93)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"summarize","arguments":{"topic":"kafka"}}'
+write '{"name":"search_code","arguments":{"q":"addClass","labels":["bug","urgent"],"archived":true}}'
 
-# prompts/get is rendered entirely from config; no upstream HTTP call
-read  '{"description":"Summarize a document about a topic",'
-      '"messages":[{"role":"user","content":{"type":"text",'
-      '"text":"Please summarize the document about kafka."}}]}'
+# response projected through schemas.output (search_code_result): total_count + items[].path only
+read  '{'
+        '"structuredContent":{"total_count":1,"items":[{"path":"src/c.js"}]},'
+        '"content":[{"type":"text","text":"Found 1 matches"}],'
+        '"isError":false'
+      '}'
 read closed
 
 write close

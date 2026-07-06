@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -76,16 +75,6 @@ public class McpHttpOptionsConfigAdapterTest
                     schemas:
                       output:
                         model: test
-                prompts:
-                  summarize:
-                    description: Summarize a document about a topic
-                    arguments:
-                      - name: topic
-                        description: The topic to summarize
-                        required: true
-                    messages:
-                      - role: user
-                        text: "Please summarize the document about ${args.topic}."
                 """;
 
         McpHttpOptionsConfig options = jsonb.fromJson(yaml, McpHttpOptionsConfig.class);
@@ -111,18 +100,6 @@ public class McpHttpOptionsConfigAdapterTest
         assertThat(resource.description, equalTo("Customer order by identifier"));
         assertThat(resource.mimeType, equalTo("application/json"));
         assertThat(resource.output, not(nullValue()));
-
-        assertThat(options.prompts, hasSize(1));
-        McpHttpPromptConfig prompt = options.prompts.get(0);
-        assertThat(prompt.name, equalTo("summarize"));
-        assertThat(prompt.description, equalTo("Summarize a document about a topic"));
-        assertThat(prompt.arguments, hasSize(1));
-        assertThat(prompt.arguments.get(0).name, equalTo("topic"));
-        assertThat(prompt.arguments.get(0).description, equalTo("The topic to summarize"));
-        assertThat(prompt.arguments.get(0).required, equalTo(true));
-        assertThat(prompt.messages, hasSize(1));
-        assertThat(prompt.messages.get(0).role, equalTo("user"));
-        assertThat(prompt.messages.get(0).text, equalTo("Please summarize the document about ${args.topic}."));
     }
 
     @Test
@@ -152,16 +129,6 @@ public class McpHttpOptionsConfigAdapterTest
                     schemas:
                       output:
                         model: test
-                prompts:
-                  summarize:
-                    description: Summarize a document about a topic
-                    arguments:
-                      - name: topic
-                        description: The topic to summarize
-                        required: true
-                    messages:
-                      - role: user
-                        text: "Please summarize the document about ${args.topic}."
                 """;
 
         McpHttpOptionsConfig options = jsonb.fromJson(yaml, McpHttpOptionsConfig.class);
@@ -183,10 +150,6 @@ public class McpHttpOptionsConfigAdapterTest
         assertThat(text, containsString("order://{orderId}"));
         assertThat(text, containsString("mimeType:"));
         assertThat(text, containsString("application/json"));
-        assertThat(text, containsString("prompts:"));
-        assertThat(text, containsString("summarize:"));
-        assertThat(text, containsString("arguments:"));
-        assertThat(text, containsString("messages:"));
     }
 
     @Test
@@ -200,17 +163,6 @@ public class McpHttpOptionsConfigAdapterTest
                   ping: {}
                 resources:
                   ping_resource: {}
-                prompts:
-                  greet:
-                    arguments:
-                      - name: who
-                    messages:
-                      - role: user
-                        text: hi
-                  farewell:
-                    messages:
-                      - role: user
-                        text: bye
                 """;
 
         McpHttpOptionsConfig options = jsonb.fromJson(yaml, McpHttpOptionsConfig.class);
@@ -237,26 +189,12 @@ public class McpHttpOptionsConfigAdapterTest
         assertThat(resource.mimeType, nullValue());
         assertThat(resource.output, nullValue());
 
-        assertThat(options.prompts, hasSize(2));
-        McpHttpPromptConfig greet = options.prompts.get(0);
-        assertThat(greet.name, equalTo("greet"));
-        assertThat(greet.description, nullValue());
-        assertThat(greet.arguments, hasSize(1));
-        assertThat(greet.arguments.get(0).name, equalTo("who"));
-        assertThat(greet.arguments.get(0).description, nullValue());
-        assertThat(greet.arguments.get(0).required, equalTo(false));
-        McpHttpPromptConfig farewell = options.prompts.get(1);
-        assertThat(farewell.name, equalTo("farewell"));
-        assertThat(farewell.arguments, nullValue());
-
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, containsString("github0:"));
         assertThat(text, containsString("ping:"));
         assertThat(text, containsString("ping_resource:"));
-        assertThat(text, containsString("greet:"));
-        assertThat(text, containsString("farewell:"));
     }
 
     @Test
@@ -268,7 +206,6 @@ public class McpHttpOptionsConfigAdapterTest
         assertThat(options.authorization, nullValue());
         assertThat(options.tools, nullValue());
         assertThat(options.resources, nullValue());
-        assertThat(options.prompts, nullValue());
 
         String text = jsonb.toJson(options);
 
@@ -276,6 +213,5 @@ public class McpHttpOptionsConfigAdapterTest
         assertThat(text, not(containsString("authorization")));
         assertThat(text, not(containsString("tools")));
         assertThat(text, not(containsString("resources")));
-        assertThat(text, not(containsString("prompts")));
     }
 }

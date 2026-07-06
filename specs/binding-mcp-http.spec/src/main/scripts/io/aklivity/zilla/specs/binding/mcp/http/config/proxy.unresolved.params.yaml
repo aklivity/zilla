@@ -101,22 +101,11 @@ catalogs:
                 "total":  { "type": "number" }
               }
             }
-guards:
-  test0:
-    type: test
-    options:
-      credentials: ghp_secret
 bindings:
   app0:
     type: mcp_http
     kind: proxy
     options:
-      authorization:
-        test0:
-          credentials:
-            headers:
-              authorization: Bearer {credentials}
-              x-user-identity: "{identity}"
       tools:
         create_pr:
           description: >
@@ -166,6 +155,11 @@ bindings:
                   - subject: order_result
                     version: latest
     routes:
+      # create_pr's :path mistakenly references ${params.owner} instead of ${args.owner}: tool routes never
+      # have resource-uri-captured params, so this accessor can never be satisfied — the request is rejected
+      # with a reset before any upstream connect, exercising the paramAccessors branch of
+      # McpHttpBindingConfig.unsatisfiedAccessors (distinct from the argAccessors branch proxy.unresolved.yaml
+      # already covers)
       - when:
           - tool: create_pr
         exit: http0
@@ -174,7 +168,7 @@ bindings:
             ":method": POST
             ":scheme": https
             ":authority": api.github.com
-            ":path": /repos/${args.owner}/${args.repo}/pulls
+            ":path": /repos/${params.owner}/${args.repo}/pulls
           body:
             model: json
             catalog:

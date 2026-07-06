@@ -41,16 +41,24 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .promptsList()
+                          .toolsCall()
                               .sessionId("session-1")
+                              .name("search_code")
+                              .contentLength(93)
                               .build()
                           .build()}
 
 connected
 
-write '{"prompts":[{"name":"summarize",'
-      '"description":"Summarize a document about a topic",'
-      '"arguments":[{"name":"topic","description":"The topic to summarize","required":true}]}]}'
+read  '{"name":"search_code","arguments":{"q":"addClass","labels":["bug","urgent"],"archived":true}}'
+
+write flush
+
+write '{'
+        '"structuredContent":{"total_count":1,"items":[{"path":"src/c.js"}]},'
+        '"content":[{"type":"text","text":"Found 1 matches"}],'
+        '"isError":false'
+      '}'
 write flush
 
 write close

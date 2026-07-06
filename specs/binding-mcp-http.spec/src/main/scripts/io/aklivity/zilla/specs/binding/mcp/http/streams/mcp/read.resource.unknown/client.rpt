@@ -39,17 +39,13 @@ connect await LIFECYCLE_INITIALIZED
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
+# no resource is configured matching this uri, so the binding rejects the stream
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .promptsList()
+                           .resourcesRead()
                                .sessionId("session-1")
+                               .uri("unknown://xyz")
                                .build()
                            .build()}
 
-connected
-
-# prompts are not supported by the HTTP proxy; an empty list is returned
-read  '{"prompts":[]}'
-read closed
-
-write close
+connect aborted
