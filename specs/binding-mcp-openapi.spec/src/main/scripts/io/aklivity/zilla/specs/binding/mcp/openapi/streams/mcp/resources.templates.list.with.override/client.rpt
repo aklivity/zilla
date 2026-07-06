@@ -41,7 +41,7 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourcesList()
+                           .resourceTemplatesList()
                                .sessionId("session-1")
                                .build()
                            .build()}
@@ -49,7 +49,7 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 # options.resources overrides the spec-derived description for read_order
-read  '{"resources":[{"name":"read_order","uriTemplate":"/orders/{orderId}","description":"Read a customer order by id.","mimeType":"application/json"}]}'
+read  '{"resourceTemplates":[{"name":"read_order","uriTemplate":"/orders/{orderId}","description":"Read a customer order by id.","mimeType":"application/json"}]}'
 read closed
 
 write close
