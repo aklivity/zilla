@@ -126,6 +126,26 @@ catalogs:
                 "total":  { "type": "number" }
               }
             }
+        search_items_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["q"],
+              "properties": {
+                "q":     { "type": "string" },
+                "limit": { "type": "integer" }
+              }
+            }
+        search_items_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "items": { "type": "array", "items": { "type": "string" } }
+              }
+            }
         report_params:
           version: latest
           schema: |
@@ -392,6 +412,23 @@ bindings:
                 http_github0:
                   - subject: profile_result
                     version: latest
+        search_items:
+          description: >
+            Search items, optionally limiting the number of results.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: search_items_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: search_items_result
+                    version: latest
       resources:
         order:
           uri: "order://{orderId}"
@@ -516,3 +553,12 @@ bindings:
             ":scheme": https
             ":authority": api.github.com
             ":path": /profile
+      - when:
+          - tool: search_items
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /items?q=${args.q}&${?args.limit=limit}

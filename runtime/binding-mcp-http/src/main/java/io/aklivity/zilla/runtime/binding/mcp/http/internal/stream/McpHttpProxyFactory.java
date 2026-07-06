@@ -794,7 +794,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             doMcpWindow(traceId);
 
             final McpHttpWithConfig with = route.with;
-            final String path = interpolate(with.headers.get(HEADER_PATH), this::resolveParam);
+            final String path = buildPath(with.headers.get(HEADER_PATH), this::resolveParam, this::resolveRawParam);
             credentials.clear();
             binding.resolveCredentials(authorization, credentials);
             delegate.doHttpBegin(traceId, with.headers, credentials, path, null);
@@ -810,6 +810,21 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 final String captured = params.get(expression.substring(7));
                 value = encode(captured != null ? captured : "");
+            }
+            return value;
+        }
+
+        // Unlike resolveParam (used for path segments, which are always present), this reports true
+        // absence: null when the referenced capture was never supplied, distinct from an explicitly
+        // captured empty string. Used only to decide whether an optional query fragment (see buildPath)
+        // is included in the outbound request at all.
+        private String resolveRawParam(
+            String expression)
+        {
+            String value = null;
+            if (expression.startsWith("params."))
+            {
+                value = params.get(expression.substring(7));
             }
             return value;
         }
@@ -1251,7 +1266,8 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId)
         {
             final McpHttpWithConfig with = route.with;
-            String path = interpolate(with.headers.get(HEADER_PATH), this::resolveStreamingRequest);
+            String path = buildPath(with.headers.get(HEADER_PATH),
+                this::resolveStreamingRequest, this::resolveRawStreamingRequest);
             if (queryCaptured != null)
             {
                 final String query = buildQueryString(queryCaptured);
@@ -1293,6 +1309,24 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 final String captured = params.get(expression.substring(7));
                 value = encode(captured != null ? captured : "");
+            }
+            return value;
+        }
+
+        // See McpProxy.resolveRawParam: reports true absence (null) rather than falling back to an
+        // empty string, so buildPath can tell an omitted optional argument apart from one the caller
+        // explicitly set to "".
+        private String resolveRawStreamingRequest(
+            String expression)
+        {
+            String value = null;
+            if (expression.startsWith("args."))
+            {
+                value = requestArgs.get(expression.substring(5));
+            }
+            else if (expression.startsWith("params."))
+            {
+                value = params.get(expression.substring(7));
             }
             return value;
         }
@@ -2421,7 +2455,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 .add("name", resource.name);
             if (resource.uri != null)
             {
-                final String key = resource.uri.indexOf('{') >= 0 ? "uriTemplate" : "uri";
+                final String key = resource.template ? "uriTemplate" : "uri";
                 item.add(key, resource.uri);
             }
             if (resource.description != null)
@@ -2472,6 +2506,69 @@ public final class McpHttpProxyFactory implements BindingHandler
             json.write(value);
         }
         return writer.toString();
+    }
+
+    // Builds a request :path from a generated template whose query section (if any) may contain
+    // optional-parameter markers of the form ${?expression=name}, injected by mcp_openapi's queryString()
+    // for OpenAPI query parameters that are not required. Required query fragments (plain name=${expr})
+    // and the path portion are resolved via the ordinary interpolate/resolver; each optional fragment is
+    // resolved via rawResolver (which reports true absence as null, unlike resolver's empty-string
+    // fallback) and is dropped entirely — along with its separator — when the referenced value is absent,
+    // so multiple optional parameters compose without dangling '&' or '?' regardless of which are present.
+    private static String buildPath(
+        String template,
+        Function<String, String> resolver,
+        Function<String, String> rawResolver)
+    {
+        String result = template;
+
+        final int query = template != null ? template.indexOf('?') : -1;
+        if (query >= 0)
+        {
+            final String base = interpolate(template.substring(0, query), resolver);
+            final StringBuilder queryString = new StringBuilder();
+            for (String fragment : template.substring(query + 1).split("&"))
+            {
+                final String resolved = resolveQueryFragment(fragment, resolver, rawResolver);
+                if (resolved != null)
+                {
+                    if (queryString.length() > 0)
+                    {
+                        queryString.append('&');
+                    }
+                    queryString.append(resolved);
+                }
+            }
+            result = queryString.length() > 0 ? base + "?" + queryString : base;
+        }
+        else
+        {
+            result = interpolate(template, resolver);
+        }
+
+        return result;
+    }
+
+    private static String resolveQueryFragment(
+        String fragment,
+        Function<String, String> resolver,
+        Function<String, String> rawResolver)
+    {
+        String result;
+        if (fragment.startsWith("${?") && fragment.endsWith("}"))
+        {
+            final String inner = fragment.substring(3, fragment.length() - 1);
+            final int equals = inner.indexOf('=');
+            final String expression = inner.substring(0, equals);
+            final String name = inner.substring(equals + 1);
+            final String raw = rawResolver.apply(expression);
+            result = raw != null ? name + "=" + encode(raw) : null;
+        }
+        else
+        {
+            result = interpolate(fragment, resolver);
+        }
+        return result;
     }
 
     private static String interpolate(

@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
@@ -184,7 +185,7 @@ public final class McpOpenapiCompositeGenerator
                 }
 
                 routed.add(new RoutedOperation(routeTool, resource, operation, toolConfig(binding, routeTool),
-                    resolution.guarded, serverByLabel.get(with.spec)));
+                    resourceConfig(binding, resource), resolution.guarded, serverByLabel.get(with.spec)));
             }
         }
 
@@ -220,6 +221,21 @@ public final class McpOpenapiCompositeGenerator
         {
             result = binding.options.tools.stream()
                 .filter(t -> tool.equals(t.name))
+                .findFirst()
+                .orElse(null);
+        }
+        return result;
+    }
+
+    private McpOpenapiResourceConfig resourceConfig(
+        McpOpenapiBindingConfig binding,
+        String resource)
+    {
+        McpOpenapiResourceConfig result = null;
+        if (resource != null && binding.options != null && binding.options.resources != null)
+        {
+            result = binding.options.resources.stream()
+                .filter(r -> resource.equals(r.uri))
                 .findFirst()
                 .orElse(null);
         }
@@ -317,12 +333,12 @@ public final class McpOpenapiCompositeGenerator
         {
             final String name = entry.subjectName();
             final ModelConfig input = jsonModel("%s-input".formatted(name));
-            final ModelConfig output = entry.tool != null && entry.toolConfig != null && entry.toolConfig.output != null
-                ? entry.toolConfig.output
-                : jsonModel("%s-output".formatted(name));
 
             if (entry.tool != null)
             {
+                final ModelConfig output = entry.toolConfig != null && entry.toolConfig.output != null
+                    ? entry.toolConfig.output
+                    : jsonModel("%s-output".formatted(name));
                 final String description = entry.toolConfig != null && entry.toolConfig.description != null
                     ? entry.toolConfig.description
                     : entry.operation.description != null
@@ -338,14 +354,22 @@ public final class McpOpenapiCompositeGenerator
             }
             else
             {
-                final String uri = entry.operation.path;
+                final ModelConfig output = entry.resourceConfig != null && entry.resourceConfig.output != null
+                    ? entry.resourceConfig.output
+                    : jsonModel("%s-output".formatted(name));
+                final String description = entry.resourceConfig != null ? entry.resourceConfig.description : null;
+                // a {param} path-parameter expression in the OpenAPI path is what makes this a resource
+                // template rather than a concrete, enumerable resource; a query-only parameterization
+                // (appended below as a separate {?...} suffix) does not disqualify it from being concrete
+                final boolean template = entry.operation.path != null && entry.operation.path.indexOf('{') >= 0;
+                final String uri = resourceUri(entry.operation);
                 String mimeType = null;
                 final OpenapiResponseView success = successResponse(entry.operation);
                 if (success != null && success.content != null && !success.content.isEmpty())
                 {
                     mimeType = success.content.values().iterator().next().name;
                 }
-                resources.add(new McpHttpResourceConfig(entry.resource, uri, null, mimeType, output));
+                resources.add(new McpHttpResourceConfig(entry.resource, uri, template, description, mimeType, output));
             }
         }
 
@@ -650,6 +674,32 @@ public final class McpOpenapiCompositeGenerator
         return result;
     }
 
+    // Builds the URI advertised for a resource in resources/list or resources/templates/list: the OpenAPI
+    // path verbatim (still carrying any {param} path captures), plus an RFC 6570 form-style query
+    // expansion ({?name1,name2}) listing every query parameter the operation declares, so a resource's
+    // entire input surface (path and query captures) is visible in the one URI a client sees.
+    private static String resourceUri(
+        OpenapiOperationView operation)
+    {
+        final StringBuilder uri = new StringBuilder(operation.path);
+        if (operation.parameters != null)
+        {
+            final List<String> names = new ArrayList<>();
+            for (OpenapiParameterView parameter : operation.parameters)
+            {
+                if ("query".equals(parameter.in))
+                {
+                    names.add(parameter.name);
+                }
+            }
+            if (!names.isEmpty())
+            {
+                uri.append("{?").append(String.join(",", names)).append('}');
+            }
+        }
+        return uri.toString();
+    }
+
     private static String queryString(
         OpenapiOperationView operation,
         String accessor)
@@ -665,12 +715,30 @@ public final class McpOpenapiCompositeGenerator
                     {
                         query.append('&');
                     }
-                    query.append(parameter.name)
-                        .append("=${")
-                        .append(accessor)
-                        .append('.')
-                        .append(parameter.name)
-                        .append('}');
+                    if (parameter.required)
+                    {
+                        query.append(parameter.name)
+                            .append("=${")
+                            .append(accessor)
+                            .append('.')
+                            .append(parameter.name)
+                            .append('}');
+                    }
+                    else
+                    {
+                        // an optional query parameter is only ever included in the outbound request when
+                        // the caller actually supplies a value; McpHttpProxyFactory recognizes this ${?...}
+                        // marker at request time and drops the whole name=value fragment (and its separator)
+                        // when the referenced accessor has no captured value, rather than emitting name=
+                        // with an empty value or an unresolved expression
+                        query.append("${?")
+                            .append(accessor)
+                            .append('.')
+                            .append(parameter.name)
+                            .append('=')
+                            .append(parameter.name)
+                            .append('}');
+                    }
                 }
             }
         }
@@ -834,6 +902,7 @@ public final class McpOpenapiCompositeGenerator
         private final String resource;
         private final OpenapiOperationView operation;
         private final McpOpenapiToolConfig toolConfig;
+        private final McpOpenapiResourceConfig resourceConfig;
         private final List<GuardedRef> guarded;
         private final String server;
 
@@ -842,6 +911,7 @@ public final class McpOpenapiCompositeGenerator
             String resource,
             OpenapiOperationView operation,
             McpOpenapiToolConfig toolConfig,
+            McpOpenapiResourceConfig resourceConfig,
             List<GuardedRef> guarded,
             String server)
         {
@@ -849,6 +919,7 @@ public final class McpOpenapiCompositeGenerator
             this.resource = resource;
             this.operation = operation;
             this.toolConfig = toolConfig;
+            this.resourceConfig = resourceConfig;
             this.guarded = guarded;
             this.server = server;
         }

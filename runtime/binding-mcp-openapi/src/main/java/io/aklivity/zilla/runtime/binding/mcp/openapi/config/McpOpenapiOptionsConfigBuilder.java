@@ -27,6 +27,7 @@ public final class McpOpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Mc
 
     private List<McpOpenapiSpecificationConfig> specs;
     private List<McpOpenapiToolConfig> tools;
+    private List<McpOpenapiResourceConfig> resources;
 
     McpOpenapiOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -73,9 +74,25 @@ public final class McpOpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Mc
         return this;
     }
 
+    public McpOpenapiResourceConfigBuilder<McpOpenapiOptionsConfigBuilder<T>> resource()
+    {
+        return new McpOpenapiResourceConfigBuilder<>(this::resource);
+    }
+
+    public McpOpenapiOptionsConfigBuilder<T> resource(
+        McpOpenapiResourceConfig resource)
+    {
+        if (resources == null)
+        {
+            resources = new ArrayList<>();
+        }
+        resources.add(resource);
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiOptionsConfig(specs, tools));
+        return mapper.apply(new McpOpenapiOptionsConfig(specs, tools, resources));
     }
 }

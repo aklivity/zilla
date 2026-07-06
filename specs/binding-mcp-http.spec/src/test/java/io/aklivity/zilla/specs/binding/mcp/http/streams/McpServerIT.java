@@ -191,6 +191,24 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/search.items/client",
+        "${mcp}/search.items/server"})
+    public void shouldCallToolSearchItemsWithoutOptionalQueryParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/search.items.with.limit/client",
+        "${mcp}/search.items.with.limit/server"})
+    public void shouldCallToolSearchItemsWithOptionalQueryParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/create.pr.error/client",
         "${mcp}/create.pr.error/server"})
     public void shouldRejectToolCreatePr() throws Exception

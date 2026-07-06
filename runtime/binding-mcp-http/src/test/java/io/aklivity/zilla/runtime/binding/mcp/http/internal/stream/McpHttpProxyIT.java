@@ -256,6 +256,26 @@ public class McpHttpProxyIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/search.items/client",
+        "${http}/search.items/server"})
+    public void shouldCallToolSearchItemsWithoutOptionalQueryParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/search.items.with.limit/client",
+        "${http}/search.items.with.limit/server"})
+    public void shouldCallToolSearchItemsWithOptionalQueryParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
     // a ~100KB tools/call response, streamed across many suspend/resume cycles; the leading total_count
     // field is captured well before the large trailing items[].path value finishes streaming, proving
     // tool.summary interpolation survives more than one window (see McpHttpResults)
