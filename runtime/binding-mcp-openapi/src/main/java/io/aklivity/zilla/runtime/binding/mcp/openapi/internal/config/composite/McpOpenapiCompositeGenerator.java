@@ -45,6 +45,7 @@ import jakarta.json.bind.JsonbBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
@@ -359,20 +360,13 @@ public final class McpOpenapiCompositeGenerator
                     : jsonModel("%s-output".formatted(name));
                 final String description = entry.resourceConfig != null ? entry.resourceConfig.description : null;
                 final boolean template = entry.operation.path != null && entry.operation.path.indexOf('{') >= 0;
-                final String uri = resourceUri(entry.operation);
-                String mimeType = null;
-                final OpenapiResponseView success = successResponse(entry.operation);
-                if (success != null && success.content != null && !success.content.isEmpty())
-                {
-                    mimeType = success.content.values().iterator().next().name;
-                }
                 resources.add(McpHttpResourceConfig.builder()
                     .name(entry.resource)
-                    .uri(uri)
+                    .uri(resourceUri(entry.operation))
                     .template(template)
                     .description(description)
-                    .mimeType(mimeType)
                     .output(output)
+                    .inject(r -> injectMimeType(r, entry.operation))
                     .build());
             }
         }
@@ -415,6 +409,19 @@ public final class McpOpenapiCompositeGenerator
         }
 
         return route;
+    }
+
+    private <C> McpHttpResourceConfigBuilder<C> injectMimeType(
+        McpHttpResourceConfigBuilder<C> resource,
+        OpenapiOperationView operation)
+    {
+        final OpenapiResponseView success = successResponse(operation);
+        if (success != null && success.content != null && !success.content.isEmpty())
+        {
+            resource.mimeType(success.content.values().iterator().next().name);
+        }
+
+        return resource;
     }
 
     private <C> GuardedConfigBuilder<C> injectRoles(
