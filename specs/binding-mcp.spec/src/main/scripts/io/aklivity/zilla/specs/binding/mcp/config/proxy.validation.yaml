@@ -64,7 +64,7 @@ stores:
               }
             ]
           }
-        resourceTemplates: |-
+        resources/templates: |-
           {"resourceTemplates":[]}
         prompts: |-
           {

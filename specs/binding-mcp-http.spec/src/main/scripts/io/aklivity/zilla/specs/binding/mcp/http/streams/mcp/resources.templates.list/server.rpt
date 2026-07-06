@@ -41,7 +41,7 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .resourceTemplatesList()
+                          .resourcesTemplatesList()
                               .sessionId("session-1")
                               .build()
                           .build()}

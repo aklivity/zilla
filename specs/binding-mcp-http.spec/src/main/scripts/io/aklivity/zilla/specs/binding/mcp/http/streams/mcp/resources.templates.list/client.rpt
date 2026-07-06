@@ -41,14 +41,13 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourceTemplatesList()
+                           .resourcesTemplatesList()
                                .sessionId("session-1")
                                .build()
                            .build()}
 
 connected
 
-# resources/templates/list is answered entirely from config; no upstream HTTP call
 read  '{"resourceTemplates":[{"name":"item","uriTemplate":"item://{itemId}",'
       '"description":"An item resource","mimeType":"application/json"}]}'
 read closed

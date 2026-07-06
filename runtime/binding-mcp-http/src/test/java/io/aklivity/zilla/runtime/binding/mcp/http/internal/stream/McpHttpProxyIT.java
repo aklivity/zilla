@@ -212,7 +212,7 @@ public class McpHttpProxyIT
     @Configuration("proxy.discovery.yaml")
     @Specification({
         "${mcp}/resources.templates.list/client"})
-    public void shouldListResourceTemplates() throws Exception
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

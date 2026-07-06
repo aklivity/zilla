@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 
 import java.nio.charset.StandardCharsets;
 import java.util.function.LongFunction;
@@ -27,24 +27,24 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
-final class McpProxyResourceTemplatesListFactory extends McpProxyListFactory
+final class McpProxyResourcesTemplatesListFactory extends McpProxyListFactory
 {
     private final DirectBufferEx prelude =
         new UnsafeBufferEx("{\"resourceTemplates\":[".getBytes(StandardCharsets.UTF_8));
 
-    McpProxyResourceTemplatesListFactory(
+    McpProxyResourcesTemplatesListFactory(
         McpConfiguration config,
         EngineContext context,
         LongFunction<McpBindingConfig> supplyBinding)
     {
-        super(config, context, supplyBinding, McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST);
+        super(config, context, supplyBinding, McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST);
     }
 
     @Override
     protected McpProxyCache.McpListCache cacheOf(
         McpBindingConfig binding)
     {
-        return binding.cache != null ? binding.cache.cacheOf(KIND_RESOURCE_TEMPLATES_LIST) : null;
+        return binding.cache != null ? binding.cache.cacheOf(KIND_RESOURCES_TEMPLATES_LIST) : null;
     }
 
     @Override
@@ -52,7 +52,7 @@ final class McpProxyResourceTemplatesListFactory extends McpProxyListFactory
         McpBeginExFW.Builder builder,
         String sessionId)
     {
-        builder.resourceTemplatesList(r -> r.sessionId(sessionId));
+        builder.resourcesTemplatesList(r -> r.sessionId(sessionId));
     }
 
     @Override
@@ -60,7 +60,7 @@ final class McpProxyResourceTemplatesListFactory extends McpProxyListFactory
         McpBeginExFW.Builder builder,
         String sessionId)
     {
-        builder.resourceTemplatesList(r -> r.sessionId(sessionId));
+        builder.resourcesTemplatesList(r -> r.sessionId(sessionId));
     }
 
     @Override
@@ -85,6 +85,6 @@ final class McpProxyResourceTemplatesListFactory extends McpProxyListFactory
     protected String sessionId(
         McpBeginExFW beginEx)
     {
-        return beginEx.resourceTemplatesList().sessionId().asString();
+        return beginEx.resourcesTemplatesList().sessionId().asString();
     }
 }

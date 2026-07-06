@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.http.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
-import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -261,8 +261,8 @@ public final class McpHttpProxyFactory implements BindingHandler
                         newStream = new McpResourcesListProxy(binding,
                             sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
                         break;
-                    case KIND_RESOURCE_TEMPLATES_LIST:
-                        newStream = new McpResourceTemplatesListProxy(binding,
+                    case KIND_RESOURCES_TEMPLATES_LIST:
+                        newStream = new McpResourcesTemplatesListProxy(binding,
                             sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
                         break;
                     case KIND_TOOLS_CALL:
@@ -1596,9 +1596,9 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
     }
 
-    private final class McpResourceTemplatesListProxy extends McpProxy
+    private final class McpResourcesTemplatesListProxy extends McpProxy
     {
-        private McpResourceTemplatesListProxy(
+        private McpResourcesTemplatesListProxy(
             McpHttpBindingConfig binding,
             MessageConsumer sender,
             long originId,
@@ -1616,7 +1616,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             long traceId)
         {
             requestHandled = true;
-            doMcpReply(traceId, resourceTemplatesList(binding));
+            doMcpReply(traceId, resourcesTemplatesList(binding));
             cleanupDecodeSlot();
         }
     }
@@ -2276,8 +2276,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         case KIND_RESOURCES_LIST:
             sessionId = beginEx.resourcesList().sessionId().asString();
             break;
-        case KIND_RESOURCE_TEMPLATES_LIST:
-            sessionId = beginEx.resourceTemplatesList().sessionId().asString();
+        case KIND_RESOURCES_TEMPLATES_LIST:
+            sessionId = beginEx.resourcesTemplatesList().sessionId().asString();
             break;
         case KIND_RESOURCES_READ:
             sessionId = beginEx.resourcesRead().sessionId().asString();
@@ -2368,14 +2368,14 @@ public final class McpHttpProxyFactory implements BindingHandler
         return json;
     }
 
-    private byte[] resourceTemplatesList(
+    private byte[] resourcesTemplatesList(
         McpHttpBindingConfig binding)
     {
-        byte[] json = binding.resourceTemplatesListJson();
+        byte[] json = binding.resourcesTemplatesListJson();
         if (json == null)
         {
-            json = buildResourceTemplatesList(binding).getBytes(UTF_8);
-            binding.resourceTemplatesListJson(json);
+            json = buildResourcesTemplatesList(binding).getBytes(UTF_8);
+            binding.resourcesTemplatesListJson(json);
         }
         return json;
     }
@@ -2456,7 +2456,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         return compact(Json.createObjectBuilder().add("resources", resources).build());
     }
 
-    private String buildResourceTemplatesList(
+    private String buildResourcesTemplatesList(
         McpHttpBindingConfig binding)
     {
         final JsonArrayBuilder resourceTemplates = Json.createArrayBuilder();

@@ -41,7 +41,7 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourceTemplatesList()
+                           .resourcesTemplatesList()
                                .sessionId("session-1")
                                .build()
                            .build()}

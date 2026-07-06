@@ -342,11 +342,11 @@ public class McpFunctionsTest
     }
 
     @Test
-    public void shouldGenerateResourceTemplatesListBeginEx()
+    public void shouldGenerateResourcesTemplatesListBeginEx()
     {
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
-            .resourceTemplatesList()
+            .resourcesTemplatesList()
                 .sessionId("session-1")
                 .timeout(10000L)
                 .build()
@@ -355,15 +355,15 @@ public class McpFunctionsTest
         assertNotNull(bytes);
 
         McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals(10000L, beginEx.resourceTemplatesList().timeout());
+        assertEquals(10000L, beginEx.resourcesTemplatesList().timeout());
     }
 
     @Test
-    public void shouldMatchResourceTemplatesListBeginEx() throws Exception
+    public void shouldMatchResourcesTemplatesListBeginEx() throws Exception
     {
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
-            .resourceTemplatesList()
+            .resourcesTemplatesList()
                 .sessionId("session-1")
                 .timeout(10000L)
                 .build()
@@ -374,7 +374,7 @@ public class McpFunctionsTest
         new McpBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .resourceTemplatesList(b -> b
+            .resourcesTemplatesList(b -> b
                 .sessionId("session-1")
                 .timeout(10000L))
             .build();

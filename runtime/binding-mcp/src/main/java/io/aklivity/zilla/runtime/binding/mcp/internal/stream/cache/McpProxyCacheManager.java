@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 
 import java.io.Closeable;
@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class McpProxyCacheManager implements McpProxyCacheListener
 {
-    private static final int KIND_SLOTS = KIND_RESOURCE_TEMPLATES_LIST + 1;
+    private static final int KIND_SLOTS = KIND_RESOURCES_TEMPLATES_LIST + 1;
     private static final BiConsumer<String, String> NO_OP = (k, v) -> {};
 
     private final McpProxyCacheHydrater hydrater;

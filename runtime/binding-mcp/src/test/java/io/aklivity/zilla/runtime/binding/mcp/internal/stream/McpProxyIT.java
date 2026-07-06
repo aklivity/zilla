@@ -353,7 +353,7 @@ public class McpProxyIT
         "${app}/resources.templates.list/client",
         "${app}/resources.templates.list/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldListResourceTemplates() throws Exception
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }
@@ -440,7 +440,7 @@ public class McpProxyIT
         "${app}/resources.templates.list.aborted/client",
         "${app}/resources.templates.list.aborted/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldAbortListResourceTemplates() throws Exception
+    public void shouldAbortListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

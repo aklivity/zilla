@@ -73,7 +73,7 @@ public final class McpHttpBindingConfig
     // memoized list replies; derived solely from static binding config, built once on first request
     private byte[] toolsListJson;
     private byte[] resourcesListJson;
-    private byte[] resourceTemplatesListJson;
+    private byte[] resourcesTemplatesListJson;
 
     public McpHttpBindingConfig(
         BindingConfig binding,
@@ -226,15 +226,15 @@ public final class McpHttpBindingConfig
         this.resourcesListJson = json;
     }
 
-    public byte[] resourceTemplatesListJson()
+    public byte[] resourcesTemplatesListJson()
     {
-        return resourceTemplatesListJson;
+        return resourcesTemplatesListJson;
     }
 
-    public void resourceTemplatesListJson(
+    public void resourcesTemplatesListJson(
         byte[] json)
     {
-        this.resourceTemplatesListJson = json;
+        this.resourcesTemplatesListJson = json;
     }
 
     public McpHttpResourceConfig resource(

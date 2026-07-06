@@ -27,7 +27,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -151,7 +151,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String JSON_RPC_PROMPTS_GET_METHOD = ",\"method\":\"prompts/get\",\"params\":";
     private static final String JSON_RPC_RESOURCES_LIST_METHOD = ",\"method\":\"resources/list\"}";
     private static final String JSON_RPC_RESOURCES_READ_METHOD = ",\"method\":\"resources/read\",\"params\":";
-    private static final String JSON_RPC_RESOURCE_TEMPLATES_LIST_METHOD = ",\"method\":\"resources/templates/list\"}";
+    private static final String JSON_RPC_RESOURCES_TEMPLATES_LIST_METHOD = ",\"method\":\"resources/templates/list\"}";
     private static final String JSON_RPC_PING_METHOD = ",\"method\":\"ping\"}";
     private static final String JSON_RPC_NOTIFY_CANCELLED_PREFIX =
         "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\",\"params\":{\"requestId\":";
@@ -277,7 +277,7 @@ public final class McpClientFactory implements McpStreamFactory
         resolvers.put(KIND_PROMPTS_GET, ex -> ex.promptsGet().sessionId().asString());
         resolvers.put(KIND_RESOURCES_LIST, ex -> ex.resourcesList().sessionId().asString());
         resolvers.put(KIND_RESOURCES_READ, ex -> ex.resourcesRead().sessionId().asString());
-        resolvers.put(KIND_RESOURCE_TEMPLATES_LIST, ex -> ex.resourceTemplatesList().sessionId().asString());
+        resolvers.put(KIND_RESOURCES_TEMPLATES_LIST, ex -> ex.resourcesTemplatesList().sessionId().asString());
         this.resolvers = resolvers;
 
         final Int2ObjectHashMap<McpRequestStreamFactory> requestFactories = new Int2ObjectHashMap<>();
@@ -287,7 +287,7 @@ public final class McpClientFactory implements McpStreamFactory
         requestFactories.put(KIND_PROMPTS_GET, McpPromptsGetStream::new);
         requestFactories.put(KIND_RESOURCES_LIST, McpResourcesListStream::new);
         requestFactories.put(KIND_RESOURCES_READ, McpResourcesReadStream::new);
-        requestFactories.put(KIND_RESOURCE_TEMPLATES_LIST, McpResourceTemplatesListStream::new);
+        requestFactories.put(KIND_RESOURCES_TEMPLATES_LIST, McpResourcesTemplatesListStream::new);
         this.requestFactories = requestFactories;
     }
 
@@ -1471,7 +1471,7 @@ public final class McpClientFactory implements McpStreamFactory
                             case KIND_PROMPTS_GET -> mcpBeginEx.promptsGet().timeout();
                             case KIND_RESOURCES_LIST -> mcpBeginEx.resourcesList().timeout();
                             case KIND_RESOURCES_READ -> mcpBeginEx.resourcesRead().timeout();
-                            case KIND_RESOURCE_TEMPLATES_LIST -> mcpBeginEx.resourceTemplatesList().timeout();
+                            case KIND_RESOURCES_TEMPLATES_LIST -> mcpBeginEx.resourcesTemplatesList().timeout();
                             default -> 0L;
                             };
                             newStream = request::onAppMessage;
@@ -3467,9 +3467,9 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class McpResourceTemplatesListStream extends McpRequestStream
+    private final class McpResourcesTemplatesListStream extends McpRequestStream
     {
-        McpResourceTemplatesListStream(
+        McpResourcesTemplatesListStream(
             McpLifecycleStream session,
             MessageConsumer sender,
             long originId,
@@ -3480,7 +3480,7 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization)
         {
             super(session, sender, originId, routedId, initialId, resolvedId, affinity,
-                HttpResourceTemplatesListStream::new);
+                HttpResourcesTemplatesListStream::new);
         }
 
         @Override
@@ -5157,9 +5157,9 @@ public final class McpClientFactory implements McpStreamFactory
 
     }
 
-    private final class HttpResourceTemplatesListStream extends HttpRequestStream
+    private final class HttpResourcesTemplatesListStream extends HttpRequestStream
     {
-        HttpResourceTemplatesListStream(
+        HttpResourcesTemplatesListStream(
             McpStream mcp)
         {
             super(mcp);
@@ -5186,7 +5186,7 @@ public final class McpClientFactory implements McpStreamFactory
             int codecLength = 0;
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
-            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_RESOURCE_TEMPLATES_LIST_METHOD);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_RESOURCES_TEMPLATES_LIST_METHOD);
 
             injectAuthorization(extBuilder);
 

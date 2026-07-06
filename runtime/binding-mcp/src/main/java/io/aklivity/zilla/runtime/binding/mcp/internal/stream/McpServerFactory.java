@@ -964,7 +964,7 @@ public final class McpServerFactory implements McpStreamFactory
                     server.decodedRequest = server::onDecodeRequestParams;
                     break;
                 case "resources/templates/list":
-                    server.onDecodeResourceTemplatesList(traceId, authorization);
+                    server.onDecodeResourcesTemplatesList(traceId, authorization);
                     server.decodedRequest = server::onDecodeRequestParams;
                     break;
                 case "resources/read":
@@ -2230,14 +2230,14 @@ public final class McpServerFactory implements McpStreamFactory
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
-        private void onDecodeResourceTemplatesList(
+        private void onDecodeResourcesTemplatesList(
             long traceId,
             long authorization)
         {
             McpBeginExFW beginEx = mcpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
-                .resourceTemplatesList(r -> r
+                .resourcesTemplatesList(r -> r
                     .sessionId(session.unifiedId)
                     .timeout(session.requestTimeout))
                 .build();

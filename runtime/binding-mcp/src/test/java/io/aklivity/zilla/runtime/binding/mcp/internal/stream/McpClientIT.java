@@ -402,7 +402,7 @@ public class McpClientIT
     @Specification({
         "${app}/resources.templates.list.aborted/client",
         "${net}/resources.templates.list.aborted/server"})
-    public void shouldAbortListResourceTemplates() throws Exception
+    public void shouldAbortListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }
@@ -464,7 +464,7 @@ public class McpClientIT
     @Specification({
         "${app}/resources.templates.list/client",
         "${net}/resources.templates.list/server"})
-    public void shouldListResourceTemplates() throws Exception
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

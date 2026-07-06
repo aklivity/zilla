@@ -90,7 +90,7 @@ connect await TOOLS_HYDRATED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourceTemplatesList()
+                           .resourcesTemplatesList()
                                .sessionId("hydrate-1")
                                .build()
                            .build()}
@@ -102,9 +102,9 @@ read closed
 
 write close
 
-read notify RESOURCE_TEMPLATES_HYDRATED
+read notify RESOURCES_TEMPLATES_HYDRATED
 
-connect await RESOURCE_TEMPLATES_HYDRATED
+connect await RESOURCES_TEMPLATES_HYDRATED
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -196,7 +196,7 @@ connect await TOOLS2_HYDRATED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourceTemplatesList()
+                           .resourcesTemplatesList()
                                .sessionId("hydrate-1")
                                .build()
                            .build()}
@@ -208,9 +208,9 @@ read closed
 
 write close
 
-read notify RESOURCE_TEMPLATES2_HYDRATED
+read notify RESOURCES_TEMPLATES2_HYDRATED
 
-connect await RESOURCE_TEMPLATES2_HYDRATED
+connect await RESOURCES_TEMPLATES2_HYDRATED
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"

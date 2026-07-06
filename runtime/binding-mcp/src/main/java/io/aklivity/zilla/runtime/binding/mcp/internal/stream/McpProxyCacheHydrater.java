@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_PROMPTS_LIST_CHANGED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_RESOURCES_LIST_CHANGED;
@@ -236,17 +236,13 @@ public final class McpProxyCacheHydrater
                 break;
             case KIND_RESOURCES_LIST_CHANGED:
                 onChangedIfCached(KIND_RESOURCES_LIST);
-                onChangedIfCached(KIND_RESOURCE_TEMPLATES_LIST);
+                onChangedIfCached(KIND_RESOURCES_TEMPLATES_LIST);
                 break;
             default:
                 break;
             }
         }
 
-        // the upstream server's own capabilities are independent of this proxy's local
-        // hydrate.filter, so it may emit a list_changed notification for a kind this
-        // binding was configured not to cache; ignore it rather than hydrate a kind with
-        // no cache entry
         private void onChangedIfCached(
             int kind)
         {

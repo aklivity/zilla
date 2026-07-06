@@ -166,7 +166,7 @@ public class McpServerIT
     @Specification({
         "${mcp}/resources.templates.list/client",
         "${mcp}/resources.templates.list/server"})
-    public void shouldListResourceTemplates() throws Exception
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }
