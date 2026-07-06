@@ -59,7 +59,6 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpRouteCo
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.events.McpHttpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpArguments;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpRename;
-import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpResultText;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpResults;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpToolResult;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.Flyweight;
@@ -1394,7 +1393,11 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 final McpHttpToolConfig tool = binding.tool(name);
                 final JsonSchema outputSchema = tool != null ? binding.jsonSchema(tool.output) : null;
+                // tool.summary is required by schema for every configured tool; tool is null only if a route
+                // matches a tool name with no corresponding tools: entry (a misconfiguration), in which case
+                // there is nothing to interpolate and McpHttpToolResult's own resolved-null fallback applies
                 final String summaryTemplate = tool != null ? tool.summary : null;
+                final List<String> resultPaths = tool != null ? toolResultReferences(tool) : List.of();
 
                 responseGenerator = JsonEx.createGenerator();
                 JsonStream stream = JsonEx.stream(JsonEx.createParser());
@@ -1405,32 +1408,14 @@ public final class McpHttpProxyFactory implements BindingHandler
                     // structuredContent even if the retained paths alone would otherwise look fine
                     stream = stream.transform(outputSchema.validator()).transform(JsonEx.projector(outputSchema));
                 }
-
-                final Supplier<String> summary;
-                if (summaryTemplate != null)
-                {
-                    // captures result.* references from exactly the events reaching the sink (i.e. after any
-                    // projection), matching the pre-streaming behavior of scanning the already-projected buffer
-                    final List<String> resultPaths = toolResultReferences(tool);
-                    stream = stream.transform(new McpHttpResults(capturedResults, resultPaths));
-                    summary = () -> interpolate(summaryTemplate, this::resolveCapturedResult);
-                }
-                else
-                {
-                    // no tool.summary configured: content[0].text falls back to the escaped canonical JSON
-                    // text of structuredContent, matching the pre-streaming behavior (see McpHttpResultText's
-                    // class doc for why this needs its own bounded buffer rather than re-scanning a copy)
-                    final MutableDirectBufferEx resultTextBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-                    final McpHttpResultText resultText = new McpHttpResultText(resultTextBuffer, JsonEx.createGenerator());
-                    stream = stream.transform(resultText);
-                    summary = resultText::text;
-                }
-
+                // captures result.* references from exactly the events reaching the sink (i.e. after any
+                // projection), matching the pre-streaming behavior of scanning the already-projected buffer;
                 // McpHttpToolResult wraps the whole envelope around that same event stream, injecting
                 // content/isError as more generator-tracked events once structuredContent's value closes —
                 // see its class doc for why that is what keeps the (potentially large) summary text bounded
                 responsePipeline = stream
-                    .transform(new McpHttpToolResult(summary))
+                    .transform(new McpHttpResults(capturedResults, resultPaths))
+                    .transform(new McpHttpToolResult(() -> interpolate(summaryTemplate, this::resolveCapturedResult)))
                     .into(JsonEx.createSink(responseGenerator, SINK_SEGMENTABLE));
                 responsePipeline.reset();
 

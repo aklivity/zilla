@@ -59,7 +59,7 @@ write '{"name":"echo_id","arguments":{"id":"'
 # rule / multi-window accumulation fix), not just short path arguments that always arrive in one window
 read  '{'
         '"structuredContent":{"status":"ok"},'
-        '"content":[{"type":"text","text":"{\\"status\\":\\"ok\\"}"}],'
+        '"content":[{"type":"text","text":"Echoed: ok"}],'
         '"isError":false'
       '}'
 read closed

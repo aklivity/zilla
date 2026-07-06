@@ -56,9 +56,7 @@ write flush
 
 write '{'
         '"structuredContent":{"user":{"id":1,"name":"Ann"},"roles":["admin","dev"],"active":true,"manager":null},'
-        '"content":[{"type":"text","text":'
-        '"{\\"user\\":{\\"id\\":1,\\"name\\":\\"Ann\\"},\\"roles\\":[\\"admin\\",\\"dev\\"],\\"active\\":true,\\"manager\\":null}"'
-        '}],'
+        '"content":[{"type":"text","text":"Profile for Ann"}],'
         '"isError":false'
       '}'
 write flush

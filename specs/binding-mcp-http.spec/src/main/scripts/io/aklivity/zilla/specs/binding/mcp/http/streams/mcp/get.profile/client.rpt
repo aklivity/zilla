@@ -52,14 +52,11 @@ connected
 
 write '{"name":"get_profile","arguments":{}}'
 
-# no tool.summary configured for get_profile: content[0].text falls back to the escaped canonical
-# JSON of the (nested object + array + boolean + null) structuredContent value, proving the no-summary
-# fallback capture stage handles more than a trivial flat object
+# tool.summary references a nested result path (${result.user.name}), proving McpHttpResults'
+# capture handles nested paths, not just top-level ones
 read  '{'
         '"structuredContent":{"user":{"id":1,"name":"Ann"},"roles":["admin","dev"],"active":true,"manager":null},'
-        '"content":[{"type":"text","text":'
-        '"{\\"user\\":{\\"id\\":1,\\"name\\":\\"Ann\\"},\\"roles\\":[\\"admin\\",\\"dev\\"],\\"active\\":true,\\"manager\\":null}"'
-        '}],'
+        '"content":[{"type":"text","text":"Profile for Ann"}],'
         '"isError":false'
       '}'
 read closed

@@ -301,7 +301,13 @@ public final class McpOpenapiCompositeGenerator
                     : entry.operation.description != null
                         ? entry.operation.description
                         : entry.operation.id;
-                tools.add(new McpHttpToolConfig(entry.tool, entry.operation.summary, description, input, output));
+                // mcp_http requires a non-null tool summary; OpenAPI's own summary field is optional per
+                // spec, so fall back to a plain literal string naming the operation, not a ${...} template
+                // (mcp_http only understands ${result.*} references and would not resolve operationId)
+                final String summary = entry.operation.summary != null
+                    ? entry.operation.summary
+                    : "Call %s".formatted(entry.operation.id);
+                tools.add(new McpHttpToolConfig(entry.tool, summary, description, input, output));
             }
             else
             {

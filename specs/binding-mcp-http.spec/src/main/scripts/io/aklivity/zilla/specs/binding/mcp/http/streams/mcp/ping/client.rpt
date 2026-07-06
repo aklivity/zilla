@@ -52,11 +52,9 @@ connected
 
 write '{"name":"ping","arguments":{}}'
 
-# no tool.summary configured for ping: content[0].text falls back to the escaped canonical JSON of
-# structuredContent
 read  '{'
         '"structuredContent":{"status":"ok"},'
-        '"content":[{"type":"text","text":"{\\"status\\":\\"ok\\"}"}],'
+        '"content":[{"type":"text","text":"Status: ok"}],'
         '"isError":false'
       '}'
 read closed

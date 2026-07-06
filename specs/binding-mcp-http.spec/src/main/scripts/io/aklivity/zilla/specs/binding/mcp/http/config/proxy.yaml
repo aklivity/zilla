@@ -268,6 +268,7 @@ bindings:
         ping:
           description: >
             Check service liveness.
+          summary: "Status: ${result.status}"
           schemas:
             input:
               model: json
@@ -318,6 +319,7 @@ bindings:
         echo_id:
           description: >
             Echo the given identifier.
+          summary: "Echoed: ${result.status}"
           schemas:
             input:
               model: json
@@ -334,6 +336,7 @@ bindings:
         get_profile:
           description: >
             Get the caller's profile.
+          summary: "Profile for ${result.user.name}"
           schemas:
             input:
               model: json

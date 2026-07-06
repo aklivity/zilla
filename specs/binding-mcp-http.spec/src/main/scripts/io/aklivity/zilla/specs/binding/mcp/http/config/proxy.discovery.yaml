@@ -36,6 +36,7 @@ bindings:
       tools:
         get_item:
           description: "Get an item"
+          summary: "Item retrieved"
           schemas:
             input:
               model: json
