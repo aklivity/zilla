@@ -278,6 +278,32 @@ public class EngineTest
     }
 
     @Test
+    public void shouldNotConfigureBindingValidationFailure()
+    {
+        String resource = String.format("%s-%s.yaml", getClass().getSimpleName(), "configure-validation-invalid");
+        URL configURL = getClass().getResource(resource);
+        assert configURL != null;
+        properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, not(empty()));
+        }
+    }
+
+    @Test
     public void shouldNotConfigureUnknownScheme() throws Exception
     {
         List<Throwable> errors = new LinkedList<>();

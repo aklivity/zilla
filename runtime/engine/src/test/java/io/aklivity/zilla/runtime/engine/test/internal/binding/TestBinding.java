@@ -20,10 +20,13 @@ import java.net.URL;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public final class TestBinding implements Binding
 {
     public static final String NAME = "test";
+    public static final String NAME_INVALID = "invalid";
 
     private final Configuration config;
 
@@ -50,5 +53,15 @@ public final class TestBinding implements Binding
         EngineContext context)
     {
         return new TestBindingContext(config, context);
+    }
+
+    @Override
+    public void validate(
+        BindingConfig binding) throws ConfigException
+    {
+        if (NAME_INVALID.equals(binding.name))
+        {
+            throw new ConfigException(String.format("%s: binding validation failed", binding.qname));
+        }
     }
 }

@@ -502,6 +502,8 @@ public class EngineManager
                 }
             }
 
+            typed.validate(binding);
+
             Set<Long> metricIds = new HashSet<>();
             TelemetryRefConfig telemetryRef = binding.telemetryRef;
             if (telemetryRef != null)
