@@ -1116,7 +1116,12 @@ public final class McpHttpProxyFactory implements BindingHandler
         void onHttpAbort(
             long traceId)
         {
+            // a response may already be mid-construction (responseStep/errorRelayStep having acquired
+            // encodeSlot to stage bytes not yet flushed) when the upstream aborts; the normal onHttpEnd path
+            // drains and releases it via pumpResponse's terminal-status handling, but abort short-circuits
+            // straight here, so this must release it directly or it leaks for the lifetime of the stream
             cleanupResponse();
+            cleanupEncodeSlot();
             doMcpAbort(traceId);
         }
 
