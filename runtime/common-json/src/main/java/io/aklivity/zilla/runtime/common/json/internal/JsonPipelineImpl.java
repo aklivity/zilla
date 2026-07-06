@@ -151,16 +151,22 @@ public final class JsonPipelineImpl implements JsonPipeline
                 // stage starved mid-value (e.g. a validator declining a fragment to accumulate it). Always
                 // give the sink a final drain before the window is replaced: a verbatim run pulls the bytes it
                 // has consumed so far via getVerbatim, so its cursor tracks the parse frontier across windows
-                // and never lags into a replaced window. STARVED stays STARVED; an exhausted-but-advancing
-                // pump needs more input (or is truncated on the final window).
+                // and never lags into a replaced window. On the final window neither case can ever resolve —
+                // no further input is coming to satisfy an exhausted pump or a stage still starved mid-value —
+                // so both convert to REJECTED; otherwise an exhausted-but-advancing pump needs more input and
+                // a stage-starved status is left as is (the stage owns that decision until then).
                 final Status drained = root.flush(control, source);
                 if (drained == Status.SUSPENDED)
                 {
                     status = Status.SUSPENDED;
                 }
+                else if (last)
+                {
+                    status = Status.REJECTED;
+                }
                 else if (status == Status.ADVANCED)
                 {
-                    status = last ? Status.REJECTED : Status.STARVED;
+                    status = Status.STARVED;
                 }
             }
         }
