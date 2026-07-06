@@ -14,13 +14,26 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.config;
 
+import java.util.function.Function;
+
 public final class McpOpenapiCatalogConfig
 {
     public final String name;
     public final String subject;
     public final String version;
 
-    public McpOpenapiCatalogConfig(
+    public static McpOpenapiCatalogConfigBuilder<McpOpenapiCatalogConfig> builder()
+    {
+        return new McpOpenapiCatalogConfigBuilder<>(McpOpenapiCatalogConfig.class::cast);
+    }
+
+    public static <T> McpOpenapiCatalogConfigBuilder<T> builder(
+        Function<McpOpenapiCatalogConfig, T> mapper)
+    {
+        return new McpOpenapiCatalogConfigBuilder<>(mapper);
+    }
+
+    McpOpenapiCatalogConfig(
         String name,
         String subject,
         String version)

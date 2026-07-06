@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public final class McpOpenapiToolConfig
@@ -22,7 +24,18 @@ public final class McpOpenapiToolConfig
     public final String description;
     public final ModelConfig output;
 
-    public McpOpenapiToolConfig(
+    public static McpOpenapiToolConfigBuilder<McpOpenapiToolConfig> builder()
+    {
+        return new McpOpenapiToolConfigBuilder<>(McpOpenapiToolConfig.class::cast);
+    }
+
+    public static <T> McpOpenapiToolConfigBuilder<T> builder(
+        Function<McpOpenapiToolConfig, T> mapper)
+    {
+        return new McpOpenapiToolConfigBuilder<>(mapper);
+    }
+
+    McpOpenapiToolConfig(
         String name,
         String description,
         ModelConfig output)
