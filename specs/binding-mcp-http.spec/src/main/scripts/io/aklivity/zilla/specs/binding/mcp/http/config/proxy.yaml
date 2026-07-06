@@ -62,6 +62,29 @@ catalogs:
                 "title":    { "type": "string" }
               }
             }
+        add_pr_comment_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["owner", "repo", "number", "message"],
+              "properties": {
+                "owner":   { "type": "string" },
+                "repo":    { "type": "string" },
+                "number":  { "type": "integer" },
+                "message": { "type": "string" }
+              }
+            }
+        add_pr_comment_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "id":   { "type": "integer" },
+                "body": { "type": "string" }
+              }
+            }
         search_code_params:
           version: latest
           schema: |
@@ -231,6 +254,23 @@ bindings:
                 http_github0:
                   - subject: create_pr_result
                     version: latest
+        add_pr_comment:
+          description: >
+            Add a comment to a pull request.
+          summary: "Commented: ${result.body}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: add_pr_comment_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: add_pr_comment_result
+                    version: latest
         search_code:
           description: >
             Search for code across repositories using code search syntax.
@@ -378,6 +418,18 @@ bindings:
               http_github0:
                 - subject: create_pr_body
                   version: latest
+      - when:
+          - tool: add_pr_comment
+        exit: http0
+        with:
+          headers:
+            ":method": POST
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /repos/${args.owner}/${args.repo}/issues/${args.number}/comments
+          body:
+            template:
+              body: "${args.message}"
       - when:
           - tool: search_code
         exit: http0

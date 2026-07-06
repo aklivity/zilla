@@ -162,6 +162,16 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/comment.pr/client",
+        "${http}/comment.pr/server"})
+    public void shouldCallToolCommentPr() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.remap.yaml")
     @Specification({
         "${mcp}/create.pr.remap/client",
