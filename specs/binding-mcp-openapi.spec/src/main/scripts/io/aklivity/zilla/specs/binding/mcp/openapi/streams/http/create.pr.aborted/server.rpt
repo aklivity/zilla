@@ -34,4 +34,6 @@ connected
 
 read  '{"title":"Add feature","head":"feature","base":"main"}'
 
+write notify REQUEST_RECEIVED
+
 write abort
