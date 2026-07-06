@@ -41,17 +41,13 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourcesList()
+                           .resourceTemplatesList()
                                .sessionId("session-1")
                                .build()
                            .build()}
 
 connected
 
-# resources/list answered from the generated mcp_http config
-# read_order is a resource template (path capture), so it is excluded here
-# and only appears in resources/templates/list
-read '{"resources":[]}'
-read closed
+read aborted
 
-write close
+write abort

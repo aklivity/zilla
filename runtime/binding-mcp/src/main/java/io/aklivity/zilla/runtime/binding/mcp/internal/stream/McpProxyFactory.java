@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
@@ -74,11 +75,14 @@ public final class McpProxyFactory implements McpStreamFactory
             new McpProxyPromptsListFactory(config, context, bindings::get);
         final McpProxyResourcesListFactory resourcesListFactory =
             new McpProxyResourcesListFactory(config, context, bindings::get);
+        final McpProxyResourceTemplatesListFactory resourceTemplatesListFactory =
+            new McpProxyResourceTemplatesListFactory(config, context, bindings::get);
 
         final Int2ObjectHashMap<McpProxyListFactory> listFactories = new Int2ObjectHashMap<>();
         listFactories.put(KIND_TOOLS_LIST, toolsListFactory);
         listFactories.put(KIND_PROMPTS_LIST, promptsListFactory);
         listFactories.put(KIND_RESOURCES_LIST, resourcesListFactory);
+        listFactories.put(KIND_RESOURCE_TEMPLATES_LIST, resourceTemplatesListFactory);
 
         final McpProxyCacheHydrater hydrater = new McpProxyCacheHydrater(
             context.bufferPool(), context::supplyTraceId, bindings::get, lifecycleFactory, listFactories);
@@ -94,6 +98,7 @@ public final class McpProxyFactory implements McpStreamFactory
         this.factories.put(KIND_TOOLS_LIST, toolsListFactory);
         this.factories.put(KIND_PROMPTS_LIST, promptsListFactory);
         this.factories.put(KIND_RESOURCES_LIST, resourcesListFactory);
+        this.factories.put(KIND_RESOURCE_TEMPLATES_LIST, resourceTemplatesListFactory);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
     }
 

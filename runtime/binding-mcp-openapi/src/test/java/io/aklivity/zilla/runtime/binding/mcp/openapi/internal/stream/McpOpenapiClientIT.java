@@ -108,6 +108,15 @@ public class McpOpenapiClientIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/resources.templates.list/client"})
+    public void shouldListResourceTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/create.pr.10k/client",
         "${http}/create.pr.10k/server"})
     public void shouldCallToolCreatePr10k() throws Exception

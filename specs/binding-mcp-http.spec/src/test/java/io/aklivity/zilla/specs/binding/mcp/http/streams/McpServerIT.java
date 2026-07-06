@@ -164,6 +164,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/resources.templates.list/client",
+        "${mcp}/resources.templates.list/server"})
+    public void shouldListResourceTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/read.order/client",
         "${mcp}/read.order/server"})
     public void shouldReadResourceOrder() throws Exception

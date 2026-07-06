@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_PROMPTS_LIST_CHANGED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_RESOURCES_LIST_CHANGED;
@@ -235,6 +236,7 @@ public final class McpProxyCacheHydrater
                 break;
             case KIND_RESOURCES_LIST_CHANGED:
                 onChanged(KIND_RESOURCES_LIST);
+                onChanged(KIND_RESOURCE_TEMPLATES_LIST);
                 break;
             default:
                 break;

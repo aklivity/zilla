@@ -509,6 +509,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/resources.templates.list.aborted/client",
+        "${app}/resources.templates.list.aborted/server"})
+    public void shouldAbortListResourceTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/resources.read.aborted/client",
         "${app}/resources.read.aborted/server"})
     public void shouldAbortReadResource() throws Exception
@@ -552,6 +562,16 @@ public class McpServerIT
         "${net}/resources.list/client",
         "${app}/resources.list/server"})
     public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.templates.list/client",
+        "${app}/resources.templates.list/server"})
+    public void shouldListResourceTemplates() throws Exception
     {
         k3po.finish();
     }

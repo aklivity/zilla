@@ -49,8 +49,9 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 # resources/list is answered entirely from config; no upstream HTTP call
-read  '{"resources":[{"name":"item","uriTemplate":"item://{itemId}",'
-      '"description":"An item resource","mimeType":"application/json"}]}'
+# the "item" resource is a template (uri contains a path capture), so it is
+# excluded here and only appears in resources/templates/list
+read '{"resources":[]}'
 read closed
 
 write close

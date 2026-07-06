@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.http.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
+import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -258,6 +259,10 @@ public final class McpHttpProxyFactory implements BindingHandler
                         break;
                     case KIND_RESOURCES_LIST:
                         newStream = new McpResourcesListProxy(binding,
+                            sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
+                        break;
+                    case KIND_RESOURCE_TEMPLATES_LIST:
+                        newStream = new McpResourceTemplatesListProxy(binding,
                             sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
                         break;
                     case KIND_TOOLS_CALL:
@@ -1591,6 +1596,31 @@ public final class McpHttpProxyFactory implements BindingHandler
         }
     }
 
+    private final class McpResourceTemplatesListProxy extends McpProxy
+    {
+        private McpResourceTemplatesListProxy(
+            McpHttpBindingConfig binding,
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long authorization,
+            long affinity)
+        {
+            super(binding, null, null, null, EMPTY_PARAMS, -1, sender, originId, routedId, initialId,
+                authorization, affinity);
+        }
+
+        @Override
+        void onMcpRequest(
+            long traceId)
+        {
+            requestHandled = true;
+            doMcpReply(traceId, resourceTemplatesList(binding));
+            cleanupDecodeSlot();
+        }
+    }
+
     private final class HttpProxy
     {
         private final McpHttpProxy mcp;
@@ -2246,6 +2276,9 @@ public final class McpHttpProxyFactory implements BindingHandler
         case KIND_RESOURCES_LIST:
             sessionId = beginEx.resourcesList().sessionId().asString();
             break;
+        case KIND_RESOURCE_TEMPLATES_LIST:
+            sessionId = beginEx.resourceTemplatesList().sessionId().asString();
+            break;
         case KIND_RESOURCES_READ:
             sessionId = beginEx.resourcesRead().sessionId().asString();
             break;
@@ -2335,6 +2368,18 @@ public final class McpHttpProxyFactory implements BindingHandler
         return json;
     }
 
+    private byte[] resourceTemplatesList(
+        McpHttpBindingConfig binding)
+    {
+        byte[] json = binding.resourceTemplatesListJson();
+        if (json == null)
+        {
+            json = buildResourceTemplatesList(binding).getBytes(UTF_8);
+            binding.resourceTemplatesListJson(json);
+        }
+        return json;
+    }
+
     private String buildToolsList(
         McpHttpBindingConfig binding)
     {
@@ -2388,12 +2433,15 @@ public final class McpHttpProxyFactory implements BindingHandler
         final JsonArrayBuilder resources = Json.createArrayBuilder();
         for (McpHttpResourceConfig resource : binding.resources())
         {
+            if (resource.template)
+            {
+                continue;
+            }
             final JsonObjectBuilder item = Json.createObjectBuilder()
                 .add("name", resource.name);
             if (resource.uri != null)
             {
-                final String key = resource.template ? "uriTemplate" : "uri";
-                item.add(key, resource.uri);
+                item.add("uri", resource.uri);
             }
             if (resource.description != null)
             {
@@ -2406,6 +2454,32 @@ public final class McpHttpProxyFactory implements BindingHandler
             resources.add(item);
         }
         return compact(Json.createObjectBuilder().add("resources", resources).build());
+    }
+
+    private String buildResourceTemplatesList(
+        McpHttpBindingConfig binding)
+    {
+        final JsonArrayBuilder resourceTemplates = Json.createArrayBuilder();
+        for (McpHttpResourceConfig resource : binding.resources())
+        {
+            if (!resource.template)
+            {
+                continue;
+            }
+            final JsonObjectBuilder item = Json.createObjectBuilder()
+                .add("name", resource.name)
+                .add("uriTemplate", resource.uri);
+            if (resource.description != null)
+            {
+                item.add("description", resource.description);
+            }
+            if (resource.mimeType != null)
+            {
+                item.add("mimeType", resource.mimeType);
+            }
+            resourceTemplates.add(item);
+        }
+        return compact(Json.createObjectBuilder().add("resourceTemplates", resourceTemplates).build());
     }
 
     private JsonObject schemaObject(

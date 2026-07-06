@@ -83,6 +83,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/resources.templates.list/client",
+        "${mcp}/resources.templates.list/server"})
+    public void shouldListResourceTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/create.pr.10k/client",
         "${mcp}/create.pr.10k/server"})
     public void shouldCallToolCreatePr10k() throws Exception

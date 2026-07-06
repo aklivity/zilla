@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
 import java.io.Closeable;
@@ -50,10 +51,12 @@ public final class McpProxyCache
 {
     private static final String STORE_KEY_TOOLS = "tools";
     private static final String STORE_KEY_RESOURCES = "resources";
+    private static final String STORE_KEY_RESOURCE_TEMPLATES = "resourceTemplates";
     private static final String STORE_KEY_PROMPTS = "prompts";
     private static final String STORE_LOCK_SUFFIX = ".lock";
     private static final String STORE_LOCK_KEY_TOOLS = STORE_KEY_TOOLS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
+    private static final String STORE_LOCK_KEY_RESOURCE_TEMPLATES = STORE_KEY_RESOURCE_TEMPLATES + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_LIFECYCLE = "lifecycle.lock";
     private static final Duration STORE_TTL_FOREVER = null;
@@ -124,6 +127,11 @@ public final class McpProxyCache
         {
             caches.put(KIND_RESOURCES_LIST,
                 new McpListCache(KIND_RESOURCES_LIST, STORE_KEY_RESOURCES, STORE_LOCK_KEY_RESOURCES));
+        }
+        if (filter.test(KIND_RESOURCE_TEMPLATES_LIST))
+        {
+            caches.put(KIND_RESOURCE_TEMPLATES_LIST,
+                new McpListCache(KIND_RESOURCE_TEMPLATES_LIST, STORE_KEY_RESOURCE_TEMPLATES, STORE_LOCK_KEY_RESOURCE_TEMPLATES));
         }
         if (filter.test(KIND_PROMPTS_LIST))
         {

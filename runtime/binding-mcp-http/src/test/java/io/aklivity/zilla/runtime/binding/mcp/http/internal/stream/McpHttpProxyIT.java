@@ -211,6 +211,15 @@ public class McpHttpProxyIT
     @Test
     @Configuration("proxy.discovery.yaml")
     @Specification({
+        "${mcp}/resources.templates.list/client"})
+    public void shouldListResourceTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.discovery.yaml")
+    @Specification({
         "${mcp}/read.resource.unknown/client"})
     public void shouldRejectResourceReadWhenUriUnmatched() throws Exception
     {

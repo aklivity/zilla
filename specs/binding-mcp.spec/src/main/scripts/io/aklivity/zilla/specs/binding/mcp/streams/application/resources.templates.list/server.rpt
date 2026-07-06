@@ -13,45 +13,46 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+property serverAddress "zilla://streams/app0"
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .build()
-                           .build()}
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-connected
+accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
+                              .build()
+                          .build()}
+
+connected
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourceTemplatesList()
                               .sessionId("session-1")
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
-
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .resourcesList()
-                               .sessionId("session-1")
-                               .build()
-                           .build()}
-
 connected
 
-# resources/list answered from the generated mcp_http config
-# read_order is a resource template (path capture), so it is excluded here
-# and only appears in resources/templates/list
-read '{"resources":[]}'
-read closed
+write flush
+
+write '{"resourceTemplates":[]}'
+write flush
 
 write close
+
+read closed

@@ -47,6 +47,7 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsGetBe
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpPromptsListChangedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResetExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourceTemplatesListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesReadBeginExFW;
@@ -132,6 +133,11 @@ public final class McpFunctions
         public McpResourcesReadBeginExBuilder resourcesRead()
         {
             return new McpResourcesReadBeginExBuilder();
+        }
+
+        public McpResourceTemplatesListBeginExBuilder resourceTemplatesList()
+        {
+            return new McpResourceTemplatesListBeginExBuilder();
         }
 
         public byte[] build()
@@ -378,6 +384,32 @@ public final class McpFunctions
                 return McpBeginExBuilder.this;
             }
         }
+
+        public final class McpResourceTemplatesListBeginExBuilder
+        {
+            private String sessionId;
+            private long timeout;
+
+            public McpResourceTemplatesListBeginExBuilder sessionId(
+                String sessionId)
+            {
+                this.sessionId = sessionId;
+                return this;
+            }
+
+            public McpResourceTemplatesListBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
+            public McpBeginExBuilder build()
+            {
+                beginExRW.resourceTemplatesList(b -> b.sessionId(sessionId).timeout(timeout));
+                return McpBeginExBuilder.this;
+            }
+        }
     }
 
     public static final class McpBeginExMatcherBuilder
@@ -448,6 +480,14 @@ public final class McpFunctions
         {
             this.kind = McpBeginExFW.KIND_RESOURCES_READ;
             final McpResourcesReadBeginExMatcherBuilder matcher = new McpResourcesReadBeginExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpResourceTemplatesListBeginExMatcherBuilder resourceTemplatesList()
+        {
+            this.kind = McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
+            final McpResourceTemplatesListBeginExMatcherBuilder matcher = new McpResourceTemplatesListBeginExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -904,6 +944,50 @@ public final class McpFunctions
                 McpResourcesReadBeginExFW resourcesRead)
             {
                 return timeout == null || timeout == resourcesRead.timeout();
+            }
+        }
+
+        public final class McpResourceTemplatesListBeginExMatcherBuilder
+        {
+            private String16FW sessionId;
+            private Long timeout;
+
+            public McpResourceTemplatesListBeginExMatcherBuilder sessionId(
+                String sessionId)
+            {
+                this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpResourceTemplatesListBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
+            public McpBeginExMatcherBuilder build()
+            {
+                return McpBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpBeginExFW beginEx)
+            {
+                final McpResourceTemplatesListBeginExFW resourceTemplatesList = beginEx.resourceTemplatesList();
+                return matchSessionId(resourceTemplatesList) && matchTimeout(resourceTemplatesList);
+            }
+
+            private boolean matchSessionId(
+                McpResourceTemplatesListBeginExFW resourceTemplatesList)
+            {
+                return sessionId == null || sessionId.equals(resourceTemplatesList.sessionId());
+            }
+
+            private boolean matchTimeout(
+                McpResourceTemplatesListBeginExFW resourceTemplatesList)
+            {
+                return timeout == null || timeout == resourceTemplatesList.timeout();
             }
         }
     }

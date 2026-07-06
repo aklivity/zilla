@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static java.util.function.UnaryOperator.identity;
@@ -264,7 +265,7 @@ public final class McpRouteConfig
         {
         case KIND_TOOLS_LIST, KIND_TOOLS_CALL -> CAPABILITY_TOOLS;
         case KIND_PROMPTS_LIST, KIND_PROMPTS_GET -> CAPABILITY_PROMPTS;
-        case KIND_RESOURCES_LIST, KIND_RESOURCES_READ -> CAPABILITY_RESOURCES;
+        case KIND_RESOURCES_LIST, KIND_RESOURCES_READ, KIND_RESOURCE_TEMPLATES_LIST -> CAPABILITY_RESOURCES;
         default -> null;
         };
     }

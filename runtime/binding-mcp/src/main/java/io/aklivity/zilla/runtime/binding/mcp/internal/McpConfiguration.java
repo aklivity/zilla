@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCE_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 
@@ -317,6 +318,7 @@ public class McpConfiguration extends Configuration
                 break;
             case "resources":
                 kinds.add(KIND_RESOURCES_LIST);
+                kinds.add(KIND_RESOURCE_TEMPLATES_LIST);
                 break;
             case "prompts":
                 kinds.add(KIND_PROMPTS_LIST);
