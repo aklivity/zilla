@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.config;
 
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -26,6 +27,7 @@ public final class McpOpenapiWithConfigBuilder<T> extends ConfigBuilder<T, McpOp
     private String spec;
     private String operation;
     private String tag;
+    private Map<String, String> params;
 
     McpOpenapiWithConfigBuilder(
         Function<WithConfig, T> mapper)
@@ -61,9 +63,16 @@ public final class McpOpenapiWithConfigBuilder<T> extends ConfigBuilder<T, McpOp
         return this;
     }
 
+    public McpOpenapiWithConfigBuilder<T> params(
+        Map<String, String> params)
+    {
+        this.params = params;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiWithConfig(spec, operation, tag));
+        return mapper.apply(new McpOpenapiWithConfig(spec, operation, tag, params));
     }
 }

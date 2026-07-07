@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.config;
 
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
@@ -23,6 +24,7 @@ public final class McpOpenapiWithConfig extends WithConfig
     public final String spec;
     public final String operation;
     public final String tag;
+    public final Map<String, String> params;
 
     public static McpOpenapiWithConfigBuilder<McpOpenapiWithConfig> builder()
     {
@@ -38,10 +40,12 @@ public final class McpOpenapiWithConfig extends WithConfig
     McpOpenapiWithConfig(
         String spec,
         String operation,
-        String tag)
+        String tag,
+        Map<String, String> params)
     {
         this.spec = spec;
         this.operation = operation;
         this.tag = tag;
+        this.params = params;
     }
 }

@@ -25,6 +25,7 @@ public final class McpOpenapiToolConfigBuilder<T> extends ConfigBuilder<T, McpOp
 
     private String name;
     private String description;
+    private ModelConfig input;
     private ModelConfig output;
 
     McpOpenapiToolConfigBuilder(
@@ -54,6 +55,13 @@ public final class McpOpenapiToolConfigBuilder<T> extends ConfigBuilder<T, McpOp
         return this;
     }
 
+    public McpOpenapiToolConfigBuilder<T> input(
+        ModelConfig input)
+    {
+        this.input = input;
+        return this;
+    }
+
     public McpOpenapiToolConfigBuilder<T> output(
         ModelConfig output)
     {
@@ -64,6 +72,6 @@ public final class McpOpenapiToolConfigBuilder<T> extends ConfigBuilder<T, McpOp
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiToolConfig(name, description, output));
+        return mapper.apply(new McpOpenapiToolConfig(name, description, input, output));
     }
 }

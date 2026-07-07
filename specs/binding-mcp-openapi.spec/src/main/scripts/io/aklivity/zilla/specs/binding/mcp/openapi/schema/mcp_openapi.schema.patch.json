@@ -126,7 +126,12 @@
                                                     "output":
                                                     {
                                                         "title": "Output Schema",
-                                                        "$ref": "#/$defs/converter"
+                                                        "$ref": "#/$defs/models"
+                                                    },
+                                                    "input":
+                                                    {
+                                                        "title": "Input Schema",
+                                                        "$ref": "#/$defs/models"
                                                     }
                                                 },
                                                 "additionalProperties": false
@@ -162,7 +167,7 @@
                                                     "output":
                                                     {
                                                         "title": "Output Schema",
-                                                        "$ref": "#/$defs/converter"
+                                                        "$ref": "#/$defs/models"
                                                     }
                                                 },
                                                 "additionalProperties": false
@@ -240,6 +245,15 @@
                                         {
                                             "title": "Tag",
                                             "type": "string"
+                                        },
+                                        "params":
+                                        {
+                                            "title": "Parameter Bindings",
+                                            "type": "object",
+                                            "additionalProperties":
+                                            {
+                                                "type": "string"
+                                            }
                                         }
                                     },
                                     "required": [ "spec" ],

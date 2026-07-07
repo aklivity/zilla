@@ -503,6 +503,60 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
+    public void shouldOverrideInputSchema()
+    {
+        ModelConfig override = StringModelConfig.builder().build();
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0"))
+                    .build()
+                .tool()
+                    .name("create_pr")
+                    .description("Create a pull request.")
+                    .input(override)
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "create_pr".equals(t.name))
+            .findFirst()
+            .orElse(null);
+        assertThat(tool, notNullValue());
+        assertThat(tool.input, sameInstance(override));
+    }
+
+    @Test
     public void shouldOverrideResourceDescriptionAndOutputSchema()
     {
         ModelConfig override = StringModelConfig.builder().build();
@@ -881,6 +935,150 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         assertThat(with, notNullValue());
         assertThat(with.headers.get(":path"), equalTo("/search/code?q=${args.q}&${?args.page=page}"));
+    }
+
+    @Test
+    public void shouldRebindPathParameterViaParams()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .params(Map.of("owner", "${args.repository.owner}"))
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpWithConfig with = mcpHttp.routes.stream()
+            .map(r -> (McpHttpWithConfig) r.with)
+            .filter(w -> "POST".equals(w.headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        assertThat(with, notNullValue());
+        assertThat(with.headers.get(":path"), equalTo("/repos/${args.repository.owner}/${args.repo}/pulls"));
+    }
+
+    @Test
+    public void shouldRebindRequiredQueryParameterViaParams()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("search_code")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("search/code")
+                    .params(Map.of("q", "${args.query.text}"))
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpWithConfig with = mcpHttp.routes.stream()
+            .map(r -> (McpHttpWithConfig) r.with)
+            .filter(w -> "GET".equals(w.headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        assertThat(with, notNullValue());
+        assertThat(with.headers.get(":path"), equalTo("/search/code?q=${args.query.text}&${?args.page=page}"));
+    }
+
+    @Test
+    public void shouldRebindOptionalQueryParameterViaParams()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("search_code")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("search/code")
+                    .params(Map.of("page", "${args.paging.page}"))
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpWithConfig with = mcpHttp.routes.stream()
+            .map(r -> (McpHttpWithConfig) r.with)
+            .filter(w -> "GET".equals(w.headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        assertThat(with, notNullValue());
+        assertThat(with.headers.get(":path"), equalTo("/search/code?q=${args.q}&${?args.paging.page=page}"));
     }
 
     @Test
