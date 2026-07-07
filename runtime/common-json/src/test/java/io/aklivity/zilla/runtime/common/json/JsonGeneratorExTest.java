@@ -236,6 +236,64 @@ class JsonGeneratorExTest
     }
 
     @Test
+    void shouldNotWriteStringOpeningQuoteWithoutRoom()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 32, 32);
+
+        generator.write("x");
+
+        assertEquals(0, generator.length());
+        assertEquals(0, generator.consumed());
+        byte[] untouched = new byte[1];
+        buffer.getBytes(32, untouched);
+        assertEquals(0, untouched[0]);
+    }
+
+    @Test
+    void shouldDeferEmptyCompleteStringWithoutRoomForBothQuotes()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 31, 32);
+
+        generator.write("", Completion.COMPLETE);
+
+        assertEquals(0, generator.length());
+        byte[] untouched = new byte[1];
+        buffer.getBytes(31, untouched);
+        assertEquals(0, untouched[0]);
+    }
+
+    @Test
+    void shouldWriteEmptyCompleteStringWhenExactRoomForBothQuotes()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 30, 32);
+
+        generator.write("", Completion.COMPLETE);
+
+        assertEquals(2, generator.length());
+        byte[] out = new byte[2];
+        buffer.getBytes(30, out);
+        assertEquals("\"\"", new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldResumeStringOpeningQuoteOnceRoomIsAvailable()
+    {
+        MutableDirectBufferEx tight = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(tight, 32, 32);
+        generator.write("hello");
+        assertEquals(0, generator.consumed());
+
+        MutableDirectBufferEx roomy = new UnsafeBufferEx(new byte[64]);
+        generator.wrap(roomy, 0, roomy.capacity());
+        generator.write("hello");
+
+        assertEquals("\"hello\"", drain(generator, roomy));
+    }
+
+    @Test
     void shouldReportPartialConsumptionWhenPlainWriteExceedsLimit()
     {
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
