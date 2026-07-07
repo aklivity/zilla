@@ -677,6 +677,7 @@ public final class McpOpenapiCompositeGenerator
             headers.put(":authority", resolved.authority);
         }
         headers.put(":path", path.toString());
+        injectHeaderParams(headers, operation, accessor, entry.params);
 
         final ModelConfig body = operation.hasRequestBody()
             ? jsonModel("%s-body".formatted(entry.subjectName()))
@@ -816,6 +817,28 @@ public final class McpOpenapiCompositeGenerator
         return query.toString();
     }
 
+    // Header params, unlike query, get one uniform treatment regardless of OpenAPI's required flag:
+    // the header is included when its accessor resolves, omitted entirely otherwise (McpHttpRouteConfig.
+    // resolveHeaders enforces this at request time) -- so no required-vs-optional branching is needed here.
+    private static void injectHeaderParams(
+        Map<String, String> headers,
+        OpenapiOperationView operation,
+        String accessor,
+        Map<String, String> params)
+    {
+        if (operation.parameters != null)
+        {
+            for (OpenapiParameterView parameter : operation.parameters)
+            {
+                if ("header".equals(parameter.in))
+                {
+                    final String expression = paramExpression(accessor, parameter.name, params);
+                    headers.put(parameter.name.toLowerCase(), "${%s}".formatted(expression));
+                }
+            }
+        }
+    }
+
     private static ModelConfig jsonModel(
         String subject)
     {
@@ -892,7 +915,9 @@ public final class McpOpenapiCompositeGenerator
         {
             for (OpenapiParameterView parameter : operation.parameters)
             {
-                if (("path".equals(parameter.in) || "query".equals(parameter.in)) && parameter.schema != null)
+                final boolean supported = "path".equals(parameter.in) || "query".equals(parameter.in) ||
+                    "header".equals(parameter.in);
+                if (supported && parameter.schema != null)
                 {
                     properties.add(parameter.name, schemaObject(parameter.schema));
                     propertyNames.add(parameter.name);

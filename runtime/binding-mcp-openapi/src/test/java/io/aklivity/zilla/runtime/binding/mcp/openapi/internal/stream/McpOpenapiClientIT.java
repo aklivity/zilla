@@ -222,4 +222,24 @@ public class McpOpenapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.params.header.yaml")
+    @Specification({
+        "${mcp}/notify.header.present/client",
+        "${http}/notify.header.present/server"})
+    public void shouldCallToolNotifyWithRebindHeaderParameterPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.params.header.yaml")
+    @Specification({
+        "${mcp}/notify.header.absent/client",
+        "${http}/notify.header.absent/server"})
+    public void shouldCallToolNotifyWithRebindHeaderParameterAbsent() throws Exception
+    {
+        k3po.finish();
+    }
 }
