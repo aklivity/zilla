@@ -122,7 +122,8 @@ public class McpOpenapiCompositeGeneratorTest
                 "parameters": [
                   { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } },
                   { "name": "page", "in": "query", "schema": { "type": "integer" } },
-                  { "name": "X-Request-Id", "in": "header", "schema": { "type": "string" } }
+                  { "name": "X-Request-Id", "in": "header", "schema": { "type": "string" } },
+                  { "name": "session", "in": "cookie", "schema": { "type": "string" } }
                 ],
                 "responses": { "200": { "description": "ok",
                   "content": { "application/json": { "schema": { "type": "object" } } } } }
@@ -955,6 +956,7 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(with, notNullValue());
         assertThat(with.headers.get(":path"), equalTo("/search/code?q=${args.q}&${?args.page=page}"));
         assertThat(with.headers.get("x-request-id"), equalTo("${args.X-Request-Id}"));
+        assertThat(with.cookies.get("session"), equalTo("${args.session}"));
     }
 
     @Test
@@ -1147,6 +1149,54 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         assertThat(with, notNullValue());
         assertThat(with.headers.get("x-request-id"), equalTo("${args.request.id}"));
+    }
+
+    @Test
+    public void shouldRebindCookieParameterViaParams()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("search_code")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("search/code")
+                    .params(Map.of("session", "${args.session.token}"))
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpWithConfig with = mcpHttp.routes.stream()
+            .map(r -> (McpHttpWithConfig) r.with)
+            .filter(w -> "GET".equals(w.headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        assertThat(with, notNullValue());
+        assertThat(with.cookies.get("session"), equalTo("${args.session.token}"));
     }
 
     @Test

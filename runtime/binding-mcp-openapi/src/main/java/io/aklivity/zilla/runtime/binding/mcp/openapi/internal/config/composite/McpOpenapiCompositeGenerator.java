@@ -679,11 +679,14 @@ public final class McpOpenapiCompositeGenerator
         headers.put(":path", path.toString());
         injectHeaderParams(headers, operation, accessor, entry.params);
 
+        final Map<String, String> cookies = new LinkedHashMap<>();
+        injectCookieParams(cookies, operation, accessor, entry.params);
+
         final ModelConfig body = operation.hasRequestBody()
             ? jsonModel("%s-body".formatted(entry.subjectName()))
             : null;
 
-        return new McpHttpWithConfig(headers, null, body, null);
+        return new McpHttpWithConfig(headers, cookies.isEmpty() ? null : cookies, null, body, null);
     }
 
     private static ResolvedServer resolveServerFromSpec(
@@ -839,6 +842,27 @@ public final class McpOpenapiCompositeGenerator
         }
     }
 
+    // Cookie names, unlike header names, are case-sensitive (RFC 6265) -- keep the OpenAPI-declared
+    // casing verbatim rather than lowercasing as injectHeaderParams does for headers.
+    private static void injectCookieParams(
+        Map<String, String> cookies,
+        OpenapiOperationView operation,
+        String accessor,
+        Map<String, String> params)
+    {
+        if (operation.parameters != null)
+        {
+            for (OpenapiParameterView parameter : operation.parameters)
+            {
+                if ("cookie".equals(parameter.in))
+                {
+                    final String expression = paramExpression(accessor, parameter.name, params);
+                    cookies.put(parameter.name, "${%s}".formatted(expression));
+                }
+            }
+        }
+    }
+
     private static ModelConfig jsonModel(
         String subject)
     {
@@ -916,7 +940,7 @@ public final class McpOpenapiCompositeGenerator
             for (OpenapiParameterView parameter : operation.parameters)
             {
                 final boolean supported = "path".equals(parameter.in) || "query".equals(parameter.in) ||
-                    "header".equals(parameter.in);
+                    "header".equals(parameter.in) || "cookie".equals(parameter.in);
                 if (supported && parameter.schema != null)
                 {
                     properties.add(parameter.name, schemaObject(parameter.schema));

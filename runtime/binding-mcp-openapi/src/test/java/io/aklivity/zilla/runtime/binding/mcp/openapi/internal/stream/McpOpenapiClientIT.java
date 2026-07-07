@@ -242,4 +242,24 @@ public class McpOpenapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.params.cookie.yaml")
+    @Specification({
+        "${mcp}/greet.cookie.both.present/client",
+        "${http}/greet.cookie.both.present/server"})
+    public void shouldCallToolGreetWithAggregatedCookiesPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.params.cookie.yaml")
+    @Specification({
+        "${mcp}/greet.cookie.one.absent/client",
+        "${http}/greet.cookie.one.absent/server"})
+    public void shouldCallToolGreetWithOneCookieAbsent() throws Exception
+    {
+        k3po.finish();
+    }
 }
