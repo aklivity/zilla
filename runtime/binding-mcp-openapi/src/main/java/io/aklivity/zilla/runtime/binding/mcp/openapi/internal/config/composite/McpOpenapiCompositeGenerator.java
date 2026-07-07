@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.Json;
@@ -86,6 +87,7 @@ public final class McpOpenapiCompositeGenerator
     private static final String BINDING_NAME = "mcp_http0";
     private static final String CAPABILITY_TOOL = "tool";
     private static final String CAPABILITY_RESOURCE = "resource";
+    private static final Pattern PATH_PARAM_PATTERN = Pattern.compile("\\{([^}]+)\\}");
 
     private final String httpClientExit;
     private final List<String> denied;
@@ -188,7 +190,7 @@ public final class McpOpenapiCompositeGenerator
                 }
 
                 routed.add(new RoutedOperation(toolConfig(binding, routeTool), resourceConfig(binding, resource),
-                    operation, resolution.guarded, serverByLabel.get(with.spec)));
+                    operation, resolution.guarded, serverByLabel.get(with.spec), with.params));
             }
         }
 
@@ -237,7 +239,9 @@ public final class McpOpenapiCompositeGenerator
             binding.options.tools.stream()
                 .filter(t -> name.equals(t.name))
                 .findFirst()
-                .ifPresent(override -> tool.description(override.description).output(override.output));
+                .ifPresent(override -> tool.description(override.description)
+                    .input(override.input)
+                    .output(override.output));
         }
 
         return tool;
@@ -361,7 +365,9 @@ public final class McpOpenapiCompositeGenerator
         for (RoutedOperation entry : routed)
         {
             final String name = entry.subjectName();
-            final ModelConfig input = jsonModel("%s-input".formatted(name));
+            final ModelConfig input = entry.tool != null && entry.tool.input != null
+                ? entry.tool.input
+                : jsonModel("%s-input".formatted(name));
 
             if (entry.tool != null)
             {
@@ -647,9 +653,9 @@ public final class McpOpenapiCompositeGenerator
 
         final String accessor = entry.tool != null ? "args" : "params";
         final StringBuilder path = new StringBuilder(resolved.base);
-        path.append(lowerPathParams(operation.path, accessor));
+        path.append(lowerPathParams(operation.path, accessor, entry.params));
 
-        final String query = queryString(operation, accessor);
+        final String query = queryString(operation, accessor, entry.params);
         if (!query.isEmpty())
         {
             path.append('?').append(query);
@@ -704,14 +710,45 @@ public final class McpOpenapiCompositeGenerator
 
     private static String lowerPathParams(
         String path,
-        String accessor)
+        String accessor,
+        Map<String, String> params)
     {
         String result = path;
         if (path != null)
         {
-            result = path.replaceAll("\\{([^}]+)\\}", "\\$\\{" + accessor + ".$1}");
+            final Matcher matcher = PATH_PARAM_PATTERN.matcher(path);
+            final StringBuilder builder = new StringBuilder();
+            int last = 0;
+            while (matcher.find())
+            {
+                builder.append(path, last, matcher.start());
+                builder.append("${").append(paramExpression(accessor, matcher.group(1), params)).append('}');
+                last = matcher.end();
+            }
+            builder.append(path, last, path.length());
+            result = builder.toString();
         }
         return result;
+    }
+
+    private static String paramExpression(
+        String accessor,
+        String name,
+        Map<String, String> params)
+    {
+        final String override = params.get(name);
+        return override != null ? innerExpression(override) : "%s.%s".formatted(accessor, name);
+    }
+
+    private static String innerExpression(
+        String expression)
+    {
+        String inner = expression.trim();
+        if (inner.startsWith("${") && inner.endsWith("}"))
+        {
+            inner = inner.substring(2, inner.length() - 1);
+        }
+        return inner;
     }
 
     private static String resourceUri(
@@ -738,7 +775,8 @@ public final class McpOpenapiCompositeGenerator
 
     private static String queryString(
         OpenapiOperationView operation,
-        String accessor)
+        String accessor,
+        Map<String, String> params)
     {
         final StringBuilder query = new StringBuilder();
         if (operation.parameters != null)
@@ -751,21 +789,18 @@ public final class McpOpenapiCompositeGenerator
                     {
                         query.append('&');
                     }
+                    final String expression = paramExpression(accessor, parameter.name, params);
                     if (parameter.required)
                     {
                         query.append(parameter.name)
                             .append("=${")
-                            .append(accessor)
-                            .append('.')
-                            .append(parameter.name)
+                            .append(expression)
                             .append('}');
                     }
                     else
                     {
                         query.append("${?")
-                            .append(accessor)
-                            .append('.')
-                            .append(parameter.name)
+                            .append(expression)
                             .append('=')
                             .append(parameter.name)
                             .append('}');
@@ -934,19 +969,22 @@ public final class McpOpenapiCompositeGenerator
         private final OpenapiOperationView operation;
         private final List<GuardedRef> guarded;
         private final String server;
+        private final Map<String, String> params;
 
         private RoutedOperation(
             McpOpenapiToolConfig tool,
             McpOpenapiResourceConfig resource,
             OpenapiOperationView operation,
             List<GuardedRef> guarded,
-            String server)
+            String server,
+            Map<String, String> params)
         {
             this.tool = tool;
             this.resource = resource;
             this.operation = operation;
             this.guarded = guarded;
             this.server = server;
+            this.params = params != null ? params : Map.of();
         }
 
         private String subjectName()

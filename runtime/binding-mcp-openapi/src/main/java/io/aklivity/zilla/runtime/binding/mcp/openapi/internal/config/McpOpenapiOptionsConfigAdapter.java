@@ -124,10 +124,12 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     JsonObjectBuilder schemas = Json.createObjectBuilder();
                     if (tool.input != null)
                     {
+                        model.adaptType(tool.input.model);
                         schemas.add(INPUT_NAME, model.adaptToJson(tool.input));
                     }
                     if (tool.output != null)
                     {
+                        model.adaptType(tool.output.model);
                         schemas.add(OUTPUT_NAME, model.adaptToJson(tool.output));
                     }
                     toolObject.add(SCHEMAS_NAME, schemas);
@@ -149,6 +151,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 }
                 if (resource.output != null)
                 {
+                    model.adaptType(resource.output.model);
                     JsonObjectBuilder schemas = Json.createObjectBuilder();
                     schemas.add(OUTPUT_NAME, model.adaptToJson(resource.output));
                     resourceObject.add(SCHEMAS_NAME, schemas);

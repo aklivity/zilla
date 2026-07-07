@@ -118,7 +118,7 @@ public class McpOpenapiOptionsConfigAdapterTest
             "{\"specs\":{\"openapi_github0\":{\"catalog\":{\"catalog0\":" +
             "{\"subject\":\"rest-api\",\"version\":\"latest\"}},\"server\":\"https://api.github.com\"}}," +
             "\"tools\":{\"create_pr\":{\"description\":\"Create a pull request.\"," +
-            "\"schemas\":{\"input\":{\"model\":\"string\"}}}}," +
+            "\"schemas\":{\"input\":\"string\"}}}," +
             "\"resources\":{\"repo://{owner}/{repo}\":{\"description\":\"A GitHub repository.\"}}}";
 
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
