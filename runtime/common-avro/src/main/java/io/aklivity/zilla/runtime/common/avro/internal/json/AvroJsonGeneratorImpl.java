@@ -168,40 +168,56 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     }
 
     @Override
-    public void writeStartRecord()
+    public boolean writeStartRecord()
     {
         value();
         AvroType type = valueType;
-        json.writeStartObject();
-        Frame frame = push(RECORD, type);
-        frame.fields = fields(type);
-        frame.fieldIndex = 0;
+        boolean written = json.writeStartObjectEx();
+        if (written)
+        {
+            Frame frame = push(RECORD, type);
+            frame.fields = fields(type);
+            frame.fieldIndex = 0;
+        }
+        return written;
     }
 
     @Override
-    public void writeStartArray()
+    public boolean writeStartArray()
     {
         value();
         AvroType type = valueType;
-        json.writeStartArray();
-        push(ARRAY, type).element = type.items();
+        boolean written = json.writeStartArrayEx();
+        if (written)
+        {
+            push(ARRAY, type).element = type.items();
+        }
+        return written;
     }
 
     @Override
-    public void writeStartMap()
+    public boolean writeStartMap()
     {
         value();
         AvroType type = valueType;
-        json.writeStartObject();
-        push(MAP, type).element = type.values();
+        boolean written = json.writeStartObjectEx();
+        if (written)
+        {
+            push(MAP, type).element = type.values();
+        }
+        return written;
     }
 
     @Override
-    public void writeEnd()
+    public boolean writeEnd()
     {
-        json.writeEnd();
-        top--;
-        complete();
+        boolean written = json.writeEndEx();
+        if (written)
+        {
+            top--;
+            complete();
+        }
+        return written;
     }
 
     @Override
@@ -215,38 +231,50 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
     }
 
     @Override
-    public void writeIndex(
+    public boolean writeIndex(
         int index)
     {
         value();
         List<AvroType> branches = branches(valueType);
         AvroType branch = branches.get(index);
         boolean wrapped = branch.kind() != AvroKind.NULL && !(canonical && nullableSingle(branches));
-        if (wrapped)
+        boolean written = !wrapped || json.writeStartObjectEx();
+        if (written)
         {
-            json.writeStartObject();
-            json.writeKey(branchName(branch));
+            if (wrapped)
+            {
+                json.writeKey(branchName(branch));
+            }
+            Frame frame = push(UNION_WRAP, valueType);
+            frame.element = branch;
+            frame.wrapped = wrapped;
         }
-        Frame frame = push(UNION_WRAP, valueType);
-        frame.element = branch;
-        frame.wrapped = wrapped;
+        return written;
     }
 
     @Override
-    public void writeNull()
+    public boolean writeNull()
     {
         value();
-        json.writeNull();
-        complete();
+        boolean written = json.writeNullEx();
+        if (written)
+        {
+            complete();
+        }
+        return written;
     }
 
     @Override
-    public void writeBoolean(
+    public boolean writeBoolean(
         boolean value)
     {
         value();
-        json.write(value);
-        complete();
+        boolean written = json.writeEx(value);
+        if (written)
+        {
+            complete();
+        }
+        return written;
     }
 
     @Override
@@ -549,7 +577,10 @@ public final class AvroJsonGeneratorImpl implements AvroGenerator
             Frame frame = stack[top - 1];
             if (frame.wrapped)
             {
-                json.writeEnd();
+                // reached from every value-completing write (writeInt/writeString/writeEnum/...), not only
+                // the ones checked via the boolean *Ex path above, so there is no caller-visible signal to
+                // propagate a room failure here; writeEndEx() still guarantees no partial/corrupt write
+                json.writeEndEx();
             }
             top--;
         }

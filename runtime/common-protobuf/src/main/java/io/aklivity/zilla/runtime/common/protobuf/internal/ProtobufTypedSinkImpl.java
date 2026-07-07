@@ -125,7 +125,7 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             status = onEndMessage();
             break;
         case END_GROUP:
-            onEndGroup();
+            status = onEndGroup();
             break;
         default:
             break;
@@ -141,6 +141,15 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufPipeline.Status status = nested
             ? reserve(tagSize(pending.number()) + varintSize(source.segment().capacity()))
             : ProtobufPipeline.Status.ADVANCED;
+        if (status == ProtobufPipeline.Status.ADVANCED && nested)
+        {
+            // reserve() sizes against the binary wire tag + length varint; a rendering generator (e.g. JSON)
+            // may need more for its own structural bytes (a brace, a field key), so the write itself is the
+            // authoritative check — false means it wrote nothing at all, safe to suspend and retry as-is
+            status = generator.startMessage(pending.number(), source.segment().capacity())
+                ? ProtobufPipeline.Status.ADVANCED
+                : suspendOrReject();
+        }
         if (status == ProtobufPipeline.Status.ADVANCED)
         {
             depth++;
@@ -155,7 +164,6 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             }
             else
             {
-                generator.startMessage(pending.number(), source.segment().capacity());
                 scope.set(schema.resolveMessage(pending), true);
             }
         }
@@ -168,6 +176,12 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         ProtobufPipeline.Status status = nested
             ? reserve(tagSize(pending.number()))
             : ProtobufPipeline.Status.ADVANCED;
+        if (status == ProtobufPipeline.Status.ADVANCED && nested)
+        {
+            status = generator.startGroup(pending.number())
+                ? ProtobufPipeline.Status.ADVANCED
+                : suspendOrReject();
+        }
         if (status == ProtobufPipeline.Status.ADVANCED)
         {
             depth++;
@@ -178,7 +192,6 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
             }
             else
             {
-                generator.startGroup(pending.number());
                 scope.set(schema.resolveMessage(pending), true);
             }
         }
@@ -261,39 +274,52 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         }
         else if (scope.active)
         {
-            generator.endMessage();
+            status = generator.endMessage() ? ProtobufPipeline.Status.ADVANCED : suspendOrReject();
         }
-        depth--;
+        if (status != ProtobufPipeline.Status.SUSPENDED)
+        {
+            depth--;
+        }
         return status;
     }
 
-    private void onEndGroup()
+    private ProtobufPipeline.Status onEndGroup()
     {
         Scope scope = scope(depth);
+        ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
         if (scope.active)
         {
-            generator.endGroup();
+            status = generator.endGroup() ? ProtobufPipeline.Status.ADVANCED : suspendOrReject();
         }
-        depth--;
+        if (status != ProtobufPipeline.Status.SUSPENDED)
+        {
+            depth--;
+        }
+        return status;
     }
 
-    // flush-and-suspend when the next field will not fit; reject when even a freshly drained buffer cannot
+    // flush-and-suspend when the next write will not fit; reject when even a freshly drained buffer cannot
     // hold it (nothing written yet, so the flush would free nothing)
     private ProtobufPipeline.Status reserve(
         int need)
     {
-        ProtobufPipeline.Status status = ProtobufPipeline.Status.ADVANCED;
-        if (need > generator.remaining())
+        return need > generator.remaining() ? suspendOrReject() : ProtobufPipeline.Status.ADVANCED;
+    }
+
+    // Shared by reserve()'s pre-check and a direct write that reported it wrote nothing (e.g. a rendering
+    // generator whose own structural bytes reserve() cannot see): draining only helps once something has
+    // actually been produced this round, so an empty buffer means no window will ever be big enough — reject.
+    private ProtobufPipeline.Status suspendOrReject()
+    {
+        ProtobufPipeline.Status status;
+        if (generator.length() > 0)
         {
-            if (generator.length() > 0)
-            {
-                generator.flush();
-                status = ProtobufPipeline.Status.SUSPENDED;
-            }
-            else
-            {
-                throw new ProtobufException("value of " + need + " bytes exceeds output limit");
-            }
+            generator.flush();
+            status = ProtobufPipeline.Status.SUSPENDED;
+        }
+        else
+        {
+            throw new ProtobufException("write exceeds output limit");
         }
         return status;
     }

@@ -82,9 +82,10 @@ public class ProtobufGeneratorTest
     {
         MutableDirectBufferEx out = new UnsafeBufferEx(new byte[64]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
-        generator
-            .writeInt32(1, -5)
-            .startGroup(11).writeInt32(1, 9).endGroup();
+        generator.writeInt32(1, -5);
+        generator.startGroup(11);
+        generator.writeInt32(1, 9);
+        generator.endGroup();
 
         Capture sink = new Capture();
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(sink);
@@ -108,7 +109,10 @@ public class ProtobufGeneratorTest
 
         MutableDirectBufferEx streamedOut = new UnsafeBufferEx(new byte[128]);
         ProtobufGenerator streamed = Protobuf.generator().wrap(streamedOut, 0, streamedOut.capacity());
-        streamed.writeInt32(1, 7).startMessage(2, nestedLength).writeInt32(1, 9).endMessage();
+        streamed.writeInt32(1, 7);
+        streamed.startMessage(2, nestedLength);
+        streamed.writeInt32(1, 9);
+        streamed.endMessage();
         byte[] actual = bytes(streamedOut, streamed.length());
 
         assertArrayEquals(expected, actual);
@@ -129,8 +133,10 @@ public class ProtobufGeneratorTest
             .writeBool(6, true)
             .writeString(7, "hi")
             .writeBytes(8, new byte[]{1, 2, 3})
-            .writeEnum(9, 1)
-            .startMessage(10, nestedLength).writeInt32(1, 9).endMessage();
+            .writeEnum(9, 1);
+        source.startMessage(10, nestedLength);
+        source.writeInt32(1, 9);
+        source.endMessage();
         byte[] input = bytes(in, source.length());
 
         MutableDirectBufferEx out = new UnsafeBufferEx(new byte[256]);
@@ -154,7 +160,9 @@ public class ProtobufGeneratorTest
     {
         MutableDirectBufferEx out = new UnsafeBufferEx(new byte[256]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
-        generator.startMessage(10, 200).writeInt32(1, 9).endMessage();
+        generator.startMessage(10, 200);
+        generator.writeInt32(1, 9);
+        generator.endMessage();
 
         Capture sink = new Capture();
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "All")).into(sink);
@@ -169,7 +177,8 @@ public class ProtobufGeneratorTest
     {
         MutableDirectBufferEx out = new UnsafeBufferEx(new byte[512]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
-        generator.startMessage(10, 1).writeBytes(1, new byte[200]);
+        generator.startMessage(10, 1);
+        generator.writeBytes(1, new byte[200]);
 
         assertThrows(ProtobufException.class, generator::endMessage);
     }

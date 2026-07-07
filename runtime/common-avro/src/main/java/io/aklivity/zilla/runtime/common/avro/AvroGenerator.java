@@ -47,25 +47,49 @@ public interface AvroGenerator
      */
     int remaining();
 
-    void writeStartRecord();
+    /**
+     * Writes the record's opening brace if it fits the output bound, returning {@code true}; otherwise
+     * writes nothing and returns {@code false} — a normal outcome for a chunking driver to suspend and
+     * retry the identical call once drained, not a failure. This atomic, non-resumable write carries no
+     * partial-write contract of its own (unlike a length-delimited value streamed via {@link #writeSegment}).
+     */
+    boolean writeStartRecord();
 
-    void writeStartArray();
+    /**
+     * Checked, atomic write; semantics match {@link #writeStartRecord()}.
+     */
+    boolean writeStartArray();
 
-    void writeStartMap();
+    /**
+     * Checked, atomic write; semantics match {@link #writeStartRecord()}.
+     */
+    boolean writeStartMap();
 
-    void writeEnd();
+    /**
+     * Checked, atomic write; semantics match {@link #writeStartRecord()}.
+     */
+    boolean writeEnd();
 
     void writeKey(
         DirectBufferEx buffer,
         int offset,
         int length);
 
-    void writeIndex(
+    /**
+     * Checked, atomic write; semantics match {@link #writeStartRecord()}.
+     */
+    boolean writeIndex(
         int index);
 
-    void writeNull();
+    /**
+     * Checked, atomic write; semantics match {@link #writeStartRecord()}.
+     */
+    boolean writeNull();
 
-    void writeBoolean(
+    /**
+     * Checked, atomic write; semantics match {@link #writeStartRecord()}.
+     */
+    boolean writeBoolean(
         boolean value);
 
     void writeInt(
