@@ -22,4 +22,4 @@ bindings:
     routes:
       - exit: app1
         when:
-          - capability: [tools]
+          - tools: ["get_*"]

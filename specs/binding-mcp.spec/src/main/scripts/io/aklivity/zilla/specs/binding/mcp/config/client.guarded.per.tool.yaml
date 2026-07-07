@@ -29,15 +29,11 @@ bindings:
     routes:
       - exit: net0
         when:
-          - capability:
-              - tools
-            tools:
+          - tools:
               - get_weather
       - exit: net0
         when:
-          - capability:
-              - tools
-            tools:
+          - tools:
               - get_status
         guarded:
           test0: []

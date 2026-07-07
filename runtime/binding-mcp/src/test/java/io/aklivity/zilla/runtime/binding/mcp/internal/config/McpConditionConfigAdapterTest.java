@@ -47,13 +47,12 @@ public class McpConditionConfigAdapterTest
     @Test
     public void shouldReadToolkitCondition()
     {
-        String text = "{\"toolkit\":\"github\",\"capability\":[\"tools\",\"resources\"]}";
+        String text = "{\"toolkit\":\"github\"}";
 
         McpConditionConfig condition = jsonb.fromJson(text, McpConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
         assertThat(condition.toolkit, equalTo("github"));
-        assertThat(condition.capability, contains("tools", "resources"));
         assertThat(condition.tools, nullValue());
         assertThat(condition.prompts, nullValue());
         assertThat(condition.resources, nullValue());
@@ -64,19 +63,18 @@ public class McpConditionConfigAdapterTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
                 .toolkit("github")
-                .capability(asList("tools", "resources"))
                 .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"toolkit\":\"github\",\"capability\":[\"tools\",\"resources\"]}"));
+        assertThat(text, equalTo("{\"toolkit\":\"github\"}"));
     }
 
     @Test
     public void shouldReadFilterCondition()
     {
-        String text = "{\"toolkit\":\"github\",\"capability\":[\"tools\",\"resources\"]," +
+        String text = "{\"toolkit\":\"github\"," +
             "\"tools\":[\"create_*\",\"get_*\"],\"resources\":[\"repo://*\"]}";
 
         McpConditionConfig condition = jsonb.fromJson(text, McpConditionConfig.class);
@@ -93,7 +91,6 @@ public class McpConditionConfigAdapterTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
                 .toolkit("github")
-                .capability(asList("tools", "resources"))
                 .tools(asList("create_*", "get_*"))
                 .resources(asList("repo://*"))
                 .build();
@@ -101,14 +98,14 @@ public class McpConditionConfigAdapterTest
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"toolkit\":\"github\",\"capability\":[\"tools\",\"resources\"]," +
+        assertThat(text, equalTo("{\"toolkit\":\"github\"," +
             "\"tools\":[\"create_*\",\"get_*\"],\"resources\":[\"repo://*\"]}"));
     }
 
     @Test
     public void shouldReadEmptyFilterCondition()
     {
-        String text = "{\"toolkit\":\"slack\",\"capability\":[\"tools\"],\"tools\":[]}";
+        String text = "{\"toolkit\":\"slack\",\"tools\":[]}";
 
         McpConditionConfig condition = jsonb.fromJson(text, McpConditionConfig.class);
 
@@ -123,13 +120,12 @@ public class McpConditionConfigAdapterTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
                 .toolkit("slack")
-                .capability(asList("tools"))
                 .tools(emptyList())
                 .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"toolkit\":\"slack\",\"capability\":[\"tools\"],\"tools\":[]}"));
+        assertThat(text, equalTo("{\"toolkit\":\"slack\",\"tools\":[]}"));
     }
 }

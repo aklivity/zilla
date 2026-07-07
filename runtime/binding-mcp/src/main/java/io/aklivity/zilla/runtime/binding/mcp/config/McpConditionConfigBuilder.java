@@ -25,7 +25,6 @@ public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpCond
     private final Function<ConditionConfig, T> mapper;
 
     private String toolkit;
-    private List<String> capability;
     private List<String> tools;
     private List<String> prompts;
     private List<String> resources;
@@ -40,13 +39,6 @@ public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpCond
         String toolkit)
     {
         this.toolkit = toolkit;
-        return this;
-    }
-
-    public McpConditionConfigBuilder<T> capability(
-        List<String> capability)
-    {
-        this.capability = capability;
         return this;
     }
 
@@ -81,6 +73,6 @@ public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpCond
     @Override
     public T build()
     {
-        return mapper.apply(new McpConditionConfig(toolkit, capability, tools, prompts, resources));
+        return mapper.apply(new McpConditionConfig(toolkit, tools, prompts, resources));
     }
 }
