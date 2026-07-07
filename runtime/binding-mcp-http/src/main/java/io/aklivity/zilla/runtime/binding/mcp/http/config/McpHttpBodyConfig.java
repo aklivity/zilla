@@ -17,24 +17,17 @@ package io.aklivity.zilla.runtime.binding.mcp.http.config;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
-public final class McpHttpWithConfig extends WithConfig
+public final class McpHttpBodyConfig
 {
-    public final Map<String, String> headers;
-    public final Map<String, String> cookies;
-    public final ModelConfig query;
-    public final McpHttpBodyConfig body;
+    public final ModelConfig model;
+    public final Map<String, String> template;
 
-    public McpHttpWithConfig(
-        Map<String, String> headers,
-        Map<String, String> cookies,
-        ModelConfig query,
-        McpHttpBodyConfig body)
+    public McpHttpBodyConfig(
+        ModelConfig model,
+        Map<String, String> template)
     {
-        this.headers = headers;
-        this.cookies = cookies;
-        this.query = query;
-        this.body = body;
+        this.model = model;
+        this.template = template;
     }
 }

@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * Terminal {@link JsonSink} that discards every event, reaching {@link Status#COMPLETED} when the top-level
  * value closes at depth zero. Used when a tool's {@code tool.input} schema must be validated (a validator
  * stage sits upstream of this sink) but the route has nothing to shape a request from that value — no
- * {@code with.body}, {@code with.bodyTemplate}, or {@code with.query} — so there is no destination for the
+ * {@code with.body}, {@code with.body.template}, or {@code with.query} — so there is no destination for the
  * validated bytes to project into.
  */
 public final class McpHttpDiscard implements JsonSink

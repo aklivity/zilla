@@ -22,6 +22,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpBinding;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
@@ -72,15 +73,16 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
             object.add(QUERY_NAME, model.adaptToJson(mcpHttpWith.query));
         }
 
-        if (mcpHttpWith.bodyTemplate != null)
+        McpHttpBodyConfig body = mcpHttpWith.body;
+        if (body != null && body.template != null)
         {
             JsonObjectBuilder template = Json.createObjectBuilder();
-            mcpHttpWith.bodyTemplate.forEach(template::add);
+            body.template.forEach(template::add);
             object.add(BODY_NAME, Json.createObjectBuilder().add(TEMPLATE_NAME, template));
         }
-        else if (mcpHttpWith.body != null)
+        else if (body != null && body.model != null)
         {
-            object.add(BODY_NAME, model.adaptToJson(mcpHttpWith.body));
+            object.add(BODY_NAME, model.adaptToJson(body.model));
         }
 
         return object.build();
@@ -116,26 +118,26 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
             ? model.adaptFromJson(object.get(QUERY_NAME))
             : null;
 
-        ModelConfig body = null;
-        Map<String, String> bodyTemplate = null;
+        McpHttpBodyConfig body = null;
         if (object.containsKey(BODY_NAME))
         {
             JsonObject bodyObject = object.getJsonObject(BODY_NAME);
             if (bodyObject.containsKey(TEMPLATE_NAME))
             {
                 JsonObject templateObject = bodyObject.getJsonObject(TEMPLATE_NAME);
-                bodyTemplate = new LinkedHashMap<>();
+                Map<String, String> template = new LinkedHashMap<>();
                 for (String name : templateObject.keySet())
                 {
-                    bodyTemplate.put(name, templateObject.getString(name));
+                    template.put(name, templateObject.getString(name));
                 }
+                body = new McpHttpBodyConfig(null, template);
             }
             else
             {
-                body = model.adaptFromJson(object.get(BODY_NAME));
+                body = new McpHttpBodyConfig(model.adaptFromJson(object.get(BODY_NAME)), null);
             }
         }
 
-        return new McpHttpWithConfig(headers, cookies, query, body, bodyTemplate);
+        return new McpHttpWithConfig(headers, cookies, query, body);
     }
 }

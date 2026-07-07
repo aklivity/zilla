@@ -35,7 +35,7 @@ public class McpHttpRouteConfigTest
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put(":path", "/notifications");
         headers.put("x-trace-id", "${args.trace.id}");
-        McpHttpWithConfig with = new McpHttpWithConfig(headers, null, null, null, null);
+        McpHttpWithConfig with = new McpHttpWithConfig(headers, null, null, null);
         RouteConfig route = RouteConfig.builder().with(with).build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
 
@@ -51,7 +51,7 @@ public class McpHttpRouteConfigTest
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put(":path", "/notifications");
         headers.put("x-trace-id", "${args.trace.id}");
-        McpHttpWithConfig with = new McpHttpWithConfig(headers, null, null, null, null);
+        McpHttpWithConfig with = new McpHttpWithConfig(headers, null, null, null);
         RouteConfig route = RouteConfig.builder().with(with).build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
 
@@ -66,7 +66,7 @@ public class McpHttpRouteConfigTest
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put(":path", "/notifications");
         headers.put("x-trace-id", "${args.trace.id}");
-        McpHttpWithConfig with = new McpHttpWithConfig(headers, null, null, null, null);
+        McpHttpWithConfig with = new McpHttpWithConfig(headers, null, null, null);
         RouteConfig route = RouteConfig.builder().with(with).build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
 
@@ -81,7 +81,7 @@ public class McpHttpRouteConfigTest
         Map<String, String> cookies = new LinkedHashMap<>();
         cookies.put("a", "${args.a}");
         cookies.put("b", "${args.b}");
-        McpHttpWithConfig with = new McpHttpWithConfig(headers, cookies, null, null, null);
+        McpHttpWithConfig with = new McpHttpWithConfig(headers, cookies, null, null);
         RouteConfig route = RouteConfig.builder().with(with).build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
 
@@ -99,7 +99,7 @@ public class McpHttpRouteConfigTest
         Map<String, String> cookies = new LinkedHashMap<>();
         cookies.put("a", "${args.a}");
         cookies.put("b", "${args.b}");
-        McpHttpWithConfig with = new McpHttpWithConfig(headers, cookies, null, null, null);
+        McpHttpWithConfig with = new McpHttpWithConfig(headers, cookies, null, null);
         RouteConfig route = RouteConfig.builder().with(with).build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
 
@@ -117,7 +117,7 @@ public class McpHttpRouteConfigTest
         Map<String, String> cookies = new LinkedHashMap<>();
         cookies.put("a", "${args.a}");
         cookies.put("b", "${args.b}");
-        McpHttpWithConfig with = new McpHttpWithConfig(headers, cookies, null, null, null);
+        McpHttpWithConfig with = new McpHttpWithConfig(headers, cookies, null, null);
         RouteConfig route = RouteConfig.builder().with(with).build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
 
@@ -133,7 +133,7 @@ public class McpHttpRouteConfigTest
         headers.put(":path", "/notifications");
         Map<String, String> cookies = new LinkedHashMap<>();
         cookies.put("session", "${args.session.id}");
-        McpHttpWithConfig with = new McpHttpWithConfig(headers, cookies, null, null, null);
+        McpHttpWithConfig with = new McpHttpWithConfig(headers, cookies, null, null);
         RouteConfig route = RouteConfig.builder().with(with).build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
 

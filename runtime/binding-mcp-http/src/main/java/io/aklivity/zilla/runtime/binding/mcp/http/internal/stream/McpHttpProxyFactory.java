@@ -641,7 +641,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         // pumpRequest drain more of this side's own decodeSlot; the window granted back to the mcp client
         // reflects only this side's own backlog — decodeSlotOffset is in mcp-client request bytes, the same
         // units as initialSeq/initialAck, unlike HttpProxy's own initial-direction counters, which are a
-        // distinct byte stream once request shaping (body/bodyTemplate/query) has transformed the content.
+        // distinct byte stream once request shaping (body/query) has transformed the content.
         // max stays pinned to the slot's full physical capacity; ack alone carries the backlog discount, so
         // ack + max lands exactly on the true remaining room without double-counting the backlog.
         void flushMcpWindow(
@@ -813,7 +813,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             return false;
         }
 
-        // Default no-op: only McpToolsCallProxy streams a request body/bodyTemplate/query pipeline that needs
+        // Default no-op: only McpToolsCallProxy streams a request body/query pipeline that needs
         // pumping across multiple onMcpData calls; overridden there. Called polymorphically from
         // HttpProxy.resumeRequest via the same McpHttpProxy-typed reference requestPumpable() serves.
         void pumpRequest(
@@ -823,8 +823,8 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         // Dispatches a bodyless upstream request immediately, resolving only ${params.*} references in
         // with.headers (there is no arguments/body concept at all for this shape). Used by both concrete
-        // kinds for a route with nothing to stream: McpToolsCallProxy's fallback when with.body/bodyTemplate/
-        // query are all absent (and tool.input is either absent or skipped — see its onMcpBegin), and
+        // kinds for a route with nothing to stream: McpToolsCallProxy's fallback when with.body/
+        // with.query are all absent (and tool.input is either absent or skipped — see its onMcpBegin), and
         // McpResourcesReadProxy's only supported shape today (see its onMcpBegin). This is genuinely
         // shared, kind-independent plumbing — not the per-kind streaming/dispatch logic those two classes
         // otherwise keep separate.
@@ -998,11 +998,11 @@ public final class McpHttpProxyFactory implements BindingHandler
         private int errorRelayConsumed;
         private int errorRelayRemaining;
 
-        // the single streaming pipeline for this route's request shape: with.body/with.bodyTemplate project
+        // the single streaming pipeline for this route's request shape: with.body (model or template) projects
         // into requestGenerator (which writes into HttpProxy's own encode slot via requestStep); with.query
         // alone projects into a McpHttpQuery sink (requestGenerator stays null — nothing to write into
         // encodeSlot); neither, but tool.input still needs validating, projects into a McpHttpDiscard sink.
-        // A route combining with.body/bodyTemplate and with.query is not yet supported here — see onMcpBegin.
+        // A route combining with.body and with.query is not yet supported here — see onMcpBegin.
         private JsonPipeline requestPipeline;
         private JsonGeneratorEx requestGenerator;
         private Map<String, String> requestArgs;
@@ -1046,7 +1046,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             final McpHttpWithConfig with = route.with;
             final McpHttpToolConfig tool = tool();
-            final boolean needsBody = with.body != null || with.bodyTemplate != null;
+            final boolean needsBody = with.body != null;
             final boolean needsQuery = with.query != null;
             final boolean needsValidation = tool != null && tool.input != null &&
                 contentLength >= 0 && contentLength <= decodePool.slotCapacity();
@@ -1074,17 +1074,17 @@ public final class McpHttpProxyFactory implements BindingHandler
 
                 if (needsBody)
                 {
-                    // a route combining with.body/bodyTemplate and with.query is not yet supported: producing
+                    // a route combining with.body and with.query is not yet supported: producing
                     // both an outbound body and a query string from one incremental pass would need a second,
                     // independently-driven pipeline sharing the same decode-slot window (JsonPipeline has no
                     // fan-out — see JsonStream), which raises real compaction-ordering questions across two
                     // pipelines completing at different times; no current route configures both, so this is
                     // deferred rather than solved speculatively — with.query is silently ignored in this case
                     requestGenerator = JsonEx.createGenerator();
-                    stream = with.bodyTemplate != null
+                    stream = with.body.template != null
                         ? stream.transform(JsonTransforms.projector(route.bodyTemplatePointers))
                             .transform(JsonTransforms.flatten(route.bodyTemplateTargets))
-                        : stream.transform(JsonTransforms.projector(binding.jsonSchema(with.body)));
+                        : stream.transform(JsonTransforms.projector(binding.jsonSchema(with.body.model)));
                     requestPipeline = stream.into(JsonEx.createSink(requestGenerator, SINK_SEGMENTABLE));
                 }
                 else if (needsQuery)
