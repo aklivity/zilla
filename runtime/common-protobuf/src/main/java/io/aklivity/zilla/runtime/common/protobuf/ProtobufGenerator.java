@@ -175,8 +175,14 @@ public interface ProtobufGenerator
      * long value to widen the slot for a body that may grow. The write-side mirror of a
      * {@link ProtobufEvent#START_MESSAGE} event, which carries the source length via
      * {@link ProtobufSource#segment()}.
+     * <p>
+     * This atomic, non-resumable write carries no partial-write contract of its own (unlike a
+     * length-delimited value streamed via {@link #writeSegment}): it returns {@code true} once every byte
+     * it needs (tag, length slot, and any structural bytes a rendering generator emits alongside them,
+     * e.g. a JSON object brace and field key) fits and is written, or {@code false} having written nothing
+     * at all, so a caller retries the identical call once drained rather than resuming mid-write.
      */
-    ProtobufGenerator startMessage(
+    boolean startMessage(
         int field,
         int length);
 
@@ -185,24 +191,26 @@ public interface ProtobufGenerator
      * mirror of a {@link ProtobufEvent#END_MESSAGE} event. Fills the reserved slot with the actual body
      * length: minimal (canonical) when its varint width equals the reserved width, padded within that
      * width when smaller. Throws if the body is larger than the reserved width can hold (the optimistic
-     * length under-estimated it).
+     * length under-estimated it). Checked, atomic write; semantics otherwise match {@link #startMessage}.
      */
-    ProtobufGenerator endMessage();
+    boolean endMessage();
 
     /**
      * Begins a proto2 group on {@code field} by writing its start-group tag — the write-side mirror of a
      * {@link ProtobufEvent#START_GROUP} event. A group carries no length prefix, so the body streams
      * straight to the output and is closed by {@link #endGroup()}; nothing is written up front beyond the
-     * tag, which makes it the framing of choice when the body length is not known in advance.
+     * tag, which makes it the framing of choice when the body length is not known in advance. Checked,
+     * atomic write; semantics otherwise match {@link #startMessage}.
      */
-    ProtobufGenerator startGroup(
+    boolean startGroup(
         int field);
 
     /**
      * Ends the group opened by the most recent {@link #startGroup(int)} by writing its end-group tag —
-     * the write-side mirror of an {@link ProtobufEvent#END_GROUP} event.
+     * the write-side mirror of an {@link ProtobufEvent#END_GROUP} event. Checked, atomic write; semantics
+     * otherwise match {@link #startMessage}.
      */
-    ProtobufGenerator endGroup();
+    boolean endGroup();
 
     /**
      * Splices {@code length} bytes from {@code source} verbatim — tag and value already encoded — used
@@ -237,8 +245,12 @@ public interface ProtobufGenerator
      * again, writing resumes where it left off and the per-record fragments merge on decode. Used by a
      * bounded driver before draining when the next write will not fit. A group may not enclose a value being
      * fragmented across a chunk (it cannot be end-tagged mid-value); attempting it throws.
+     * <p>
+     * Returns {@code true} once every open level is fully closed, or {@code false} if the output filled
+     * before that — the caller drains the bytes written so far and calls {@link #flush()} again to
+     * continue closing the remaining levels, rather than losing partial progress.
      */
-    ProtobufGenerator flush();
+    boolean flush();
 
     /**
      * Whether this generator writes the values it receives verbatim, reproducing the input bytes. A

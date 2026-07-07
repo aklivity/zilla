@@ -466,34 +466,30 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
-    public ProtobufGenerator startMessage(
+    public boolean startMessage(
         int field,
         int length)
     {
-        start(field, false);
-        return this;
+        return start(field, false);
     }
 
     @Override
-    public ProtobufGenerator endMessage()
+    public boolean endMessage()
     {
-        end();
-        return this;
+        return end();
     }
 
     @Override
-    public ProtobufGenerator startGroup(
+    public boolean startGroup(
         int field)
     {
-        start(field, true);
-        return this;
+        return start(field, true);
     }
 
     @Override
-    public ProtobufGenerator endGroup()
+    public boolean endGroup()
     {
-        end();
-        return this;
+        return end();
     }
 
     @Override
@@ -517,8 +513,9 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
-    public ProtobufGenerator flush()
+    public boolean flush()
     {
+        boolean complete = true;
         if (segmentActive || segmentDeferred || keyAt > 0)
         {
             flushed = true;
@@ -526,35 +523,97 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         else
         {
             // an empty message produced no field write, so open the root object here before closing it
-            ensureRoot();
-            while (depth >= 0)
+            complete = ensureRoot();
+            while (complete && depth >= 0)
             {
-                Scope scope = scopes[depth];
-                if (scope.openField != -1)
-                {
-                    closeContainer(scope);
-                }
-                emitDefaults(scope);
-                depth--;
-                if (!scope.mapEntry)
-                {
-                    json.writeEnd();
-                }
+                complete = closeLevel(scopes[depth]);
             }
-            rootOpened = false;
+            if (complete)
+            {
+                rootOpened = false;
+            }
         }
-        return this;
+        return complete;
     }
 
-    private void ensureRoot()
+    // Closes one scope level atomically: any still-open repeated/map field, then defaults, then (unless this
+    // level is a map entry, which owns no brace of its own) the level's own closing brace — decrementing
+    // depth only once every one of those has actually happened. A step that cannot fit leaves depth (and
+    // whatever that step's own state tracks, e.g. scope.openField) exactly as it was, so a later retry of
+    // end()/flush() re-enters at this same level and continues from there rather than re-doing completed work.
+    private boolean closeLevel(
+        Scope scope)
     {
-        if (!rootOpened)
+        boolean complete = true;
+        if (scope.openField != -1)
+        {
+            complete = closeContainer(scope);
+        }
+        if (complete)
+        {
+            complete = emitDefaults(scope);
+        }
+        if (complete && !scope.mapEntry)
+        {
+            complete = writeEndChecked();
+        }
+        if (complete)
+        {
+            depth--;
+        }
+        return complete;
+    }
+
+    private boolean ensureRoot()
+    {
+        if (!rootOpened && writeStartObjectChecked())
         {
             rootOpened = true;
-            json.writeStartObject();
             depth = 0;
             scopes[0].set(schema.message(messageName), false);
         }
+        return rootOpened;
+    }
+
+    // Precise (not conservative) room check for one key: separator + quotes + colon, exactly mirroring the
+    // math segmentKeyWidth()/drainKey() already use for the same purpose. Checking a compound write's total
+    // width up front — rather than attempting each part and reacting after the fact — is what lets an
+    // unfragmentable sequence (a key immediately followed by its brace/bracket) stay all-or-nothing without
+    // needing to remember, across a suspend, exactly which part of it already landed.
+    private static int keyWidth(
+        Scope scope,
+        String name)
+    {
+        int separator = scope.mapEntry
+            ? (scope.written.isEmpty() ? 0 : 1)
+            : (scope.openField != -1 || !scope.written.isEmpty() ? 1 : 0);
+        return name.length() + 3 + separator;
+    }
+
+    // The key-domain counterpart of the brace/bracket *Checked writers below: writeKey has its own
+    // partial-write contract (it may legitimately emit only a prefix of a very long name), so completion is
+    // checked via consumed() against the key's full length rather than a length() delta.
+    private boolean writeKeyChecked(
+        String name)
+    {
+        int before = json.consumed();
+        json.writeKey(name);
+        return json.consumed() - before == name.length();
+    }
+
+    private boolean writeStartObjectChecked()
+    {
+        return json.writeStartObjectEx();
+    }
+
+    private boolean writeStartArrayChecked()
+    {
+        return json.writeStartArrayEx();
+    }
+
+    private boolean writeEndChecked()
+    {
+        return json.writeEndEx();
     }
 
     private int segmentKeyWidth(
@@ -675,69 +734,97 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         }
     }
 
-    private void start(
+    // Each branch checks its whole compound write's exact total width up front, then performs every part of
+    // it unconditionally — safe because the total was already confirmed to fit. A branch that does not fit
+    // writes nothing and leaves scope/depth untouched, so a later retry re-enters here and re-evaluates the
+    // identical branch rather than resuming mid-sequence.
+    private boolean start(
         int number,
         boolean group)
     {
-        ensureRoot();
-        Scope scope = scopes[depth];
-        if (scope.mapEntry)
+        boolean written = false;
+        if (ensureRoot())
         {
-            json.writeKey(scope.pendingKey);
-            json.writeStartObject();
-            pushScope(scope.message.field(number).message(), false);
-        }
-        else
-        {
-            ProtobufField field = scope.message.field(number);
-            scope.written.set(number);
-            if (scope.openField != -1 && scope.openField != number)
+            Scope scope = scopes[depth];
+            if (scope.mapEntry)
             {
-                closeContainer(scope);
-            }
-            if (map(field))
-            {
-                if (scope.openField != number)
+                if (json.remaining() >= keyWidth(scope, scope.pendingKey) + 1)
                 {
-                    json.writeKey(key(field));
-                    json.writeStartObject();
-                    scope.openField = number;
+                    writeKeyChecked(scope.pendingKey);
+                    writeStartObjectChecked();
+                    pushScope(scope.message.field(number).message(), false);
+                    written = true;
                 }
-                pushScope(field.message(), true);
-            }
-            else if (field.repeated())
-            {
-                if (scope.openField != number)
-                {
-                    json.writeKey(key(field));
-                    json.writeStartArray();
-                    scope.openField = number;
-                }
-                json.writeStartObject();
-                pushScope(field.message(), false);
             }
             else
             {
-                json.writeKey(key(field));
-                json.writeStartObject();
-                pushScope(field.message(), false);
+                ProtobufField field = scope.message.field(number);
+                boolean closesPrior = scope.openField != -1 && scope.openField != number;
+                int closeWidth = closesPrior ? 1 : 0;
+                boolean opensNew = scope.openField != number;
+                int openWidth = opensNew ? keyWidth(scope, key(field)) + 1 : 0;
+                if (map(field))
+                {
+                    if (json.remaining() >= closeWidth + openWidth)
+                    {
+                        if (closesPrior)
+                        {
+                            closeContainer(scope);
+                        }
+                        if (opensNew)
+                        {
+                            writeKeyChecked(key(field));
+                            writeStartObjectChecked();
+                            scope.openField = number;
+                        }
+                        scope.written.set(number);
+                        pushScope(field.message(), true);
+                        written = true;
+                    }
+                }
+                else if (field.repeated())
+                {
+                    if (json.remaining() >= closeWidth + openWidth + 1)
+                    {
+                        if (closesPrior)
+                        {
+                            closeContainer(scope);
+                        }
+                        if (opensNew)
+                        {
+                            writeKeyChecked(key(field));
+                            writeStartArrayChecked();
+                            scope.openField = number;
+                        }
+                        scope.written.set(number);
+                        writeStartObjectChecked();
+                        pushScope(field.message(), false);
+                        written = true;
+                    }
+                }
+                else
+                {
+                    if (json.remaining() >= closeWidth + keyWidth(scope, key(field)) + 1)
+                    {
+                        if (closesPrior)
+                        {
+                            closeContainer(scope);
+                        }
+                        scope.written.set(number);
+                        writeKeyChecked(key(field));
+                        writeStartObjectChecked();
+                        pushScope(field.message(), false);
+                        written = true;
+                    }
+                }
             }
         }
+        return written;
     }
 
-    private void end()
+    private boolean end()
     {
-        Scope scope = scopes[depth];
-        if (scope.openField != -1)
-        {
-            closeContainer(scope);
-        }
-        emitDefaults(scope);
-        depth--;
-        if (!scope.mapEntry)
-        {
-            json.writeEnd();
-        }
+        return closeLevel(scopes[depth]);
     }
 
     private String key(
@@ -746,9 +833,13 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         return protoFieldNames ? field.name() : field.jsonName();
     }
 
-    private void emitDefaults(
+    // Resumable across suspends: a field's default is only ever marked scope.written once its whole key
+    // (+ braces, for a map/repeated default) has actually been written, so a retry skips every field this
+    // already completed and re-attempts only the one it stopped on.
+    private boolean emitDefaults(
         Scope scope)
     {
+        boolean complete = true;
         if (includeDefaults && !scope.mapEntry && scope.message != null)
         {
             for (ProtobufField field : scope.message.sortedFields())
@@ -760,24 +851,54 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
                     !field.repeated() && (field.type() == ProtobufType.MESSAGE || field.type() == ProtobufType.GROUP);
                 if (!omit)
                 {
-                    json.writeKey(key(field));
-                    if (map(field))
+                    if (!tryEmitDefault(scope, field))
                     {
-                        json.writeStartObject();
-                        json.writeEnd();
+                        complete = false;
+                        break;
                     }
-                    else if (field.repeated())
-                    {
-                        json.writeStartArray();
-                        json.writeEnd();
-                    }
-                    else
-                    {
-                        emitScalarDefault(field);
-                    }
+                    scope.written.set(number);
                 }
             }
         }
+        return complete;
+    }
+
+    // A map/repeated default renders as an empty container ({} / []), an exact, all-or-nothing width; a
+    // scalar default's key is checked the same way, but its value rides the existing bounded/truncating
+    // json.write/json.writeNumber path (safe from overflow either way, just not itself resumed field-by-field
+    // here — schema default values are short literals in practice).
+    private boolean tryEmitDefault(
+        Scope scope,
+        ProtobufField field)
+    {
+        boolean written;
+        if (map(field) || field.repeated())
+        {
+            written = json.remaining() >= keyWidth(scope, key(field)) + 2;
+            if (written)
+            {
+                writeKeyChecked(key(field));
+                if (map(field))
+                {
+                    writeStartObjectChecked();
+                }
+                else
+                {
+                    writeStartArrayChecked();
+                }
+                writeEndChecked();
+            }
+        }
+        else
+        {
+            written = json.remaining() >= keyWidth(scope, key(field));
+            if (written)
+            {
+                writeKeyChecked(key(field));
+                emitScalarDefault(field);
+            }
+        }
+        return written;
     }
 
     private void emitScalarDefault(
@@ -1008,11 +1129,15 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         scopes[depth].pendingKey = key;
     }
 
-    private void closeContainer(
+    private boolean closeContainer(
         Scope scope)
     {
-        json.writeEnd();
-        scope.openField = -1;
+        boolean written = writeEndChecked();
+        if (written)
+        {
+            scope.openField = -1;
+        }
+        return written;
     }
 
     private void pushScope(

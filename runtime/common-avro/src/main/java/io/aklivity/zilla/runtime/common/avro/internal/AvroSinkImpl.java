@@ -80,24 +80,33 @@ public final class AvroSinkImpl implements AvroSink
             status = atomic();
             if (status == ADVANCED)
             {
-                generator.writeStartRecord();
-                depth++;
+                status = generator.writeStartRecord() ? ADVANCED : SUSPENDED;
+                if (status == ADVANCED)
+                {
+                    depth++;
+                }
             }
             break;
         case START_ARRAY:
             status = atomic();
             if (status == ADVANCED)
             {
-                generator.writeStartArray();
-                depth++;
+                status = generator.writeStartArray() ? ADVANCED : SUSPENDED;
+                if (status == ADVANCED)
+                {
+                    depth++;
+                }
             }
             break;
         case START_MAP:
             status = atomic();
             if (status == ADVANCED)
             {
-                generator.writeStartMap();
-                depth++;
+                status = generator.writeStartMap() ? ADVANCED : SUSPENDED;
+                if (status == ADVANCED)
+                {
+                    depth++;
+                }
             }
             break;
         case END_RECORD:
@@ -106,8 +115,7 @@ public final class AvroSinkImpl implements AvroSink
             status = atomic();
             if (status == ADVANCED)
             {
-                generator.writeEnd();
-                status = close();
+                status = generator.writeEnd() ? close() : SUSPENDED;
             }
             break;
         case MAP_KEY:
@@ -122,23 +130,21 @@ public final class AvroSinkImpl implements AvroSink
             status = atomic();
             if (status == ADVANCED)
             {
-                generator.writeIndex(source.getInt());
+                status = generator.writeIndex(source.getInt()) ? ADVANCED : SUSPENDED;
             }
             break;
         case NULL:
             status = atomic();
             if (status == ADVANCED)
             {
-                generator.writeNull();
-                status = scalar();
+                status = generator.writeNull() ? scalar() : SUSPENDED;
             }
             break;
         case BOOLEAN:
             status = atomic();
             if (status == ADVANCED)
             {
-                generator.writeBoolean(source.getBoolean());
-                status = scalar();
+                status = generator.writeBoolean(source.getBoolean()) ? scalar() : SUSPENDED;
             }
             break;
         case INT:

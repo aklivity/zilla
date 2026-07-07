@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.function.IntConsumer;
 
 import jakarta.json.JsonArray;
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
@@ -46,6 +47,9 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
     private static final int MAX_DEPTH = 64;
+    // worst-case ASCII lexeme width for write(int)/write(long): Integer.MIN_VALUE and Long.MIN_VALUE
+    private static final int MAX_INT_DIGITS = 11;
+    private static final int MAX_LONG_DIGITS = 20;
     private static final byte[] HEX = "0123456789abcdef".getBytes();
     // a defensible initial target so a freshly constructed generator never NPEs on direct use before wrap
     private static final MutableDirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
@@ -128,10 +132,24 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public JsonGeneratorImpl writeStartObject()
     {
-        preValue();
-        putByte.accept('{');
-        push(false);
+        if (!writeStartObjectEx())
+        {
+            throw new JsonException("insufficient room to write start object");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeStartObjectEx()
+    {
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + 1;
+        if (written)
+        {
+            preValue();
+            putByte.accept('{');
+            push(false);
+        }
+        return written;
     }
 
     @Override
@@ -145,10 +163,24 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public JsonGeneratorImpl writeStartArray()
     {
-        preValue();
-        putByte.accept('[');
-        push(true);
+        if (!writeStartArrayEx())
+        {
+            throw new JsonException("insufficient room to write start array");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeStartArrayEx()
+    {
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + 1;
+        if (written)
+        {
+            preValue();
+            putByte.accept('[');
+            push(true);
+        }
+        return written;
     }
 
     @Override
@@ -212,9 +244,24 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public JsonGeneratorImpl writeEnd()
     {
-        depth--;
-        putByte.accept(inArray[depth] ? ']' : '}');
+        if (!writeEndEx())
+        {
+            throw new JsonException("insufficient room to write end");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeEndEx()
+    {
+        // no leading separator ever applies to a closing brace/bracket, so this needs only its own byte
+        boolean written = remaining() >= 1;
+        if (written)
+        {
+            depth--;
+            putByte.accept(inArray[depth] ? ']' : '}');
+        }
+        return written;
     }
 
     @Override
@@ -279,18 +326,50 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         int value)
     {
-        preValue();
-        progress += buffer.putIntAscii(progress, value);
+        if (!writeEx(value))
+        {
+            throw new JsonException("insufficient room to write int");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeEx(
+        int value)
+    {
+        // worst case is Integer.MIN_VALUE's 11-char lexeme; no caller fragments a plain int/long today, so
+        // this reserves the full width rather than computing the value's exact digit count
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + MAX_INT_DIGITS;
+        if (written)
+        {
+            preValue();
+            progress += buffer.putIntAscii(progress, value);
+        }
+        return written;
     }
 
     @Override
     public JsonGeneratorImpl write(
         long value)
     {
-        preValue();
-        progress += buffer.putLongAscii(progress, value);
+        if (!writeEx(value))
+        {
+            throw new JsonException("insufficient room to write long");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeEx(
+        long value)
+    {
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + MAX_LONG_DIGITS;
+        if (written)
+        {
+            preValue();
+            progress += buffer.putLongAscii(progress, value);
+        }
+        return written;
     }
 
     @Override
@@ -308,17 +387,47 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         boolean value)
     {
-        preValue();
-        writeAscii(value ? "true" : "false");
+        if (!writeEx(value))
+        {
+            throw new JsonException("insufficient room to write boolean");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeEx(
+        boolean value)
+    {
+        final String literal = value ? "true" : "false";
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + literal.length();
+        if (written)
+        {
+            preValue();
+            writeAscii(literal);
+        }
+        return written;
     }
 
     @Override
     public JsonGeneratorImpl writeNull()
     {
-        preValue();
-        writeAscii("null");
+        if (!writeNullEx())
+        {
+            throw new JsonException("insufficient room to write null");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeNullEx()
+    {
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + 4;
+        if (written)
+        {
+            preValue();
+            writeAscii("null");
+        }
+        return written;
     }
 
     @Override
@@ -464,6 +573,12 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (pending != Pending.NUMBER)
         {
+            // preValue()'s leading separator is its only unbounded write here (writeAsciiBounded below already
+            // checks every lexeme char against the limit), so guard it the same way write/writeKey guard theirs
+            if (needsComma() && remaining() < 1)
+            {
+                return this;
+            }
             preValue();
             pending = Pending.NUMBER;
         }

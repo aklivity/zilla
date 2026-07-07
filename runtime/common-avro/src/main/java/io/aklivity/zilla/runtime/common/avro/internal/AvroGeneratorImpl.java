@@ -93,34 +93,37 @@ public final class AvroGeneratorImpl implements AvroGenerator
     }
 
     @Override
-    public void writeStartRecord()
+    public boolean writeStartRecord()
     {
         beginValue();
         expect(AvroKind.RECORD);
         require(stateStack[depth - 1] == 0, "unexpected record start");
         stateStack[depth - 1] = 1;
+        return true;
     }
 
     @Override
-    public void writeStartArray()
+    public boolean writeStartArray()
     {
         beginValue();
         expect(AvroKind.ARRAY);
         require(stateStack[depth - 1] == 0, "unexpected array start");
         stateStack[depth - 1] = 1;
+        return true;
     }
 
     @Override
-    public void writeStartMap()
+    public boolean writeStartMap()
     {
         beginValue();
         expect(AvroKind.MAP);
         require(stateStack[depth - 1] == 0, "unexpected map start");
         stateStack[depth - 1] = 1;
+        return true;
     }
 
     @Override
-    public void writeEnd()
+    public boolean writeEnd()
     {
         AvroNode node = nodeStack[depth - 1];
         switch (node.kind)
@@ -141,6 +144,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
             break;
         }
         pop();
+        return true;
     }
 
     @Override
@@ -157,7 +161,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     }
 
     @Override
-    public void writeIndex(
+    public boolean writeIndex(
         int index)
     {
         beginValue();
@@ -166,26 +170,29 @@ public final class AvroGeneratorImpl implements AvroGenerator
         writeVarint(zigzag(index));
         nodeStack[depth - 1] = node.children[index];
         stateStack[depth - 1] = 0;
+        return true;
     }
 
     @Override
-    public void writeNull()
+    public boolean writeNull()
     {
         beginValue();
         expect(AvroKind.NULL);
         pop();
+        return true;
     }
 
     @Override
-    public void writeBoolean(
+    public boolean writeBoolean(
         boolean value)
     {
         beginValue();
         expect(AvroKind.BOOLEAN);
-        requireRoom(1);
+        claimAvailable(1);
         buffer.putByte(progress, (byte) (value ? 1 : 0));
         progress++;
         pop();
+        return true;
     }
 
     @Override
@@ -214,7 +221,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.FLOAT);
-        requireRoom(Float.BYTES);
+        claimAvailable(Float.BYTES);
         buffer.putFloat(progress, value, LITTLE_ENDIAN);
         progress += Float.BYTES;
         pop();
@@ -226,7 +233,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.DOUBLE);
-        requireRoom(Double.BYTES);
+        claimAvailable(Double.BYTES);
         buffer.putDouble(progress, value, LITTLE_ENDIAN);
         progress += Double.BYTES;
         pop();
@@ -264,7 +271,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
     {
         beginValue();
         expect(AvroKind.FIXED);
-        requireRoom(length);
+        claimAvailable(length);
         this.buffer.putBytes(progress, buffer, offset, length);
         progress += length;
         pop();
@@ -286,7 +293,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
         int offset,
         int length)
     {
-        requireRoom(length);
+        claimAvailable(length);
         this.buffer.putBytes(progress, buffer, offset, length);
         progress += length;
     }
@@ -370,7 +377,7 @@ public final class AvroGeneratorImpl implements AvroGenerator
         int length)
     {
         writeVarint(zigzag(length));
-        requireRoom(length);
+        claimAvailable(length);
         buffer.putBytes(progress, source, offset, length);
         progress += length;
     }
@@ -381,17 +388,17 @@ public final class AvroGeneratorImpl implements AvroGenerator
         long u = value;
         while ((u & ~0x7fL) != 0)
         {
-            requireRoom(1);
+            claimAvailable(1);
             buffer.putByte(progress, (byte) ((u & 0x7f) | 0x80));
             progress++;
             u >>>= 7;
         }
-        requireRoom(1);
+        claimAvailable(1);
         buffer.putByte(progress, (byte) (u & 0x7f));
         progress++;
     }
 
-    private void requireRoom(
+    private void claimAvailable(
         int count)
     {
         if (progress + count > bound)

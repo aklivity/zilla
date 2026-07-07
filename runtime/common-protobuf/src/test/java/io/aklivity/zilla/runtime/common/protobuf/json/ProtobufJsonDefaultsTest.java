@@ -117,7 +117,11 @@ public class ProtobufJsonDefaultsTest
     public void shouldRecurseDefaultsIntoSetMessage()
     {
         ProtobufSchema schema = Protobuf.schema(PROTO3);
-        byte[] wire = wire(g -> g.startMessage(4, 0).endMessage());
+        byte[] wire = wire(g ->
+        {
+            g.startMessage(4, 0);
+            g.endMessage();
+        });
 
         assertEquals("{\"home\":{\"v\":\"\"},\"name\":\"\",\"id\":0,\"nums\":[],\"scores\":{},\"color\":\"RED\"}",
             toJson(schema, "t.Person", wire, true, true));
