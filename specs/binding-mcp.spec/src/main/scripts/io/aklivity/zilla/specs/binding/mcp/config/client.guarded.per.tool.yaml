@@ -15,13 +15,25 @@
 
 ---
 name: test
+guards:
+  test0:
+    type: test
+    options:
+      credentials: "test-token"
 bindings:
   app0:
     type: mcp
-    kind: proxy
+    kind: client
+    options:
+      server: http://localhost:8080/mcp
     routes:
-      - exit: app1
+      - exit: net0
         when:
-          - toolkit: github
-            capability: [resources]
-            tools: ["create_*"]
+          - tools:
+              - get_weather
+      - exit: net0
+        when:
+          - tools:
+              - get_status
+        guarded:
+          test0: []

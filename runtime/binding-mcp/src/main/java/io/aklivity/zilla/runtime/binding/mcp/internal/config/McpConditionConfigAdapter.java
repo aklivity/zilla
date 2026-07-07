@@ -34,7 +34,6 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 public final class McpConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String TOOLKIT_NAME = "toolkit";
-    private static final String CAPABILITY_NAME = "capability";
     private static final String TOOLS_NAME = "tools";
     private static final String PROMPTS_NAME = "prompts";
     private static final String RESOURCES_NAME = "resources";
@@ -56,13 +55,6 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
         if (mcpCondition.toolkit != null)
         {
             object.add(TOOLKIT_NAME, mcpCondition.toolkit);
-        }
-
-        if (mcpCondition.capability != null)
-        {
-            JsonArrayBuilder array = Json.createArrayBuilder();
-            mcpCondition.capability.forEach(array::add);
-            object.add(CAPABILITY_NAME, array);
         }
 
         if (mcpCondition.tools != null)
@@ -99,7 +91,6 @@ public final class McpConditionConfigAdapter implements ConditionConfigAdapterSp
 
         return McpConditionConfig.builder()
             .toolkit(toolkit)
-            .capability(asStringList(object, CAPABILITY_NAME))
             .tools(asStringList(object, TOOLS_NAME))
             .prompts(asStringList(object, PROMPTS_NAME))
             .resources(asStringList(object, RESOURCES_NAME))

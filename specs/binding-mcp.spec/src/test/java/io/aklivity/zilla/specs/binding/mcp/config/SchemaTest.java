@@ -72,12 +72,6 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectProxyRouteFilterCapabilityMismatch()
-    {
-        schema.validate("proxy.routes.filter.capability.invalid.yaml");
-    }
-
-    @Test(expected = JsonException.class)
     public void shouldRejectProxyWithAuthorization()
     {
         schema.validate("proxy.authorization.invalid.yaml");

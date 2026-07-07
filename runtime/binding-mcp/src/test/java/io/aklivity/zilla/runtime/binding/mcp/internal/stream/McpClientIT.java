@@ -287,6 +287,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.guarded.per.tool.yaml")
+    @Specification({
+        "${app}/tools.call.guarded.per.tool/client",
+        "${net}/lifecycle.initialize/server"})
+    public void shouldCallToolGuardedPerTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.call.is.error/client",
@@ -343,6 +353,16 @@ public class McpClientIT
         "${app}/tools.list.security.schemes/client",
         "${net}/tools.list.security.schemes/server"})
     public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.roles.per.tool.yaml")
+    @Specification({
+        "${app}/tools.list.security.schemes.per.tool/client",
+        "${net}/tools.list.security.schemes/server"})
+    public void shouldListToolsSecuritySchemesPerTool() throws Exception
     {
         k3po.finish();
     }

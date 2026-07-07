@@ -44,14 +44,15 @@ final class McpConditionMatcher
     McpConditionMatcher(
         McpConditionConfig condition)
     {
-        final List<String> capabilities = condition.capability;
         final String toolkit = condition.toolkit;
         this.toolkit = toolkit;
 
-        final boolean anyCapability = capabilities == null;
-        final boolean tools = anyCapability || capabilities.contains(CAPABILITY_TOOLS);
-        final boolean prompts = anyCapability || capabilities.contains(CAPABILITY_PROMPTS);
-        final boolean resources = anyCapability || capabilities.contains(CAPABILITY_RESOURCES);
+        // a capability is active when its own allow-set field is given; when none of the three
+        // are given at all, the condition is unrestricted and every capability is active
+        final boolean anyAllowSet = condition.tools != null || condition.prompts != null || condition.resources != null;
+        final boolean tools = !anyAllowSet || condition.tools != null;
+        final boolean prompts = !anyAllowSet || condition.prompts != null;
+        final boolean resources = !anyAllowSet || condition.resources != null;
 
         this.toolsPrefix = tools ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;
         this.promptsPrefix = prompts ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;

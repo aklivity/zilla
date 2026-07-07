@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.transform;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import jakarta.json.stream.JsonLocation;
 
@@ -46,8 +47,8 @@ public final class McpSchemeInjector implements JsonTransform
     }
 
     private final String arrayKey;
-    private final List<List<String>> schemes;
     private final boolean active;
+    private final Function<String, Map<String, List<String>>> rolesByTool;
     private final TextSource text = new TextSource();
     private final Control mediator = new Control();
     private final Control inject = new Control(true);
@@ -60,14 +61,17 @@ public final class McpSchemeInjector implements JsonTransform
     private int depth;
     private int itemDepth;
     private boolean itemsArmed;
+    private boolean nameArmed;
+    private Map<String, List<String>> itemRoles = Map.of();
 
     public McpSchemeInjector(
         String arrayKey,
-        Map<String, List<String>> roles)
+        boolean active,
+        Function<String, Map<String, List<String>>> rolesByTool)
     {
         this.arrayKey = arrayKey;
-        this.schemes = List.copyOf(roles.values());
-        this.active = !schemes.isEmpty();
+        this.active = active;
+        this.rolesByTool = rolesByTool;
     }
 
     @Override
@@ -77,6 +81,8 @@ public final class McpSchemeInjector implements JsonTransform
         depth = 0;
         itemDepth = 0;
         itemsArmed = false;
+        nameArmed = false;
+        itemRoles = Map.of();
     }
 
     @Override
@@ -134,6 +140,8 @@ public final class McpSchemeInjector implements JsonTransform
         {
         case START_OBJECT:
             itemDepth = 1;
+            nameArmed = false;
+            itemRoles = Map.of();
             state = element;
             status = sink.transform(mediator, source, event);
             break;
@@ -148,7 +156,8 @@ public final class McpSchemeInjector implements JsonTransform
         return status;
     }
 
-    // inside a direct element object: inject the securitySchemes member just before its closing brace
+    // inside a direct element object: resolve the item's own securitySchemes by its "name" field,
+    // then inject them (if any) just before the item's closing brace
     private Status onElement(
         JsonSource source,
         JsonEvent event,
@@ -166,11 +175,23 @@ public final class McpSchemeInjector implements JsonTransform
             itemDepth--;
             status = sink.transform(mediator, source, event);
             break;
+        case KEY_NAME:
+            nameArmed = itemDepth == 1 && "name".contentEquals(source.getStringView());
+            status = sink.transform(mediator, source, event);
+            break;
+        case VALUE_STRING:
+            if (nameArmed)
+            {
+                itemRoles = rolesByTool.apply(source.getString());
+                nameArmed = false;
+            }
+            status = sink.transform(mediator, source, event);
+            break;
         case END_OBJECT:
             itemDepth--;
             if (itemDepth == 0)
             {
-                status = injectSchemes(sink);
+                status = itemRoles.isEmpty() ? Status.ADVANCED : injectSchemes(sink, List.copyOf(itemRoles.values()));
                 if (status != Status.REJECTED)
                 {
                     status = sink.transform(mediator, source, event);
@@ -191,7 +212,8 @@ public final class McpSchemeInjector implements JsonTransform
 
     // emit "securitySchemes":[{"type":"oauth2","scopes":[...]}, ...] as structured events (carrying no source bytes)
     private Status injectSchemes(
-        JsonSink sink)
+        JsonSink sink,
+        List<List<String>> schemes)
     {
         Status status = sink.transform(inject, text.with(SECURITY_SCHEMES), JsonEvent.KEY_NAME);
         if (status != Status.REJECTED)

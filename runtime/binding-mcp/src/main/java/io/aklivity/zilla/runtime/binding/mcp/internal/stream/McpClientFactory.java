@@ -33,7 +33,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -1420,15 +1419,18 @@ public final class McpClientFactory implements McpStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null)
+        if (binding != null && extension.sizeof() > 0)
         {
-            final McpRouteConfig route = binding.resolve(authorization);
+            final McpBeginExFW mcpBeginEx = mcpBeginExRO.wrap(
+                extension.buffer(), extension.offset(), extension.limit());
 
-            if (route != null && extension.sizeof() > 0)
+            // resolves per request kind (tool/prompt/resource identifier or capability), not just
+            // by authorization, so a per-tool guarded route is honored at tools/call and friends;
+            // KIND_LIFECYCLE has no capability and degrades to the tool-blind session-level resolve
+            final McpRouteConfig route = binding.resolve(mcpBeginEx, authorization);
+
+            if (route != null)
             {
-                final McpBeginExFW mcpBeginEx = mcpBeginExRO.wrap(
-                    extension.buffer(), extension.offset(), extension.limit());
-
                 if (mcpBeginEx.kind() == KIND_LIFECYCLE)
                 {
                     final String requestSessionId = mcpBeginEx.lifecycle().sessionId().asString();
@@ -4861,14 +4863,13 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(mcp);
             final McpBindingConfig binding = bindings.get(mcp.routedId);
-            final Map<String, List<String>> roles = binding.getRoles(mcp.resolvedId);
             // per-stream pipeline: the injector carries in-flight parse state across response data frames,
             // so each concurrent tools/list stream owns its own (unlike the proxy filter, which runs to
             // completion synchronously and is reused per worker)
             final JsonParserEx parser = JsonEx.createParser();
             final JsonGeneratorEx generator = JsonEx.createGenerator();
             this.pipeline = JsonEx.stream(parser)
-                .transform(new McpSchemeInjector(JSON_KEY_TOOLS, roles))
+                .transform(new McpSchemeInjector(JSON_KEY_TOOLS, binding.hasToolGuardedRoutes(), binding::getRoles))
                 .into(generator);
         }
 

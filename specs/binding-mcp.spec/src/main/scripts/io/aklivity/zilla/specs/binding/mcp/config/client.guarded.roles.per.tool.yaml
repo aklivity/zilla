@@ -15,22 +15,35 @@
 
 ---
 name: test
-stores:
-  memory0:
+guards:
+  test0:
     type: test
+    options:
+      roles:
+        - read
+  test1:
+    type: test
+    options:
+      roles:
+        - write
 bindings:
   app0:
     type: mcp
-    kind: proxy
+    kind: client
     options:
-      cache:
-        store: memory0
+      server: http://localhost:8080/mcp
     routes:
-      - exit: app1
+      - exit: net0
         when:
-          - toolkit: bluesky
-            tools: ["*"]
-      - exit: app2
+          - tools:
+              - get_weather
+        guarded:
+          test0:
+            - read
+      - exit: net0
         when:
-          - toolkit: quartz
-            tools: ["*"]
+          - tools:
+              - get_status
+        guarded:
+          test1:
+            - write

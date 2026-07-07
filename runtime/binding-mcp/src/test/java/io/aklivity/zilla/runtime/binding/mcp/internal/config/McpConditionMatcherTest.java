@@ -32,7 +32,6 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .capability(asList("tools", "resources"))
             .tools(asList("create_*", "get_*"))
             .resources(asList("repo://*"))
             .build();
@@ -48,7 +47,6 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .capability(asList("tools", "resources"))
             .tools(asList("create_*", "get_*"))
             .resources(asList("repo://*"))
             .build();
@@ -59,11 +57,11 @@ public class McpConditionMatcherTest
     }
 
     @Test
-    public void shouldMatchAnyToolWhenAllowSetAbsent()
+    public void shouldMatchAnyToolWhenWildcardGiven()
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .capability(asList("tools"))
+            .tools(asList("*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -76,7 +74,6 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("slack")
-            .capability(asList("tools"))
             .tools(emptyList())
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
@@ -89,7 +86,6 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("slack")
-            .capability(asList("tools"))
             .tools(emptyList())
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
@@ -100,12 +96,26 @@ public class McpConditionMatcherTest
     }
 
     @Test
+    public void shouldServeAllCapabilitiesWhenNoAllowSetsGiven()
+    {
+        McpConditionConfig condition = McpConditionConfig.builder()
+            .toolkit("github")
+            .build();
+        McpConditionMatcher matcher = new McpConditionMatcher(condition);
+
+        assertTrue(matcher.serves("tools"));
+        assertTrue(matcher.serves("prompts"));
+        assertTrue(matcher.serves("resources"));
+        assertEquals("create_pr", matcher.match("tools", "github__create_pr"));
+    }
+
+    @Test
     public void shouldAdmitNamesByAllowSet()
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .capability(asList("tools", "resources"))
             .tools(asList("get_*"))
+            .resources(asList("*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -120,7 +130,6 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .capability(asList("tools", "resources"))
             .tools(asList("get_*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
@@ -131,11 +140,23 @@ public class McpConditionMatcherTest
     }
 
     @Test
+    public void shouldReportFilteringWhenWildcardGiven()
+    {
+        McpConditionConfig condition = McpConditionConfig.builder()
+            .toolkit("github")
+            .tools(asList("*"))
+            .build();
+        McpConditionMatcher matcher = new McpConditionMatcher(condition);
+
+        assertTrue(matcher.filters("tools"));
+    }
+
+    @Test
     public void shouldNotMatchUnservedCapability()
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .capability(asList("resources"))
+            .resources(asList("*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
