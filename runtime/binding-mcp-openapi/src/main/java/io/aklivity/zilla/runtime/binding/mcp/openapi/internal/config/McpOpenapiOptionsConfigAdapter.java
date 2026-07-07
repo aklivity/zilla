@@ -47,7 +47,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
     private static final String TOOLS_NAME = "tools";
     private static final String RESOURCES_NAME = "resources";
     private static final String DESCRIPTION_NAME = "description";
-    private static final String SCHEMAS_NAME = "schemas";
+    private static final String SUMMARY_NAME = "summary";
     private static final String INPUT_NAME = "input";
     private static final String OUTPUT_NAME = "output";
 
@@ -119,20 +119,19 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 {
                     toolObject.add(DESCRIPTION_NAME, tool.description);
                 }
-                if (tool.input != null || tool.output != null)
+                if (tool.summary != null)
                 {
-                    JsonObjectBuilder schemas = Json.createObjectBuilder();
-                    if (tool.input != null)
-                    {
-                        model.adaptType(tool.input.model);
-                        schemas.add(INPUT_NAME, model.adaptToJson(tool.input));
-                    }
-                    if (tool.output != null)
-                    {
-                        model.adaptType(tool.output.model);
-                        schemas.add(OUTPUT_NAME, model.adaptToJson(tool.output));
-                    }
-                    toolObject.add(SCHEMAS_NAME, schemas);
+                    toolObject.add(SUMMARY_NAME, tool.summary);
+                }
+                if (tool.input != null)
+                {
+                    model.adaptType(tool.input.model);
+                    toolObject.add(INPUT_NAME, model.adaptToJson(tool.input));
+                }
+                if (tool.output != null)
+                {
+                    model.adaptType(tool.output.model);
+                    toolObject.add(OUTPUT_NAME, model.adaptToJson(tool.output));
                 }
                 toolsObject.add(tool.name, toolObject);
             }
@@ -152,9 +151,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 if (resource.output != null)
                 {
                     model.adaptType(resource.output.model);
-                    JsonObjectBuilder schemas = Json.createObjectBuilder();
-                    schemas.add(OUTPUT_NAME, model.adaptToJson(resource.output));
-                    resourceObject.add(SCHEMAS_NAME, schemas);
+                    resourceObject.add(OUTPUT_NAME, model.adaptToJson(resource.output));
                 }
                 resourcesObject.add(resource.uri, resourceObject);
             }
@@ -231,25 +228,21 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 String description = toolObject.containsKey(DESCRIPTION_NAME)
                     ? toolObject.getString(DESCRIPTION_NAME)
                     : null;
+                String summary = toolObject.containsKey(SUMMARY_NAME)
+                    ? toolObject.getString(SUMMARY_NAME)
+                    : null;
 
-                ModelConfig input = null;
-                ModelConfig output = null;
-                if (toolObject.containsKey(SCHEMAS_NAME))
-                {
-                    JsonObject schemas = toolObject.getJsonObject(SCHEMAS_NAME);
-                    if (schemas.containsKey(INPUT_NAME))
-                    {
-                        input = model.adaptFromJson(schemas.get(INPUT_NAME));
-                    }
-                    if (schemas.containsKey(OUTPUT_NAME))
-                    {
-                        output = model.adaptFromJson(schemas.get(OUTPUT_NAME));
-                    }
-                }
+                ModelConfig input = toolObject.containsKey(INPUT_NAME)
+                    ? model.adaptFromJson(toolObject.get(INPUT_NAME))
+                    : null;
+                ModelConfig output = toolObject.containsKey(OUTPUT_NAME)
+                    ? model.adaptFromJson(toolObject.get(OUTPUT_NAME))
+                    : null;
 
                 mcpOpenapiOptions.tool()
                     .name(name)
                     .description(description)
+                    .summary(summary)
                     .input(input)
                     .output(output)
                     .build();
@@ -266,15 +259,9 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     ? resourceObject.getString(DESCRIPTION_NAME)
                     : null;
 
-                ModelConfig output = null;
-                if (resourceObject.containsKey(SCHEMAS_NAME))
-                {
-                    JsonObject schemas = resourceObject.getJsonObject(SCHEMAS_NAME);
-                    if (schemas.containsKey(OUTPUT_NAME))
-                    {
-                        output = model.adaptFromJson(schemas.get(OUTPUT_NAME));
-                    }
-                }
+                ModelConfig output = resourceObject.containsKey(OUTPUT_NAME)
+                    ? model.adaptFromJson(resourceObject.get(OUTPUT_NAME))
+                    : null;
 
                 mcpOpenapiOptions.resource()
                     .uri(uri)

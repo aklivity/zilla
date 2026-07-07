@@ -99,13 +99,12 @@ bindings:
               version: latest
       tools:
         greet:
-          schemas:
-            input:
-              model: json
-              catalog:
-                catalog0:
-                  - subject: greet_input
-                    version: latest
+          input:
+            model: json
+            catalog:
+              catalog0:
+                - subject: greet_input
+                  version: latest
     routes:
       - when:
           - tool: greet

@@ -78,16 +78,18 @@ public class McpOpenapiOptionsConfigAdapterTest
               "tools": {
                 "create_pr": {
                   "description": "Create a pull request.",
-                  "schemas": {
-                    "input": {
-                      "model": "string"
-                    }
+                  "summary": "Create a pull request",
+                  "input": {
+                    "model": "string"
                   }
                 }
               },
               "resources": {
                 "repo://{owner}/{repo}": {
-                  "description": "A GitHub repository."
+                  "description": "A GitHub repository.",
+                  "output": {
+                    "model": "string"
+                  }
                 }
               }
             }
@@ -105,10 +107,12 @@ public class McpOpenapiOptionsConfigAdapterTest
         assertThat(options.tools, not(nullValue()));
         assertThat(options.tools.get(0).name, equalTo("create_pr"));
         assertThat(options.tools.get(0).description, equalTo("Create a pull request."));
+        assertThat(options.tools.get(0).summary, equalTo("Create a pull request"));
         assertThat(options.tools.get(0).input, not(nullValue()));
         assertThat(options.resources, not(nullValue()));
         assertThat(options.resources.get(0).uri, equalTo("repo://{owner}/{repo}"));
         assertThat(options.resources.get(0).description, equalTo("A GitHub repository."));
+        assertThat(options.resources.get(0).output, not(nullValue()));
     }
 
     @Test
@@ -118,8 +122,9 @@ public class McpOpenapiOptionsConfigAdapterTest
             "{\"specs\":{\"openapi_github0\":{\"catalog\":{\"catalog0\":" +
             "{\"subject\":\"rest-api\",\"version\":\"latest\"}},\"server\":\"https://api.github.com\"}}," +
             "\"tools\":{\"create_pr\":{\"description\":\"Create a pull request.\"," +
-            "\"schemas\":{\"input\":\"string\"}}}," +
-            "\"resources\":{\"repo://{owner}/{repo}\":{\"description\":\"A GitHub repository.\"}}}";
+            "\"summary\":\"Create a pull request\",\"input\":\"string\"}}," +
+            "\"resources\":{\"repo://{owner}/{repo}\":" +
+            "{\"description\":\"A GitHub repository.\",\"output\":\"string\"}}}";
 
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec()
@@ -134,11 +139,13 @@ public class McpOpenapiOptionsConfigAdapterTest
             .tool()
                 .name("create_pr")
                 .description("Create a pull request.")
+                .summary("Create a pull request")
                 .input(StringModelConfig.builder().build())
                 .build()
             .resource()
                 .uri("repo://{owner}/{repo}")
                 .description("A GitHub repository.")
+                .output(StringModelConfig.builder().build())
                 .build()
             .build();
 

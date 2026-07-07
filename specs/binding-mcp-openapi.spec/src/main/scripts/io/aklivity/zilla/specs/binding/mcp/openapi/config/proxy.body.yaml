@@ -113,13 +113,12 @@ bindings:
       tools:
         create_pr:
           description: Create a pull request to merge one branch into another.
-          schemas:
-            input:
-              model: json
-              catalog:
-                catalog0:
-                  - subject: create_pr_input
-                    version: latest
+          input:
+            model: json
+            catalog:
+              catalog0:
+                - subject: create_pr_input
+                  version: latest
     routes:
       - when:
           - tool: create_pr

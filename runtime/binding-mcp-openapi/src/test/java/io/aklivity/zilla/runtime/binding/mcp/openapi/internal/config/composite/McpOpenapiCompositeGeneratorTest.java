@@ -507,6 +507,58 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
+    public void shouldOverrideSummary()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0"))
+                    .build()
+                .tool()
+                    .name("create_pr")
+                    .description("Create a pull request.")
+                    .summary("Open a new PR")
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "create_pr".equals(t.name))
+            .findFirst()
+            .orElse(null);
+        assertThat(tool, notNullValue());
+        assertThat(tool.summary, equalTo("Open a new PR"));
+    }
+
+    @Test
     public void shouldOverrideInputSchema()
     {
         ModelConfig override = JsonModelConfig.builder()

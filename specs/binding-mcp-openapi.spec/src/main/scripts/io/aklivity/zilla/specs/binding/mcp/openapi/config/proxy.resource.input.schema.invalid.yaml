@@ -68,9 +68,8 @@ bindings:
       resources:
         read_order:
           description: Read a customer order by id.
-          schemas:
-            input:
-              model: test
+          input:
+            model: test
     routes:
       - when:
           - resource: read_order

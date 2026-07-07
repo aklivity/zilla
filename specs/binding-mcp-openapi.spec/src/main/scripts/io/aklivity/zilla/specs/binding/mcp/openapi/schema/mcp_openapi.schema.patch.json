@@ -117,24 +117,20 @@
                                                 "title": "Tool Description",
                                                 "type": "string"
                                             },
-                                            "schemas":
+                                            "summary":
                                             {
-                                                "title": "Schemas",
-                                                "type": "object",
-                                                "properties":
-                                                {
-                                                    "output":
-                                                    {
-                                                        "title": "Output Schema",
-                                                        "$ref": "#/$defs/models"
-                                                    },
-                                                    "input":
-                                                    {
-                                                        "title": "Input Schema",
-                                                        "$ref": "#/$defs/models"
-                                                    }
-                                                },
-                                                "additionalProperties": false
+                                                "title": "Tool Summary",
+                                                "type": "string"
+                                            },
+                                            "output":
+                                            {
+                                                "title": "Output Schema",
+                                                "$ref": "#/$defs/models"
+                                            },
+                                            "input":
+                                            {
+                                                "title": "Input Schema",
+                                                "$ref": "#/$defs/models"
                                             }
                                         },
                                         "additionalProperties": false
@@ -158,19 +154,10 @@
                                                 "title": "Resource Description",
                                                 "type": "string"
                                             },
-                                            "schemas":
+                                            "output":
                                             {
-                                                "title": "Schemas",
-                                                "type": "object",
-                                                "properties":
-                                                {
-                                                    "output":
-                                                    {
-                                                        "title": "Output Schema",
-                                                        "$ref": "#/$defs/models"
-                                                    }
-                                                },
-                                                "additionalProperties": false
+                                                "title": "Output Schema",
+                                                "$ref": "#/$defs/models"
                                             }
                                         },
                                         "additionalProperties": false

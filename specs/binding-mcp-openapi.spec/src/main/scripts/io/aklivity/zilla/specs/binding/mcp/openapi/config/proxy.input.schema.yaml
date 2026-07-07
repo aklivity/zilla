@@ -69,9 +69,8 @@ bindings:
       tools:
         create_pr:
           description: Create a pull request to merge one branch into another.
-          schemas:
-            input:
-              model: test
+          input:
+            model: test
     routes:
       - when:
           - tool: create_pr

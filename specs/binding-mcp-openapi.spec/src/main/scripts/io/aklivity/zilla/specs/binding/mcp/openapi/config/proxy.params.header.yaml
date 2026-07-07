@@ -97,13 +97,12 @@ bindings:
               version: latest
       tools:
         notify:
-          schemas:
-            input:
-              model: json
-              catalog:
-                catalog0:
-                  - subject: notify_input
-                    version: latest
+          input:
+            model: json
+            catalog:
+              catalog0:
+                - subject: notify_input
+                  version: latest
     routes:
       - when:
           - tool: notify
