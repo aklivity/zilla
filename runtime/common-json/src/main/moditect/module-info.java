@@ -20,6 +20,11 @@ module io.aklivity.zilla.runtime.common.json
 
     exports io.aklivity.zilla.runtime.common.json;
 
+    uses io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
+
     provides jakarta.json.spi.JsonProvider
         with io.aklivity.zilla.runtime.common.json.internal.json.JsonProviderImpl;
+
+    provides io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory
+        with io.aklivity.zilla.runtime.common.json.internal.JsonTokenizerImplFactory;
 }
