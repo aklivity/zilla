@@ -798,11 +798,11 @@ public final class McpHttpProxyFactory implements BindingHandler
             requestHandled = true;
             doMcpWindow(traceId);
 
-            final McpHttpWithConfig with = route.with;
             final String path = route.resolvePath(null, params);
+            final Map<String, String> headers = route.resolveHeaders(null, params);
             credentials.clear();
             binding.resolveCredentials(authorization, credentials);
-            delegate.doHttpBegin(traceId, with.headers, credentials, path, null);
+            delegate.doHttpBegin(traceId, headers, credentials, path, null);
             delegate.requestComplete();
             delegate.flushRequest(traceId);
         }
@@ -1243,7 +1243,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         private void sendRequestBegin(
             long traceId)
         {
-            final McpHttpWithConfig with = route.with;
             String path = route.resolvePath(requestArgs, params);
             if (queryCaptured != null)
             {
@@ -1253,9 +1252,10 @@ public final class McpHttpProxyFactory implements BindingHandler
                     path = path + "?" + query;
                 }
             }
+            final Map<String, String> headers = route.resolveHeaders(requestArgs, params);
             credentials.clear();
             binding.resolveCredentials(authorization, credentials);
-            delegate.doHttpBegin(traceId, with.headers, credentials, path,
+            delegate.doHttpBegin(traceId, headers, credentials, path,
                 requestGenerator != null ? DEFAULT_CONTENT_TYPE : null);
         }
 

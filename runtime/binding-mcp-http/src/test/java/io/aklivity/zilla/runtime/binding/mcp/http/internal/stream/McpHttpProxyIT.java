@@ -530,4 +530,24 @@ public class McpHttpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.header.yaml")
+    @Specification({
+        "${mcp}/echo.header.present/client",
+        "${http}/echo.header.present/server"})
+    public void shouldIncludeHeaderWhenArgumentPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.header.yaml")
+    @Specification({
+        "${mcp}/echo.header.absent/client",
+        "${http}/echo.header.absent/server"})
+    public void shouldOmitHeaderWhenArgumentAbsent() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -137,6 +137,37 @@ public final class McpHttpRouteConfig
         return resource != null && resource.equals(name);
     }
 
+    // Resolves every header other than :path (handled separately via resolvePath, since it also
+    // carries the query string). A header whose value references an args./params. accessor that is
+    // absent is omitted entirely, not sent with an empty value -- unlike interpolatePath (used for
+    // :path and query fragments), which always has a value to substitute into.
+    public Map<String, String> resolveHeaders(
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        final Map<String, String> resolved = new LinkedHashMap<>();
+        if (with != null && with.headers != null)
+        {
+            for (Map.Entry<String, String> entry : with.headers.entrySet())
+            {
+                final String name = entry.getKey();
+                if (HEADER_PATH.equals(name))
+                {
+                    resolved.put(name, entry.getValue());
+                }
+                else
+                {
+                    final String value = interpolateStrict(entry.getValue(), args, params);
+                    if (value != null)
+                    {
+                        resolved.put(name, value);
+                    }
+                }
+            }
+        }
+        return resolved;
+    }
+
     public String resolvePath(
         Map<String, String> args,
         Map<String, String> params)
@@ -213,6 +244,60 @@ public final class McpHttpRouteConfig
                 }
             }
             result = builder.toString();
+        }
+
+        return result;
+    }
+
+    // Like interpolatePath, but returns null (instead of substituting an empty string) if any
+    // referenced accessor is absent -- the signal resolveHeaders uses to omit a header entirely
+    // rather than send it with an empty value.
+    private static String interpolateStrict(
+        String template,
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        String result = template;
+
+        if (template != null && template.contains("${"))
+        {
+            final StringBuilder builder = new StringBuilder();
+            int index = 0;
+            boolean resolved = true;
+            while (resolved && index < template.length())
+            {
+                final int start = template.indexOf("${", index);
+                if (start < 0)
+                {
+                    builder.append(template, index, template.length());
+                    index = template.length();
+                }
+                else
+                {
+                    builder.append(template, index, start);
+                    final int end = template.indexOf('}', start + 2);
+                    if (end < 0)
+                    {
+                        builder.append(template, start, template.length());
+                        index = template.length();
+                    }
+                    else
+                    {
+                        final String expression = template.substring(start + 2, end);
+                        final String raw = rawValue(expression, args, params);
+                        if (raw == null)
+                        {
+                            resolved = false;
+                        }
+                        else
+                        {
+                            builder.append(encode(raw));
+                            index = end + 1;
+                        }
+                    }
+                }
+            }
+            result = resolved ? builder.toString() : null;
         }
 
         return result;
