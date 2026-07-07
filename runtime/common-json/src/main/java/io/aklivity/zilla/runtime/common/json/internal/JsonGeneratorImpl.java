@@ -210,10 +210,11 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence name,
         Completion completion)
     {
+        final int quoteWidth = escaped ? 2 : 1;
         if (pending != Pending.KEY)
         {
             final boolean closesEmpty = completion == Completion.COMPLETE && name.length() == 0;
-            if (remaining() < (hasMembers[depth - 1] ? 1 : 0) + 1 + (closesEmpty ? 2 : 0))
+            if (remaining() < (hasMembers[depth - 1] ? 1 : 0) + quoteWidth + (closesEmpty ? quoteWidth + 1 : 0))
             {
                 return this;
             }
@@ -229,10 +230,10 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         // fragment for the closing quote and key separator; report the source chars taken via consumed() so a
         // chunking driver advances its cursor and resumes from the remainder, the key-domain analog of
         // write(CharSequence, Completion)
-        final int reserve = completion == Completion.COMPLETE ? 2 : 0;
+        final int reserve = completion == Completion.COMPLETE ? quoteWidth + 1 : 0;
         final int written = writeStringBody(name, reserve);
         consumed += written;
-        if (written == name.length() && completion == Completion.COMPLETE && remaining() >= 2)
+        if (written == name.length() && completion == Completion.COMPLETE && remaining() >= quoteWidth + 1)
         {
             putByte.accept('"');
             putByte.accept(':');
@@ -283,10 +284,11 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence value,
         Completion completion)
     {
+        final int quoteWidth = escaped ? 2 : 1;
         if (pending != Pending.STRING)
         {
             final boolean closesEmpty = completion == Completion.COMPLETE && value.length() == 0;
-            if (remaining() < (needsComma() ? 1 : 0) + 1 + (closesEmpty ? 1 : 0))
+            if (remaining() < (needsComma() ? 1 : 0) + quoteWidth + (closesEmpty ? quoteWidth : 0))
             {
                 return this;
             }
@@ -297,10 +299,10 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         // emit only the code points whose escaped form fits the output bound (reserving room for the
         // closing quote on the final fragment); report the source chars taken via consumed() so a chunking
         // driver advances its cursor and resumes from the remainder, the char-domain analog of writeSegment
-        final int reserve = completion == Completion.COMPLETE ? 1 : 0;
+        final int reserve = completion == Completion.COMPLETE ? quoteWidth : 0;
         final int written = writeStringBody(value, reserve);
         consumed += written;
-        if (written == value.length() && completion == Completion.COMPLETE && remaining() >= 1)
+        if (written == value.length() && completion == Completion.COMPLETE && remaining() >= quoteWidth)
         {
             putByte.accept('"');
             pending = Pending.NONE;
@@ -856,10 +858,18 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
     }
 
-    // Output byte width of a code point once written as canonical JSON string content: a short escape
-    // (2 bytes), a control-char \\uXXXX escape (6), or its UTF-8 encoding (1-4). Mirrors emitStringCodePoint
-    // for the verbatim (non GENERATE_ESCAPED) generator, which is the only mode the decoded value path uses.
-    private static int codePointWidth(
+    // Output byte width of a code point once written as canonical JSON string content, dispatching on
+    // escaped so the budget matches what emitStringCodePoint (via putByte) actually produces in each mode.
+    private int codePointWidth(
+        int codePoint)
+    {
+        return escaped ? escapedCodePointWidth(codePoint) : verbatimCodePointWidth(codePoint);
+    }
+
+    // Verbatim-mode width: a short escape (2 bytes), a control-char \\uXXXX escape (6), or the UTF-8
+    // encoding (1-4). Also the width of any code point's UTF-8 bytes once escaped, since none of those
+    // bytes ever match a special escape byte value (see escapedCodePointWidth).
+    private static int verbatimCodePointWidth(
         int codePoint)
     {
         int width;
@@ -895,6 +905,34 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             {
                 width = 4;
             }
+            break;
+        }
+        return width;
+    }
+
+    // Escaped-mode width: emitStringCodePoint's own escape bytes (e.g. '\\' then '"' for a quote) are
+    // themselves routed through the escaping putByte, so each doubles up per escapedWidth; a code point
+    // with no special handling falls through to writeUtf8, whose raw bytes are never special escape
+    // values and so cost the same as verbatim.
+    private static int escapedCodePointWidth(
+        int codePoint)
+    {
+        int width;
+        switch (codePoint)
+        {
+        case '"':
+        case '\\':
+            width = 4;
+            break;
+        case '\n':
+        case '\r':
+        case '\t':
+        case '\b':
+        case '\f':
+            width = 3;
+            break;
+        default:
+            width = codePoint < 0x20 ? 7 : verbatimCodePointWidth(codePoint);
             break;
         }
         return width;

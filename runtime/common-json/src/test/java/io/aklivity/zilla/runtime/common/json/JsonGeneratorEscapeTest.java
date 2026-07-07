@@ -122,6 +122,57 @@ class JsonGeneratorEscapeTest
     }
 
     @Test
+    void shouldWriteDoublyEscapedQuoteWhenExactRoom()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[10]);
+        JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true))
+            .wrap(buffer, 0, 10);
+        generator.write("a\"b");
+        assertEquals(3, generator.consumed());
+        assertEquals(10, generator.length());
+    }
+
+    @Test
+    void shouldNotOverrunWrappedLimitWhenRoomInsufficientForDoublyEscapedQuote()
+    {
+        for (int limit = 1; limit <= 10; limit++)
+        {
+            MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[limit]);
+            JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true))
+                .wrap(buffer, 0, limit);
+            generator.write("a\"b");
+            assertTrue(generator.length() <= limit, "overran limit=" + limit);
+        }
+    }
+
+    @Test
+    void shouldNotOverrunWrappedLimitWhenRoomInsufficientForDoublyEscapedKeyQuote()
+    {
+        for (int limit = 1; limit <= 12; limit++)
+        {
+            MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[limit]);
+            JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true))
+                .wrap(buffer, 0, limit);
+            generator.writeStartObject();
+            generator.writeKey("a\"b");
+            assertTrue(generator.length() <= limit, "overran limit=" + limit);
+        }
+    }
+
+    @Test
+    void shouldNotOverrunWrappedLimitWhenRoomInsufficientForDoublyEscapedBackslashOrControl()
+    {
+        for (int limit = 1; limit <= 12; limit++)
+        {
+            MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[limit]);
+            JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true))
+                .wrap(buffer, 0, limit);
+            generator.write("a\\\nb");
+            assertTrue(generator.length() <= limit, "overran limit=" + limit);
+        }
+    }
+
+    @Test
     void shouldRoundTripNestedDocument()
     {
         assertRoundTrips(g -> g
