@@ -640,7 +640,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private void doServerFanoutInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
             {
                 doServerFanoutInitialEnd(traceId);
             }
@@ -658,7 +658,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private void doServerFanoutInitialAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
             {
                 doServerFanoutInitialAbort(traceId);
             }
@@ -1240,7 +1240,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private void doServerFanoutReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (KafkaState.initialOpening(state) && !KafkaState.replyClosed(state))
             {
                 doServerFanoutReplyReset(traceId);
             }
