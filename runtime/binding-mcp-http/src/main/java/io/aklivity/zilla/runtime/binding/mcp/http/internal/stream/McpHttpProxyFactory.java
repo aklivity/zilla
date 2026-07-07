@@ -100,6 +100,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final String HEADER_PATH = ":path";
     private static final String HEADER_STATUS = ":status";
     private static final String HEADER_CONTENT_TYPE = "content-type";
+    private static final String HEADER_COOKIE = "cookie";
     private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
     private static final int FLAGS_INIT = 0x02;
@@ -800,6 +801,11 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             final String path = route.resolvePath(null, params);
             final Map<String, String> headers = route.resolveHeaders(null, params);
+            final String cookie = route.resolveCookies(null, params);
+            if (cookie != null)
+            {
+                headers.put(HEADER_COOKIE, cookie);
+            }
             credentials.clear();
             binding.resolveCredentials(authorization, credentials);
             delegate.doHttpBegin(traceId, headers, credentials, path, null);
@@ -1253,6 +1259,11 @@ public final class McpHttpProxyFactory implements BindingHandler
                 }
             }
             final Map<String, String> headers = route.resolveHeaders(requestArgs, params);
+            final String cookie = route.resolveCookies(requestArgs, params);
+            if (cookie != null)
+            {
+                headers.put(HEADER_COOKIE, cookie);
+            }
             credentials.clear();
             binding.resolveCredentials(authorization, credentials);
             delegate.doHttpBegin(traceId, headers, credentials, path,

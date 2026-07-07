@@ -105,6 +105,10 @@ public final class McpHttpRouteConfig
             {
                 with.headers.values().forEach(value -> collectAccessors(value, args, params));
             }
+            if (with.cookies != null)
+            {
+                with.cookies.values().forEach(value -> collectAccessors(value, args, params));
+            }
             if (bodyTemplate != null)
             {
                 bodyTemplate.values().forEach(value -> collectAccessors(value, args, params));
@@ -166,6 +170,35 @@ public final class McpHttpRouteConfig
             }
         }
         return resolved;
+    }
+
+    // Unlike resolveHeaders, where each header is independently included or omitted, cookies must
+    // aggregate into a single Cookie header value -- so a cookie whose accessor is unresolved is just
+    // dropped from the aggregate rather than causing the whole header to be omitted; only when every
+    // configured cookie is unresolved does this return null (no Cookie header at all).
+    public String resolveCookies(
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        String result = null;
+        if (with != null && with.cookies != null)
+        {
+            final StringBuilder cookie = new StringBuilder();
+            for (Map.Entry<String, String> entry : with.cookies.entrySet())
+            {
+                final String value = interpolateStrict(entry.getValue(), args, params);
+                if (value != null)
+                {
+                    if (cookie.length() > 0)
+                    {
+                        cookie.append("; ");
+                    }
+                    cookie.append(entry.getKey()).append('=').append(value);
+                }
+            }
+            result = cookie.length() > 0 ? cookie.toString() : null;
+        }
+        return result;
     }
 
     public String resolvePath(

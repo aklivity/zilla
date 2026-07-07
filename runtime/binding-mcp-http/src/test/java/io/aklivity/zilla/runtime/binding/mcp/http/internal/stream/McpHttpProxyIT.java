@@ -550,4 +550,34 @@ public class McpHttpProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.cookie.yaml")
+    @Specification({
+        "${mcp}/echo.cookie.both.present/client",
+        "${http}/echo.cookie.both.present/server"})
+    public void shouldAggregateCookiesWhenBothArgumentsPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cookie.yaml")
+    @Specification({
+        "${mcp}/echo.cookie.one.absent/client",
+        "${http}/echo.cookie.one.absent/server"})
+    public void shouldOmitOneCookieWhenOneArgumentAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cookie.yaml")
+    @Specification({
+        "${mcp}/echo.cookie.all.absent/client",
+        "${http}/echo.cookie.all.absent/server"})
+    public void shouldOmitCookieHeaderWhenAllArgumentsAbsent() throws Exception
+    {
+        k3po.finish();
+    }
 }

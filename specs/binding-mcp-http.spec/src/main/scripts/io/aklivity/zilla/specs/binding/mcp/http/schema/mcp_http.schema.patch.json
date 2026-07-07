@@ -226,6 +226,19 @@
                                             },
                                             "additionalProperties": false
                                         },
+                                        "cookies":
+                                        {
+                                            "title": "Cookies",
+                                            "type": "object",
+                                            "patternProperties":
+                                            {
+                                                "^[A-Za-z0-9_-]+$":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
                                         "query":
                                         {
                                             "title": "Query Projection",

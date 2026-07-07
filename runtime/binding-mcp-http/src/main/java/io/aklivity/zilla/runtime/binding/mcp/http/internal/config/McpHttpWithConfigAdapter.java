@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String HEADERS_NAME = "headers";
+    private static final String COOKIES_NAME = "cookies";
     private static final String QUERY_NAME = "query";
     private static final String BODY_NAME = "body";
     private static final String TEMPLATE_NAME = "template";
@@ -57,6 +58,13 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
             JsonObjectBuilder headers = Json.createObjectBuilder();
             mcpHttpWith.headers.forEach(headers::add);
             object.add(HEADERS_NAME, headers);
+        }
+
+        if (mcpHttpWith.cookies != null && !mcpHttpWith.cookies.isEmpty())
+        {
+            JsonObjectBuilder cookies = Json.createObjectBuilder();
+            mcpHttpWith.cookies.forEach(cookies::add);
+            object.add(COOKIES_NAME, cookies);
         }
 
         if (mcpHttpWith.query != null)
@@ -93,6 +101,17 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
             }
         }
 
+        Map<String, String> cookies = null;
+        if (object.containsKey(COOKIES_NAME))
+        {
+            JsonObject cookiesObject = object.getJsonObject(COOKIES_NAME);
+            cookies = new LinkedHashMap<>();
+            for (String name : cookiesObject.keySet())
+            {
+                cookies.put(name, cookiesObject.getString(name));
+            }
+        }
+
         ModelConfig query = object.containsKey(QUERY_NAME)
             ? model.adaptFromJson(object.get(QUERY_NAME))
             : null;
@@ -117,6 +136,6 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
             }
         }
 
-        return new McpHttpWithConfig(headers, query, body, bodyTemplate);
+        return new McpHttpWithConfig(headers, cookies, query, body, bodyTemplate);
     }
 }
