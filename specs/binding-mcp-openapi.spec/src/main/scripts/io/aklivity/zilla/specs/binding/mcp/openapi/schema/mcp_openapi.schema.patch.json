@@ -254,6 +254,15 @@
                                             {
                                                 "type": "string"
                                             }
+                                        },
+                                        "body":
+                                        {
+                                            "title": "Body Template",
+                                            "type": "object",
+                                            "additionalProperties":
+                                            {
+                                                "type": "string"
+                                            }
                                         }
                                     },
                                     "required": [ "spec" ],

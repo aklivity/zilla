@@ -191,7 +191,7 @@ public final class McpOpenapiCompositeGenerator
                 }
 
                 routed.add(new RoutedOperation(toolConfig(binding, routeTool), resourceConfig(binding, resource),
-                    operation, resolution.guarded, serverByLabel.get(with.spec), with.params));
+                    operation, resolution.guarded, serverByLabel.get(with.spec), with.params, with.body));
             }
         }
 
@@ -682,11 +682,13 @@ public final class McpOpenapiCompositeGenerator
         final Map<String, String> cookies = new LinkedHashMap<>();
         injectCookieParams(cookies, operation, accessor, entry.params);
 
-        final ModelConfig body = operation.hasRequestBody()
+        final boolean bodyTemplated = !entry.body.isEmpty();
+        final ModelConfig body = !bodyTemplated && operation.hasRequestBody()
             ? jsonModel("%s-body".formatted(entry.subjectName()))
             : null;
 
-        return new McpHttpWithConfig(headers, cookies.isEmpty() ? null : cookies, null, body, null);
+        return new McpHttpWithConfig(headers, cookies.isEmpty() ? null : cookies, null, body,
+            bodyTemplated ? entry.body : null);
     }
 
     private static ResolvedServer resolveServerFromSpec(
@@ -1060,6 +1062,7 @@ public final class McpOpenapiCompositeGenerator
         private final List<GuardedRef> guarded;
         private final String server;
         private final Map<String, String> params;
+        private final Map<String, String> body;
 
         private RoutedOperation(
             McpOpenapiToolConfig tool,
@@ -1067,7 +1070,8 @@ public final class McpOpenapiCompositeGenerator
             OpenapiOperationView operation,
             List<GuardedRef> guarded,
             String server,
-            Map<String, String> params)
+            Map<String, String> params,
+            Map<String, String> body)
         {
             this.tool = tool;
             this.resource = resource;
@@ -1075,6 +1079,7 @@ public final class McpOpenapiCompositeGenerator
             this.guarded = guarded;
             this.server = server;
             this.params = params != null ? params : Map.of();
+            this.body = body != null ? body : Map.of();
         }
 
         private String subjectName()

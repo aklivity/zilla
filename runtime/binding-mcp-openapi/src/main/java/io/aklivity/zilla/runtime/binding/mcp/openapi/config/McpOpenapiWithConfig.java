@@ -25,6 +25,7 @@ public final class McpOpenapiWithConfig extends WithConfig
     public final String operation;
     public final String tag;
     public final Map<String, String> params;
+    public final Map<String, String> body;
 
     public static McpOpenapiWithConfigBuilder<McpOpenapiWithConfig> builder()
     {
@@ -41,11 +42,13 @@ public final class McpOpenapiWithConfig extends WithConfig
         String spec,
         String operation,
         String tag,
-        Map<String, String> params)
+        Map<String, String> params,
+        Map<String, String> body)
     {
         this.spec = spec;
         this.operation = operation;
         this.tag = tag;
         this.params = params;
+        this.body = body;
     }
 }

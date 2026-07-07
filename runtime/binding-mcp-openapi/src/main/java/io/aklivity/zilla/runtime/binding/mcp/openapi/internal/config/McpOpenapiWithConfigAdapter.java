@@ -34,6 +34,7 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
     private static final String OPERATION_NAME = "operation";
     private static final String TAG_NAME = "tag";
     private static final String PARAMS_NAME = "params";
+    private static final String BODY_NAME = "body";
 
     @Override
     public String type()
@@ -71,6 +72,13 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
             object.add(PARAMS_NAME, params);
         }
 
+        if (mcpOpenapiWith.body != null && !mcpOpenapiWith.body.isEmpty())
+        {
+            final JsonObjectBuilder body = Json.createObjectBuilder();
+            mcpOpenapiWith.body.forEach(body::add);
+            object.add(BODY_NAME, body);
+        }
+
         return object.build();
     }
 
@@ -101,11 +109,23 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
             }
         }
 
+        Map<String, String> body = null;
+        if (object.containsKey(BODY_NAME))
+        {
+            body = new LinkedHashMap<>();
+            final JsonObject bodyObject = object.getJsonObject(BODY_NAME);
+            for (Map.Entry<String, JsonValue> entry : bodyObject.entrySet())
+            {
+                body.put(entry.getKey(), bodyObject.getString(entry.getKey()));
+            }
+        }
+
         return McpOpenapiWithConfig.builder()
             .spec(spec)
             .operation(operation)
             .tag(tag)
             .params(params)
+            .body(body)
             .build();
     }
 }

@@ -214,6 +214,16 @@ public class McpOpenapiClientIT
     }
 
     @Test
+    @Configuration("proxy.body.yaml")
+    @Specification({
+        "${mcp}/create.pr.with.body/client",
+        "${http}/create.pr.with.body/server"})
+    public void shouldCallToolCreatePrWithNestedRebindBodyFields() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.params.resource.yaml")
     @Specification({
         "${mcp}/read.repo.with.params/client",

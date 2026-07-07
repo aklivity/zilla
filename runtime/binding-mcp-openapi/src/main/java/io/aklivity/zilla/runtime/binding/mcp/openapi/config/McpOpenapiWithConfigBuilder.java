@@ -28,6 +28,7 @@ public final class McpOpenapiWithConfigBuilder<T> extends ConfigBuilder<T, McpOp
     private String operation;
     private String tag;
     private Map<String, String> params;
+    private Map<String, String> body;
 
     McpOpenapiWithConfigBuilder(
         Function<WithConfig, T> mapper)
@@ -70,9 +71,16 @@ public final class McpOpenapiWithConfigBuilder<T> extends ConfigBuilder<T, McpOp
         return this;
     }
 
+    public McpOpenapiWithConfigBuilder<T> body(
+        Map<String, String> body)
+    {
+        this.body = body;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiWithConfig(spec, operation, tag, params));
+        return mapper.apply(new McpOpenapiWithConfig(spec, operation, tag, params, body));
     }
 }

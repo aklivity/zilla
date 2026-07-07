@@ -1008,6 +1008,59 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
+    public void shouldEmitBodyTemplateWhenBodyPresent()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .body(Map.of(
+                        "title", "${args.title}",
+                        "owner", "${args.pr.owner}"))
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpWithConfig with = mcpHttp.routes.stream()
+            .map(r -> (McpHttpWithConfig) r.with)
+            .filter(w -> "POST".equals(w.headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        assertThat(with, notNullValue());
+        assertThat(with.body, nullValue());
+        assertThat(with.bodyTemplate, equalTo(Map.of(
+            "title", "${args.title}",
+            "owner", "${args.pr.owner}")));
+    }
+
+    @Test
     public void shouldRebindRequiredQueryParameterViaParams()
     {
         BindingConfig binding = BindingConfig.builder()
