@@ -74,9 +74,18 @@ public class McpServerIT
 
     @Test
     @Specification({
-        "${mcp}/resources.list.with.override/client",
-        "${mcp}/resources.list.with.override/server"})
-    public void shouldListResourcesWithOverriddenDescription() throws Exception
+        "${mcp}/resources.templates.list.with.override/client",
+        "${mcp}/resources.templates.list.with.override/server"})
+    public void shouldListResourcesTemplatesWithOverriddenDescription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/resources.templates.list/client",
+        "${mcp}/resources.templates.list/server"})
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

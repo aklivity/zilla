@@ -341,6 +341,47 @@ public class McpFunctionsTest
         assertNotNull(matcher.match(byteBuf));
     }
 
+    @Test
+    public void shouldGenerateResourcesTemplatesListBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .resourcesTemplatesList()
+                .sessionId("session-1")
+                .timeout(10000L)
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(10000L, beginEx.resourcesTemplatesList().timeout());
+    }
+
+    @Test
+    public void shouldMatchResourcesTemplatesListBeginEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .resourcesTemplatesList()
+                .sessionId("session-1")
+                .timeout(10000L)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .resourcesTemplatesList(b -> b
+                .sessionId("session-1")
+                .timeout(10000L))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
     @Test(expected = Exception.class)
     public void shouldFailWhenCaseMismatch() throws Exception
     {

@@ -41,14 +41,14 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .resourcesList()
+                           .resourcesTemplatesList()
                                .sessionId("session-1")
                                .build()
                            .build()}
 
 connected
 
-read '{"resources":[]}'
+read  '{"resourceTemplates":[{"name":"read_order","uriTemplate":"/orders/{orderId}","description":"Read a customer order by id.","mimeType":"application/json"}]}'
 read closed
 
 write close

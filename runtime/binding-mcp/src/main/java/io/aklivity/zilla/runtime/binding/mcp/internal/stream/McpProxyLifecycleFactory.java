@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
 import java.util.ArrayList;
@@ -813,7 +814,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 .typeId(mcpTypeId)
                 .promptsListChanged(b -> {})
                 .build();
-            case KIND_RESOURCES_LIST -> mcpFlushExRW
+            case KIND_RESOURCES_LIST, KIND_RESOURCES_TEMPLATES_LIST -> mcpFlushExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(mcpTypeId)
                 .resourcesListChanged(b -> {})

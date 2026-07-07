@@ -99,8 +99,17 @@ public class McpOpenapiClientIT
     @Test
     @Configuration("proxy.resource.override.yaml")
     @Specification({
-        "${mcp}/resources.list.with.override/client"})
-    public void shouldListResourcesWithOverriddenDescription() throws Exception
+        "${mcp}/resources.templates.list.with.override/client"})
+    public void shouldListResourcesTemplatesWithOverriddenDescription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/resources.templates.list/client"})
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

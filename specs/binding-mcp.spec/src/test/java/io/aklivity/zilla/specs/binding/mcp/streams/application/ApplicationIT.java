@@ -317,6 +317,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/resources.templates.list.aborted/client",
+        "${app}/resources.templates.list.aborted/server"})
+    public void shouldAbortListResourcesTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/resources.read.aborted/client",
         "${app}/resources.read.aborted/server"})
     public void shouldAbortReadResource() throws Exception
@@ -356,6 +365,15 @@ public class ApplicationIT
         "${app}/resources.list/client",
         "${app}/resources.list/server"})
     public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.templates.list/client",
+        "${app}/resources.templates.list/server"})
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

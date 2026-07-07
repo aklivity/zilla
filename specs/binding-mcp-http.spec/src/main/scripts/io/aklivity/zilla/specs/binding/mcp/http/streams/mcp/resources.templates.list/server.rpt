@@ -41,14 +41,15 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .resourcesList()
+                          .resourcesTemplatesList()
                               .sessionId("session-1")
                               .build()
                           .build()}
 
 connected
 
-write '{"resources":[{"name":"read_order","uriTemplate":"/orders/{orderId}","description":"Read a customer order by id.","mimeType":"application/json"}]}'
+write '{"resourceTemplates":[{"name":"item","uriTemplate":"item://{itemId}",'
+      '"description":"An item resource","mimeType":"application/json"}]}'
 write flush
 
 write close

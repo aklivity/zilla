@@ -30,27 +30,26 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 connected
 
 write zilla:begin.ext ${mcp:beginEx()
-                            .typeId(zilla:id("mcp"))
-                            .lifecycle()
-                                .sessionId("session-1")
-                                .build()
-                            .build()}
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
 write flush
 
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .resourcesList()
+                          .resourcesTemplatesList()
                               .sessionId("session-1")
                               .build()
                           .build()}
 
 connected
 
-write '{"resources":[]}'
 write flush
 
-write close
+write abort
 
-read closed
+read aborted

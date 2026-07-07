@@ -353,6 +353,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/resources.templates.list.aborted/client",
+        "${net}/resources.templates.list.aborted/server"})
+    public void shouldAbortListResourcesTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/resources.read.aborted/client",
         "${net}/resources.read.aborted/server"})
     public void shouldAbortReadResource() throws Exception
@@ -401,6 +410,15 @@ public class NetworkIT
         "${net}/resources.list/client",
         "${net}/resources.list/server"})
     public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.templates.list/client",
+        "${net}/resources.templates.list/server"})
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

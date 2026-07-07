@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_PROMPTS_LIST_CHANGED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_RESOURCES_LIST_CHANGED;
@@ -228,16 +229,26 @@ public final class McpProxyCacheHydrater
             switch (flushEx.kind())
             {
             case KIND_TOOLS_LIST_CHANGED:
-                onChanged(KIND_TOOLS_LIST);
+                onChangedIfCached(KIND_TOOLS_LIST);
                 break;
             case KIND_PROMPTS_LIST_CHANGED:
-                onChanged(KIND_PROMPTS_LIST);
+                onChangedIfCached(KIND_PROMPTS_LIST);
                 break;
             case KIND_RESOURCES_LIST_CHANGED:
-                onChanged(KIND_RESOURCES_LIST);
+                onChangedIfCached(KIND_RESOURCES_LIST);
+                onChangedIfCached(KIND_RESOURCES_TEMPLATES_LIST);
                 break;
             default:
                 break;
+            }
+        }
+
+        private void onChangedIfCached(
+            int kind)
+        {
+            if (cache.cacheOf(kind) != null)
+            {
+                onChanged(kind);
             }
         }
 

@@ -32,7 +32,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("hydrate-1")
+                               .sessionId("session-1")
                                .build()
                            .build()}
 write flush
@@ -42,7 +42,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .resourcesTemplatesList()
-                              .sessionId("hydrate-1")
+                              .sessionId("session-1")
                               .build()
                           .build()}
 
@@ -51,66 +51,6 @@ connected
 write flush
 
 write '{"resourceTemplates":[]}'
-write flush
-
-write close
-
-read closed
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .resourcesList()
-                              .sessionId("hydrate-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-write '{"resources":[{"uri":"file:///docs/welcome.md","name":"welcome"}]}'
-write flush
-
-write close
-
-read closed
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .resourcesTemplatesList()
-                              .sessionId("hydrate-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-write '{"resourceTemplates":[]}'
-write flush
-
-write close
-
-read closed
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .resourcesList()
-                              .sessionId("hydrate-1")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-write '{"resources":[{"uri":"file:///docs/welcome.md","name":"welcome"},{"uri":"file:///docs/changelog.md","name":"changelog"}]}'
 write flush
 
 write close

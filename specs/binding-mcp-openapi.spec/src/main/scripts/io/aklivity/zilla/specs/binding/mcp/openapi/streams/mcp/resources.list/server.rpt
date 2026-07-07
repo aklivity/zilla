@@ -48,7 +48,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-write '{"resources":[{"name":"read_order","uriTemplate":"/orders/{orderId}","mimeType":"application/json"}]}'
+write '{"resources":[]}'
 write flush
 
 write close
