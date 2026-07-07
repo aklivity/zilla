@@ -81,13 +81,18 @@ catalogs:
             {
               "type": "object",
               "properties": {
-                "repo_owner": { "type": "string" },
-                "repo_name": { "type": "string" },
+                "repository": {
+                  "type": "object",
+                  "properties": {
+                    "owner": { "type": "string" },
+                    "name": { "type": "string" }
+                  }
+                },
                 "title": { "type": "string" },
                 "head": { "type": "string" },
                 "base": { "type": "string" }
               },
-              "required": [ "repo_owner", "repo_name", "title", "head", "base" ]
+              "required": [ "repository", "title", "head", "base" ]
             }
 bindings:
   app0:
@@ -117,5 +122,5 @@ bindings:
           spec: github
           operation: create_pr
           params:
-            owner: ${args.repo_owner}
-            repo: ${args.repo_name}
+            owner: ${args.repository.owner}
+            repo: ${args.repository.name}

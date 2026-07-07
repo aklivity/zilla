@@ -44,15 +44,15 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("session-1")
                                .name("create_pr")
-                               .contentLength(128)
+                               .contentLength(133)
                                .build()
                            .build()}
 
 connected
 
-# renamed argument shape; the route's params: map rebinds owner/repo path
-# parameters to ${args.repo_owner}/${args.repo_name}
-write '{"name":"create_pr","arguments":{"repo_owner":"acme","repo_name":"widget","title":"Add feature","head":"feature","base":"main"}}'
+# nested argument shape; the route's params: map rebinds owner/repo path
+# parameters to ${args.repository.owner}/${args.repository.name}
+write '{"name":"create_pr","arguments":{"repository":{"owner":"acme","name":"widget"},"title":"Add feature","head":"feature","base":"main"}}'
 
 read  '{'
         '"structuredContent":{"number":42,"html_url":"https://github.com/acme/widget/pull/42","state":"open","title":"Add feature"},'

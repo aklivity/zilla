@@ -208,7 +208,7 @@ public class McpOpenapiClientIT
     @Specification({
         "${mcp}/create.pr.with.params/client",
         "${http}/create.pr.with.params/server"})
-    public void shouldCallToolCreatePrWithRebindPathParameters() throws Exception
+    public void shouldCallToolCreatePrWithNestedRebindPathParameters() throws Exception
     {
         k3po.finish();
     }
