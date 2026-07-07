@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.config;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -50,10 +51,34 @@ public final class McpHttpWithConfigBuilder<T> extends ConfigBuilder<T, McpHttpW
         return this;
     }
 
+    public McpHttpWithConfigBuilder<T> header(
+        String name,
+        String value)
+    {
+        if (headers == null)
+        {
+            headers = new LinkedHashMap<>();
+        }
+        headers.put(name, value);
+        return this;
+    }
+
     public McpHttpWithConfigBuilder<T> cookies(
         Map<String, String> cookies)
     {
         this.cookies = cookies;
+        return this;
+    }
+
+    public McpHttpWithConfigBuilder<T> cookie(
+        String name,
+        String value)
+    {
+        if (cookies == null)
+        {
+            cookies = new LinkedHashMap<>();
+        }
+        cookies.put(name, value);
         return this;
     }
 

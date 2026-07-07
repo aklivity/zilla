@@ -18,7 +18,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,12 +31,10 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldResolveHeaderWhenArgumentPresent()
     {
-        Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(":path", "/notifications");
-        headers.put("x-trace-id", "${args.trace.id}");
         RouteConfig route = RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
-                .headers(headers)
+                .header(":path", "/notifications")
+                .header("x-trace-id", "${args.trace.id}")
                 .build()
             .build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
@@ -51,12 +48,10 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldOmitHeaderWhenArgumentAbsent()
     {
-        Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(":path", "/notifications");
-        headers.put("x-trace-id", "${args.trace.id}");
         RouteConfig route = RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
-                .headers(headers)
+                .header(":path", "/notifications")
+                .header("x-trace-id", "${args.trace.id}")
                 .build()
             .build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
@@ -69,12 +64,10 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldCollectNestedArgAccessorFromHeader()
     {
-        Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(":path", "/notifications");
-        headers.put("x-trace-id", "${args.trace.id}");
         RouteConfig route = RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
-                .headers(headers)
+                .header(":path", "/notifications")
+                .header("x-trace-id", "${args.trace.id}")
                 .build()
             .build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
@@ -85,15 +78,11 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldAggregateCookiesWhenAllPresent()
     {
-        Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(":path", "/notifications");
-        Map<String, String> cookies = new LinkedHashMap<>();
-        cookies.put("a", "${args.a}");
-        cookies.put("b", "${args.b}");
         RouteConfig route = RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
-                .headers(headers)
-                .cookies(cookies)
+                .header(":path", "/notifications")
+                .cookie("a", "${args.a}")
+                .cookie("b", "${args.b}")
                 .build()
             .build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
@@ -107,15 +96,11 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldOmitOneCookieWhenPartiallyAbsent()
     {
-        Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(":path", "/notifications");
-        Map<String, String> cookies = new LinkedHashMap<>();
-        cookies.put("a", "${args.a}");
-        cookies.put("b", "${args.b}");
         RouteConfig route = RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
-                .headers(headers)
-                .cookies(cookies)
+                .header(":path", "/notifications")
+                .cookie("a", "${args.a}")
+                .cookie("b", "${args.b}")
                 .build()
             .build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
@@ -129,15 +114,11 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldOmitCookieHeaderWhenAllAbsent()
     {
-        Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(":path", "/notifications");
-        Map<String, String> cookies = new LinkedHashMap<>();
-        cookies.put("a", "${args.a}");
-        cookies.put("b", "${args.b}");
         RouteConfig route = RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
-                .headers(headers)
-                .cookies(cookies)
+                .header(":path", "/notifications")
+                .cookie("a", "${args.a}")
+                .cookie("b", "${args.b}")
                 .build()
             .build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
@@ -150,14 +131,10 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldCollectArgAccessorFromCookie()
     {
-        Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(":path", "/notifications");
-        Map<String, String> cookies = new LinkedHashMap<>();
-        cookies.put("session", "${args.session.id}");
         RouteConfig route = RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
-                .headers(headers)
-                .cookies(cookies)
+                .header(":path", "/notifications")
+                .cookie("session", "${args.session.id}")
                 .build()
             .build();
         McpHttpRouteConfig config = new McpHttpRouteConfig(route);
