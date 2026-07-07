@@ -252,6 +252,12 @@ public final class McpRouteConfig
         return result;
     }
 
+    public boolean matchesTool(
+        String name)
+    {
+        return admits(CAPABILITY_TOOLS, name);
+    }
+
     static String capabilityOf(
         McpBeginExFW beginEx)
     {

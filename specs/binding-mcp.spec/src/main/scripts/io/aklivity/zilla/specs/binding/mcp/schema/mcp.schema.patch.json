@@ -160,6 +160,124 @@
                                     },
                                     "required": [ "server" ],
                                     "additionalProperties": false
+                                },
+                                "routes":
+                                {
+                                    "title": "Routes",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "when":
+                                            {
+                                                "title": "When",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "capability":
+                                                        {
+                                                            "title": "Capability",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string",
+                                                                "enum": [ "tools", "prompts", "resources" ]
+                                                            },
+                                                            "minItems": 1,
+                                                            "uniqueItems": true
+                                                        },
+                                                        "tools":
+                                                        {
+                                                            "title": "Tools",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "prompts":
+                                                        {
+                                                            "title": "Prompts",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "resources":
+                                                        {
+                                                            "title": "Resources",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "allOf":
+                                                    [
+                                                        {
+                                                            "if":
+                                                            {
+                                                                "required": [ "capability" ],
+                                                                "properties":
+                                                                {
+                                                                    "capability":
+                                                                    {
+                                                                        "not": { "contains": { "const": "tools" } }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "then":
+                                                            {
+                                                                "not": { "required": [ "tools" ] }
+                                                            }
+                                                        },
+                                                        {
+                                                            "if":
+                                                            {
+                                                                "required": [ "capability" ],
+                                                                "properties":
+                                                                {
+                                                                    "capability":
+                                                                    {
+                                                                        "not": { "contains": { "const": "prompts" } }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "then":
+                                                            {
+                                                                "not": { "required": [ "prompts" ] }
+                                                            }
+                                                        },
+                                                        {
+                                                            "if":
+                                                            {
+                                                                "required": [ "capability" ],
+                                                                "properties":
+                                                                {
+                                                                    "capability":
+                                                                    {
+                                                                        "not": { "contains": { "const": "resources" } }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "then":
+                                                            {
+                                                                "not": { "required": [ "resources" ] }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             },
                             "required": [ "options" ]

@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -114,20 +115,7 @@ public final class McpBindingConfig
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
 
-        final Map<String, McpRouteConfig> routeByPrefix = new LinkedHashMap<>();
-        if (routes.size() > 1)
-        {
-            final List<String> toolkits = routes.stream()
-                .map(McpRouteConfig::toolkit)
-                .collect(Collectors.toList());
-            final Map<String, String> prefixesByToolkit = McpAggregateEventId.computePrefixes(toolkits);
-            for (McpRouteConfig route : routes)
-            {
-                final String prefix = prefixesByToolkit.get(route.toolkit());
-                routeByPrefix.put(prefix, route);
-            }
-        }
-        this.routeByPrefix = routeByPrefix;
+        this.routeByPrefix = computeRouteByPrefix(routes);
 
         this.aggregateRoutes = routeByPrefix.entrySet().stream()
             .sorted(Map.Entry.comparingByKey())
@@ -534,6 +522,30 @@ public final class McpBindingConfig
             : authority;
     }
 
+    static Map<String, McpRouteConfig> computeRouteByPrefix(
+        List<McpRouteConfig> routes)
+    {
+        final Map<String, McpRouteConfig> routeByPrefix = new LinkedHashMap<>();
+        if (routes.size() > 1)
+        {
+            final List<String> toolkits = routes.stream()
+                .map(McpRouteConfig::toolkit)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+            final Map<String, String> prefixesByToolkit = McpAggregateEventId.computePrefixes(toolkits);
+            for (McpRouteConfig route : routes)
+            {
+                final String toolkit = route.toolkit();
+                if (toolkit != null)
+                {
+                    final String prefix = prefixesByToolkit.get(toolkit);
+                    routeByPrefix.put(prefix, route);
+                }
+            }
+        }
+        return routeByPrefix;
+    }
+
     public Map<String, List<String>> getRoles(
         long routeId)
     {
@@ -541,6 +553,33 @@ public final class McpBindingConfig
         for (McpRouteConfig route : routes)
         {
             if (route.id == routeId)
+            {
+                result = route.roles;
+                break;
+            }
+        }
+        return result;
+    }
+
+    public Map<String, List<String>> getRoles(
+        String toolName)
+    {
+        return rolesForTool(routes, toolName);
+    }
+
+    public boolean hasToolGuardedRoutes()
+    {
+        return routes.stream().anyMatch(r -> !r.roles.isEmpty());
+    }
+
+    static Map<String, List<String>> rolesForTool(
+        List<McpRouteConfig> routes,
+        String toolName)
+    {
+        Map<String, List<String>> result = EMPTY_ROLES;
+        for (McpRouteConfig route : routes)
+        {
+            if (route.matchesTool(toolName))
             {
                 result = route.roles;
                 break;

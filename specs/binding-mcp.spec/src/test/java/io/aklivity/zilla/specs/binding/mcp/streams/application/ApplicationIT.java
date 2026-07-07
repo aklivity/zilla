@@ -236,6 +236,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.guarded.per.tool/client",
+        "${app}/tools.call.guarded.per.tool/server"})
+    public void shouldCallToolGuardedPerTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.is.error/client",
         "${app}/tools.call.is.error/server"})
     public void shouldCallToolIsError() throws Exception
@@ -266,6 +275,15 @@ public class ApplicationIT
         "${app}/tools.list.security.schemes/client",
         "${app}/tools.list.security.schemes/server"})
     public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.security.schemes.per.tool/client",
+        "${app}/tools.list.security.schemes.per.tool/server"})
+    public void shouldListToolsSecuritySchemesPerTool() throws Exception
     {
         k3po.finish();
     }
