@@ -432,6 +432,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             initialSeq = end.sequence();
             state = McpHttpState.closedInitial(state);
+            cleanupDecodeSlot();
         }
 
         void onMcpAbort(
@@ -576,7 +577,6 @@ public final class McpHttpProxyFactory implements BindingHandler
                 if (McpHttpState.replyClosing(state) && encodeSlotOffset == 0)
                 {
                     doMcpEnd(traceId);
-                    cleanupEncodeSlot();
                 }
             }
         }
@@ -613,6 +613,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
                 state = McpHttpState.closedReply(state);
             }
+            cleanupEncodeSlot();
         }
 
         void doMcpAbort(
@@ -624,6 +625,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
                 state = McpHttpState.closedReply(state);
             }
+            cleanupEncodeSlot();
         }
 
         void doMcpWindow(
@@ -644,6 +646,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
                 state = McpHttpState.closedInitial(state);
             }
+            cleanupDecodeSlot();
         }
 
         void doMcpReset(
@@ -663,6 +666,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     traceId, authorization, resetEx);
                 state = McpHttpState.closedInitial(state);
             }
+            cleanupDecodeSlot();
         }
 
         void cleanup(
@@ -670,8 +674,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             doMcpReset(traceId);
             doMcpAbort(traceId);
-            cleanupDecodeSlot();
-            cleanupEncodeSlot();
         }
 
         void cleanupDecodeSlot()
@@ -1839,6 +1841,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     traceId, mcp.authorization);
                 state = McpHttpState.closedInitial(state);
             }
+            cleanupEncodeSlot();
         }
 
         private void doHttpAbort(
@@ -1861,6 +1864,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, mcp.authorization);
                 state = McpHttpState.closedReply(state);
             }
+            cleanupDecodeSlot();
         }
 
         private void doHttpReplyWindow(
