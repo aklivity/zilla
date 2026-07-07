@@ -130,14 +130,19 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
                 {
                     template.put(name, templateObject.getString(name));
                 }
-                body = new McpHttpBodyConfig(null, template);
+                body = McpHttpBodyConfig.builder().template(template).build();
             }
             else
             {
-                body = new McpHttpBodyConfig(model.adaptFromJson(object.get(BODY_NAME)), null);
+                body = McpHttpBodyConfig.builder().model(model.adaptFromJson(object.get(BODY_NAME))).build();
             }
         }
 
-        return new McpHttpWithConfig(headers, cookies, query, body);
+        return McpHttpWithConfig.builder()
+            .headers(headers)
+            .cookies(cookies)
+            .query(query)
+            .body(body)
+            .build();
     }
 }

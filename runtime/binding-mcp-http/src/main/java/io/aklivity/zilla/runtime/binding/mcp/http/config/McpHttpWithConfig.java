@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mcp.http.config;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
@@ -26,7 +27,18 @@ public final class McpHttpWithConfig extends WithConfig
     public final ModelConfig query;
     public final McpHttpBodyConfig body;
 
-    public McpHttpWithConfig(
+    public static McpHttpWithConfigBuilder<McpHttpWithConfig> builder()
+    {
+        return new McpHttpWithConfigBuilder<>(McpHttpWithConfig.class::cast);
+    }
+
+    public static <T> McpHttpWithConfigBuilder<T> builder(
+        Function<WithConfig, T> mapper)
+    {
+        return new McpHttpWithConfigBuilder<>(mapper);
+    }
+
+    McpHttpWithConfig(
         Map<String, String> headers,
         Map<String, String> cookies,
         ModelConfig query,

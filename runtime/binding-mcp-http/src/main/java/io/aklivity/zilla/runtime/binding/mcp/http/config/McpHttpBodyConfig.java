@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mcp.http.config;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
@@ -23,7 +24,18 @@ public final class McpHttpBodyConfig
     public final ModelConfig model;
     public final Map<String, String> template;
 
-    public McpHttpBodyConfig(
+    public static McpHttpBodyConfigBuilder<McpHttpBodyConfig> builder()
+    {
+        return new McpHttpBodyConfigBuilder<>(McpHttpBodyConfig.class::cast);
+    }
+
+    public static <T> McpHttpBodyConfigBuilder<T> builder(
+        Function<McpHttpBodyConfig, T> mapper)
+    {
+        return new McpHttpBodyConfigBuilder<>(mapper);
+    }
+
+    McpHttpBodyConfig(
         ModelConfig model,
         Map<String, String> template)
     {
