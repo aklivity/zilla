@@ -235,10 +235,6 @@ class JsonGeneratorExTest
             .writeStartArray().writeNumber("1").writeNumber("2").writeNumber("3"));
     }
 
-    // A caller (e.g. a proxy draining its own outbound buffer only as fast as the wire allows) can
-    // legitimately re-wrap a generator with zero room left, once a prior fragment has filled the
-    // destination exactly to capacity. The opening quote sits outside writeStringBody's own per-codepoint
-    // bound check, so without its own guard it would write past a zero-width wrap uncaught.
     @Test
     void shouldNotWriteStringOpeningQuoteWithoutRoom()
     {
@@ -254,9 +250,6 @@ class JsonGeneratorExTest
         assertEquals(0, untouched[0]);
     }
 
-    // An empty, already-complete string never enters writeStringBody's bounded loop (index < length is
-    // immediately false), so it can't rely on that loop to enforce the closing-quote reserve the way a
-    // non-empty string does — both quotes must be confirmed available atomically up front.
     @Test
     void shouldDeferEmptyCompleteStringWithoutRoomForBothQuotes()
     {
