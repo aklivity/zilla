@@ -180,6 +180,14 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (pending != Pending.KEY)
         {
+            // see write(CharSequence, Completion)'s equivalent guard: the opening comma/quote sit outside
+            // writeStringBody's own bound check, and an empty, already-complete key never enters that loop
+            // to have its own closing reserve (here: quote + key separator) enforced
+            final boolean closesEmpty = completion == Completion.COMPLETE && name.length() == 0;
+            if (remaining() < (hasMembers[depth - 1] ? 1 : 0) + 1 + (closesEmpty ? 2 : 0))
+            {
+                return this;
+            }
             if (hasMembers[depth - 1])
             {
                 putByte.accept(',');
@@ -195,7 +203,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         final int reserve = completion == Completion.COMPLETE ? 2 : 0;
         final int written = writeStringBody(name, reserve);
         consumed += written;
-        if (written == name.length() && completion == Completion.COMPLETE)
+        // guards the resumed-continuation analog of the empty-key case above; see write(CharSequence,
+        // Completion)'s equivalent comment
+        if (written == name.length() && completion == Completion.COMPLETE && remaining() >= 2)
         {
             putByte.accept('"');
             putByte.accept(':');
@@ -233,6 +243,19 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (pending != Pending.STRING)
         {
+            // the opening quote (plus a possible preceding comma) is unconditional and outside
+            // writeStringBody's own per-codepoint bound check, so it needs its own room check: without
+            // it, wrapping the generator with little or no room left (as a caller draining a nearly-full
+            // destination legitimately can) writes past limit uncaught. An empty, already-complete value
+            // needs its closing quote reserved here too: writeStringBody's own loop never runs for a zero
+            // length value, so it can't independently enforce that reserve the way it does for non-empty
+            // ones, and deferring the close afterwards would be ambiguous — consumed() would read the same
+            // (zero) whether this value is genuinely done or the close was merely deferred for lack of room
+            final boolean closesEmpty = completion == Completion.COMPLETE && value.length() == 0;
+            if (remaining() < (needsComma() ? 1 : 0) + 1 + (closesEmpty ? 1 : 0))
+            {
+                return this;
+            }
             preValue();
             putByte.accept('"');
             pending = Pending.STRING;
@@ -243,7 +266,10 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         final int reserve = completion == Completion.COMPLETE ? 1 : 0;
         final int written = writeStringBody(value, reserve);
         consumed += written;
-        if (written == value.length() && completion == Completion.COMPLETE)
+        // guards the resumed-continuation analog of the empty-value case above: a prior fragment already
+        // opened the string, this call contributes no new characters, and completion turns COMPLETE — same
+        // trivially-true written == length() with no loop iteration to have checked room for the close
+        if (written == value.length() && completion == Completion.COMPLETE && remaining() >= 1)
         {
             putByte.accept('"');
             pending = Pending.NONE;
@@ -654,6 +680,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             }
             hasMembers[depth - 1] = true;
         }
+    }
+
+    // Peeks whether preValue() would emit a comma, without its hasMembers side effect, so a caller can
+    // check room for both bytes atomically before committing to either (preValue() is not safe to retry:
+    // it marks hasMembers[depth - 1] true unconditionally, so calling it and then bailing out for lack of
+    // room would silently drop the comma on the next attempt).
+    private boolean needsComma()
+    {
+        return pending != Pending.AFTER_KEY && depth > 0 && inArray[depth - 1] && hasMembers[depth - 1];
     }
 
     // Bounded counterpart used by write(CharSequence, Completion): emits whole code points while each one's

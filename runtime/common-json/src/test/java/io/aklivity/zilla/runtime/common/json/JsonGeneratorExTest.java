@@ -235,6 +235,71 @@ class JsonGeneratorExTest
             .writeStartArray().writeNumber("1").writeNumber("2").writeNumber("3"));
     }
 
+    // A caller (e.g. a proxy draining its own outbound buffer only as fast as the wire allows) can
+    // legitimately re-wrap a generator with zero room left, once a prior fragment has filled the
+    // destination exactly to capacity. The opening quote sits outside writeStringBody's own per-codepoint
+    // bound check, so without its own guard it would write past a zero-width wrap uncaught.
+    @Test
+    void shouldNotWriteStringOpeningQuoteWithoutRoom()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 32, 32);
+
+        generator.write("x");
+
+        assertEquals(0, generator.length());
+        assertEquals(0, generator.consumed());
+        byte[] untouched = new byte[1];
+        buffer.getBytes(32, untouched);
+        assertEquals(0, untouched[0]);
+    }
+
+    // An empty, already-complete string never enters writeStringBody's bounded loop (index < length is
+    // immediately false), so it can't rely on that loop to enforce the closing-quote reserve the way a
+    // non-empty string does — both quotes must be confirmed available atomically up front.
+    @Test
+    void shouldDeferEmptyCompleteStringWithoutRoomForBothQuotes()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 31, 32);
+
+        generator.write("", Completion.COMPLETE);
+
+        assertEquals(0, generator.length());
+        byte[] untouched = new byte[1];
+        buffer.getBytes(31, untouched);
+        assertEquals(0, untouched[0]);
+    }
+
+    @Test
+    void shouldWriteEmptyCompleteStringWhenExactRoomForBothQuotes()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(buffer, 30, 32);
+
+        generator.write("", Completion.COMPLETE);
+
+        assertEquals(2, generator.length());
+        byte[] out = new byte[2];
+        buffer.getBytes(30, out);
+        assertEquals("\"\"", new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldResumeStringOpeningQuoteOnceRoomIsAvailable()
+    {
+        MutableDirectBufferEx tight = new UnsafeBufferEx(new byte[64]);
+        JsonGeneratorEx generator = JsonEx.createGenerator().wrap(tight, 32, 32);
+        generator.write("hello");
+        assertEquals(0, generator.consumed());
+
+        MutableDirectBufferEx roomy = new UnsafeBufferEx(new byte[64]);
+        generator.wrap(roomy, 0, roomy.capacity());
+        generator.write("hello");
+
+        assertEquals("\"hello\"", drain(generator, roomy));
+    }
+
     @Test
     void shouldReportPartialConsumptionWhenPlainWriteExceedsLimit()
     {
