@@ -92,4 +92,18 @@ public class SchemaTest
     {
         schema.validate("proxy.routes.empty.invalid.yaml");
     }
+
+    @Test
+    public void shouldValidateInputSchemaAndParams()
+    {
+        JsonObject config = schema.validate("proxy.input.schema.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectResourceInputSchema()
+    {
+        schema.validate("proxy.resource.input.schema.invalid.yaml");
+    }
 }
