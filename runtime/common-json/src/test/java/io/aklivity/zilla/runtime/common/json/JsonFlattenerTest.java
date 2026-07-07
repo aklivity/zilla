@@ -1,0 +1,175 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.common.json;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+
+class JsonFlattenerTest
+{
+    @Test
+    void shouldRenameTopLevelProperty()
+    {
+        assertEquals("{\"title\":\"x\"}",
+            flatten(Map.of("subject", "title"), "{\"subject\":\"x\",\"other\":\"y\"}"));
+    }
+
+    @Test
+    void shouldFlattenNestedLeafToTopLevel()
+    {
+        assertEquals("{\"title\":\"Add feature\"}",
+            flatten(Map.of("pr.title", "title"), "{\"pr\":{\"title\":\"Add feature\"},\"other\":1}"));
+    }
+
+    @Test
+    void shouldFlattenDeeplyNestedLeaf()
+    {
+        assertEquals("{\"x\":42}",
+            flatten(Map.of("a.b.c", "x"), "{\"a\":{\"b\":{\"c\":42,\"d\":43}}}"));
+    }
+
+    @Test
+    void shouldFlattenMultipleTargetsSharingAncestor()
+    {
+        assertEquals("{\"title\":\"t\",\"head\":\"h\"}",
+            flatten(Map.of("pr.title", "title", "pr.head", "head"),
+                "{\"pr\":{\"title\":\"t\",\"head\":\"h\",\"other\":\"z\"}}"));
+    }
+
+    @Test
+    void shouldKeepWholeSubtreeAtFlattenedTarget()
+    {
+        assertEquals("{\"meta\":{\"a\":1,\"b\":[1,2]}}",
+            flatten(Map.of("pr", "meta"), "{\"pr\":{\"a\":1,\"b\":[1,2]},\"z\":9}"));
+    }
+
+    @Test
+    void shouldOmitTargetWhenAccessorMissing()
+    {
+        assertEquals("{}",
+            flatten(Map.of("pr.title", "title"), "{\"other\":1}"));
+    }
+
+    @Test
+    void shouldOmitTargetWhenAncestorIsScalarNotObject()
+    {
+        assertEquals("{}",
+            flatten(Map.of("pr.title", "title"), "{\"pr\":5}"));
+    }
+
+    @Test
+    void shouldFlattenMultipleUnrelatedTargets()
+    {
+        assertEquals("{\"title\":\"S\",\"head\":\"H\"}",
+            flatten(Map.of("subject", "title", "pr.head", "head"),
+                "{\"subject\":\"S\",\"pr\":{\"head\":\"H\",\"other\":\"x\"}}"));
+    }
+
+    @Test
+    void shouldEmitEmptyObjectWhenNothingFlattened()
+    {
+        assertEquals("{}", flatten(Map.of("none", "x"), "{\"a\":1,\"b\":2}"));
+    }
+
+    @Test
+    void shouldNotDuplicateRenamedKeyAcrossOutputBoundSuspends()
+    {
+        // the renamed key ("epsilon", longer than the original "e") must not be re-emitted or truncated
+        // when its write lands on an output-bound boundary and suspends
+        assertEquals("{\"epsilon\":1} ",
+            flattenBounded(Map.of("e", "epsilon"), "{\"e\":1}", 4));
+    }
+
+    private static String flatten(
+        Map<String, String> accessorTargets,
+        String input)
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonTransforms.projector(pointers(accessorTargets)))
+            .transform(JsonTransforms.flatten(accessorTargets))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        feed(pipeline, input + " ");
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        return new String(out, UTF_8);
+    }
+
+    // Drives flatten() through an output buffer bounded at outBound, draining and re-targeting the
+    // generator on each SUSPENDED and concatenating the drained chunks into one document.
+    private static String flattenBounded(
+        Map<String, String> accessorTargets,
+        String input,
+        int outBound)
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[outBound]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonTransforms.projector(pointers(accessorTargets)))
+            .transform(JsonTransforms.flatten(accessorTargets))
+            .into(JsonEx.createSink(gen));
+
+        byte[] bytes = (input + " ").getBytes(UTF_8);
+        UnsafeBufferEx in = new UnsafeBufferEx(bytes);
+        StringBuilder result = new StringBuilder();
+        pipeline.reset();
+        gen.wrap(buffer, 0, outBound);
+        int guard = 0;
+        Status status;
+        do
+        {
+            status = pipeline.transform(in, 0, bytes.length);
+            byte[] chunk = new byte[gen.length()];
+            buffer.getBytes(0, chunk);
+            result.append(new String(chunk, UTF_8));
+            if (status == Status.SUSPENDED)
+            {
+                gen.wrap(buffer, 0, outBound);
+            }
+            guard++;
+        }
+        while (status == Status.SUSPENDED && guard < 10_000);
+        assertEquals(Status.COMPLETED, status);
+        return result.toString();
+    }
+
+    private static List<String> pointers(
+        Map<String, String> accessorTargets)
+    {
+        return accessorTargets.keySet().stream()
+            .map(accessor -> "/" + accessor.replace(".", "/"))
+            .toList();
+    }
+
+    private static Status feed(
+        JsonPipeline pipeline,
+        String text)
+    {
+        byte[] bytes = text.getBytes(UTF_8);
+        pipeline.reset();
+        return pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
+    }
+}

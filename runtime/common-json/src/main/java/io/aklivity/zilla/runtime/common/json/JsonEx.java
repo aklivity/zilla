@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.common.json;
 
 import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
 
 import jakarta.json.stream.JsonParserFactory;
@@ -23,7 +22,6 @@ import jakarta.json.stream.JsonParserFactory;
 import io.aklivity.zilla.runtime.common.json.internal.JsonGeneratorImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserFactoryImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
-import io.aklivity.zilla.runtime.common.json.internal.JsonProjectorImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonStreamImpl;
 
@@ -138,27 +136,5 @@ public final class JsonEx
         JsonParserEx parser)
     {
         return new JsonStreamImpl(parser);
-    }
-
-    /**
-     * Returns a {@link JsonTransform} that prunes a document to the given retained RFC 6901
-     * pointers, forwarding each kept event to the downstream sink supplied at assembly. Add it to a
-     * pipeline via {@link JsonStream#transform(JsonTransform)}. Reuse a single instance per thread;
-     * it resets per top-level value.
-     */
-    public static JsonTransform projector(
-        List<String> pointers)
-    {
-        return new JsonProjectorImpl(pointers);
-    }
-
-    /**
-     * Returns a {@link JsonTransform} pruning a document to the paths retained by {@code schema}
-     * (see {@link JsonSchema#retainedPaths()}).
-     */
-    public static JsonTransform projector(
-        JsonSchema schema)
-    {
-        return new JsonProjectorImpl(schema.retainedPaths());
     }
 }

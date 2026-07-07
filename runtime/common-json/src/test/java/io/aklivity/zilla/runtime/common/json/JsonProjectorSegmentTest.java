@@ -38,7 +38,7 @@ class JsonProjectorSegmentTest
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/a")))
+            .transform(JsonTransforms.projector(List.of("/a")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
@@ -52,7 +52,7 @@ class JsonProjectorSegmentTest
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/a")))
+            .transform(JsonTransforms.projector(List.of("/a")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
@@ -66,7 +66,7 @@ class JsonProjectorSegmentTest
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("")))
+            .transform(JsonTransforms.projector(List.of("")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         // structured delivery renders each leaf string from its decoded value, so escaping is canonical:
@@ -82,7 +82,7 @@ class JsonProjectorSegmentTest
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("")))
+            .transform(JsonTransforms.projector(List.of("")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         Status status = run(pipeline, "{ \"a\" : 1.0e2 } ");
@@ -96,7 +96,7 @@ class JsonProjectorSegmentTest
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("")))
+            .transform(JsonTransforms.projector(List.of("")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         Status status = run(pipeline, "{ \"a\" : 1 } ");
@@ -114,7 +114,7 @@ class JsonProjectorSegmentTest
         }, source, event);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(decliner)
-            .transform(JsonEx.projector(List.of("/a")))
+            .transform(JsonTransforms.projector(List.of("/a")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         Status status = run(pipeline, "{\"a\":{ \"b\" : 1 },\"z\":9} ");
@@ -128,7 +128,7 @@ class JsonProjectorSegmentTest
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/items/0")))
+            .transform(JsonTransforms.projector(List.of("/items/0")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         Status status = run(pipeline, "{\"items\":[{ \"id\" : 1 },{\"id\":2}]} ");
@@ -142,7 +142,7 @@ class JsonProjectorSegmentTest
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/a")))
+            .transform(JsonTransforms.projector(List.of("/a")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
 
         // a retained scalar leaf far larger than the input window: it fragments across windows and the
@@ -203,7 +203,7 @@ class JsonProjectorSegmentTest
         MutableDirectBufferEx out = new UnsafeBufferEx(new byte[outBound]);
         JsonGeneratorEx gen = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/a")))
+            .transform(JsonTransforms.projector(List.of("/a")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         byte[] bytes = json.getBytes(UTF_8);
@@ -264,7 +264,7 @@ class JsonProjectorSegmentTest
         MutableDirectBufferEx out = new UnsafeBufferEx(new byte[outBound]);
         JsonGeneratorEx gen = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/id", "/status", "/total")))
+            .transform(JsonTransforms.projector(List.of("/id", "/status", "/total")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
 
         byte[] bytes = json.getBytes(UTF_8);
@@ -309,7 +309,7 @@ class JsonProjectorSegmentTest
         MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(out, 0, out.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/a")))
+            .transform(JsonTransforms.projector(List.of("/a")))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
         byte[] bytes = json.getBytes(UTF_8);
         pipeline.reset();

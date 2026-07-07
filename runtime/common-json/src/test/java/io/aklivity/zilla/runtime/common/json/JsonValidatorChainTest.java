@@ -120,7 +120,7 @@ class JsonValidatorChainTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
-            .transform(JsonEx.projector(List.of("/id")))
+            .transform(JsonTransforms.projector(List.of("/id")))
             .into(JsonEx.createSink(gen));
 
         Status status = run(pipeline, "{\"id\":1,\"name\":\"x\"} ");
@@ -136,7 +136,7 @@ class JsonValidatorChainTest
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(schema.validator())
-            .transform(JsonEx.projector(List.of("/id")))
+            .transform(JsonTransforms.projector(List.of("/id")))
             .into(JsonEx.createSink(gen));
 
         Status status = run(pipeline, "{\"id\":1} ");

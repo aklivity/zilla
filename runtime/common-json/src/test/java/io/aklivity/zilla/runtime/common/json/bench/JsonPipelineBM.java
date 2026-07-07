@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
+import io.aklivity.zilla.runtime.common.json.JsonTransforms;
 
 /**
  * Compares the {@code common-json} streaming pipeline, parser through generator, under structured
@@ -130,22 +131,22 @@ public class JsonPipelineBM
     public void init()
     {
         scalarLeavesPipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/id", "/active"))).into(structuredSink);
+            .transform(JsonTransforms.projector(List.of("/id", "/active"))).into(structuredSink);
 
         keptContainerStructuredPipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/meta"))).into(structuredSink);
+            .transform(JsonTransforms.projector(List.of("/meta"))).into(structuredSink);
         keptContainerSegmentedPipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/meta"))).into(segmentableSink);
+            .transform(JsonTransforms.projector(List.of("/meta"))).into(segmentableSink);
 
         rootIdentityStructuredPipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of(""))).into(structuredSink);
+            .transform(JsonTransforms.projector(List.of(""))).into(structuredSink);
         rootIdentitySegmentedPipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of(""))).into(segmentableSink);
+            .transform(JsonTransforms.projector(List.of(""))).into(segmentableSink);
 
         mostlySkippedStructuredPipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/keep"))).into(structuredSink);
+            .transform(JsonTransforms.projector(List.of("/keep"))).into(structuredSink);
         mostlySkippedSegmentedPipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/keep"))).into(segmentableSink);
+            .transform(JsonTransforms.projector(List.of("/keep"))).into(segmentableSink);
 
         // no transform: an over-window value fragments and is rendered straight to the sink
         fragmentStringStructuredPipeline = JsonEx.stream(JsonEx.createParser()).into(structuredSink);
