@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.Json;
@@ -75,6 +76,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
@@ -86,6 +88,7 @@ public final class McpOpenapiCompositeGenerator
     private static final String BINDING_NAME = "mcp_http0";
     private static final String CAPABILITY_TOOL = "tool";
     private static final String CAPABILITY_RESOURCE = "resource";
+    private static final Pattern PATH_PARAM_PATTERN = Pattern.compile("\\{([^}]+)\\}");
 
     private final String httpClientExit;
     private final List<String> denied;
@@ -188,14 +191,14 @@ public final class McpOpenapiCompositeGenerator
                 }
 
                 routed.add(new RoutedOperation(toolConfig(binding, routeTool), resourceConfig(binding, resource),
-                    operation, resolution.guarded, serverByLabel.get(with.spec)));
+                    operation, resolution.guarded, serverByLabel.get(with.spec), with.params, with.body));
             }
         }
 
         final NamespaceConfig namespace = NamespaceConfig.builder()
             .name("%s/mcp_http".formatted(binding.qname))
             .inject(n -> injectCatalog(n, routed))
-            .inject(n -> injectBinding(n, routed))
+            .inject(n -> injectBinding(n, binding, routed))
             .build();
 
         final List<McpOpenapiCompositeRouteConfig> routes = new LinkedList<>();
@@ -237,7 +240,10 @@ public final class McpOpenapiCompositeGenerator
             binding.options.tools.stream()
                 .filter(t -> name.equals(t.name))
                 .findFirst()
-                .ifPresent(override -> tool.description(override.description).output(override.output));
+                .ifPresent(override -> tool.description(override.description)
+                    .summary(override.summary)
+                    .input(override.input)
+                    .output(override.output));
         }
 
         return tool;
@@ -298,6 +304,8 @@ public final class McpOpenapiCompositeGenerator
                 final String name = entry.subjectName();
                 final OpenapiOperationView operation = entry.operation;
 
+                // derived unconditionally, even when schemas.input/output is authored -- the derived
+                // subject then simply goes unreferenced, exactly like the pre-existing output behavior
                 options.schema()
                     .subject("%s-input".formatted(name))
                     .version("latest")
@@ -340,6 +348,7 @@ public final class McpOpenapiCompositeGenerator
 
     private <C> NamespaceConfigBuilder<C> injectBinding(
         NamespaceConfigBuilder<C> namespace,
+        McpOpenapiBindingConfig binding,
         List<RoutedOperation> routed)
     {
         return namespace
@@ -347,12 +356,13 @@ public final class McpOpenapiCompositeGenerator
                 .name(BINDING_NAME)
                 .type("mcp_http")
                 .kind(PROXY)
-                .options(mcpHttpOptions(routed))
+                .options(mcpHttpOptions(binding, routed))
                 .inject(b -> injectRoutes(b, routed))
                 .build();
     }
 
     private McpHttpOptionsConfig mcpHttpOptions(
+        McpOpenapiBindingConfig binding,
         List<RoutedOperation> routed)
     {
         final List<McpHttpToolConfig> tools = new ArrayList<>();
@@ -361,30 +371,34 @@ public final class McpOpenapiCompositeGenerator
         for (RoutedOperation entry : routed)
         {
             final String name = entry.subjectName();
-            final ModelConfig input = jsonModel("%s-input".formatted(name));
+            final ModelConfig input = entry.tool != null && entry.tool.input != null
+                ? qualifyModel(binding, entry.tool.input)
+                : jsonModel("%s-input".formatted(name));
 
             if (entry.tool != null)
             {
                 final ModelConfig output = entry.tool.output != null
-                    ? entry.tool.output
+                    ? qualifyModel(binding, entry.tool.output)
                     : jsonModel("%s-output".formatted(name));
                 final String description = entry.tool.description != null
                     ? entry.tool.description
                     : entry.operation.description != null
                         ? entry.operation.description
                         : entry.operation.id;
-                // mcp_http requires a non-null tool summary; OpenAPI's own summary field is optional per
-                // spec, so fall back to a plain literal string naming the operation, not a ${...} template
-                // (mcp_http only understands ${result.*} references and would not resolve operationId)
-                final String summary = entry.operation.summary != null
-                    ? entry.operation.summary
-                    : "Call %s".formatted(entry.operation.id);
+                // mcp_http requires a non-null tool summary; prefer an authored override, then OpenAPI's
+                // own optional summary field, then a plain literal string naming the operation (not a
+                // ${...} template -- mcp_http only understands ${result.*} references, not operationId)
+                final String summary = entry.tool.summary != null
+                    ? entry.tool.summary
+                    : entry.operation.summary != null
+                        ? entry.operation.summary
+                        : "Call %s".formatted(entry.operation.id);
                 tools.add(new McpHttpToolConfig(entry.tool.name, summary, description, input, output));
             }
             else
             {
                 final ModelConfig output = entry.resource.output != null
-                    ? entry.resource.output
+                    ? qualifyModel(binding, entry.resource.output)
                     : jsonModel("%s-output".formatted(name));
                 final boolean template = entry.operation.path != null && entry.operation.path.indexOf('{') >= 0;
                 resources.add(McpHttpResourceConfig.builder()
@@ -647,9 +661,9 @@ public final class McpOpenapiCompositeGenerator
 
         final String accessor = entry.tool != null ? "args" : "params";
         final StringBuilder path = new StringBuilder(resolved.base);
-        path.append(lowerPathParams(operation.path, accessor));
+        path.append(lowerPathParams(operation.path, accessor, entry.params));
 
-        final String query = queryString(operation, accessor);
+        final String query = queryString(operation, accessor, entry.params);
         if (!query.isEmpty())
         {
             path.append('?').append(query);
@@ -666,12 +680,18 @@ public final class McpOpenapiCompositeGenerator
             headers.put(":authority", resolved.authority);
         }
         headers.put(":path", path.toString());
+        injectHeaderParams(headers, operation, accessor, entry.params);
 
-        final ModelConfig body = operation.hasRequestBody()
+        final Map<String, String> cookies = new LinkedHashMap<>();
+        injectCookieParams(cookies, operation, accessor, entry.params);
+
+        final boolean bodyTemplated = !entry.body.isEmpty();
+        final ModelConfig body = !bodyTemplated && operation.hasRequestBody()
             ? jsonModel("%s-body".formatted(entry.subjectName()))
             : null;
 
-        return new McpHttpWithConfig(headers, null, body, null);
+        return new McpHttpWithConfig(headers, cookies.isEmpty() ? null : cookies, null, body,
+            bodyTemplated ? entry.body : null);
     }
 
     private static ResolvedServer resolveServerFromSpec(
@@ -704,14 +724,45 @@ public final class McpOpenapiCompositeGenerator
 
     private static String lowerPathParams(
         String path,
-        String accessor)
+        String accessor,
+        Map<String, String> params)
     {
         String result = path;
         if (path != null)
         {
-            result = path.replaceAll("\\{([^}]+)\\}", "\\$\\{" + accessor + ".$1}");
+            final Matcher matcher = PATH_PARAM_PATTERN.matcher(path);
+            final StringBuilder builder = new StringBuilder();
+            int last = 0;
+            while (matcher.find())
+            {
+                builder.append(path, last, matcher.start());
+                builder.append("${").append(paramExpression(accessor, matcher.group(1), params)).append('}');
+                last = matcher.end();
+            }
+            builder.append(path, last, path.length());
+            result = builder.toString();
         }
         return result;
+    }
+
+    private static String paramExpression(
+        String accessor,
+        String name,
+        Map<String, String> params)
+    {
+        final String override = params.get(name);
+        return override != null ? innerExpression(override) : "%s.%s".formatted(accessor, name);
+    }
+
+    private static String innerExpression(
+        String expression)
+    {
+        String inner = expression.trim();
+        if (inner.startsWith("${") && inner.endsWith("}"))
+        {
+            inner = inner.substring(2, inner.length() - 1);
+        }
+        return inner;
     }
 
     private static String resourceUri(
@@ -738,7 +789,8 @@ public final class McpOpenapiCompositeGenerator
 
     private static String queryString(
         OpenapiOperationView operation,
-        String accessor)
+        String accessor,
+        Map<String, String> params)
     {
         final StringBuilder query = new StringBuilder();
         if (operation.parameters != null)
@@ -751,21 +803,18 @@ public final class McpOpenapiCompositeGenerator
                     {
                         query.append('&');
                     }
+                    final String expression = paramExpression(accessor, parameter.name, params);
                     if (parameter.required)
                     {
                         query.append(parameter.name)
                             .append("=${")
-                            .append(accessor)
-                            .append('.')
-                            .append(parameter.name)
+                            .append(expression)
                             .append('}');
                     }
                     else
                     {
                         query.append("${?")
-                            .append(accessor)
-                            .append('.')
-                            .append(parameter.name)
+                            .append(expression)
                             .append('=')
                             .append(parameter.name)
                             .append('}');
@@ -774,6 +823,49 @@ public final class McpOpenapiCompositeGenerator
             }
         }
         return query.toString();
+    }
+
+    // Header params, unlike query, get one uniform treatment regardless of OpenAPI's required flag:
+    // the header is included when its accessor resolves, omitted entirely otherwise (McpHttpRouteConfig.
+    // resolveHeaders enforces this at request time) -- so no required-vs-optional branching is needed here.
+    private static void injectHeaderParams(
+        Map<String, String> headers,
+        OpenapiOperationView operation,
+        String accessor,
+        Map<String, String> params)
+    {
+        if (operation.parameters != null)
+        {
+            for (OpenapiParameterView parameter : operation.parameters)
+            {
+                if ("header".equals(parameter.in))
+                {
+                    final String expression = paramExpression(accessor, parameter.name, params);
+                    headers.put(parameter.name.toLowerCase(), "${%s}".formatted(expression));
+                }
+            }
+        }
+    }
+
+    // Cookie names, unlike header names, are case-sensitive (RFC 6265) -- keep the OpenAPI-declared
+    // casing verbatim rather than lowercasing as injectHeaderParams does for headers.
+    private static void injectCookieParams(
+        Map<String, String> cookies,
+        OpenapiOperationView operation,
+        String accessor,
+        Map<String, String> params)
+    {
+        if (operation.parameters != null)
+        {
+            for (OpenapiParameterView parameter : operation.parameters)
+            {
+                if ("cookie".equals(parameter.in))
+                {
+                    final String expression = paramExpression(accessor, parameter.name, params);
+                    cookies.put(parameter.name, "${%s}".formatted(expression));
+                }
+            }
+        }
     }
 
     private static ModelConfig jsonModel(
@@ -788,6 +880,42 @@ public final class McpOpenapiCompositeGenerator
                     .build()
                 .build()
             .build();
+    }
+
+    private static ModelConfig qualifyModel(
+        McpOpenapiBindingConfig binding,
+        ModelConfig model)
+    {
+        // an authored schemas.input/output's catalog reference names a catalog in the caller's own
+        // namespace (e.g. "catalog0"), but this ModelConfig is forwarded as-is into the generated
+        // mcp_http binding, which lives in its own freshly-generated namespace that has its own,
+        // unrelated, same-named "catalog0" -- rewrite the reference to be namespace-qualified
+        // (qname) so it resolves absolutely, against the caller's namespace, from anywhere
+        ModelConfig qualified = model;
+        if (model.cataloged != null && !model.cataloged.isEmpty())
+        {
+            final ModelConfigAdapter adapter = new ModelConfigAdapter();
+            adapter.adaptType(model.model);
+            final JsonValue value = adapter.adaptToJson(model);
+            if (value instanceof JsonObject && ((JsonObject) value).containsKey("catalog"))
+            {
+                final JsonObject object = (JsonObject) value;
+                final JsonObject catalog = object.getJsonObject("catalog");
+                final JsonObjectBuilder qualifiedCatalog = Json.createObjectBuilder();
+                for (Map.Entry<String, JsonValue> entry : catalog.entrySet())
+                {
+                    final long catalogId = binding.resolveId.applyAsLong(entry.getKey());
+                    final String qname = binding.supplyQName.apply(catalogId);
+                    qualifiedCatalog.add(qname, entry.getValue());
+                }
+                final JsonObject rewritten = Json.createObjectBuilder(object)
+                    .remove("catalog")
+                    .add("catalog", qualifiedCatalog)
+                    .build();
+                qualified = adapter.adaptFromJson(rewritten);
+            }
+        }
+        return qualified;
     }
 
     private static OpenapiResponseView successResponse(
@@ -816,7 +944,9 @@ public final class McpOpenapiCompositeGenerator
         {
             for (OpenapiParameterView parameter : operation.parameters)
             {
-                if (("path".equals(parameter.in) || "query".equals(parameter.in)) && parameter.schema != null)
+                final boolean supported = "path".equals(parameter.in) || "query".equals(parameter.in) ||
+                    "header".equals(parameter.in) || "cookie".equals(parameter.in);
+                if (supported && parameter.schema != null)
                 {
                     properties.add(parameter.name, schemaObject(parameter.schema));
                     propertyNames.add(parameter.name);
@@ -934,19 +1064,25 @@ public final class McpOpenapiCompositeGenerator
         private final OpenapiOperationView operation;
         private final List<GuardedRef> guarded;
         private final String server;
+        private final Map<String, String> params;
+        private final Map<String, String> body;
 
         private RoutedOperation(
             McpOpenapiToolConfig tool,
             McpOpenapiResourceConfig resource,
             OpenapiOperationView operation,
             List<GuardedRef> guarded,
-            String server)
+            String server,
+            Map<String, String> params,
+            Map<String, String> body)
         {
             this.tool = tool;
             this.resource = resource;
             this.operation = operation;
             this.guarded = guarded;
             this.server = server;
+            this.params = params != null ? params : Map.of();
+            this.body = body != null ? body : Map.of();
         }
 
         private String subjectName()

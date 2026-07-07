@@ -202,4 +202,74 @@ public class McpOpenapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.params.yaml")
+    @Specification({
+        "${mcp}/create.pr.with.params/client",
+        "${http}/create.pr.with.params/server"})
+    public void shouldCallToolCreatePrWithNestedRebindPathParameters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.body.yaml")
+    @Specification({
+        "${mcp}/create.pr.with.body/client",
+        "${http}/create.pr.with.body/server"})
+    public void shouldCallToolCreatePrWithNestedRebindBodyFields() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.params.resource.yaml")
+    @Specification({
+        "${mcp}/read.repo.with.params/client",
+        "${http}/read.repo.with.params/server"})
+    public void shouldReadResourceRepoWithRebindPathParameters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.params.header.yaml")
+    @Specification({
+        "${mcp}/notify.header.present/client",
+        "${http}/notify.header.present/server"})
+    public void shouldCallToolNotifyWithRebindHeaderParameterPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.params.header.yaml")
+    @Specification({
+        "${mcp}/notify.header.absent/client",
+        "${http}/notify.header.absent/server"})
+    public void shouldCallToolNotifyWithRebindHeaderParameterAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.params.cookie.yaml")
+    @Specification({
+        "${mcp}/greet.cookie.both.present/client",
+        "${http}/greet.cookie.both.present/server"})
+    public void shouldCallToolGreetWithAggregatedCookiesPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.params.cookie.yaml")
+    @Specification({
+        "${mcp}/greet.cookie.one.absent/client",
+        "${http}/greet.cookie.one.absent/server"})
+    public void shouldCallToolGreetWithOneCookieAbsent() throws Exception
+    {
+        k3po.finish();
+    }
 }

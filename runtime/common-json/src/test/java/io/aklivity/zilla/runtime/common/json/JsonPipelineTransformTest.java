@@ -112,7 +112,7 @@ class JsonPipelineTransformTest
         // must still fragment that buffered key without overrunning or re-emitting
         String key = "k".repeat(40);
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/" + key)))
+            .transform(JsonTransforms.projector(List.of("/" + key)))
             .into(JsonEx.createGenerator());
         pipeline.reset();
 
@@ -161,7 +161,7 @@ class JsonPipelineTransformTest
     void shouldNotReportIdentityThroughProjector()
     {
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(List.of("/a")))
+            .transform(JsonTransforms.projector(List.of("/a")))
             .into(JsonEx.createGenerator());
 
         assertFalse(pipeline.identity());

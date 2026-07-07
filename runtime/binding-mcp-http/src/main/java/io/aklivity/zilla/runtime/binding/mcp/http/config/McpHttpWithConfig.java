@@ -22,17 +22,20 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 public final class McpHttpWithConfig extends WithConfig
 {
     public final Map<String, String> headers;
+    public final Map<String, String> cookies;
     public final ModelConfig query;
     public final ModelConfig body;
     public final Map<String, String> bodyTemplate;
 
     public McpHttpWithConfig(
         Map<String, String> headers,
+        Map<String, String> cookies,
         ModelConfig query,
         ModelConfig body,
         Map<String, String> bodyTemplate)
     {
         this.headers = headers;
+        this.cookies = cookies;
         this.query = query;
         this.body = body;
         this.bodyTemplate = bodyTemplate;

@@ -22,6 +22,8 @@ public final class McpOpenapiToolConfig
 {
     public final String name;
     public final String description;
+    public final String summary;
+    public final ModelConfig input;
     public final ModelConfig output;
 
     public static McpOpenapiToolConfigBuilder<McpOpenapiToolConfig> builder()
@@ -38,10 +40,14 @@ public final class McpOpenapiToolConfig
     McpOpenapiToolConfig(
         String name,
         String description,
+        String summary,
+        ModelConfig input,
         ModelConfig output)
     {
         this.name = name;
         this.description = description;
+        this.summary = summary;
+        this.input = input;
         this.output = output;
     }
 }

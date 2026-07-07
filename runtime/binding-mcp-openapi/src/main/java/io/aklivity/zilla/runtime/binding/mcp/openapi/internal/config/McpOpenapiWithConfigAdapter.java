@@ -14,9 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
@@ -29,6 +33,8 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
     private static final String TAG_NAME = "tag";
+    private static final String PARAMS_NAME = "params";
+    private static final String BODY_NAME = "body";
 
     @Override
     public String type()
@@ -59,6 +65,20 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
             object.add(TAG_NAME, mcpOpenapiWith.tag);
         }
 
+        if (mcpOpenapiWith.params != null && !mcpOpenapiWith.params.isEmpty())
+        {
+            final JsonObjectBuilder params = Json.createObjectBuilder();
+            mcpOpenapiWith.params.forEach(params::add);
+            object.add(PARAMS_NAME, params);
+        }
+
+        if (mcpOpenapiWith.body != null && !mcpOpenapiWith.body.isEmpty())
+        {
+            final JsonObjectBuilder body = Json.createObjectBuilder();
+            mcpOpenapiWith.body.forEach(body::add);
+            object.add(BODY_NAME, body);
+        }
+
         return object.build();
     }
 
@@ -78,10 +98,34 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
             ? object.getString(TAG_NAME)
             : null;
 
+        Map<String, String> params = null;
+        if (object.containsKey(PARAMS_NAME))
+        {
+            params = new LinkedHashMap<>();
+            final JsonObject paramsObject = object.getJsonObject(PARAMS_NAME);
+            for (Map.Entry<String, JsonValue> entry : paramsObject.entrySet())
+            {
+                params.put(entry.getKey(), paramsObject.getString(entry.getKey()));
+            }
+        }
+
+        Map<String, String> body = null;
+        if (object.containsKey(BODY_NAME))
+        {
+            body = new LinkedHashMap<>();
+            final JsonObject bodyObject = object.getJsonObject(BODY_NAME);
+            for (Map.Entry<String, JsonValue> entry : bodyObject.entrySet())
+            {
+                body.put(entry.getKey(), bodyObject.getString(entry.getKey()));
+            }
+        }
+
         return McpOpenapiWithConfig.builder()
             .spec(spec)
             .operation(operation)
             .tag(tag)
+            .params(params)
+            .body(body)
             .build();
     }
 }

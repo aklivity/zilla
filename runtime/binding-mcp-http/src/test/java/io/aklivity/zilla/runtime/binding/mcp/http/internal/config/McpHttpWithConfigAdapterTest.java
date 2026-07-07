@@ -91,6 +91,45 @@ public class McpHttpWithConfigAdapterTest
     }
 
     @Test
+    public void shouldReadWithCookies()
+    {
+        String yaml =
+                """
+                headers:
+                  ":method": GET
+                cookies:
+                  session: "${args.session.id}"
+                """;
+
+        McpHttpWithConfig with = jsonb.fromJson(yaml, McpHttpWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.cookies, not(nullValue()));
+        assertThat(with.cookies.get("session"), equalTo("${args.session.id}"));
+    }
+
+    @Test
+    public void shouldWriteWithCookies()
+    {
+        String yaml =
+                """
+                headers:
+                  ":method": GET
+                cookies:
+                  session: "${args.session.id}"
+                """;
+
+        McpHttpWithConfig with = jsonb.fromJson(yaml, McpHttpWithConfig.class);
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, containsString("cookies:"));
+        assertThat(text, containsString("session:"));
+        assertThat(text, containsString("${args.session.id}"));
+    }
+
+    @Test
     public void shouldWriteWithHeadersAndBodyTemplate()
     {
         String yaml =

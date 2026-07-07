@@ -182,6 +182,16 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.remap.nested.yaml")
+    @Specification({
+        "${mcp}/create.pr.remap.nested/client",
+        "${http}/create.pr/server"})
+    public void shouldCallToolWithNestedBodyTemplate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.discovery.yaml")
     @Specification({
         "${mcp}/tools.list/client"})
@@ -547,6 +557,56 @@ public class McpHttpProxyIT
         "${mcp}/get.profile/client",
         "${http}/get.profile/server"})
     public void shouldCallToolGetProfileWithNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.header.yaml")
+    @Specification({
+        "${mcp}/echo.header.present/client",
+        "${http}/echo.header.present/server"})
+    public void shouldIncludeHeaderWhenArgumentPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.header.yaml")
+    @Specification({
+        "${mcp}/echo.header.absent/client",
+        "${http}/echo.header.absent/server"})
+    public void shouldOmitHeaderWhenArgumentAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cookie.yaml")
+    @Specification({
+        "${mcp}/echo.cookie.both.present/client",
+        "${http}/echo.cookie.both.present/server"})
+    public void shouldAggregateCookiesWhenBothArgumentsPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cookie.yaml")
+    @Specification({
+        "${mcp}/echo.cookie.one.absent/client",
+        "${http}/echo.cookie.one.absent/server"})
+    public void shouldOmitOneCookieWhenOneArgumentAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cookie.yaml")
+    @Specification({
+        "${mcp}/echo.cookie.all.absent/client",
+        "${http}/echo.cookie.all.absent/server"})
+    public void shouldOmitCookieHeaderWhenAllArgumentsAbsent() throws Exception
     {
         k3po.finish();
     }

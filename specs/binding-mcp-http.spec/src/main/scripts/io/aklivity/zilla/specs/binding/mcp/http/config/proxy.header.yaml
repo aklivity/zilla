@@ -1,0 +1,74 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+catalogs:
+  http_github0:
+    type: inline
+    options:
+      subjects:
+        echo_header_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "requestId": { "type": "string" }
+              }
+            }
+        echo_header_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string" }
+              }
+            }
+bindings:
+  app0:
+    type: mcp_http
+    kind: proxy
+    options:
+      tools:
+        echo_header:
+          description: >
+            Echo request, forwarding an optional caller-supplied request id as a header.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: echo_header_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: echo_header_result
+                    version: latest
+    routes:
+      - when:
+          - tool: echo_header
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /echo
+            "x-request-id": ${args.requestId}

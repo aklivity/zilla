@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonTransforms;
 
 class JsonSchemaPathsTest
 {
@@ -109,7 +110,7 @@ class JsonSchemaPathsTest
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(JsonSchemaPaths.retained(
+            .transform(JsonTransforms.projector(JsonSchemaPaths.retained(
                 "{\"type\":\"object\",\"properties\":{" +
                 "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
                 "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}")))

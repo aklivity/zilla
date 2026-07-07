@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonTransforms;
 
 class JsonGeneratorEscapeChunkingTest
 {
@@ -100,7 +101,7 @@ class JsonGeneratorEscapeChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator(config);
         JsonPipeline pipeline = project
             ? JsonEx.stream(JsonEx.createParser())
-                .transform(JsonEx.projector(List.of("/keep")))
+                .transform(JsonTransforms.projector(List.of("/keep")))
                 .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)))
             : JsonEx.stream(JsonEx.createParser())
                 .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));

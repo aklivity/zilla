@@ -1,0 +1,113 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        github:
+          version: latest
+          schema: |
+            {
+              "openapi": "3.1.0",
+              "info": { "title": "GitHub", "version": "1.0.0" },
+              "servers": [ { "url": "https://api.github.com" } ],
+              "paths": {
+                "/notifications": {
+                  "post": {
+                    "operationId": "notify",
+                    "summary": "Create a notification",
+                    "parameters": [
+                      { "name": "X-Trace-Id", "in": "header", "schema": { "type": "string" } }
+                    ],
+                    "requestBody": {
+                      "required": true,
+                      "content": {
+                        "application/json": {
+                          "schema": {
+                            "type": "object",
+                            "required": [ "message" ],
+                            "properties": {
+                              "message": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "responses": {
+                      "201": {
+                        "description": "created",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "integer" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        notify_input:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "trace": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" }
+                  }
+                },
+                "message": { "type": "string" }
+              },
+              "required": [ "message" ]
+            }
+bindings:
+  app0:
+    type: mcp_openapi
+    kind: client
+    options:
+      specs:
+        github:
+          catalog:
+            catalog0:
+              subject: github
+              version: latest
+      tools:
+        notify:
+          input:
+            model: json
+            catalog:
+              catalog0:
+                - subject: notify_input
+                  version: latest
+    routes:
+      - when:
+          - tool: notify
+        with:
+          spec: github
+          operation: notify
+          params:
+            X-Trace-Id: ${args.trace.id}

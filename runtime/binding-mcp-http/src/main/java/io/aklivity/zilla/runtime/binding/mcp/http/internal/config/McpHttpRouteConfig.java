@@ -46,7 +46,7 @@ public final class McpHttpRouteConfig
     public final McpHttpWithConfig with;
     public final List<GuardedConfig> guarded;
     public final List<String> bodyTemplatePointers;
-    public final Map<String, String> bodyTemplateRenames;
+    public final Map<String, String> bodyTemplateTargets;
     public final List<String> argAccessors;
     public final List<String> paramAccessors;
     public final String pathBase;
@@ -71,7 +71,7 @@ public final class McpHttpRouteConfig
         if (bodyTemplate != null)
         {
             final List<String> pointers = new ArrayList<>();
-            final Map<String, String> renames = new LinkedHashMap<>();
+            final Map<String, String> targets = new LinkedHashMap<>();
             for (Map.Entry<String, String> entry : bodyTemplate.entrySet())
             {
                 final String target = entry.getKey();
@@ -80,21 +80,16 @@ public final class McpHttpRouteConfig
                 {
                     final String accessor = matcher.group(1);
                     pointers.add(pointer(accessor));
-                    final int dot = accessor.indexOf('.');
-                    final String source = dot < 0 ? accessor : accessor.substring(0, dot);
-                    if (!source.equals(target))
-                    {
-                        renames.put(source, target);
-                    }
+                    targets.put(accessor, target);
                 }
             }
             this.bodyTemplatePointers = pointers;
-            this.bodyTemplateRenames = renames;
+            this.bodyTemplateTargets = targets;
         }
         else
         {
             this.bodyTemplatePointers = null;
-            this.bodyTemplateRenames = null;
+            this.bodyTemplateTargets = null;
         }
 
         final List<String> args = new ArrayList<>();
@@ -104,6 +99,10 @@ public final class McpHttpRouteConfig
             if (with.headers != null)
             {
                 with.headers.values().forEach(value -> collectAccessors(value, args, params));
+            }
+            if (with.cookies != null)
+            {
+                with.cookies.values().forEach(value -> collectAccessors(value, args, params));
             }
             if (bodyTemplate != null)
             {
@@ -135,6 +134,66 @@ public final class McpHttpRouteConfig
         String name)
     {
         return resource != null && resource.equals(name);
+    }
+
+    // Resolves every header other than :path (handled separately via resolvePath, since it also
+    // carries the query string). A header whose value references an args./params. accessor that is
+    // absent is omitted entirely, not sent with an empty value -- unlike interpolatePath (used for
+    // :path and query fragments), which always has a value to substitute into.
+    public Map<String, String> resolveHeaders(
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        final Map<String, String> resolved = new LinkedHashMap<>();
+        if (with != null && with.headers != null)
+        {
+            for (Map.Entry<String, String> entry : with.headers.entrySet())
+            {
+                final String name = entry.getKey();
+                if (HEADER_PATH.equals(name))
+                {
+                    resolved.put(name, entry.getValue());
+                }
+                else
+                {
+                    final String value = interpolateStrict(entry.getValue(), args, params);
+                    if (value != null)
+                    {
+                        resolved.put(name, value);
+                    }
+                }
+            }
+        }
+        return resolved;
+    }
+
+    // Unlike resolveHeaders, where each header is independently included or omitted, cookies must
+    // aggregate into a single Cookie header value -- so a cookie whose accessor is unresolved is just
+    // dropped from the aggregate rather than causing the whole header to be omitted; only when every
+    // configured cookie is unresolved does this return null (no Cookie header at all).
+    public String resolveCookies(
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        String result = null;
+        if (with != null && with.cookies != null)
+        {
+            final StringBuilder cookie = new StringBuilder();
+            for (Map.Entry<String, String> entry : with.cookies.entrySet())
+            {
+                final String value = interpolateStrict(entry.getValue(), args, params);
+                if (value != null)
+                {
+                    if (cookie.length() > 0)
+                    {
+                        cookie.append("; ");
+                    }
+                    cookie.append(entry.getKey()).append('=').append(value);
+                }
+            }
+            result = cookie.length() > 0 ? cookie.toString() : null;
+        }
+        return result;
     }
 
     public String resolvePath(
@@ -213,6 +272,60 @@ public final class McpHttpRouteConfig
                 }
             }
             result = builder.toString();
+        }
+
+        return result;
+    }
+
+    // Like interpolatePath, but returns null (instead of substituting an empty string) if any
+    // referenced accessor is absent -- the signal resolveHeaders uses to omit a header entirely
+    // rather than send it with an empty value.
+    private static String interpolateStrict(
+        String template,
+        Map<String, String> args,
+        Map<String, String> params)
+    {
+        String result = template;
+
+        if (template != null && template.contains("${"))
+        {
+            final StringBuilder builder = new StringBuilder();
+            int index = 0;
+            boolean resolved = true;
+            while (resolved && index < template.length())
+            {
+                final int start = template.indexOf("${", index);
+                if (start < 0)
+                {
+                    builder.append(template, index, template.length());
+                    index = template.length();
+                }
+                else
+                {
+                    builder.append(template, index, start);
+                    final int end = template.indexOf('}', start + 2);
+                    if (end < 0)
+                    {
+                        builder.append(template, start, template.length());
+                        index = template.length();
+                    }
+                    else
+                    {
+                        final String expression = template.substring(start + 2, end);
+                        final String raw = rawValue(expression, args, params);
+                        if (raw == null)
+                        {
+                            resolved = false;
+                        }
+                        else
+                        {
+                            builder.append(encode(raw));
+                            index = end + 1;
+                        }
+                    }
+                }
+            }
+            result = resolved ? builder.toString() : null;
         }
 
         return result;
