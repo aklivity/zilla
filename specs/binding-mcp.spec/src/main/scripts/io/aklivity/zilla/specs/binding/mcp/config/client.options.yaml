@@ -22,5 +22,6 @@ bindings:
     options:
       server: http://localhost:8080/mcp
       authorization:
-        jwt0: {}
+        jwt0:
+          credentials: "test-token"
     exit: net0
