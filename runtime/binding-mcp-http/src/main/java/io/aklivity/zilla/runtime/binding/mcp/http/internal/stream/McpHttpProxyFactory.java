@@ -57,7 +57,6 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.events.McpHttpEventCo
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpArguments;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpDiscard;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpQuery;
-import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpRename;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpResults;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpToolResult;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.Flyweight;
@@ -83,6 +82,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonStream;
+import io.aklivity.zilla.runtime.common.json.JsonTransforms;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -1052,16 +1052,16 @@ public final class McpHttpProxyFactory implements BindingHandler
                     // deferred rather than solved speculatively — with.query is silently ignored in this case
                     requestGenerator = JsonEx.createGenerator();
                     stream = with.bodyTemplate != null
-                        ? stream.transform(JsonEx.projector(route.bodyTemplatePointers))
-                            .transform(new McpHttpRename(route.bodyTemplateRenames))
-                        : stream.transform(JsonEx.projector(binding.jsonSchema(with.body)));
+                        ? stream.transform(JsonTransforms.projector(route.bodyTemplatePointers))
+                            .transform(JsonTransforms.flatten(route.bodyTemplateTargets))
+                        : stream.transform(JsonTransforms.projector(binding.jsonSchema(with.body)));
                     requestPipeline = stream.into(JsonEx.createSink(requestGenerator, SINK_SEGMENTABLE));
                 }
                 else if (needsQuery)
                 {
                     queryCaptured = new LinkedHashMap<>();
                     requestPipeline = stream
-                        .transform(JsonEx.projector(binding.jsonSchema(with.query)))
+                        .transform(JsonTransforms.projector(binding.jsonSchema(with.query)))
                         .into(new McpHttpQuery(queryCaptured));
                 }
                 else
@@ -1324,7 +1324,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     // validate against the full (unprojected) document before pruning it down, matching the
                     // pre-streaming validate-then-project order: a value the schema rejects must never reach
                     // structuredContent even if the retained paths alone would otherwise look fine
-                    stream = stream.transform(outputSchema.validator()).transform(JsonEx.projector(outputSchema));
+                    stream = stream.transform(outputSchema.validator()).transform(JsonTransforms.projector(outputSchema));
                 }
                 // captures result.* references from exactly the events reaching the sink (i.e. after any
                 // projection), matching the pre-streaming behavior of scanning the already-projected buffer;
@@ -1529,7 +1529,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 responseGenerator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
                 responsePipeline = schema != null
                     ? JsonEx.stream(JsonEx.createParser())
-                        .transform(JsonEx.projector(schema))
+                        .transform(JsonTransforms.projector(schema))
                         .into(JsonEx.createSink(responseGenerator, SINK_SEGMENTABLE))
                     : JsonEx.stream(JsonEx.createParser())
                         .into(JsonEx.createSink(responseGenerator, SINK_SEGMENTABLE));

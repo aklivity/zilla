@@ -46,7 +46,7 @@ public final class McpHttpRouteConfig
     public final McpHttpWithConfig with;
     public final List<GuardedConfig> guarded;
     public final List<String> bodyTemplatePointers;
-    public final Map<String, String> bodyTemplateRenames;
+    public final Map<String, String> bodyTemplateTargets;
     public final List<String> argAccessors;
     public final List<String> paramAccessors;
     public final String pathBase;
@@ -71,7 +71,7 @@ public final class McpHttpRouteConfig
         if (bodyTemplate != null)
         {
             final List<String> pointers = new ArrayList<>();
-            final Map<String, String> renames = new LinkedHashMap<>();
+            final Map<String, String> targets = new LinkedHashMap<>();
             for (Map.Entry<String, String> entry : bodyTemplate.entrySet())
             {
                 final String target = entry.getKey();
@@ -80,21 +80,16 @@ public final class McpHttpRouteConfig
                 {
                     final String accessor = matcher.group(1);
                     pointers.add(pointer(accessor));
-                    final int dot = accessor.indexOf('.');
-                    final String source = dot < 0 ? accessor : accessor.substring(0, dot);
-                    if (!source.equals(target))
-                    {
-                        renames.put(source, target);
-                    }
+                    targets.put(accessor, target);
                 }
             }
             this.bodyTemplatePointers = pointers;
-            this.bodyTemplateRenames = renames;
+            this.bodyTemplateTargets = targets;
         }
         else
         {
             this.bodyTemplatePointers = null;
-            this.bodyTemplateRenames = null;
+            this.bodyTemplateTargets = null;
         }
 
         final List<String> args = new ArrayList<>();

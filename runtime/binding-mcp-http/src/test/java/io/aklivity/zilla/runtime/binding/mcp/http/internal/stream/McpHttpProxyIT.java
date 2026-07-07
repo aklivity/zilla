@@ -182,6 +182,16 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.remap.nested.yaml")
+    @Specification({
+        "${mcp}/create.pr.remap.nested/client",
+        "${http}/create.pr/server"})
+    public void shouldCallToolWithNestedBodyTemplate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.discovery.yaml")
     @Specification({
         "${mcp}/tools.list/client"})

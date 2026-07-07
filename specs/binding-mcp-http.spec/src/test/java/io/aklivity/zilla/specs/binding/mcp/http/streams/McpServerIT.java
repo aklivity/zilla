@@ -56,6 +56,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/create.pr.remap.nested/client",
+        "${mcp}/create.pr.remap.nested/server"})
+    public void shouldCallToolWithNestedBodyTemplate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/initialize/client",
         "${mcp}/initialize/server"})
     public void shouldInitialize() throws Exception
