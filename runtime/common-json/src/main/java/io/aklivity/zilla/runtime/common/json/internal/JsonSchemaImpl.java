@@ -174,6 +174,14 @@ public final class JsonSchemaImpl implements JsonSchema
     private final JsonSchemaImpl ifSchema;
     private final JsonSchemaImpl thenSchema;
     private final JsonSchemaImpl elseSchema;
+    // true when a scalar at this schema position must be reassembled whole to be validated: this
+    // node applies a keyword that reads the value's content (pattern/enum/const/minLength/maxLength/
+    // numeric bounds, or type:integer needing the lexeme to distinguish from a fractional number), or
+    // any allOf/anyOf/oneOf/not/if/then/else/dependentSchemas child needs content, or this node is a
+    // $ref/$dynamicRef/$recursiveRef (resolved lazily, so conservatively assumed to need content rather
+    // than risk following a cyclic reference to precompute it). false means the position needs only the
+    // event kind/count, so a window-fragmented value can stream through instead of being buffered whole.
+    private final boolean needsContent;
 
     private List<String> retainedPaths;
 
@@ -398,6 +406,58 @@ public final class JsonSchemaImpl implements JsonSchema
         this.ifSchema = schema.has("if") ? from(schema.get("if"), context) : null;
         this.thenSchema = schema.has("then") ? from(schema.get("then"), context) : null;
         this.elseSchema = schema.has("else") ? from(schema.get("else"), context) : null;
+        boolean integerOnly = types != null && types.contains(JsonType.INTEGER) && !types.contains(JsonType.NUMBER);
+        this.needsContent = pattern != null || minLength >= 0 || maxLength >= 0 ||
+            minimum != null || maximum != null || exclusiveMinimum != null || exclusiveMaximum != null ||
+            multipleOf != null || constantCanon != null || constString != null ||
+            enumCanons != null || enumStrings != null || integerOnly ||
+            refApplicator != null || dynamicRef != null || recursiveRef ||
+            needsContentAny(allOf) || needsContentAny(anyOf) || needsContentAny(oneOf) ||
+            needsContentOne(notSchema) || needsContentOne(ifSchema) ||
+            needsContentOne(thenSchema) || needsContentOne(elseSchema) ||
+            needsContentAny(dependentSchemas);
+    }
+
+    private static boolean needsContentOne(
+        JsonSchemaImpl schema)
+    {
+        return schema != null && schema.needsContent;
+    }
+
+    private static boolean needsContentAny(
+        List<JsonSchemaImpl> schemas)
+    {
+        boolean result = false;
+        if (schemas != null)
+        {
+            for (JsonSchemaImpl schema : schemas)
+            {
+                if (schema.needsContent)
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    private static boolean needsContentAny(
+        Map<String, JsonSchemaImpl> schemas)
+    {
+        boolean result = false;
+        if (schemas != null)
+        {
+            for (JsonSchemaImpl schema : schemas.values())
+            {
+                if (schema.needsContent)
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     private JsonSchemaImpl(
@@ -457,6 +517,9 @@ public final class JsonSchemaImpl implements JsonSchema
         this.ifSchema = null;
         this.thenSchema = null;
         this.elseSchema = null;
+        // lazily resolved via eval()'s ref chase; conservatively assumed to need content rather than
+        // resolve (and risk cycling through) the target schema just to precompute this flag
+        this.needsContent = true;
     }
 
     private JsonSchemaImpl(
@@ -515,6 +578,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.ifSchema = null;
         this.thenSchema = null;
         this.elseSchema = null;
+        // ANY has no keywords at all; NONE (deny) rejects unconditionally regardless of content
+        this.needsContent = false;
     }
 
     private Eval eval()
@@ -2348,7 +2413,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 status = downstream == Status.REJECTED ? Status.REJECTED
                     : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
             }
-            else if (scalar && source.deferredBytes())
+            else if (scalar && source.deferredBytes() && eval.needsContentNow())
             {
                 // Eval is not fragment-aware: a value spanning windows must be reassembled before it can be
                 // validated against any keyword. Decline the fragment (consumed(0), do not forward) so the
@@ -2357,6 +2422,17 @@ public final class JsonSchemaImpl implements JsonSchema
                 // frontier across windows without the validator forwarding partial values.
                 control.consumed(0);
                 status = Status.STARVED;
+            }
+            else if (scalar && source.deferredBytes())
+            {
+                // forward-and-suppress: no applicable keyword at this position reads the value's content, so
+                // there is nothing to gain by reassembling it. Forward the fragment now (streaming it to the
+                // sink like the complete-scalar path below) but do not feed eval — Eval treats a VALUE_STRING/
+                // VALUE_NUMBER event as one complete value, so feeding a fragment would mis-count/mis-evaluate.
+                // eval is fed exactly once, type/count only, when the closing fragment reaches the branch below.
+                Status downstream = sink.transform(decline, source, forward(event));
+                status = downstream == Status.REJECTED ? Status.REJECTED
+                    : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
             }
             else if (scalar)
             {
@@ -2765,6 +2841,55 @@ public final class JsonSchemaImpl implements JsonSchema
             return verdict;
         }
 
+        // whether the position about to receive the next scalar event needs its actual content, or only
+        // the event kind/count. Not yet started means this Eval's own schema (and its static needsContent
+        // flag) is that position. Already routing to a child (a matched object property, or an in-flight
+        // array element) means the position is whatever that child needs, recursively; a contains
+        // candidate running alongside the same element is also consulted, since it sees the same event
+        // stream as the routed child. An object/array with unevaluatedProperties/unevaluatedItems always
+        // needs content for every child regardless of the child's own schema, since the raw value is
+        // replayed against that keyword once the container closes. A not-yet-routed array (the pending
+        // event is the first for its next element) resolves the applicable item/contains schema for the
+        // next index without mutating any routing state.
+        private boolean needsContentNow()
+        {
+            boolean result;
+            if (!started)
+            {
+                result = JsonSchemaImpl.this.needsContent;
+            }
+            else if (object && unevaluatedProperties != null || array && unevaluatedItems != null)
+            {
+                result = true;
+            }
+            else if (directChild != null)
+            {
+                result = directChild.needsContentNow() || containsChild != null && containsChild.needsContentNow();
+            }
+            else if (directChildren != null)
+            {
+                result = false;
+                for (Eval child : directChildren)
+                {
+                    if (child.needsContentNow())
+                    {
+                        result = true;
+                        break;
+                    }
+                }
+            }
+            else if (array)
+            {
+                JsonSchemaImpl schema = elementSchema(count);
+                result = schema.needsContent || contains != null && contains.needsContent;
+            }
+            else
+            {
+                result = true;
+            }
+            return result;
+        }
+
         private void directFeed(
             Event event,
             JsonSource parser)
@@ -2841,17 +2966,33 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
                 break;
             case VALUE_STRING:
-                checkStringReport(parser);
-                if (constString != null || enumStrings != null)
+                if (needsContent)
                 {
-                    CharSequence value = parser.getStringView();
-                    scalarStringOk = constString != null
-                        ? charsEqual(constString, value)
-                        : containsString(enumStrings, value);
+                    checkStringReport(parser);
+                    if (constString != null || enumStrings != null)
+                    {
+                        CharSequence value = parser.getStringView();
+                        scalarStringOk = constString != null
+                            ? charsEqual(constString, value)
+                            : containsString(enumStrings, value);
+                    }
+                }
+                else if (types != null && !types.contains(JsonType.STRING))
+                {
+                    directInvalid = true;
+                    trace.report("type", "expected " + typesText() + " but was string", parser);
                 }
                 break;
             case VALUE_NUMBER:
-                checkNumberReport(parser);
+                if (needsContent)
+                {
+                    checkNumberReport(parser);
+                }
+                else if (types != null && !types.contains(JsonType.NUMBER) && !types.contains(JsonType.INTEGER))
+                {
+                    directInvalid = true;
+                    trace.report("type", "expected " + typesText() + " but was number", parser);
+                }
                 break;
             case VALUE_TRUE:
             case VALUE_FALSE:
