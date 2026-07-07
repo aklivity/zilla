@@ -59,7 +59,6 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -287,6 +286,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         lenient().when(context.supplyCatalog(eq(1L))).thenReturn(catalog);
         lenient().when(context.supplyBindingId(any(), any())).thenReturn(42L);
+        lenient().when(context.supplyQName(eq(1L))).thenReturn("test:catalog0");
         lenient().when(context.supplyQName(eq(2L))).thenReturn("test0");
         lenient().when(context.supplyQName(eq(3L))).thenReturn("test1");
         lenient().when(catalog.resolve(eq("rest-api"), eq("latest"))).thenReturn(7);
@@ -507,10 +507,6 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldOverrideInputSchema()
     {
-        String authoredSchema = "{\"type\":\"object\",\"properties\":{\"repo_owner\":{\"type\":\"string\"}}}";
-        lenient().when(catalog.resolve(eq("create_pr_input"), eq("latest"))).thenReturn(99);
-        lenient().when(catalog.resolve(eq(99))).thenReturn(authoredSchema);
-
         ModelConfig override = JsonModelConfig.builder()
             .catalog()
                 .name("catalog0")
@@ -558,14 +554,6 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         NamespaceConfig namespace = composite.namespaces.get(0);
-        InlineOptionsConfig catalogOptions = (InlineOptionsConfig) namespace.catalogs.get(0).options;
-        InlineSchemaConfig inputSubject = catalogOptions.subjects.stream()
-            .filter(s -> "create_pr-input".equals(s.subject))
-            .findFirst()
-            .orElse(null);
-        assertThat(inputSubject, notNullValue());
-        assertThat(inputSubject.schema, equalTo(authoredSchema));
-
         BindingConfig mcpHttp = namespace.bindings.stream()
             .filter(b -> "mcp_http0".equals(b.name))
             .findFirst()
@@ -577,6 +565,13 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         assertThat(tool, notNullValue());
         assertThat(tool.input, notNullValue());
+        assertThat(tool.input.model, equalTo("json"));
+        assertThat(tool.input.cataloged, hasSize(1));
+        // the authored reference names the bare "catalog0" from the caller's own namespace; forwarded
+        // into the generated mcp_http0 binding's own (different) namespace, it must be qualified
+        // ("test:catalog0"), otherwise it would resolve against that namespace's own local "catalog0"
+        assertThat(tool.input.cataloged.get(0).name, equalTo("test:catalog0"));
+        assertThat(tool.input.cataloged.get(0).schemas.get(0).subject, equalTo("create_pr_input"));
     }
 
     @Test
