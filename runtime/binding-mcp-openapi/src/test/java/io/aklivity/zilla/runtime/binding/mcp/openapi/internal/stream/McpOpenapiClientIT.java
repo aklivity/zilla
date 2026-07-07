@@ -212,4 +212,14 @@ public class McpOpenapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.params.resource.yaml")
+    @Specification({
+        "${mcp}/read.repo.with.params/client",
+        "${http}/read.repo.with.params/server"})
+    public void shouldReadResourceRepoWithRebindPathParameters() throws Exception
+    {
+        k3po.finish();
+    }
 }
