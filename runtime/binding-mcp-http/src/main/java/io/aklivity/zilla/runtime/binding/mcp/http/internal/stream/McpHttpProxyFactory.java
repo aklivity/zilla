@@ -636,20 +636,20 @@ public final class McpHttpProxyFactory implements BindingHandler
                 traceId, authorization, 0L, 0);
         }
 
-        // Standard cross-stream window propagation: HttpProxy calls this with how much credit is left on
-        // its own side (minInitialNoAck, minInitialMax) whenever its own initial window changes; this side
-        // only ever raises its own window (never shrinks it), capped at how much more physically fits in
-        // decodeSlot right now.
+        // Triggered whenever HttpProxy's initial (request) window changes, since that is what lets
+        // pumpRequest drain more of this side's own decodeSlot; the window granted back to the mcp client
+        // reflects only this side's own backlog — decodeSlotOffset is in mcp-client request bytes, the same
+        // units as initialSeq/initialAck, unlike HttpProxy's own initial-direction counters, which are a
+        // distinct byte stream once request shaping (body/bodyTemplate/query) has transformed the content.
+        // max stays pinned to the slot's full physical capacity; ack alone carries the backlog discount, so
+        // ack + max lands exactly on the true remaining room without double-counting the backlog.
         void flushMcpWindow(
             long traceId,
             long budgetId,
-            int padding,
-            long minInitialNoAck,
-            int minInitialMax)
+            int padding)
         {
-            final long newInitialAck = Math.max(initialAck, initialSeq - minInitialNoAck);
-            final int newInitialMax = Math.max(initialMax,
-                Math.min(minInitialMax, decodePool.slotCapacity() - decodeSlotOffset));
+            final long newInitialAck = Math.max(initialAck, initialSeq - decodeSlotOffset);
+            final int newInitialMax = Math.max(initialMax, decodePool.slotCapacity());
 
             if (newInitialAck > initialAck || newInitialMax > initialMax || !McpHttpState.initialOpened(state))
             {
@@ -789,12 +789,12 @@ public final class McpHttpProxyFactory implements BindingHandler
             flushHttpWindow(window.traceId());
         }
 
-        // Convenience trigger: reads this side's own current reply-direction state (its own remaining
-        // window, discounted by whatever is still queued in its own encodeSlot) and propagates it to delegate.
+        // Convenience trigger: delegate computes its own window purely from its own decodeSlot backlog, so
+        // this only needs to supply the padding to report and re-fire the check.
         void flushHttpWindow(
             long traceId)
         {
-            delegate.flushHttpWindow(traceId, 0L, replyPad, replySeq - replyAck, replyMax - encodeSlotOffset);
+            delegate.flushHttpWindow(traceId, 0L, replyPad);
         }
 
         // The tool config for tools/call, or null for resources/read which has no input schema.
@@ -1095,7 +1095,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     requestPipeline = stream.into(new McpHttpDiscard());
                 }
                 requestPipeline.reset();
-                flushMcpWindow(traceId, 0L, 0, 0L, decodePool.slotCapacity());
+                flushMcpWindow(traceId, 0L, 0);
             }
             else
             {
@@ -1205,9 +1205,12 @@ public final class McpHttpProxyFactory implements BindingHandler
                 {
                 case SUSPENDED:
                     // requestGenerator's destination is encodeSlot (see requestStep) — SUSPENDED means it
-                    // just filled up; flush what's queued and retry only if that actually freed room, else
-                    // stop and wait for the next onHttpWindow to resume (other sink kinds never suspend)
-                    if (requestGenerator != null && delegate.flushRequest(traceId) >= encodePool.slotCapacity())
+                    // just filled up; flush what's queued and retry only if that actually freed room (delegate
+                    // is bounded by the upstream HTTP server's own window, which can leave encodeSlot short of
+                    // full yet still unable to drain any further until the next onHttpWindow), else stop and
+                    // wait for that to resume (other sink kinds never suspend)
+                    final int beforeFlush = delegate.encodeSlotOffset;
+                    if (requestGenerator != null && delegate.flushRequest(traceId) >= beforeFlush)
                     {
                         progress = false;
                     }
@@ -1528,6 +1531,11 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 responseDone = true;
                 doMcpAbort(traceId);
+                // the mcp reply is already closed, so no future onMcpWindow will ever arrive to trigger
+                // delegate's window; the upstream body is going to be discarded either way (no downstream
+                // to backpressure against), so grant its full physical capacity now rather than leave it
+                // starved of window forever
+                flushHttpWindow(traceId);
             }
             else
             {
@@ -1650,7 +1658,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         private int state;
 
         private int encodeSlot = NO_SLOT;
-        private int encodeSlotOffset;
+        int encodeSlotOffset;
         private boolean requestDataStarted;
 
         private int decodeSlot = NO_SLOT;
@@ -1881,20 +1889,20 @@ public final class McpHttpProxyFactory implements BindingHandler
             cleanupDecodeSlot();
         }
 
-        // Standard cross-stream window propagation: McpHttpProxy calls this with how much credit is left on
-        // its own side (minReplyNoAck, minReplyMax) whenever its own reply window changes; this side only
-        // ever raises its own window (never shrinks it), capped at how much more physically fits in
-        // decodeSlot right now.
+        // Triggered whenever McpHttpProxy's reply window changes, since that is what lets pumpResponse drain
+        // more of this side's own decodeSlot; the window granted back to the upstream HTTP server reflects
+        // only this side's own backlog — decodeSlotOffset is in raw upstream response bytes, the same units
+        // as replySeq/replyAck, unlike McpHttpProxy's own reply-direction counters, which are a distinct byte
+        // stream once the response envelope/escaping transform has run. max stays pinned to the slot's full
+        // physical capacity; ack alone carries the backlog discount, so ack + max lands exactly on the true
+        // remaining room (replySeq + (slotCapacity - decodeSlotOffset)) without double-counting the backlog.
         private void flushHttpWindow(
             long traceId,
             long budgetId,
-            int padding,
-            long minReplyNoAck,
-            int minReplyMax)
+            int padding)
         {
-            final long newReplyAck = Math.max(replyAck, replySeq - minReplyNoAck);
-            final int newReplyMax = Math.max(replyMax,
-                Math.min(minReplyMax, decodePool.slotCapacity() - decodeSlotOffset));
+            final long newReplyAck = Math.max(replyAck, replySeq - decodeSlotOffset);
+            final int newReplyMax = Math.max(replyMax, decodePool.slotCapacity());
 
             if (newReplyAck > replyAck || newReplyMax > replyMax || !McpHttpState.replyOpened(state))
             {
@@ -1905,12 +1913,12 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
         }
 
-        // Convenience trigger: reads this side's own current initial-direction state (its own remaining
-        // window, discounted by whatever is still queued in its own encodeSlot) and propagates it to mcp.
+        // Convenience trigger: mcp computes its own window purely from its own decodeSlot backlog, so this
+        // only needs to supply the padding to report and re-fire the check.
         private void flushMcpWindow(
             long traceId)
         {
-            mcp.flushMcpWindow(traceId, 0L, initialPad, initialSeq - initialAck, initialMax - encodeSlotOffset);
+            mcp.flushMcpWindow(traceId, 0L, initialPad);
         }
 
         private boolean acquireEncodeSlot()
@@ -2034,8 +2042,11 @@ public final class McpHttpProxyFactory implements BindingHandler
                 case SUSPENDED:
                     // responseStep's destination is always McpProxy's own encodeSlot (structured or
                     // error-relay mode) — SUSPENDED means it just filled up; flush what's queued and retry
-                    // only if that actually freed room, else stop and wait for the next onMcpWindow to resume
-                    if (mcp.flushReply(traceId) >= encodePool.slotCapacity())
+                    // only if that actually freed room (flushReply is bounded by the real mcp client's own
+                    // window, which can leave encodeSlot short of full yet still unable to drain any further
+                    // until the next onMcpWindow), else stop and wait for that to resume
+                    final int beforeFlush = mcp.encodeSlotOffset;
+                    if (mcp.flushReply(traceId) >= beforeFlush)
                     {
                         progress = false;
                     }
