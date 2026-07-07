@@ -55,6 +55,12 @@ final class McpHttpState
         return (state & INITIAL_OPENING) != 0;
     }
 
+    static boolean initialOpened(
+        int state)
+    {
+        return (state & INITIAL_OPENED) != 0;
+    }
+
     static boolean initialClosing(
         int state)
     {
