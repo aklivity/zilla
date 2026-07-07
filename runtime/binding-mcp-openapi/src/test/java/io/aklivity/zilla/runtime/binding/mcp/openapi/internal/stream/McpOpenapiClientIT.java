@@ -202,4 +202,14 @@ public class McpOpenapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.params.yaml")
+    @Specification({
+        "${mcp}/create.pr.with.params/client",
+        "${http}/create.pr.with.params/server"})
+    public void shouldCallToolCreatePrWithRebindPathParameters() throws Exception
+    {
+        k3po.finish();
+    }
 }

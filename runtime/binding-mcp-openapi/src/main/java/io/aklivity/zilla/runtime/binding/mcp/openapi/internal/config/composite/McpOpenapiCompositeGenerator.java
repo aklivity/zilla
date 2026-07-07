@@ -74,11 +74,13 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class McpOpenapiCompositeGenerator
@@ -196,7 +198,7 @@ public final class McpOpenapiCompositeGenerator
 
         final NamespaceConfig namespace = NamespaceConfig.builder()
             .name("%s/mcp_http".formatted(binding.qname))
-            .inject(n -> injectCatalog(n, routed))
+            .inject(n -> injectCatalog(n, binding, routed))
             .inject(n -> injectBinding(n, routed))
             .build();
 
@@ -277,6 +279,7 @@ public final class McpOpenapiCompositeGenerator
 
     private <C> NamespaceConfigBuilder<C> injectCatalog(
         NamespaceConfigBuilder<C> namespace,
+        McpOpenapiBindingConfig binding,
         List<RoutedOperation> routed)
     {
         namespace
@@ -284,7 +287,7 @@ public final class McpOpenapiCompositeGenerator
                 .name(CATALOG_NAME)
                 .type("inline")
                 .options(InlineOptionsConfig::builder)
-                    .inject(o -> injectSubjects(o, routed))
+                    .inject(o -> injectSubjects(o, binding, routed))
                     .build()
                 .build();
 
@@ -293,6 +296,7 @@ public final class McpOpenapiCompositeGenerator
 
     private <C> InlineOptionsConfigBuilder<C> injectSubjects(
         InlineOptionsConfigBuilder<C> options,
+        McpOpenapiBindingConfig binding,
         List<RoutedOperation> routed)
     {
         try (Jsonb jsonb = JsonbBuilder.create())
@@ -302,10 +306,18 @@ public final class McpOpenapiCompositeGenerator
                 final String name = entry.subjectName();
                 final OpenapiOperationView operation = entry.operation;
 
+                // an authored schemas.input references a catalog subject in the caller's own namespace;
+                // its schema text is resolved here (while binding.resolveId/supplyCatalog are still scoped
+                // to that namespace) and re-embedded as a subject in the composite's own inline catalog,
+                // since the ModelConfig itself cannot simply be forwarded into the generated composite --
+                // "catalog0" there would resolve against the composite's own inline catalog instead
+                final String input = entry.tool != null && entry.tool.input != null
+                    ? modelSchemaText(binding, entry.tool.input)
+                    : inputSchema(operation);
                 options.schema()
                     .subject("%s-input".formatted(name))
                     .version("latest")
-                    .schema(inputSchema(operation))
+                    .schema(input)
                     .build();
 
                 if (operation.hasRequestBody())
@@ -365,9 +377,7 @@ public final class McpOpenapiCompositeGenerator
         for (RoutedOperation entry : routed)
         {
             final String name = entry.subjectName();
-            final ModelConfig input = entry.tool != null && entry.tool.input != null
-                ? entry.tool.input
-                : jsonModel("%s-input".formatted(name));
+            final ModelConfig input = jsonModel("%s-input".formatted(name));
 
             if (entry.tool != null)
             {
@@ -823,6 +833,26 @@ public final class McpOpenapiCompositeGenerator
                     .build()
                 .build()
             .build();
+    }
+
+    private static String modelSchemaText(
+        McpOpenapiBindingConfig binding,
+        ModelConfig model)
+    {
+        String text = null;
+        if (model.cataloged != null && !model.cataloged.isEmpty())
+        {
+            final CatalogedConfig cataloged = model.cataloged.get(0);
+            final long catalogId = binding.resolveId.applyAsLong(cataloged.name);
+            final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
+            if (handler != null && cataloged.schemas != null && !cataloged.schemas.isEmpty())
+            {
+                final SchemaConfig subject = cataloged.schemas.get(0);
+                final int schemaId = handler.resolve(subject.subject, subject.version);
+                text = handler.resolve(schemaId);
+            }
+        }
+        return text;
     }
 
     private static OpenapiResponseView successResponse(
