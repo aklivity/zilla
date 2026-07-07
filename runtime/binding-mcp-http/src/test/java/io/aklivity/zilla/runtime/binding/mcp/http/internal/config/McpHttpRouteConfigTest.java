@@ -31,13 +31,12 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldResolveHeaderWhenArgumentPresent()
     {
-        RouteConfig route = RouteConfig.builder()
+        McpHttpRouteConfig config = new McpHttpRouteConfig(RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/notifications")
                 .header("x-trace-id", "${args.trace.id}")
                 .build()
-            .build();
-        McpHttpRouteConfig config = new McpHttpRouteConfig(route);
+            .build());
 
         Map<String, String> args = Map.of("trace.id", "trace-abc");
         Map<String, String> resolved = config.resolveHeaders(args, Map.of());
@@ -48,13 +47,12 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldOmitHeaderWhenArgumentAbsent()
     {
-        RouteConfig route = RouteConfig.builder()
+        McpHttpRouteConfig config = new McpHttpRouteConfig(RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/notifications")
                 .header("x-trace-id", "${args.trace.id}")
                 .build()
-            .build();
-        McpHttpRouteConfig config = new McpHttpRouteConfig(route);
+            .build());
 
         Map<String, String> resolved = config.resolveHeaders(Map.of(), Map.of());
 
@@ -64,13 +62,12 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldCollectNestedArgAccessorFromHeader()
     {
-        RouteConfig route = RouteConfig.builder()
+        McpHttpRouteConfig config = new McpHttpRouteConfig(RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/notifications")
                 .header("x-trace-id", "${args.trace.id}")
                 .build()
-            .build();
-        McpHttpRouteConfig config = new McpHttpRouteConfig(route);
+            .build());
 
         assertThat(config.argAccessors, equalTo(List.of("trace.id")));
     }
@@ -78,14 +75,13 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldAggregateCookiesWhenAllPresent()
     {
-        RouteConfig route = RouteConfig.builder()
+        McpHttpRouteConfig config = new McpHttpRouteConfig(RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/notifications")
                 .cookie("a", "${args.a}")
                 .cookie("b", "${args.b}")
                 .build()
-            .build();
-        McpHttpRouteConfig config = new McpHttpRouteConfig(route);
+            .build());
 
         Map<String, String> args = Map.of("a", "1", "b", "2");
         String resolved = config.resolveCookies(args, Map.of());
@@ -96,14 +92,13 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldOmitOneCookieWhenPartiallyAbsent()
     {
-        RouteConfig route = RouteConfig.builder()
+        McpHttpRouteConfig config = new McpHttpRouteConfig(RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/notifications")
                 .cookie("a", "${args.a}")
                 .cookie("b", "${args.b}")
                 .build()
-            .build();
-        McpHttpRouteConfig config = new McpHttpRouteConfig(route);
+            .build());
 
         Map<String, String> args = Map.of("a", "1");
         String resolved = config.resolveCookies(args, Map.of());
@@ -114,14 +109,13 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldOmitCookieHeaderWhenAllAbsent()
     {
-        RouteConfig route = RouteConfig.builder()
+        McpHttpRouteConfig config = new McpHttpRouteConfig(RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/notifications")
                 .cookie("a", "${args.a}")
                 .cookie("b", "${args.b}")
                 .build()
-            .build();
-        McpHttpRouteConfig config = new McpHttpRouteConfig(route);
+            .build());
 
         String resolved = config.resolveCookies(Map.of(), Map.of());
 
@@ -131,13 +125,12 @@ public class McpHttpRouteConfigTest
     @Test
     public void shouldCollectArgAccessorFromCookie()
     {
-        RouteConfig route = RouteConfig.builder()
+        McpHttpRouteConfig config = new McpHttpRouteConfig(RouteConfig.builder()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/notifications")
                 .cookie("session", "${args.session.id}")
                 .build()
-            .build();
-        McpHttpRouteConfig config = new McpHttpRouteConfig(route);
+            .build());
 
         assertThat(config.argAccessors, equalTo(List.of("session.id")));
     }
