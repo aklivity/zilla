@@ -18,8 +18,6 @@ package io.aklivity.zilla.runtime.engine;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashSet;
@@ -809,12 +807,6 @@ public class Configuration
         this.definition = definition;
         this.getProperty = config.getProperty;
         this.getPropertyDefault = defaultOverrides::getProperty;
-    }
-
-    @Deprecated
-    public Path directory()
-    {
-        return Paths.get(getProperty("zilla.engine.directory", "."));
     }
 
     public void properties(
