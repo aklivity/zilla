@@ -121,7 +121,6 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_AUTHORIZATION = "authorization";
     private static final String HTTP_HEADER_WWW_AUTHENTICATE = "www-authenticate";
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String HTTP_HEADER_MCP_VERSION = "mcp-protocol-version";
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
     private static final String STATUS_401 = "401";
@@ -1739,10 +1738,6 @@ public final class McpClientFactory implements McpStreamFactory
                     credentials = guard.credentials(sessionId);
                 }
             }
-            if (credentials == null)
-            {
-                credentials = binding.credentials;
-            }
             return true;
         }
 
@@ -2754,7 +2749,6 @@ public final class McpClientFactory implements McpStreamFactory
             final GuardHandler guard = session.binding.guard;
             if (guard == null)
             {
-                credentials = session.binding.credentials;
                 return true;
             }
 
@@ -2772,7 +2766,7 @@ public final class McpClientFactory implements McpStreamFactory
                 return true;
             }
 
-            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && session.binding.credentials == null)
+            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && session.binding.needsCredentials)
             {
                 final String preauthorizeUrl =
                     guard.preauthorize(traceId, session.binding.id, initialId, session.authCallback);
@@ -2818,9 +2812,8 @@ public final class McpClientFactory implements McpStreamFactory
                 return false;
             }
 
-            if (session.binding.credentials != null)
+            if (!session.binding.needsCredentials)
             {
-                credentials = session.binding.credentials;
                 return true;
             }
 
@@ -3582,10 +3575,25 @@ public final class McpClientFactory implements McpStreamFactory
         final void injectAuthorization(
             HttpBeginExFW.Builder builder)
         {
-            if (mcp.credentials != null)
+            final String header = authorizationHeader(mcp.binding().credentials, mcp.credentials);
+            if (header != null)
             {
-                builder.headersItem(h -> h.name(HTTP_HEADER_AUTHORIZATION).value(BEARER_PREFIX + mcp.credentials));
+                builder.headersItem(h -> h.name(HTTP_HEADER_AUTHORIZATION).value(header));
             }
+        }
+
+        private static String authorizationHeader(
+            String template,
+            String credentials)
+        {
+            String header = null;
+            if (template != null)
+            {
+                header = template.contains(McpBindingConfig.CREDENTIALS_PLACEHOLDER)
+                    ? credentials != null ? template.replace(McpBindingConfig.CREDENTIALS_PLACEHOLDER, credentials) : null
+                    : template;
+            }
+            return header;
         }
 
         abstract void onDecodeParseError(

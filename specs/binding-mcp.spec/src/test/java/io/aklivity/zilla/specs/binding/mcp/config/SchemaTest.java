@@ -90,6 +90,20 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerWithAuthorizationCredentialsDefault()
+    {
+        JsonObject config = schema.validate("server.authorization.credentials.default.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithAuthorizationCredentialsMissingPlaceholder()
+    {
+        schema.validate("server.authorization.credentials.placeholder.invalid.yaml");
+    }
+
+    @Test
     public void shouldValidateClientWithRoutes()
     {
         JsonObject config = schema.validate("client.routes.yaml");

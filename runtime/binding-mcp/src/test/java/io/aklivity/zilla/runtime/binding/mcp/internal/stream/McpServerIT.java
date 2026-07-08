@@ -113,6 +113,34 @@ public class McpServerIT
     }
 
     @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.reject.bearer.missing/client"})
+    public void shouldRejectLifecycleInitializeWithMissingBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.reject.bearer.invalid/client"})
+    public void shouldRejectLifecycleInitializeWithInvalidBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.guarded/client",
+        "${app}/lifecycle.initialize.guarded/server"})
+    public void shouldInitializeLifecycleWithGuardedBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.initialize.reject.bearer.resource.metadata/client",

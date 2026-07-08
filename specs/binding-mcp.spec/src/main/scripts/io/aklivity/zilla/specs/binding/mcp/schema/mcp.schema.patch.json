@@ -92,7 +92,9 @@
                                                         "credentials":
                                                         {
                                                             "title": "Credentials",
-                                                            "type": "string"
+                                                            "type": "string",
+                                                            "pattern": ".*\\{credentials\\}.*",
+                                                            "default": "Bearer {credentials}"
                                                         }
                                                     },
                                                     "additionalProperties": false
@@ -148,7 +150,8 @@
                                                         "credentials":
                                                         {
                                                             "title": "Credentials",
-                                                            "type": "string"
+                                                            "type": "string",
+                                                            "default": "Bearer {credentials}"
                                                         }
                                                     },
                                                     "additionalProperties": false

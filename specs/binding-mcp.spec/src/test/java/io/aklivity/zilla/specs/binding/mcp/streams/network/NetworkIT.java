@@ -101,6 +101,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.reject.bearer.missing/client",
+        "${net}/lifecycle.initialize.reject.bearer.missing/server"})
+    public void shouldRejectLifecycleInitializeWithMissingBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.reject.bearer.invalid/client",
+        "${net}/lifecycle.initialize.reject.bearer.invalid/server"})
+    public void shouldRejectLifecycleInitializeWithInvalidBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.guarded/client",
+        "${net}/lifecycle.initialize.guarded/server"})
+    public void shouldInitializeLifecycleWithGuardedBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.reject.bearer/client",
         "${net}/tools.call.reject.bearer/server"})
     public void shouldRejectToolsCallOnUpstreamBearerChallenge() throws Exception
