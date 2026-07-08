@@ -31,6 +31,8 @@ import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
 import jakarta.json.stream.JsonParser;
@@ -38,6 +40,8 @@ import jakarta.json.stream.JsonParser;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerConfig;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchDocumentScanner;
@@ -134,9 +138,10 @@ public final class McpProxyCache
             final byte[] searchToolBytes = cache.tools != null && cache.tools.search != null
                 ? McpSearchToolDescriptor.build(cache.tools.search.tool)
                 : null;
+            final McpCacheToolsEagerConfig eager = cache.tools != null ? cache.tools.eager : null;
             caches.put(KIND_TOOLS_LIST,
                 new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS,
-                    searchIndex, searchFields, searchToolBytes));
+                    searchIndex, searchFields, searchToolBytes, eager));
         }
         if (filter.test(KIND_RESOURCES_LIST))
         {
@@ -278,6 +283,8 @@ public final class McpProxyCache
         private final McpToolSearchIndex searchIndex;
         private final List<String> searchFields;
         private final byte[] searchToolBytes;
+        private final McpCacheToolsEagerPolicy eagerPolicy;
+        private final List<Pattern> eagerMatch;
         private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
         private long lastChecksum = -1L;
         private String lockToken;
@@ -310,12 +317,43 @@ public final class McpProxyCache
             return searchToolBytes;
         }
 
+        public boolean eagerConfigured()
+        {
+            return eagerPolicy != null && eagerPolicy != McpCacheToolsEagerPolicy.NONE;
+        }
+
+        public boolean eager(
+            CharSequence name)
+        {
+            return switch (eagerPolicy)
+            {
+            case ALL -> false;
+            case EXPLICIT -> admitsEager(name);
+            default -> true;
+            };
+        }
+
+        private boolean admitsEager(
+            CharSequence name)
+        {
+            boolean admitted = false;
+            for (Pattern pattern : eagerMatch)
+            {
+                if (pattern.matcher(name).matches())
+                {
+                    admitted = true;
+                    break;
+                }
+            }
+            return admitted;
+        }
+
         private McpListCache(
             int kind,
             String storeKey,
             String storeLockKey)
         {
-            this(kind, storeKey, storeLockKey, null, null, null);
+            this(kind, storeKey, storeLockKey, null, null, null, null);
         }
 
         private McpListCache(
@@ -324,7 +362,8 @@ public final class McpProxyCache
             String storeLockKey,
             McpToolSearchIndex searchIndex,
             List<String> searchFields,
-            byte[] searchToolBytes)
+            byte[] searchToolBytes,
+            McpCacheToolsEagerConfig eager)
         {
             this.kind = kind;
             this.storeKey = storeKey;
@@ -333,6 +372,35 @@ public final class McpProxyCache
             this.searchIndex = searchIndex;
             this.searchFields = searchFields;
             this.searchToolBytes = searchToolBytes;
+            this.eagerPolicy = eager != null ? eager.policy : McpCacheToolsEagerPolicy.NONE;
+            this.eagerMatch = eager != null && eager.match != null ? compileEagerMatch(eager.match) : null;
+        }
+
+        private List<Pattern> compileEagerMatch(
+            List<String> globs)
+        {
+            return globs.stream()
+                .map(McpListCache::compileGlob)
+                .collect(Collectors.toList());
+        }
+
+        private static Pattern compileGlob(
+            String glob)
+        {
+            final StringBuilder regex = new StringBuilder();
+            final String[] literals = glob.split("\\*", -1);
+            for (int index = 0; index < literals.length; index++)
+            {
+                if (index > 0)
+                {
+                    regex.append(".*");
+                }
+                if (!literals[index].isEmpty())
+                {
+                    regex.append(Pattern.quote(literals[index]));
+                }
+            }
+            return Pattern.compile(regex.toString());
         }
 
         public void putFragment(

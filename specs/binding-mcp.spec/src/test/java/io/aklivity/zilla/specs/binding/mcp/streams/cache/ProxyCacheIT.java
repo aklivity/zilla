@@ -209,6 +209,51 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.serve.tools.list.eager.none/client",
+        "${app}/cache.serve.tools.list.eager.none/server" })
+    public void shouldServeToolsListEagerNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.all/client",
+        "${app}/cache.serve.tools.list.eager.all/server" })
+    public void shouldServeToolsListEagerAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit/client",
+        "${app}/cache.serve.tools.list.eager.explicit/server" })
+    public void shouldServeToolsListEagerExplicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit.search/client",
+        "${app}/cache.serve.tools.list.eager.explicit.search/server" })
+    public void shouldServeToolsListEagerExplicitWithSearch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.search.eager.cold/client",
+        "${app}/cache.serve.tools.search.eager.cold/server" })
+    public void shouldServeToolsSearchEagerCold() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.serve.tools.list.10k/client",
         "${app}/cache.serve.tools.list.10k/server" })
     public void shouldServeToolsList10k() throws Exception
