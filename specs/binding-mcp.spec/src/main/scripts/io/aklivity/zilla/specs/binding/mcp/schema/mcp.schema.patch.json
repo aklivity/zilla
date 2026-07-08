@@ -279,6 +279,74 @@
                                                     },
                                                     "additionalProperties": false,
                                                     "maxProperties": 1
+                                                },
+                                                "tools":
+                                                {
+                                                    "title": "Tools",
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "search":
+                                                        {
+                                                            "title": "Search",
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "tool":
+                                                                {
+                                                                    "title": "Tool",
+                                                                    "type": "string"
+                                                                },
+                                                                "limit":
+                                                                {
+                                                                    "title": "Limit",
+                                                                    "type": "integer",
+                                                                    "default": 5
+                                                                },
+                                                                "fields":
+                                                                {
+                                                                    "title": "Fields",
+                                                                    "type": "array",
+                                                                    "items":
+                                                                    {
+                                                                        "enum": [ "name", "description", "output-schema" ]
+                                                                    },
+                                                                    "default": [ "name", "description" ]
+                                                                },
+                                                                "weights":
+                                                                {
+                                                                    "title": "Weights",
+                                                                    "type": "object",
+                                                                    "patternProperties":
+                                                                    {
+                                                                        "^[a-zA-Z0-9_-]+$":
+                                                                        {
+                                                                            "type": "number"
+                                                                        }
+                                                                    },
+                                                                    "additionalProperties": false
+                                                                },
+                                                                "type":
+                                                                {
+                                                                    "title": "Type",
+                                                                    "$ref": "#/$defs/binding-ext/mcp/indexes/flat"
+                                                                },
+                                                                "index":
+                                                                {
+                                                                    "title": "Index",
+                                                                    "type": "array",
+                                                                    "items":
+                                                                    {
+                                                                        "$ref": "#/$defs/binding-ext/mcp/indexes"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "required": [ "tool" ],
+                                                            "not": { "required": [ "type", "index" ] },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
                                                 }
                                             },
                                             "required": [ "store" ],
@@ -377,6 +445,59 @@
                         }
                     }
                 ]
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding-ext/mcp",
+        "value":
+        {
+            "indexes":
+            {
+                "type": "object",
+                "properties":
+                {
+                    "type":
+                    {
+                        "title": "Type",
+                        "type": "string",
+                        "enum": [ "keyword" ]
+                    }
+                },
+                "required": [ "type" ],
+                "allOf":
+                [
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "type":
+                                {
+                                    "const": "keyword"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "type":
+                                {
+                                    "const": "keyword"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    }
+                ],
+                "flat":
+                {
+                    "title": "Type",
+                    "type": "string",
+                    "enum": [ "keyword" ]
+                }
             }
         }
     }
