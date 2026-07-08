@@ -158,6 +158,7 @@ public final class McpProxyCacheHydrater
                     cache.authorization = cache.guard != null
                         ? cache.guard.reauthorize(traceId, cache.bindingId, 0L, cache.credentials)
                         : 0L;
+                    cache.resetRouteAuthorizations();
                     lifecycle = lifecycleFactory.newHydrationLifecycle(
                         supplyBinding.apply(cache.bindingId), this::onLifecycleMessage,
                         cache.bindingId, cache.authorization);
@@ -330,9 +331,9 @@ public final class McpProxyCacheHydrater
         private void startRoutes()
         {
             final long traceId = supplyTraceId.getAsLong();
+            final McpBindingConfig binding = supplyBinding.apply(handler.cache.bindingId);
             final McpProxyListFactory listFactory = listFactories.get(kind);
-            final List<McpRoutePrefix> routes =
-                supplyBinding.apply(handler.cache.bindingId).resolveAll(kind, handler.cache.authorization);
+            final List<McpRoutePrefix> routes = binding.resolveAll(traceId, kind);
 
             for (McpRoutePrefix route : routes)
             {
@@ -348,10 +349,11 @@ public final class McpProxyCacheHydrater
                 pending = routes.size();
                 for (McpRoutePrefix route : routes)
                 {
+                    final long authorization = binding.routeCacheAuthorization(traceId, route.resolvedId());
                     final McpListRouteSink sink = new McpListRouteSink(this, route.prefix().asString());
                     sinks.add(sink);
                     sink.server = listFactory.newHydrationList(
-                        handler.lifecycle, sink::onMessage, handler.cache.authorization,
+                        handler.lifecycle, sink::onMessage, authorization,
                         bufferPool.slotCapacity(), route, traceId);
                 }
             }
