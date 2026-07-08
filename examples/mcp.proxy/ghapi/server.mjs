@@ -12,6 +12,18 @@ const app = express();
 app.use(express.json());
 
 let nextNumber = 101;
+const pulls = new Map();
+
+const pullKey = (owner, repo, number) => `${owner}/${repo}/${number}`;
+
+// Seeded so the pull_by_number resource has something to read without
+// requiring a prior create_pr call.
+pulls.set(pullKey("acme", "widget", "42"), {
+    number: 42,
+    html_url: "https://github.com/acme/widget/pull/42",
+    state: "open",
+    title: "Seed data for the pull_by_number resource demo"
+});
 
 app.post("/repos/:owner/:repo/pulls", (req, res) =>
 {
@@ -25,8 +37,7 @@ app.post("/repos/:owner/:repo/pulls", (req, res) =>
     const { owner, repo } = req.params;
     const { title, head, base } = req.body ?? {};
     const number = nextNumber++;
-
-    res.status(201).json({
+    const pull = {
         number,
         html_url: `https://github.com/${owner}/${repo}/pull/${number}`,
         state: "open",
@@ -34,7 +45,26 @@ app.post("/repos/:owner/:repo/pulls", (req, res) =>
         head,
         base,
         opened_by: req.headers["x-user-identity"] ?? "unknown"
-    });
+    };
+
+    pulls.set(pullKey(owner, repo, String(number)), pull);
+    res.status(201).json(pull);
+});
+
+// Backs the mcp_http "pull_by_number" resource template
+// (pr://{owner}/{repo}/{number}) -- read-only, so no credential check here,
+// mirroring petstore's read operations.
+app.get("/repos/:owner/:repo/pulls/:number", (req, res) =>
+{
+    const { owner, repo, number } = req.params;
+    const pull = pulls.get(pullKey(owner, repo, number));
+    if (!pull)
+    {
+        res.status(404).json({ message: "pull request not found" });
+        return;
+    }
+
+    res.json(pull);
 });
 
 app.listen(PORT, () => console.log(`ghapi mock listening on ${PORT}`));

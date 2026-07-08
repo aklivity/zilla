@@ -16,6 +16,12 @@
 #   6. mcp_openapi's search_pets renames an argument via with.params before
 #      building the request (options.specs.petstore.server also overrides
 #      the OpenAPI document's declared server to the local mock)
+#   7. mcp_http's pull_by_number resource template ({owner}/{repo}/{number})
+#      is read end-to-end, with captured path params surfacing as ${params.x}
+#   8. petstore__create_pet actually succeeds for a pets:write-scoped caller,
+#      not just listed
+#   9. petstore's featured_pets resource (a static, non-templated resource)
+#      is read end-to-end
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -121,7 +127,8 @@ assert_no_token() {
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
     ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
-    ! echo "$TOOLS_NONE" | grep -q 'petstore+'
+    ! echo "$TOOLS_NONE" | grep -q 'petstore+' &&
+    ! echo "$TOOLS_NONE" | grep -q 'github+'
 }
 retry_until 5 3 assert_no_token
 echo "TOOLS_NONE=$TOOLS_NONE"
@@ -129,7 +136,8 @@ if echo "$TOOLS_NONE" | grep -q '^everything__' &&
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
     ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
-    ! echo "$TOOLS_NONE" | grep -q 'petstore+'; then
+    ! echo "$TOOLS_NONE" | grep -q 'petstore+' &&
+    ! echo "$TOOLS_NONE" | grep -q 'github+'; then
   echo "✅ no token: only the ungated everything toolkit is listed"
 else
   echo "❌ no token: tools/list did not filter to only the everything toolkit"
@@ -138,8 +146,8 @@ fi
 
 # WHEN: a caller has toolkit-level scopes (github:tools, petstore:tools) but
 #       none of the finer-grained operation scopes
-# THEN: petstore__list_pets and both petstore resources are listed (neither
-#       list_pets, list_featured_pets, nor get_pet declare their own
+# THEN: petstore__list_pets, both petstore resources, and github's
+#       pull_by_number template are listed (none of them declare their own
 #       operation-level security) but petstore__create_pet and
 #       github__create_pr are not (they require pets:write / github:pr:write
 #       respectively) -- proof that toolkit access alone does not imply
@@ -150,6 +158,7 @@ assert_partial_token() {
     echo "$TOOLS_PARTIAL" | grep -q '^petstore__search_pets$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__'
@@ -160,10 +169,11 @@ if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^petstore__search_pets$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__'; then
-  echo "✅ toolkit-only scope: sees list_pets, search_pets, and both resources, but not create_pet or create_pr"
+  echo "✅ toolkit-only scope: sees list_pets, search_pets, and all three read-only resources, but not create_pet or create_pr"
 else
   echo "❌ toolkit-only scope did not layer as expected"
   EXIT=1
@@ -180,7 +190,8 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^petstore__search_pets$' &&
     echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
     echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
-    echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$'
+    echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
+    echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -191,7 +202,8 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^petstore__search_pets$' &&
     echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
     echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
-    echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$'; then
+    echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
+    echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -243,6 +255,71 @@ if echo "$PETSTORE_LOGS" | grep -q 'search_pets query: {"tag":"cat"}'; then
   echo "✅ petstore__search_pets renamed category -> tag via with.params"
 else
   echo "❌ petstore__search_pets did not rename the argument as configured"
+  EXIT=1
+fi
+
+read_resource() {
+  _token=$1
+  _uri=$2
+  docker compose run --rm --no-deps -e JWT_TOKEN="$_token" -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e READ_RESOURCE="$_uri" \
+      tools-list-client 2>/dev/null
+}
+
+# WHEN: a github:tools-scoped caller reads the pull_by_number resource template
+#       at a concrete URI (params substituted directly into the aggregated
+#       "toolkit+uri" address, no separate tools/call involved)
+# THEN: the seeded pull request comes back -- proving ${owner}/${repo}/${number}
+#       captured from the URI reached ghapi as ${params.x} in :path, and that
+#       this read-only resource needed no scope beyond github:tools
+read_pull_by_number() {
+  PULL_OUT=$(read_resource "$JWT_PARTIAL" "github+pr://acme/widget/42")
+  echo "$PULL_OUT" | grep -q 'Seed data for the pull_by_number resource demo'
+}
+retry_until 5 3 read_pull_by_number
+echo "PULL_OUT=$PULL_OUT"
+if echo "$PULL_OUT" | grep -q 'Seed data for the pull_by_number resource demo'; then
+  echo "✅ github+pr://acme/widget/42 read end-to-end via the pull_by_number template"
+else
+  echo "❌ pull_by_number resource template did not read through as configured"
+  EXIT=1
+fi
+
+# WHEN: a petstore:tools-scoped caller reads the static featured_pets resource
+# THEN: the seeded featured pet (Bramble) comes back -- proving a resource with
+#       no {param} in its uri reads end-to-end same as a templated one
+read_featured_pets() {
+  FEATURED_OUT=$(read_resource "$JWT_PARTIAL" "petstore+/pets/featured")
+  echo "$FEATURED_OUT" | grep -q 'Bramble'
+}
+retry_until 5 3 read_featured_pets
+echo "FEATURED_OUT=$FEATURED_OUT"
+if echo "$FEATURED_OUT" | grep -q 'Bramble'; then
+  echo "✅ petstore+/pets/featured read end-to-end"
+else
+  echo "❌ petstore+/pets/featured did not read through as configured"
+  EXIT=1
+fi
+
+# WHEN: a pets:write-scoped caller calls petstore__create_pet
+# THEN: the call actually succeeds against the petstore mock (not just listed
+#       as available) -- the mcp_openapi OpenAPI-native security requirement
+#       permits the call, and the auto-derived request/response schemas round-trip
+call_create_pet() {
+  CREATE_PET_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="petstore__create_pet" \
+      -e CALL_ARGS='{"name":"Nibbles","tag":"hamster"}' \
+      tools-list-client 2>&1)
+  echo "$CREATE_PET_OUT" | grep -q 'Nibbles'
+}
+retry_until 5 3 call_create_pet
+echo "CREATE_PET_OUT=$CREATE_PET_OUT"
+if echo "$CREATE_PET_OUT" | grep -q 'Nibbles'; then
+  echo "✅ petstore__create_pet succeeded for a pets:write-scoped caller"
+else
+  echo "❌ petstore__create_pet did not succeed as expected"
   EXIT=1
 fi
 

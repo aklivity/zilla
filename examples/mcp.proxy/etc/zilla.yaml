@@ -60,6 +60,18 @@ catalogs:
                 "title": { "type": "string" }
               }
             }
+        pull_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "number": { "type": "integer" },
+                "html_url": { "type": "string" },
+                "state": { "type": "string" },
+                "title": { "type": "string" }
+              }
+            }
   petstore_catalog:
     type: inline
     options:
@@ -368,6 +380,21 @@ bindings:
                 github_catalog:
                   - subject: create_pr_result
                     version: latest
+      resources:
+        pull_by_number:
+          # {owner}/{repo}/{number} makes this a resource TEMPLATE, listed under
+          # resources/templates/list instead of resources/list -- purely from
+          # the presence of {...} in the uri, no separate flag to set
+          uri: "pr://{owner}/{repo}/{number}"
+          description: A pull request by owner, repo, and number.
+          mimeType: application/json
+          schemas:
+            output:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: pull_result
+                    version: latest
     routes:
       # base route with no `when` applies its guard to every tool in this
       # binding, layered underneath any tool-specific guard below
@@ -394,6 +421,18 @@ bindings:
               github_catalog:
                 - subject: create_pr_body
                   version: latest
+      # read-only, so (unlike create_pr) no scope beyond the base route's
+      # authn_jwt is required -- captured path params surface as ${params.x},
+      # never ${args.x} (that accessor is tool-call-only)
+      - when:
+          - resource: pull_by_number
+        exit: south_http_client_ghapi
+        with:
+          headers:
+            ":method": GET
+            ":scheme": http
+            ":authority": ghapi:4001
+            ":path": /repos/${params.owner}/${params.repo}/pulls/${params.number}
   south_http_client_ghapi:
     type: http
     kind: client
@@ -435,6 +474,7 @@ bindings:
                   version: latest
         create_pet:
           description: Add a new pet to the store.
+          summary: "Added pet: ${result.name}"
           # explicit override of the auto-derived input/output schema,
           # demonstrating the same schema-mapping mechanism as mcp_http,
           # this time optional rather than required

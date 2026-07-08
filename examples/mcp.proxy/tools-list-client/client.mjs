@@ -3,11 +3,13 @@
 // it can see -- one per line, tools bare (e.g. "everything__echo"), resources
 // prefixed "resource:", and resource templates prefixed "template:". Set
 // CALL_TOOL (and optionally CALL_ARGS, a JSON object) to instead call one
-// tool and print its result's text content. Optionally carries a bearer
-// token on the initial request so .github/test.sh can observe how the
-// result set (or an authorized call's effect) changes with the caller's
-// authorized scopes -- unauthorized toolkits and tools/resources are absent
-// from the list entirely, never present-but-marked-denied.
+// tool and print its result's text content, or READ_RESOURCE (a concrete
+// URI, with any {template} placeholders already substituted) to read one
+// resource and print its contents. Optionally carries a bearer token on the
+// initial request so .github/test.sh can observe how the result set (or an
+// authorized call/read's effect) changes with the caller's authorized scopes
+// -- unauthorized toolkits and tools/resources are absent from the list
+// entirely, never present-but-marked-denied.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -16,6 +18,7 @@ const MCP_URL = process.env.MCP_URL ?? "http://localhost:7114/mcp";
 const JWT_TOKEN = process.env.JWT_TOKEN;
 const CALL_TOOL = process.env.CALL_TOOL;
 const CALL_ARGS = JSON.parse(process.env.CALL_ARGS ?? "{}");
+const READ_RESOURCE = process.env.READ_RESOURCE;
 
 const headers = JWT_TOKEN ? { authorization: `Bearer ${JWT_TOKEN}` } : {};
 
@@ -36,6 +39,17 @@ const main = async () =>
         const result = await client.callTool({ name: CALL_TOOL, arguments: CALL_ARGS });
         await client.close();
         console.log(result.content?.map((c) => c.text).join(" ") ?? "");
+        return;
+    }
+
+    if (READ_RESOURCE)
+    {
+        const result = await client.readResource({ uri: READ_RESOURCE });
+        await client.close();
+        for (const entry of result.contents ?? [])
+        {
+            console.log(entry.text ?? JSON.stringify(entry));
+        }
         return;
     }
 
