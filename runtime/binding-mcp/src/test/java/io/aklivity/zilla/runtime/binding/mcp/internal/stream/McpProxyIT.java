@@ -127,6 +127,17 @@ public class McpProxyIT
     }
 
     @Test
+    @Configuration("proxy.toolkit.yaml")
+    @Specification({
+        "${app}/tools.call.toolkit.prefixed.fragmented/client",
+        "${app}/tools.call.toolkit/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldCallToolWithToolkitFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.toolkit.filter.yaml")
     @Specification({
         "${app}/tools.call.toolkit.reject.unauthorized/client",

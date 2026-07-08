@@ -992,6 +992,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.toolkit.prefixed.fragmented/client",
+        "${app}/tools.call.toolkit.prefixed.fragmented/server"})
+    public void shouldCallToolWithToolkitPrefixedFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.toolkit.elicit/client",
         "${app}/tools.call.toolkit.elicit/server"})
     public void shouldCallToolWithToolkitElicit() throws Exception

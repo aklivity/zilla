@@ -63,6 +63,8 @@ abstract class McpProxyItemFactory implements BindingHandler
 {
     private static final String MCP_TYPE_NAME = "mcp";
 
+    private static final int DATA_FLAG_FIN = 0x01;
+    private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_COMPLETE = 0x03;
     private static final int ERROR_CODE_INVALID_PARAMS = -32602;
     private static final String ERROR_MESSAGE_INVALID_PARAMS = "Invalid params";
@@ -243,6 +245,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final int contentLength;
         private final String prefix;
         private boolean prefixStripped;
+        private ExpandableDirectByteBufferEx prefixCarryBuffer;
+        private int prefixCarryLength;
+        private boolean forwardedAny;
         private final McpClient client;
 
         private final int toolSchemaId;
@@ -382,49 +387,108 @@ abstract class McpProxyItemFactory implements BindingHandler
             assert initialAck <= initialSeq;
 
             final int prefixLen = prefix.length();
-            int prefixAt = -1;
             if (prefixLen > 0 && !prefixStripped)
             {
-                prefixStripped = true;
-                prefixAt = indexOfQuotedPrefix(payload.buffer(), payload.offset(), payload.limit());
-            }
-
-            final DirectBufferEx strippedBuffer;
-            final int strippedOffset;
-            final int strippedLength;
-            final int strippedReserved;
-            if (prefixAt >= 0)
-            {
-                final DirectBufferEx buf = payload.buffer();
-                final int offset = payload.offset();
-                final int limit = payload.limit();
-                final int head = prefixAt - offset;
-                final int tailFrom = prefixAt + prefixLen;
-                final int tailLen = limit - tailFrom;
-                codecBuffer.putBytes(0, buf, offset, head);
-                codecBuffer.putBytes(head, buf, tailFrom, tailLen);
-                strippedBuffer = codecBuffer;
-                strippedOffset = 0;
-                strippedLength = head + tailLen;
-                strippedReserved = reserved - prefixLen;
+                onServerDataWithPrefix(traceId, budgetId, flags, prefixLen, payload);
             }
             else
             {
-                strippedBuffer = payload.buffer();
-                strippedOffset = payload.offset();
-                strippedLength = payload.sizeof();
-                strippedReserved = reserved;
+                forwardServerData(traceId, budgetId, flags, reserved,
+                    payload.buffer(), payload.offset(), payload.sizeof());
             }
+        }
+
+        private void onServerDataWithPrefix(
+            long traceId,
+            long budgetId,
+            int flags,
+            int prefixLen,
+            OctetsFW payload)
+        {
+            final int strippedLength = resolvePrefixStrip(prefixLen, flags, payload);
+
+            if (strippedLength > 0 || prefixStripped)
+            {
+                forwardServerData(traceId, budgetId, flags, strippedLength,
+                    codecBuffer, 0, strippedLength);
+            }
+        }
+
+        private void forwardServerData(
+            long traceId,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            final int forwardFlags = !forwardedAny && length > 0 ? flags | DATA_FLAG_INIT : flags;
+            forwardedAny = forwardedAny || length > 0;
 
             if (toolSchemaId != NO_SCHEMA_ID)
             {
-                bufferArgs(traceId, strippedBuffer, strippedOffset, strippedLength);
+                bufferArgs(traceId, buffer, offset, length);
             }
             else
             {
-                client.doClientData(traceId, budgetId, flags, strippedReserved,
-                    strippedBuffer, strippedOffset, strippedLength);
+                client.doClientData(traceId, budgetId, forwardFlags, reserved, buffer, offset, length);
             }
+        }
+
+        private int resolvePrefixStrip(
+            int prefixLen,
+            int flags,
+            OctetsFW payload)
+        {
+            final DirectBufferEx buf = payload.buffer();
+            final int offset = payload.offset();
+            final int length = payload.sizeof();
+
+            final int carryLen = prefixCarryLength;
+            final int combinedLen = carryLen + length;
+
+            if (carryLen > 0)
+            {
+                extBuffer.putBytes(0, prefixCarryBuffer, 0, carryLen);
+            }
+            extBuffer.putBytes(carryLen, buf, offset, length);
+
+            final int prefixAt = indexOfQuotedPrefix(extBuffer, 0, combinedLen);
+            final boolean lastFrame = (flags & DATA_FLAG_FIN) != 0x00;
+
+            final int strippedLength;
+            if (prefixAt >= 0)
+            {
+                final int tailFrom = prefixAt + prefixLen;
+                final int tailLen = combinedLen - tailFrom;
+                codecBuffer.putBytes(0, extBuffer, 0, prefixAt);
+                codecBuffer.putBytes(prefixAt, extBuffer, tailFrom, tailLen);
+                strippedLength = combinedLen - prefixLen;
+                prefixStripped = true;
+                prefixCarryLength = 0;
+            }
+            else if (lastFrame)
+            {
+                codecBuffer.putBytes(0, extBuffer, 0, combinedLen);
+                strippedLength = combinedLen;
+                prefixStripped = true;
+                prefixCarryLength = 0;
+            }
+            else
+            {
+                final int retain = Math.min(combinedLen, prefixLen);
+                strippedLength = combinedLen - retain;
+                codecBuffer.putBytes(0, extBuffer, 0, strippedLength);
+                if (prefixCarryBuffer == null)
+                {
+                    prefixCarryBuffer = new ExpandableDirectByteBufferEx();
+                }
+                prefixCarryBuffer.putBytes(0, extBuffer, strippedLength, retain);
+                prefixCarryLength = retain;
+            }
+
+            return strippedLength;
         }
 
         private void bufferArgs(
