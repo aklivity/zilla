@@ -16,18 +16,25 @@ package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaCapabilities.PRODUCE_ONLY;
+import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
+import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
+import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.UUID;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaResourceType;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.BeginFW;
@@ -37,6 +44,9 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaBe
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -62,7 +72,28 @@ public final class McpKafkaProxyFactory implements BindingHandler
     private static final String TOOL_DESCRIBE_CONFIGS = "describe_configs";
     private static final String TOOL_ALTER_CONFIGS = "alter_configs";
 
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private static final String[] TOOL_NAMES =
+    {
+        TOOL_PRODUCE,
+        TOOL_CONSUME,
+        TOOL_LIST_TOPICS,
+        TOOL_DESCRIBE_TOPIC,
+        TOOL_CREATE_TOPIC,
+        TOOL_DELETE_TOPIC,
+        TOOL_LIST_CONSUMER_GROUPS,
+        TOOL_DESCRIBE_CONSUMER_GROUP,
+        TOOL_RESET_OFFSETS,
+        TOOL_LIST_BROKERS,
+        TOOL_DESCRIBE_CLUSTER,
+        TOOL_CLUSTER_OVERVIEW,
+        TOOL_DESCRIBE_CONFIGS,
+        TOOL_ALTER_CONFIGS
+    };
+
+    private static final int CAPABILITIES_TOOLS = 1;
+    private static final int FLAGS_COMPLETE = 0x03;
+
+    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -78,15 +109,18 @@ public final class McpKafkaProxyFactory implements BindingHandler
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
 
-    private final MutableDirectBuffer writeBuffer;
-    private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
     private final int kafkaTypeId;
+    private final byte[] toolsListPayload;
+    private final UnsafeBufferEx toolsListBuffer;
 
     private final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
 
@@ -95,13 +129,15 @@ public final class McpKafkaProxyFactory implements BindingHandler
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
+        this.toolsListPayload = buildToolsList();
+        this.toolsListBuffer = new UnsafeBufferEx(toolsListPayload);
     }
 
     @Override
@@ -132,7 +168,7 @@ public final class McpKafkaProxyFactory implements BindingHandler
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
-        DirectBuffer buffer,
+        DirectBufferEx buffer,
         int index,
         int length,
         MessageConsumer sender)
@@ -150,30 +186,50 @@ public final class McpKafkaProxyFactory implements BindingHandler
 
         if (binding != null)
         {
-            String tool = null;
-
             final McpBeginExFW mcpBeginEx = mcpBeginExRO.tryWrap(begin.extension().buffer(),
                 begin.extension().offset(), begin.extension().limit());
 
             if (mcpBeginEx != null)
             {
-                tool = mcpBeginEx.kind().asString();
-            }
-
-            final McpKafkaRouteConfig route = binding.resolve(authorization, tool);
-
-            if (route != null)
-            {
-                final McpProxy mcpProxy = new McpProxy(
-                    sender,
-                    originId,
-                    routedId,
-                    initialId,
-                    route.id,
-                    affinity,
-                    authorization,
-                    tool);
-                newStream = mcpProxy::onMcpMessage;
+                switch (mcpBeginEx.kind())
+                {
+                case KIND_LIFECYCLE:
+                {
+                    final int capabilities = mcpBeginEx.lifecycle().capabilities();
+                    final McpLifecycleProxy lifecycle = new McpLifecycleProxy(
+                        sender, originId, routedId, initialId, authorization, affinity, capabilities);
+                    newStream = lifecycle::onMcpMessage;
+                    break;
+                }
+                case KIND_TOOLS_LIST:
+                {
+                    final McpToolsListProxy toolsList = new McpToolsListProxy(
+                        sender, originId, routedId, initialId, authorization, affinity);
+                    newStream = toolsList::onMcpMessage;
+                    break;
+                }
+                case KIND_TOOLS_CALL:
+                {
+                    final String tool = mcpBeginEx.toolsCall().name().asString();
+                    final McpKafkaRouteConfig route = binding.resolve(authorization, tool);
+                    if (route != null)
+                    {
+                        final McpProxy mcpProxy = new McpProxy(
+                            sender,
+                            originId,
+                            routedId,
+                            initialId,
+                            route.id,
+                            affinity,
+                            authorization,
+                            tool);
+                        newStream = mcpProxy::onMcpMessage;
+                    }
+                    break;
+                }
+                default:
+                    break;
+                }
             }
         }
 
@@ -216,7 +272,7 @@ public final class McpKafkaProxyFactory implements BindingHandler
         long budgetId,
         int flags,
         int reserved,
-        DirectBuffer payload,
+        DirectBufferEx payload,
         int offset,
         int length)
     {
@@ -331,10 +387,30 @@ public final class McpKafkaProxyFactory implements BindingHandler
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
+    private byte[] buildToolsList()
+    {
+        final JsonArrayBuilder tools = Json.createArrayBuilder();
+        for (String tool : TOOL_NAMES)
+        {
+            tools.add(Json.createObjectBuilder().add("name", tool));
+        }
+        final JsonObject toolsList = Json.createObjectBuilder()
+            .add("tools", tools)
+            .build();
+
+        return toolsList.toString().getBytes(UTF_8);
+    }
+
+    // Arguments are carried as a JSON body on the mcp DATA frames following this BEGIN (see
+    // McpToolsCallBeginEx.contentLength); this binding does not yet parse that body, so the target
+    // topic/group/resource name for a tool such as produce, consume or describe_topic cannot be
+    // resolved from client-supplied arguments and is left unset here. Wiring that extraction is
+    // separate follow-up work tracked outside this fix.
     private KafkaBeginExFW buildKafkaBeginEx(
         String tool,
         String topic)
     {
+        final String resource = topic != null ? topic : "";
         final KafkaBeginExFW.Builder builder = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
             .typeId(kafkaTypeId);
 
@@ -343,66 +419,289 @@ public final class McpKafkaProxyFactory implements BindingHandler
         case TOOL_PRODUCE:
             builder.merged(m -> m
                 .capabilities(c -> c.set(PRODUCE_ONLY))
-                .topic(topic != null ? topic : "")
+                .topic(resource)
                 .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L)));
             break;
         case TOOL_CONSUME:
             builder.merged(m -> m
                 .capabilities(c -> c.set(FETCH_ONLY))
-                .topic(topic != null ? topic : "")
+                .topic(resource)
                 .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L)));
             break;
         case TOOL_LIST_TOPICS:
         case TOOL_DESCRIBE_TOPIC:
-            builder.meta(m -> m
-                .topic(topic != null ? topic : ""));
+            builder.meta(m -> m.topic(resource));
             break;
         case TOOL_CREATE_TOPIC:
             builder.request(r -> r.createTopics(ct -> ct
                 .topicsItem(t -> t
-                    .name(topic != null ? topic : "")
-                    .numPartitions(1)
-                    .replicationFactor((short) 1))));
+                    .name(resource)
+                    .partitionCount(1)
+                    .replicas((short) 1))
+                .timeout(0)
+                .validateOnly(0)));
             break;
         case TOOL_DELETE_TOPIC:
             builder.request(r -> r.deleteTopics(dt -> dt
-                .topicsItem(t -> t.name(topic != null ? topic : ""))));
+                .namesItem(n -> n.set(resource, UTF_8))
+                .timeout(0)));
             break;
         case TOOL_LIST_CONSUMER_GROUPS:
-            builder.request(r -> r.listGroups(lg -> {}));
+            builder.request(r -> r.listGroups(lg ->
+            {
+            }));
             break;
         case TOOL_DESCRIBE_CONSUMER_GROUP:
             builder.request(r -> r.describeGroups(dg -> dg
-                .groupsItem(g -> g.value(topic != null ? topic : ""))));
+                .groupIdsItem(g -> g.set(resource, UTF_8))
+                .includeAuthorizedOperations(0)));
             break;
         case TOOL_RESET_OFFSETS:
             builder.request(r -> r.alterConsumerGroupOffsets(aco -> aco
-                .groupId(topic != null ? topic : "")));
+                .groupId(resource)));
             break;
         case TOOL_LIST_BROKERS:
         case TOOL_DESCRIBE_CLUSTER:
         case TOOL_CLUSTER_OVERVIEW:
-            builder.request(r -> r.describeCluster(dc -> {}));
+            builder.request(r -> r.describeCluster(dc -> dc.includeAuthorizedOperations(0)));
             break;
         case TOOL_DESCRIBE_CONFIGS:
-            builder.describe(d -> d
-                .name(topic != null ? topic : ""));
+            builder.describe(d -> d.name(resource));
             break;
         case TOOL_ALTER_CONFIGS:
             builder.request(r -> r.alterConfigs(ac -> ac
                 .resourcesItem(res -> res
-                    .type((byte) 2)
-                    .name(topic != null ? topic : ""))));
+                    .type(t -> t.set(KafkaResourceType.TOPIC))
+                    .name(resource))
+                .validateOnly(0)));
             break;
         default:
             builder.merged(m -> m
                 .capabilities(c -> c.set(PRODUCE_ONLY))
-                .topic(topic != null ? topic : "")
+                .topic(resource)
                 .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L)));
             break;
         }
 
         return builder.build();
+    }
+
+    private final class McpLifecycleProxy
+    {
+        private final MessageConsumer mcp;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long authorization;
+        private final long affinity;
+        private final int capabilities;
+
+        private int state;
+
+        private McpLifecycleProxy(
+            MessageConsumer mcp,
+            long originId,
+            long routedId,
+            long initialId,
+            long authorization,
+            long affinity,
+            int capabilities)
+        {
+            this.mcp = mcp;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.authorization = authorization;
+            this.affinity = affinity;
+            this.capabilities = capabilities;
+        }
+
+        private void onMcpMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onMcpBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onMcpEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+                onMcpAbort(abortRO.wrap(buffer, index, index + length));
+                break;
+            case ResetFW.TYPE_ID:
+                onMcpReset(resetRO.wrap(buffer, index, index + length));
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onMcpBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            state = McpKafkaState.openingInitial(state);
+
+            doWindow(mcp, originId, routedId, initialId, traceId, authorization, 0L, writeBuffer.capacity(), 0);
+            doLifecycleReply(traceId);
+        }
+
+        private void onMcpEnd(
+            EndFW end)
+        {
+            state = McpKafkaState.closedInitial(state);
+            doReplyEnd(end.traceId());
+        }
+
+        private void onMcpAbort(
+            AbortFW abort)
+        {
+            state = McpKafkaState.closedInitial(state);
+            doReplyAbort(abort.traceId());
+        }
+
+        private void onMcpReset(
+            ResetFW reset)
+        {
+            state = McpKafkaState.closedReply(state);
+        }
+
+        private void doLifecycleReply(
+            long traceId)
+        {
+            final String sessionId = UUID.randomUUID().toString();
+            final McpBeginExFW lifecycleEx = mcpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .lifecycle(l -> l
+                    .sessionId(sessionId)
+                    .capabilities(capabilities != 0 ? capabilities : CAPABILITIES_TOOLS))
+                .build();
+
+            doBegin(mcp, originId, routedId, replyId, traceId, authorization, affinity, lifecycleEx);
+            state = McpKafkaState.openedReply(state);
+        }
+
+        private void doReplyEnd(
+            long traceId)
+        {
+            if (!McpKafkaState.replyClosed(state))
+            {
+                doEnd(mcp, originId, routedId, replyId, traceId, authorization);
+                state = McpKafkaState.closedReply(state);
+            }
+        }
+
+        private void doReplyAbort(
+            long traceId)
+        {
+            if (!McpKafkaState.replyClosed(state))
+            {
+                doAbort(mcp, originId, routedId, replyId, traceId, authorization);
+                state = McpKafkaState.closedReply(state);
+            }
+        }
+    }
+
+    private final class McpToolsListProxy
+    {
+        private final MessageConsumer mcp;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long authorization;
+        private final long affinity;
+
+        private int state;
+
+        private McpToolsListProxy(
+            MessageConsumer mcp,
+            long originId,
+            long routedId,
+            long initialId,
+            long authorization,
+            long affinity)
+        {
+            this.mcp = mcp;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.authorization = authorization;
+            this.affinity = affinity;
+        }
+
+        private void onMcpMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onMcpBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onMcpEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+                onMcpAbort(abortRO.wrap(buffer, index, index + length));
+                break;
+            case ResetFW.TYPE_ID:
+                onMcpReset(resetRO.wrap(buffer, index, index + length));
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onMcpBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            state = McpKafkaState.openingInitial(state);
+
+            doWindow(mcp, originId, routedId, initialId, traceId, authorization, 0L, writeBuffer.capacity(), 0);
+            doToolsListReply(traceId);
+        }
+
+        private void onMcpEnd(
+            EndFW end)
+        {
+            state = McpKafkaState.closedInitial(state);
+        }
+
+        private void onMcpAbort(
+            AbortFW abort)
+        {
+            state = McpKafkaState.closedInitial(state);
+        }
+
+        private void onMcpReset(
+            ResetFW reset)
+        {
+            state = McpKafkaState.closedReply(state);
+        }
+
+        private void doToolsListReply(
+            long traceId)
+        {
+            doBegin(mcp, originId, routedId, replyId, traceId, authorization, affinity, emptyRO);
+            doData(mcp, originId, routedId, replyId, traceId, authorization, 0L, FLAGS_COMPLETE,
+                toolsListPayload.length, toolsListBuffer, 0, toolsListPayload.length);
+            doEnd(mcp, originId, routedId, replyId, traceId, authorization);
+            state = McpKafkaState.closedReply(state);
+        }
     }
 
     private final class McpProxy
@@ -443,7 +742,7 @@ public final class McpKafkaProxyFactory implements BindingHandler
 
         private void onMcpMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -500,11 +799,11 @@ public final class McpKafkaProxyFactory implements BindingHandler
             final long budgetId = data.budgetId();
             final int flags = data.flags();
             final int reserved = data.reserved();
-            final DirectBuffer payload = data.payload();
+            final OctetsFW payload = data.payload();
 
             if (kafka != null && payload != null)
             {
-                kafka.doKafkaData(traceId, budgetId, flags, reserved, payload, 0, payload.capacity());
+                kafka.doKafkaData(traceId, budgetId, flags, reserved, payload.buffer(), payload.offset(), payload.sizeof());
             }
         }
 
@@ -576,7 +875,7 @@ public final class McpKafkaProxyFactory implements BindingHandler
             long budgetId,
             int flags,
             int reserved,
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length)
         {
@@ -656,7 +955,7 @@ public final class McpKafkaProxyFactory implements BindingHandler
 
         private void onKafkaMessage(
             int msgTypeId,
-            DirectBuffer buffer,
+            DirectBufferEx buffer,
             int index,
             int length)
         {
@@ -709,11 +1008,11 @@ public final class McpKafkaProxyFactory implements BindingHandler
             final long budgetId = data.budgetId();
             final int flags = data.flags();
             final int reserved = data.reserved();
-            final DirectBuffer payload = data.payload();
+            final OctetsFW payload = data.payload();
 
             if (payload != null)
             {
-                peer.doMcpData(traceId, budgetId, flags, reserved, payload, 0, payload.capacity());
+                peer.doMcpData(traceId, budgetId, flags, reserved, payload.buffer(), payload.offset(), payload.sizeof());
             }
         }
 
@@ -774,7 +1073,7 @@ public final class McpKafkaProxyFactory implements BindingHandler
             long budgetId,
             int flags,
             int reserved,
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length)
         {
