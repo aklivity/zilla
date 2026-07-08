@@ -1,0 +1,73 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property authorization 1L
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("agent-1")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("agent-1")
+                               .build()
+                           .build()}
+
+connected
+
+# this caller's session (deterministically the first session the test0 guard ever mints, the
+# same one hydration itself used) holds only the route's own petstore:tools scope: list_pets
+# now carries that toolkit-level requirement (newly injected at hydration time) and is admitted,
+# while create_pet still requires its own operation-level pets:write in addition and stays
+# excluded — the union is enforced, not satisfied by the toolkit scope alone
+read  '{"tools":'
+        '['
+          '{"name":"misc__ping"}'
+          ','
+          '{'
+            '"name":"petstore__list_pets",'
+            '"description":"List pets",'
+            '"securitySchemes":[{"type":"oauth2","scopes":["petstore:tools"]}]'
+          '}'
+        ']'
+      '}'
+read closed
+
+write close
