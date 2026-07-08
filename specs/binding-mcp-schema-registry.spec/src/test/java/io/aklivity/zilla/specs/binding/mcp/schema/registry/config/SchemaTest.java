@@ -1,0 +1,66 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.specs.binding.mcp.schema.registry.config;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
+import jakarta.json.JsonException;
+import jakarta.json.JsonObject;
+
+import org.junit.Rule;
+import org.junit.Test;
+
+import io.aklivity.zilla.specs.engine.config.ConfigSchemaRule;
+
+public class SchemaTest
+{
+    @Rule
+    public final ConfigSchemaRule schema = new ConfigSchemaRule()
+        .schemaPatch("io/aklivity/zilla/specs/binding/mcp/schema/registry/schema/mcp_schema_registry.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/openapi/schema/openapi.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/tcp/schema/tcp.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/catalog/inline/schema/inline.schema.patch.json")
+        .configurationRoot("io/aklivity/zilla/specs/binding/mcp/schema/registry/config");
+
+    @Test
+    public void shouldValidateProxy()
+    {
+        JsonObject config = schema.validate("proxy.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectInvalidKind()
+    {
+        schema.validate("proxy.kind.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectMissingRoutes()
+    {
+        schema.validate("proxy.routes.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectUnknownTool()
+    {
+        schema.validate("proxy.route.tool.invalid.yaml");
+    }
+}

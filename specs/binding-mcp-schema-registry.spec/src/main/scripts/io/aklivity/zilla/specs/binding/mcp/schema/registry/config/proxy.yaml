@@ -1,0 +1,156 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        schemaregistry:
+          version: latest
+          schema: |
+            {
+                          "openapi": "3.0.1",
+                          "info": { "title": "Schema Registry API", "version": "1.0" },
+                          "servers": [ { "url": "http://localhost:8080" } ],
+                          "paths": {
+                            "/subjects": {
+                              "get": {
+                                "operationId": "list",
+                                "summary": "List subjects",
+                                "responses": { "200": { "description": "ok" } }
+                              }
+                            },
+                            "/subjects/{subject}/versions": {
+                              "get": {
+                                "operationId": "getSchemaVersions",
+                                "summary": "List versions for a subject",
+                                "parameters": [
+                                  { "name": "subject", "in": "path", "required": true, "schema": { "type": "string" } }
+                                ],
+                                "responses": { "200": { "description": "ok" } }
+                              },
+                              "post": {
+                                "operationId": "register",
+                                "summary": "Register a schema under a subject",
+                                "parameters": [
+                                  { "name": "subject", "in": "path", "required": true, "schema": { "type": "string" } }
+                                ],
+                                "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+                                "responses": { "200": { "description": "ok" } }
+                              }
+                            },
+                            "/subjects/{subject}/versions/{version}": {
+                              "get": {
+                                "operationId": "getSchemaByVersion",
+                                "summary": "Get a schema by subject and version",
+                                "parameters": [
+                                  { "name": "subject", "in": "path", "required": true, "schema": { "type": "string" } },
+                                  { "name": "version", "in": "path", "required": true, "schema": { "type": "string" } }
+                                ],
+                                "responses": { "200": { "description": "ok" } }
+                              },
+                              "delete": {
+                                "operationId": "deleteSchemaVersion",
+                                "summary": "Delete a specific schema version",
+                                "parameters": [
+                                  { "name": "subject", "in": "path", "required": true, "schema": { "type": "string" } },
+                                  { "name": "version", "in": "path", "required": true, "schema": { "type": "string" } }
+                                ],
+                                "responses": { "200": { "description": "ok" } }
+                              }
+                            },
+                            "/subjects/{subject}": {
+                              "delete": {
+                                "operationId": "deleteSubject",
+                                "summary": "Delete a subject and all its versions",
+                                "parameters": [
+                                  { "name": "subject", "in": "path", "required": true, "schema": { "type": "string" } }
+                                ],
+                                "responses": { "200": { "description": "ok" } }
+                              }
+                            },
+                            "/compatibility/subjects/{subject}/versions/{version}": {
+                              "post": {
+                                "operationId": "testCompatibilityBySubjectName_1",
+                                "summary": "Check schema compatibility against a specific version",
+                                "parameters": [
+                                  { "name": "subject", "in": "path", "required": true, "schema": { "type": "string" } },
+                                  { "name": "version", "in": "path", "required": true, "schema": { "type": "string" } }
+                                ],
+                                "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+                                "responses": { "200": { "description": "ok" } }
+                              }
+                            },
+                            "/config/{subject}": {
+                              "get": {
+                                "operationId": "getSubjectLevelConfig",
+                                "summary": "Get the compatibility level for a subject",
+                                "parameters": [
+                                  { "name": "subject", "in": "path", "required": true, "schema": { "type": "string" } }
+                                ],
+                                "responses": { "200": { "description": "ok" } }
+                              },
+                              "put": {
+                                "operationId": "updateSubjectLevelConfig",
+                                "summary": "Set the compatibility level for a subject",
+                                "parameters": [
+                                  { "name": "subject", "in": "path", "required": true, "schema": { "type": "string" } }
+                                ],
+                                "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+                                "responses": { "200": { "description": "ok" } }
+                              }
+                            },
+                            "/contexts": {
+                              "get": {
+                                "operationId": "getContexts",
+                                "summary": "List schema registry contexts",
+                                "responses": { "200": { "description": "ok" } }
+                              }
+                            }
+                          }
+                        }
+bindings:
+  openapi_client0:
+    type: openapi
+    kind: client
+    options:
+      specs:
+        schemaregistry:
+          catalog:
+            catalog0:
+              subject: schemaregistry
+              version: latest
+      tcp:
+        host: localhost
+        port: 8080
+  mcp_schema_registry0:
+    type: mcp_schema_registry
+    kind: proxy
+    routes:
+      - exit: openapi_client0
+        when:
+          - tool: list_subjects
+          - tool: describe_subject
+          - tool: get_schema
+          - tool: register_schema
+          - tool: delete_subject
+          - tool: delete_schema_version
+          - tool: check_compatibility
+          - tool: get_compatibility
+          - tool: set_compatibility
+          - tool: list_contexts
