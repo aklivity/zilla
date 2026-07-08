@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRoutePrefix;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolInjector;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleClient;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpRouteRequest;
@@ -2148,7 +2149,8 @@ abstract class McpProxyListFactory implements BindingHandler
             fetched = true;
             if (value != null)
             {
-                final byte[] bytes = filterByScopes(value);
+                final byte[] filtered = filterByScopes(value);
+                final byte[] bytes = McpSearchToolInjector.inject(filtered, cache.searchToolBytes());
                 cachedBuf = new UnsafeBufferEx(bytes);
                 cachedLen = bytes.length;
             }
@@ -2249,8 +2251,9 @@ abstract class McpProxyListFactory implements BindingHandler
                 final byte[] empty = new byte[prelude.capacity() + listReplyCloseRO.capacity()];
                 prelude.getBytes(0, empty, 0, prelude.capacity());
                 listReplyCloseRO.getBytes(0, empty, prelude.capacity(), listReplyCloseRO.capacity());
-                cachedBuf = new UnsafeBufferEx(empty);
-                cachedLen = empty.length;
+                final byte[] withSearchTool = McpSearchToolInjector.inject(empty, cache.searchToolBytes());
+                cachedBuf = new UnsafeBufferEx(withSearchTool);
+                cachedLen = withSearchTool.length;
             }
 
             while (emitOffset < cachedLen)

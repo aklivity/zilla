@@ -39,6 +39,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchDocumentScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchIndexFactory;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
@@ -130,8 +131,12 @@ public final class McpProxyCache
             final List<String> searchFields = cache.tools != null && cache.tools.search != null
                 ? cache.tools.search.fields
                 : null;
+            final byte[] searchToolBytes = cache.tools != null && cache.tools.search != null
+                ? McpSearchToolDescriptor.build(cache.tools.search.tool)
+                : null;
             caches.put(KIND_TOOLS_LIST,
-                new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS, searchIndex, searchFields));
+                new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS,
+                    searchIndex, searchFields, searchToolBytes));
         }
         if (filter.test(KIND_RESOURCES_LIST))
         {
@@ -272,6 +277,7 @@ public final class McpProxyCache
         private final Map<String, String> fragments;
         private final McpToolSearchIndex searchIndex;
         private final List<String> searchFields;
+        private final byte[] searchToolBytes;
         private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
         private long lastChecksum = -1L;
         private String lockToken;
@@ -299,12 +305,17 @@ public final class McpProxyCache
             return searchIndex;
         }
 
+        public byte[] searchToolBytes()
+        {
+            return searchToolBytes;
+        }
+
         private McpListCache(
             int kind,
             String storeKey,
             String storeLockKey)
         {
-            this(kind, storeKey, storeLockKey, null, null);
+            this(kind, storeKey, storeLockKey, null, null, null);
         }
 
         private McpListCache(
@@ -312,7 +323,8 @@ public final class McpProxyCache
             String storeKey,
             String storeLockKey,
             McpToolSearchIndex searchIndex,
-            List<String> searchFields)
+            List<String> searchFields,
+            byte[] searchToolBytes)
         {
             this.kind = kind;
             this.storeKey = storeKey;
@@ -320,6 +332,7 @@ public final class McpProxyCache
             this.fragments = new TreeMap<>();
             this.searchIndex = searchIndex;
             this.searchFields = searchFields;
+            this.searchToolBytes = searchToolBytes;
         }
 
         public void putFragment(
