@@ -3067,6 +3067,13 @@ public final class McpServerFactory implements McpStreamFactory
         private final MessageConsumer net;
         private final McpBearerError error;
 
+        private long originId;
+        private long routedId;
+        private long initialId;
+
+        private long initialSeq;
+        private long initialAck;
+
         private McpBearerRejectHandler(
             MessageConsumer sender,
             McpBearerError error)
@@ -3081,24 +3088,43 @@ public final class McpServerFactory implements McpStreamFactory
             int index,
             int length)
         {
-            if (msgTypeId == BeginFW.TYPE_ID)
+            switch (msgTypeId)
             {
+            case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                 onNetBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onNetData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onNetEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onNetAbort(abort);
+                break;
+            default:
+                break;
             }
         }
 
         private void onNetBegin(
             BeginFW begin)
         {
-            final long originId = begin.originId();
-            final long routedId = begin.routedId();
-            final long initialId = begin.streamId();
-            final long replyId = supplyReplyId.applyAsLong(initialId);
+            final long replyId = supplyReplyId.applyAsLong(begin.streamId());
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
-            doWindow(net, originId, routedId, initialId, begin.sequence(), begin.acknowledge(), decodeMax,
+            this.originId = begin.originId();
+            this.routedId = begin.routedId();
+            this.initialId = begin.streamId();
+            this.initialSeq = begin.sequence();
+            this.initialAck = begin.acknowledge();
+
+            doWindow(net, originId, routedId, initialId, initialSeq, initialAck, decodeMax,
                 traceId, authorization, 0L, 0);
 
             final String status = bearerChallengeStatus(error);
@@ -3112,6 +3138,42 @@ public final class McpServerFactory implements McpStreamFactory
                 .build());
 
             doEnd(net, originId, routedId, replyId, 0L, 0L, 0, traceId, authorization);
+        }
+
+        private void onNetData(
+            DataFW data)
+        {
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+
+            initialSeq = data.sequence() + data.reserved();
+
+            if (initialSeq > initialAck + decodeMax)
+            {
+                doReset(net, originId, routedId, initialId, initialSeq, initialAck, decodeMax,
+                    traceId, authorization, emptyRO);
+            }
+            else
+            {
+                initialAck = initialSeq;
+                doWindow(net, originId, routedId, initialId, initialSeq, initialAck, decodeMax,
+                    traceId, authorization, budgetId, 0);
+            }
+        }
+
+        private void onNetEnd(
+            EndFW end)
+        {
+            initialSeq = end.sequence();
+            initialAck = initialSeq;
+        }
+
+        private void onNetAbort(
+            AbortFW abort)
+        {
+            initialSeq = abort.sequence();
+            initialAck = initialSeq;
         }
     }
 
