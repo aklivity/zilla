@@ -27,6 +27,8 @@ import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpKeywordToolSearchIndexConfig;
@@ -44,6 +46,10 @@ public final class McpCacheToolsConfigAdapter
     private static final String SEARCH_TYPE_NAME = "type";
     private static final String SEARCH_INDEX_NAME = "index";
     private static final String SEARCH_TYPE_DEFAULT = McpKeywordToolSearchIndexConfig.NAME;
+    private static final String EAGER_NAME = "eager";
+    private static final String EAGER_POLICY_NAME = "policy";
+    private static final String EAGER_POLICY_DEFAULT = "none";
+    private static final String EAGER_MATCH_NAME = "match";
 
     private final McpToolSearchIndexConfigAdapter index = new McpToolSearchIndexConfigAdapter();
 
@@ -81,6 +87,21 @@ public final class McpCacheToolsConfigAdapter
             }
 
             object.add(SEARCH_NAME, searchObject);
+        }
+
+        if (tools.eager != null)
+        {
+            JsonObjectBuilder eagerObject = Json.createObjectBuilder()
+                .add(EAGER_POLICY_NAME, tools.eager.policy.name().toLowerCase());
+
+            if (tools.eager.match != null)
+            {
+                JsonArrayBuilder match = Json.createArrayBuilder();
+                tools.eager.match.forEach(match::add);
+                eagerObject.add(EAGER_MATCH_NAME, match);
+            }
+
+            object.add(EAGER_NAME, eagerObject);
         }
 
         return object.build();
@@ -132,6 +153,25 @@ public final class McpCacheToolsConfigAdapter
             }
 
             searchBuilder.build();
+        }
+
+        if (object.containsKey(EAGER_NAME))
+        {
+            JsonObject eager = object.getJsonObject(EAGER_NAME);
+
+            McpCacheToolsEagerConfigBuilder<McpCacheToolsConfigBuilder<McpCacheToolsConfig>> eagerBuilder = builder.eager()
+                .policy(McpCacheToolsEagerPolicy.valueOf(eager.getString(EAGER_POLICY_NAME, EAGER_POLICY_DEFAULT)
+                    .toUpperCase()));
+
+            if (eager.containsKey(EAGER_MATCH_NAME))
+            {
+                List<String> match = eager.getJsonArray(EAGER_MATCH_NAME).getValuesAs(JsonString.class).stream()
+                    .map(JsonString::getString)
+                    .collect(Collectors.toList());
+                eagerBuilder.match(match);
+            }
+
+            eagerBuilder.build();
         }
 
         return builder.build();

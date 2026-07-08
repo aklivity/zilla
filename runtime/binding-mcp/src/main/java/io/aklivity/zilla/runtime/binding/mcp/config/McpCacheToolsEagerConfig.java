@@ -16,29 +16,30 @@ package io.aklivity.zilla.runtime.binding.mcp.config;
 
 import static java.util.function.Function.identity;
 
+import java.util.List;
 import java.util.function.Function;
 
-public final class McpCacheToolsConfig
+public final class McpCacheToolsEagerConfig
 {
-    public final McpCacheToolsSearchConfig search;
-    public final McpCacheToolsEagerConfig eager;
+    public final McpCacheToolsEagerPolicy policy;
+    public final List<String> match;
 
-    McpCacheToolsConfig(
-        McpCacheToolsSearchConfig search,
-        McpCacheToolsEagerConfig eager)
+    McpCacheToolsEagerConfig(
+        McpCacheToolsEagerPolicy policy,
+        List<String> match)
     {
-        this.search = search;
-        this.eager = eager;
+        this.policy = policy;
+        this.match = match;
     }
 
-    public static McpCacheToolsConfigBuilder<McpCacheToolsConfig> builder()
+    public static McpCacheToolsEagerConfigBuilder<McpCacheToolsEagerConfig> builder()
     {
-        return new McpCacheToolsConfigBuilder<>(identity());
+        return new McpCacheToolsEagerConfigBuilder<>(identity());
     }
 
-    public static <T> McpCacheToolsConfigBuilder<T> builder(
-        Function<McpCacheToolsConfig, T> mapper)
+    public static <T> McpCacheToolsEagerConfigBuilder<T> builder(
+        Function<McpCacheToolsEagerConfig, T> mapper)
     {
-        return new McpCacheToolsConfigBuilder<>(mapper);
+        return new McpCacheToolsEagerConfigBuilder<>(mapper);
     }
 }

@@ -1732,7 +1732,21 @@ public final class McpClientFactory implements McpStreamFactory
             final GuardHandler guard = binding.guard;
             if (guard != null && (authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
-                credentials = guard.credentials(authorization);
+                final String resolved = (authorization & GuardHandler.MASK_AUTHORIZED) != 0L
+                    ? guard.credentials(authorization)
+                    : null;
+                if (resolved != null)
+                {
+                    credentials = resolved;
+                }
+                else
+                {
+                    final long sessionId = guard.reauthorize(traceId, binding.id, authorization, null);
+                    if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+                    {
+                        credentials = guard.credentials(sessionId);
+                    }
+                }
             }
             return true;
         }
@@ -2747,11 +2761,15 @@ public final class McpClientFactory implements McpStreamFactory
 
             if ((authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
-                credentials = guard.credentials(authorization);
-                return true;
+                final String resolved = guard.credentials(authorization);
+                if (resolved != null)
+                {
+                    credentials = resolved;
+                    return true;
+                }
             }
 
-            final long sessionId = guard.reauthorize(traceId, session.binding.id, initialId, null);
+            final long sessionId = guard.reauthorize(traceId, session.binding.id, authorization, null);
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
@@ -2762,7 +2780,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && session.binding.needsCredentials)
             {
                 final String preauthorizeUrl =
-                    guard.preauthorize(traceId, session.binding.id, initialId, session.authCallback);
+                    guard.preauthorize(traceId, session.binding.id, initialId, authorization, session.authCallback);
                 if (preauthorizeUrl == null)
                 {
                     doAppReset(traceId, authorization);

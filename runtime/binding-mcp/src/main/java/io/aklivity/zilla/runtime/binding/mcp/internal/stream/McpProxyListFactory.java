@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFa
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpRouteRequest;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.transform.McpEagerFilter;
 import io.aklivity.zilla.runtime.binding.mcp.internal.transform.McpScopeFilter;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
@@ -132,6 +133,17 @@ abstract class McpProxyListFactory implements BindingHandler
     private final MutableDirectBufferEx scopeSourceBuffer = new UnsafeBufferEx();
     private final MutableDirectBufferEx scopeTargetBuffer = new UnsafeBufferEx();
     private byte[] scopeTargetArray = new byte[0];
+
+    // reusable per-worker eager/cold partition machinery; reconfigured per list response, never reallocated
+    private final McpEagerFilter eagerFilter = new McpEagerFilter();
+    private final JsonParserEx eagerParser = JsonEx.createParser();
+    private final JsonGeneratorEx eagerGenerator = JsonEx.createGenerator();
+    private final JsonPipeline eagerPipeline = JsonEx.stream(eagerParser)
+        .transform(eagerFilter)
+        .into(eagerGenerator);
+    private final MutableDirectBufferEx eagerSourceBuffer = new UnsafeBufferEx();
+    private final MutableDirectBufferEx eagerTargetBuffer = new UnsafeBufferEx();
+    private byte[] eagerTargetArray = new byte[0];
 
     McpProxyListFactory(
         McpConfiguration config,
@@ -2150,7 +2162,8 @@ abstract class McpProxyListFactory implements BindingHandler
             if (value != null)
             {
                 final byte[] filtered = filterByScopes(value);
-                final byte[] bytes = McpSearchToolInjector.inject(filtered, cache.searchToolBytes());
+                final byte[] eagerFiltered = applyEagerPolicy(filtered);
+                final byte[] bytes = McpSearchToolInjector.inject(eagerFiltered, cache.searchToolBytes());
                 cachedBuf = new UnsafeBufferEx(bytes);
                 cachedLen = bytes.length;
             }
@@ -2194,6 +2207,43 @@ abstract class McpProxyListFactory implements BindingHandler
 
                 output = new byte[produced];
                 scopeTargetBuffer.getBytes(0, output);
+            }
+            return output;
+        }
+
+        private byte[] applyEagerPolicy(
+            byte[] json)
+        {
+            byte[] output = json;
+            if (cache.eagerConfigured())
+            {
+                eagerFilter.init(arrayKey(), cache::eager, cache.searchToolBytes() != null);
+
+                // annotating cold items can grow the output; a cold item's added "defer_loading":true member
+                // is a small, fixed cost against the item's own JSON, so doubling the source is ample headroom
+                final int capacity = json.length * 2 + 4096;
+                if (eagerTargetArray.length < capacity)
+                {
+                    eagerTargetArray = new byte[capacity];
+                }
+                eagerSourceBuffer.wrap(json);
+                eagerTargetBuffer.wrap(eagerTargetArray);
+                int produced = 0;
+
+                eagerPipeline.reset();
+                JsonPipelineResult result =
+                    eagerPipeline.transform(eagerSourceBuffer, 0, json.length, true, eagerTargetBuffer, 0, capacity);
+                produced += result.produced();
+
+                while (result.status() == JsonPipeline.Status.SUSPENDED)
+                {
+                    result = eagerPipeline.transform(
+                        eagerSourceBuffer, 0, json.length, true, eagerTargetBuffer, produced, capacity);
+                    produced += result.produced();
+                }
+
+                output = new byte[produced];
+                eagerTargetBuffer.getBytes(0, output);
             }
             return output;
         }
