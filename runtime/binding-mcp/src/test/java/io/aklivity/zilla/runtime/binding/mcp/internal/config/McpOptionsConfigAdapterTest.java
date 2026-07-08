@@ -15,11 +15,14 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.time.Duration;
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -28,6 +31,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.mcp.config.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -127,6 +131,118 @@ public class McpOptionsConfigAdapterTest
         assertThat(text, equalTo(
                 """
                 server: "http://localhost:8080/mcp"
+                """));
+    }
+
+    @Test
+    public void shouldReadOptionsWithCacheToolsSearchMinimal()
+    {
+        String text =
+                """
+                cache:
+                  store: memory0
+                  tools:
+                    search:
+                      tool: zilla__search_tools
+                """;
+
+        McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.cache, not(nullValue()));
+        assertThat(options.cache.tools, not(nullValue()));
+        assertThat(options.cache.tools.search, not(nullValue()));
+        assertThat(options.cache.tools.search.tool, equalTo("zilla__search_tools"));
+        assertThat(options.cache.tools.search.limit, equalTo(5));
+        assertThat(options.cache.tools.search.fields, contains("name", "description"));
+        assertThat(options.cache.tools.search.indexes, hasSize(1));
+        assertThat(options.cache.tools.search.indexes.get(0).type, equalTo(McpKeywordToolSearchIndexConfig.NAME));
+    }
+
+    @Test
+    public void shouldReadOptionsWithCacheToolsSearchFlatType()
+    {
+        String text =
+                """
+                cache:
+                  store: memory0
+                  tools:
+                    search:
+                      tool: zilla__search_tools
+                      type: keyword
+                      limit: 10
+                      fields:
+                        - name
+                        - description
+                        - output-schema
+                      weights:
+                        name: 3
+                        description: 1
+                """;
+
+        McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options.cache.tools.search.limit, equalTo(10));
+        assertThat(options.cache.tools.search.fields, contains("name", "description", "output-schema"));
+        assertThat(options.cache.tools.search.weights.get("name"), equalTo(3.0));
+        assertThat(options.cache.tools.search.weights.get("description"), equalTo(1.0));
+        assertThat(options.cache.tools.search.indexes, hasSize(1));
+        assertThat(options.cache.tools.search.indexes.get(0).type, equalTo(McpKeywordToolSearchIndexConfig.NAME));
+    }
+
+    @Test
+    public void shouldReadOptionsWithCacheToolsSearchIndexArray()
+    {
+        String text =
+                """
+                cache:
+                  store: memory0
+                  tools:
+                    search:
+                      tool: zilla__search_tools
+                      index:
+                        - type: keyword
+                """;
+
+        McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options.cache.tools.search.indexes, hasSize(1));
+        assertThat(options.cache.tools.search.indexes.get(0).type, equalTo(McpKeywordToolSearchIndexConfig.NAME));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithCacheToolsSearch()
+    {
+        McpOptionsConfig options = McpOptionsConfig.builder()
+                .cache()
+                    .store("memory0")
+                    .tools()
+                        .search()
+                            .tool("zilla__search_tools")
+                            .limit(5)
+                            .fields(List.of("name", "description"))
+                            .index(new McpKeywordToolSearchIndexConfig())
+                            .build()
+                        .build()
+                    .build()
+                .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+                """
+                cache:
+                  store: memory0
+                  tools:
+                    search:
+                      tool: zilla__search_tools
+                      limit: 5
+                      fields:
+                        - name
+                        - description
+                      index:
+                        - type: keyword
                 """));
     }
 }

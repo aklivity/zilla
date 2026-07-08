@@ -39,6 +39,10 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchDocumentScanner;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchIndexFactory;
+import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -121,7 +125,18 @@ public final class McpProxyCache
         final IntPredicate filter = config.hydrateFilter();
         if (filter.test(KIND_TOOLS_LIST))
         {
-            caches.put(KIND_TOOLS_LIST, new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS));
+            final McpToolSearchIndex searchIndex = cache.tools != null
+                ? new McpToolSearchIndexFactory().create(cache.tools.search)
+                : null;
+            final List<String> searchFields = cache.tools != null && cache.tools.search != null
+                ? cache.tools.search.fields
+                : null;
+            final byte[] searchToolBytes = cache.tools != null && cache.tools.search != null
+                ? McpSearchToolDescriptor.build(cache.tools.search.tool)
+                : null;
+            caches.put(KIND_TOOLS_LIST,
+                new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS,
+                    searchIndex, searchFields, searchToolBytes));
         }
         if (filter.test(KIND_RESOURCES_LIST))
         {
@@ -260,6 +275,9 @@ public final class McpProxyCache
         private final String storeKey;
         private final String storeLockKey;
         private final Map<String, String> fragments;
+        private final McpToolSearchIndex searchIndex;
+        private final List<String> searchFields;
+        private final byte[] searchToolBytes;
         private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
         private long lastChecksum = -1L;
         private String lockToken;
@@ -282,15 +300,39 @@ public final class McpProxyCache
             return scopesByName;
         }
 
+        public McpToolSearchIndex searchIndex()
+        {
+            return searchIndex;
+        }
+
+        public byte[] searchToolBytes()
+        {
+            return searchToolBytes;
+        }
+
         private McpListCache(
             int kind,
             String storeKey,
             String storeLockKey)
         {
+            this(kind, storeKey, storeLockKey, null, null, null);
+        }
+
+        private McpListCache(
+            int kind,
+            String storeKey,
+            String storeLockKey,
+            McpToolSearchIndex searchIndex,
+            List<String> searchFields,
+            byte[] searchToolBytes)
+        {
             this.kind = kind;
             this.storeKey = storeKey;
             this.storeLockKey = storeLockKey;
             this.fragments = new TreeMap<>();
+            this.searchIndex = searchIndex;
+            this.searchFields = searchFields;
+            this.searchToolBytes = searchToolBytes;
         }
 
         public void putFragment(
@@ -356,6 +398,10 @@ public final class McpProxyCache
             final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
             lastChecksum = newChecksum;
             scopesByName = indexScopesByName(value);
+            if (searchIndex != null)
+            {
+                searchIndex.index(McpToolSearchDocumentScanner.scan(value, searchFields));
+            }
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
         }
@@ -409,6 +455,10 @@ public final class McpProxyCache
                 changed = lastChecksum != -1L && lastChecksum != newChecksum;
                 lastChecksum = newChecksum;
                 scopesByName = indexScopesByName(value);
+                if (searchIndex != null)
+                {
+                    searchIndex.index(McpToolSearchDocumentScanner.scan(value, searchFields));
+                }
             }
             else
             {

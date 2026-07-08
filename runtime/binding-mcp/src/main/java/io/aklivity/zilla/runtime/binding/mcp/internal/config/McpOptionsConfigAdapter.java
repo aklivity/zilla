@@ -51,12 +51,14 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String CACHE_TTL_DEFAULT = "PT5M";
     private static final String CACHE_AUTHORIZATION_NAME = "authorization";
     private static final String CACHE_AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String CACHE_TOOLS_NAME = "tools";
 
     private static final String SERVER_NAME = "server";
 
     private static final String TOOLS_NAME = "tools";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
+    private final McpCacheToolsConfigAdapter cacheTools = new McpCacheToolsConfigAdapter();
 
     @Override
     public Kind kind()
@@ -122,6 +124,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 }
                 authorization.add(cacheConfig.authorization.name, guardObject);
                 cache.add(CACHE_AUTHORIZATION_NAME, authorization);
+            }
+
+            if (cacheConfig.tools != null)
+            {
+                cache.add(CACHE_TOOLS_NAME, cacheTools.adaptToJson(cacheConfig.tools));
             }
 
             object.add(CACHE_NAME, cache);
@@ -202,6 +209,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                         .credentials(credentials)
                         .build();
                 });
+            }
+
+            if (cache.containsKey(CACHE_TOOLS_NAME))
+            {
+                cacheBuilder.tools(cacheTools.adaptFromJson(cache.getJsonObject(CACHE_TOOLS_NAME)));
             }
 
             cacheBuilder.build();

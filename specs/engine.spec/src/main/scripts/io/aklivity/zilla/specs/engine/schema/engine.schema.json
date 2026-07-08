@@ -537,6 +537,9 @@
             [
             ]
         },
+        "binding-ext":
+        {
+        },
         "validate":
         {
             "oneOf":

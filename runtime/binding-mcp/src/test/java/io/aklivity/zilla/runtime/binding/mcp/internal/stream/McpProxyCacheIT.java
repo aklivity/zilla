@@ -217,6 +217,16 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.search/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeToolsSearch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.toolkit.filter.yaml")
     @Specification({
         "${app}/cache.serve.tools.list.toolkit.filtered/server",

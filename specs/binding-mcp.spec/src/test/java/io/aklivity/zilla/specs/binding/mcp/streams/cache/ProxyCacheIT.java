@@ -110,6 +110,15 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.serve.tools.search/client",
+        "${app}/cache.serve.tools.search/server" })
+    public void shouldServeToolsSearch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.refresh.tools/client",
         "${app}/cache.refresh.tools/server" })
     public void shouldRefreshTools() throws Exception
