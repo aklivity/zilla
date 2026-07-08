@@ -142,6 +142,109 @@ public class AvroJsonChunkingTest
         assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
     }
 
+    @Test
+    public void shouldMatchRecordFieldNameKeyThatFragmentsAcrossInputWindows()
+    {
+        // the field name key itself is longer than the JSON input feed window and fragments across STARVED
+        // windows before AvroJsonParserImpl's peek() reassembles it whole; the field must still match its
+        // schema position once the key completes
+        String json = Json.createObjectBuilder()
+            .add("id", "123")
+            .add(LONG_KEY, "OK")
+            .build()
+            .toString();
+        byte[] wire = jsonToAvroWindowed(longKeySchema, json, 8);
+
+        Drained drained = avroToJsonWindowed(longKeySchema, wire, 256);
+        assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
+    }
+
+    @Test
+    public void shouldReadStringValueThatFragmentsAcrossInputWindows()
+    {
+        // the string value itself is longer than the JSON input feed window and fragments across STARVED
+        // windows before peek() reassembles it whole; readScalar() must see the complete value, not a prefix
+        String longValue = "x".repeat(80);
+        String json = Json.createObjectBuilder()
+            .add("st", longValue)
+            .add("by", Base64.getEncoder().encodeToString(new byte[] {1, 2, 3}))
+            .build()
+            .toString();
+        byte[] wire = jsonToAvroWindowed(schema, json, 8);
+
+        Drained drained = avroToJsonWindowed(wire, 8192);
+        JsonObject object = parse(drained.json);
+        assertEquals(longValue, object.getString("st"));
+        assertArrayEquals(new byte[] {1, 2, 3}, Base64.getDecoder().decode(object.getString("by")));
+    }
+
+    // Drives the JSON -> Avro direction (AvroJsonParserImpl) through fixed-size JSON input windows, carrying
+    // the unconsumed tail (pipeline.remaining()) across STARVED feeds the way a real caller does, so a key
+    // or value larger than the window fragments and reassembles before the schema walk reads it.
+    private byte[] jsonToAvroWindowed(
+        AvroSchema valueSchema,
+        String json,
+        int window)
+    {
+        byte[] jsonBytes = json.getBytes(UTF_8);
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, jsonBytes.length * 4)]);
+        AvroGenerator generator = Avro.generator(valueSchema, out, 0);
+        AvroPipeline pipeline = AvroJson.stream(valueSchema, JsonEx.createParser()).into(AvroSink.of(generator));
+        pipeline.reset();
+
+        UnsafeBufferEx in = new UnsafeBufferEx(jsonBytes);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + window, jsonBytes.length);
+            boolean last = limit >= jsonBytes.length;
+            status = pipeline.transform(in, progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                progress = limit - pipeline.remaining();
+            }
+        }
+        assertEquals(Status.COMPLETED, status);
+        byte[] avro = new byte[generator.length()];
+        out.getBytes(0, avro);
+        return avro;
+    }
+
+    private Drained avroToJsonWindowed(
+        AvroSchema valueSchema,
+        byte[] wire,
+        int window)
+    {
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[window]);
+        JsonGeneratorEx json = JsonEx.createGenerator();
+        AvroGenerator generator = AvroJson.generator(valueSchema, json, false).wrap(out, 0, window);
+        AvroPipeline pipeline = Avro.stream(Avro.parser(valueSchema)).into(AvroSink.of(generator));
+        pipeline.reset();
+
+        StringBuilder result = new StringBuilder();
+        UnsafeBufferEx in = new UnsafeBufferEx(wire);
+        int suspends = 0;
+        int guard = 0;
+        Status status = pipeline.transform(in, 0, wire.length);
+        while (status == Status.SUSPENDED && guard < 1_000_000)
+        {
+            assertTrue(generator.length() <= window, "chunk exceeded the generator limit");
+            result.append(chunk(out, generator.length()));
+            generator.wrap(out, 0, window);
+            suspends++;
+            guard++;
+            status = pipeline.transform(in, 0, wire.length);
+        }
+        assertEquals(Status.COMPLETED, status);
+        json.flush();
+        result.append(chunk(out, generator.length()));
+
+        return new Drained(result.toString(), suspends);
+    }
+
     private Drained avroToJsonBounded(
         AvroSchema valueSchema,
         byte[] wire,

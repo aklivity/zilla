@@ -45,7 +45,11 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * {@link #resume} continues with the next window, exactly as the wire parser does. The translator carries no
  * document buffer; only the bounded per-message frame stack and a small pending-event ring. One JSON leaf value
  * must fit a single input window (it is read via the allocation-free {@link JsonParserEx#getStringView()}
- * view); message structure may split across windows at any token boundary.
+ * view); a field-name or map key is not subject to this limit — a key larger than the window fragments across
+ * multiple {@link JsonEvent#KEY_NAME} events (each with {@link JsonParserEx#deferredBytes()} true until the
+ * last), and {@code messageStep}/{@code mapStep} simply re-pull rather than act on an incomplete one, relying
+ * on the JSON parser's own accumulation to re-present it whole once complete; message structure may otherwise
+ * split across windows at any token boundary.
  * <p>
  * Allocation: scalar values and keys are read through the parser's non-owning char views and parsed/encoded
  * straight into a reused buffer — integers via {@code Long.parseLong(CharSequence, …)} — so no per-value
@@ -421,18 +425,25 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             }
             else if (token == JsonEvent.KEY_NAME)
             {
-                ProtobufField field = frame.message.field(parser.getStringView());
-                if (field == null)
+                // the field lookup needs the whole key; a fragment still incomplete (parser.deferredBytes())
+                // is left unacted-on and re-pulled next step -- parser's own accumulation reassembles it, so
+                // the eventually-delivered event carries the whole key, never a prefix, matching field()'s
+                // whole-name comparison
+                if (!parser.deferredBytes())
                 {
-                    if (rejectUnknownFields)
+                    ProtobufField field = frame.message.field(parser.getStringView());
+                    if (field == null)
                     {
-                        throw new ProtobufParsingException("unknown field " + parser.getStringView());
+                        if (rejectUnknownFields)
+                        {
+                            throw new ProtobufParsingException("unknown field " + parser.getStringView());
+                        }
+                        beginSkip();
                     }
-                    beginSkip();
-                }
-                else
-                {
-                    frame.pendingField = field;
+                    else
+                    {
+                        frame.pendingField = field;
+                    }
                 }
                 progress = true;
             }
@@ -521,13 +532,18 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             }
             else if (token == JsonEvent.KEY_NAME)
             {
-                ProtobufMessage entry = frame.message;
-                ProtobufField keyField = entry.field(1);
-                enqueue(ProtobufEvent.FIELD, frame.field, null);
-                enqueue(ProtobufEvent.START_MESSAGE, null, entry);
-                enqueue(ProtobufEvent.FIELD, keyField, null);
-                emitKey(keyField);
-                frame.mapStep = 1;
+                // the map key needs the whole key before it can stream/decode; a fragment still incomplete
+                // (parser.deferredBytes()) is left unacted-on and re-pulled next step, the same as messageStep
+                if (!parser.deferredBytes())
+                {
+                    ProtobufMessage entry = frame.message;
+                    ProtobufField keyField = entry.field(1);
+                    enqueue(ProtobufEvent.FIELD, frame.field, null);
+                    enqueue(ProtobufEvent.START_MESSAGE, null, entry);
+                    enqueue(ProtobufEvent.FIELD, keyField, null);
+                    emitKey(keyField);
+                    frame.mapStep = 1;
+                }
                 progress = true;
             }
             else
