@@ -25,22 +25,11 @@
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
-#
-# Known issues tracked separately (do not fail this build; see KNOWN_ISSUES
-# below) -- each was found while building out this example and is being
-# fixed on its own branch/PR rather than blocking the example itself:
-#   - aklivity/zilla#2058: mcp_proxy tools/list omits mcp_http/mcp_openapi
-#     toolkits under any scoped token
-#   - aklivity/zilla#2059: mcp_openapi/mcp_http tool calls with a JSON body
-#     don't forward call arguments to the backend request body
-#   - aklivity/zilla#2060: url-mode elicitation never resumes/returns the
-#     original tool call's result after the elicitation completes
 set -x
 
 . "$(CDPATH= cd -- "$(dirname -- "$0")/../../.github" && pwd)/test-lib.sh"
 
 EXIT=0
-KNOWN_ISSUES=0
 PORT="7114"
 INITIALIZE='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"elicitation":{"url":{}}},"clientInfo":{"name":"zilla-mcp-proxy-test","version":"0.0.1"}}}'
 
@@ -107,8 +96,8 @@ echo "$ELICIT_OUT"
 if echo "$ELICIT_OUT" | grep -q 'OK url-mode elicitation relayed end-to-end'; then
   echo ✅ url-mode elicitation relayed end-to-end
 else
-  echo "❌ url-mode elicitation not relayed end-to-end (known issue, see aklivity/zilla#2060)"
-  KNOWN_ISSUES=$((KNOWN_ISSUES + 1))
+  echo ❌ url-mode elicitation not relayed end-to-end
+  EXIT=1
 fi
 
 # WHEN: the call above reaches the urlelicit mock through south_mcp_client_urlelicit
@@ -186,8 +175,8 @@ if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__'; then
   echo "✅ toolkit-only scope: sees list_pets, search_pets, and all three read-only resources, but not create_pet or create_pr"
 else
-  echo "❌ toolkit-only scope did not layer as expected (known issue, see aklivity/zilla#2058)"
-  KNOWN_ISSUES=$((KNOWN_ISSUES + 1))
+  echo "❌ toolkit-only scope did not layer as expected"
+  EXIT=1
 fi
 
 # WHEN: a caller has every scope required by every guarded route
@@ -217,8 +206,8 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
-  echo "❌ full scope did not unlock every toolkit (known issue, see aklivity/zilla#2058)"
-  KNOWN_ISSUES=$((KNOWN_ISSUES + 1))
+  echo "❌ full scope did not unlock every toolkit"
+  EXIT=1
 fi
 
 # WHEN: an authorized caller calls github__create_pr with title/head/base
@@ -242,8 +231,8 @@ echo "CREATE_PR_OUT=$CREATE_PR_OUT"
 if echo "$CREATE_PR_OUT" | grep -q 'Add feature'; then
   echo "✅ github__create_pr forwarded title/head/base to ghapi as the request body"
 else
-  echo "❌ github__create_pr did not forward the call arguments as the request body (known issue, see aklivity/zilla#2059)"
-  KNOWN_ISSUES=$((KNOWN_ISSUES + 1))
+  echo "❌ github__create_pr did not forward the call arguments as the request body"
+  EXIT=1
 fi
 
 # WHEN: an authorized caller calls petstore__search_pets with {"category":"cat"}
@@ -330,12 +319,8 @@ echo "CREATE_PET_OUT=$CREATE_PET_OUT"
 if echo "$CREATE_PET_OUT" | grep -q 'Nibbles'; then
   echo "✅ petstore__create_pet succeeded for a pets:write-scoped caller"
 else
-  echo "❌ petstore__create_pet did not succeed as expected (known issue, see aklivity/zilla#2059)"
-  KNOWN_ISSUES=$((KNOWN_ISSUES + 1))
-fi
-
-if [ "$KNOWN_ISSUES" -gt 0 ]; then
-  echo "⚠️  $KNOWN_ISSUES known issue(s) did not pass -- tracked separately, not failing this build"
+  echo "❌ petstore__create_pet did not succeed as expected"
+  EXIT=1
 fi
 
 exit $EXIT
