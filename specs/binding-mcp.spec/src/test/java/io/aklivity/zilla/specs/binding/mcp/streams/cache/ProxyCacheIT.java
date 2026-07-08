@@ -209,6 +209,15 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.serve.tools.list.eager.none/client",
+        "${app}/cache.serve.tools.list.eager.none/server" })
+    public void shouldServeToolsListEagerNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.serve.tools.list.eager.all/client",
         "${app}/cache.serve.tools.list.eager.all/server" })
     public void shouldServeToolsListEagerAll() throws Exception
