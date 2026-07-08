@@ -1,10 +1,14 @@
 #!/bin/sh
 # Drives the build-workflow verification for examples/mcp.proxy.
 #
-# Two assertions, both at the Zilla layer:
+# Assertions, all at the Zilla layer:
 #   1. a url-elicitation-capable client initializes and negotiates 2025-11-25
 #   2. a real MCP SDK client drives a url-mode elicitation round-trip end-to-end
 #      through the gateway (elicitation/create mode:url + completion notification)
+#   3. tools/list is filtered by the caller's JWT scopes: unauthorized toolkits
+#      and tools are absent from the result, layered per binding hop
+#      (mcp proxy toolkit routes, mcp_http per-tool route, mcp_openapi
+#      OpenAPI-native per-operation security)
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -55,6 +59,100 @@ if echo "$ELICIT_OUT" | grep -q 'OK url-mode elicitation relayed end-to-end'; th
   echo ✅ url-mode elicitation relayed end-to-end
 else
   echo ❌ url-mode elicitation not relayed end-to-end
+  EXIT=1
+fi
+
+# Mint JWTs for the authn_jwt guard, one per scope combination under test.
+# `scope` is a jwt guard `roles` claim: a space-separated list, matched
+# against the roles each `guarded:` route requires.
+encode_jwt() {
+  _scope=$1
+  if [ -n "$_scope" ]; then
+    docker compose run --rm jwt-cli encode \
+        --alg "RS256" --kid "example" \
+        --iss "https://auth.example.com" --aud "https://api.example.com" \
+        --exp=+1d --no-iat \
+        --payload "scope=$_scope" \
+        --secret @/private.pem | tr -d '\r\n'
+  fi
+}
+
+JWT_NONE=""
+JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools")
+JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write")
+
+list_tools() {
+  _token=$1
+  docker compose run --rm --no-deps -e JWT_TOKEN="$_token" -e MCP_URL="http://zilla:$PORT/mcp" \
+      tools-list-client 2>/dev/null
+}
+
+# WHEN: a caller presents no JWT at all
+# THEN: the ungated "everything" toolkit is listed, every guarded toolkit is not
+assert_no_token() {
+  TOOLS_NONE=$(list_tools "$JWT_NONE")
+  echo "$TOOLS_NONE" | grep -q '^everything__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^github__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^petstore__'
+}
+retry_until 5 3 assert_no_token
+echo "TOOLS_NONE=$TOOLS_NONE"
+if echo "$TOOLS_NONE" | grep -q '^everything__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^github__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^petstore__'; then
+  echo "✅ no token: only the ungated everything toolkit is listed"
+else
+  echo "❌ no token: tools/list did not filter to only the everything toolkit"
+  EXIT=1
+fi
+
+# WHEN: a caller has toolkit-level scopes (github:tools, petstore:tools) but
+#       none of the finer-grained operation scopes
+# THEN: petstore__list_pets is listed (no operation-level security in its
+#       OpenAPI spec) but petstore__create_pet and github__create_pr are not
+#       (they require pets:write / github:pr:write respectively) -- proof that
+#       toolkit access alone does not imply access to every tool in it
+assert_partial_token() {
+  TOOLS_PARTIAL=$(list_tools "$JWT_PARTIAL")
+  echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__'
+}
+retry_until 5 3 assert_partial_token
+echo "TOOLS_PARTIAL=$TOOLS_PARTIAL"
+if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__'; then
+  echo "✅ toolkit-only scope: sees list_pets but not create_pet or create_pr"
+else
+  echo "❌ toolkit-only scope did not layer as expected"
+  EXIT=1
+fi
+
+# WHEN: a caller has every scope required by every guarded route
+# THEN: every tool across every toolkit is listed
+assert_full_token() {
+  TOOLS_FULL=$(list_tools "$JWT_FULL")
+  echo "$TOOLS_FULL" | grep -q '^everything__' &&
+    echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
+    echo "$TOOLS_FULL" | grep -q '^github__create_pr$' &&
+    echo "$TOOLS_FULL" | grep -q '^petstore__list_pets$' &&
+    echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$'
+}
+retry_until 5 3 assert_full_token
+echo "TOOLS_FULL=$TOOLS_FULL"
+if echo "$TOOLS_FULL" | grep -q '^everything__' &&
+    echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
+    echo "$TOOLS_FULL" | grep -q '^github__create_pr$' &&
+    echo "$TOOLS_FULL" | grep -q '^petstore__list_pets$' &&
+    echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$'; then
+  echo "✅ full scope: every toolkit's tools are listed"
+else
+  echo "❌ full scope did not unlock every toolkit"
   EXIT=1
 fi
 

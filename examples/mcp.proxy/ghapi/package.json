@@ -1,0 +1,10 @@
+{
+  "name": "ghapi",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal mock of the GitHub REST API endpoints used by the mcp_http \"github\" toolkit",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

@@ -3,6 +3,101 @@ name: example
 stores:
   cache:
     type: memory
+guards:
+  authn_jwt:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      keys:
+        - kty: RSA
+          n: lphdEcMpCplK5UYAhxPnF/kuE8dL9dHznfb8z124/vgI3CGDB9AQCGzcNOYOT4h9q+M9nKidcWnPyyIZ/GrGa7YWPQusckpPbWOaNMxjwRZ799TVHVV2xdJxige5C1lMpunho/vDlnUh1UmTsPXOmdWR3KS/+uFZzVAjNaFphpnl/1nGZAjtje5ynf/UHZ2rZPMUL6gkPqJ3kgWZugaCe0G8QWaETn1sLNInb93g5yVQCmF3KSg+xsWUIG5OYvVrKLvNNXgKOWyFbTR5Ium63kM6Rm2d3YoX5V0e7ucu1Hj52QkF0pCVXwOfqeYwkQ2O3m7HXbDVcMQLVanAmfFj2w==
+          e: AQAB
+          alg: RS256
+          kid: example
+catalogs:
+  petstore_catalog:
+    type: inline
+    options:
+      subjects:
+        petstore:
+          version: latest
+          schema: |
+            {
+              "openapi": "3.1.0",
+              "info": { "title": "Petstore", "version": "1.0.0" },
+              "servers": [ { "url": "http://petstore:4002" } ],
+              "components": {
+                "securitySchemes": {
+                  "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "jwt" }
+                }
+              },
+              "paths": {
+                "/pets": {
+                  "get": {
+                    "operationId": "list_pets",
+                    "summary": "List pets in the store",
+                    "responses": {
+                      "200": {
+                        "description": "ok",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "integer" },
+                                  "name": { "type": "string" },
+                                  "tag": { "type": "string" }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "post": {
+                    "operationId": "create_pet",
+                    "summary": "Add a new pet to the store",
+                    "security": [ { "bearerAuth": [ "pets:write" ] } ],
+                    "requestBody": {
+                      "required": true,
+                      "content": {
+                        "application/json": {
+                          "schema": {
+                            "type": "object",
+                            "required": [ "name" ],
+                            "properties": {
+                              "name": { "type": "string" },
+                              "tag": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "responses": {
+                      "201": {
+                        "description": "created",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "integer" },
+                                "name": { "type": "string" },
+                                "tag": { "type": "string" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
 bindings:
   north_tcp_server:
     type: tcp
@@ -30,6 +125,10 @@ bindings:
   north_mcp_server:
     type: mcp
     kind: server
+    options:
+      authorization:
+        authn_jwt:
+          credentials: "Bearer {credentials}"
     exit: north_mcp_proxy
     telemetry:
       metrics:
@@ -53,6 +152,21 @@ bindings:
         when:
           - toolkit: urlelicit
             tools: ["*"]
+        guarded:
+          authn_jwt:
+            - urlelicit:authorize
+      - exit: south_mcp_http_github
+        when:
+          - toolkit: github
+        guarded:
+          authn_jwt:
+            - github:tools
+      - exit: south_mcp_openapi_petstore
+        when:
+          - toolkit: petstore
+        guarded:
+          authn_jwt:
+            - petstore:tools
   south_mcp_client_everything:
     type: mcp
     kind: client
@@ -65,6 +179,75 @@ bindings:
     options:
       server: http://urlelicit:3003/mcp
     exit: sys:http_client
+  south_mcp_http_github:
+    type: mcp_http
+    kind: proxy
+    options:
+      authorization:
+        authn_jwt:
+          credentials:
+            headers:
+              authorization: "Bearer {credentials}"
+              x-user-identity: "{identity}"
+      tools:
+        create_pr:
+          description: Create a pull request to merge one branch into another.
+          summary: "Created pull request #${result.number}"
+    routes:
+      # base route with no `when` applies its guard to every tool in this
+      # binding, layered underneath any tool-specific guard below
+      - guarded:
+          authn_jwt: []
+      - when:
+          - tool: create_pr
+        exit: south_http_client_ghapi
+        guarded:
+          authn_jwt:
+            - github:pr:write
+        with:
+          headers:
+            ":method": POST
+            ":scheme": http
+            ":authority": ghapi:4001
+            ":path": /repos/${args.owner}/${args.repo}/pulls
+  south_http_client_ghapi:
+    type: http
+    kind: client
+    exit: south_tcp_client_ghapi
+  south_tcp_client_ghapi:
+    type: tcp
+    kind: client
+    options:
+      host: ghapi
+      port: 4001
+  south_mcp_openapi_petstore:
+    type: mcp_openapi
+    kind: client
+    options:
+      specs:
+        petstore:
+          catalog:
+            petstore_catalog:
+              subject: petstore
+              version: latest
+          security:
+            bearerAuth: authn_jwt
+      tools:
+        list_pets:
+          description: List pets in the store.
+        create_pet:
+          description: Add a new pet to the store.
+    routes:
+      - when:
+          - tool: list_pets
+        with:
+          spec: petstore
+          operation: list_pets
+      - when:
+          - tool: create_pet
+        with:
+          spec: petstore
+          operation: create_pet
 telemetry:
   metrics:
     - mcp.initialize
