@@ -26,5 +26,6 @@ bindings:
     kind: server
     options:
       authorization:
-        test0: {}
+        test0:
+          credentials: "Bearer {credentials}"
     exit: app0

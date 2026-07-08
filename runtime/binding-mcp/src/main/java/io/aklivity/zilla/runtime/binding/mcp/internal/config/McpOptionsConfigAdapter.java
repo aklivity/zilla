@@ -43,7 +43,6 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
-    private static final String AUTHORIZATION_REALM_NAME = "realm";
 
     private static final String CACHE_NAME = "cache";
     private static final String CACHE_STORE_NAME = "store";
@@ -96,10 +95,6 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             if (mcpOptions.authorization.credentials != null)
             {
                 guardObject.add(AUTHORIZATION_CREDENTIALS_NAME, mcpOptions.authorization.credentials);
-            }
-            if (mcpOptions.authorization.realm != null)
-            {
-                guardObject.add(AUTHORIZATION_REALM_NAME, mcpOptions.authorization.realm);
             }
             authorization.add(mcpOptions.authorization.name, guardObject);
             object.add(AUTHORIZATION_NAME, authorization);
@@ -175,13 +170,9 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 String credentials = guardObject.containsKey(AUTHORIZATION_CREDENTIALS_NAME)
                     ? ((JsonString) guardObject.get(AUTHORIZATION_CREDENTIALS_NAME)).getString()
                     : null;
-                String realm = guardObject.containsKey(AUTHORIZATION_REALM_NAME)
-                    ? ((JsonString) guardObject.get(AUTHORIZATION_REALM_NAME)).getString()
-                    : null;
                 builder.authorization()
                     .name(guard)
                     .credentials(credentials)
-                    .realm(realm)
                     .build();
             });
         }

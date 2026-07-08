@@ -89,13 +89,15 @@
                                                     "type": "object",
                                                     "properties":
                                                     {
-                                                        "realm":
+                                                        "credentials":
                                                         {
-                                                            "title": "Realm",
-                                                            "type": "string"
+                                                            "title": "Credentials",
+                                                            "type": "string",
+                                                            "pattern": ".*\\{credentials\\}.*"
                                                         }
                                                     },
-                                                    "additionalProperties": false
+                                                    "additionalProperties": false,
+                                                    "required": [ "credentials" ]
                                                 }
                                             },
                                             "additionalProperties": false,

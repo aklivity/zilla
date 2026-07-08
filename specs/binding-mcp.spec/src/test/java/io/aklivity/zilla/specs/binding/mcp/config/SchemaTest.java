@@ -89,18 +89,16 @@ public class SchemaTest
         schema.validate("server.routes.invalid.yaml");
     }
 
-    @Test
-    public void shouldValidateServerWithAuthorizationRealm()
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithAuthorizationCredentialsMissing()
     {
-        JsonObject config = schema.validate("server.authorization.realm.yaml");
-
-        assertThat(config, not(nullValue()));
+        schema.validate("server.authorization.credentials.missing.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectServerWithAuthorizationCredentials()
+    public void shouldRejectServerWithAuthorizationCredentialsMissingPlaceholder()
     {
-        schema.validate("server.authorization.credentials.invalid.yaml");
+        schema.validate("server.authorization.credentials.placeholder.invalid.yaml");
     }
 
     @Test

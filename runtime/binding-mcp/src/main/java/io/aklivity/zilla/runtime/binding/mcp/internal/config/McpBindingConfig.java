@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import jakarta.json.Json;
@@ -80,12 +81,15 @@ public final class McpBindingConfig
 
     private static final Map<String, List<String>> EMPTY_ROLES = Map.of();
 
+    public static final String CREDENTIALS_PLACEHOLDER = "{credentials}";
+
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
     public final GuardHandler filterGuard;
     public final String credentials;
-    public final String authorizationRealm;
+    public final boolean needsCredentials;
+    public final Pattern credentialsPattern;
     public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
     public final Map<String, McpRouteConfig> routeByPrefix;
@@ -146,10 +150,11 @@ public final class McpBindingConfig
             .filter(c -> !c.isEmpty())
             .orElse(null);
 
-        this.authorizationRealm = Optional.ofNullable(options)
-            .map(o -> o.authorization)
-            .map(a -> a.realm)
-            .orElse(null);
+        this.needsCredentials = credentials == null || credentials.contains(CREDENTIALS_PLACEHOLDER);
+
+        this.credentialsPattern = credentials != null
+            ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
+            : null;
 
         this.cache = Optional.ofNullable(options)
             .map(o -> o.cache)

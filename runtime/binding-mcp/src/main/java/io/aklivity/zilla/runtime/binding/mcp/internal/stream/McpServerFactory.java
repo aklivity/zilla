@@ -114,7 +114,6 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String HTTP_HEADER_ACCEPT = "accept";
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
     private static final String HTTP_HEADER_AUTHORIZATION = "authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String CONTENT_TYPE_TEXT_PLAIN = "text/plain";
@@ -391,9 +390,12 @@ public final class McpServerFactory implements McpStreamFactory
                     .map(h -> h.value().asString())
                     .orElse(null);
 
-                final String credentials = authorizationHeader != null &&
-                        authorizationHeader.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())
-                    ? authorizationHeader.substring(BEARER_PREFIX.length())
+                final Matcher credentialsMatcher = authorizationHeader != null
+                    ? binding.credentialsPattern.matcher(authorizationHeader)
+                    : null;
+
+                final String credentials = credentialsMatcher != null && credentialsMatcher.matches()
+                    ? credentialsMatcher.group("credentials")
                     : null;
 
                 final long sessionAuth = credentials != null
@@ -405,7 +407,7 @@ public final class McpServerFactory implements McpStreamFactory
                     final McpBearerError error = credentials == null
                         ? McpBearerError.INVALID_REQUEST
                         : McpBearerError.INVALID_TOKEN;
-                    newStream = new McpBearerRejectHandler(sender, binding.authorizationRealm, error)::onNetMessage;
+                    newStream = new McpBearerRejectHandler(sender, error)::onNetMessage;
                     return newStream;
                 }
 
@@ -3058,16 +3060,13 @@ public final class McpServerFactory implements McpStreamFactory
     private final class McpBearerRejectHandler
     {
         private final MessageConsumer net;
-        private final String realm;
         private final McpBearerError error;
 
         private McpBearerRejectHandler(
             MessageConsumer sender,
-            String realm,
             McpBearerError error)
         {
             this.net = sender;
-            this.realm = realm;
             this.error = error;
         }
 
@@ -3098,7 +3097,7 @@ public final class McpServerFactory implements McpStreamFactory
                 traceId, authorization, 0L, 0);
 
             final String status = bearerChallengeStatus(error);
-            final String wwwAuthenticate = bearerChallengeHeader(realm, null, null, error);
+            final String wwwAuthenticate = bearerChallengeHeader(null, null, null, error);
 
             doBegin(net, originId, routedId, replyId, 0L, 0L, 0, traceId, authorization, 0L, httpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
