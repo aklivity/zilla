@@ -1730,13 +1730,9 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final McpBindingConfig binding = binding();
             final GuardHandler guard = binding.guard;
-            if (guard != null)
+            if (guard != null && (authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
-                final long sessionId = guard.reauthorize(traceId, binding.id, initialId, null);
-                if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
-                {
-                    credentials = guard.credentials(sessionId);
-                }
+                credentials = guard.credentials(authorization);
             }
             return true;
         }
