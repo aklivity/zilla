@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -146,6 +147,18 @@ class JsonPipelineChunkingTest
     }
 
     @Test
+    void shouldChunkStructuredKeyAcrossInputAndOutputBounds()
+    {
+        // an object key larger than both the input window and the output bound: the tokenizer must starve
+        // on input (the key's own bytes fill the window) and the sink must suspend mid-fragment on output,
+        // reconstructing the key canonically from its decoded char view with no concatenation — the
+        // key-domain analog of shouldChunkStructuredStringAcrossInputAndOutputBounds
+        String key = ("aKey" + "x".repeat(6)).repeat(8);
+        String json = "{\"" + key + "\":1}";
+        assertEquals(json, chunkedWindowed(JsonSink.Delivery.STRUCTURED, json, 40, 24));
+    }
+
+    @Test
     void shouldStreamStringValueAcrossInputFrames()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
@@ -193,6 +206,88 @@ class JsonPipelineChunkingTest
         // first fragment is mid-stream (more deferred); the closing fragment completes the value
         assertTrue(deferred.get(0));
         assertFalse(deferred.get(deferred.size() - 1));
+    }
+
+    @Test
+    void shouldReportDeferredBytesForKeyStreamingAcrossFrames()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
+        List<Boolean> deferred = new ArrayList<>();
+        JsonTransform probe = (control, source, event, sink) ->
+        {
+            if (event == JsonEvent.KEY_NAME)
+            {
+                deferred.add(source.deferredBytes());
+            }
+            return sink.transform(control, source, event);
+        };
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(probe)
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        // small feed windows fragment the over-window key; each starve carries the unconsumed remainder
+        // forward (progress = limit - pipeline.remaining()) so the key resumes byte-correct
+        String json = "{\"" + "x".repeat(40) + "\":1}";
+        byte[] msg = json.getBytes(UTF_8);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + 8, msg.length);
+            boolean last = limit >= msg.length;
+            status = pipeline.transform(new UnsafeBufferEx(msg), progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                progress = limit - pipeline.remaining();
+            }
+        }
+        assertEquals(Status.COMPLETED, status);
+
+        // first fragment is mid-key (more deferred); the closing fragment completes the key
+        assertTrue(deferred.get(0));
+        assertFalse(deferred.get(deferred.size() - 1));
+    }
+
+    @Test
+    void shouldStreamKeyPastValueSizeCapWhenConsumedEagerly()
+    {
+        // no consumer declines a key fragment here (a plain passthrough sink always takes what fits), so the
+        // retained backlog never grows past MAX_VALUE_SIZE even though the whole key is far longer — the
+        // key-domain analog of JsonValidatorStreamingTest's shouldStreamUnconstrainedFragmentedRootValuePastValueSizeCap
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16)))
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        String key = "aaaaaaaaaabbbbbbbbbbcccccccccc";
+        String json = "{\"" + key + "\":1}";
+        byte[] msg = json.getBytes(UTF_8);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + 8, msg.length);
+            boolean last = limit >= msg.length;
+            status = pipeline.transform(new UnsafeBufferEx(msg), progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                progress = limit - pipeline.remaining();
+            }
+        }
+
+        assertEquals(Status.COMPLETED, status);
+        byte[] out = new byte[generator.length()];
+        output.getBytes(0, out);
+        assertEquals(json, new String(out, UTF_8));
     }
 
     @Test
@@ -275,6 +370,16 @@ class JsonPipelineChunkingTest
         // small feed windows fragment the over-window value; the structured sink re-renders each fragment
         // canonically from getStringView() with no concatenation
         String json = "{\"data\":\"" + "x".repeat(40) + "\"}";
+        assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
+    }
+
+    @Test
+    void shouldReconstructWindowFragmentedKeyStructured()
+    {
+        // small feed windows fragment the over-window key; the structured sink re-renders each fragment
+        // canonically from getStringView() with no concatenation — the key-domain analog of
+        // shouldReconstructWindowFragmentedStringValueStructured
+        String json = "{\"" + "x".repeat(40) + "\":1}";
         assertEquals(json, feedWindowed(json, JsonSink.Delivery.STRUCTURED, 8));
     }
 

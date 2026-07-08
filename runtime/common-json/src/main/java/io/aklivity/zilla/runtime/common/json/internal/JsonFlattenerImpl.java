@@ -161,6 +161,26 @@ public final class JsonFlattenerImpl implements JsonTransform
         JsonSource source,
         JsonSink sink)
     {
+        Status status;
+        if (source.deferredBytes())
+        {
+            // a fragmented key cannot be matched against the accessor trie until it is complete — the trie's
+            // children are compared as whole strings. Decline the fragment (consumed(0)) so the source
+            // accumulates it whole and re-presents it complete on a later window, then match it.
+            control.consumed(0);
+            status = Status.STARVED;
+        }
+        else
+        {
+            status = onCompleteKey(source, sink);
+        }
+        return status;
+    }
+
+    private Status onCompleteKey(
+        JsonSource source,
+        JsonSink sink)
+    {
         Node child = currentNode == null ? null : currentNode.children.get(source.getStringView().toString());
         Status status;
         if (child != null && child.target != null)

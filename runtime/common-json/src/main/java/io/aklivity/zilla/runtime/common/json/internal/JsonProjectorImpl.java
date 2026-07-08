@@ -176,6 +176,12 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             status = Status.SUSPENDED;
         }
+        else if (downstream == Status.STARVED)
+        {
+            // onKey declined an in-flight key fragment directly (no forward(), so rank() never sees it):
+            // the pump must wait for more input rather than treat this event as advanced.
+            status = Status.STARVED;
+        }
         else if (rootDone)
         {
             status = Status.COMPLETED;
@@ -249,38 +255,61 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonSink sink)
     {
         boolean parentKeepAll = containers > 0 && frameKeepAll[containers - 1];
-        Node parentNode = containers > 0 ? frameNode[containers - 1] : root;
-        Decision d;
         if (parentKeepAll)
         {
+            // every child of a KEEP_ALL parent is retained regardless of its key content, so a key
+            // fragmented across input windows streams straight through with nothing to decide — the same
+            // as any other kept scalar/segment value.
             keyNode = null;
-            d = Decision.KEEP_ALL;
+            keyDecision = Decision.KEEP_ALL;
+            forwardKey(control, source, sink);
+        }
+        else if (source.deferredBytes())
+        {
+            // a fragmented key cannot be matched against the trie until it is complete — the trie's
+            // children are compared as whole strings. Decline the fragment (consumed(0)) so the source
+            // accumulates it whole (the same fallback a content-needing scalar value uses) and re-presents
+            // it complete on a later window, then decide once the final fragment arrives.
+            control.consumed(0);
+            downstream = Status.STARVED;
         }
         else
         {
+            Node parentNode = containers > 0 ? frameNode[containers - 1] : root;
             keyNode = lookup(parentNode, source.getStringView());
-            d = decide(keyNode);
-        }
-        keyDecision = d;
-        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
-        if (parentEmit && d == Decision.KEEP_ALL)
-        {
-            // A KEEP_ALL value is always emitted, so the key is forwarded live from the still-valid view —
-            // no copy and no deferral. The match above also used the live view, so no ancestor key is
-            // retained. Then arm the kept value for verbatim segment delivery (best-effort, demand-gated).
-            forward(sink, source, JsonEvent.KEY_NAME);
-            pendingKey = null;
-            if (downstreamDemand)
+            Decision d = decide(keyNode);
+            keyDecision = d;
+            boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+            if (parentEmit && d == Decision.KEEP_ALL)
             {
-                control.segmentable();
+                // A KEEP_ALL value is always emitted, so the key is forwarded live from the still-valid
+                // view — no copy and no deferral. The match above also used the live view, so no ancestor
+                // key is retained. Then arm the kept value for verbatim segment delivery (best-effort,
+                // demand-gated).
+                forwardKey(control, source, sink);
+            }
+            else
+            {
+                // A DESCEND key is buffered for deferral: its value's kind is still unknown, and a scalar
+                // under a deeper-only pointer is dropped, so the key cannot be forwarded until the value
+                // event. A SKIP key copies nothing.
+                pendingKey = d == Decision.SKIP ? null : copyKey(source.getStringView());
             }
         }
-        else
+    }
+
+    // Forwards a KEEP_ALL key live from the still-valid source view and arms the kept value for verbatim
+    // segment delivery (best-effort, demand-gated).
+    private void forwardKey(
+        JsonController control,
+        JsonSource source,
+        JsonSink sink)
+    {
+        forward(sink, source, JsonEvent.KEY_NAME);
+        pendingKey = null;
+        if (downstreamDemand)
         {
-            // A DESCEND key is buffered for deferral: its value's kind is still unknown, and a scalar under a
-            // deeper-only pointer is dropped, so the key cannot be forwarded until the value event. A SKIP
-            // key copies nothing.
-            pendingKey = d == Decision.SKIP ? null : copyKey(source.getStringView());
+            control.segmentable();
         }
     }
 

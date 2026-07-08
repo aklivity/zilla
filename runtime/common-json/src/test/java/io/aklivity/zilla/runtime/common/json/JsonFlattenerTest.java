@@ -101,6 +101,53 @@ class JsonFlattenerTest
             flattenBounded(Map.of("e", "epsilon"), "{\"e\":1}", 4));
     }
 
+    @Test
+    void shouldFlattenAccessorKeyThatFragmentsAcrossInputWindows()
+    {
+        // the accessor key is longer than the feed window and fragments across STARVED windows before this
+        // stage can match it against the accessor trie; the match must still land once it completes. Driven
+        // directly (no upstream projector) so the fragmenting key reaches this stage's own onKey() rather
+        // than being reassembled and decided by the projector first.
+        String key = "x".repeat(40);
+        assertEquals("{\"y\":1}", flattenWindowed(Map.of(key, "y"), "{\"" + key + "\":1}", 8));
+    }
+
+    // Drives flatten() (without an upstream projector) through fixed-size input windows, carrying the
+    // unconsumed tail (pipeline.remaining()) across STARVED feeds the way a real caller does.
+    private static String flattenWindowed(
+        Map<String, String> accessorTargets,
+        String input,
+        int window)
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonTransforms.flatten(accessorTargets))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        pipeline.reset();
+
+        byte[] msg = (input + " ").getBytes(UTF_8);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + window, msg.length);
+            boolean last = limit >= msg.length;
+            status = pipeline.transform(new UnsafeBufferEx(msg), progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                progress = limit - pipeline.remaining();
+            }
+        }
+        assertEquals(Status.COMPLETED, status);
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        return new String(out, UTF_8);
+    }
+
     private static String flatten(
         Map<String, String> accessorTargets,
         String input)

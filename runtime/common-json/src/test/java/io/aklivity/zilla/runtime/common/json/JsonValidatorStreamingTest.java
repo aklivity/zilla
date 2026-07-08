@@ -146,4 +146,87 @@ class JsonValidatorStreamingTest
 
         assertEquals(Status.REJECTED, status);
     }
+
+    @Test
+    void shouldValidateRequiredPropertyWhoseKeyFragmentsAcrossWindows()
+    {
+        // unlike a scalar value, a key has no needsContent-style shortcut: it must always be reassembled
+        // whole to route to the right required/property entry, regardless of the applicable subschema
+        String key = "x".repeat(40);
+        String schema = "{\"type\":\"object\",\"required\":[\"" + key + "\"]}";
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of(schema).validator())
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        pipeline.reset();
+
+        String json = "{\"" + key + "\":1}";
+        Status status = feedWindowed(pipeline, json, 8);
+
+        assertEquals(Status.COMPLETED, status);
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        assertEquals(json, new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldRejectMissingRequiredPropertyWhoseKeyFragmentsAcrossWindows()
+    {
+        String key = "x".repeat(40);
+        String schema = "{\"type\":\"object\",\"required\":[\"" + key + "\"]}";
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of(schema).validator())
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        pipeline.reset();
+
+        // a different (also window-spanning) key is present instead of the required one
+        String json = "{\"" + "y".repeat(40) + "\":1}";
+        Status status = feedWindowed(pipeline, json, 8);
+
+        assertEquals(Status.REJECTED, status);
+    }
+
+    @Test
+    void shouldRejectKeyLargerThanValueSizeCap()
+    {
+        // a key always needs reassembly to route/validate, so — like a content-needing scalar value — it
+        // still fails closed past MAX_VALUE_SIZE rather than being rejected solely for spanning windows
+        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16)))
+            .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        pipeline.reset();
+
+        String json = "{\"" + "x".repeat(40) + "\":1}";
+        Status status = feedWindowed(pipeline, json, 8);
+
+        assertEquals(Status.REJECTED, status);
+    }
+
+    // Drives the document through fixed-size input windows, carrying the unconsumed tail
+    // (pipeline.remaining()) across STARVED feeds the way a real caller does, so an over-window key
+    // fragments and reassembles before the validator routes it.
+    private static Status feedWindowed(
+        JsonPipeline pipeline,
+        String json,
+        int window)
+    {
+        byte[] msg = json.getBytes(UTF_8);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + window, msg.length);
+            boolean last = limit >= msg.length;
+            status = pipeline.transform(new UnsafeBufferEx(msg), progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                progress = limit - pipeline.remaining();
+            }
+        }
+        return status;
+    }
 }
