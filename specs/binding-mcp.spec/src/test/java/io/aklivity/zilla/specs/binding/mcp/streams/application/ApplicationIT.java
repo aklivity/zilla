@@ -668,6 +668,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.completed.preauthorized/client",
+        "${app}/tools.call.elicit.completed.preauthorized/server"})
+    public void shouldCallToolElicitCompletedPreauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.declined/client",
         "${app}/tools.call.elicit.declined/server"})
     public void shouldCallToolElicitDeclined() throws Exception

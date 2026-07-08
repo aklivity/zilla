@@ -2440,14 +2440,11 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (flushEx.kind() == McpFlushExFW.KIND_ELICIT_RESPONSE)
             {
-                if (binding.guard == null)
-                {
-                    final McpElicitResponseFlushExFW elicitResponse = flushEx.elicitResponse();
-                    final String correlationId = elicitResponse.correlationId().asString();
-                    final String action = elicitResponse.action().get().name().toLowerCase();
-                    new HttpElicitResponse(this, correlationId, action)
-                        .doEncodeRequestBegin(flush.traceId(), flush.authorization());
-                }
+                final McpElicitResponseFlushExFW elicitResponse = flushEx.elicitResponse();
+                final String correlationId = elicitResponse.correlationId().asString();
+                final String action = elicitResponse.action().get().name().toLowerCase();
+                new HttpElicitResponse(this, correlationId, action)
+                    .doEncodeRequestBegin(flush.traceId(), flush.authorization());
                 return;
             }
 
@@ -2928,13 +2925,13 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final McpElicitAction action = elicitResponse.action().get();
 
-            if (session.binding.guard == null)
+            if (!pendingAuth)
             {
                 final String correlationId = elicitResponse.correlationId().asString();
                 new HttpElicitResponse(this, correlationId, action.name().toLowerCase())
                     .doEncodeRequestBegin(traceId, authorization);
             }
-            else if (action != McpElicitAction.ACCEPT && pendingAuth)
+            else if (action != McpElicitAction.ACCEPT)
             {
                 cancelElicitTimeout();
                 pendingAuth = false;
