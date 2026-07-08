@@ -47,8 +47,8 @@ final class McpKeywordToolSearchIndex implements McpToolSearchIndex
         List<String> fields,
         Map<String, Double> weights)
     {
-        this.fields = fields;
-        this.weights = weights;
+        this.fields = fields != null ? fields : List.of();
+        this.weights = weights != null ? weights : Map.of();
     }
 
     @Override
