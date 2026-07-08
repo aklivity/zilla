@@ -317,10 +317,15 @@ bindings:
         # and filtered per caller by each tool's own security scheme (see
         # "Toolkit access vs per-tool access" in the README), so hydration
         # needs a credential broad enough to see everything once, up front,
-        # not to grant any real caller access
+        # not to grant any real caller access. Every guarded route below falls
+        # back to this same shared credential for its own hydration south
+        # connection unless it configures its own routes[].with.cache.credentials
+        # override, so one broad credential is enough here. This is the raw
+        # JWT, not a "Bearer "-prefixed header value -- it's handed directly to
+        # guard.reauthorize(), not extracted from a header
         authorization:
           authn_jwt:
-            credentials: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzNzEyNTMwNCwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSJ9.DEsguNDaHgHgn7MaK8KY1I9dW9SpTc5AUnVTQjY5v-Jmm1IWSpt-xModSTnWqfnlUImYNEbImlyXfSjFXiAd1rBCl-Sw9n6DCdkVPN2VQ1gybGNxVWyp1hlOGzQQSXWEmIOYjlRliRiTpaskNjgoyY7qawncIlIOY8xX0HnP11dONyNxgzSwaPio80e2cNlWjgHTrxSDY4ms5Svv4AInSr8BxSdvl3eOpFVlJ-XhZeOo4STcpaK1FeJgxwkxM6RGUk6ltCOc3V2gdmF6gFE_t41UzzSEvxzPPsW48VmigmCp29vC9Doi6WG_1H2M_CX85sEx7_R12Gh_Pmj53NBNuw"
+            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzNzEyNTMwNCwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSJ9.DEsguNDaHgHgn7MaK8KY1I9dW9SpTc5AUnVTQjY5v-Jmm1IWSpt-xModSTnWqfnlUImYNEbImlyXfSjFXiAd1rBCl-Sw9n6DCdkVPN2VQ1gybGNxVWyp1hlOGzQQSXWEmIOYjlRliRiTpaskNjgoyY7qawncIlIOY8xX0HnP11dONyNxgzSwaPio80e2cNlWjgHTrxSDY4ms5Svv4AInSr8BxSdvl3eOpFVlJ-XhZeOo4STcpaK1FeJgxwkxM6RGUk6ltCOc3V2gdmF6gFE_t41UzzSEvxzPPsW48VmigmCp29vC9Doi6WG_1H2M_CX85sEx7_R12Gh_Pmj53NBNuw"
     routes:
       - exit: south_mcp_client_everything
         when:
