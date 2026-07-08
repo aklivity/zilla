@@ -38,10 +38,10 @@ import jakarta.json.stream.JsonParserFactory;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpInitializeParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpNotifyCanceledParams;
+import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAuthorizationResult;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.transform.McpSchemeExcluder;
@@ -87,7 +87,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
@@ -113,7 +112,6 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String HTTP_HEADER_ALT_SVC = "alt-svc";
     private static final String HTTP_HEADER_ACCEPT = "accept";
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
-    private static final String HTTP_HEADER_AUTHORIZATION = "authorization";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String CONTENT_TYPE_TEXT_PLAIN = "text/plain";
@@ -381,38 +379,16 @@ public final class McpServerFactory implements McpStreamFactory
                 .orElse(null);
             final String altSvc = buildAltSvc(authority);
 
-            long resolvedAuthorization = authorization;
+            final McpAuthorizationResult authResult =
+                binding.authorize(traceId, routedId, initialId, authorization, httpBeginEx, path);
 
-            if (binding.guard != null && !isAuthCallbackPath(binding, path))
+            if (authResult.error() != null)
             {
-                final String authorizationHeader = Optional.ofNullable(httpBeginEx.headers()
-                        .matchFirst(h -> HTTP_HEADER_AUTHORIZATION.equals(h.name().asString())))
-                    .map(h -> h.value().asString())
-                    .orElse(null);
-
-                final Matcher credentialsMatcher = authorizationHeader != null
-                    ? binding.credentialsPattern.matcher(authorizationHeader)
-                    : null;
-
-                final String credentials = credentialsMatcher != null && credentialsMatcher.matches()
-                    ? credentialsMatcher.group("credentials")
-                    : null;
-
-                final long sessionAuth = credentials != null
-                    ? binding.guard.reauthorize(traceId, routedId, initialId, credentials)
-                    : GuardHandler.NOT_AUTHORIZED;
-
-                if ((sessionAuth & GuardHandler.MASK_AUTHORIZED) == 0L)
-                {
-                    final McpBearerError error = credentials == null
-                        ? McpBearerError.INVALID_REQUEST
-                        : McpBearerError.INVALID_TOKEN;
-                    newStream = new McpBearerRejectHandler(sender, error)::onNetMessage;
-                    return newStream;
-                }
-
-                resolvedAuthorization = sessionAuth;
+                newStream = new McpBearerRejectHandler(sender, authResult.error())::onNetMessage;
+                return newStream;
             }
+
+            final long resolvedAuthorization = authResult.authorization();
 
             if (sessionId != null && !isSessionIdAligned(routedId, sessionId))
             {
@@ -465,74 +441,18 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 break;
             case "GET":
-                if (isAuthCallbackPath(binding, path))
-                {
-                    final String scheme = Optional.ofNullable(httpBeginEx.headers()
-                            .matchFirst(h -> HTTP_HEADER_SCHEME.equals(h.name().asString())))
-                        .map(h -> h.value().asString())
-                        .orElse("https");
-                    final String callbackURL = scheme + "://" + (authority != null ? authority : "") + path;
-                    newStream = new McpAuthCallbackHandler(
-                        sender,
-                        originId,
-                        routedId,
-                        initialId,
-                        path,
-                        callbackURL,
-                        altSvc)::onNetMessage;
-                }
-                else if (!acceptIncludesEventStream(accept))
-                {
-                    newStream = new McpRejectHandler(sender, STATUS_406)::onNetBegin;
-                }
-                else if (session == null)
-                {
-                    newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
-                }
-                else if (session.eventsUnsupported)
-                {
-                    newStream = new McpRejectHandler(sender, STATUS_405)::onNetBegin;
-                }
-                else
-                {
-                    final HttpHeaderFW lastEventIdHeader = httpBeginEx.headers()
-                        .matchFirst(h -> HTTP_HEADER_LAST_EVENT_ID.equals(h.name().asString()));
-                    String lastEventIdPrefix = null;
-                    String resumeEventId = null;
-                    McpRequestStream resolvedRequest = null;
-                    if (lastEventIdHeader != null)
-                    {
-                        final String lastEventId = lastEventIdHeader.value().asString();
-                        resumeEventId = lastEventId;
-                        final int colon = lastEventId != null ? lastEventId.indexOf(':') : -1;
-                        if (colon >= 0)
-                        {
-                            lastEventIdPrefix = lastEventId.substring(0, colon);
-                            if (!lastEventIdPrefix.isEmpty())
-                            {
-                                resolvedRequest = session.requests.get(lastEventIdPrefix);
-                                resumeEventId = lastEventId.substring(colon + 1);
-                            }
-                        }
-                    }
-
-                    if (lastEventIdPrefix != null && !lastEventIdPrefix.isEmpty() && resolvedRequest == null)
-                    {
-                        newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
-                    }
-                    else
-                    {
-                        newStream = new McpEventStream(
-                            sender,
-                            originId,
-                            routedId,
-                            initialId,
-                            session,
-                            resolvedRequest,
-                            resumeEventId,
-                            altSvc)::onNetMessage;
-                    }
-                }
+                newStream = newGetStream(
+                    sender,
+                    originId,
+                    routedId,
+                    initialId,
+                    binding,
+                    session,
+                    httpBeginEx,
+                    path,
+                    accept,
+                    authority,
+                    altSvc);
                 break;
             case "DELETE":
                 newStream = new McpShutdownHandler(
@@ -550,6 +470,91 @@ public final class McpServerFactory implements McpStreamFactory
             }
         }
 
+        return newStream;
+    }
+
+    private MessageConsumer newGetStream(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long initialId,
+        McpBindingConfig binding,
+        McpLifecycleStream session,
+        HttpBeginExFW httpBeginEx,
+        String path,
+        String accept,
+        String authority,
+        String altSvc)
+    {
+        MessageConsumer newStream;
+        if (binding.isAuthCallbackPath(path))
+        {
+            final String scheme = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_SCHEME.equals(h.name().asString())))
+                .map(h -> h.value().asString())
+                .orElse("https");
+            final String callbackURL = scheme + "://" + (authority != null ? authority : "") + path;
+            newStream = new McpAuthCallbackHandler(
+                sender,
+                originId,
+                routedId,
+                initialId,
+                path,
+                callbackURL,
+                altSvc)::onNetMessage;
+        }
+        else if (!acceptIncludesEventStream(accept))
+        {
+            newStream = new McpRejectHandler(sender, STATUS_406)::onNetBegin;
+        }
+        else if (session == null)
+        {
+            newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
+        }
+        else if (session.eventsUnsupported)
+        {
+            newStream = new McpRejectHandler(sender, STATUS_405)::onNetBegin;
+        }
+        else
+        {
+            final HttpHeaderFW lastEventIdHeader = httpBeginEx.headers()
+                .matchFirst(h -> HTTP_HEADER_LAST_EVENT_ID.equals(h.name().asString()));
+            String lastEventIdPrefix = null;
+            String resumeEventId = null;
+            McpRequestStream resolvedRequest = null;
+            if (lastEventIdHeader != null)
+            {
+                final String lastEventId = lastEventIdHeader.value().asString();
+                resumeEventId = lastEventId;
+                final int colon = lastEventId != null ? lastEventId.indexOf(':') : -1;
+                if (colon >= 0)
+                {
+                    lastEventIdPrefix = lastEventId.substring(0, colon);
+                    if (!lastEventIdPrefix.isEmpty())
+                    {
+                        resolvedRequest = session.requests.get(lastEventIdPrefix);
+                        resumeEventId = lastEventId.substring(colon + 1);
+                    }
+                }
+            }
+
+            if (lastEventIdPrefix != null && !lastEventIdPrefix.isEmpty() && resolvedRequest == null)
+            {
+                newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
+            }
+            else
+            {
+                newStream = new McpEventStream(
+                    sender,
+                    originId,
+                    routedId,
+                    initialId,
+                    session,
+                    resolvedRequest,
+                    resumeEventId,
+                    altSvc)::onNetMessage;
+            }
+        }
         return newStream;
     }
 
@@ -5842,23 +5847,6 @@ public final class McpServerFactory implements McpStreamFactory
             cursor = amp + 1;
         }
         return value;
-    }
-
-    private static boolean isAuthCallbackPath(
-        McpBindingConfig binding,
-        String path)
-    {
-        boolean match = false;
-        if (binding != null && path != null)
-        {
-            McpElicitationConfig elicitation = binding.options != null ? binding.options.elicitation : null;
-            String callback = elicitation != null ? elicitation.callback : McpElicitationConfig.DEFAULT_CALLBACK_PATH;
-            int queryAt = path.indexOf('?');
-            String pathOnly = queryAt >= 0 ? path.substring(0, queryAt) : path;
-            String suffix = "/" + callback;
-            match = pathOnly.endsWith(suffix);
-        }
-        return match;
     }
 
     private int encodeSseKeepAlive(
