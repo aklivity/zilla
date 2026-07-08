@@ -85,6 +85,7 @@ public final class McpBindingConfig
     public final GuardHandler guard;
     public final GuardHandler filterGuard;
     public final String credentials;
+    public final String authorizationRealm;
     public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
     public final Map<String, McpRouteConfig> routeByPrefix;
@@ -143,6 +144,11 @@ public final class McpBindingConfig
             .map(o -> o.authorization)
             .map(a -> a.credentials)
             .filter(c -> !c.isEmpty())
+            .orElse(null);
+
+        this.authorizationRealm = Optional.ofNullable(options)
+            .map(o -> o.authorization)
+            .map(a -> a.realm)
             .orElse(null);
 
         this.cache = Optional.ofNullable(options)

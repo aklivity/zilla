@@ -90,6 +90,20 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerWithAuthorizationRealm()
+    {
+        JsonObject config = schema.validate("server.authorization.realm.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithAuthorizationCredentials()
+    {
+        schema.validate("server.authorization.credentials.invalid.yaml");
+    }
+
+    @Test
     public void shouldValidateClientWithRoutes()
     {
         JsonObject config = schema.validate("client.routes.yaml");

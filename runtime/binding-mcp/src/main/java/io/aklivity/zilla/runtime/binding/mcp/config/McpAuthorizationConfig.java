@@ -22,6 +22,7 @@ public final class McpAuthorizationConfig
 {
     public final String name;
     public final String credentials;
+    public final String realm;
 
     public transient String qname;
 
@@ -38,9 +39,11 @@ public final class McpAuthorizationConfig
 
     McpAuthorizationConfig(
         String name,
-        String credentials)
+        String credentials,
+        String realm)
     {
         this.name = name;
         this.credentials = credentials;
+        this.realm = realm;
     }
 }

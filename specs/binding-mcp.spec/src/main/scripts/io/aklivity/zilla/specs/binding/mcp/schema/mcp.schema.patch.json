@@ -89,9 +89,9 @@
                                                     "type": "object",
                                                     "properties":
                                                     {
-                                                        "credentials":
+                                                        "realm":
                                                         {
-                                                            "title": "Credentials",
+                                                            "title": "Realm",
                                                             "type": "string"
                                                         }
                                                     },
