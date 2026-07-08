@@ -37,7 +37,6 @@ public final class TestGuardHandler implements GuardHandler
 {
     private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
     private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("redirect_uri=[^&]*");
-    private static final String CONTEXT_ID_PLACEHOLDER = "{contextId}";
 
     private final String credentials;
     private final Duration challenge;
@@ -48,7 +47,6 @@ public final class TestGuardHandler implements GuardHandler
     private final String preauthorize;
 
     private final Long2LongHashMap sessions;
-    private final Long2LongHashMap contextsById;
     private final MutableLong nextSessionId;
 
     public TestGuardHandler(
@@ -61,7 +59,6 @@ public final class TestGuardHandler implements GuardHandler
         this.roles = config.options != null ? config.options.roles : null;
         this.preauthorize = config.options != null ? config.options.preauthorize : null;
         this.sessions = new Long2LongHashMap(-1L);
-        this.contextsById = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
         this.attributes = config.options != null ? config.options.attributes : null;
     }
@@ -78,11 +75,6 @@ public final class TestGuardHandler implements GuardHandler
         if (this.credentials != null && this.credentials.equals(credentials))
         {
             sessionId = createSession();
-        }
-        else if (credentials == null && this.credentials != null && this.credentials.contains(CONTEXT_ID_PLACEHOLDER))
-        {
-            sessionId = createSession();
-            contextsById.put(sessionId, contextId);
         }
         else if (preauthorize != null)
         {
@@ -134,7 +126,6 @@ public final class TestGuardHandler implements GuardHandler
         long sessionId)
     {
         sessions.remove(sessionId);
-        contextsById.remove(sessionId);
     }
 
     @Override
@@ -156,14 +147,7 @@ public final class TestGuardHandler implements GuardHandler
     public String credentials(
         long sessionId)
     {
-        String result = credentials;
-
-        if (result != null && result.contains(CONTEXT_ID_PLACEHOLDER) && contextsById.containsKey(sessionId))
-        {
-            result = result.replace(CONTEXT_ID_PLACEHOLDER, Long.toString(contextsById.get(sessionId)));
-        }
-
-        return result;
+        return credentials;
     }
 
     @Override
