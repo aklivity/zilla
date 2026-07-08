@@ -713,9 +713,11 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public void skipValue()
     {
-        // valid only at an object member boundary (current event is a delivered KEY_NAME); the value has not
-        // yet been read, so the member's leading-separator occupancy is still the key's
-        assert lastEvent == JsonEvent.KEY_NAME;
+        // valid only at an object member boundary (current event is a delivered, complete KEY_NAME); the
+        // value has not yet been read, so the member's leading-separator occupancy is still the key's. A
+        // caller must not drop a member on a still-fragmenting key (deferredBytes() true) — the key is only
+        // a prefix at that point, so the drop decision would be made on incomplete content.
+        assert lastEvent == JsonEvent.KEY_NAME && !deferredBytes();
         final boolean occupied = tokenizer.memberSeparated();
         // drive the value's events internally so the caller never sees them: a scalar is one event, a container
         // runs to its matching close

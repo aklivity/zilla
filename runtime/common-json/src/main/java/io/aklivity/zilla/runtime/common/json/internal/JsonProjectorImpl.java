@@ -37,10 +37,14 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
  * state only; the downstream is bound once at assembly and supplied per event.
  * <p>
  * The retained pointer set is compiled once into a {@link Node trie}: each node has children keyed by
- * segment plus a {@code keepAll} terminal flag (a pointer ends here, so the whole subtree is retained).
- * Descent tracks a per-depth stack of node references ({@code frameNode}) rather than the absolute path,
- * so matching a key is an {@code O(children)} lookup of the live {@link JsonSource#getStringView()} in the
- * current node's children — no ancestor key chain is ever retained and no absolute pointer is manifested.
+ * segment plus a {@code keepAll} terminal flag (a pointer ends here, so the whole subtree is retained), and
+ * a {@code maxKeyLength} (the longest child key at that position). Descent tracks a per-depth stack of node
+ * references ({@code frameNode}) rather than the absolute path, so matching a key is an {@code O(children)}
+ * lookup of the live {@link JsonSource#getStringView()} in the current node's children — no ancestor key
+ * chain is ever retained and no absolute pointer is manifested. A key that fragments across input windows is
+ * declined (never buffered) while it is still short enough that some child could still match; once it
+ * strictly exceeds {@code maxKeyLength} while still incomplete, no child can possibly match regardless of
+ * what follows, so the remaining fragments are drained without ever being buffered or compared.
  */
 public final class JsonProjectorImpl implements JsonTransform
 {
@@ -85,6 +89,9 @@ public final class JsonProjectorImpl implements JsonTransform
     private JsonEvent deferredStart;
     private boolean scalarPending;
     private boolean scalarEmit;
+    // true once a key has been proven longer than every candidate at the current position (see onKey): the
+    // remaining fragments are drained without inspection until the key completes.
+    private boolean keySkipping;
     // true while a buffered key is being forwarded downstream: the parser delivered that key live and already
     // moved on, so the sink's consumed() pushback for it must be absorbed rather than relayed to the parser's
     // now-current (value) char cursor
@@ -116,6 +123,7 @@ public final class JsonProjectorImpl implements JsonTransform
         scalarPending = false;
         scalarEmit = false;
         forwardingKey = false;
+        keySkipping = false;
     }
 
     private void onDownstreamSegmentable()
@@ -137,9 +145,17 @@ public final class JsonProjectorImpl implements JsonTransform
         public void consumed(
             int sourceBytes)
         {
-            // a buffered key's pushback is absorbed (the parser already delivered that key live); a value's
-            // pushback relays to the parser so it re-exposes the value remainder on resume
-            if (!forwardingKey)
+            // a buffered key's consumed count is relative to keySource's own small, fully-materialized
+            // substitute, not the live upstream token, so it advances keySource's own offset (the
+            // "expose the remainder on resume" contract keySource implements locally) rather than the
+            // real upstream's cursor -- otherwise the real upstream would misinterpret it as progress
+            // against a token it never actually forwarded. A value's pushback relays to the parser so it
+            // re-exposes the value remainder on resume.
+            if (forwardingKey)
+            {
+                keySource.advance(sourceBytes);
+            }
+            else
             {
                 upstreamControl.consumed(sourceBytes);
             }
@@ -176,6 +192,12 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             status = Status.SUSPENDED;
         }
+        else if (downstream == Status.STARVED)
+        {
+            // onKey declined an in-flight key fragment directly (no forward(), so rank() never sees it):
+            // the pump must wait for more input rather than treat this event as advanced.
+            status = Status.STARVED;
+        }
         else if (rootDone)
         {
             status = Status.COMPLETED;
@@ -183,6 +205,28 @@ public final class JsonProjectorImpl implements JsonTransform
         else
         {
             status = Status.ADVANCED;
+        }
+        return status;
+    }
+
+    @Override
+    public Status resume(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        upstreamControl = control;
+        // a KEY_NAME still in flight from a buffered (matched) forward continues reading from keySource,
+        // whose own cursor tracks how much of it the sink has already written — not the live parser
+        // source, which has already moved on to the value by the time such a key is forwarded (it was
+        // copied into pendingKeyBuffer once complete, then the parser advanced past it).
+        JsonSource resumed = event == JsonEvent.KEY_NAME && forwardingKey ? keySource : source;
+        Status status = sink.resume(downstreamControl, resumed, event);
+        if (event == JsonEvent.KEY_NAME && status != Status.SUSPENDED)
+        {
+            forwardingKey = false;
+            pendingKey = null;
         }
         return status;
     }
@@ -249,38 +293,102 @@ public final class JsonProjectorImpl implements JsonTransform
         JsonSink sink)
     {
         boolean parentKeepAll = containers > 0 && frameKeepAll[containers - 1];
-        Node parentNode = containers > 0 ? frameNode[containers - 1] : root;
-        Decision d;
         if (parentKeepAll)
         {
+            // every child of a KEEP_ALL parent is retained regardless of its key content, so a key
+            // fragmented across input windows streams straight through with nothing to decide — the same
+            // as any other kept scalar/segment value.
             keyNode = null;
-            d = Decision.KEEP_ALL;
+            keyDecision = Decision.KEEP_ALL;
+            forwardKey(control, source, sink);
         }
         else
         {
-            keyNode = lookup(parentNode, source.getStringView());
-            d = decide(keyNode);
-        }
-        keyDecision = d;
-        boolean parentEmit = containers == 0 || frameEmit[containers - 1];
-        if (parentEmit && d == Decision.KEEP_ALL)
-        {
-            // A KEEP_ALL value is always emitted, so the key is forwarded live from the still-valid view —
-            // no copy and no deferral. The match above also used the live view, so no ancestor key is
-            // retained. Then arm the kept value for verbatim segment delivery (best-effort, demand-gated).
-            forward(sink, source, JsonEvent.KEY_NAME);
-            pendingKey = null;
-            if (downstreamDemand)
+            // parentNode is null for a container already decided SKIP as a whole (frameKeepAll false,
+            // its own valueNode was null) — every key beneath it drops too, regardless of content, so
+            // maxKeyLength defaults to 0 and the very first fragment already exceeds it.
+            Node parentNode = containers > 0 ? frameNode[containers - 1] : root;
+            int maxKeyLength = parentNode == null ? 0 : parentNode.maxKeyLength;
+            CharSequence view = source.getStringView();
+            boolean complete = !source.deferredBytes();
+            if (keySkipping)
             {
-                control.segmentable();
+                onKeySkip(control, view, complete);
+            }
+            else if (!complete && view.length() <= maxKeyLength)
+            {
+                // still short enough that some child could yet match once more of the key arrives; decline
+                // the fragment (consumed(0)) so the source accumulates it whole and re-presents it on a
+                // later window, the same fallback a content-needing scalar value uses.
+                control.consumed(0);
+                downstream = Status.STARVED;
+            }
+            else if (!complete)
+            {
+                // already longer than the longest child at this position, so no child can match regardless
+                // of what the rest of the key contains — drop this fragment and every one that follows
+                // without ever buffering the key.
+                keyNode = null;
+                keyDecision = Decision.SKIP;
+                pendingKey = null;
+                control.consumed(view.length());
+                keySkipping = true;
+                downstream = Status.STARVED;
+            }
+            else
+            {
+                keyNode = lookup(parentNode, view);
+                Decision d = decide(keyNode);
+                keyDecision = d;
+                boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+                if (parentEmit && d == Decision.KEEP_ALL)
+                {
+                    // A KEEP_ALL value is always emitted, so the key is forwarded live from the still-valid
+                    // view, then arm the kept value for verbatim segment delivery (best-effort, demand-gated).
+                    forwardKey(control, source, sink);
+                }
+                else
+                {
+                    // A DESCEND key is buffered for deferral: its value's kind is still unknown, and a
+                    // scalar under a deeper-only pointer is dropped, so the key cannot be forwarded until
+                    // the value event. A SKIP key copies nothing.
+                    pendingKey = d == Decision.SKIP ? null : copyKey(view);
+                }
             }
         }
+    }
+
+    // Drains a fragment of a key already proven longer than every child at this position, without ever
+    // inspecting or buffering it; keySkipping clears once the key completes, leaving keyNode/keyDecision
+    // (SKIP) already set from when the excess length was first detected.
+    private void onKeySkip(
+        JsonController control,
+        CharSequence view,
+        boolean complete)
+    {
+        control.consumed(view.length());
+        if (complete)
+        {
+            keySkipping = false;
+        }
         else
         {
-            // A DESCEND key is buffered for deferral: its value's kind is still unknown, and a scalar under a
-            // deeper-only pointer is dropped, so the key cannot be forwarded until the value event. A SKIP
-            // key copies nothing.
-            pendingKey = d == Decision.SKIP ? null : copyKey(source.getStringView());
+            downstream = Status.STARVED;
+        }
+    }
+
+    // Forwards a KEEP_ALL key live from the still-valid source view and arms the kept value for verbatim
+    // segment delivery (best-effort, demand-gated).
+    private void forwardKey(
+        JsonController control,
+        JsonSource source,
+        JsonSink sink)
+    {
+        forward(sink, source, JsonEvent.KEY_NAME);
+        pendingKey = null;
+        if (downstreamDemand)
+        {
+            control.segmentable();
         }
     }
 
@@ -297,10 +405,16 @@ public final class JsonProjectorImpl implements JsonTransform
     {
         if (pendingKey != null)
         {
+            // stays true across however many resume() calls a bounded output takes to drain a long
+            // buffered key, cleared only once the write actually completes (not merely returns from this
+            // call) -- see resume().
             forwardingKey = true;
             forward(sink, keySource.with(pendingKey), JsonEvent.KEY_NAME);
-            forwardingKey = false;
-            pendingKey = null;
+            if (downstream != Status.SUSPENDED)
+            {
+                forwardingKey = false;
+                pendingKey = null;
+            }
         }
     }
 
@@ -542,7 +656,8 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     // Matches an array index against a node's children, preferring an explicit canonical-index child over
-    // the "-" wildcard; the wildcard applies only to arrays, while an object key "-" matches via lookup.
+    // the "-" wildcard; the wildcard applies only to arrays, while an object key "-" matches via lookup
+    // like any other key.
     private static Node lookupIndex(
         Node node,
         int index)
@@ -643,12 +758,14 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     // An immutable trie node: children are parallel key/node arrays scanned linearly (a handful of children
-    // per node), and keepAll marks a node where a retained pointer terminates.
+    // per node), keepAll marks a node where a retained pointer terminates, and maxKeyLength is the longest
+    // of this node's own children's keys — the bound onKey declines a fragmenting child key against.
     private static final class Node
     {
         private final String[] keys;
         private final Node[] nodes;
         private final boolean keepAll;
+        private final int maxKeyLength;
 
         private Node(
             String[] keys,
@@ -658,6 +775,12 @@ public final class JsonProjectorImpl implements JsonTransform
             this.keys = keys;
             this.nodes = nodes;
             this.keepAll = keepAll;
+            int longest = 0;
+            for (String key : keys)
+            {
+                longest = Math.max(longest, key.length());
+            }
+            this.maxKeyLength = longest;
         }
     }
 
@@ -691,24 +814,34 @@ public final class JsonProjectorImpl implements JsonTransform
     private static final class KeySource implements JsonSource
     {
         private CharSequence key;
+        private int offset;
 
         private KeySource with(
             CharSequence key)
         {
             this.key = key;
+            this.offset = 0;
             return this;
+        }
+
+        // advances past what the sink already consumed, so a resumed write continues from the
+        // unconsumed remainder rather than re-presenting the whole key
+        private void advance(
+            int consumed)
+        {
+            offset += consumed;
         }
 
         @Override
         public String getString()
         {
-            return key == null ? null : key.toString();
+            return key == null ? null : getStringView().toString();
         }
 
         @Override
         public CharSequence getStringView()
         {
-            return key;
+            return key == null ? null : key.subSequence(offset, key.length());
         }
 
         @Override
