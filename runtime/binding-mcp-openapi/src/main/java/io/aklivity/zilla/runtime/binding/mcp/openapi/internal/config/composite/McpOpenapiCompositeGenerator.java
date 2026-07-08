@@ -43,6 +43,7 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
@@ -686,12 +687,19 @@ public final class McpOpenapiCompositeGenerator
         injectCookieParams(cookies, operation, accessor, entry.params);
 
         final boolean bodyTemplated = !entry.body.isEmpty();
-        final ModelConfig body = !bodyTemplated && operation.hasRequestBody()
+        final ModelConfig bodyModel = !bodyTemplated && operation.hasRequestBody()
             ? jsonModel("%s-body".formatted(entry.subjectName()))
             : null;
 
-        return new McpHttpWithConfig(headers, cookies.isEmpty() ? null : cookies, null, body,
-            bodyTemplated ? entry.body : null);
+        final McpHttpBodyConfig body = bodyTemplated
+            ? McpHttpBodyConfig.builder().template(entry.body).build()
+            : bodyModel != null ? McpHttpBodyConfig.builder().model(bodyModel).build() : null;
+
+        return McpHttpWithConfig.builder()
+            .headers(headers)
+            .cookies(cookies.isEmpty() ? null : cookies)
+            .body(body)
+            .build();
     }
 
     private static ResolvedServer resolveServerFromSpec(

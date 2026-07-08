@@ -1106,8 +1106,9 @@ public class McpOpenapiCompositeGeneratorTest
             .findFirst()
             .orElse(null);
         assertThat(with, notNullValue());
-        assertThat(with.body, nullValue());
-        assertThat(with.bodyTemplate, equalTo(Map.of(
+        assertThat(with.body, notNullValue());
+        assertThat(with.body.model, nullValue());
+        assertThat(with.body.template, equalTo(Map.of(
             "title", "${args.title}",
             "owner", "${args.pr.owner}")));
     }

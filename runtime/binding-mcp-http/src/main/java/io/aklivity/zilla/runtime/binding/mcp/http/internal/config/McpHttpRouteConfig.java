@@ -67,7 +67,7 @@ public final class McpHttpRouteConfig
         this.tool = condition != null ? condition.tool : null;
         this.resource = condition != null ? condition.resource : null;
 
-        final Map<String, String> bodyTemplate = with != null ? with.bodyTemplate : null;
+        final Map<String, String> bodyTemplate = with != null && with.body != null ? with.body.template : null;
         if (bodyTemplate != null)
         {
             final List<String> pointers = new ArrayList<>();
