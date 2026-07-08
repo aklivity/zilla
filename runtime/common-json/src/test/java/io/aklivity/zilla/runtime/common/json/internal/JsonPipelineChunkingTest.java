@@ -291,6 +291,74 @@ class JsonPipelineChunkingTest
     }
 
     @Test
+    void shouldNotAccumulateRawBytesAcrossRepeatedKeyDeclines()
+    {
+        // control.consumed(0) on a key fragment operates on the tokenizer's own decoded-char cursor
+        // (stringViewOffset -> JsonTokenizer.scratch), not on the caller's raw byte window: by the time a
+        // fragment is delivered, its raw bytes are already scanned (tokenizer.streamOffset() has moved
+        // past them), so parser.remaining() is governed solely by the tokenizer's own window-fill/
+        // reassemble-whole decision, never by what a downstream consumer does with the decoded view. The
+        // very first starve for a value/key that has not yet locked onto full-window fragmenting can still
+        // require re-presenting close to one window's worth of bytes (the ordinary reassemble-whole
+        // rewind, identical to a plain VALUE_STRING and unrelated to declining) — but once fragmenting
+        // engages, repeated declines must not make remaining() keep growing across further windows.
+        List<Integer> remainingPerStarve = new ArrayList<>();
+        JsonTransform decliner = (control, source, event, sink) ->
+        {
+            Status result;
+            if (event == JsonEvent.KEY_NAME && source.deferredBytes())
+            {
+                control.consumed(0);
+                result = Status.STARVED;
+            }
+            else
+            {
+                result = sink.transform(control, source, event);
+            }
+            return result;
+        };
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(decliner)
+            .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        String key = "x".repeat(40);
+        String json = "{\"" + key + "\":1}";
+        byte[] msg = json.getBytes(UTF_8);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + 8, msg.length);
+            boolean last = limit >= msg.length;
+            status = pipeline.transform(new UnsafeBufferEx(msg), progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                int remaining = pipeline.remaining();
+                remainingPerStarve.add(remaining);
+                progress = limit - remaining;
+            }
+        }
+
+        assertTrue(remainingPerStarve.size() >= 3, "expected multiple STARVED windows while the key was declined");
+        // the first starve may re-present up to one window's worth of bytes (ordinary reassemble-whole,
+        // unrelated to declining); every starve after that must be at the pure-ASCII steady-state floor of
+        // zero, proving repeated declines do not accumulate raw bytes at the caller's byte-window level
+        List<Integer> steadyState = remainingPerStarve.subList(1, remainingPerStarve.size());
+        assertTrue(steadyState.stream().allMatch(r -> r == 0),
+            "remaining() must not grow across repeated declines: " + remainingPerStarve);
+        assertEquals(Status.COMPLETED, status);
+        byte[] out = new byte[generator.length()];
+        output.getBytes(0, out);
+        assertEquals(json, new String(out, UTF_8));
+    }
+
+    @Test
     void shouldFragmentLargeStringValueStructured()
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();

@@ -69,6 +69,9 @@ public final class JsonFlattenerImpl implements JsonTransform
     // True from the moment a renamed key's forward begins until that KEY_NAME event fully completes --
     // spanning however many resume() calls a bounded output takes, not just the initial transform() call.
     private boolean keyInFlight;
+    // True once a key has been proven longer than every child at the current node (see onKey): the
+    // remaining fragments are drained without inspection until the key completes.
+    private boolean keySkipping;
 
     public JsonFlattenerImpl(
         Map<String, String> accessorTargets)
@@ -85,6 +88,7 @@ public final class JsonFlattenerImpl implements JsonTransform
         pendingIsTerminal = false;
         renamedKey = null;
         keyInFlight = false;
+        keySkipping = false;
         depth = 0;
         verbatimContainerDepth = 0;
     }
@@ -162,12 +166,33 @@ public final class JsonFlattenerImpl implements JsonTransform
         JsonSink sink)
     {
         Status status;
-        if (source.deferredBytes())
+        CharSequence view = source.getStringView();
+        boolean complete = !source.deferredBytes();
+        int maxKeyLength = currentNode == null ? 0 : currentNode.maxKeyLength;
+        if (keySkipping)
         {
-            // a fragmented key cannot be matched against the accessor trie until it is complete — the trie's
-            // children are compared as whole strings. Decline the fragment (consumed(0)) so the source
-            // accumulates it whole and re-presents it complete on a later window, then match it.
+            control.consumed(view.length());
+            keySkipping = !complete;
+            status = complete ? Status.ADVANCED : Status.STARVED;
+        }
+        else if (!complete && view.length() <= maxKeyLength)
+        {
+            // still short enough that some child could yet match once more of the key arrives; decline
+            // the fragment (consumed(0)) so the source accumulates it whole and re-presents it complete
+            // on a later window, then match it.
             control.consumed(0);
+            status = Status.STARVED;
+        }
+        else if (!complete)
+        {
+            // already longer than the longest child at this node, so no child can match regardless of
+            // what the rest of the key contains -- the same "unmatched dead branch" outcome onCompleteKey
+            // reaches below, which never forwards the key either, so drop the remaining fragments without
+            // ever buffering the key.
+            pendingIsTerminal = false;
+            pendingChild = null;
+            control.consumed(view.length());
+            keySkipping = true;
             status = Status.STARVED;
         }
         else
@@ -372,6 +397,7 @@ public final class JsonFlattenerImpl implements JsonTransform
     {
         private final Map<String, Node> children;
         private final String target;
+        private final int maxKeyLength;
 
         private Node(
             Map<String, Node> children,
@@ -379,6 +405,12 @@ public final class JsonFlattenerImpl implements JsonTransform
         {
             this.children = children;
             this.target = target;
+            int longest = 0;
+            for (String key : children.keySet())
+            {
+                longest = Math.max(longest, key.length());
+            }
+            this.maxKeyLength = longest;
         }
     }
 
