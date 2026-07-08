@@ -136,6 +136,23 @@ public final class McpHttpRouteConfig
         return resource != null && resource.equals(name);
     }
 
+    boolean appliesToTool(
+        String name)
+    {
+        return matchesTool(name) || isUnscoped();
+    }
+
+    boolean appliesToResource(
+        String name)
+    {
+        return matchesResource(name) || isUnscoped();
+    }
+
+    private boolean isUnscoped()
+    {
+        return tool == null && resource == null;
+    }
+
     // Resolves every header other than :path (handled separately via resolvePath, since it also
     // carries the query string). A header whose value references an args./params. accessor that is
     // absent is omitted entirely, not sent with an empty value -- unlike interpolatePath (used for

@@ -2449,29 +2449,39 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 item.add("outputSchema", outputSchema);
             }
-            final List<GuardedConfig> guarded = binding.toolGuarded(tool.name);
-            if (!guarded.isEmpty())
+            final JsonArrayBuilder toolSchemes = securitySchemes(binding.toolGuarded(tool.name));
+            if (toolSchemes != null)
             {
-                final JsonArrayBuilder schemes = Json.createArrayBuilder();
-                for (GuardedConfig g : guarded)
-                {
-                    if (!g.roles.isEmpty())
-                    {
-                        final JsonArrayBuilder scopes = Json.createArrayBuilder();
-                        for (String role : g.roles)
-                        {
-                            scopes.add(role);
-                        }
-                        schemes.add(Json.createObjectBuilder()
-                            .add("type", "oauth2")
-                            .add("scopes", scopes));
-                    }
-                }
-                item.add("securitySchemes", schemes);
+                item.add("securitySchemes", toolSchemes);
             }
             tools.add(item);
         }
         return compact(Json.createObjectBuilder().add("tools", tools).build());
+    }
+
+    private static JsonArrayBuilder securitySchemes(
+        List<GuardedConfig> guarded)
+    {
+        JsonArrayBuilder schemes = null;
+        for (GuardedConfig g : guarded)
+        {
+            if (!g.roles.isEmpty())
+            {
+                if (schemes == null)
+                {
+                    schemes = Json.createArrayBuilder();
+                }
+                final JsonArrayBuilder scopes = Json.createArrayBuilder();
+                for (String role : g.roles)
+                {
+                    scopes.add(role);
+                }
+                schemes.add(Json.createObjectBuilder()
+                    .add("type", "oauth2")
+                    .add("scopes", scopes));
+            }
+        }
+        return schemes;
     }
 
     private String buildResourcesList(
@@ -2498,6 +2508,11 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 item.add("mimeType", resource.mimeType);
             }
+            final JsonArrayBuilder resourceSchemes = securitySchemes(binding.resourceGuarded(resource.name));
+            if (resourceSchemes != null)
+            {
+                item.add("securitySchemes", resourceSchemes);
+            }
             resources.add(item);
         }
         return compact(Json.createObjectBuilder().add("resources", resources).build());
@@ -2523,6 +2538,11 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (resource.mimeType != null)
             {
                 item.add("mimeType", resource.mimeType);
+            }
+            final JsonArrayBuilder templateSchemes = securitySchemes(binding.resourceGuarded(resource.name));
+            if (templateSchemes != null)
+            {
+                item.add("securitySchemes", templateSchemes);
             }
             resourceTemplates.add(item);
         }
