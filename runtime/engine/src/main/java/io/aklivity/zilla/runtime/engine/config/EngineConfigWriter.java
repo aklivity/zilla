@@ -38,12 +38,8 @@ public final class EngineConfigWriter
 {
     private static final JsonPatch NOOP_PATCH = YamlJson.provider().createPatch(JsonValue.EMPTY_JSON_ARRAY);
 
-    private final ConfigAdapterContext context;
-
-    public EngineConfigWriter(
-        ConfigAdapterContext context)
+    public EngineConfigWriter()
     {
-        this.context = context;
     }
 
     public void write(
@@ -99,7 +95,7 @@ public final class EngineConfigWriter
             JsonProvider provider = YamlJson.provider();
 
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(context))
+                .withAdapters(new NamespaceAdapter())
                 .withFormatting(true);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(provider)
@@ -142,7 +138,7 @@ public final class EngineConfigWriter
             JsonProvider provider = YamlJson.provider();
 
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(context))
+                .withAdapters(new NamespaceAdapter())
                 .withFormatting(true);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(provider)

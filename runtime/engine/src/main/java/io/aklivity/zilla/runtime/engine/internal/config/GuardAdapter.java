@@ -19,7 +19,6 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -36,10 +35,9 @@ public class GuardAdapter
 
     private String namespace;
 
-    public GuardAdapter(
-        ConfigAdapterContext context)
+    public GuardAdapter()
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.GUARD, context);
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.GUARD);
     }
 
     public void adaptNamespace(

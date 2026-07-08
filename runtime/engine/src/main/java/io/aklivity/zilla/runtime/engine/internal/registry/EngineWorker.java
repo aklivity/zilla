@@ -867,7 +867,7 @@ public class EngineWorker implements EngineContext, Agent
         if (localIndex == 0 &&
             config.verboseComposites())
         {
-            EngineConfigWriter writer = new EngineConfigWriter(null);
+            EngineConfigWriter writer = new EngineConfigWriter();
             System.out.println(writer.write(composite));
         }
 

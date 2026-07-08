@@ -27,31 +27,20 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
-import org.mockito.quality.Strictness;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
 public class TelemetryConfigsAdapterTest
 {
-    @Rule
-    public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
-    @Mock
-    private ConfigAdapterContext context;
-
     private Jsonb jsonb;
 
     @Before
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new TelemetryAdapter(context).adaptNamespace("test"));
+                .withAdapters(new TelemetryAdapter().adaptNamespace("test"));
         jsonb = JsonbBuilder.create(config);
     }
 
