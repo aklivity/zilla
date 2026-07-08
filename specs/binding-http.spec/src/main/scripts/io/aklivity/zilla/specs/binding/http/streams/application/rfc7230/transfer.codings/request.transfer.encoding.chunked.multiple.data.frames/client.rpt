@@ -29,9 +29,11 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
-write "Chunk A;"
-write "Chunk B;"
-write "Chunk C;"
+write "AAAAA"
+write flush
+write "BBBBB"
+write flush
+write "CCCCC"
 write close
 
 read zilla:begin.ext ${http:beginEx()

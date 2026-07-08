@@ -100,8 +100,10 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final String HEADER_PATH = ":path";
     private static final String HEADER_STATUS = ":status";
     private static final String HEADER_CONTENT_TYPE = "content-type";
+    private static final String HEADER_TRANSFER_ENCODING = "transfer-encoding";
     private static final String HEADER_COOKIE = "cookie";
     private static final String DEFAULT_CONTENT_TYPE = "application/json";
+    private static final String TRANSFER_ENCODING_CHUNKED = "chunked";
 
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
@@ -1851,6 +1853,11 @@ public final class McpHttpProxyFactory implements BindingHandler
                     if (contentType != null)
                     {
                         hs.item(h -> h.name(HEADER_CONTENT_TYPE).value(contentType));
+                        // the request body is streamed as it is generated from the incoming tool call
+                        // arguments, so its total length is not known when the request BEGIN is sent;
+                        // without either a content-length or this header, binding-http's HTTP/1.1 client
+                        // has no way to know a body follows at all and sends none
+                        hs.item(h -> h.name(HEADER_TRANSFER_ENCODING).value(TRANSFER_ENCODING_CHUNKED));
                     }
                     for (Map.Entry<String, String> entry : credentials.entrySet())
                     {

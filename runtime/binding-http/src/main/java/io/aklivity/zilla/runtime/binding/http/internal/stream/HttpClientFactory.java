@@ -3152,6 +3152,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
 
                 codecBuffer.putBytes(chunkLimit, payload.buffer(), payload.offset(), payload.sizeof());
+                chunkLimit += payload.sizeof();
 
                 if ((flags & 0x02) != 0)
                 {
@@ -3162,6 +3163,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 buffer = codecBuffer;
                 offset = 0;
                 limit = chunkLimit;
+                reserved += chunkLimit - payload.sizeof();
             }
 
             doNetworkData(traceId, authorization, budgetId, reserved, buffer, offset, limit);

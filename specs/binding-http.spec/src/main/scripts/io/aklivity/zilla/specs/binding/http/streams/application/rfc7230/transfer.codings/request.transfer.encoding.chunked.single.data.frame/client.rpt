@@ -29,9 +29,7 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
-write "Chunk A;"
-write "Chunk B;"
-write "Chunk C;"
+write "Hello, chunked world!"
 write close
 
 read zilla:begin.ext ${http:beginEx()
