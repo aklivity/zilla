@@ -21,6 +21,8 @@ module io.aklivity.zilla.runtime.binding.mcp
 
     opens io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
+    uses io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfigAdapterSpi;
+
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.McpBindingFactorySpi;
 
@@ -32,4 +34,7 @@ module io.aklivity.zilla.runtime.binding.mcp
 
     provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpWithConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpKeywordToolSearchIndexConfigAdapterSpi;
 }

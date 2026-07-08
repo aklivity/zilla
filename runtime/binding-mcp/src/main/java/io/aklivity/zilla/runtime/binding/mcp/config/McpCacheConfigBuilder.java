@@ -26,6 +26,7 @@ public final class McpCacheConfigBuilder<T> extends ConfigBuilder<T, McpCacheCon
     private String store;
     private Duration ttl;
     private McpAuthorizationConfig authorization;
+    private McpCacheToolsConfig tools;
 
     McpCacheConfigBuilder(
         Function<McpCacheConfig, T> mapper)
@@ -66,9 +67,21 @@ public final class McpCacheConfigBuilder<T> extends ConfigBuilder<T, McpCacheCon
         return McpAuthorizationConfig.builder(this::authorization);
     }
 
+    public McpCacheConfigBuilder<T> tools(
+        McpCacheToolsConfig tools)
+    {
+        this.tools = tools;
+        return this;
+    }
+
+    public McpCacheToolsConfigBuilder<McpCacheConfigBuilder<T>> tools()
+    {
+        return McpCacheToolsConfig.builder(this::tools);
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpCacheConfig(store, ttl, authorization));
+        return mapper.apply(new McpCacheConfig(store, ttl, authorization, tools));
     }
 }
