@@ -188,4 +188,58 @@ public class SchemaTest
     {
         schema.validate("proxy.cache.tools.search.tool.missing.invalid.yaml");
     }
+
+    @Test
+    public void shouldValidateProxyCacheToolsEager()
+    {
+        JsonObject config = schema.validate("proxy.cache.tools.eager.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyCacheToolsEagerAll()
+    {
+        JsonObject config = schema.validate("proxy.cache.tools.eager.all.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyCacheToolsEagerExplicit()
+    {
+        JsonObject config = schema.validate("proxy.cache.tools.eager.explicit.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyCacheToolsEagerWithUnknownPolicy()
+    {
+        schema.validate("proxy.cache.tools.eager.policy.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyCacheToolsEagerExplicitMissingMatch()
+    {
+        schema.validate("proxy.cache.tools.eager.explicit.match.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyCacheToolsEagerExplicitEmptyMatch()
+    {
+        schema.validate("proxy.cache.tools.eager.explicit.match.empty.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyCacheToolsEagerNoneWithMatch()
+    {
+        schema.validate("proxy.cache.tools.eager.none.match.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyCacheToolsEagerWithAdditionalProperty()
+    {
+        schema.validate("proxy.cache.tools.eager.additional.invalid.yaml");
+    }
 }

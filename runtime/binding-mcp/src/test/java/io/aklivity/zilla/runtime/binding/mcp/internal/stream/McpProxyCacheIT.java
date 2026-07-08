@@ -227,6 +227,46 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.tools.eager.serve.all.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.all/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeToolsListEagerAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.eager.serve.explicit.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeToolsListEagerExplicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.eager.serve.explicit.search.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit.search/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeToolsListEagerExplicitWithSearch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.eager.serve.explicit.search.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.search.eager.cold/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeToolsSearchEagerCold() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.toolkit.filter.yaml")
     @Specification({
         "${app}/cache.serve.tools.list.toolkit.filtered/server",

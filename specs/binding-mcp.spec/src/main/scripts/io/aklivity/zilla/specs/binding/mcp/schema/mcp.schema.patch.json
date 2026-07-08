@@ -344,6 +344,50 @@
                                                             "required": [ "tool" ],
                                                             "not": { "required": [ "type", "index" ] },
                                                             "additionalProperties": false
+                                                        },
+                                                        "eager":
+                                                        {
+                                                            "title": "Eager",
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "policy":
+                                                                {
+                                                                    "title": "Policy",
+                                                                    "enum": [ "none", "all", "explicit" ],
+                                                                    "default": "none"
+                                                                },
+                                                                "match":
+                                                                {
+                                                                    "title": "Match",
+                                                                    "type": "array",
+                                                                    "items":
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "minItems": 1
+                                                                }
+                                                            },
+                                                            "if":
+                                                            {
+                                                                "required": [ "policy" ],
+                                                                "properties":
+                                                                {
+                                                                    "policy":
+                                                                    {
+                                                                        "const": "explicit"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "then":
+                                                            {
+                                                                "required": [ "match" ]
+                                                            },
+                                                            "else":
+                                                            {
+                                                                "not": { "required": [ "match" ] }
+                                                            },
+                                                            "additionalProperties": false
                                                         }
                                                     },
                                                     "additionalProperties": false

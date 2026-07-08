@@ -23,6 +23,7 @@ public final class McpCacheToolsConfigBuilder<T> extends ConfigBuilder<T, McpCac
     private final Function<McpCacheToolsConfig, T> mapper;
 
     private McpCacheToolsSearchConfig search;
+    private McpCacheToolsEagerConfig eager;
 
     McpCacheToolsConfigBuilder(
         Function<McpCacheToolsConfig, T> mapper)
@@ -49,9 +50,21 @@ public final class McpCacheToolsConfigBuilder<T> extends ConfigBuilder<T, McpCac
         return McpCacheToolsSearchConfig.builder(this::search);
     }
 
+    public McpCacheToolsConfigBuilder<T> eager(
+        McpCacheToolsEagerConfig eager)
+    {
+        this.eager = eager;
+        return this;
+    }
+
+    public McpCacheToolsEagerConfigBuilder<McpCacheToolsConfigBuilder<T>> eager()
+    {
+        return McpCacheToolsEagerConfig.builder(this::eager);
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpCacheToolsConfig(search));
+        return mapper.apply(new McpCacheToolsConfig(search, eager));
     }
 }
