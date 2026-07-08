@@ -71,4 +71,38 @@ public class SchemaTest
     {
         schema.validate("proxy.route.invalid.yaml");
     }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectRouteWithWithButNoWhen()
+    {
+        schema.validate("proxy.route.when.required.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectRouteWhenWithBothToolAndResource()
+    {
+        schema.validate("proxy.route.when.both.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectRouteWithMultipleWhenEntries()
+    {
+        schema.validate("proxy.route.when.multiple.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateGuardedRouteWithoutWhen()
+    {
+        JsonObject config = schema.validate("proxy.guarded.global.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateGuardedRouteScopedByWhenWithoutWith()
+    {
+        JsonObject config = schema.validate("proxy.guarded.scoped.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

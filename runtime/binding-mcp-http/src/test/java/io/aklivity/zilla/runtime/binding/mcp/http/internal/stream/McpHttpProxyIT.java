@@ -463,6 +463,33 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.guarded.layered.yaml")
+    @Specification({
+        "${mcp}/create.pr.forbidden.by.global.guard/client"})
+    public void shouldRejectToolWhenGlobalGuardOnlyLayerFails() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guarded.layered.yaml")
+    @Specification({
+        "${mcp}/tools.list.security.schemes.layered/client"})
+    public void shouldListToolsSecuritySchemesLayered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guarded.layered.yaml")
+    @Specification({
+        "${mcp}/resources.list.security.schemes/client"})
+    public void shouldListResourcesSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.credentials.yaml")
     @Specification({
         "${mcp}/create.pr/client",

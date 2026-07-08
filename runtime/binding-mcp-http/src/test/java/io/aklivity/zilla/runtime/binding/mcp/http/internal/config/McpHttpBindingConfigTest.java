@@ -15,13 +15,150 @@
 package io.aklivity.zilla.runtime.binding.mcp.http.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBindingConfig.argPathValid;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+
 public class McpHttpBindingConfigTest
 {
+    private static RouteConfig route(
+        int order,
+        String tool,
+        String resource,
+        boolean withMapping,
+        boolean authorized)
+    {
+        RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder().order(order);
+        if (tool != null || resource != null)
+        {
+            builder = builder.when(new McpHttpConditionConfig(tool, resource));
+        }
+        if (withMapping)
+        {
+            Map<String, String> headers = new LinkedHashMap<>();
+            headers.put(":path", "/items");
+            builder = builder.with(new McpHttpWithConfig(headers, null, null, null, null))
+                .exit("http0");
+        }
+        RouteConfig config = builder.build();
+        config.authorized = (auth, identity) -> authorized;
+        return config;
+    }
+
+    private static McpHttpBindingConfig binding(
+        List<RouteConfig> routes)
+    {
+        BindingConfig config = BindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp_http")
+            .kind(KindConfig.PROXY)
+            .routes(routes)
+            .build();
+        return new McpHttpBindingConfig(config, null);
+    }
+
+    @Test
+    public void shouldRejectToolWhenGlobalGuardOnlyLayerFails()
+    {
+        McpHttpBindingConfig binding = binding(List.of(
+            route(0, null, null, false, false),
+            route(1, "create_pr", null, true, true)));
+
+        assertNull(binding.resolveTool("create_pr", 1L));
+    }
+
+    @Test
+    public void shouldResolveToolWhenAllApplicableLayersAuthorize()
+    {
+        McpHttpBindingConfig binding = binding(List.of(
+            route(0, null, null, false, true),
+            route(1, "create_pr", null, true, true)));
+
+        assertNotNull(binding.resolveTool("create_pr", 1L));
+    }
+
+    @Test
+    public void shouldRejectResourceWhenScopedGuardOnlyLayerFails()
+    {
+        McpHttpBindingConfig binding = binding(List.of(
+            route(0, null, "order", false, false),
+            route(1, null, "order", true, true)));
+
+        assertNull(binding.resolveResourceRoute("order", 1L));
+    }
+
+    @Test
+    public void shouldAggregateToolGuardedAcrossMappingAndGlobalLayer()
+    {
+        RouteConfig global = RouteConfig.builder()
+            .order(0)
+            .guarded().name("test0").roles(List.of("read")).build()
+            .build();
+        global.authorized = (auth, identity) -> true;
+
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put(":path", "/items");
+        RouteConfig mapping = RouteConfig.builder()
+            .order(1)
+            .when(new McpHttpConditionConfig("create_pr", null))
+            .guarded().name("test1").roles(List.of("write")).build()
+            .with(new McpHttpWithConfig(headers, null, null, null, null))
+            .exit("http0")
+            .build();
+        mapping.authorized = (auth, identity) -> true;
+
+        McpHttpBindingConfig binding = binding(List.of(global, mapping));
+
+        assertThat(binding.toolGuarded("create_pr"), hasSize(2));
+        assertThat(binding.toolGuarded("search_code"), hasSize(1));
+    }
+
+    @Test
+    public void shouldAggregateResourceGuardedAcrossMappingAndScopedLayer()
+    {
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put(":path", "/items");
+
+        RouteConfig scoped = RouteConfig.builder()
+            .order(0)
+            .when(new McpHttpConditionConfig(null, "order"))
+            .guarded().name("test0").roles(List.of("read")).build()
+            .build();
+        scoped.authorized = (auth, identity) -> true;
+
+        RouteConfig mapping = RouteConfig.builder()
+            .order(1)
+            .when(new McpHttpConditionConfig(null, "order"))
+            .guarded().name("test1").roles(List.of("write")).build()
+            .with(new McpHttpWithConfig(headers, null, null, null, null))
+            .exit("http0")
+            .build();
+        mapping.authorized = (auth, identity) -> true;
+
+        McpHttpBindingConfig binding = binding(List.of(scoped, mapping));
+
+        assertThat(binding.resourceGuarded("order"), hasSize(2));
+        assertThat(binding.resourceGuarded("other"), empty());
+    }
+
     private static final String FLAT = "{\"type\":\"object\",\"properties\":{\"owner\":{\"type\":\"string\"}}}";
     private static final String NESTED = "{\"type\":\"object\",\"properties\":" +
         "{\"user\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}}}}}";

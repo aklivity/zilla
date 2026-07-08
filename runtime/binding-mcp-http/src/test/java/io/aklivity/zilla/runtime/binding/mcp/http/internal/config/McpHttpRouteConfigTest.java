@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.mcp.http.internal.config;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,11 +26,68 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public class McpHttpRouteConfigTest
 {
+    private static McpHttpRouteConfig route(
+        String tool,
+        String resource,
+        boolean withMapping)
+    {
+        RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder();
+        if (tool != null || resource != null)
+        {
+            builder = builder.when(new McpHttpConditionConfig(tool, resource));
+        }
+        if (withMapping)
+        {
+            Map<String, String> headers = new LinkedHashMap<>();
+            headers.put(":path", "/items");
+            builder = builder.with(new McpHttpWithConfig(headers, null, null, null, null));
+        }
+        return new McpHttpRouteConfig(builder.exit("http0").build());
+    }
+
+    @Test
+    public void shouldApplyUnscopedGuardOnlyRouteToAnyTool()
+    {
+        McpHttpRouteConfig route = route(null, null, false);
+
+        assertTrue(route.appliesToTool("create_pr"));
+        assertTrue(route.appliesToTool("search_code"));
+    }
+
+    @Test
+    public void shouldApplyUnscopedGuardOnlyRouteToAnyResource()
+    {
+        McpHttpRouteConfig route = route(null, null, false);
+
+        assertTrue(route.appliesToResource("order"));
+    }
+
+    @Test
+    public void shouldApplyScopedGuardOnlyRouteToItsOwnToolOnly()
+    {
+        McpHttpRouteConfig route = route("create_pr", null, false);
+
+        assertTrue(route.appliesToTool("create_pr"));
+        assertFalse(route.appliesToTool("search_code"));
+        assertFalse(route.appliesToResource("create_pr"));
+    }
+
+    @Test
+    public void shouldNotApplyMappingRouteToOtherToolNames()
+    {
+        McpHttpRouteConfig route = route("create_pr", null, true);
+
+        assertTrue(route.appliesToTool("create_pr"));
+        assertFalse(route.appliesToTool("search_code"));
+    }
+
     @Test
     public void shouldResolveHeaderWhenArgumentPresent()
     {

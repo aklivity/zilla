@@ -188,6 +188,7 @@
                                 {
                                     "title": "When",
                                     "type": "array",
+                                    "maxItems": 1,
                                     "items":
                                     {
                                         "type": "object",
@@ -204,6 +205,12 @@
                                                 "type": "string"
                                             }
                                         },
+                                        "anyOf":
+                                        [
+                                            { "required": [ "tool" ] },
+                                            { "required": [ "resource" ] }
+                                        ],
+                                        "not": { "required": [ "tool", "resource" ] },
                                         "additionalProperties": false
                                     }
                                 },
@@ -278,6 +285,21 @@
                                     },
                                     "required": [ "headers" ],
                                     "additionalProperties": false
+                                }
+                            },
+                            "if":
+                            {
+                                "required": [ "with" ]
+                            },
+                            "then":
+                            {
+                                "required": [ "when" ],
+                                "properties":
+                                {
+                                    "when":
+                                    {
+                                        "minItems": 1
+                                    }
                                 }
                             }
                         }

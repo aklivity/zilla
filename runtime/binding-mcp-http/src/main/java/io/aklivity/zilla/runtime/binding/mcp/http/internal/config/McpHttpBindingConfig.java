@@ -135,16 +135,20 @@ public final class McpHttpBindingConfig
         String name,
         long authorization)
     {
-        McpHttpRouteConfig matched = null;
+        McpHttpRouteConfig mapping = null;
+        boolean authorized = true;
         for (McpHttpRouteConfig route : routes)
         {
-            if (route.authorized(authorization) && route.matchesTool(name))
+            if (route.appliesToTool(name))
             {
-                matched = route;
-                break;
+                authorized &= route.authorized(authorization);
+                if (route.with != null && mapping == null)
+                {
+                    mapping = route;
+                }
             }
         }
-        return matched;
+        return authorized && mapping != null ? mapping : null;
     }
 
     public McpHttpResourceConfig resolveResource(
@@ -167,28 +171,45 @@ public final class McpHttpBindingConfig
         String name,
         long authorization)
     {
-        McpHttpRouteConfig matched = null;
+        McpHttpRouteConfig mapping = null;
+        boolean authorized = true;
         for (McpHttpRouteConfig route : routes)
         {
-            if (route.authorized(authorization) && route.matchesResource(name))
+            if (route.appliesToResource(name))
             {
-                matched = route;
-                break;
+                authorized &= route.authorized(authorization);
+                if (route.with != null && mapping == null)
+                {
+                    mapping = route;
+                }
             }
         }
-        return matched;
+        return authorized && mapping != null ? mapping : null;
     }
 
     public List<GuardedConfig> toolGuarded(
         String name)
     {
-        List<GuardedConfig> result = List.of();
+        final List<GuardedConfig> result = new ArrayList<>();
         for (McpHttpRouteConfig route : routes)
         {
-            if (route.matchesTool(name))
+            if (route.appliesToTool(name))
             {
-                result = route.guarded;
-                break;
+                result.addAll(route.guarded);
+            }
+        }
+        return result;
+    }
+
+    public List<GuardedConfig> resourceGuarded(
+        String name)
+    {
+        final List<GuardedConfig> result = new ArrayList<>();
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.appliesToResource(name))
+            {
+                result.addAll(route.guarded);
             }
         }
         return result;
