@@ -81,6 +81,16 @@ public class TransferCodingsIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/request.transfer.encoding.chunked.without.header/client",
+        "${net}/request.transfer.encoding.chunked.without.header/server" })
+    public void requestTransferEncodingChunkedWithoutHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/response.transfer.encoding.chunked/client",
         "${net}/response.transfer.encoding.chunked/server" })
     public void responseTransferEncodingChunked() throws Exception

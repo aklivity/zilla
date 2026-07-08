@@ -67,6 +67,15 @@ public class TransferCodingsIT
 
     @Test
     @Specification({
+        "${net}/request.transfer.encoding.chunked.without.header/client",
+        "${net}/request.transfer.encoding.chunked.without.header/server" })
+    public void shouldRequestTransferEncodingChunkedWithoutHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/multiple.requests.transfer.encoding.chunked/client",
         "${net}/multiple.requests.transfer.encoding.chunked/server" })
     public void multipleRequeststTransferEncodingChunked() throws Exception

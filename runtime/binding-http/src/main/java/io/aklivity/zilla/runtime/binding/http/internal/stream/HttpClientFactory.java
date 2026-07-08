@@ -3004,7 +3004,15 @@ public final class HttpClientFactory implements HttpStreamFactory
             final String16FW contentLength = headers.get(HEADER_CONTENT_LENGTH);
             exchange.requestRemaining = contentLength != null ? parseInt(contentLength.asString()) : Integer.MAX_VALUE;
 
-            final String16FW transferEncoding = headers.get(HEADER_TRANSFER_ENCODING);
+            String16FW transferEncoding = headers.get(HEADER_TRANSFER_ENCODING);
+            if (transferEncoding == null && contentLength == null && !isBodilessMethod(headers))
+            {
+                // the application layer streams a body of unknown upfront length without declaring
+                // either header; chunked transfer-encoding is how HTTP/1.1 alone expresses that, so
+                // apply it here rather than requiring every caller to know this HTTP/1.1-only detail
+                transferEncoding = TRANSFER_ENCODING_CHUNKED;
+                headers.put(HEADER_TRANSFER_ENCODING, TRANSFER_ENCODING_CHUNKED);
+            }
             exchange.requestChunked = TRANSFER_ENCODING_CHUNKED.equals(transferEncoding);
 
             final String16FW connection = headers.get(HEADER_CONNECTION);
@@ -3027,6 +3035,16 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             final int reserved = length + initialPad;
             doNetworkData(traceId, authorization, budgetId, reserved, codecBuffer, 0, length);
+        }
+
+        private boolean isBodilessMethod(
+            Map<String8FW, String16FW> headers)
+        {
+            final String16FW method = headers.get(HEADER_METHOD);
+            return method == null ||
+                METHOD_HEAD.equals(method) ||
+                METHOD_GET.equals(method) ||
+                METHOD_DELETE.equals(method);
         }
 
         private int doEncodeHost(
