@@ -43,6 +43,7 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
 
     private static final String CACHE_NAME = "cache";
     private static final String CACHE_STORE_NAME = "store";
@@ -169,7 +170,7 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 JsonObject guardObject = (JsonObject) value;
                 String credentials = guardObject.containsKey(AUTHORIZATION_CREDENTIALS_NAME)
                     ? ((JsonString) guardObject.get(AUTHORIZATION_CREDENTIALS_NAME)).getString()
-                    : null;
+                    : AUTHORIZATION_CREDENTIALS_DEFAULT;
                 builder.authorization()
                     .name(guard)
                     .credentials(credentials)

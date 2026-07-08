@@ -3098,7 +3098,7 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
-            doWindow(net, originId, routedId, initialId, begin.sequence(), begin.acknowledge(), 0,
+            doWindow(net, originId, routedId, initialId, begin.sequence(), begin.acknowledge(), decodeMax,
                 traceId, authorization, 0L, 0);
 
             final String status = bearerChallengeStatus(error);

@@ -84,6 +84,23 @@ public class McpOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithAuthorizationDefaultCredentials()
+    {
+        String text =
+                """
+                authorization:
+                  oauth: {}
+                """;
+
+        McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.authorization, not(nullValue()));
+        assertThat(options.authorization.name, equalTo("oauth"));
+        assertThat(options.authorization.credentials, equalTo("Bearer {credentials}"));
+    }
+
+    @Test
     public void shouldReadOptionsWithServer()
     {
         String text =

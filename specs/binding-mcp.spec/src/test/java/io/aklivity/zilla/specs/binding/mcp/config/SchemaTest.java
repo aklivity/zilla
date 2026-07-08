@@ -89,10 +89,12 @@ public class SchemaTest
         schema.validate("server.routes.invalid.yaml");
     }
 
-    @Test(expected = JsonException.class)
-    public void shouldRejectServerWithAuthorizationCredentialsMissing()
+    @Test
+    public void shouldValidateServerWithAuthorizationCredentialsDefault()
     {
-        schema.validate("server.authorization.credentials.missing.invalid.yaml");
+        JsonObject config = schema.validate("server.authorization.credentials.default.yaml");
+
+        assertThat(config, not(nullValue()));
     }
 
     @Test(expected = JsonException.class)
