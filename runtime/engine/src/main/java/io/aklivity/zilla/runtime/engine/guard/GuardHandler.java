@@ -256,6 +256,34 @@ public interface GuardHandler
     }
 
     /**
+     * Sessioned variant of {@link #preauthorize(long, long, long, String)} for guards that
+     * delegate identity resolution to another guard (e.g. via a {@code via} reference), so the
+     * pre-authorization step can be bound to the caller's already-established session instead of
+     * relying on {@code contextId} for that purpose. The default implementation ignores
+     * {@code sessionId} and delegates to the non-sessioned overload.
+     *
+     * @param traceId    the trace identifier for diagnostics
+     * @param bindingId  the binding identifier requesting authorization
+     * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
+     * @param sessionId  a session id already established for the request by another guard,
+     *                   or {@code 0} if none; the format and use are guard-specific
+     * @param callback   the URL the upstream should redirect the user back to once the
+     *                   pre-authorization step is complete; the guard treats this as
+     *                   opaque and embeds it on the returned URL in whatever form the
+     *                   upstream protocol requires
+     * @return the URL the user must visit, or {@code null} if not applicable
+     */
+    default String preauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        long sessionId,
+        String callback)
+    {
+        return preauthorize(traceId, bindingId, contextId, callback);
+    }
+
+    /**
      * Generic completion handler for asynchronous guard operations, modelled after
      * {@link java.nio.channels.CompletionHandler}. The {@code contextId} supplied by
      * the caller is echoed back to both methods so a single shared callback instance

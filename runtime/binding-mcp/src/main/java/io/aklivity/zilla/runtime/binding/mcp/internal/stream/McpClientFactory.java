@@ -2783,7 +2783,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && session.binding.needsCredentials)
             {
                 final String preauthorizeUrl =
-                    guard.preauthorize(traceId, session.binding.id, authorization, session.authCallback);
+                    guard.preauthorize(traceId, session.binding.id, initialId, authorization, session.authCallback);
                 if (preauthorizeUrl == null)
                 {
                     doAppReset(traceId, authorization);
