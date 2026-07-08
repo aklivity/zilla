@@ -23,9 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.Test;
 
@@ -52,9 +50,9 @@ public class McpHttpBindingConfigTest
         }
         if (withMapping)
         {
-            Map<String, String> headers = new LinkedHashMap<>();
-            headers.put(":path", "/items");
-            builder = builder.with(new McpHttpWithConfig(headers, null, null, null, null))
+            builder = builder.with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build()
                 .exit("http0");
         }
         RouteConfig config = builder.build();
@@ -114,13 +112,13 @@ public class McpHttpBindingConfigTest
             .build();
         global.authorized = (auth, identity) -> true;
 
-        Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(":path", "/items");
         RouteConfig mapping = RouteConfig.builder()
             .order(1)
             .when(new McpHttpConditionConfig("create_pr", null))
             .guarded().name("test1").roles(List.of("write")).build()
-            .with(new McpHttpWithConfig(headers, null, null, null, null))
+            .with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build()
             .exit("http0")
             .build();
         mapping.authorized = (auth, identity) -> true;
@@ -134,9 +132,6 @@ public class McpHttpBindingConfigTest
     @Test
     public void shouldAggregateResourceGuardedAcrossMappingAndScopedLayer()
     {
-        Map<String, String> headers = new LinkedHashMap<>();
-        headers.put(":path", "/items");
-
         RouteConfig scoped = RouteConfig.builder()
             .order(0)
             .when(new McpHttpConditionConfig(null, "order"))
@@ -148,7 +143,9 @@ public class McpHttpBindingConfigTest
             .order(1)
             .when(new McpHttpConditionConfig(null, "order"))
             .guarded().name("test1").roles(List.of("write")).build()
-            .with(new McpHttpWithConfig(headers, null, null, null, null))
+            .with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build()
             .exit("http0")
             .build();
         mapping.authorized = (auth, identity) -> true;

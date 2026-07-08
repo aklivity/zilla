@@ -44,9 +44,9 @@ public class McpHttpRouteConfigTest
         }
         if (withMapping)
         {
-            Map<String, String> headers = new LinkedHashMap<>();
-            headers.put(":path", "/items");
-            builder = builder.with(new McpHttpWithConfig(headers, null, null, null, null));
+            builder = builder.with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build();
         }
         return new McpHttpRouteConfig(builder.exit("http0").build());
     }
