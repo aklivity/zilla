@@ -96,6 +96,7 @@ public final class TestGuardHandler implements GuardHandler
         long traceId,
         long bindingId,
         long contextId,
+        long sessionId,
         String callback)
     {
         String result = preauthorize;
