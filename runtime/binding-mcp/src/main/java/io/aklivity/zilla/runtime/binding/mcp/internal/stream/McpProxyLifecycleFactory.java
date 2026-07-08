@@ -934,14 +934,9 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.initialOpening(state))
             {
-                if (server.hydration && server.binding.cache != null && server.binding.cache.guard != null)
+                if (server.hydration && server.binding.cache != null)
                 {
-                    final String credentials = server.binding.routeCacheCredentials(routedId);
-                    if (credentials != null)
-                    {
-                        authorization = server.binding.cache.guard.reauthorize(
-                            traceId, server.binding.cache.bindingId, 0L, credentials);
-                    }
+                    authorization = server.binding.routeCacheAuthorization(traceId, routedId);
                 }
 
                 final int clientCapabilities = server.clientCapabilities;
