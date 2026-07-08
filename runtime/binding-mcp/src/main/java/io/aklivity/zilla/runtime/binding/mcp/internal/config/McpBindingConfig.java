@@ -693,9 +693,28 @@ public final class McpBindingConfig
         return credentials;
     }
 
+    // resolves the effective session for a route's south connections: its own with.cache.credentials
+    // override when configured, otherwise the shared session already established via
+    // options.cache.authorization. Callers must first confirm cache != null.
+    public long routeCacheAuthorization(
+        long traceId,
+        long routedId)
+    {
+        long authorization = cache.authorization;
+        if (cache.guard != null)
+        {
+            final String credentials = routeCacheCredentials(routedId);
+            if (credentials != null)
+            {
+                authorization = cache.routeAuthorization(traceId, routedId, credentials);
+            }
+        }
+        return authorization;
+    }
+
     public List<McpRoutePrefix> resolveAll(
-        int kind,
-        long authorization)
+        long traceId,
+        int kind)
     {
         final String capability = McpRouteConfig.capabilityOf(kind);
         final List<McpRoutePrefix> result = new ArrayList<>();
@@ -704,6 +723,7 @@ public final class McpBindingConfig
         {
             for (McpRouteConfig route : routes)
             {
+                final long authorization = routeCacheAuthorization(traceId, route.id);
                 if (route.authorized(authorization) && route.serves(capability))
                 {
                     result.add(new McpRoutePrefix(route.id, new String8FW(route.prefix(kind)), route));

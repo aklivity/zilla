@@ -38,6 +38,7 @@ import java.util.zip.CRC32;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Long2LongHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerConfig;
@@ -87,6 +88,7 @@ public final class McpProxyCache
 
     private final StoreHandler store;
     private final Int2ObjectHashMap<McpListCache> caches;
+    private final Long2LongHashMap routeAuthorizations;
     private final List<Runnable> awaiters;
     private final CRC32 crc32 = new CRC32();
     private String lockToken;
@@ -125,6 +127,7 @@ public final class McpProxyCache
         this.cacheTtl = cache.ttl;
         this.awaiters = new ArrayList<>();
         this.caches = new Int2ObjectHashMap<>();
+        this.routeAuthorizations = new Long2LongHashMap(-1L);
 
         final IntPredicate filter = config.hydrateFilter();
         if (filter.test(KIND_TOOLS_LIST))
@@ -169,6 +172,22 @@ public final class McpProxyCache
     public Int2ObjectHashMap<McpListCache> caches()
     {
         return caches;
+    }
+
+    // memoizes the reauthorized session for a route's own with.cache.credentials override, so
+    // multiple south connections for the same route within one hydration attempt share one session
+    // instead of each minting a fresh one from the guard
+    public long routeAuthorization(
+        long traceId,
+        long routedId,
+        String credentials)
+    {
+        return routeAuthorizations.computeIfAbsent(routedId, id -> guard.reauthorize(traceId, bindingId, 0L, credentials));
+    }
+
+    public void resetRouteAuthorizations()
+    {
+        routeAuthorizations.clear();
     }
 
     public void register(
