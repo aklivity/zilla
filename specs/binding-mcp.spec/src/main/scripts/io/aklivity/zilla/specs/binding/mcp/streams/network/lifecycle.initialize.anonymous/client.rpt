@@ -35,8 +35,10 @@ write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "401")
-                           .header("www-authenticate", "Bearer error=\"invalid_request\"")
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
+                           .header("mcp-session-id", "transport-1")
                            .build()}
 
+read '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"prompts":{"listChanged":true},"resources":{"listChanged":true},"tools":{"listChanged":true}},"serverInfo":{"name":"zilla","version":"1.0"}}}'
 read closed

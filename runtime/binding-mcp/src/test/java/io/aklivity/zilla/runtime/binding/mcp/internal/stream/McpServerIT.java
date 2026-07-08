@@ -115,8 +115,9 @@ public class McpServerIT
     @Test
     @Configuration("server.guarded.yaml")
     @Specification({
-        "${net}/lifecycle.initialize.reject.bearer.missing/client"})
-    public void shouldRejectLifecycleInitializeWithMissingBearer() throws Exception
+        "${net}/lifecycle.initialize.anonymous/client",
+        "${app}/lifecycle.initialize.anonymous/server"})
+    public void shouldInitializeLifecycleAnonymouslyWithMissingBearer() throws Exception
     {
         k3po.finish();
     }
