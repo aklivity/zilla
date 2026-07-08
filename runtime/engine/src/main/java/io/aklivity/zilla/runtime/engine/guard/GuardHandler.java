@@ -240,6 +240,8 @@ public interface GuardHandler
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier requesting authorization
      * @param contextId  a context identifier (e.g., connection id), or {@code 0} if none
+     * @param sessionId  a session id already established for the request by another guard,
+     *                   or {@code 0} if none; the format and use are guard-specific
      * @param callback   the URL the upstream should redirect the user back to once the
      *                   pre-authorization step is complete; the guard treats this as
      *                   opaque and embeds it on the returned URL in whatever form the
@@ -250,6 +252,7 @@ public interface GuardHandler
         long traceId,
         long bindingId,
         long contextId,
+        long sessionId,
         String callback)
     {
         return null;

@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,7 +38,6 @@ import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -64,16 +64,16 @@ public final class McpHttpBindingConfig
     private final ToLongFunction<String> resolveId;
     private final Map<String, McpHttpToolConfig> toolsByName;
     private final Map<String, McpHttpResourceConfig> resourcesByName;
-    private final Map<String, McpHttpPromptConfig> promptsByName;
     private final List<ResourceMatcher> resourceMatchers;
     private final Map<String, List<String>> resourceCaptures;
     private final Map<ModelConfig, JsonSchema> jsonSchemas;
     private final Map<McpHttpRouteConfig, List<String>> unsatisfiedAccessors;
+    private final Function<ModelConfig, JsonSchema> resolveJsonSchemaFn = this::resolveJsonSchema;
 
     // memoized list replies; derived solely from static binding config, built once on first request
-    private String toolsListJson;
-    private String resourcesListJson;
-    private String promptsListJson;
+    private byte[] toolsListJson;
+    private byte[] resourcesListJson;
+    private byte[] resourcesTemplatesListJson;
 
     public McpHttpBindingConfig(
         BindingConfig binding,
@@ -107,16 +107,6 @@ public final class McpHttpBindingConfig
                 (existing, replacement) -> existing,
                 LinkedHashMap::new));
 
-        this.promptsByName = Optional.ofNullable(options)
-            .map(o -> o.prompts)
-            .stream()
-            .flatMap(List::stream)
-            .collect(toMap(
-                prompt -> prompt.name,
-                prompt -> prompt,
-                (existing, replacement) -> existing,
-                LinkedHashMap::new));
-
         this.resourceMatchers = resourcesByName.values().stream()
             .filter(resource -> resource.uri != null)
             .map(ResourceMatcher::new)
@@ -145,10 +135,20 @@ public final class McpHttpBindingConfig
         String name,
         long authorization)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesTool(name))
-            .findFirst()
-            .orElse(null);
+        McpHttpRouteConfig mapping = null;
+        boolean authorized = true;
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.appliesToTool(name))
+            {
+                authorized &= route.authorized(authorization);
+                if (route.with != null && mapping == null)
+                {
+                    mapping = route;
+                }
+            }
+        }
+        return authorized && mapping != null ? mapping : null;
     }
 
     public McpHttpResourceConfig resolveResource(
@@ -171,22 +171,45 @@ public final class McpHttpBindingConfig
         String name,
         long authorization)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesResource(name))
-            .findFirst()
-            .orElse(null);
+        McpHttpRouteConfig mapping = null;
+        boolean authorized = true;
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.appliesToResource(name))
+            {
+                authorized &= route.authorized(authorization);
+                if (route.with != null && mapping == null)
+                {
+                    mapping = route;
+                }
+            }
+        }
+        return authorized && mapping != null ? mapping : null;
     }
 
     public List<GuardedConfig> toolGuarded(
         String name)
     {
-        List<GuardedConfig> result = List.of();
+        final List<GuardedConfig> result = new ArrayList<>();
         for (McpHttpRouteConfig route : routes)
         {
-            if (route.matchesTool(name))
+            if (route.appliesToTool(name))
             {
-                result = route.guarded;
-                break;
+                result.addAll(route.guarded);
+            }
+        }
+        return result;
+    }
+
+    public List<GuardedConfig> resourceGuarded(
+        String name)
+    {
+        final List<GuardedConfig> result = new ArrayList<>();
+        for (McpHttpRouteConfig route : routes)
+        {
+            if (route.appliesToResource(name))
+            {
+                result.addAll(route.guarded);
             }
         }
         return result;
@@ -202,48 +225,37 @@ public final class McpHttpBindingConfig
         return resourcesByName.values();
     }
 
-    public Collection<McpHttpPromptConfig> prompts()
-    {
-        return promptsByName.values();
-    }
-
-    public String toolsListJson()
+    public byte[] toolsListJson()
     {
         return toolsListJson;
     }
 
     public void toolsListJson(
-        String json)
+        byte[] json)
     {
         this.toolsListJson = json;
     }
 
-    public String resourcesListJson()
+    public byte[] resourcesListJson()
     {
         return resourcesListJson;
     }
 
     public void resourcesListJson(
-        String json)
+        byte[] json)
     {
         this.resourcesListJson = json;
     }
 
-    public String promptsListJson()
+    public byte[] resourcesTemplatesListJson()
     {
-        return promptsListJson;
+        return resourcesTemplatesListJson;
     }
 
-    public void promptsListJson(
-        String json)
+    public void resourcesTemplatesListJson(
+        byte[] json)
     {
-        this.promptsListJson = json;
-    }
-
-    public McpHttpPromptConfig prompt(
-        String name)
-    {
-        return promptsByName.get(name);
+        this.resourcesTemplatesListJson = json;
     }
 
     public McpHttpResourceConfig resource(
@@ -299,7 +311,7 @@ public final class McpHttpBindingConfig
         ModelConfig model)
     {
         return model != null
-            ? jsonSchemas.computeIfAbsent(model, this::resolveJsonSchema)
+            ? jsonSchemas.computeIfAbsent(model, resolveJsonSchemaFn)
             : null;
     }
 
@@ -340,7 +352,7 @@ public final class McpHttpBindingConfig
         List<String> verdict = unsatisfiedAccessors.get(route);
         if (verdict == null)
         {
-            final List<String> unsatisfied = new ArrayList<>();
+            List<String> unsatisfied = null;
             boolean deferred = false;
 
             if (route.tool != null && !route.argAccessors.isEmpty())
@@ -358,6 +370,10 @@ public final class McpHttpBindingConfig
                     {
                         if (!argPathValid(text, accessor))
                         {
+                            if (unsatisfied == null)
+                            {
+                                unsatisfied = new ArrayList<>();
+                            }
                             unsatisfied.add("args." + accessor);
                         }
                     }
@@ -371,12 +387,16 @@ public final class McpHttpBindingConfig
                 {
                     if (!captures.contains(accessor))
                     {
+                        if (unsatisfied == null)
+                        {
+                            unsatisfied = new ArrayList<>();
+                        }
                         unsatisfied.add("params." + accessor);
                     }
                 }
             }
 
-            verdict = unsatisfied;
+            verdict = unsatisfied != null ? unsatisfied : List.of();
             if (!deferred)
             {
                 unsatisfiedAccessors.put(route, verdict);

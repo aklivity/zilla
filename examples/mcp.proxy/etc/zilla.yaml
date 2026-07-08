@@ -49,11 +49,10 @@ bindings:
       - exit: south_mcp_client_everything
         when:
           - toolkit: everything
-            capability: [tools, prompts, resources]
       - exit: south_mcp_client_urlelicit
         when:
           - toolkit: urlelicit
-            capability: [tools]
+            tools: ["*"]
   south_mcp_client_everything:
     type: mcp
     kind: client

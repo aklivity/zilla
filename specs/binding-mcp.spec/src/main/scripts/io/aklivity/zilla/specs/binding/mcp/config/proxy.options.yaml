@@ -30,4 +30,3 @@ bindings:
       - exit: app1
         when:
           - toolkit: bluesky
-            capability: [tools, prompts, resources]

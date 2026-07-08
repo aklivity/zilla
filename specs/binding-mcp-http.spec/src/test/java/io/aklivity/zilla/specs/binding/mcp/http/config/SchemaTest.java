@@ -42,14 +42,6 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
-    @Test
-    public void shouldValidateProxyPrompts()
-    {
-        JsonObject config = schema.validate("proxy.prompts.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
     @Test(expected = JsonException.class)
     public void shouldRejectInvalidKind()
     {
@@ -78,5 +70,39 @@ public class SchemaTest
     public void shouldRejectRouteWithoutHeaders()
     {
         schema.validate("proxy.route.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectRouteWithWithButNoWhen()
+    {
+        schema.validate("proxy.route.when.required.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectRouteWhenWithBothToolAndResource()
+    {
+        schema.validate("proxy.route.when.both.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectRouteWithMultipleWhenEntries()
+    {
+        schema.validate("proxy.route.when.multiple.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateGuardedRouteWithoutWhen()
+    {
+        JsonObject config = schema.validate("proxy.guarded.global.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateGuardedRouteScopedByWhenWithoutWith()
+    {
+        JsonObject config = schema.validate("proxy.guarded.scoped.yaml");
+
+        assertThat(config, not(nullValue()));
     }
 }

@@ -24,15 +24,18 @@ public final class McpCacheConfig
     public final String store;
     public final Duration ttl;
     public final McpAuthorizationConfig authorization;
+    public final McpCacheToolsConfig tools;
 
     McpCacheConfig(
         String store,
         Duration ttl,
-        McpAuthorizationConfig authorization)
+        McpAuthorizationConfig authorization,
+        McpCacheToolsConfig tools)
     {
         this.store = store;
         this.ttl = ttl;
         this.authorization = authorization;
+        this.tools = tools;
     }
 
     public static McpCacheConfigBuilder<McpCacheConfig> builder()

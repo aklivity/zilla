@@ -18,6 +18,7 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiEncoding;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
@@ -29,6 +30,8 @@ public final class OpenapiEncodingView
     public final String style;
     public final boolean explode;
     public final boolean allowReserved;
+
+    private final Map<String, Object> extensions;
 
     OpenapiEncodingView(
         OpenapiResolver resolver,
@@ -44,5 +47,19 @@ public final class OpenapiEncodingView
         this.style = model.style;
         this.explode = model.explode;
         this.allowReserved = model.allowReserved;
+        this.extensions = model.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

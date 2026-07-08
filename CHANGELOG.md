@@ -2,11 +2,52 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-19...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-20...HEAD)
+
+**Implemented enhancements:**
+
+- common-json: stream window-fragmented unconstrained values through the schema validator \(forward-and-suppress\) [\#1926](https://github.com/aklivity/zilla/issues/1926)
+
+**Closed issues:**
+
+- binding-mcp: client kind lacks per-tool scope guarding \(when/guarded + securitySchemes injection\) [\#2046](https://github.com/aklivity/zilla/issues/2046)
+- common-json: JsonGeneratorImpl's GENERATE\_ESCAPED mode under-reserves room, overrunning the wrapped buffer [\#2043](https://github.com/aklivity/zilla/issues/2043)
+- common-json/common-avro/common-protobuf: JsonGeneratorImpl's atomic write methods have no room check [\#2040](https://github.com/aklivity/zilla/issues/2040)
+- binding-mcp: support resources/templates/list as a distinct JSON-RPC method \(server, proxy, client kinds\) [\#2033](https://github.com/aklivity/zilla/issues/2033)
+- engine: add Binding.validate\(BindingConfig\) SPI hook for cross-field config validation at load time [\#2031](https://github.com/aklivity/zilla/issues/2031)
+- mcp\_openapi: options.resources overrides, resource/template discrimination, query param omit-when-absent [\#2023](https://github.com/aklivity/zilla/issues/2023)
+- mcp\_openapi: params: rebinding and authored tool input schemas [\#2022](https://github.com/aklivity/zilla/issues/2022)
+- mcp\_openapi: bulk/tag/pattern route selection, when.capability, deterministic tool naming [\#2021](https://github.com/aklivity/zilla/issues/2021)
+- common-openapi: resolve full servers\[\] precedence \(operation \> path-item \> root\) in OpenapiOperationView [\#2020](https://github.com/aklivity/zilla/issues/2020)
+- mcp\_http: remove static prompts support [\#2018](https://github.com/aklivity/zilla/issues/2018)
+- common-json: JsonGeneratorEx's convenience write API has no real bounds check against its wrap\(\) limit [\#2017](https://github.com/aklivity/zilla/issues/2017)
+- common-json: JsonSchema validator stalls forever \(never REJECTED\) on a scalar value larger than the fed window [\#2016](https://github.com/aklivity/zilla/issues/2016)
+- UnsafeBufferEx.asNative\(\) drops wrapAdjustment when wrapping a sub-range of a direct ByteBuffer [\#2014](https://github.com/aklivity/zilla/issues/2014)
+- common-asyncapi: introduce AsyncapiExtension for generic x-\* vendor extensions, mirroring OpenapiExtension [\#2011](https://github.com/aklivity/zilla/issues/2011)
+- common-openapi: scope extension registration by OpenAPI object kind, not name alone [\#2008](https://github.com/aklivity/zilla/issues/2008)
+- common-openapi: support prefix-wildcard extension registration \(withExtension\("x-google-\*", type\)\) [\#2006](https://github.com/aklivity/zilla/issues/2006)
+- common-openapi: model oauth2 securityScheme flows as typed OpenapiOAuthFlow\(s\) instead of raw Object [\#2003](https://github.com/aklivity/zilla/issues/2003)
+- common-asyncapi: adopt generic extension/binding access instead of hardcoded consumer types [\#2002](https://github.com/aklivity/zilla/issues/2002)
+- common-json/common-agrona: relocate DirectBufferInputStreamEx to common-agrona; clean up JsonNode's dependency on it [\#1999](https://github.com/aklivity/zilla/issues/1999)
+- common-yaml: YamlJsonParser.getObject\(\)/getValue\(\) corrupt parser position from a JSON-B custom deserializer or adapter [\#1997](https://github.com/aklivity/zilla/issues/1997)
+- refactor\(binding-mcp-http\): split the general-purpose proxy stream into per-request-kind stream classes [\#1976](https://github.com/aklivity/zilla/issues/1976)
+- feat\(binding-mcp\): configurable eager tool set under cache.tools.eager [\#1970](https://github.com/aklivity/zilla/issues/1970)
+- feat\(binding-mcp\): agent-callable tool search in mcp proxy with BM25 ranking [\#1969](https://github.com/aklivity/zilla/issues/1969)
+- binding-mcp-openapi: implement mcp\_openapi · proxy binding [\#1673](https://github.com/aklivity/zilla/issues/1673)
+
+## [2.0.0-alpha-20](https://github.com/aklivity/zilla/tree/2.0.0-alpha-20) (2026-07-03)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-19...2.0.0-alpha-20)
 
 **Implemented enhancements:**
 
 - Hoist AsyncAPI model/view/parser APIs into a runtime/common-asyncapi module [\#1890](https://github.com/aklivity/zilla/issues/1890)
+
+**Merged pull requests:**
+
+- feat\(common-asyncapi\): hoist AsyncAPI model/view/parser API into shared module [\#1996](https://github.com/aklivity/zilla/pull/1996) ([jfallows](https://github.com/jfallows))
+- feat\(manager\): support enabling incubator modules via --incubator [\#1995](https://github.com/aklivity/zilla/pull/1995) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): generate delegate module-info with strict jdeps validation [\#1979](https://github.com/aklivity/zilla/pull/1979) ([jfallows](https://github.com/jfallows))
 
 ## [2.0.0-alpha-19](https://github.com/aklivity/zilla/tree/2.0.0-alpha-19) (2026-07-02)
 

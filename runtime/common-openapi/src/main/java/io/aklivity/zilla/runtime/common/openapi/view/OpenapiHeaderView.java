@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.view;
 
+import java.util.Map;
+import java.util.Optional;
+
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiHeader;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
@@ -24,22 +27,37 @@ public final class OpenapiHeaderView
     public final boolean allowEmptyValue;
     public final OpenapiSchemaView schema;
 
+    private final Map<String, Object> extensions;
+
     OpenapiHeaderView(
         OpenapiResolver resolver,
         String name,
         OpenapiHeader model)
     {
-        this.name = name;
-
         OpenapiHeader resolved = resolver.headers.resolve(model);
 
+        this.name = name;
         this.required = resolved.required;
         this.allowEmptyValue = resolved.allowEmptyValue;
         this.schema = new OpenapiSchemaView(resolver, model.schema);
+        this.extensions = resolved.extensions;
     }
 
     public boolean hasSchemaFormat()
     {
         return schema != null && schema.format != null;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

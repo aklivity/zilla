@@ -287,6 +287,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.guarded.per.tool.yaml")
+    @Specification({
+        "${app}/tools.call.guarded.per.tool/client",
+        "${net}/lifecycle.initialize/server"})
+    public void shouldCallToolGuardedPerTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.call.is.error/client",
@@ -348,6 +358,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.guarded.roles.per.tool.yaml")
+    @Specification({
+        "${app}/tools.list.security.schemes.per.tool/client",
+        "${net}/tools.list.security.schemes/server"})
+    public void shouldListToolsSecuritySchemesPerTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/tools.list.aborted/client",
@@ -400,6 +420,16 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/resources.templates.list.aborted/client",
+        "${net}/resources.templates.list.aborted/server"})
+    public void shouldAbortListResourcesTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/resources.read.aborted/client",
         "${net}/resources.read.aborted/server"})
     public void shouldAbortReadResource() throws Exception
@@ -445,6 +475,16 @@ public class McpClientIT
         "${app}/resources.list/client",
         "${net}/resources.list/server"})
     public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.templates.list/client",
+        "${net}/resources.templates.list/server"})
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

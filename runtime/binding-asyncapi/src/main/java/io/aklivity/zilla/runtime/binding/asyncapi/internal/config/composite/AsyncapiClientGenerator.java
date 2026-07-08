@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindin
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeRouteConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaMessageBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBindingEx;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -41,7 +43,7 @@ import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilde
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
-import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMultiFormatSchemaView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -123,26 +125,27 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             {
                 super.injectInlineSubject(jsonb, options, message);
 
-                if (message.bindings != null &&
-                    message.bindings.kafka != null &&
-                    message.bindings.kafka.key != null)
+                Optional<AsyncapiKafkaMessageBindingEx> kafkaBinding =
+                    message.binding("kafka", AsyncapiKafkaMessageBindingEx.class);
+                if (kafkaBinding.isPresent() && kafkaBinding.get().key != null)
                 {
                     Optional<AsyncapiServerView> serverRef = Stream.of(schema)
                             .map(s -> s.asyncapi)
                             .flatMap(v -> v.servers.stream())
-                            .filter(s -> s.bindings != null)
-                            .filter(s -> s.bindings.kafka != null)
-                            .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
+                            .filter(s -> s.binding("kafka", AsyncapiKafkaServerBindingEx.class)
+                                .map(b -> b.schemaRegistryUrl).isPresent())
                             .findFirst();
 
                     String subject = serverRef.isPresent()
                         ? "%s-key".formatted(message.channel.address)
                         : "%s-%s-key".formatted(message.channel.name, message.name);
 
+                    AsyncapiMultiFormatSchemaView key = schema.asyncapi.resolveSchema(kafkaBinding.get().key);
+
                     options.schema()
                         .subject(subject)
                         .version("latest")
-                        .schema(toSchemaJson(jsonb, message.bindings.kafka.key.model))
+                        .schema(toSchemaJson(jsonb, key.model))
                         .build();
                 }
             }
@@ -359,13 +362,13 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     Optional<AsyncapiServerView> serverRef = Stream.of(schema)
                             .map(s -> s.asyncapi)
                             .flatMap(v -> v.servers.stream())
-                            .filter(s -> s.bindings != null)
-                            .filter(s -> s.bindings.kafka != null)
-                            .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
+                            .filter(s -> s.binding("kafka", AsyncapiKafkaServerBindingEx.class)
+                                .map(b -> b.schemaRegistryUrl).isPresent())
                             .findFirst();
 
                     channel.messages.stream()
-                        .filter(m -> m.bindings != null && m.bindings.kafka != null && m.bindings.kafka.key != null)
+                        .filter(m -> m.binding("kafka", AsyncapiKafkaMessageBindingEx.class)
+                            .map(b -> b.key).isPresent())
                         .forEach(message ->
                             topic.key(AvroModelConfig::builder) // TODO: assumes AVRO
                                 .catalog()
@@ -391,9 +394,8 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     Optional<AsyncapiServerView> serverRef = Stream.of(schema)
                             .map(s -> s.asyncapi)
                             .flatMap(v -> v.servers.stream())
-                            .filter(s -> s.bindings != null)
-                            .filter(s -> s.bindings.kafka != null)
-                            .filter(s -> s.bindings.kafka.schemaRegistryUrl != null)
+                            .filter(s -> s.binding("kafka", AsyncapiKafkaServerBindingEx.class)
+                                .map(b -> b.schemaRegistryUrl).isPresent())
                             .findFirst();
 
                     AsyncapiMessageView message = channel.messages.get(0);
@@ -489,7 +491,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 if (Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.operations.values().stream())
-                    .anyMatch(AsyncapiOperationView::hasBindingsSse))
+                    .anyMatch(op -> op.hasBinding("x-zilla-sse")))
                 {
                     namespace
                         .binding()

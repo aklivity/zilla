@@ -38,7 +38,7 @@ parser and feeds each event through an ordered chain of `JsonTransform` stages t
 ```java
 JsonGeneratorEx generator = JsonEx.createGenerator().wrap(out, 0, out.capacity());
 JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-    .transform(JsonEx.projector(List.of("/id", "/name")))
+    .transform(JsonTransforms.projector(List.of("/id", "/name")))
     .into(JsonSink.of(generator));
 pipeline.reset();
 if (pipeline.transform(in, off, limit) == JsonPipeline.Status.COMPLETED)   // ADVANCED / SUSPENDED / COMPLETED / REJECTED
@@ -54,9 +54,13 @@ if (pipeline.transform(in, off, limit) == JsonPipeline.Status.COMPLETED)   // AD
 - **`JsonTransform`** is an intermediate stage (`transform(control, source, event, sink)`); **`JsonSink`**
   is the terminal (`transform(control, source, event)`). Third parties may implement either to consume or
   rewrite the projected event stream (e.g. field masking, encryption).
-- **`JsonEx.projector(pointers)`** returns a `JsonTransform` that prunes a document to a set of
-  retained RFC 6901 pointers (`-` matches any array index), forwarding only kept events.
-  `projector(schema)` derives the pointers from a `JsonSchema`.
+- **`JsonTransforms`** is the library of general-purpose, reusable `JsonTransform` implementations,
+  distinct from `JsonEx`'s pipeline plumbing (parsers, generators, streams, sinks).
+  **`JsonTransforms.projector(pointers)`** prunes a document to a set of retained RFC 6901 pointers
+  (`-` matches any array index), forwarding only kept events and preserving ancestor structure;
+  `projector(schema)` derives the pointers from a `JsonSchema`. **`JsonTransforms.flatten(accessorTargets)`**
+  hoists each of a set of dotted key paths (e.g. `pr.title`) up to its own top-level target key (e.g.
+  `title`), discarding ancestor wrappers — chain it downstream of a `projector` retaining the same paths.
 - **`JsonSchema.of(text).validator()`** returns a `JsonTransform` that forwards every event and adds
   schema validation, reporting at the value boundary so callers abort on `REJECTED`
   (emit-then-abort). For a one-shot validating pull parse, `schema.newParser(validate, parser)` wraps a

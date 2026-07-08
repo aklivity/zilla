@@ -43,6 +43,7 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
 
     private static final String CACHE_NAME = "cache";
     private static final String CACHE_STORE_NAME = "store";
@@ -50,12 +51,14 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String CACHE_TTL_DEFAULT = "PT5M";
     private static final String CACHE_AUTHORIZATION_NAME = "authorization";
     private static final String CACHE_AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String CACHE_TOOLS_NAME = "tools";
 
     private static final String SERVER_NAME = "server";
 
     private static final String TOOLS_NAME = "tools";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
+    private final McpCacheToolsConfigAdapter cacheTools = new McpCacheToolsConfigAdapter();
 
     @Override
     public Kind kind()
@@ -123,6 +126,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 cache.add(CACHE_AUTHORIZATION_NAME, authorization);
             }
 
+            if (cacheConfig.tools != null)
+            {
+                cache.add(CACHE_TOOLS_NAME, cacheTools.adaptToJson(cacheConfig.tools));
+            }
+
             object.add(CACHE_NAME, cache);
         }
 
@@ -169,7 +177,7 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 JsonObject guardObject = (JsonObject) value;
                 String credentials = guardObject.containsKey(AUTHORIZATION_CREDENTIALS_NAME)
                     ? ((JsonString) guardObject.get(AUTHORIZATION_CREDENTIALS_NAME)).getString()
-                    : null;
+                    : AUTHORIZATION_CREDENTIALS_DEFAULT;
                 builder.authorization()
                     .name(guard)
                     .credentials(credentials)
@@ -201,6 +209,11 @@ public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                         .credentials(credentials)
                         .build();
                 });
+            }
+
+            if (cache.containsKey(CACHE_TOOLS_NAME))
+            {
+                cacheBuilder.tools(cacheTools.adaptFromJson(cache.getJsonObject(CACHE_TOOLS_NAME)));
             }
 
             cacheBuilder.build();

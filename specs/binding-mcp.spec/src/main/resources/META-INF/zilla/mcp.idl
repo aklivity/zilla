@@ -40,6 +40,7 @@ scope mcp
             case 4: mcp::stream::McpPromptsGetBeginEx promptsGet;
             case 5: mcp::stream::McpResourcesListBeginEx resourcesList;
             case 6: mcp::stream::McpResourcesReadBeginEx resourcesRead;
+            case 7: mcp::stream::McpResourcesTemplatesListBeginEx resourcesTemplatesList;
         }
 
         union McpFlushEx switch (uint8) extends core::stream::Extension
@@ -178,6 +179,12 @@ scope mcp
             string16 sessionId;
             string16 uri;
             int32 contentLength = -1;
+            int64 timeout = 0;
+        }
+
+        struct McpResourcesTemplatesListBeginEx
+        {
+            string16 sessionId;
             int64 timeout = 0;
         }
 

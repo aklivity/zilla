@@ -348,6 +348,17 @@ public class McpProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.templates.list/client",
+        "${app}/resources.templates.list/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldListResourcesTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
         "${app}/resources.list.toolkit.prefixed/client",
@@ -419,6 +430,17 @@ public class McpProxyIT
         "${app}/resources.list.aborted/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldAbortListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.templates.list.aborted/client",
+        "${app}/resources.templates.list.aborted/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldAbortListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

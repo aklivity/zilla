@@ -114,6 +114,16 @@ public class McpHttpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/create.pr.fragmented/client",
+        "${http}/create.pr.fragmented/server"})
+    public void shouldCallToolCreatePrFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/create.pr.rich/client",
         "${http}/create.pr.rich/server"})
     public void shouldCallToolCreatePrWithStructuredArguments() throws Exception
@@ -152,11 +162,31 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/comment.pr/client",
+        "${http}/comment.pr/server"})
+    public void shouldCallToolCommentPr() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.remap.yaml")
     @Specification({
         "${mcp}/create.pr.remap/client",
         "${http}/create.pr/server"})
     public void shouldCallToolWithBodyTemplate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.remap.nested.yaml")
+    @Specification({
+        "${mcp}/create.pr.remap.nested/client",
+        "${http}/create.pr/server"})
+    public void shouldCallToolWithNestedBodyTemplate() throws Exception
     {
         k3po.finish();
     }
@@ -180,24 +210,6 @@ public class McpHttpProxyIT
     }
 
     @Test
-    @Configuration("proxy.prompts.yaml")
-    @Specification({
-        "${mcp}/prompts.get/client"})
-    public void shouldGetPrompt() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.prompts.yaml")
-    @Specification({
-        "${mcp}/prompts.list.configured/client"})
-    public void shouldListConfiguredPrompts() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.discovery.yaml")
     @Specification({
         "${mcp}/resources.list/client"})
@@ -209,8 +221,17 @@ public class McpHttpProxyIT
     @Test
     @Configuration("proxy.discovery.yaml")
     @Specification({
-        "${mcp}/prompts.list/client"})
-    public void shouldListPrompts() throws Exception
+        "${mcp}/resources.templates.list/client"})
+    public void shouldListResourcesTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.discovery.yaml")
+    @Specification({
+        "${mcp}/read.resource.unknown/client"})
+    public void shouldRejectResourceReadWhenUriUnmatched() throws Exception
     {
         k3po.finish();
     }
@@ -238,9 +259,136 @@ public class McpHttpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/search.code.query.array/client",
+        "${http}/search.code.query.array/server"})
+    public void shouldCallToolSearchCodeWithArrayAndBooleanQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/search.code.invalid/client"})
+    public void shouldRejectToolSearchCodeWhenArgumentsInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/search.items/client",
+        "${http}/search.items/server"})
+    public void shouldCallToolSearchItemsWithoutOptionalQueryParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/search.items.with.limit/client",
+        "${http}/search.items.with.limit/server"})
+    public void shouldCallToolSearchItemsWithOptionalQueryParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // a ~100KB tools/call response, streamed across many suspend/resume cycles; the leading total_count
+    // field is captured well before the large trailing items[].path value finishes streaming, proving
+    // tool.summary interpolation survives more than one window (see McpHttpResults)
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/search.code.100k/client",
+        "${http}/search.code.100k/server"})
+    public void shouldCallToolSearchCode100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // a ~100KB structuredContent.message value, also interpolated into tool.summary's content.text: proves
+    // the summary trailer (injected as more events once structuredContent's own value closes, see
+    // McpHttpToolResult) survives many suspend/resume cycles across the encode slot exactly like
+    // structuredContent's own streamed value does, not just when the destination has room left over
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/get.report.large/client",
+        "${http}/get.report.large/server"})
+    public void shouldCallToolGetReportWithLargeSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // ping has no tool.summary configured: content[0].text falls back to the empty string
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/ping/client",
+        "${http}/ping/server"})
+    public void shouldCallToolPing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // list_tags' output schema is array-rooted: structuredContent is the array itself, not an object
+    // wrapping it
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/list.tags/client",
+        "${http}/list.tags/server"})
+    public void shouldCallToolListTags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // count_items' output schema is a bare scalar: structuredContent is the scalar itself, not an
+    // object/array wrapping it
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/count.items/client",
+        "${http}/count.items/server"})
+    public void shouldCallToolCountItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // a 12000-byte top-level argument value referenced by the route's :path template: proves
+    // McpHttpArguments captures a value spanning multiple decode windows correctly (see the
+    // mediating-transform rule / multi-window accumulation fix), not just short path arguments that
+    // always arrive in one window
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/echo.id.large/client",
+        "${http}/echo.id.large/server"})
+    public void shouldCallToolEchoIdWithLargeArgument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/create.pr.error/client",
         "${http}/create.pr.error/server"})
     public void shouldRejectToolCreatePr() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // a ~100KB non-2xx upstream error body, relayed back verbatim as escaped text; proves the error relay
+    // genuinely streams (windowed, no MAX_ERROR_BODY-style cap) rather than needing to fit one buffer
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.error.100k/client",
+        "${http}/create.pr.error.100k/server"})
+    public void shouldRejectToolCreatePr100k() throws Exception
     {
         k3po.finish();
     }
@@ -251,6 +399,46 @@ public class McpHttpProxyIT
         "${mcp}/create.pr.aborted/client",
         "${http}/create.pr.aborted/server"})
     public void shouldAbortToolCreatePr() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.error.aborted/client",
+        "${http}/create.pr.error.aborted/server"})
+    public void shouldAbortToolCreatePrDuringErrorRelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.client.reset/client",
+        "${http}/create.pr.client.reset/server"})
+    public void shouldAbortUpstreamWhenReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.reset/client",
+        "${http}/create.pr.reset/server"})
+    public void shouldAbortToolCreatePrWhenUpstreamResetsRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.streaming.aborted/client",
+        "${http}/create.pr.streaming.aborted/server"})
+    public void shouldAbortToolCreatePrDuringResponseStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -275,6 +463,33 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.guarded.layered.yaml")
+    @Specification({
+        "${mcp}/create.pr.forbidden.by.global.guard/client"})
+    public void shouldRejectToolWhenGlobalGuardOnlyLayerFails() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guarded.layered.yaml")
+    @Specification({
+        "${mcp}/tools.list.security.schemes.layered/client"})
+    public void shouldListToolsSecuritySchemesLayered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guarded.layered.yaml")
+    @Specification({
+        "${mcp}/resources.list.security.schemes/client"})
+    public void shouldListResourcesSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.credentials.yaml")
     @Specification({
         "${mcp}/create.pr/client",
@@ -289,6 +504,15 @@ public class McpHttpProxyIT
     @Specification({
         "${mcp}/create.pr.invalid/client"})
     public void shouldRejectToolWhenArgumentsInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.pr.malformed.request/client"})
+    public void shouldRejectToolWhenRequestMalformed() throws Exception
     {
         k3po.finish();
     }
@@ -311,6 +535,19 @@ public class McpHttpProxyIT
         k3po.finish();
     }
 
+    // reuses create.pr.unresolved's wire script against a route that mistakenly references
+    // ${params.owner} (a resource-uri capture) from a tool route instead of ${args.owner}: tool routes
+    // never have resource captures, so this always rejects, exercising the paramAccessors branch of
+    // McpHttpBindingConfig.unsatisfiedAccessors distinct from the argAccessors branch covered above
+    @Test
+    @Configuration("proxy.unresolved.params.yaml")
+    @Specification({
+        "${mcp}/create.pr.unresolved/client"})
+    public void shouldRejectToolWhenParamsExpressionUnresolved() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -327,6 +564,76 @@ public class McpHttpProxyIT
         "${mcp}/read.order.malformed/client",
         "${http}/read.order.malformed/server"})
     public void shouldRejectResourceWhenResponseInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/read.order.error/client",
+        "${http}/read.order.error/server"})
+    public void shouldAbortResourceReadWhenUpstreamStatusNotOk() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/get.profile/client",
+        "${http}/get.profile/server"})
+    public void shouldCallToolGetProfileWithNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.header.yaml")
+    @Specification({
+        "${mcp}/echo.header.present/client",
+        "${http}/echo.header.present/server"})
+    public void shouldIncludeHeaderWhenArgumentPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.header.yaml")
+    @Specification({
+        "${mcp}/echo.header.absent/client",
+        "${http}/echo.header.absent/server"})
+    public void shouldOmitHeaderWhenArgumentAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cookie.yaml")
+    @Specification({
+        "${mcp}/echo.cookie.both.present/client",
+        "${http}/echo.cookie.both.present/server"})
+    public void shouldAggregateCookiesWhenBothArgumentsPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cookie.yaml")
+    @Specification({
+        "${mcp}/echo.cookie.one.absent/client",
+        "${http}/echo.cookie.one.absent/server"})
+    public void shouldOmitOneCookieWhenOneArgumentAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cookie.yaml")
+    @Specification({
+        "${mcp}/echo.cookie.all.absent/client",
+        "${http}/echo.cookie.all.absent/server"})
+    public void shouldOmitCookieHeaderWhenAllArgumentsAbsent() throws Exception
     {
         k3po.finish();
     }

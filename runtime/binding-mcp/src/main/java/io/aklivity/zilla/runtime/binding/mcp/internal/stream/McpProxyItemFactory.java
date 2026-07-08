@@ -16,15 +16,26 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolCallArgs;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolCallScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleClient;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpRouteRequest;
+import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
@@ -37,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchMatch;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -44,6 +56,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 abstract class McpProxyItemFactory implements BindingHandler
@@ -129,31 +142,73 @@ abstract class McpProxyItemFactory implements BindingHandler
             final String sessionId = sessionId(beginEx);
             if (binding.sessions.get(sessionId) instanceof McpLifecycleServer lifecycle)
             {
-                final McpRouteConfig route = binding.resolve(beginEx, authorization);
-                if (route != null)
+                final McpProxyCache.McpListCache searchCache = searchCacheFor(binding, beginEx);
+                if (searchCache != null)
                 {
-                    final String identifier = route.strip(beginEx);
-                    final int contentLength = contentLength(beginEx);
-                    final String prefix = route.prefix(beginEx);
-
-                    newStream = new McpServer(
-                        binding,
-                        lifecycle,
+                    newStream = new McpToolSearchServer(
                         sender,
                         originId,
                         routedId,
                         initialId,
-                        route.id,
                         affinity,
                         authorization,
-                        identifier,
-                        contentLength,
-                        prefix)::onServerMessage;
+                        binding.filterGuard,
+                        searchCache,
+                        contentLength(beginEx),
+                        binding.options.cache.tools.search.limit)::onToolSearchMessage;
+                }
+                else
+                {
+                    final McpRouteConfig route = binding.resolve(beginEx, authorization);
+                    if (route != null)
+                    {
+                        final String identifier = route.strip(beginEx);
+                        final int contentLength = contentLength(beginEx);
+                        final String prefix = route.prefix(beginEx);
+
+                        newStream = new McpServer(
+                            binding,
+                            lifecycle,
+                            sender,
+                            originId,
+                            routedId,
+                            initialId,
+                            route.id,
+                            affinity,
+                            authorization,
+                            identifier,
+                            contentLength,
+                            prefix)::onServerMessage;
+                    }
                 }
             }
         }
 
         return newStream;
+    }
+
+    private McpProxyCache.McpListCache searchCacheFor(
+        McpBindingConfig binding,
+        McpBeginExFW beginEx)
+    {
+        McpProxyCache.McpListCache searchCache = null;
+
+        final McpCacheToolsSearchConfig search = binding.cache != null && binding.options.cache.tools != null
+            ? binding.options.cache.tools.search
+            : null;
+
+        if (kind == McpBeginExFW.KIND_TOOLS_CALL &&
+            search != null &&
+            search.tool.equals(beginEx.toolsCall().name().asString()))
+        {
+            final McpProxyCache.McpListCache listCache = binding.cache.cacheOf(McpBeginExFW.KIND_TOOLS_LIST);
+            if (listCache != null && listCache.searchIndex() != null)
+            {
+                searchCache = listCache;
+            }
+        }
+
+        return searchCache;
     }
 
     protected abstract void injectInitialBeginEx(
@@ -629,6 +684,340 @@ abstract class McpProxyItemFactory implements BindingHandler
             long traceId)
         {
             doServerReset(traceId, emptyRO);
+        }
+
+        private void doServerReset(
+            long traceId,
+            Flyweight extension)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                    extension);
+                state = McpState.closedInitial(state);
+            }
+        }
+    }
+
+    private final class McpToolSearchServer
+    {
+        private final MessageConsumer sender;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long affinity;
+        private final long authorization;
+        private final GuardHandler filterGuard;
+        private final McpProxyCache.McpListCache cache;
+        private final int contentLength;
+        private final int limitDefault;
+
+        private ExpandableDirectByteBufferEx argsBuffer;
+        private int argsProgress;
+
+        private int state;
+        private boolean ready;
+        private DirectBufferEx cachedBuf;
+        private int cachedLen;
+        private int emitOffset;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private int replyPad;
+
+        private McpToolSearchServer(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long affinity,
+            long authorization,
+            GuardHandler filterGuard,
+            McpProxyCache.McpListCache cache,
+            int contentLength,
+            int limitDefault)
+        {
+            this.sender = sender;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.filterGuard = filterGuard;
+            this.cache = cache;
+            this.contentLength = contentLength;
+            this.limitDefault = limitDefault;
+        }
+
+        private void onToolSearchMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onServerBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case DataFW.TYPE_ID:
+                onServerData(dataRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onServerEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+                onServerAbort(abortRO.wrap(buffer, index, index + length));
+                break;
+            case WindowFW.TYPE_ID:
+                onServerWindow(windowRO.wrap(buffer, index, index + length));
+                break;
+            case ResetFW.TYPE_ID:
+                onServerReset(resetRO.wrap(buffer, index, index + length));
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onServerBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            state = McpState.openingInitial(state);
+
+            doServerBegin(traceId);
+            flushServerWindow(traceId, 0L, 0, 0L, codecBuffer.capacity());
+        }
+
+        private void onServerData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge <= initialAck;
+
+            initialSeq = sequence + reserved;
+
+            assert initialAck <= initialSeq;
+
+            bufferQuery(traceId, payload.buffer(), payload.offset(), payload.sizeof());
+        }
+
+        private void bufferQuery(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (argsBuffer == null)
+            {
+                argsBuffer = new ExpandableDirectByteBufferEx();
+            }
+            argsBuffer.putBytes(argsProgress, buffer, offset, length);
+            argsProgress += length;
+
+            if (argsProgress >= contentLength)
+            {
+                onQueryReady(traceId);
+            }
+        }
+
+        private void onQueryReady(
+            long traceId)
+        {
+            final McpSearchToolCallArgs args = McpSearchToolCallScanner.scan(argsBuffer, 0, argsProgress);
+            if (args == null || args.query == null || args.query.isEmpty())
+            {
+                final McpResetExFW resetEx = mcpResetExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
+                    .build();
+                doServerReset(traceId, resetEx);
+            }
+            else
+            {
+                final int limit = args.maxResults > 0 ? Math.min(args.maxResults, limitDefault) : limitDefault;
+                final byte[] bytes = buildResponse(args.query, limit);
+                cachedBuf = new UnsafeBufferEx(bytes);
+                cachedLen = bytes.length;
+                ready = true;
+                emitIfReady(traceId);
+            }
+        }
+
+        private byte[] buildResponse(
+            String query,
+            int limit)
+        {
+            final Map<CharSequence, List<String>> scopesByName = cache.scopesByName();
+            final List<McpToolSearchMatch> matches = cache.searchIndex().query(query);
+
+            final JsonArrayBuilder content = Json.createArrayBuilder();
+            int admitted = 0;
+            for (int i = 0; i < matches.size() && admitted < limit; i++)
+            {
+                final McpToolSearchMatch match = matches.get(i);
+                final List<String> roles = scopesByName.get(match.name);
+                if (filterGuard == null || filterGuard.verify(authorization, roles != null ? roles : List.of()))
+                {
+                    content.add(Json.createObjectBuilder()
+                        .add("type", "tool_reference")
+                        .add("tool_name", match.name));
+                    admitted++;
+                }
+            }
+
+            final JsonObject response = Json.createObjectBuilder()
+                .add("content", content)
+                .add("isError", false)
+                .build();
+
+            return response.toString().getBytes(StandardCharsets.UTF_8);
+        }
+
+        private void onServerEnd(
+            EndFW end)
+        {
+            initialSeq = end.sequence();
+            state = McpState.closedInitial(state);
+        }
+
+        private void onServerAbort(
+            AbortFW abort)
+        {
+            initialSeq = abort.sequence();
+            state = McpState.closedInitial(state);
+            doServerAbort(abort.traceId());
+        }
+
+        private void onServerWindow(
+            WindowFW window)
+        {
+            replyAck = window.acknowledge();
+            replyMax = window.maximum();
+            replyPad = window.padding();
+            state = McpState.openedReply(state);
+            emitIfReady(window.traceId());
+        }
+
+        private void onServerReset(
+            ResetFW reset)
+        {
+            replyAck = reset.acknowledge();
+            state = McpState.closedReply(state);
+        }
+
+        private void emitIfReady(
+            long traceId)
+        {
+            if (!ready || McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            while (emitOffset < cachedLen)
+            {
+                final int replyWin = replyMax - (int) (replySeq - replyAck) - replyPad;
+                if (replyWin <= 0)
+                {
+                    return;
+                }
+                final int chunkLen = Math.min(replyWin, cachedLen - emitOffset);
+                doServerData(traceId, 0L, DATA_FLAG_COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
+                emitOffset += chunkLen;
+            }
+
+            doServerEnd(traceId);
+        }
+
+        private void doServerBegin(
+            long traceId)
+        {
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity, emptyRO);
+            state = McpState.openingReply(state);
+        }
+
+        private void doServerData(
+            long traceId,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBufferEx payload,
+            int offset,
+            int length)
+        {
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, flags, budgetId, reserved, payload, offset, length);
+            replySeq += reserved;
+        }
+
+        private void doServerEnd(
+            long traceId)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization);
+                state = McpState.closedReply(state);
+            }
+        }
+
+        private void doServerAbort(
+            long traceId)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization);
+                state = McpState.closedReply(state);
+            }
+        }
+
+        private void doServerWindow(
+            long traceId,
+            long budgetId,
+            int padding)
+        {
+            state = McpState.openedInitial(state);
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, padding);
+        }
+
+        private void flushServerWindow(
+            long traceId,
+            long budgetId,
+            int padding,
+            long minInitialNoAck,
+            int minInitialMax)
+        {
+            final long newInitialAck = Math.max(initialAck, initialSeq - minInitialNoAck);
+            final int newInitialMax = Math.max(initialMax, minInitialMax);
+
+            if (newInitialAck > initialAck || newInitialMax > initialMax || !McpState.initialOpened(state))
+            {
+                initialAck = newInitialAck;
+                initialMax = newInitialMax;
+                doServerWindow(traceId, budgetId, padding);
+            }
         }
 
         private void doServerReset(

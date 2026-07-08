@@ -18,6 +18,7 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiResponse;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
@@ -32,6 +33,8 @@ public final class OpenapiResponseView
     public final Map<String, OpenapiLinkView> links;
 
     public final OpenapiSchemaView schema;
+
+    private final Map<String, Object> extensions;
 
     OpenapiResponseView(
         OpenapiOperationView operation,
@@ -63,5 +66,20 @@ public final class OpenapiResponseView
         this.schema = model.schema != null
                 ? new OpenapiSchemaView(resolver, model.schema)
                 : null;
+
+        this.extensions = model.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 }

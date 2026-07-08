@@ -64,9 +64,10 @@ public class McpHttpWithConfigAdapterTest
         assertThat(with.headers, not(nullValue()));
         assertThat(with.headers.get(":method"), equalTo("POST"));
         assertThat(with.headers.get(":path"), equalTo("/repos/owner/repo/pulls"));
-        assertThat(with.bodyTemplate, not(nullValue()));
-        assertThat(with.bodyTemplate.get("title"), equalTo("${args.title}"));
-        assertThat(with.body, nullValue());
+        assertThat(with.body, not(nullValue()));
+        assertThat(with.body.template, not(nullValue()));
+        assertThat(with.body.template.get("title"), equalTo("${args.title}"));
+        assertThat(with.body.model, nullValue());
         assertThat(with.query, nullValue());
     }
 
@@ -86,8 +87,48 @@ public class McpHttpWithConfigAdapterTest
         assertThat(with, not(nullValue()));
         assertThat(with.query, not(nullValue()));
         assertThat(with.body, not(nullValue()));
-        assertThat(with.bodyTemplate, nullValue());
+        assertThat(with.body.model, not(nullValue()));
+        assertThat(with.body.template, nullValue());
         assertThat(with.headers, nullValue());
+    }
+
+    @Test
+    public void shouldReadWithCookies()
+    {
+        String yaml =
+                """
+                headers:
+                  ":method": GET
+                cookies:
+                  session: "${args.session.id}"
+                """;
+
+        McpHttpWithConfig with = jsonb.fromJson(yaml, McpHttpWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.cookies, not(nullValue()));
+        assertThat(with.cookies.get("session"), equalTo("${args.session.id}"));
+    }
+
+    @Test
+    public void shouldWriteWithCookies()
+    {
+        String yaml =
+                """
+                headers:
+                  ":method": GET
+                cookies:
+                  session: "${args.session.id}"
+                """;
+
+        McpHttpWithConfig with = jsonb.fromJson(yaml, McpHttpWithConfig.class);
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, containsString("cookies:"));
+        assertThat(text, containsString("session:"));
+        assertThat(text, containsString("${args.session.id}"));
     }
 
     @Test

@@ -15,18 +15,16 @@
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
 import java.util.List;
-
-import jakarta.json.bind.annotation.JsonbTypeDeserializer;
-
-import io.aklivity.zilla.runtime.common.asyncapi.model.bindings.AsyncapiMessageBindings;
+import java.util.Map;
 
 public class AsyncapiMessage extends AbstractAsyncapiResolvable
 {
     public AsyncapiSchema headers;
     public String contentType;
-    @JsonbTypeDeserializer(AsyncapiSchemaPayloadDeserializer.class)
     public AsyncapiSchemaItem payload;
     public List<AsyncapiTrait> traits;
     public AsyncapiCorrelationId correlationId;
-    public AsyncapiMessageBindings bindings;
+    public Map<String, Object> bindings;
+
+    public Map<String, Object> extensions;
 }

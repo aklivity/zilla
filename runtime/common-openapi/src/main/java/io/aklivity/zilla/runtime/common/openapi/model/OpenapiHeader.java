@@ -14,9 +14,13 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.model;
 
+import java.util.Map;
+
 public class OpenapiHeader extends AbstractOpenapiResolvable
 {
     public boolean required;
     public boolean allowEmptyValue;
     public OpenapiSchema schema;
+
+    public Map<String, Object> extensions;
 }

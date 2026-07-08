@@ -186,6 +186,51 @@ public interface JsonGeneratorEx extends JsonGenerator
     JsonGeneratorEx writeStartArray(
         String name);
 
+    /**
+     * Checked counterpart to {@link #writeStartObject()} for an atomic write with no {@link Completion}-based
+     * partial-write contract to lean on: writes the brace only if it (and a possible leading separator) fits
+     * the output bound, returning {@code true}, and otherwise writes nothing and returns {@code false} — a
+     * normal, expected outcome for a chunking driver, not a failure. A driver checks the result to decide
+     * whether to suspend (drain) and retry the identical call, rather than pre-computing a worst-case width
+     * itself. {@link #writeStartObject()} is the unchecked fluent counterpart: it throws when this would
+     * have returned {@code false}, for a caller with no suspend/resume contract of its own.
+     */
+    boolean writeStartObjectEx();
+
+    /**
+     * Checked counterpart to {@link #writeStartArray()}; semantics match {@link #writeStartObjectEx()}.
+     */
+    boolean writeStartArrayEx();
+
+    /**
+     * Checked counterpart to {@link #writeEnd()}; semantics match {@link #writeStartObjectEx()}, except a
+     * closing brace/bracket never has a leading separator to account for.
+     */
+    boolean writeEndEx();
+
+    /**
+     * Checked counterpart to {@link #write(boolean)}; semantics match {@link #writeStartObjectEx()}.
+     */
+    boolean writeEx(
+        boolean value);
+
+    /**
+     * Checked counterpart to {@link #writeNull()}; semantics match {@link #writeStartObjectEx()}.
+     */
+    boolean writeNullEx();
+
+    /**
+     * Checked counterpart to {@link #write(int)}; semantics match {@link #writeStartObjectEx()}.
+     */
+    boolean writeEx(
+        int value);
+
+    /**
+     * Checked counterpart to {@link #write(long)}; semantics match {@link #writeStartObjectEx()}.
+     */
+    boolean writeEx(
+        long value);
+
     @Override
     JsonGeneratorEx writeKey(
         String name);

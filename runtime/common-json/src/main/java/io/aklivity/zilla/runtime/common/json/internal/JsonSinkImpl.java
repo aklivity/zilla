@@ -46,6 +46,10 @@ public final class JsonSinkImpl implements JsonSink
     // whether a VERBATIM event has been copied this document: gates flush() so a segment-mode sink (whose
     // verbatim cursor never advanced) does not re-emit the whole input from cursor zero
     private boolean verbatimSeen;
+    // whether the most recently suspended event is an atomic write (brace/bracket/boolean/null) that the
+    // generator refused for lack of room — as opposed to one that already succeeded and merely triggered a
+    // post-write boundary drain — so resume() knows whether to retry the write or just advance past it
+    private boolean atomicPending;
 
     public JsonSinkImpl(
         JsonGeneratorEx generator)
@@ -74,21 +78,13 @@ public final class JsonSinkImpl implements JsonSink
             status = writeKeyName(control, source);
             break;
         case START_OBJECT:
-            generator.writeStartObject();
-            depth++;
-            break;
         case START_ARRAY:
-            generator.writeStartArray();
-            depth++;
-            break;
         case END_OBJECT:
         case END_ARRAY:
-            generator.writeEnd();
-            depth--;
-            if (depth == 0)
-            {
-                status = Status.COMPLETED;
-            }
+        case VALUE_TRUE:
+        case VALUE_FALSE:
+        case VALUE_NULL:
+            status = writeAtomic(event);
             break;
         case VALUE_STRING:
         case VALUE_NUMBER:
@@ -102,18 +98,6 @@ public final class JsonSinkImpl implements JsonSink
             // coherent for any injected value that follows.
             verbatimSeen = true;
             status = writeVerbatim(source);
-            break;
-        case VALUE_TRUE:
-            generator.write(true);
-            status = scalarStatus();
-            break;
-        case VALUE_FALSE:
-            generator.write(false);
-            status = scalarStatus();
-            break;
-        case VALUE_NULL:
-            generator.writeNull();
-            status = scalarStatus();
             break;
         case START_DOCUMENT:
             if (!canonical)
@@ -151,6 +135,12 @@ public final class JsonSinkImpl implements JsonSink
             verbatimSeen = true;
             status = writeVerbatim(source);
         }
+        else if (event != null && isAtomic(event))
+        {
+            // atomicPending distinguishes a write that never happened (room check failed, must retry) from
+            // one that already succeeded and merely triggered a post-write boundary drain (nothing left to do)
+            status = atomicPending ? writeAtomic(event) : Status.ADVANCED;
+        }
         else
         {
             // the pump supplies the event that suspended; continue only while its value still has an unwritten
@@ -181,6 +171,7 @@ public final class JsonSinkImpl implements JsonSink
     {
         depth = 0;
         verbatimSeen = false;
+        atomicPending = false;
         generator.reset();
     }
 
@@ -188,6 +179,105 @@ public final class JsonSinkImpl implements JsonSink
     public boolean identity()
     {
         return generator.identity();
+    }
+
+    // Writes one atomic event (a brace/bracket, or a boolean/null literal) whose generator call has no
+    // partial-write contract: it either fully happens or, on insufficient room, leaves no trace (state and
+    // output both unchanged). The generator's own boolean Ex() return — rather than a length() delta or a
+    // pre-computed worst-case width here — is the source of truth for which one occurred, so this sink can
+    // never be more conservative than the generator actually is, and a window exactly big enough to hold
+    // the write always succeeds.
+    private Status writeAtomic(
+        JsonEvent event)
+    {
+        Status status;
+        if (applyAtomic(event))
+        {
+            atomicPending = false;
+            status = completeAtomic(event);
+        }
+        else
+        {
+            atomicPending = true;
+            status = Status.SUSPENDED;
+        }
+        return status;
+    }
+
+    private boolean applyAtomic(
+        JsonEvent event)
+    {
+        boolean written;
+        switch (event)
+        {
+        case START_OBJECT:
+            written = generator.writeStartObjectEx();
+            break;
+        case START_ARRAY:
+            written = generator.writeStartArrayEx();
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            written = generator.writeEndEx();
+            break;
+        case VALUE_TRUE:
+            written = generator.writeEx(true);
+            break;
+        case VALUE_FALSE:
+            written = generator.writeEx(false);
+            break;
+        case VALUE_NULL:
+        default:
+            written = generator.writeNullEx();
+            break;
+        }
+        return written;
+    }
+
+    // Applies the event's structural/completion effect once the write is confirmed to have happened.
+    private Status completeAtomic(
+        JsonEvent event)
+    {
+        Status status;
+        switch (event)
+        {
+        case START_OBJECT:
+        case START_ARRAY:
+            depth++;
+            status = Status.ADVANCED;
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            depth--;
+            status = depth == 0 ? Status.COMPLETED : Status.ADVANCED;
+            break;
+        default:
+            status = scalarStatus();
+            break;
+        }
+        return status;
+    }
+
+    private static boolean isAtomic(
+        JsonEvent event)
+    {
+        boolean result;
+        switch (event)
+        {
+        case START_OBJECT:
+        case START_ARRAY:
+        case END_OBJECT:
+        case END_ARRAY:
+        case VALUE_TRUE:
+        case VALUE_FALSE:
+        case VALUE_NULL:
+            result = true;
+            break;
+        default:
+            result = false;
+            break;
+        }
+        return result;
     }
 
     // Whether the suspended event still has value bytes/chars left to write, read from the source cursor —

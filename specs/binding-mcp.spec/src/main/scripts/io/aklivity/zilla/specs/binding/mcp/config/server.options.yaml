@@ -23,5 +23,6 @@ bindings:
       elicitation:
         callback: auth/callback
       authorization:
-        jwt0: {}
+        jwt0:
+          credentials: "Bearer {credentials}"
     exit: app0

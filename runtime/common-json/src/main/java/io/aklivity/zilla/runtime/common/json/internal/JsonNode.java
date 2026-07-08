@@ -28,7 +28,6 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 
 /**
@@ -52,9 +51,7 @@ final class JsonNode
         String json)
     {
         byte[] bytes = (json + " ").getBytes(UTF_8);
-        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
-        in.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        JsonParser parser = JsonEx.createParser(in);
+        JsonParser parser = JsonEx.createParser().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         return read(parser, parser.next());
     }
 

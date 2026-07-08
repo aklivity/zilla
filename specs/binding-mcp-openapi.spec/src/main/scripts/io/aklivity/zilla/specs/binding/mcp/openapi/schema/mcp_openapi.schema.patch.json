@@ -1,0 +1,309 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mcp_openapi"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp_openapi"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp_openapi"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "client" ]
+                    },
+                    "vault": false,
+                    "entry": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "specs":
+                            {
+                                "title": "Specs",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "server":
+                                            {
+                                                "title": "Server",
+                                                "type": "string"
+                                            },
+                                            "catalog":
+                                            {
+                                                "title": "Catalog",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "subject":
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            }
+                                                        },
+                                                        "required":
+                                                        [
+                                                            "subject"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "security":
+                                            {
+                                                "title": "Security",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z0-9_\\-]+$":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "tools":
+                            {
+                                "title": "Tools",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[A-Za-z0-9_-]+$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "description":
+                                            {
+                                                "title": "Tool Description",
+                                                "type": "string"
+                                            },
+                                            "summary":
+                                            {
+                                                "title": "Tool Summary",
+                                                "type": "string"
+                                            },
+                                            "output":
+                                            {
+                                                "title": "Output Schema",
+                                                "$ref": "#/$defs/models"
+                                            },
+                                            "input":
+                                            {
+                                                "title": "Input Schema",
+                                                "$ref": "#/$defs/models"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "resources":
+                            {
+                                "title": "Resources",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^.+$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "description":
+                                            {
+                                                "title": "Resource Description",
+                                                "type": "string"
+                                            },
+                                            "output":
+                                            {
+                                                "title": "Output Schema",
+                                                "$ref": "#/$defs/models"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "title": "Routes",
+                        "type": "array",
+                        "minItems": 1,
+                        "items":
+                        {
+                            "type": "object",
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "title": "When",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "tool":
+                                            {
+                                                "title": "Tool",
+                                                "type": "string"
+                                            },
+                                            "resource":
+                                            {
+                                                "title": "Resource",
+                                                "type": "string"
+                                            },
+                                            "capability":
+                                            {
+                                                "title": "Capability",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "enum": [ "tool", "resource" ]
+                                                },
+                                                "minItems": 1,
+                                                "uniqueItems": true
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with":
+                                {
+                                    "title": "With",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "spec":
+                                        {
+                                            "title": "API Id",
+                                            "type": "string"
+                                        },
+                                        "operation":
+                                        {
+                                            "title": "Operation Id or glob pattern",
+                                            "type": "string"
+                                        },
+                                        "tag":
+                                        {
+                                            "title": "Tag",
+                                            "type": "string"
+                                        },
+                                        "params":
+                                        {
+                                            "title": "Parameter Bindings",
+                                            "type": "object",
+                                            "additionalProperties":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "body":
+                                        {
+                                            "title": "Body Template",
+                                            "type": "object",
+                                            "additionalProperties":
+                                            {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "required": [ "spec" ],
+                                    "additionalProperties": false,
+                                    "not":
+                                    {
+                                        "required": [ "tag", "operation" ]
+                                    }
+                                }
+                            },
+                            "required": [ "with" ],
+                            "additionalProperties": false,
+                            "if":
+                            {
+                                "properties":
+                                {
+                                    "with":
+                                    {
+                                        "required": [ "operation" ],
+                                        "properties":
+                                        {
+                                            "operation":
+                                            {
+                                                "pattern": "^[^*]*$"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "else":
+                            {
+                                "properties":
+                                {
+                                    "when":
+                                    {
+                                        "items":
+                                        {
+                                            "not":
+                                            {
+                                                "anyOf":
+                                                [
+                                                    { "required": [ "tool" ] },
+                                                    { "required": [ "resource" ] }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": [ "routes" ]
+            }
+        }
+    }
+]

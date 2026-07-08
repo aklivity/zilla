@@ -29,8 +29,8 @@ bindings:
       - exit: app1
         when:
           - toolkit: bluesky
-            capability: [tools]
+            tools: ["*"]
       - exit: app2
         when:
           - toolkit: quartz
-            capability: [tools]
+            tools: ["*"]

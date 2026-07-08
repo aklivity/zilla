@@ -14,8 +14,12 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.model;
 
+import java.util.Map;
+
 public class OpenapiMediaType
 {
     public OpenapiSchema schema;
     public OpenapiEncoding encoding;
+
+    public Map<String, Object> extensions;
 }

@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
 import java.io.Closeable;
@@ -30,6 +31,8 @@ import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
 import jakarta.json.stream.JsonParser;
@@ -37,7 +40,13 @@ import jakarta.json.stream.JsonParser;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerConfig;
+import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchDocumentScanner;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchIndexFactory;
+import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -50,10 +59,12 @@ public final class McpProxyCache
 {
     private static final String STORE_KEY_TOOLS = "tools";
     private static final String STORE_KEY_RESOURCES = "resources";
+    private static final String STORE_KEY_RESOURCES_TEMPLATES = "resources/templates";
     private static final String STORE_KEY_PROMPTS = "prompts";
     private static final String STORE_LOCK_SUFFIX = ".lock";
     private static final String STORE_LOCK_KEY_TOOLS = STORE_KEY_TOOLS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
+    private static final String STORE_LOCK_KEY_RESOURCES_TEMPLATES = STORE_KEY_RESOURCES_TEMPLATES + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_PROMPTS = STORE_KEY_PROMPTS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_LIFECYCLE = "lifecycle.lock";
     private static final Duration STORE_TTL_FOREVER = null;
@@ -118,12 +129,30 @@ public final class McpProxyCache
         final IntPredicate filter = config.hydrateFilter();
         if (filter.test(KIND_TOOLS_LIST))
         {
-            caches.put(KIND_TOOLS_LIST, new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS));
+            final McpToolSearchIndex searchIndex = cache.tools != null
+                ? new McpToolSearchIndexFactory().create(cache.tools.search)
+                : null;
+            final List<String> searchFields = cache.tools != null && cache.tools.search != null
+                ? cache.tools.search.fields
+                : null;
+            final byte[] searchToolBytes = cache.tools != null && cache.tools.search != null
+                ? McpSearchToolDescriptor.build(cache.tools.search.tool)
+                : null;
+            final McpCacheToolsEagerConfig eager = cache.tools != null ? cache.tools.eager : null;
+            caches.put(KIND_TOOLS_LIST,
+                new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS,
+                    searchIndex, searchFields, searchToolBytes, eager));
         }
         if (filter.test(KIND_RESOURCES_LIST))
         {
             caches.put(KIND_RESOURCES_LIST,
                 new McpListCache(KIND_RESOURCES_LIST, STORE_KEY_RESOURCES, STORE_LOCK_KEY_RESOURCES));
+        }
+        if (filter.test(KIND_RESOURCES_TEMPLATES_LIST))
+        {
+            caches.put(KIND_RESOURCES_TEMPLATES_LIST,
+                new McpListCache(KIND_RESOURCES_TEMPLATES_LIST, STORE_KEY_RESOURCES_TEMPLATES,
+                    STORE_LOCK_KEY_RESOURCES_TEMPLATES));
         }
         if (filter.test(KIND_PROMPTS_LIST))
         {
@@ -251,6 +280,11 @@ public final class McpProxyCache
         private final String storeKey;
         private final String storeLockKey;
         private final Map<String, String> fragments;
+        private final McpToolSearchIndex searchIndex;
+        private final List<String> searchFields;
+        private final byte[] searchToolBytes;
+        private final McpCacheToolsEagerPolicy eagerPolicy;
+        private final List<Pattern> eagerMatch;
         private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
         private long lastChecksum = -1L;
         private String lockToken;
@@ -273,15 +307,100 @@ public final class McpProxyCache
             return scopesByName;
         }
 
+        public McpToolSearchIndex searchIndex()
+        {
+            return searchIndex;
+        }
+
+        public byte[] searchToolBytes()
+        {
+            return searchToolBytes;
+        }
+
+        public boolean eagerConfigured()
+        {
+            return eagerPolicy != null && eagerPolicy != McpCacheToolsEagerPolicy.NONE;
+        }
+
+        public boolean eager(
+            CharSequence name)
+        {
+            return switch (eagerPolicy)
+            {
+            case ALL -> false;
+            case EXPLICIT -> admitsEager(name);
+            default -> true;
+            };
+        }
+
+        private boolean admitsEager(
+            CharSequence name)
+        {
+            boolean admitted = false;
+            for (Pattern pattern : eagerMatch)
+            {
+                if (pattern.matcher(name).matches())
+                {
+                    admitted = true;
+                    break;
+                }
+            }
+            return admitted;
+        }
+
         private McpListCache(
             int kind,
             String storeKey,
             String storeLockKey)
         {
+            this(kind, storeKey, storeLockKey, null, null, null, null);
+        }
+
+        private McpListCache(
+            int kind,
+            String storeKey,
+            String storeLockKey,
+            McpToolSearchIndex searchIndex,
+            List<String> searchFields,
+            byte[] searchToolBytes,
+            McpCacheToolsEagerConfig eager)
+        {
             this.kind = kind;
             this.storeKey = storeKey;
             this.storeLockKey = storeLockKey;
             this.fragments = new TreeMap<>();
+            this.searchIndex = searchIndex;
+            this.searchFields = searchFields;
+            this.searchToolBytes = searchToolBytes;
+            this.eagerPolicy = eager != null ? eager.policy : McpCacheToolsEagerPolicy.NONE;
+            this.eagerMatch = eager != null && eager.match != null ? compileEagerMatch(eager.match) : null;
+        }
+
+        private List<Pattern> compileEagerMatch(
+            List<String> globs)
+        {
+            return globs.stream()
+                .map(McpListCache::compileGlob)
+                .collect(Collectors.toList());
+        }
+
+        private static Pattern compileGlob(
+            String glob)
+        {
+            final StringBuilder regex = new StringBuilder();
+            final String[] literals = glob.split("\\*", -1);
+            for (int index = 0; index < literals.length; index++)
+            {
+                if (index > 0)
+                {
+                    regex.append(".*");
+                }
+                if (!literals[index].isEmpty())
+                {
+                    regex.append(Pattern.quote(literals[index]));
+                }
+            }
+            return Pattern.compile(regex.toString());
         }
 
         public void putFragment(
@@ -347,6 +466,10 @@ public final class McpProxyCache
             final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
             lastChecksum = newChecksum;
             scopesByName = indexScopesByName(value);
+            if (searchIndex != null)
+            {
+                searchIndex.index(McpToolSearchDocumentScanner.scan(value, searchFields));
+            }
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
         }
@@ -400,6 +523,10 @@ public final class McpProxyCache
                 changed = lastChecksum != -1L && lastChecksum != newChecksum;
                 lastChecksum = newChecksum;
                 scopesByName = indexScopesByName(value);
+                if (searchIndex != null)
+                {
+                    searchIndex.index(McpToolSearchDocumentScanner.scan(value, searchFields));
+                }
             }
             else
             {

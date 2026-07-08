@@ -389,7 +389,7 @@ final class TestBindingFactory implements BindingHandler
         private void doPreauthorizeAndCallback(
             long traceId)
         {
-            String url = guard.preauthorize(traceId, routedId, 0, callbackUri);
+            String url = guard.preauthorize(traceId, routedId, 0, 0, callbackUri);
             if (url == null)
             {
                 onAuthorized(traceId, NOT_AUTHORIZED);

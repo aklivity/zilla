@@ -92,7 +92,9 @@
                                                         "credentials":
                                                         {
                                                             "title": "Credentials",
-                                                            "type": "string"
+                                                            "type": "string",
+                                                            "pattern": ".*\\{credentials\\}.*",
+                                                            "default": "Bearer {credentials}"
                                                         }
                                                     },
                                                     "additionalProperties": false
@@ -148,7 +150,8 @@
                                                         "credentials":
                                                         {
                                                             "title": "Credentials",
-                                                            "type": "string"
+                                                            "type": "string",
+                                                            "default": "Bearer {credentials}"
                                                         }
                                                     },
                                                     "additionalProperties": false
@@ -160,6 +163,58 @@
                                     },
                                     "required": [ "server" ],
                                     "additionalProperties": false
+                                },
+                                "routes":
+                                {
+                                    "title": "Routes",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "when":
+                                            {
+                                                "title": "When",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "tools":
+                                                        {
+                                                            "title": "Tools",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "prompts":
+                                                        {
+                                                            "title": "Prompts",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "resources":
+                                                        {
+                                                            "title": "Resources",
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             },
                             "required": [ "options" ]
@@ -224,6 +279,118 @@
                                                     },
                                                     "additionalProperties": false,
                                                     "maxProperties": 1
+                                                },
+                                                "tools":
+                                                {
+                                                    "title": "Tools",
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "search":
+                                                        {
+                                                            "title": "Search",
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "tool":
+                                                                {
+                                                                    "title": "Tool",
+                                                                    "type": "string"
+                                                                },
+                                                                "limit":
+                                                                {
+                                                                    "title": "Limit",
+                                                                    "type": "integer",
+                                                                    "default": 5
+                                                                },
+                                                                "fields":
+                                                                {
+                                                                    "title": "Fields",
+                                                                    "type": "array",
+                                                                    "items":
+                                                                    {
+                                                                        "enum": [ "name", "description", "output-schema" ]
+                                                                    },
+                                                                    "default": [ "name", "description" ]
+                                                                },
+                                                                "weights":
+                                                                {
+                                                                    "title": "Weights",
+                                                                    "type": "object",
+                                                                    "patternProperties":
+                                                                    {
+                                                                        "^[a-zA-Z0-9_-]+$":
+                                                                        {
+                                                                            "type": "number"
+                                                                        }
+                                                                    },
+                                                                    "additionalProperties": false
+                                                                },
+                                                                "type":
+                                                                {
+                                                                    "title": "Type",
+                                                                    "$ref": "#/$defs/binding-ext/mcp/indexes/flat"
+                                                                },
+                                                                "index":
+                                                                {
+                                                                    "title": "Index",
+                                                                    "type": "array",
+                                                                    "items":
+                                                                    {
+                                                                        "$ref": "#/$defs/binding-ext/mcp/indexes"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "required": [ "tool" ],
+                                                            "not": { "required": [ "type", "index" ] },
+                                                            "additionalProperties": false
+                                                        },
+                                                        "eager":
+                                                        {
+                                                            "title": "Eager",
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "policy":
+                                                                {
+                                                                    "title": "Policy",
+                                                                    "enum": [ "none", "all", "explicit" ],
+                                                                    "default": "none"
+                                                                },
+                                                                "match":
+                                                                {
+                                                                    "title": "Match",
+                                                                    "type": "array",
+                                                                    "items":
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "minItems": 1
+                                                                }
+                                                            },
+                                                            "if":
+                                                            {
+                                                                "required": [ "policy" ],
+                                                                "properties":
+                                                                {
+                                                                    "policy":
+                                                                    {
+                                                                        "const": "explicit"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "then":
+                                                            {
+                                                                "required": [ "match" ]
+                                                            },
+                                                            "else":
+                                                            {
+                                                                "not": { "required": [ "match" ] }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
                                                 }
                                             },
                                             "required": [ "store" ],
@@ -260,18 +427,6 @@
                                                             "title": "Toolkit",
                                                             "type": "string"
                                                         },
-                                                        "capability":
-                                                        {
-                                                            "title": "Capability",
-                                                            "type": "array",
-                                                            "items":
-                                                            {
-                                                                "type": "string",
-                                                                "enum": [ "tools", "prompts", "resources" ]
-                                                            },
-                                                            "minItems": 1,
-                                                            "uniqueItems": true
-                                                        },
                                                         "tools":
                                                         {
                                                             "title": "Tools",
@@ -301,61 +456,7 @@
                                                         }
                                                     },
                                                     "required": [ "toolkit" ],
-                                                    "additionalProperties": false,
-                                                    "allOf":
-                                                    [
-                                                        {
-                                                            "if":
-                                                            {
-                                                                "required": [ "capability" ],
-                                                                "properties":
-                                                                {
-                                                                    "capability":
-                                                                    {
-                                                                        "not": { "contains": { "const": "tools" } }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "then":
-                                                            {
-                                                                "not": { "required": [ "tools" ] }
-                                                            }
-                                                        },
-                                                        {
-                                                            "if":
-                                                            {
-                                                                "required": [ "capability" ],
-                                                                "properties":
-                                                                {
-                                                                    "capability":
-                                                                    {
-                                                                        "not": { "contains": { "const": "prompts" } }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "then":
-                                                            {
-                                                                "not": { "required": [ "prompts" ] }
-                                                            }
-                                                        },
-                                                        {
-                                                            "if":
-                                                            {
-                                                                "required": [ "capability" ],
-                                                                "properties":
-                                                                {
-                                                                    "capability":
-                                                                    {
-                                                                        "not": { "contains": { "const": "resources" } }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "then":
-                                                            {
-                                                                "not": { "required": [ "resources" ] }
-                                                            }
-                                                        }
-                                                    ]
+                                                    "additionalProperties": false
                                                 }
                                             },
                                             "with":
@@ -388,6 +489,59 @@
                         }
                     }
                 ]
+            }
+        }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding-ext/mcp",
+        "value":
+        {
+            "indexes":
+            {
+                "type": "object",
+                "properties":
+                {
+                    "type":
+                    {
+                        "title": "Type",
+                        "type": "string",
+                        "enum": [ "keyword" ]
+                    }
+                },
+                "required": [ "type" ],
+                "allOf":
+                [
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "type":
+                                {
+                                    "const": "keyword"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "type":
+                                {
+                                    "const": "keyword"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    }
+                ],
+                "flat":
+                {
+                    "title": "Type",
+                    "type": "string",
+                    "enum": [ "keyword" ]
+                }
             }
         }
     }

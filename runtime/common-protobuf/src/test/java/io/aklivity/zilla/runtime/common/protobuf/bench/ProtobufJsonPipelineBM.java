@@ -102,8 +102,11 @@ public class ProtobufJsonPipelineBM
         UnsafeBufferEx wire = new UnsafeBufferEx(new byte[1024]);
         ProtobufGenerator generator = Protobuf.generator().wrap(wire, 0, wire.capacity());
         generator.writeInt32(1, 42).writeString(2, "zilla").writeBool(3, true).writeDouble(4, 1.5)
-            .writeString(5, "a").writeString(5, "b")
-            .startMessage(6, 32).writeString(1, "sensor").writeInt64(2, 7).endMessage();
+            .writeString(5, "a").writeString(5, "b");
+        generator.startMessage(6, 32);
+        generator.writeString(1, "sensor");
+        generator.writeInt64(2, 7);
+        generator.endMessage();
         wireLength = generator.length();
         wireBuffer = wire;
     }

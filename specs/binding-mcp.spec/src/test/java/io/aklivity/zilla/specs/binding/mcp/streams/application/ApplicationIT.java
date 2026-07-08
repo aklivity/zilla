@@ -236,6 +236,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.guarded.per.tool/client",
+        "${app}/tools.call.guarded.per.tool/server"})
+    public void shouldCallToolGuardedPerTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.is.error/client",
         "${app}/tools.call.is.error/server"})
     public void shouldCallToolIsError() throws Exception
@@ -266,6 +275,15 @@ public class ApplicationIT
         "${app}/tools.list.security.schemes/client",
         "${app}/tools.list.security.schemes/server"})
     public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.security.schemes.per.tool/client",
+        "${app}/tools.list.security.schemes.per.tool/server"})
+    public void shouldListToolsSecuritySchemesPerTool() throws Exception
     {
         k3po.finish();
     }
@@ -317,6 +335,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/resources.templates.list.aborted/client",
+        "${app}/resources.templates.list.aborted/server"})
+    public void shouldAbortListResourcesTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/resources.read.aborted/client",
         "${app}/resources.read.aborted/server"})
     public void shouldAbortReadResource() throws Exception
@@ -356,6 +383,15 @@ public class ApplicationIT
         "${app}/resources.list/client",
         "${app}/resources.list/server"})
     public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.templates.list/client",
+        "${app}/resources.templates.list/server"})
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

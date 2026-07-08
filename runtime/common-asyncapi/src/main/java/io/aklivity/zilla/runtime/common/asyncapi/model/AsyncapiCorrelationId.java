@@ -14,7 +14,11 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
+import java.util.Map;
+
 public class AsyncapiCorrelationId extends AbstractAsyncapiResolvable
 {
     public String location;
+
+    public Map<String, Object> extensions;
 }

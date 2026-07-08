@@ -20,17 +20,12 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptArgumentConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptMessageConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpBinding;
@@ -53,13 +48,6 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String SCHEMAS_NAME = "schemas";
     private static final String INPUT_NAME = "input";
     private static final String OUTPUT_NAME = "output";
-    private static final String PROMPTS_NAME = "prompts";
-    private static final String ARGUMENTS_NAME = "arguments";
-    private static final String MESSAGES_NAME = "messages";
-    private static final String NAME_NAME = "name";
-    private static final String REQUIRED_NAME = "required";
-    private static final String ROLE_NAME = "role";
-    private static final String TEXT_NAME = "text";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -107,13 +95,13 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
             for (McpHttpToolConfig tool : tools)
             {
                 JsonObjectBuilder toolObject = Json.createObjectBuilder();
-                if (tool.description != null)
-                {
-                    toolObject.add(DESCRIPTION_NAME, tool.description);
-                }
                 if (tool.summary != null)
                 {
                     toolObject.add(SUMMARY_NAME, tool.summary);
+                }
+                if (tool.description != null)
+                {
+                    toolObject.add(DESCRIPTION_NAME, tool.description);
                 }
                 JsonObjectBuilder schemas = Json.createObjectBuilder();
                 if (tool.input != null)
@@ -160,47 +148,6 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
             object.add(RESOURCES_NAME, resourcesObject);
         }
 
-        List<McpHttpPromptConfig> prompts = mcpHttpOptions.prompts;
-        if (prompts != null)
-        {
-            JsonObjectBuilder promptsObject = Json.createObjectBuilder();
-            for (McpHttpPromptConfig prompt : prompts)
-            {
-                JsonObjectBuilder promptObject = Json.createObjectBuilder();
-                if (prompt.description != null)
-                {
-                    promptObject.add(DESCRIPTION_NAME, prompt.description);
-                }
-                if (prompt.arguments != null)
-                {
-                    JsonArrayBuilder argumentsArray = Json.createArrayBuilder();
-                    for (McpHttpPromptArgumentConfig argument : prompt.arguments)
-                    {
-                        JsonObjectBuilder argumentObject = Json.createObjectBuilder();
-                        argumentObject.add(NAME_NAME, argument.name);
-                        if (argument.description != null)
-                        {
-                            argumentObject.add(DESCRIPTION_NAME, argument.description);
-                        }
-                        argumentObject.add(REQUIRED_NAME, argument.required);
-                        argumentsArray.add(argumentObject);
-                    }
-                    promptObject.add(ARGUMENTS_NAME, argumentsArray);
-                }
-                JsonArrayBuilder messagesArray = Json.createArrayBuilder();
-                for (McpHttpPromptMessageConfig message : prompt.messages)
-                {
-                    JsonObjectBuilder messageObject = Json.createObjectBuilder();
-                    messageObject.add(ROLE_NAME, message.role);
-                    messageObject.add(TEXT_NAME, message.text);
-                    messagesArray.add(messageObject);
-                }
-                promptObject.add(MESSAGES_NAME, messagesArray);
-                promptsObject.add(prompt.name, promptObject);
-            }
-            object.add(PROMPTS_NAME, promptsObject);
-        }
-
         return object.build();
     }
 
@@ -240,12 +187,12 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
             for (String name : toolsObject.keySet())
             {
                 JsonObject toolObject = toolsObject.getJsonObject(name);
-                String description = toolObject.containsKey(DESCRIPTION_NAME)
-                    ? toolObject.getString(DESCRIPTION_NAME)
-                    : null;
-
                 String summary = toolObject.containsKey(SUMMARY_NAME)
                     ? toolObject.getString(SUMMARY_NAME)
+                    : null;
+
+                String description = toolObject.containsKey(DESCRIPTION_NAME)
+                    ? toolObject.getString(DESCRIPTION_NAME)
                     : null;
 
                 ModelConfig input = null;
@@ -263,7 +210,7 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
                     }
                 }
 
-                tools.add(new McpHttpToolConfig(name, description, summary, input, output));
+                tools.add(new McpHttpToolConfig(name, summary, description, input, output));
             }
         }
 
@@ -297,52 +244,18 @@ public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSp
                     }
                 }
 
-                resources.add(new McpHttpResourceConfig(name, uri, description, mimeType, output));
+                final boolean template = uri != null && uri.indexOf('{') >= 0;
+                resources.add(McpHttpResourceConfig.builder()
+                    .name(name)
+                    .uri(uri)
+                    .template(template)
+                    .description(description)
+                    .mimeType(mimeType)
+                    .output(output)
+                    .build());
             }
         }
 
-        List<McpHttpPromptConfig> prompts = null;
-        if (object.containsKey(PROMPTS_NAME))
-        {
-            JsonObject promptsObject = object.getJsonObject(PROMPTS_NAME);
-            prompts = new ArrayList<>();
-            for (String name : promptsObject.keySet())
-            {
-                JsonObject promptObject = promptsObject.getJsonObject(name);
-                String description = promptObject.containsKey(DESCRIPTION_NAME)
-                    ? promptObject.getString(DESCRIPTION_NAME)
-                    : null;
-
-                List<McpHttpPromptArgumentConfig> arguments = null;
-                if (promptObject.containsKey(ARGUMENTS_NAME))
-                {
-                    arguments = new ArrayList<>();
-                    for (JsonValue value : promptObject.getJsonArray(ARGUMENTS_NAME))
-                    {
-                        JsonObject argumentObject = value.asJsonObject();
-                        String argumentName = argumentObject.getString(NAME_NAME);
-                        String argumentDescription = argumentObject.containsKey(DESCRIPTION_NAME)
-                            ? argumentObject.getString(DESCRIPTION_NAME)
-                            : null;
-                        boolean required = argumentObject.containsKey(REQUIRED_NAME) &&
-                            argumentObject.getBoolean(REQUIRED_NAME);
-                        arguments.add(new McpHttpPromptArgumentConfig(argumentName, argumentDescription, required));
-                    }
-                }
-
-                List<McpHttpPromptMessageConfig> messages = new ArrayList<>();
-                for (JsonValue value : promptObject.getJsonArray(MESSAGES_NAME))
-                {
-                    JsonObject messageObject = value.asJsonObject();
-                    messages.add(new McpHttpPromptMessageConfig(
-                        messageObject.getString(ROLE_NAME),
-                        messageObject.getString(TEXT_NAME)));
-                }
-
-                prompts.add(new McpHttpPromptConfig(name, description, arguments, messages));
-            }
-        }
-
-        return new McpHttpOptionsConfig(authorization, tools, resources, prompts);
+        return new McpHttpOptionsConfig(authorization, tools, resources);
     }
 }

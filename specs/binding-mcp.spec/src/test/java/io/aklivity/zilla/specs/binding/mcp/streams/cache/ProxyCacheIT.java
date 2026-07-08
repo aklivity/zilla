@@ -110,6 +110,15 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.serve.tools.search/client",
+        "${app}/cache.serve.tools.search/server" })
+    public void shouldServeToolsSearch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.refresh.tools/client",
         "${app}/cache.refresh.tools/server" })
     public void shouldRefreshTools() throws Exception
@@ -194,6 +203,51 @@ public class ProxyCacheIT
         "${app}/cache.hydrate.100k/client",
         "${app}/cache.hydrate.100k/server" })
     public void shouldHydrate100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.none/client",
+        "${app}/cache.serve.tools.list.eager.none/server" })
+    public void shouldServeToolsListEagerNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.all/client",
+        "${app}/cache.serve.tools.list.eager.all/server" })
+    public void shouldServeToolsListEagerAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit/client",
+        "${app}/cache.serve.tools.list.eager.explicit/server" })
+    public void shouldServeToolsListEagerExplicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit.search/client",
+        "${app}/cache.serve.tools.list.eager.explicit.search/server" })
+    public void shouldServeToolsListEagerExplicitWithSearch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.search.eager.cold/client",
+        "${app}/cache.serve.tools.search.eager.cold/server" })
+    public void shouldServeToolsSearchEagerCold() throws Exception
     {
         k3po.finish();
     }

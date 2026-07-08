@@ -27,12 +27,12 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -121,7 +121,6 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String HTTP_HEADER_SESSION = "mcp-session-id";
     private static final String HTTP_HEADER_AUTHORIZATION = "authorization";
     private static final String HTTP_HEADER_WWW_AUTHENTICATE = "www-authenticate";
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String HTTP_HEADER_MCP_VERSION = "mcp-protocol-version";
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
     private static final String STATUS_401 = "401";
@@ -150,6 +149,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String JSON_RPC_PROMPTS_GET_METHOD = ",\"method\":\"prompts/get\",\"params\":";
     private static final String JSON_RPC_RESOURCES_LIST_METHOD = ",\"method\":\"resources/list\"}";
     private static final String JSON_RPC_RESOURCES_READ_METHOD = ",\"method\":\"resources/read\",\"params\":";
+    private static final String JSON_RPC_RESOURCES_TEMPLATES_LIST_METHOD = ",\"method\":\"resources/templates/list\"}";
     private static final String JSON_RPC_PING_METHOD = ",\"method\":\"ping\"}";
     private static final String JSON_RPC_NOTIFY_CANCELLED_PREFIX =
         "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\",\"params\":{\"requestId\":";
@@ -275,6 +275,7 @@ public final class McpClientFactory implements McpStreamFactory
         resolvers.put(KIND_PROMPTS_GET, ex -> ex.promptsGet().sessionId().asString());
         resolvers.put(KIND_RESOURCES_LIST, ex -> ex.resourcesList().sessionId().asString());
         resolvers.put(KIND_RESOURCES_READ, ex -> ex.resourcesRead().sessionId().asString());
+        resolvers.put(KIND_RESOURCES_TEMPLATES_LIST, ex -> ex.resourcesTemplatesList().sessionId().asString());
         this.resolvers = resolvers;
 
         final Int2ObjectHashMap<McpRequestStreamFactory> requestFactories = new Int2ObjectHashMap<>();
@@ -284,6 +285,7 @@ public final class McpClientFactory implements McpStreamFactory
         requestFactories.put(KIND_PROMPTS_GET, McpPromptsGetStream::new);
         requestFactories.put(KIND_RESOURCES_LIST, McpResourcesListStream::new);
         requestFactories.put(KIND_RESOURCES_READ, McpResourcesReadStream::new);
+        requestFactories.put(KIND_RESOURCES_TEMPLATES_LIST, McpResourcesTemplatesListStream::new);
         this.requestFactories = requestFactories;
     }
 
@@ -1416,15 +1418,18 @@ public final class McpClientFactory implements McpStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null)
+        if (binding != null && extension.sizeof() > 0)
         {
-            final McpRouteConfig route = binding.resolve(authorization);
+            final McpBeginExFW mcpBeginEx = mcpBeginExRO.wrap(
+                extension.buffer(), extension.offset(), extension.limit());
 
-            if (route != null && extension.sizeof() > 0)
+            // resolves per request kind (tool/prompt/resource identifier or capability), not just
+            // by authorization, so a per-tool guarded route is honored at tools/call and friends;
+            // KIND_LIFECYCLE has no capability and degrades to the tool-blind session-level resolve
+            final McpRouteConfig route = binding.resolve(mcpBeginEx, authorization);
+
+            if (route != null)
             {
-                final McpBeginExFW mcpBeginEx = mcpBeginExRO.wrap(
-                    extension.buffer(), extension.offset(), extension.limit());
-
                 if (mcpBeginEx.kind() == KIND_LIFECYCLE)
                 {
                     final String requestSessionId = mcpBeginEx.lifecycle().sessionId().asString();
@@ -1467,6 +1472,7 @@ public final class McpClientFactory implements McpStreamFactory
                             case KIND_PROMPTS_GET -> mcpBeginEx.promptsGet().timeout();
                             case KIND_RESOURCES_LIST -> mcpBeginEx.resourcesList().timeout();
                             case KIND_RESOURCES_READ -> mcpBeginEx.resourcesRead().timeout();
+                            case KIND_RESOURCES_TEMPLATES_LIST -> mcpBeginEx.resourcesTemplatesList().timeout();
                             default -> 0L;
                             };
                             newStream = request::onAppMessage;
@@ -1726,15 +1732,21 @@ public final class McpClientFactory implements McpStreamFactory
             final GuardHandler guard = binding.guard;
             if (guard != null)
             {
-                final long sessionId = guard.reauthorize(traceId, binding.id, initialId, null);
-                if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+                final String resolved = (authorization & GuardHandler.MASK_AUTHORIZED) != 0L
+                    ? guard.credentials(authorization)
+                    : null;
+                if (resolved != null)
                 {
-                    credentials = guard.credentials(sessionId);
+                    credentials = resolved;
                 }
-            }
-            if (credentials == null)
-            {
-                credentials = binding.credentials;
+                else
+                {
+                    final long sessionId = guard.reauthorize(traceId, binding.id, authorization, null);
+                    if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+                    {
+                        credentials = guard.credentials(sessionId);
+                    }
+                }
             }
             return true;
         }
@@ -2747,17 +2759,20 @@ public final class McpClientFactory implements McpStreamFactory
             final GuardHandler guard = session.binding.guard;
             if (guard == null)
             {
-                credentials = session.binding.credentials;
                 return true;
             }
 
             if ((authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
-                credentials = guard.credentials(authorization);
-                return true;
+                final String resolved = guard.credentials(authorization);
+                if (resolved != null)
+                {
+                    credentials = resolved;
+                    return true;
+                }
             }
 
-            final long sessionId = guard.reauthorize(traceId, session.binding.id, initialId, null);
+            final long sessionId = guard.reauthorize(traceId, session.binding.id, authorization, null);
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
@@ -2765,10 +2780,10 @@ public final class McpClientFactory implements McpStreamFactory
                 return true;
             }
 
-            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && session.binding.credentials == null)
+            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && session.binding.needsCredentials)
             {
                 final String preauthorizeUrl =
-                    guard.preauthorize(traceId, session.binding.id, initialId, session.authCallback);
+                    guard.preauthorize(traceId, session.binding.id, initialId, authorization, session.authCallback);
                 if (preauthorizeUrl == null)
                 {
                     doAppReset(traceId, authorization);
@@ -2811,9 +2826,8 @@ public final class McpClientFactory implements McpStreamFactory
                 return false;
             }
 
-            if (session.binding.credentials != null)
+            if (!session.binding.needsCredentials)
             {
-                credentials = session.binding.credentials;
                 return true;
             }
 
@@ -3462,6 +3476,34 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
+    private final class McpResourcesTemplatesListStream extends McpRequestStream
+    {
+        McpResourcesTemplatesListStream(
+            McpLifecycleStream session,
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long resolvedId,
+            long affinity,
+            long authorization)
+        {
+            super(session, sender, originId, routedId, initialId, resolvedId, affinity,
+                HttpResourcesTemplatesListStream::new);
+        }
+
+        @Override
+        void onAppBeginImpl(
+            long traceId,
+            long authorization,
+            McpBeginExFW mcpBeginEx)
+        {
+            state = McpState.openedInitial(state);
+            http.doEncodeRequestEnd(traceId, authorization);
+            decoder = decodeRequestEnd;
+        }
+    }
+
     private final class McpResourcesReadStream extends McpRequestStream
     {
         McpResourcesReadStream(
@@ -3547,10 +3589,25 @@ public final class McpClientFactory implements McpStreamFactory
         final void injectAuthorization(
             HttpBeginExFW.Builder builder)
         {
-            if (mcp.credentials != null)
+            final String header = authorizationHeader(mcp.binding().credentials, mcp.credentials);
+            if (header != null)
             {
-                builder.headersItem(h -> h.name(HTTP_HEADER_AUTHORIZATION).value(BEARER_PREFIX + mcp.credentials));
+                builder.headersItem(h -> h.name(HTTP_HEADER_AUTHORIZATION).value(header));
             }
+        }
+
+        private static String authorizationHeader(
+            String template,
+            String credentials)
+        {
+            String header = null;
+            if (template != null)
+            {
+                header = template.contains(McpBindingConfig.CREDENTIALS_PLACEHOLDER)
+                    ? credentials != null ? template.replace(McpBindingConfig.CREDENTIALS_PLACEHOLDER, credentials) : null
+                    : template;
+            }
+            return header;
         }
 
         abstract void onDecodeParseError(
@@ -4828,14 +4885,13 @@ public final class McpClientFactory implements McpStreamFactory
         {
             super(mcp);
             final McpBindingConfig binding = bindings.get(mcp.routedId);
-            final Map<String, List<String>> roles = binding.getRoles(mcp.resolvedId);
             // per-stream pipeline: the injector carries in-flight parse state across response data frames,
             // so each concurrent tools/list stream owns its own (unlike the proxy filter, which runs to
             // completion synchronously and is reused per worker)
             final JsonParserEx parser = JsonEx.createParser();
             final JsonGeneratorEx generator = JsonEx.createGenerator();
             this.pipeline = JsonEx.stream(parser)
-                .transform(new McpSchemeInjector(JSON_KEY_TOOLS, roles))
+                .transform(new McpSchemeInjector(JSON_KEY_TOOLS, binding.hasToolGuardedRoutes(), binding::getRoles))
                 .into(generator);
         }
 
@@ -5111,6 +5167,49 @@ public final class McpClientFactory implements McpStreamFactory
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
             codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_RESOURCES_LIST_METHOD);
+
+            injectAuthorization(extBuilder);
+
+            final int contentLength = codecLength;
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_CONTENT_LENGTH).value(Integer.toString(contentLength)));
+            final HttpBeginExFW httpBeginEx = extBuilder.build();
+
+            doNetBegin(traceId, authorization, httpBeginEx);
+            doNetData(traceId, authorization, codecBuffer, 0, codecLength);
+        }
+
+    }
+
+    private final class HttpResourcesTemplatesListStream extends HttpRequestStream
+    {
+        HttpResourcesTemplatesListStream(
+            McpStream mcp)
+        {
+            super(mcp);
+        }
+
+        @Override
+        void doEncodeRequestBegin(
+            long traceId,
+            long authorization)
+        {
+            final HttpBeginExFW.Builder extBuilder = httpBeginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId);
+            mcp.binding().injectHeaders(extBuilder);
+            extBuilder
+                .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
+                .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .headersItem(h -> h.name(HTTP_HEADER_ACCEPT).value(CONTENT_TYPE_JSON_AND_EVENT_STREAM))
+                .headersItem(h -> h.name(HTTP_HEADER_MCP_VERSION).value(mcp.protocolVersion()));
+
+            final String sid = mcp.transportSessionId();
+            extBuilder.headersItem(h -> h.name(HTTP_HEADER_SESSION).value(sid));
+
+            int codecLength = 0;
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_REQUEST_ID_PREFIX);
+            codecLength += codecBuffer.putIntAscii(codecLength, request.requestId);
+            codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_RESOURCES_TEMPLATES_LIST_METHOD);
 
             injectAuthorization(extBuilder);
 

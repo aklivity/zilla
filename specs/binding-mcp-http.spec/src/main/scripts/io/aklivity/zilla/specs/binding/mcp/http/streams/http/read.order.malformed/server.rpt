@@ -45,3 +45,7 @@ write flush
 write close
 
 read closed
+
+# only once the full response round trip has completed can the client safely expect the
+# proxy to have already reacted to the malformed body and sent its abort
+write notify RESPONSE_SENT

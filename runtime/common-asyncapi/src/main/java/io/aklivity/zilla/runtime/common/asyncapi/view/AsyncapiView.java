@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Predicate;
 
@@ -28,6 +29,7 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
+import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiMultiFormatSchema;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiView
@@ -40,6 +42,20 @@ public final class AsyncapiView
     public final AsyncapiComponentsView components;
 
     private final AsyncapiResolver resolver;
+    private final Map<String, Object> extensions;
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
+    }
 
     public boolean hasProtocol(
         String protocol)
@@ -55,12 +71,18 @@ public final class AsyncapiView
 
     public boolean hasOperationBindingsHttp()
     {
-        return operations.values().stream().anyMatch(AsyncapiOperationView::hasBindingsHttp);
+        return operations.values().stream().anyMatch(o -> o.hasBinding("http"));
     }
 
     public boolean hasOperationBindingsSse()
     {
-        return operations.values().stream().anyMatch(AsyncapiOperationView::hasBindingsSse);
+        return operations.values().stream().anyMatch(o -> o.hasBinding("x-zilla-sse"));
+    }
+
+    public AsyncapiMultiFormatSchemaView resolveSchema(
+        AsyncapiMultiFormatSchema schema)
+    {
+        return new AsyncapiMultiFormatSchemaView(resolver, schema);
     }
 
     public static AsyncapiView of(
@@ -95,6 +117,7 @@ public final class AsyncapiView
         this.compositeId = compositeId(id, 0);
 
         this.resolver = new AsyncapiResolver(asyncapi);
+        this.extensions = asyncapi.extensions;
 
         this.servers = asyncapi.servers != null
             ? asyncapi.servers.entrySet().stream()

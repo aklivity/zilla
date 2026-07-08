@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.function.IntConsumer;
 
 import jakarta.json.JsonArray;
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
@@ -46,6 +47,9 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
     private static final int MAX_DEPTH = 64;
+    // worst-case ASCII lexeme width for write(int)/write(long): Integer.MIN_VALUE and Long.MIN_VALUE
+    private static final int MAX_INT_DIGITS = 11;
+    private static final int MAX_LONG_DIGITS = 20;
     private static final byte[] HEX = "0123456789abcdef".getBytes();
     // a defensible initial target so a freshly constructed generator never NPEs on direct use before wrap
     private static final MutableDirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
@@ -128,10 +132,24 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public JsonGeneratorImpl writeStartObject()
     {
-        preValue();
-        putByte.accept('{');
-        push(false);
+        if (!writeStartObjectEx())
+        {
+            throw new JsonException("insufficient room to write start object");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeStartObjectEx()
+    {
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + 1;
+        if (written)
+        {
+            preValue();
+            putByte.accept('{');
+            push(false);
+        }
+        return written;
     }
 
     @Override
@@ -145,10 +163,24 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public JsonGeneratorImpl writeStartArray()
     {
-        preValue();
-        putByte.accept('[');
-        push(true);
+        if (!writeStartArrayEx())
+        {
+            throw new JsonException("insufficient room to write start array");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeStartArrayEx()
+    {
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + 1;
+        if (written)
+        {
+            preValue();
+            putByte.accept('[');
+            push(true);
+        }
+        return written;
     }
 
     @Override
@@ -170,15 +202,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeKey(
         CharSequence name)
     {
-        if (hasMembers[depth - 1])
-        {
-            putByte.accept(',');
-        }
-        hasMembers[depth - 1] = true;
-        writeString(name);
-        putByte.accept(':');
-        pending = Pending.AFTER_KEY;
-        return this;
+        return writeKey(name, Completion.COMPLETE);
     }
 
     @Override
@@ -186,8 +210,14 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence name,
         Completion completion)
     {
+        final int quoteWidth = escaped ? 2 : 1;
         if (pending != Pending.KEY)
         {
+            final boolean closesEmpty = completion == Completion.COMPLETE && name.length() == 0;
+            if (remaining() < (hasMembers[depth - 1] ? 1 : 0) + quoteWidth + (closesEmpty ? quoteWidth + 1 : 0))
+            {
+                return this;
+            }
             if (hasMembers[depth - 1])
             {
                 putByte.accept(',');
@@ -200,10 +230,10 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         // fragment for the closing quote and key separator; report the source chars taken via consumed() so a
         // chunking driver advances its cursor and resumes from the remainder, the key-domain analog of
         // write(CharSequence, Completion)
-        final int reserve = completion == Completion.COMPLETE ? 2 : 0;
+        final int reserve = completion == Completion.COMPLETE ? quoteWidth + 1 : 0;
         final int written = writeStringBody(name, reserve);
         consumed += written;
-        if (written == name.length() && completion == Completion.COMPLETE)
+        if (written == name.length() && completion == Completion.COMPLETE && remaining() >= quoteWidth + 1)
         {
             putByte.accept('"');
             putByte.accept(':');
@@ -215,9 +245,24 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public JsonGeneratorImpl writeEnd()
     {
-        depth--;
-        putByte.accept(inArray[depth] ? ']' : '}');
+        if (!writeEndEx())
+        {
+            throw new JsonException("insufficient room to write end");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeEndEx()
+    {
+        // no leading separator ever applies to a closing brace/bracket, so this needs only its own byte
+        boolean written = remaining() >= 1;
+        if (written)
+        {
+            depth--;
+            putByte.accept(inArray[depth] ? ']' : '}');
+        }
+        return written;
     }
 
     @Override
@@ -231,9 +276,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         CharSequence value)
     {
-        preValue();
-        writeString(value);
-        return this;
+        return write(value, Completion.COMPLETE);
     }
 
     @Override
@@ -241,8 +284,14 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence value,
         Completion completion)
     {
+        final int quoteWidth = escaped ? 2 : 1;
         if (pending != Pending.STRING)
         {
+            final boolean closesEmpty = completion == Completion.COMPLETE && value.length() == 0;
+            if (remaining() < (needsComma() ? 1 : 0) + quoteWidth + (closesEmpty ? quoteWidth : 0))
+            {
+                return this;
+            }
             preValue();
             putByte.accept('"');
             pending = Pending.STRING;
@@ -250,10 +299,10 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         // emit only the code points whose escaped form fits the output bound (reserving room for the
         // closing quote on the final fragment); report the source chars taken via consumed() so a chunking
         // driver advances its cursor and resumes from the remainder, the char-domain analog of writeSegment
-        final int reserve = completion == Completion.COMPLETE ? 1 : 0;
+        final int reserve = completion == Completion.COMPLETE ? quoteWidth : 0;
         final int written = writeStringBody(value, reserve);
         consumed += written;
-        if (written == value.length() && completion == Completion.COMPLETE)
+        if (written == value.length() && completion == Completion.COMPLETE && remaining() >= quoteWidth)
         {
             putByte.accept('"');
             pending = Pending.NONE;
@@ -279,18 +328,50 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         int value)
     {
-        preValue();
-        progress += buffer.putIntAscii(progress, value);
+        if (!writeEx(value))
+        {
+            throw new JsonException("insufficient room to write int");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeEx(
+        int value)
+    {
+        // worst case is Integer.MIN_VALUE's 11-char lexeme; no caller fragments a plain int/long today, so
+        // this reserves the full width rather than computing the value's exact digit count
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + MAX_INT_DIGITS;
+        if (written)
+        {
+            preValue();
+            progress += buffer.putIntAscii(progress, value);
+        }
+        return written;
     }
 
     @Override
     public JsonGeneratorImpl write(
         long value)
     {
-        preValue();
-        progress += buffer.putLongAscii(progress, value);
+        if (!writeEx(value))
+        {
+            throw new JsonException("insufficient room to write long");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeEx(
+        long value)
+    {
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + MAX_LONG_DIGITS;
+        if (written)
+        {
+            preValue();
+            progress += buffer.putLongAscii(progress, value);
+        }
+        return written;
     }
 
     @Override
@@ -308,17 +389,47 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl write(
         boolean value)
     {
-        preValue();
-        writeAscii(value ? "true" : "false");
+        if (!writeEx(value))
+        {
+            throw new JsonException("insufficient room to write boolean");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeEx(
+        boolean value)
+    {
+        final String literal = value ? "true" : "false";
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + literal.length();
+        if (written)
+        {
+            preValue();
+            writeAscii(literal);
+        }
+        return written;
     }
 
     @Override
     public JsonGeneratorImpl writeNull()
     {
-        preValue();
-        writeAscii("null");
+        if (!writeNullEx())
+        {
+            throw new JsonException("insufficient room to write null");
+        }
         return this;
+    }
+
+    @Override
+    public boolean writeNullEx()
+    {
+        boolean written = remaining() >= (needsComma() ? 1 : 0) + 4;
+        if (written)
+        {
+            preValue();
+            writeAscii("null");
+        }
+        return written;
     }
 
     @Override
@@ -454,9 +565,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeNumber(
         CharSequence literal)
     {
-        preValue();
-        writeAscii(literal);
-        return this;
+        return writeNumber(literal, Completion.COMPLETE);
     }
 
     @Override
@@ -466,6 +575,12 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (pending != Pending.NUMBER)
         {
+            // preValue()'s leading separator is its only unbounded write here (writeAsciiBounded below already
+            // checks every lexeme char against the limit), so guard it the same way write/writeKey guard theirs
+            if (needsComma() && remaining() < 1)
+            {
+                return this;
+            }
             preValue();
             pending = Pending.NUMBER;
         }
@@ -668,25 +783,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
     }
 
-    private void writeString(
-        CharSequence value)
+    private boolean needsComma()
     {
-        putByte.accept('"');
-        writeStringBody(value);
-        putByte.accept('"');
-    }
-
-    private void writeStringBody(
-        CharSequence value)
-    {
-        int index = 0;
-        int length = value.length();
-        while (index < length)
-        {
-            int codePoint = Character.codePointAt(value, index);
-            index += Character.charCount(codePoint);
-            emitStringCodePoint(codePoint);
-        }
+        return pending != Pending.AFTER_KEY && depth > 0 && inArray[depth - 1] && hasMembers[depth - 1];
     }
 
     // Bounded counterpart used by write(CharSequence, Completion): emits whole code points while each one's
@@ -759,10 +858,18 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
     }
 
-    // Output byte width of a code point once written as canonical JSON string content: a short escape
-    // (2 bytes), a control-char \\uXXXX escape (6), or its UTF-8 encoding (1-4). Mirrors emitStringCodePoint
-    // for the verbatim (non GENERATE_ESCAPED) generator, which is the only mode the decoded value path uses.
-    private static int codePointWidth(
+    // Output byte width of a code point once written as canonical JSON string content, dispatching on
+    // escaped so the budget matches what emitStringCodePoint (via putByte) actually produces in each mode.
+    private int codePointWidth(
+        int codePoint)
+    {
+        return escaped ? escapedCodePointWidth(codePoint) : verbatimCodePointWidth(codePoint);
+    }
+
+    // Verbatim-mode width: a short escape (2 bytes), a control-char \\uXXXX escape (6), or the UTF-8
+    // encoding (1-4). Also the width of any code point's UTF-8 bytes once escaped, since none of those
+    // bytes ever match a special escape byte value (see escapedCodePointWidth).
+    private static int verbatimCodePointWidth(
         int codePoint)
     {
         int width;
@@ -798,6 +905,34 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             {
                 width = 4;
             }
+            break;
+        }
+        return width;
+    }
+
+    // Escaped-mode width: emitStringCodePoint's own escape bytes (e.g. '\\' then '"' for a quote) are
+    // themselves routed through the escaping putByte, so each doubles up per escapedWidth; a code point
+    // with no special handling falls through to writeUtf8, whose raw bytes are never special escape
+    // values and so cost the same as verbatim.
+    private static int escapedCodePointWidth(
+        int codePoint)
+    {
+        int width;
+        switch (codePoint)
+        {
+        case '"':
+        case '\\':
+            width = 4;
+            break;
+        case '\n':
+        case '\r':
+        case '\t':
+        case '\b':
+        case '\f':
+            width = 3;
+            break;
+        default:
+            width = codePoint < 0x20 ? 7 : verbatimCodePointWidth(codePoint);
             break;
         }
         return width;

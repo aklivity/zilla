@@ -22,6 +22,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpBinding;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
@@ -32,6 +33,7 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String HEADERS_NAME = "headers";
+    private static final String COOKIES_NAME = "cookies";
     private static final String QUERY_NAME = "query";
     private static final String BODY_NAME = "body";
     private static final String TEMPLATE_NAME = "template";
@@ -59,20 +61,28 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
             object.add(HEADERS_NAME, headers);
         }
 
+        if (mcpHttpWith.cookies != null && !mcpHttpWith.cookies.isEmpty())
+        {
+            JsonObjectBuilder cookies = Json.createObjectBuilder();
+            mcpHttpWith.cookies.forEach(cookies::add);
+            object.add(COOKIES_NAME, cookies);
+        }
+
         if (mcpHttpWith.query != null)
         {
             object.add(QUERY_NAME, model.adaptToJson(mcpHttpWith.query));
         }
 
-        if (mcpHttpWith.bodyTemplate != null)
+        McpHttpBodyConfig body = mcpHttpWith.body;
+        if (body != null && body.template != null)
         {
             JsonObjectBuilder template = Json.createObjectBuilder();
-            mcpHttpWith.bodyTemplate.forEach(template::add);
+            body.template.forEach(template::add);
             object.add(BODY_NAME, Json.createObjectBuilder().add(TEMPLATE_NAME, template));
         }
-        else if (mcpHttpWith.body != null)
+        else if (body != null && body.model != null)
         {
-            object.add(BODY_NAME, model.adaptToJson(mcpHttpWith.body));
+            object.add(BODY_NAME, model.adaptToJson(body.model));
         }
 
         return object.build();
@@ -93,30 +103,46 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
             }
         }
 
+        Map<String, String> cookies = null;
+        if (object.containsKey(COOKIES_NAME))
+        {
+            JsonObject cookiesObject = object.getJsonObject(COOKIES_NAME);
+            cookies = new LinkedHashMap<>();
+            for (String name : cookiesObject.keySet())
+            {
+                cookies.put(name, cookiesObject.getString(name));
+            }
+        }
+
         ModelConfig query = object.containsKey(QUERY_NAME)
             ? model.adaptFromJson(object.get(QUERY_NAME))
             : null;
 
-        ModelConfig body = null;
-        Map<String, String> bodyTemplate = null;
+        McpHttpBodyConfig body = null;
         if (object.containsKey(BODY_NAME))
         {
             JsonObject bodyObject = object.getJsonObject(BODY_NAME);
             if (bodyObject.containsKey(TEMPLATE_NAME))
             {
                 JsonObject templateObject = bodyObject.getJsonObject(TEMPLATE_NAME);
-                bodyTemplate = new LinkedHashMap<>();
+                Map<String, String> template = new LinkedHashMap<>();
                 for (String name : templateObject.keySet())
                 {
-                    bodyTemplate.put(name, templateObject.getString(name));
+                    template.put(name, templateObject.getString(name));
                 }
+                body = McpHttpBodyConfig.builder().template(template).build();
             }
             else
             {
-                body = model.adaptFromJson(object.get(BODY_NAME));
+                body = McpHttpBodyConfig.builder().model(model.adaptFromJson(object.get(BODY_NAME))).build();
             }
         }
 
-        return new McpHttpWithConfig(headers, query, body, bodyTemplate);
+        return McpHttpWithConfig.builder()
+            .headers(headers)
+            .cookies(cookies)
+            .query(query)
+            .body(body)
+            .build();
     }
 }

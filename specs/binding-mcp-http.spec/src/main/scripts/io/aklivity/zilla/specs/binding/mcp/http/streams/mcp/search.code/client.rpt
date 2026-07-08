@@ -54,8 +54,8 @@ write '{"name":"search_code","arguments":{"q":"addClass","per_page":5}}'
 
 # response projected through schemas.output (search_code_result): total_count + items[].path only
 read  '{'
-        '"content":[{"type":"text","text":"Found 2 matches"}],'
         '"structuredContent":{"total_count":2,"items":[{"path":"src/a.js"},{"path":"src/b.js"}]},'
+        '"content":[{"type":"text","text":"Found 2 matches"}],'
         '"isError":false'
       '}'
 read closed

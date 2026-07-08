@@ -24,6 +24,8 @@ stores:
           {"tools":[{"name": "get_weather","title": "Weather Information Provider","description": "Get current weather information for a location","inputSchema": {"type": "object","properties": {"location": {"type": "string","description": "City name or zip code"}},"required": ["location"]},"icons": [{"src": "https://example.com/weather-icon.png","mimeType": "image/png","sizes": ["48x48"]}],"execution": {"taskSupport": "optional"}}]}
         resources: |-
           {"resources":[{"uri": "file:///docs/welcome.md","name": "welcome","description": "Welcome document","mimeType": "text/markdown"}]}
+        resources/templates: |-
+          {"resourceTemplates":[]}
         prompts: |-
           {"prompts":[{"name": "summarize","description": "Summarize a document"}]}
 bindings:

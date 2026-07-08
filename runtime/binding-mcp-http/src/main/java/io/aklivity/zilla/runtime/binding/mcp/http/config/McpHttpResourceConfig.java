@@ -14,25 +14,41 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.config;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public final class McpHttpResourceConfig
 {
     public final String name;
     public final String uri;
+    public final boolean template;
     public final String description;
     public final String mimeType;
     public final ModelConfig output;
 
-    public McpHttpResourceConfig(
+    public static McpHttpResourceConfigBuilder<McpHttpResourceConfig> builder()
+    {
+        return new McpHttpResourceConfigBuilder<>(McpHttpResourceConfig.class::cast);
+    }
+
+    public static <T> McpHttpResourceConfigBuilder<T> builder(
+        Function<McpHttpResourceConfig, T> mapper)
+    {
+        return new McpHttpResourceConfigBuilder<>(mapper);
+    }
+
+    McpHttpResourceConfig(
         String name,
         String uri,
+        boolean template,
         String description,
         String mimeType,
         ModelConfig output)
     {
         this.name = name;
         this.uri = uri;
+        this.template = template;
         this.description = description;
         this.mimeType = mimeType;
         this.output = output;

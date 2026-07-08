@@ -15,10 +15,9 @@
 package io.aklivity.zilla.runtime.binding.mcp.http.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
-import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_PROMPTS_GET;
-import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
+import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -29,6 +28,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -47,9 +47,6 @@ import jakarta.json.JsonWriter;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptArgumentConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpPromptMessageConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
@@ -58,7 +55,10 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBinding
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.events.McpHttpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpArguments;
-import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpRename;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpDiscard;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpQuery;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpResults;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpToolResult;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.OctetsFW;
@@ -75,13 +75,14 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.WindowFW
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonStream;
+import io.aklivity.zilla.runtime.common.json.JsonTransforms;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -99,38 +100,25 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final String HEADER_PATH = ":path";
     private static final String HEADER_STATUS = ":status";
     private static final String HEADER_CONTENT_TYPE = "content-type";
+    private static final String HEADER_COOKIE = "cookie";
     private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
     private static final int FLAGS_COMPLETE = 0x03;
     private static final int WINDOW_MAX = 65536;
-    private static final int MAX_ERROR_BODY = 8192;
+    private static final int JSON_RPC_INVALID_PARAMS = -32602;
     private static final int JSON_RPC_INTERNAL_ERROR = -32603;
-    private static final int RESPONSE_WINDOW = 1024;
-    private static final int RESPONSE_GEN_BOUND = 1024;
-    private static final int RESPONSE_BUFFER_MAX = 4096;
 
     private static final byte[] REPLY_SUFFIX = "\"}]}".getBytes(UTF_8);
-    private static final byte[] TOOL_SUCCESS_PREFIX = "{\"content\":[{\"type\":\"text\",\"text\":".getBytes(UTF_8);
-    private static final byte[] TOOL_SUCCESS_INFIX = "}],\"structuredContent\":".getBytes(UTF_8);
-    private static final byte[] TOOL_SUCCESS_SUFFIX = ",\"isError\":false}".getBytes(UTF_8);
-    private static final byte[] TOOL_ERROR_SUFFIX = "}],\"isError\":true}".getBytes(UTF_8);
-    private static final byte[] EMPTY_OBJECT = "{}".getBytes(UTF_8);
+    private static final byte[] TOOL_ERROR_PREFIX = "{\"content\":[{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
+    private static final byte[] TOOL_ERROR_SUFFIX = "\"}],\"isError\":true}".getBytes(UTF_8);
     private static final byte[] RESOURCE_PREFIX = "{\"contents\":[{\"uri\":".getBytes(UTF_8);
     private static final byte[] RESOURCE_MIME = ",\"mimeType\":".getBytes(UTF_8);
-    private static final byte[] RESOURCE_TEXT = ",\"text\":".getBytes(UTF_8);
     private static final byte[] RESOURCE_TEXT_OPEN = ",\"text\":\"".getBytes(UTF_8);
-    private static final byte[] RESOURCE_SUFFIX = "}]}".getBytes(UTF_8);
-    private static final byte[] PROMPT_DESCRIPTION = "{\"description\":".getBytes(UTF_8);
-    private static final byte[] PROMPT_MESSAGES = ",\"messages\":[".getBytes(UTF_8);
-    private static final byte[] PROMPT_MESSAGES_OPEN = "{\"messages\":[".getBytes(UTF_8);
-    private static final byte[] PROMPT_MESSAGE_ROLE = "{\"role\":".getBytes(UTF_8);
-    private static final byte[] PROMPT_MESSAGE_CONTENT = ",\"content\":{\"type\":\"text\",\"text\":".getBytes(UTF_8);
-    private static final byte[] PROMPT_MESSAGE_END = "}}".getBytes(UTF_8);
-    private static final byte[] PROMPT_SUFFIX = "]}".getBytes(UTF_8);
 
     private static final Map<String, String> EMPTY_PARAMS = Map.of();
+    private static final Map<String, Object> SINK_SEGMENTABLE = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -155,7 +143,8 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final BufferPool bufferPool;
+    private final BufferPool decodePool;
+    private final BufferPool encodePool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -165,21 +154,14 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final McpHttpEventContext events;
     private final Long2ObjectHashMap<McpHttpBindingConfig> bindings;
 
-    private final JsonGeneratorEx projectGenerator;
-    private final JsonParserEx queryParser = JsonEx.createParser();
-    private final JsonPipeline canonicalizer;
-    private final MutableDirectBufferEx projectBuffer;
-    private final MutableDirectBufferEx replyBuffer;
     private final UnsafeBufferEx escapeRO = new UnsafeBufferEx(new byte[0]);
-    private final UnsafeBufferEx argsRO;
-    private final Map<String, String> argsCaptured = new HashMap<>();
-    private final JsonGeneratorEx argsGenerator;
-    private final MutableDirectBufferEx argsBuffer;
-    private final JsonPipeline argsPipeline;
-    private final Map<JsonSchema, JsonPipeline> projectors;
-    private final Map<JsonSchema, JsonPipeline> validatingProjectors;
-    private final Map<JsonSchema, JsonPipeline> validators;
-    private final Map<McpHttpRouteConfig, JsonPipeline> templates;
+    private final UnsafeBufferEx emptyRequestRO = new UnsafeBufferEx(new byte[0]);
+    private final Map<McpHttpRouteConfig, List<String>> routePathArgReferences;
+    private final Map<McpHttpToolConfig, List<String>> toolResultReferences;
+
+    // hoisted to avoid reallocating a capturing method-reference object on every computeIfAbsent call
+    private final Function<McpHttpRouteConfig, List<String>> newPathArgReferencesFn = this::newPathArgReferences;
+    private final Function<McpHttpToolConfig, List<String>> newToolResultReferencesFn = this::newToolResultReferences;
 
     private final Map<String, McpSession> sessions;
     private final Supplier<String> supplySessionId;
@@ -193,7 +175,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.bufferPool = context.bufferPool();
+        this.decodePool = context.bufferPool();
+        this.encodePool = context.bufferPool().duplicate();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -201,21 +184,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.events = new McpHttpEventContext(context);
         this.bindings = new Long2ObjectHashMap<>();
-        this.projectGenerator = JsonEx.createGenerator();
-        this.canonicalizer = JsonEx.stream(JsonEx.createParser())
-            .into(JsonEx.createSink(projectGenerator));
-        this.projectBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.replyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.argsRO = new UnsafeBufferEx(new byte[0]);
-        this.argsGenerator = JsonEx.createGenerator();
-        this.argsBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.argsPipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(new McpHttpArguments(argsCaptured))
-            .into(JsonEx.createSink(argsGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
-        this.projectors = new IdentityHashMap<>();
-        this.validatingProjectors = new IdentityHashMap<>();
-        this.validators = new IdentityHashMap<>();
-        this.templates = new IdentityHashMap<>();
+        this.routePathArgReferences = new IdentityHashMap<>();
+        this.toolResultReferences = new IdentityHashMap<>();
         this.sessions = new Object2ObjectHashMap<>();
         this.supplySessionId = config.sessionIdSupplier();
         this.sessionIdAttempts = config.sessionIdAttempts();
@@ -276,45 +246,50 @@ public final class McpHttpProxyFactory implements BindingHandler
 
                 if (session != null)
                 {
-                    McpHttpRouteConfig route = null;
-                    McpHttpResourceConfig resource = null;
-                    McpHttpPromptConfig prompt = null;
-                    String name = null;
-                    String uri = null;
-                    int contentLength = -1;
-                    Map<String, String> params = EMPTY_PARAMS;
-
-                    if (kind == KIND_TOOLS_CALL)
+                    switch (kind)
                     {
-                        name = beginEx.toolsCall().name().asString();
-                        contentLength = beginEx.toolsCall().contentLength();
-                        route = binding.resolveTool(name, authorization);
-                    }
-                    else if (kind == KIND_RESOURCES_READ)
-                    {
-                        uri = beginEx.resourcesRead().uri().asString();
-                        contentLength = beginEx.resourcesRead().contentLength();
-                        params = new HashMap<>();
-                        resource = binding.resolveResource(uri, params);
-                        if (resource != null)
-                        {
-                            route = binding.resolveResourceRoute(resource.name, authorization);
-                        }
-                    }
-                    else if (kind == KIND_PROMPTS_GET)
-                    {
-                        name = beginEx.promptsGet().name().asString();
-                        contentLength = beginEx.promptsGet().contentLength();
-                        prompt = binding.prompt(name);
-                    }
-
-                    final boolean listing = kind == KIND_TOOLS_LIST ||
-                        kind == KIND_RESOURCES_LIST || kind == KIND_PROMPTS_LIST;
-
-                    if (route != null || listing || prompt != null)
-                    {
-                        newStream = new McpProxy(binding, route, resource, kind, name, uri, params, contentLength,
+                    case KIND_TOOLS_LIST:
+                        newStream = new McpToolsListProxy(binding,
                             sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
+                        break;
+                    case KIND_RESOURCES_LIST:
+                        newStream = new McpResourcesListProxy(binding,
+                            sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
+                        break;
+                    case KIND_RESOURCES_TEMPLATES_LIST:
+                        newStream = new McpResourcesTemplatesListProxy(binding,
+                            sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
+                        break;
+                    case KIND_TOOLS_CALL:
+                    {
+                        final String name = beginEx.toolsCall().name().asString();
+                        final int contentLength = beginEx.toolsCall().contentLength();
+                        final McpHttpRouteConfig route = binding.resolveTool(name, authorization);
+                        if (route != null)
+                        {
+                            newStream = new McpToolsCallProxy(binding, route, name, contentLength,
+                                sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
+                        }
+                        break;
+                    }
+                    case KIND_RESOURCES_READ:
+                    {
+                        final String uri = beginEx.resourcesRead().uri().asString();
+                        final int contentLength = beginEx.resourcesRead().contentLength();
+                        final Map<String, String> params = new HashMap<>();
+                        final McpHttpResourceConfig resource = binding.resolveResource(uri, params);
+                        final McpHttpRouteConfig route = resource != null
+                            ? binding.resolveResourceRoute(resource.name, authorization)
+                            : null;
+                        if (route != null)
+                        {
+                            newStream = new McpResourcesReadProxy(binding, route, resource, uri, params, contentLength,
+                                sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
+                        }
+                        break;
+                    }
+                    default:
+                        break;
                     }
                 }
             }
@@ -323,67 +298,45 @@ public final class McpHttpProxyFactory implements BindingHandler
         return newStream;
     }
 
-    private final class McpProxy
+    private abstract class McpProxy
     {
-        private final McpHttpBindingConfig binding;
-        private final McpHttpRouteConfig route;
-        private final McpHttpResourceConfig resource;
-        private final int kind;
-        private final String name;
-        private final String uri;
-        private final Map<String, String> params;
-        private final int contentLength;
+        final McpHttpBindingConfig binding;
+        final McpHttpRouteConfig route;
+        final String name;
+        final String uri;
+        final Map<String, String> params;
+        final int contentLength;
 
-        private final MessageConsumer sender;
-        private final long originId;
-        private final long routedId;
-        private final long initialId;
-        private final long replyId;
-        private final long authorization;
-        private final long affinity;
+        final MessageConsumer sender;
+        final long originId;
+        final long routedId;
+        final long initialId;
+        final long replyId;
+        final long authorization;
+        final long affinity;
 
-        private final HttpProxy delegate;
-        private final Map<String, String> credentials = new HashMap<>();
+        int state;
+        boolean requestHandled;
 
-        private int state;
-        private boolean requestHandled;
+        int decodeSlot = NO_SLOT;
+        int decodeSlotOffset;
 
-        private int decodeSlot = NO_SLOT;
-        private int decodeSlotOffset;
+        int encodeSlot = NO_SLOT;
+        int encodeSlotOffset;
+        boolean replyDataStarted;
 
-        private int encodeSlot = NO_SLOT;
-        private int encodeSlotOffset;
-        private boolean replyDataStarted;
-        private boolean replyComplete;
+        long initialSeq;
+        long initialAck;
+        int initialMax;
 
-        private JsonPipeline responsePipeline;
-        private JsonGeneratorEx responseGenerator;
-        private boolean responseStreaming;
-        private boolean responseDone;
-
-        private boolean requestStreaming;
-        private JsonPipeline requestPipeline;
-        private JsonGeneratorEx requestGenerator;
-        private Map<String, String> requestArgs;
-        private List<String> requestPathArgs;
-        private boolean requestBegun;
-        private boolean requestProjected;
-        private boolean requestEndedMcp;
-
-        private long initialSeq;
-        private long initialAck;
-        private int initialMax;
-
-        private long replySeq;
-        private long replyAck;
-        private int replyMax;
-        private int replyPad;
+        long replySeq;
+        long replyAck;
+        int replyMax;
+        int replyPad;
 
         private McpProxy(
             McpHttpBindingConfig binding,
             McpHttpRouteConfig route,
-            McpHttpResourceConfig resource,
-            int kind,
             String name,
             String uri,
             Map<String, String> params,
@@ -397,8 +350,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             this.binding = binding;
             this.route = route;
-            this.resource = resource;
-            this.kind = kind;
             this.name = name;
             this.uri = uri;
             this.params = params;
@@ -410,10 +361,9 @@ public final class McpHttpProxyFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.affinity = affinity;
-            this.delegate = route != null ? new HttpProxy(this, route.id) : null;
         }
 
-        private void onMcpMessage(
+        void onMcpMessage(
             int msgTypeId,
             DirectBufferEx buffer,
             int index,
@@ -444,7 +394,9 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
         }
 
-        private void onMcpBegin(
+        // The buffered kinds (listings) reply immediately when no request body is expected; the HTTP-backed
+        // kinds override this to await the request body before shaping the upstream request.
+        void onMcpBegin(
             BeginFW begin)
         {
             final long traceId = begin.traceId();
@@ -453,125 +405,40 @@ public final class McpHttpProxyFactory implements BindingHandler
             initialAck = begin.acknowledge();
             state = McpHttpState.openingInitial(state);
 
-            if (kind == KIND_TOOLS_CALL && route != null && route.with.body != null &&
-                route.with.bodyTemplate == null && contentLength > bufferPool.slotCapacity())
+            doMcpWindow(traceId);
+            if (!requestHandled && contentLength < 0)
             {
-                requestStreaming = true;
-                requestArgs = new HashMap<>();
-                requestPathArgs = argReferences(route.with.headers.get(HEADER_PATH));
-                requestGenerator = JsonEx.createGenerator();
-                requestPipeline = JsonEx.stream(JsonEx.createParser())
-                    .transform(new McpHttpArguments(requestArgs))
-                    .transform(JsonEx.projector(binding.jsonSchema(route.with.body)))
-                    .into(JsonEx.createSink(requestGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
-                requestPipeline.reset();
-                grantMcpWindow(traceId);
-            }
-            else
-            {
-                doMcpWindow(traceId);
-                if (!requestHandled && delegate == null && contentLength < 0)
-                {
-                    handleRequest(traceId);
-                }
+                onMcpRequest(traceId);
             }
         }
 
-        private void onMcpData(
+        // Every concrete kind reaching this base implementation (listings, resources/read) already
+        // dispatches its request synchronously from onMcpBegin — see McpHttpProxy.sendTrivialRequestBegin
+        // and the contentLength < 0 branch below — so requestHandled is always true by the time any
+        // further DATA or END arrives; there is nothing left to buffer or dispatch here.
+        void onMcpData(
             DataFW data)
         {
-            final long traceId = data.traceId();
-            final int reserved = data.reserved();
-            final OctetsFW payload = data.payload();
-
-            initialSeq = data.sequence() + reserved;
-
-            if (requestStreaming)
-            {
-                if (payload != null)
-                {
-                    if (decodeSlot == NO_SLOT)
-                    {
-                        decodeSlot = bufferPool.acquire(initialId);
-                    }
-
-                    if (decodeSlot == NO_SLOT || decodeSlotOffset + payload.sizeof() > bufferPool.slotCapacity())
-                    {
-                        cleanup(traceId);
-                    }
-                    else
-                    {
-                        final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
-                        slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                        decodeSlotOffset += payload.sizeof();
-                        pumpRequest(traceId);
-                    }
-                }
-            }
-            else
-            {
-                if (payload != null)
-                {
-                    if (decodeSlot == NO_SLOT)
-                    {
-                        decodeSlot = bufferPool.acquire(initialId);
-                    }
-
-                    if (decodeSlot == NO_SLOT)
-                    {
-                        cleanup(traceId);
-                    }
-                    else
-                    {
-                        final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
-                        slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                        decodeSlotOffset += payload.sizeof();
-                    }
-                }
-
-                if (payload != null && (contentLength < 0 || decodeSlotOffset < contentLength))
-                {
-                    doMcpWindow(traceId);
-                }
-
-                if (!requestHandled && contentLength >= 0 && decodeSlotOffset >= contentLength)
-                {
-                    handleRequest(traceId);
-                }
-            }
+            initialSeq = data.sequence() + data.reserved();
         }
 
-        private void onMcpEnd(
+        void onMcpEnd(
             EndFW end)
         {
-            final long traceId = end.traceId();
             initialSeq = end.sequence();
             state = McpHttpState.closedInitial(state);
-
-            if (requestStreaming)
-            {
-                requestEndedMcp = true;
-                pumpRequest(traceId);
-            }
-            else if (!requestHandled)
-            {
-                handleRequest(traceId);
-            }
+            cleanupDecodeSlot();
         }
 
-        private void onMcpAbort(
+        void onMcpAbort(
             AbortFW abort)
         {
             final long traceId = abort.traceId();
             state = McpHttpState.closedInitial(state);
-            if (delegate != null)
-            {
-                delegate.doHttpAbort(traceId);
-            }
             cleanupDecodeSlot();
         }
 
-        private void onMcpWindow(
+        void onMcpWindow(
             WindowFW window)
         {
             replyAck = window.acknowledge();
@@ -580,498 +447,118 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             final long traceId = window.traceId();
             flushReply(traceId);
-
-            if (responseStreaming && !responseDone && delegate != null)
-            {
-                delegate.resumeResponse(traceId);
-            }
         }
 
-        private void onMcpReset(
+        void onMcpReset(
             ResetFW reset)
         {
             state = McpHttpState.closedReply(state);
             cleanupEncodeSlot();
         }
 
-        private void handleRequest(
-            long traceId)
-        {
-            requestHandled = true;
+        abstract void onMcpRequest(
+            long traceId);
 
-            if (kind == KIND_TOOLS_LIST)
-            {
-                doMcpReply(traceId, toolsList(binding));
-                cleanupDecodeSlot();
-                return;
-            }
-            else if (kind == KIND_RESOURCES_LIST)
-            {
-                doMcpReply(traceId, resourcesList(binding));
-                cleanupDecodeSlot();
-                return;
-            }
-            else if (kind == KIND_PROMPTS_LIST)
-            {
-                doMcpReply(traceId, promptsList(binding));
-                cleanupDecodeSlot();
-                return;
-            }
-            else if (kind == KIND_PROMPTS_GET)
-            {
-                final int argsLength = decodeSlot != NO_SLOT
-                    ? extractArgs(bufferPool.buffer(decodeSlot), 0, decodeSlotOffset)
-                    : emptyArgs();
-                doMcpReplyBytes(traceId, buildPromptGet(binding.prompt(name), argsLength));
-                cleanupDecodeSlot();
-                return;
-            }
-
-            final McpHttpToolConfig tool = kind == KIND_TOOLS_CALL ? binding.tool(name) : null;
-            final McpHttpWithConfig with = route.with;
-
-            final boolean needArgs = tool != null && tool.input != null ||
-                with.query != null || with.body != null || with.bodyTemplate != null;
-            final int argsLength = needArgs
-                ? decodeSlot != NO_SLOT ? extractArgs(bufferPool.buffer(decodeSlot), 0, decodeSlotOffset) : emptyArgs()
-                : 0;
-
-            if (tool != null && tool.input != null)
-            {
-                argsRO.wrap(argsBuffer, 0, argsLength);
-                if (!validate(binding.jsonSchema(tool.input), argsRO, 0, argsLength))
-                {
-                    doMcpReplyBytes(traceId, buildToolError("invalid arguments"));
-                    cleanupDecodeSlot();
-                    return;
-                }
-            }
-
-            final List<String> unsatisfied = binding.unsatisfiedAccessors(route);
-            if (!unsatisfied.isEmpty())
-            {
-                final String accessor = unsatisfied.get(0);
-                events.schemaAccessorUnresolved(traceId, binding.id, name != null ? name : uri, accessor);
-                doMcpReset(traceId, JSON_RPC_INTERNAL_ERROR, "unresolved expression: ${" + accessor + "}");
-                cleanupDecodeSlot();
-                return;
-            }
-
-            String path = interpolate(with.headers.get(HEADER_PATH), expr -> resolveRequest(argsLength, expr));
-
-            if (with.query != null)
-            {
-                argsRO.wrap(argsBuffer, 0, argsLength);
-                final int produced = projectInto(binding.jsonSchema(with.query), argsRO, 0, argsLength);
-                final String query = produced >= 0 ? queryStringFromBytes(projectBuffer, 0, produced) : "";
-                if (!query.isEmpty())
-                {
-                    path = path + "?" + query;
-                }
-            }
-
-            int bodyLength = -1;
-            String contentType = null;
-            if (with.bodyTemplate != null)
-            {
-                argsRO.wrap(argsBuffer, 0, argsLength);
-                bodyLength = templateInto(route, argsRO, 0, argsLength);
-                contentType = DEFAULT_CONTENT_TYPE;
-            }
-            else if (with.body != null)
-            {
-                argsRO.wrap(argsBuffer, 0, argsLength);
-                bodyLength = projectInto(binding.jsonSchema(with.body), argsRO, 0, argsLength);
-                contentType = DEFAULT_CONTENT_TYPE;
-            }
-
-            credentials.clear();
-            binding.resolveCredentials(authorization, credentials);
-
-            delegate.doHttpBegin(traceId, with.headers, credentials, path, contentType);
-            if (contentType != null)
-            {
-                if (bodyLength < 0)
-                {
-                    projectBuffer.putBytes(0, EMPTY_OBJECT);
-                    bodyLength = EMPTY_OBJECT.length;
-                }
-                if (bodyLength > 0)
-                {
-                    delegate.stageRequestBody(traceId, projectBuffer, 0, bodyLength);
-                }
-            }
-            delegate.requestComplete();
-            delegate.flushRequestStream(traceId);
-
-            cleanupDecodeSlot();
-        }
-
-        private String resolveRequest(
-            int argsLength,
-            String expression)
-        {
-            String value = "";
-            if (expression.startsWith("args."))
-            {
-                value = encode(navigateBytes(argsBuffer, argsLength, expression.substring(5)));
-            }
-            else if (expression.startsWith("params."))
-            {
-                final String captured = params.get(expression.substring(7));
-                value = encode(captured != null ? captured : "");
-            }
-            return value;
-        }
-
-        private void pumpRequest(
-            long traceId)
-        {
-            boolean progress = true;
-            while (progress && !requestProjected)
-            {
-                if (delegate == null || !delegate.encodeHasRoom())
-                {
-                    if (delegate != null)
-                    {
-                        delegate.flushRequestStream(traceId);
-                    }
-                    if (delegate == null || !delegate.encodeHasRoom())
-                    {
-                        progress = false;
-                        continue;
-                    }
-                }
-
-                requestGenerator.wrap(projectBuffer, 0, RESPONSE_GEN_BOUND);
-                final JsonPipeline.Status status =
-                    requestPipeline.transform(bufferPool.buffer(decodeSlot), 0, decodeSlotOffset, requestEndedMcp);
-                final int produced = requestGenerator.length();
-                if (produced > 0)
-                {
-                    delegate.stageRequestBody(traceId, projectBuffer, 0, produced);
-                }
-
-                switch (status)
-                {
-                case SUSPENDED:
-                    break;
-                case STARVED:
-                    decodeSlotOffset = 0;
-                    progress = false;
-                    break;
-                case COMPLETED:
-                    requestProjected = true;
-                    progress = false;
-                    cleanupDecodeSlot();
-                    break;
-                case REJECTED:
-                    progress = false;
-                    cleanup(traceId);
-                    break;
-                default:
-                    progress = false;
-                    break;
-                }
-            }
-
-            if (!requestBegun && delegate != null && requestPathReady())
-            {
-                sendRequestBegin(traceId);
-                requestBegun = true;
-            }
-
-            if (requestBegun)
-            {
-                if (requestProjected)
-                {
-                    delegate.requestComplete();
-                }
-                delegate.flushRequestStream(traceId);
-            }
-
-            if (!requestProjected)
-            {
-                grantMcpWindow(traceId);
-            }
-        }
-
-        private boolean requestPathReady()
-        {
-            return requestArgs.keySet().containsAll(requestPathArgs);
-        }
-
-        private void sendRequestBegin(
-            long traceId)
-        {
-            final McpHttpWithConfig with = route.with;
-            final String path = interpolate(with.headers.get(HEADER_PATH), this::resolveStreamingRequest);
-            credentials.clear();
-            binding.resolveCredentials(authorization, credentials);
-            delegate.doHttpBegin(traceId, with.headers, credentials, path, DEFAULT_CONTENT_TYPE);
-        }
-
-        private String resolveStreamingRequest(
-            String expression)
-        {
-            String value = "";
-            if (expression.startsWith("args."))
-            {
-                final String captured = requestArgs.get(expression.substring(5));
-                value = encode(captured != null ? captured : "");
-            }
-            else if (expression.startsWith("params."))
-            {
-                final String captured = params.get(expression.substring(7));
-                value = encode(captured != null ? captured : "");
-            }
-            return value;
-        }
-
-        private void grantMcpWindow(
-            long traceId)
-        {
-            initialAck = initialSeq - decodeSlotOffset;
-            initialMax = decodeSlotOffset + (delegate != null && delegate.encodeHasRoom() ? RESPONSE_WINDOW : 0);
-            state = McpHttpState.openedInitial(state);
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, 0L, 0);
-        }
-
-        private void onUpstreamResponse(
+        void doMcpReply(
             long traceId,
-            String status,
-            String contentType,
-            DirectBufferEx body,
-            int offset,
-            int length)
+            byte[] reply)
         {
-            if (kind == KIND_TOOLS_CALL)
-            {
-                final boolean ok = status != null && status.startsWith("2");
-                if (ok)
-                {
-                    final McpHttpToolConfig tool = binding.tool(name);
-                    final JsonSchema outputSchema = tool != null ? binding.jsonSchema(tool.output) : null;
-                    final int produced = projectResponse(outputSchema, body, offset, length);
-                    if (outputSchema != null && produced < 0)
-                    {
-                        doMcpReplyBytes(traceId, buildToolError("invalid response"));
-                    }
-                    else
-                    {
-                        final int structuredLength = produced >= 0 ? produced : emptyResponse();
-                        final int summaryLength = tool != null && tool.summary != null
-                            ? putJsonString(replyBuffer, 0,
-                                interpolate(tool.summary, expr -> resolveResult(structuredLength, expr)))
-                            : putJsonString(replyBuffer, 0, projectBuffer, 0, structuredLength);
-                        doMcpToolSuccess(traceId, summaryLength, structuredLength);
-                    }
-                }
-                else
-                {
-                    doMcpReplyBytes(traceId, buildToolError(cap(text(body, offset, length))));
-                }
-            }
-            else
-            {
-                final JsonSchema responseSchema = resource != null ? binding.jsonSchema(resource.output) : null;
-                final int produced = projectResponse(responseSchema, body, offset, length);
-                if (produced < 0)
-                {
-                    doMcpAbort(traceId);
-                }
-                else
-                {
-                    final String mimeType = resource != null && resource.mimeType != null
-                        ? resource.mimeType
-                        : contentType;
-                    doMcpReplyBytes(traceId, buildResource(uri, mimeType, produced));
-                }
-            }
+            doEncodeReply(reply);
+            completeReply(traceId);
         }
 
-        private void onUpstreamAbort(
+        void completeReply(
             long traceId)
         {
-            cleanupResponse();
-            doMcpAbort(traceId);
-        }
-
-        private void responseBegin(
-            long traceId,
-            String contentType)
-        {
-            responseStreaming = true;
-
-            final JsonSchema schema = resource != null ? binding.jsonSchema(resource.output) : null;
-            responseGenerator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
-            responsePipeline = schema != null
-                ? JsonEx.stream(JsonEx.createParser())
-                    .transform(JsonEx.projector(schema))
-                    .into(JsonEx.createSink(responseGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)))
-                : JsonEx.stream(JsonEx.createParser())
-                    .into(JsonEx.createSink(responseGenerator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
-            responsePipeline.reset();
-
-            final String mimeType = resource != null && resource.mimeType != null
-                ? resource.mimeType
-                : contentType;
-            stageBytes(replyBuffer, 0, replyPrefix(uri, mimeType));
+            state = McpHttpState.closingReply(state);
             doMcpBegin(traceId);
-        }
-
-        private JsonPipeline.Status responseStep(
-            DirectBufferEx buffer,
-            int offset,
-            int length,
-            boolean last)
-        {
-            // SEGMENTABLE honors the generator output bound: it copies as many whole source units as fit
-            // RESPONSE_GEN_BOUND, pushes the source bytes taken back via consumed() so the parser advances
-            // position() by exactly that count, and returns SUSPENDED when the bound fills mid-value
-            responseGenerator.wrap(projectBuffer, 0, RESPONSE_GEN_BOUND);
-            final JsonPipeline.Status status = responsePipeline.transform(buffer, offset, offset + length, last);
-            final int produced = responseGenerator.length();
-            if (produced > 0)
-            {
-                stageBytes(projectBuffer, 0, produced);
-            }
-            return status;
-        }
-
-        private int responseRemaining()
-        {
-            return responsePipeline.remaining();
-        }
-
-        private void responseComplete(
-            long traceId)
-        {
-            responseDone = true;
-            stage(REPLY_SUFFIX);
-            replyComplete = true;
             flushReply(traceId);
         }
 
-        private void responseReject(
-            long traceId)
+        boolean acquireEncodeSlot()
         {
-            responseDone = true;
-            cleanupResponse();
-            cleanupEncodeSlot();
-            doMcpAbort(traceId);
+            if (encodeSlot == NO_SLOT)
+            {
+                encodeSlot = encodePool.acquire(replyId);
+            }
+
+            return encodeSlot != NO_SLOT;
         }
 
-        private boolean encodeHasRoom()
-        {
-            return encodeFree() >= RESPONSE_GEN_BOUND;
-        }
-
-        private void stage(
+        void doEncodeReply(
             byte[] bytes)
         {
-            if (encodeSlot == NO_SLOT)
+            if (acquireEncodeSlot())
             {
-                encodeSlot = bufferPool.acquire(replyId);
-            }
-
-            if (encodeSlot == NO_SLOT)
-            {
-                cleanup(0L);
+                encodePool.buffer(encodeSlot).putBytes(encodeSlotOffset, bytes);
+                encodeSlotOffset += bytes.length;
             }
             else
             {
-                bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, bytes);
-                encodeSlotOffset += bytes.length;
+                cleanup(0L);
             }
         }
 
-        private void stageBytes(
+        void doEncodeReply(
             DirectBufferEx buffer,
             int offset,
             int length)
         {
-            if (encodeSlot == NO_SLOT)
+            if (acquireEncodeSlot())
             {
-                encodeSlot = bufferPool.acquire(replyId);
-            }
-
-            if (encodeSlot == NO_SLOT)
-            {
-                cleanup(0L);
+                encodePool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
+                encodeSlotOffset += length;
             }
             else
             {
-                bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
-                encodeSlotOffset += length;
+                cleanup(0L);
             }
         }
 
-        private int encodeFree()
+        // Writes an escaped JSON string directly into encodeSlot at encodeSlotOffset, avoiding a
+        // separate scratch buffer for content that is only ever appended once, in order.
+        void doEncodeReplyJsonString(
+            String value)
         {
-            return bufferPool.slotCapacity() - encodeSlotOffset;
+            if (acquireEncodeSlot())
+            {
+                encodeSlotOffset = putJsonString(encodePool.buffer(encodeSlot), encodeSlotOffset, value);
+            }
+            else
+            {
+                cleanup(0L);
+            }
         }
 
-        private void cleanupResponse()
-        {
-            responsePipeline = null;
-            responseGenerator = null;
-            responseStreaming = false;
-        }
-
-        private void doMcpReply(
-            long traceId,
-            String reply)
-        {
-            stage(reply.getBytes(UTF_8));
-            replyComplete = true;
-            doMcpBegin(traceId);
-            flushReply(traceId);
-        }
-
-        // Stages a reply envelope already assembled into replyBuffer[0..length], avoiding a jakarta DOM
-        // round-trip and the intermediate String/byte[] that doMcpReply(String) requires.
-        private void doMcpReplyBytes(
-            long traceId,
+        void doEncodeReplyJsonString(
+            DirectBufferEx source,
+            int offset,
             int length)
         {
-            stageBytes(replyBuffer, 0, length);
-            replyComplete = true;
-            doMcpBegin(traceId);
-            flushReply(traceId);
+            if (acquireEncodeSlot())
+            {
+                encodeSlotOffset = putJsonString(encodePool.buffer(encodeSlot), encodeSlotOffset, source, offset, length);
+            }
+            else
+            {
+                cleanup(0L);
+            }
         }
 
-        // Assembles the tools/call success reply by staging the static envelope around the escaped summary
-        // (already written into replyBuffer[0..summaryLength]) and the projected structuredContent spliced
-        // verbatim from projectBuffer, avoiding a jakarta DOM round-trip of the upstream response body.
-        private void doMcpToolSuccess(
-            long traceId,
-            int summaryLength,
-            int length)
-        {
-            stage(TOOL_SUCCESS_PREFIX);
-            stageBytes(replyBuffer, 0, summaryLength);
-            stage(TOOL_SUCCESS_INFIX);
-            stageBytes(projectBuffer, 0, length);
-            stage(TOOL_SUCCESS_SUFFIX);
-            replyComplete = true;
-            doMcpBegin(traceId);
-            flushReply(traceId);
-        }
-
-        private void flushReply(
+        // Returns the resulting encodeSlotOffset (bytes still queued after this attempt) so callers reacting
+        // to a SUSPENDED transform status can tell whether flushing actually freed any room before retrying.
+        int flushReply(
             long traceId)
         {
             if (encodeSlot != NO_SLOT && McpHttpState.replyOpened(state))
             {
-                final MutableDirectBufferEx slot = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                 int maxPayload = replyMax - (int)(replySeq - replyAck) - replyPad;
                 while (encodeSlotOffset > 0 && maxPayload > 0)
                 {
                     final int length = Math.min(maxPayload, encodeSlotOffset);
                     final int reserved = length + replyPad;
-                    final boolean fin = replyComplete && length == encodeSlotOffset;
+                    final boolean fin = McpHttpState.replyClosing(state) && length == encodeSlotOffset;
                     final int flags = (replyDataStarted ? 0 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0);
                     doMcpData(traceId, flags, reserved, slot, 0, length);
                     replyDataStarted = true;
@@ -1084,15 +571,16 @@ public final class McpHttpProxyFactory implements BindingHandler
                     maxPayload = replyMax - (int)(replySeq - replyAck) - replyPad;
                 }
 
-                if (replyComplete && encodeSlotOffset == 0)
+                if (McpHttpState.replyClosing(state) && encodeSlotOffset == 0)
                 {
                     doMcpEnd(traceId);
-                    cleanupEncodeSlot();
                 }
             }
+
+            return encodeSlotOffset;
         }
 
-        private void doMcpBegin(
+        void doMcpBegin(
             long traceId)
         {
             if (!McpHttpState.replyOpened(state))
@@ -1103,7 +591,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             }
         }
 
-        private void doMcpData(
+        void doMcpData(
             long traceId,
             int flags,
             int reserved,
@@ -1116,7 +604,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             replySeq += reserved;
         }
 
-        private void doMcpEnd(
+        void doMcpEnd(
             long traceId)
         {
             if (!McpHttpState.replyClosed(state))
@@ -1124,9 +612,10 @@ public final class McpHttpProxyFactory implements BindingHandler
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
                 state = McpHttpState.closedReply(state);
             }
+            cleanupEncodeSlot();
         }
 
-        private void doMcpAbort(
+        void doMcpAbort(
             long traceId)
         {
             doMcpBegin(traceId);
@@ -1135,9 +624,10 @@ public final class McpHttpProxyFactory implements BindingHandler
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
                 state = McpHttpState.closedReply(state);
             }
+            cleanupEncodeSlot();
         }
 
-        private void doMcpWindow(
+        void doMcpWindow(
             long traceId)
         {
             initialMax = WINDOW_MAX;
@@ -1147,7 +637,32 @@ public final class McpHttpProxyFactory implements BindingHandler
                 traceId, authorization, 0L, 0);
         }
 
-        private void doMcpReset(
+        // Triggered whenever HttpProxy's initial (request) window changes, since that is what lets
+        // pumpRequest drain more of this side's own decodeSlot; the window granted back to the mcp client
+        // reflects only this side's own backlog — decodeSlotOffset is in mcp-client request bytes, the same
+        // units as initialSeq/initialAck, unlike HttpProxy's own initial-direction counters, which are a
+        // distinct byte stream once request shaping (body/query) has transformed the content.
+        // max stays pinned to the slot's full physical capacity; ack alone carries the backlog discount, so
+        // ack + max lands exactly on the true remaining room without double-counting the backlog.
+        void flushMcpWindow(
+            long traceId,
+            long budgetId,
+            int padding)
+        {
+            final long newInitialAck = Math.max(initialAck, initialSeq - decodeSlotOffset);
+            final int newInitialMax = Math.max(initialMax, decodePool.slotCapacity());
+
+            if (newInitialAck > initialAck || newInitialMax > initialMax || !McpHttpState.initialOpened(state))
+            {
+                initialAck = newInitialAck;
+                initialMax = newInitialMax;
+                state = McpHttpState.openedInitial(state);
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, padding);
+            }
+        }
+
+        void doMcpReset(
             long traceId)
         {
             if (!McpHttpState.initialClosed(state))
@@ -1155,9 +670,10 @@ public final class McpHttpProxyFactory implements BindingHandler
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
                 state = McpHttpState.closedInitial(state);
             }
+            cleanupDecodeSlot();
         }
 
-        private void doMcpReset(
+        void doMcpReset(
             long traceId,
             int code,
             String message)
@@ -1174,60 +690,976 @@ public final class McpHttpProxyFactory implements BindingHandler
                     traceId, authorization, resetEx);
                 state = McpHttpState.closedInitial(state);
             }
+            cleanupDecodeSlot();
         }
 
-        private void cleanup(
+        void cleanup(
             long traceId)
         {
             doMcpReset(traceId);
             doMcpAbort(traceId);
-            if (delegate != null)
-            {
-                delegate.doHttpAbort(traceId);
-            }
-            cleanupDecodeSlot();
-            cleanupEncodeSlot();
         }
 
-        private void cleanupDecodeSlot()
+        void cleanupDecodeSlot()
         {
             if (decodeSlot != NO_SLOT)
             {
-                bufferPool.release(decodeSlot);
+                decodePool.release(decodeSlot);
                 decodeSlot = NO_SLOT;
                 decodeSlotOffset = 0;
             }
         }
 
-        private void cleanupEncodeSlot()
+        void cleanupEncodeSlot()
         {
             if (encodeSlot != NO_SLOT)
             {
-                bufferPool.release(encodeSlot);
+                encodePool.release(encodeSlot);
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
             }
         }
+    }
 
-        // Writes the streaming resource reply prefix up to the open quote of the text value into
-        // replyBuffer and returns its length; the escaped resource text and REPLY_SUFFIX follow as the
-        // projected body streams in.
-        private int replyPrefix(
+    // Shared base for the two request kinds that proxy to an upstream HTTP endpoint (tools/call and
+    // resources/read): owns the paired HttpProxy, the request-shaping path built from route.with, and
+    // the streaming request/response machinery. Per-kind response mapping is left to responseBegin.
+    private abstract class McpHttpProxy extends McpProxy
+    {
+        final HttpProxy delegate;
+        final Map<String, String> credentials = new HashMap<>();
+
+        JsonPipeline responsePipeline;
+        JsonGeneratorEx responseGenerator;
+        // set once, unconditionally, when the upstream response headers arrive (see HttpProxy.onHttpBegin);
+        // distinct from responsePipeline being non-null since the tools/call error-relay path (non-2xx
+        // status) streams without a JsonPipeline at all
+        boolean responseStarted;
+        boolean responseDone;
+
+        private McpHttpProxy(
+            McpHttpBindingConfig binding,
+            McpHttpRouteConfig route,
+            String name,
+            String uri,
+            Map<String, String> params,
+            int contentLength,
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long authorization,
+            long affinity)
+        {
+            super(binding, route, name, uri, params, contentLength, sender, originId, routedId, initialId,
+                authorization, affinity);
+            this.delegate = new HttpProxy(this, route.id);
+        }
+
+        @Override
+        void onMcpAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+            state = McpHttpState.closedInitial(state);
+            delegate.doHttpAbort(traceId);
+            cleanupDecodeSlot();
+        }
+
+        @Override
+        void onMcpReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+            state = McpHttpState.closedReply(state);
+            delegate.doHttpReset(traceId);
+            cleanupEncodeSlot();
+        }
+
+        @Override
+        void onMcpWindow(
+            WindowFW window)
+        {
+            super.onMcpWindow(window);
+
+            if (responseStarted && !responseDone)
+            {
+                delegate.resumeResponse(window.traceId());
+            }
+
+            flushHttpWindow(window.traceId());
+        }
+
+        // Convenience trigger: delegate computes its own window purely from its own decodeSlot backlog, so
+        // this only needs to supply the padding to report and re-fire the check.
+        void flushHttpWindow(
+            long traceId)
+        {
+            delegate.flushHttpWindow(traceId, 0L, replyPad);
+        }
+
+        // The tool config for tools/call, or null for resources/read which has no input schema.
+        McpHttpToolConfig tool()
+        {
+            return null;
+        }
+
+        // Whether HttpProxy.resumeRequest (a window grant from the upstream) should call pumpRequest again —
+        // only McpToolsCallProxy has a resumable request-streaming pipeline; overridden there. Kept as a
+        // method (not a field check) so HttpProxy, which holds a McpHttpProxy-typed reference shared by every
+        // kind, can ask without knowing which concrete kind it is talking to.
+        boolean requestPumpable()
+        {
+            return false;
+        }
+
+        // Default no-op: only McpToolsCallProxy streams a request body/query pipeline that needs
+        // pumping across multiple onMcpData calls; overridden there. Called polymorphically from
+        // HttpProxy.resumeRequest via the same McpHttpProxy-typed reference requestPumpable() serves.
+        void pumpRequest(
+            long traceId)
+        {
+        }
+
+        // Dispatches a bodyless upstream request immediately, resolving only ${params.*} references in
+        // with.headers (there is no arguments/body concept at all for this shape). Used by both concrete
+        // kinds for a route with nothing to stream: McpToolsCallProxy's fallback when with.body/
+        // with.query are all absent (and tool.input is either absent or skipped — see its onMcpBegin), and
+        // McpResourcesReadProxy's only supported shape today (see its onMcpBegin). This is genuinely
+        // shared, kind-independent plumbing — not the per-kind streaming/dispatch logic those two classes
+        // otherwise keep separate.
+        void sendTrivialRequestBegin(
+            long traceId)
+        {
+            requestHandled = true;
+            doMcpWindow(traceId);
+
+            final String path = route.resolvePath(null, params);
+            final Map<String, String> headers = route.resolveHeaders(null, params);
+            final String cookie = route.resolveCookies(null, params);
+            if (cookie != null)
+            {
+                headers.put(HEADER_COOKIE, cookie);
+            }
+            credentials.clear();
+            binding.resolveCredentials(authorization, credentials);
+            delegate.doHttpBegin(traceId, headers, credentials, path, null);
+            delegate.requestComplete();
+            delegate.flushRequest(traceId);
+        }
+
+        // Unreachable for both concrete kinds: McpToolsCallProxy and McpResourcesReadProxy each fully
+        // dispatch their own request from onMcpBegin (see each class's own override) and never reach the
+        // base McpProxy dispatch path (onMcpData/onMcpEnd) that would call this — a no-op here only to
+        // satisfy McpProxy's abstract contract.
+        @Override
+        void onMcpRequest(
+            long traceId)
+        {
+        }
+
+        void onHttpAbort(
+            long traceId)
+        {
+            // a response may already be mid-construction (responseStep/errorRelayStep having acquired
+            // encodeSlot to stage bytes not yet flushed) when the upstream aborts; the normal onHttpEnd path
+            // drains and releases it via pumpResponse's terminal-status handling, but abort short-circuits
+            // straight here, so this must release it directly or it leaks for the lifetime of the stream
+            cleanupResponse();
+            cleanupEncodeSlot();
+            doMcpAbort(traceId);
+        }
+
+        // Opens the reply for the upstream response, now that status and content-type are known (called
+        // unconditionally from HttpProxy.onHttpBegin, before any response DATA arrives) — every kind streams,
+        // so there is no threshold decision left to make here.
+        abstract void responseBegin(
+            long traceId,
+            String status,
+            String contentType);
+
+        // Feeds one input window through responsePipeline, wrapping responseGenerator directly against
+        // encodeSlot's own buffer at the live write position so the generator's remaining() is the real
+        // destination capacity: SUSPENDED naturally fires when encodeSlot is actually full, not at some
+        // artificial proxy bound, and no intermediate scratch-buffer copy is needed. Acquiring the slot here
+        // (rather than assuming the caller already has) mirrors acquireEncodeSlot()'s guarded pattern; the
+        // freshly re-fetched encodePool.buffer(encodeSlot) is never held across another encodePool.buffer(...)
+        // call, avoiding the shared-wrapper aliasing hazard DefaultBufferPool.buffer(int) exposes.
+        JsonPipeline.Status responseStep(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            JsonPipeline.Status status;
+            if (acquireEncodeSlot())
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                responseGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
+                status = responsePipeline.transform(buffer, offset, offset + length, last);
+                encodeSlotOffset += responseGenerator.length();
+            }
+            else
+            {
+                cleanup(0L);
+                status = JsonPipeline.Status.REJECTED;
+            }
+            return status;
+        }
+
+        int responseRemaining()
+        {
+            return responsePipeline.remaining();
+        }
+
+        void completeResponse(
+            long traceId)
+        {
+            responseDone = true;
+            doEncodeResponseSuffix(traceId);
+            state = McpHttpState.closingReply(state);
+            flushReply(traceId);
+        }
+
+        // Writes the reply's closing bytes once the streamed body completes; the resources/read shape (the
+        // only base-level user) closes the escaped text value and the surrounding contents envelope. Overridden
+        // by tools/call, whose envelope shape depends on which of its two response modes (success/error) ran.
+        // Self-contained: checks for room and flushes first if needed, rather than relying on the caller to
+        // have reserved headroom for it.
+        void doEncodeResponseSuffix(
+            long traceId)
+        {
+            ensureEncodeRoom(traceId, REPLY_SUFFIX.length);
+            doEncodeReply(REPLY_SUFFIX);
+        }
+
+        void responseReject(
+            long traceId)
+        {
+            responseDone = true;
+            cleanupResponse();
+            cleanupEncodeSlot();
+            doMcpAbort(traceId);
+        }
+
+        // A minimum-room check, not just "some room": responseStep can be called again and again with the
+        // same near-full slot producing zero bytes each time once free space drops below what the next value
+        // needs, and nothing else would ever trigger a flush to reclaim space — SUSPENDED alone does not shrink
+        // the loop's progress flag. Gating on a real minimum (mirroring the request side's identical need)
+        // guarantees flushReply actually runs once room gets tight, instead of spinning forever making no
+        // progress.
+        private int encodeFree()
+        {
+            return encodePool.slotCapacity() - encodeSlotOffset;
+        }
+
+        // Guarantees at least `length` bytes are free before a fixed-size, non-generator-tracked write
+        // (a closing suffix): a full flush always frees the whole slot, vastly more than any of this
+        // file's small fixed suffixes, so one flush attempt is always sufficient for them.
+        void ensureEncodeRoom(
+            long traceId,
+            int length)
+        {
+            if (encodeFree() < length)
+            {
+                flushReply(traceId);
+            }
+        }
+
+        void cleanupResponse()
+        {
+            responsePipeline = null;
+            responseGenerator = null;
+        }
+
+        @Override
+        void cleanup(
+            long traceId)
+        {
+            doMcpReset(traceId);
+            doMcpAbort(traceId);
+            delegate.doHttpAbort(traceId);
+            cleanupDecodeSlot();
+            cleanupEncodeSlot();
+        }
+    }
+
+    private final class McpToolsCallProxy extends McpHttpProxy
+    {
+        // populated by the McpHttpResults capture stage as structuredContent streams past; read back once the
+        // response completes to resolve tool.summary's ${result.*} references without re-scanning a buffer
+        private final Map<String, String> capturedResults = new HashMap<>();
+
+        // the non-2xx response mode: relays the raw upstream body as escaped text with no JsonPipeline at all
+        // (the body is not guaranteed to be valid JSON), using errorGenerator directly the same way responseStep
+        // uses responseGenerator — wrap against encodeSlot's live position, drive via consumed()/length()
+        private boolean errorRelay;
+        private JsonGeneratorEx errorGenerator;
+        private int errorRelayConsumed;
+        private int errorRelayRemaining;
+
+        // the single streaming pipeline for this route's request shape: with.body (model or template) projects
+        // into requestGenerator (which writes into HttpProxy's own encode slot via requestStep); with.query
+        // alone projects into a McpHttpQuery sink (requestGenerator stays null — nothing to write into
+        // encodeSlot); neither, but tool.input still needs validating, projects into a McpHttpDiscard sink.
+        // A route combining with.body and with.query is not yet supported here — see onMcpBegin.
+        private JsonPipeline requestPipeline;
+        private JsonGeneratorEx requestGenerator;
+        private Map<String, String> requestArgs;
+        private List<String> requestPathArgs;
+        private boolean requestProjected;
+        // non-null only when route.with.query != null; requestPipeline (the query projector's own sink)
+        // populates it, and sendRequestBegin reads it back once requestProjected to build the query string
+        private Map<String, List<String>> queryCaptured;
+
+        private McpToolsCallProxy(
+            McpHttpBindingConfig binding,
+            McpHttpRouteConfig route,
+            String name,
+            int contentLength,
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long authorization,
+            long affinity)
+        {
+            super(binding, route, name, null, EMPTY_PARAMS, contentLength, sender, originId, routedId, initialId,
+                authorization, affinity);
+        }
+
+        @Override
+        McpHttpToolConfig tool()
+        {
+            return binding.tool(name);
+        }
+
+        @Override
+        void onMcpBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            state = McpHttpState.openingInitial(state);
+
+            final McpHttpWithConfig with = route.with;
+            final McpHttpToolConfig tool = tool();
+            final boolean needsBody = with.body != null;
+            final boolean needsQuery = with.query != null;
+            final boolean needsValidation = tool != null && tool.input != null &&
+                contentLength >= 0 && contentLength <= decodePool.slotCapacity();
+
+            if (needsBody || needsQuery || needsValidation)
+            {
+                requestArgs = new HashMap<>();
+                requestPathArgs = pathArgReferences(route);
+
+                JsonStream stream = JsonEx.stream(JsonEx.createParser())
+                    .transform(new McpHttpArguments(requestArgs));
+                if (needsValidation)
+                {
+                    // the schema validator must fully reassemble any individual scalar value spanning
+                    // multiple windows before validating it (common-json's Eval is not fragment-aware) —
+                    // the constraint is per-value, not per-request, but bounding the whole request to one
+                    // decode slot is a simple sufficient (not necessary) proxy for "no value can possibly
+                    // exceed the window", since no field can be larger than the whole document; a request
+                    // whose length is unknown or exceeds the slot skips validation rather than risk the
+                    // decode slot filling with an unconsumed in-flight value (see common-json issue for
+                    // the underlying gap: a value that never fits any window stalls the pipeline forever
+                    // rather than resolving to REJECTED)
+                    stream = stream.transform(binding.jsonSchema(tool.input).validator());
+                }
+
+                if (needsBody)
+                {
+                    // a route combining with.body and with.query is not yet supported: producing
+                    // both an outbound body and a query string from one incremental pass would need a second,
+                    // independently-driven pipeline sharing the same decode-slot window (JsonPipeline has no
+                    // fan-out — see JsonStream), which raises real compaction-ordering questions across two
+                    // pipelines completing at different times; no current route configures both, so this is
+                    // deferred rather than solved speculatively — with.query is silently ignored in this case
+                    requestGenerator = JsonEx.createGenerator();
+                    stream = with.body.template != null
+                        ? stream.transform(JsonTransforms.projector(route.bodyTemplatePointers))
+                            .transform(JsonTransforms.flatten(route.bodyTemplateTargets))
+                        : stream.transform(JsonTransforms.projector(binding.jsonSchema(with.body.model)));
+                    requestPipeline = stream.into(JsonEx.createSink(requestGenerator, SINK_SEGMENTABLE));
+                }
+                else if (needsQuery)
+                {
+                    queryCaptured = new LinkedHashMap<>();
+                    requestPipeline = stream
+                        .transform(JsonTransforms.projector(binding.jsonSchema(with.query)))
+                        .into(new McpHttpQuery(queryCaptured));
+                }
+                else
+                {
+                    // tool.input must be validated even though this route has nothing to shape a request
+                    // from (e.g. a route templating only static/${params.*} headers) — validate and discard
+                    requestPipeline = stream.into(new McpHttpDiscard());
+                }
+                requestPipeline.reset();
+                flushMcpWindow(traceId, 0L, 0);
+            }
+            else
+            {
+                sendTrivialRequestBegin(traceId);
+            }
+        }
+
+        @Override
+        void onMcpData(
+            DataFW data)
+        {
+            if (requestPipeline != null)
+            {
+                final long traceId = data.traceId();
+                final int reserved = data.reserved();
+                final OctetsFW payload = data.payload();
+
+                initialSeq = data.sequence() + reserved;
+
+                if (payload != null)
+                {
+                    if (decodeSlot == NO_SLOT)
+                    {
+                        decodeSlot = decodePool.acquire(initialId);
+                    }
+
+                    if (decodeSlot == NO_SLOT || decodeSlotOffset + payload.sizeof() > decodePool.slotCapacity())
+                    {
+                        cleanup(traceId);
+                    }
+                    else
+                    {
+                        final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                        slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+                        decodeSlotOffset += payload.sizeof();
+                        pumpRequest(traceId);
+                    }
+                }
+            }
+            else
+            {
+                super.onMcpData(data);
+            }
+        }
+
+        @Override
+        void onMcpEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+            initialSeq = end.sequence();
+            state = McpHttpState.closedInitial(state);
+
+            // requestPipeline is null only for the trivial (no body/query/validation) shape, which already
+            // dispatched synchronously in onMcpBegin and set requestHandled there — nothing left to do here
+            if (requestPipeline != null)
+            {
+                pumpRequest(traceId);
+            }
+        }
+
+        @Override
+        boolean requestPumpable()
+        {
+            return requestPipeline != null && !requestProjected;
+        }
+
+        @Override
+        void pumpRequest(
+            long traceId)
+        {
+            final List<String> unsatisfied = McpHttpState.initialClosed(state)
+                ? List.of() : binding.unsatisfiedAccessors(route);
+            if (!unsatisfied.isEmpty())
+            {
+                final String accessor = unsatisfied.get(0);
+                events.schemaAccessorUnresolved(traceId, binding.id, name != null ? name : uri, accessor);
+                doMcpReset(traceId, JSON_RPC_INTERNAL_ERROR, "unresolved expression: ${" + accessor + "}");
+                cleanupDecodeSlot();
+                return;
+            }
+
+            boolean progress = true;
+            while (progress && !requestProjected)
+            {
+                final DirectBufferEx buffer = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : emptyRequestRO;
+                final boolean last = McpHttpState.initialClosed(state);
+                final JsonPipeline.Status status = requestGenerator != null
+                    ? delegate.requestStep(requestGenerator, requestPipeline, buffer, 0, decodeSlotOffset, last)
+                    : requestPipeline.transform(buffer, 0, decodeSlotOffset, last);
+
+                // compact only at a terminal status: across suspend cycles the pipeline re-feeds the same
+                // window, so dropping consumed bytes mid-cycle would corrupt its positioning; here the
+                // window-relative remaining() is the tail to keep, so the consumed prefix is the rest
+                if (status != JsonPipeline.Status.SUSPENDED && decodeSlot != NO_SLOT)
+                {
+                    final int consumed = decodeSlotOffset - requestPipeline.remaining();
+                    if (consumed > 0 && consumed < decodeSlotOffset)
+                    {
+                        final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                        slot.putBytes(0, slot, consumed, decodeSlotOffset - consumed);
+                    }
+                    decodeSlotOffset -= consumed;
+                }
+
+                switch (status)
+                {
+                case SUSPENDED:
+                    // requestGenerator's destination is encodeSlot (see requestStep) — SUSPENDED means it
+                    // just filled up; flush what's queued and retry only if that actually freed room (delegate
+                    // is bounded by the upstream HTTP server's own window, which can leave encodeSlot short of
+                    // full yet still unable to drain any further until the next onHttpWindow), else stop and
+                    // wait for that to resume (other sink kinds never suspend)
+                    final int beforeFlush = delegate.encodeSlotOffset;
+                    if (requestGenerator != null && delegate.flushRequest(traceId) >= beforeFlush)
+                    {
+                        progress = false;
+                    }
+                    break;
+                case STARVED:
+                    progress = false;
+                    break;
+                case COMPLETED:
+                    requestProjected = true;
+                    progress = false;
+                    cleanupDecodeSlot();
+                    break;
+                case REJECTED:
+                    progress = false;
+                    delegate.doHttpAbort(traceId);
+                    doMcpReset(traceId, JSON_RPC_INVALID_PARAMS, "Invalid params");
+                    cleanupDecodeSlot();
+                    break;
+                default:
+                    progress = false;
+                    break;
+                }
+            }
+
+            if (!McpHttpState.initialClosed(state) && !McpHttpState.initialOpening(delegate.state) && requestReady())
+            {
+                sendRequestBegin(traceId);
+            }
+
+            if (McpHttpState.initialOpening(delegate.state))
+            {
+                if (requestProjected)
+                {
+                    delegate.requestComplete();
+                }
+                delegate.flushRequest(traceId);
+            }
+
+            if (!requestProjected && !McpHttpState.initialClosed(state))
+            {
+                delegate.flushMcpWindow(traceId);
+            }
+        }
+
+        private boolean requestPathReady()
+        {
+            return requestArgs.keySet().containsAll(requestPathArgs);
+        }
+
+        // With a with.query-only route, requestPipeline is itself the query projector, so the query string
+        // is not ready to build until that pipeline (tracked via requestProjected) reaches COMPLETED — the
+        // same "path args ready" gate a body route uses is not sufficient here, since (unlike a request body,
+        // which can keep streaming after the HTTP BEGIN) the query string must be fully known before the
+        // BEGIN's :path is built.
+        private boolean requestReady()
+        {
+            return requestPathReady() && (queryCaptured == null || requestProjected);
+        }
+
+        private void sendRequestBegin(
+            long traceId)
+        {
+            String path = route.resolvePath(requestArgs, params);
+            if (queryCaptured != null)
+            {
+                final String query = buildQueryString(queryCaptured);
+                if (!query.isEmpty())
+                {
+                    path = path + "?" + query;
+                }
+            }
+            final Map<String, String> headers = route.resolveHeaders(requestArgs, params);
+            final String cookie = route.resolveCookies(requestArgs, params);
+            if (cookie != null)
+            {
+                headers.put(HEADER_COOKIE, cookie);
+            }
+            credentials.clear();
+            binding.resolveCredentials(authorization, credentials);
+            delegate.doHttpBegin(traceId, headers, credentials, path,
+                requestGenerator != null ? DEFAULT_CONTENT_TYPE : null);
+        }
+
+        private String buildQueryString(
+            Map<String, List<String>> captured)
+        {
+            final StringBuilder builder = new StringBuilder();
+            for (Map.Entry<String, List<String>> entry : captured.entrySet())
+            {
+                for (String value : entry.getValue())
+                {
+                    appendQuery(builder, entry.getKey(), value);
+                }
+            }
+            return builder.toString();
+        }
+
+        // Owns the status check that used to live in onHttpResponse, now made up front before any response
+        // pipeline exists: a 2xx status streams structuredContent through the output schema (or passes it
+        // through canonicalized when there is none), capturing tool.summary's ${result.*} references as the
+        // body streams past; any other status streams the raw upstream body back as escaped text with no size
+        // cap, since a genuinely streamed relay needs none. Both modes still open the mcp reply via doMcpBegin
+        // after writing their envelope's leading bytes, mirroring doEncodeReplyPrefix-then-doMcpBegin below.
+        @Override
+        void responseBegin(
+            long traceId,
+            String status,
+            String contentType)
+        {
+            final boolean ok = status != null && status.startsWith("2");
+            if (ok)
+            {
+                final McpHttpToolConfig tool = binding.tool(name);
+                final JsonSchema outputSchema = tool != null ? binding.jsonSchema(tool.output) : null;
+                // tool.summary is required by schema for every configured tool; tool is null only if a route
+                // matches a tool name with no corresponding tools: entry (a misconfiguration), in which case
+                // there is nothing to interpolate and McpHttpToolResult's own resolved-null fallback applies
+                final String summaryTemplate = tool != null ? tool.summary : null;
+                final List<String> resultPaths = tool != null ? toolResultReferences(tool) : List.of();
+
+                responseGenerator = JsonEx.createGenerator();
+                JsonStream stream = JsonEx.stream(JsonEx.createParser());
+                if (outputSchema != null)
+                {
+                    // validate against the full (unprojected) document before pruning it down, matching the
+                    // pre-streaming validate-then-project order: a value the schema rejects must never reach
+                    // structuredContent even if the retained paths alone would otherwise look fine
+                    stream = stream.transform(outputSchema.validator()).transform(JsonTransforms.projector(outputSchema));
+                }
+                // captures result.* references from exactly the events reaching the sink (i.e. after any
+                // projection), matching the pre-streaming behavior of scanning the already-projected buffer;
+                // McpHttpToolResult wraps the whole envelope around that same event stream, injecting
+                // content/isError as more generator-tracked events once structuredContent's value closes —
+                // see its class doc for why that is what keeps the (potentially large) summary text bounded
+                responsePipeline = stream
+                    .transform(new McpHttpResults(capturedResults, resultPaths))
+                    .transform(new McpHttpToolResult(() -> interpolate(summaryTemplate, this::resolveCapturedResult)))
+                    .into(JsonEx.createSink(responseGenerator, SINK_SEGMENTABLE));
+                responsePipeline.reset();
+
+                doMcpBegin(traceId);
+            }
+            else
+            {
+                errorRelay = true;
+                errorGenerator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+
+                doEncodeReply(TOOL_ERROR_PREFIX);
+                doMcpBegin(traceId);
+            }
+        }
+
+        @Override
+        JsonPipeline.Status responseStep(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            return errorRelay ? errorRelayStep(buffer, offset, length, last) : super.responseStep(buffer, offset, length, last);
+        }
+
+        @Override
+        int responseRemaining()
+        {
+            return errorRelay ? errorRelayRemaining : super.responseRemaining();
+        }
+
+        // Escapes buffer[offset + errorRelayConsumed .. offset + length) directly into encodeSlot via
+        // errorGenerator, bounded by the generator's real remaining() the same way the JsonPipeline-driven
+        // responseStep is: SUSPENDED when encodeSlot fills before the window is exhausted (retry the same
+        // window), STARVED once the window is fully relayed but more is expected, COMPLETED once the window is
+        // fully relayed and last. Unlike JSON parsing there is no mid-token boundary to respect, so any prefix
+        // of the window can be taken — the only limit is the destination.
+        private JsonPipeline.Status errorRelayStep(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            JsonPipeline.Status status;
+            if (acquireEncodeSlot())
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                errorGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
+                final int pending = length - errorRelayConsumed;
+                final Completion completion = last ? Completion.COMPLETE : Completion.INCOMPLETE;
+                errorGenerator.writeSegment(buffer, offset + errorRelayConsumed, pending, completion);
+                encodeSlotOffset += errorGenerator.length();
+                errorRelayConsumed += errorGenerator.consumed();
+                errorRelayRemaining = length - errorRelayConsumed;
+
+                if (errorRelayRemaining > 0)
+                {
+                    status = JsonPipeline.Status.SUSPENDED;
+                }
+                else
+                {
+                    errorRelayConsumed = 0;
+                    status = last ? JsonPipeline.Status.COMPLETED : JsonPipeline.Status.STARVED;
+                }
+            }
+            else
+            {
+                cleanup(0L);
+                status = JsonPipeline.Status.REJECTED;
+            }
+            return status;
+        }
+
+        // Resolves a result.<path> reference from the values McpHttpResults captured while structuredContent
+        // streamed past, replacing a re-scan of a fully buffered response copy.
+        private String resolveCapturedResult(
+            String expression)
+        {
+            String value = "";
+            if (expression.startsWith("result."))
+            {
+                final String captured = capturedResults.get(expression.substring(7));
+                value = captured != null ? captured : "";
+            }
+            return value;
+        }
+
+        // The success envelope (structuredContent, content, isError, and the closing brace) is written
+        // entirely by McpHttpToolResult as part of responsePipeline itself — including the interpolated
+        // tool.summary, injected as more generator-tracked events once structuredContent's value closes, so
+        // it shares the same bounded, resumable write path a large captured result value would otherwise
+        // overflow. By the time this runs (completeResponse only calls it once the pipeline reaches
+        // COMPLETED), that envelope is already fully written; only the error-relay mode — which streams the
+        // raw, non-JSON upstream body via errorGenerator directly, with no JsonPipeline of its own — still
+        // needs its closing suffix written here, self-contained (checks for room, flushing first if needed,
+        // rather than relying on the caller to have reserved headroom for it).
+        @Override
+        void doEncodeResponseSuffix(
+            long traceId)
+        {
+            if (errorRelay)
+            {
+                ensureEncodeRoom(traceId, TOOL_ERROR_SUFFIX.length);
+                doEncodeReply(TOOL_ERROR_SUFFIX);
+            }
+        }
+
+        // A schema-validation failure discovered while streaming structuredContent used to always produce a
+        // proper {"content":...,"isError":true} reply (the pre-streaming buffered path always had, since it
+        // never committed to a reply shape until the whole body had already been validated). Once the response
+        // genuinely streams, the envelope's opening bytes (now McpHttpToolResult's own injected START_OBJECT
+        // and "structuredContent" key) have necessarily already gone out — even a validator that rejects on
+        // the very first field only reaches that verdict on a later pump cycle (e.g. once the response body's
+        // own end has been seen), and pumpResponse flushes whatever is pending after every cycle regardless of
+        // status, so by the time REJECTED is known the opening is already on the wire. There is no way back at
+        // that point, so this falls through to the inherited abort behavior (the same fallback resources/read
+        // and the error-relay path already use) rather than attempting a sometimes-possible, sometimes-not
+        // recovery that would depend on upstream framing details a client cannot rely on.
+        @Override
+        void cleanupResponse()
+        {
+            super.cleanupResponse();
+            errorRelay = false;
+            errorGenerator = null;
+            errorRelayConsumed = 0;
+            errorRelayRemaining = 0;
+        }
+    }
+
+    private final class McpResourcesReadProxy extends McpHttpProxy
+    {
+        private final McpHttpResourceConfig resource;
+
+        private McpResourcesReadProxy(
+            McpHttpBindingConfig binding,
+            McpHttpRouteConfig route,
+            McpHttpResourceConfig resource,
+            String uri,
+            Map<String, String> params,
+            int contentLength,
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long authorization,
+            long affinity)
+        {
+            super(binding, route, null, uri, params, contentLength, sender, originId, routedId, initialId,
+                authorization, affinity);
+            this.resource = resource;
+        }
+
+        // A resources/read request has no with.body concept at all (it is identified by uri + params,
+        // already resolved via URI matching before this stream even opens — unlike tools/call's
+        // name+arguments shape) and no current route configures with.query here either: doing so would need
+        // an "arguments" JSON object to project a query from, which a resource read simply does not carry.
+        // sendTrivialRequestBegin (shared with McpToolsCallProxy's own fallback for the equivalent shape) is
+        // therefore this kind's only supported request path today; with.query is a documented, accepted gap.
+        @Override
+        void onMcpBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            state = McpHttpState.openingInitial(state);
+
+            sendTrivialRequestBegin(traceId);
+        }
+
+        // Owns the status check that used to live in onHttpResponse, now made up front before any response
+        // pipeline exists: a non-2xx status aborts immediately, so no pipeline is ever created and no reply
+        // bytes are ever written for it — closing what used to be a documented gap (the streaming path used to
+        // have no upstream status available at this point, since doMcpBegin had already opened the mcp reply
+        // by the time the status was known; responseBegin now runs at onHttpBegin time, before any body byte
+        // arrives, so the status is already in hand).
+        @Override
+        void responseBegin(
+            long traceId,
+            String status,
+            String contentType)
+        {
+            final boolean ok = status != null && status.startsWith("2");
+            if (!ok)
+            {
+                responseDone = true;
+                doMcpAbort(traceId);
+                // the mcp reply is already closed, so no future onMcpWindow will ever arrive to trigger
+                // delegate's window; the upstream body is going to be discarded either way (no downstream
+                // to backpressure against), so grant its full physical capacity now rather than leave it
+                // starved of window forever
+                flushHttpWindow(traceId);
+            }
+            else
+            {
+                final JsonSchema schema = resource != null ? binding.jsonSchema(resource.output) : null;
+                responseGenerator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+                responsePipeline = schema != null
+                    ? JsonEx.stream(JsonEx.createParser())
+                        .transform(JsonTransforms.projector(schema))
+                        .into(JsonEx.createSink(responseGenerator, SINK_SEGMENTABLE))
+                    : JsonEx.stream(JsonEx.createParser())
+                        .into(JsonEx.createSink(responseGenerator, SINK_SEGMENTABLE));
+                responsePipeline.reset();
+
+                final String mimeType = resource != null && resource.mimeType != null
+                    ? resource.mimeType
+                    : contentType;
+                doEncodeReplyPrefix(uri, mimeType);
+                doMcpBegin(traceId);
+            }
+        }
+
+        // Writes the streaming resource reply prefix up to the open quote of the text value directly into
+        // encodeSlot; the escaped resource text and RESOURCE_SUFFIX follow as the projected body streams in.
+        private void doEncodeReplyPrefix(
             String uri,
             String mimeType)
         {
-            int progress = put(replyBuffer, 0, RESOURCE_PREFIX);
-            progress = putJsonString(replyBuffer, progress, uri);
-            progress = put(replyBuffer, progress, RESOURCE_MIME);
-            progress = putJsonString(replyBuffer, progress, mimeType);
-            progress = put(replyBuffer, progress, RESOURCE_TEXT_OPEN);
-            return progress;
+            doEncodeReply(RESOURCE_PREFIX);
+            doEncodeReplyJsonString(uri);
+            doEncodeReply(RESOURCE_MIME);
+            doEncodeReplyJsonString(mimeType);
+            doEncodeReply(RESOURCE_TEXT_OPEN);
+        }
+    }
+
+    private final class McpToolsListProxy extends McpProxy
+    {
+        private McpToolsListProxy(
+            McpHttpBindingConfig binding,
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long authorization,
+            long affinity)
+        {
+            super(binding, null, null, null, EMPTY_PARAMS, -1, sender, originId, routedId, initialId,
+                authorization, affinity);
+        }
+
+        @Override
+        void onMcpRequest(
+            long traceId)
+        {
+            requestHandled = true;
+            doMcpReply(traceId, toolsList(binding));
+            cleanupDecodeSlot();
+        }
+    }
+
+    private final class McpResourcesListProxy extends McpProxy
+    {
+        private McpResourcesListProxy(
+            McpHttpBindingConfig binding,
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long authorization,
+            long affinity)
+        {
+            super(binding, null, null, null, EMPTY_PARAMS, -1, sender, originId, routedId, initialId,
+                authorization, affinity);
+        }
+
+        @Override
+        void onMcpRequest(
+            long traceId)
+        {
+            requestHandled = true;
+            doMcpReply(traceId, resourcesList(binding));
+            cleanupDecodeSlot();
+        }
+    }
+
+    private final class McpResourcesTemplatesListProxy extends McpProxy
+    {
+        private McpResourcesTemplatesListProxy(
+            McpHttpBindingConfig binding,
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long authorization,
+            long affinity)
+        {
+            super(binding, null, null, null, EMPTY_PARAMS, -1, sender, originId, routedId, initialId,
+                authorization, affinity);
+        }
+
+        @Override
+        void onMcpRequest(
+            long traceId)
+        {
+            requestHandled = true;
+            doMcpReply(traceId, resourcesTemplatesList(binding));
+            cleanupDecodeSlot();
         }
     }
 
     private final class HttpProxy
     {
-        private final McpProxy server;
+        private final McpHttpProxy mcp;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -1237,16 +1669,13 @@ public final class McpHttpProxyFactory implements BindingHandler
         private int state;
 
         private int encodeSlot = NO_SLOT;
-        private int encodeSlotOffset;
+        int encodeSlotOffset;
         private boolean requestDataStarted;
-        private boolean requestEnd;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
         private String responseStatus;
         private String responseContentType;
-        private boolean responseStreaming;
-        private boolean responseEnded;
 
         private long initialSeq;
         private long initialAck;
@@ -1258,149 +1687,14 @@ public final class McpHttpProxyFactory implements BindingHandler
         private int replyMax;
 
         private HttpProxy(
-            McpProxy server,
+            McpHttpProxy mcp,
             long resolvedId)
         {
-            this.server = server;
-            this.originId = server.routedId;
+            this.mcp = mcp;
+            this.originId = mcp.routedId;
             this.routedId = resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-        }
-
-        private void doHttpBegin(
-            long traceId,
-            Map<String, String> headers,
-            Map<String, String> credentials,
-            String path,
-            String contentType)
-        {
-            final HttpBeginExFW httpBeginEx = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
-                .headers(hs ->
-                {
-                    for (Map.Entry<String, String> entry : headers.entrySet())
-                    {
-                        final String header = entry.getKey();
-                        final String value = HEADER_PATH.equals(header) ? path : entry.getValue();
-                        hs.item(h -> h.name(header).value(value));
-                    }
-                    if (contentType != null)
-                    {
-                        hs.item(h -> h.name(HEADER_CONTENT_TYPE).value(contentType));
-                    }
-                    for (Map.Entry<String, String> entry : credentials.entrySet())
-                    {
-                        hs.item(h -> h.name(entry.getKey()).value(entry.getValue()));
-                    }
-                })
-                .build();
-
-            state = McpHttpState.openingInitial(state);
-
-            receiver = newStream(this::onHttpMessage, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, httpBeginEx);
-        }
-
-        private void stageRequestBody(
-            long traceId,
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            if (encodeSlot == NO_SLOT)
-            {
-                encodeSlot = bufferPool.acquire(initialId);
-            }
-
-            if (encodeSlot == NO_SLOT || encodeSlotOffset + length > bufferPool.slotCapacity())
-            {
-                server.cleanup(traceId);
-            }
-            else
-            {
-                bufferPool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
-                encodeSlotOffset += length;
-            }
-        }
-
-        private boolean encodeHasRoom()
-        {
-            return bufferPool.slotCapacity() - encodeSlotOffset >= RESPONSE_GEN_BOUND;
-        }
-
-        private void requestComplete()
-        {
-            requestEnd = true;
-        }
-
-        private void flushRequestStream(
-            long traceId)
-        {
-            if (receiver != null && !McpHttpState.initialClosed(state))
-            {
-                if (encodeSlot != NO_SLOT)
-                {
-                    final MutableDirectBufferEx slot = bufferPool.buffer(encodeSlot);
-                    int maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
-                    while (encodeSlotOffset > 0 && maxPayload > 0)
-                    {
-                        final int length = Math.min(maxPayload, encodeSlotOffset);
-                        final int reserved = length + initialPad;
-                        final boolean fin = requestEnd && length == encodeSlotOffset;
-                        final int flags = (requestDataStarted ? 0 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0);
-                        doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                            traceId, server.authorization, flags, 0L, reserved, slot, 0, length);
-                        initialSeq += reserved;
-                        requestDataStarted = true;
-                        final int remaining = encodeSlotOffset - length;
-                        if (remaining > 0)
-                        {
-                            slot.putBytes(0, slot, length, remaining);
-                        }
-                        encodeSlotOffset = remaining;
-                        maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
-                    }
-                }
-
-                if (requestEnd && encodeSlotOffset == 0)
-                {
-                    cleanupEncodeSlot();
-                    doHttpEnd(traceId);
-                }
-            }
-        }
-
-        private void resumeRequest(
-            long traceId)
-        {
-            if (server.requestStreaming && !server.requestProjected)
-            {
-                server.pumpRequest(traceId);
-            }
-        }
-
-        private void doHttpEnd(
-            long traceId)
-        {
-            if (!McpHttpState.initialClosed(state))
-            {
-                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, server.authorization);
-                state = McpHttpState.closedInitial(state);
-            }
-        }
-
-        private void doHttpAbort(
-            long traceId)
-        {
-            if (McpHttpState.initialOpening(state) && !McpHttpState.initialClosed(state))
-            {
-                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, server.authorization);
-                state = McpHttpState.closedInitial(state);
-            }
-            cleanupEncodeSlot();
         }
 
         private void onHttpMessage(
@@ -1458,7 +1752,11 @@ public final class McpHttpProxyFactory implements BindingHandler
                 responseContentType = contentType != null ? contentType.value().asString() : DEFAULT_CONTENT_TYPE;
             }
 
-            doHttpReplyWindow(traceId);
+            // every kind streams now, so the reply is opened here, unconditionally, as soon as status and
+            // content-type are known — before any response DATA arrives — rather than waiting on a buffered
+            // prefix to reach some threshold
+            mcp.responseStarted = true;
+            mcp.responseBegin(traceId, responseStatus, responseContentType);
         }
 
         private void onHttpData(
@@ -1474,34 +1772,20 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 if (decodeSlot == NO_SLOT)
                 {
-                    decodeSlot = bufferPool.acquire(replyId);
+                    decodeSlot = decodePool.acquire(replyId);
                 }
 
-                if (decodeSlot == NO_SLOT || decodeSlotOffset + payload.sizeof() > bufferPool.slotCapacity())
+                if (decodeSlot == NO_SLOT || decodeSlotOffset + payload.sizeof() > decodePool.slotCapacity())
                 {
-                    server.cleanup(traceId);
+                    mcp.cleanup(traceId);
                 }
                 else
                 {
-                    final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
                     slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
 
-                    if (!responseStreaming && server.kind == KIND_RESOURCES_READ &&
-                        decodeSlotOffset > RESPONSE_BUFFER_MAX)
-                    {
-                        server.responseBegin(traceId, responseContentType);
-                        responseStreaming = true;
-                    }
-
-                    if (responseStreaming)
-                    {
-                        pumpResponse(traceId);
-                    }
-                    else
-                    {
-                        doHttpReplyWindow(traceId);
-                    }
+                    pumpResponse(traceId);
                 }
             }
         }
@@ -1512,18 +1796,8 @@ public final class McpHttpProxyFactory implements BindingHandler
             final long traceId = end.traceId();
             replySeq = end.sequence();
             state = McpHttpState.closedReply(state);
-            responseEnded = true;
 
-            if (responseStreaming)
-            {
-                pumpResponse(traceId);
-            }
-            else
-            {
-                final DirectBufferEx body = decodeSlot != NO_SLOT ? bufferPool.buffer(decodeSlot) : null;
-                server.onUpstreamResponse(traceId, responseStatus, responseContentType, body, 0, decodeSlotOffset);
-                cleanupDecodeSlot();
-            }
+            pumpResponse(traceId);
         }
 
         private void onHttpAbort(
@@ -1531,92 +1805,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
             state = McpHttpState.closedReply(state);
-            server.onUpstreamAbort(traceId);
+            mcp.onHttpAbort(traceId);
             cleanupDecodeSlot();
-        }
-
-        private void pumpResponse(
-            long traceId)
-        {
-            boolean progress = true;
-            while (progress && !server.responseDone)
-            {
-                if (!server.encodeHasRoom())
-                {
-                    server.flushReply(traceId);
-                    if (!server.encodeHasRoom())
-                    {
-                        progress = false;
-                        continue;
-                    }
-                }
-
-                final MutableDirectBufferEx slot = bufferPool.buffer(decodeSlot);
-                final JsonPipeline.Status status = server.responseStep(slot, 0, decodeSlotOffset, responseEnded);
-                if (status != JsonPipeline.Status.SUSPENDED)
-                {
-                    // compact only at a terminal status: across suspend cycles the pipeline re-feeds the same
-                    // window, so dropping consumed bytes mid-cycle would corrupt its positioning; here the
-                    // window-relative remaining() is the tail to keep, so the consumed prefix is the rest
-                    final int consumed = decodeSlotOffset - server.responseRemaining();
-                    if (consumed > 0 && consumed < decodeSlotOffset)
-                    {
-                        slot.putBytes(0, slot, consumed, decodeSlotOffset - consumed);
-                    }
-                    decodeSlotOffset -= consumed;
-                }
-                switch (status)
-                {
-                case SUSPENDED:
-                    break;
-                case STARVED:
-                    progress = false;
-                    break;
-                case COMPLETED:
-                    server.responseComplete(traceId);
-                    progress = false;
-                    break;
-                case REJECTED:
-                    server.responseReject(traceId);
-                    progress = false;
-                    break;
-                default:
-                    progress = false;
-                    break;
-                }
-            }
-
-            server.flushReply(traceId);
-
-            if (server.responseDone)
-            {
-                cleanupDecodeSlot();
-            }
-            else
-            {
-                grantHttpReply(traceId);
-            }
-        }
-
-        private void resumeResponse(
-            long traceId)
-        {
-            if (responseStreaming && !server.responseDone)
-            {
-                pumpResponse(traceId);
-            }
-        }
-
-        private void grantHttpReply(
-            long traceId)
-        {
-            if (!McpHttpState.replyClosed(state))
-            {
-                replyAck = replySeq - decodeSlotOffset;
-                replyMax = decodeSlotOffset + (server.encodeHasRoom() ? RESPONSE_WINDOW : 0);
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, server.authorization, 0L, 0);
-            }
         }
 
         private void onHttpWindow(
@@ -1627,8 +1817,9 @@ public final class McpHttpProxyFactory implements BindingHandler
             initialPad = window.padding();
 
             final long traceId = window.traceId();
-            flushRequestStream(traceId);
+            flushRequest(traceId);
             resumeRequest(traceId);
+            flushMcpWindow(traceId);
         }
 
         private void onHttpReset(
@@ -1637,23 +1828,283 @@ public final class McpHttpProxyFactory implements BindingHandler
             final long traceId = reset.traceId();
             state = McpHttpState.closedInitial(state);
             cleanupEncodeSlot();
-            server.onUpstreamAbort(traceId);
+            mcp.onHttpAbort(traceId);
         }
 
-        private void doHttpReplyWindow(
+        private void doHttpBegin(
+            long traceId,
+            Map<String, String> headers,
+            Map<String, String> credentials,
+            String path,
+            String contentType)
+        {
+            final HttpBeginExFW httpBeginEx = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headers(hs ->
+                {
+                    for (Map.Entry<String, String> entry : headers.entrySet())
+                    {
+                        final String header = entry.getKey();
+                        final String value = HEADER_PATH.equals(header) ? path : entry.getValue();
+                        hs.item(h -> h.name(header).value(value));
+                    }
+                    if (contentType != null)
+                    {
+                        hs.item(h -> h.name(HEADER_CONTENT_TYPE).value(contentType));
+                    }
+                    for (Map.Entry<String, String> entry : credentials.entrySet())
+                    {
+                        hs.item(h -> h.name(entry.getKey()).value(entry.getValue()));
+                    }
+                })
+                .build();
+
+            state = McpHttpState.openingInitial(state);
+
+            receiver = newStream(this::onHttpMessage, originId, routedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, mcp.authorization, mcp.affinity, httpBeginEx);
+        }
+
+        private void doHttpEnd(
             long traceId)
         {
-            replyAck = replySeq - decodeSlotOffset;
-            replyMax = bufferPool.slotCapacity();
-            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, server.authorization, 0L, 0);
+            if (!McpHttpState.initialClosed(state))
+            {
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, mcp.authorization);
+                state = McpHttpState.closedInitial(state);
+            }
+            cleanupEncodeSlot();
+        }
+
+        private void doHttpAbort(
+            long traceId)
+        {
+            if (McpHttpState.initialOpening(state) && !McpHttpState.initialClosed(state))
+            {
+                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, mcp.authorization);
+                state = McpHttpState.closedInitial(state);
+            }
+            cleanupEncodeSlot();
+        }
+
+        private void doHttpReset(
+            long traceId)
+        {
+            if (McpHttpState.initialOpening(state) && !McpHttpState.replyClosed(state))
+            {
+                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, mcp.authorization);
+                state = McpHttpState.closedReply(state);
+            }
+            cleanupDecodeSlot();
+        }
+
+        // Triggered whenever McpHttpProxy's reply window changes, since that is what lets pumpResponse drain
+        // more of this side's own decodeSlot; the window granted back to the upstream HTTP server reflects
+        // only this side's own backlog — decodeSlotOffset is in raw upstream response bytes, the same units
+        // as replySeq/replyAck, unlike McpHttpProxy's own reply-direction counters, which are a distinct byte
+        // stream once the response envelope/escaping transform has run. max stays pinned to the slot's full
+        // physical capacity; ack alone carries the backlog discount, so ack + max lands exactly on the true
+        // remaining room (replySeq + (slotCapacity - decodeSlotOffset)) without double-counting the backlog.
+        private void flushHttpWindow(
+            long traceId,
+            long budgetId,
+            int padding)
+        {
+            final long newReplyAck = Math.max(replyAck, replySeq - decodeSlotOffset);
+            final int newReplyMax = Math.max(replyMax, decodePool.slotCapacity());
+
+            if (newReplyAck > replyAck || newReplyMax > replyMax || !McpHttpState.replyOpened(state))
+            {
+                replyAck = newReplyAck;
+                replyMax = newReplyMax;
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, mcp.authorization, budgetId, padding);
+            }
+        }
+
+        // Convenience trigger: mcp computes its own window purely from its own decodeSlot backlog, so this
+        // only needs to supply the padding to report and re-fire the check.
+        private void flushMcpWindow(
+            long traceId)
+        {
+            mcp.flushMcpWindow(traceId, 0L, initialPad);
+        }
+
+        private boolean acquireEncodeSlot()
+        {
+            if (encodeSlot == NO_SLOT)
+            {
+                encodeSlot = encodePool.acquire(initialId);
+            }
+
+            return encodeSlot != NO_SLOT;
+        }
+
+        // Feeds one input window through the request pipeline, wrapping the generator directly against
+        // encodeSlot's own buffer at the live write position — mirroring McpHttpProxy.responseStep's
+        // direct-into-encodeSlot pattern.
+        private JsonPipeline.Status requestStep(
+            JsonGeneratorEx generator,
+            JsonPipeline pipeline,
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            JsonPipeline.Status status;
+            if (acquireEncodeSlot())
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                generator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
+                status = pipeline.transform(buffer, offset, offset + length, last);
+                encodeSlotOffset += generator.length();
+            }
+            else
+            {
+                mcp.cleanup(0L);
+                status = JsonPipeline.Status.REJECTED;
+            }
+            return status;
+        }
+
+        private void requestComplete()
+        {
+            state = McpHttpState.closingInitial(state);
+        }
+
+        // Returns the resulting encodeSlotOffset (bytes still queued after this attempt) so callers reacting
+        // to a SUSPENDED transform status can tell whether flushing actually freed any room before retrying.
+        private int flushRequest(
+            long traceId)
+        {
+            if (receiver != null && !McpHttpState.initialClosed(state))
+            {
+                if (encodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                    int maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
+                    while (encodeSlotOffset > 0 && maxPayload > 0)
+                    {
+                        final int length = Math.min(maxPayload, encodeSlotOffset);
+                        final int reserved = length + initialPad;
+                        final boolean fin = McpHttpState.initialClosing(state) && length == encodeSlotOffset;
+                        final int flags = (requestDataStarted ? 0 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0);
+                        doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                            traceId, mcp.authorization, flags, 0L, reserved, slot, 0, length);
+                        initialSeq += reserved;
+                        requestDataStarted = true;
+                        final int remaining = encodeSlotOffset - length;
+                        if (remaining > 0)
+                        {
+                            slot.putBytes(0, slot, length, remaining);
+                        }
+                        encodeSlotOffset = remaining;
+                        maxPayload = initialMax - (int)(initialSeq - initialAck) - initialPad;
+                    }
+                }
+
+                if (McpHttpState.initialClosing(state) && encodeSlotOffset == 0)
+                {
+                    cleanupEncodeSlot();
+                    doHttpEnd(traceId);
+                }
+            }
+
+            return encodeSlotOffset;
+        }
+
+        private void resumeRequest(
+            long traceId)
+        {
+            if (mcp.requestPumpable())
+            {
+                mcp.pumpRequest(traceId);
+            }
+        }
+
+        private void pumpResponse(
+            long traceId)
+        {
+            boolean progress = true;
+            while (progress && !mcp.responseDone)
+            {
+                // responseBegin now runs at onHttpBegin time, before any DATA arrives, so a response that
+                // closes with zero body bytes (decodeSlot never acquired) still needs to drive the pipeline to
+                // a terminal status with an empty window, rather than dereferencing NO_SLOT
+                final MutableDirectBufferEx slot = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : emptyRequestRO;
+                final JsonPipeline.Status status =
+                    mcp.responseStep(slot, 0, decodeSlotOffset, McpHttpState.replyClosed(state));
+                if (status != JsonPipeline.Status.SUSPENDED)
+                {
+                    // compact only at a terminal status: across suspend cycles the pipeline re-feeds the same
+                    // window, so dropping consumed bytes mid-cycle would corrupt its positioning; here the
+                    // window-relative remaining() is the tail to keep, so the consumed prefix is the rest
+                    final int consumed = decodeSlotOffset - mcp.responseRemaining();
+                    if (consumed > 0 && consumed < decodeSlotOffset)
+                    {
+                        slot.putBytes(0, slot, consumed, decodeSlotOffset - consumed);
+                    }
+                    decodeSlotOffset -= consumed;
+                }
+                switch (status)
+                {
+                case SUSPENDED:
+                    // responseStep's destination is always McpProxy's own encodeSlot (structured or
+                    // error-relay mode) — SUSPENDED means it just filled up; flush what's queued and retry
+                    // only if that actually freed room (flushReply is bounded by the real mcp client's own
+                    // window, which can leave encodeSlot short of full yet still unable to drain any further
+                    // until the next onMcpWindow), else stop and wait for that to resume
+                    final int beforeFlush = mcp.encodeSlotOffset;
+                    if (mcp.flushReply(traceId) >= beforeFlush)
+                    {
+                        progress = false;
+                    }
+                    break;
+                case STARVED:
+                    progress = false;
+                    break;
+                case COMPLETED:
+                    mcp.completeResponse(traceId);
+                    progress = false;
+                    break;
+                case REJECTED:
+                    mcp.responseReject(traceId);
+                    progress = false;
+                    break;
+                default:
+                    progress = false;
+                    break;
+                }
+            }
+
+            mcp.flushReply(traceId);
+
+            if (mcp.responseDone)
+            {
+                cleanupDecodeSlot();
+            }
+            else
+            {
+                mcp.flushHttpWindow(traceId);
+            }
+        }
+
+        private void resumeResponse(
+            long traceId)
+        {
+            if (mcp.responseStarted && !mcp.responseDone)
+            {
+                pumpResponse(traceId);
+            }
         }
 
         private void cleanupDecodeSlot()
         {
             if (decodeSlot != NO_SLOT)
             {
-                bufferPool.release(decodeSlot);
+                decodePool.release(decodeSlot);
                 decodeSlot = NO_SLOT;
                 decodeSlotOffset = 0;
             }
@@ -1663,7 +2114,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (encodeSlot != NO_SLOT)
             {
-                bufferPool.release(encodeSlot);
+                encodePool.release(encodeSlot);
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
             }
@@ -1872,14 +2323,11 @@ public final class McpHttpProxyFactory implements BindingHandler
         case KIND_RESOURCES_LIST:
             sessionId = beginEx.resourcesList().sessionId().asString();
             break;
+        case KIND_RESOURCES_TEMPLATES_LIST:
+            sessionId = beginEx.resourcesTemplatesList().sessionId().asString();
+            break;
         case KIND_RESOURCES_READ:
             sessionId = beginEx.resourcesRead().sessionId().asString();
-            break;
-        case KIND_PROMPTS_LIST:
-            sessionId = beginEx.promptsList().sessionId().asString();
-            break;
-        case KIND_PROMPTS_GET:
-            sessionId = beginEx.promptsGet().sessionId().asString();
             break;
         default:
             break;
@@ -1903,281 +2351,32 @@ public final class McpHttpProxyFactory implements BindingHandler
         return sessionId;
     }
 
-    // Resolves a result.<path> reference within the projected response body held in projectBuffer by walking it
-    // as a streaming event run, rather than navigating a jakarta JsonObject tree.
-    private String resolveResult(
-        int length,
-        String expression)
-    {
-        String value = "";
-        if (expression.startsWith("result."))
-        {
-            value = navigateBytes(projectBuffer, length, expression.substring(7));
-        }
-        return value;
-    }
-
-    // Projects the upstream response body into projectBuffer, validating against the schema when present and
-    // canonicalizing otherwise, returning the bytes produced or -1 when validation or parsing did not complete.
-    private int projectResponse(
-        JsonSchema schema,
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        final JsonPipeline pipeline = schema != null
-            ? validatingProjectors.computeIfAbsent(schema, this::newValidatingProjector)
-            : canonicalizer;
-        return runInto(pipeline, buffer, offset, length);
-    }
-
-    private int emptyResponse()
-    {
-        projectBuffer.putBytes(0, EMPTY_OBJECT);
-        return EMPTY_OBJECT.length;
-    }
-
-    private boolean validate(
-        JsonSchema schema,
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        return runInto(validators.computeIfAbsent(schema, this::newValidator), buffer, offset, length) >= 0;
-    }
-
-    private int projectInto(
-        JsonSchema schema,
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        return runInto(projectors.computeIfAbsent(schema, this::newProjector), buffer, offset, length);
-    }
-
-    private int templateInto(
-        McpHttpRouteConfig route,
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        return runInto(templates.computeIfAbsent(route, this::newTemplate), buffer, offset, length);
-    }
-
-    // Runs a pipeline over the input window into projectBuffer, returning the bytes produced, or -1 when the
-    // value did not complete. The output stays in projectBuffer so the caller can stream it onward (a request
-    // body) or walk it (a query object) without materializing an intermediate String.
-    private int runInto(
-        JsonPipeline pipeline,
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        projectGenerator.wrap(projectBuffer, 0, projectBuffer.capacity());
-        pipeline.reset();
-
-        final JsonPipeline.Status status = pipeline.transform(buffer, offset, offset + length);
-
-        return status == JsonPipeline.Status.COMPLETED ? projectGenerator.length() : -1;
-    }
-
-    // Re-roots the request to its arguments object in argsBuffer, returning the bytes produced (the empty
-    // object when no arguments are present), by streaming it through the re-rooting McpHttpArguments stage
-    // rather than materializing the request as a jakarta JsonObject tree.
-    private int extractArgs(
-        DirectBufferEx request,
-        int offset,
-        int length)
-    {
-        argsGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
-        argsCaptured.clear();
-        argsPipeline.reset();
-
-        final JsonPipeline.Status status = argsPipeline.transform(request, offset, offset + length);
-        final int produced = status == JsonPipeline.Status.COMPLETED ? argsGenerator.length() : 0;
-
-        return produced > 0 ? produced : emptyArgs();
-    }
-
-    private int emptyArgs()
-    {
-        argsBuffer.putBytes(0, EMPTY_OBJECT);
-        return EMPTY_OBJECT.length;
-    }
-
-    // Resolves a dotted path within the arguments object held in buffer, returning the scalar value as text or
-    // an empty string when the path is absent or addresses a container, by walking it as a streaming event run
-    // rather than navigating a jakarta JsonObject tree.
-    private String navigateBytes(
-        DirectBufferEx buffer,
-        int length,
-        String path)
-    {
-        final String[] segments = path.split("\\.");
-        queryParser.reset();
-        queryParser.wrap(buffer, 0, length, true);
-
-        int depth = 0;
-        int matched = 0;
-        boolean awaitingValue = false;
-        String result = "";
-        boolean done = false;
-        while (!done && queryParser.hasNextEvent())
-        {
-            final JsonEvent event = queryParser.nextEvent();
-            if (awaitingValue)
-            {
-                result = scalarText(event);
-                done = true;
-            }
-            else
-            {
-                switch (event)
-                {
-                case START_OBJECT:
-                case START_ARRAY:
-                    depth++;
-                    break;
-                case END_OBJECT:
-                case END_ARRAY:
-                    depth--;
-                    break;
-                case KEY_NAME:
-                    if (depth == matched + 1 && segments[matched].contentEquals(queryParser.getStringView()))
-                    {
-                        matched++;
-                        awaitingValue = matched == segments.length;
-                    }
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-        return result;
-    }
-
-    private String scalarText(
-        JsonEvent event)
-    {
-        String result;
-        switch (event)
-        {
-        case VALUE_STRING:
-        case VALUE_NUMBER:
-            result = queryParser.getString();
-            break;
-        case VALUE_TRUE:
-            result = "true";
-            break;
-        case VALUE_FALSE:
-            result = "false";
-            break;
-        default:
-            result = "";
-            break;
-        }
-        return result;
-    }
-
-    // Builds an application/x-www-form-urlencoded query string from a projected query object held in buffer,
-    // walking it as a streaming event run rather than materializing a JSON object tree. Top-level scalar
-    // members become key=value pairs; a member whose value is an array repeats the key per element.
-    private String queryStringFromBytes(
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        final StringBuilder builder = new StringBuilder();
-        queryParser.reset();
-        queryParser.wrap(buffer, offset, offset + length, true);
-
-        String key = null;
-        int depth = 0;
-        boolean inArray = false;
-        while (queryParser.hasNextEvent())
-        {
-            final JsonEvent event = queryParser.nextEvent();
-            switch (event)
-            {
-            case START_OBJECT:
-                depth++;
-                break;
-            case START_ARRAY:
-                depth++;
-                inArray = depth == 2;
-                break;
-            case END_OBJECT:
-                depth--;
-                break;
-            case END_ARRAY:
-                depth--;
-                inArray = false;
-                break;
-            case KEY_NAME:
-                if (depth == 1)
-                {
-                    key = queryParser.getString();
-                }
-                break;
-            case VALUE_STRING:
-            case VALUE_NUMBER:
-                if (key != null && (depth == 1 || depth == 2 && inArray))
-                {
-                    appendQuery(builder, key, queryParser.getString());
-                }
-                break;
-            case VALUE_TRUE:
-                if (key != null && (depth == 1 || depth == 2 && inArray))
-                {
-                    appendQuery(builder, key, "true");
-                }
-                break;
-            case VALUE_FALSE:
-                if (key != null && (depth == 1 || depth == 2 && inArray))
-                {
-                    appendQuery(builder, key, "false");
-                }
-                break;
-            default:
-                break;
-            }
-        }
-        return builder.toString();
-    }
-
-    private JsonPipeline newValidator(
-        JsonSchema schema)
-    {
-        return JsonEx.stream(JsonEx.createParser())
-            .transform(schema.validator())
-            .into(JsonEx.createSink(projectGenerator));
-    }
-
-    private JsonPipeline newProjector(
-        JsonSchema schema)
-    {
-        return JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(schema))
-            .into(JsonEx.createSink(projectGenerator));
-    }
-
-    private JsonPipeline newValidatingProjector(
-        JsonSchema schema)
-    {
-        return JsonEx.stream(JsonEx.createParser())
-            .transform(schema.validator())
-            .transform(JsonEx.projector(schema))
-            .into(JsonEx.createSink(projectGenerator));
-    }
-
-    private JsonPipeline newTemplate(
+    // Memoizes argReferences(route.with.headers.get(HEADER_PATH)) per route: the result depends only on
+    // immutable route config, so re-parsing it on every streaming tools/call stream open is wasted work.
+    private List<String> pathArgReferences(
         McpHttpRouteConfig route)
     {
-        return JsonEx.stream(JsonEx.createParser())
-            .transform(JsonEx.projector(route.bodyTemplatePointers))
-            .transform(new McpHttpRename(route.bodyTemplateRenames))
-            .into(JsonEx.createSink(projectGenerator));
+        return routePathArgReferences.computeIfAbsent(route, newPathArgReferencesFn);
+    }
+
+    private List<String> newPathArgReferences(
+        McpHttpRouteConfig route)
+    {
+        return argReferences(route.with.headers.get(HEADER_PATH));
+    }
+
+    // Memoizes resultReferences(tool.summary) per tool: the result depends only on immutable tool config, so
+    // re-parsing the summary template on every tools/call response stream open is wasted work.
+    private List<String> toolResultReferences(
+        McpHttpToolConfig tool)
+    {
+        return toolResultReferences.computeIfAbsent(tool, newToolResultReferencesFn);
+    }
+
+    private List<String> newToolResultReferences(
+        McpHttpToolConfig tool)
+    {
+        return resultReferences(tool.summary);
     }
 
     private void appendQuery(
@@ -2189,69 +2388,41 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             builder.append('&');
         }
-        builder.append(encode(key)).append('=').append(encode(value));
+        builder.append(McpHttpRouteConfig.encode(key)).append('=').append(McpHttpRouteConfig.encode(value));
     }
 
-    // Assembles {"content":[{"type":"text","text":<escaped>}],"isError":true} into replyBuffer from static
-    // byte[] fragments and the escaped error text, returning its length — no jakarta DOM, no String round-trip.
-    private int buildToolError(
-        String bodyText)
-    {
-        int progress = put(replyBuffer, 0, TOOL_SUCCESS_PREFIX);
-        progress = putJsonString(replyBuffer, progress, bodyText);
-        progress = put(replyBuffer, progress, TOOL_ERROR_SUFFIX);
-        return progress;
-    }
-
-    // Assembles {"contents":[{"uri":<u>,"mimeType":<m>,"text":<escaped>}]} into replyBuffer, escaping the
-    // projected resource text spliced directly from projectBuffer[0..length], returning its length.
-    private int buildResource(
-        String uri,
-        String mimeType,
-        int length)
-    {
-        int progress = put(replyBuffer, 0, RESOURCE_PREFIX);
-        progress = putJsonString(replyBuffer, progress, uri);
-        progress = put(replyBuffer, progress, RESOURCE_MIME);
-        progress = putJsonString(replyBuffer, progress, mimeType);
-        progress = put(replyBuffer, progress, RESOURCE_TEXT);
-        progress = putJsonString(replyBuffer, progress, projectBuffer, 0, length);
-        progress = put(replyBuffer, progress, RESOURCE_SUFFIX);
-        return progress;
-    }
-
-    private String toolsList(
+    private byte[] toolsList(
         McpHttpBindingConfig binding)
     {
-        String json = binding.toolsListJson();
+        byte[] json = binding.toolsListJson();
         if (json == null)
         {
-            json = buildToolsList(binding);
+            json = buildToolsList(binding).getBytes(UTF_8);
             binding.toolsListJson(json);
         }
         return json;
     }
 
-    private String resourcesList(
+    private byte[] resourcesList(
         McpHttpBindingConfig binding)
     {
-        String json = binding.resourcesListJson();
+        byte[] json = binding.resourcesListJson();
         if (json == null)
         {
-            json = buildResourcesList(binding);
+            json = buildResourcesList(binding).getBytes(UTF_8);
             binding.resourcesListJson(json);
         }
         return json;
     }
 
-    private String promptsList(
+    private byte[] resourcesTemplatesList(
         McpHttpBindingConfig binding)
     {
-        String json = binding.promptsListJson();
+        byte[] json = binding.resourcesTemplatesListJson();
         if (json == null)
         {
-            json = buildPromptsList(binding);
-            binding.promptsListJson(json);
+            json = buildResourcesTemplatesList(binding).getBytes(UTF_8);
+            binding.resourcesTemplatesListJson(json);
         }
         return json;
     }
@@ -2278,29 +2449,39 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 item.add("outputSchema", outputSchema);
             }
-            final List<GuardedConfig> guarded = binding.toolGuarded(tool.name);
-            if (!guarded.isEmpty())
+            final JsonArrayBuilder toolSchemes = securitySchemes(binding.toolGuarded(tool.name));
+            if (toolSchemes != null)
             {
-                final JsonArrayBuilder schemes = Json.createArrayBuilder();
-                for (GuardedConfig g : guarded)
-                {
-                    if (!g.roles.isEmpty())
-                    {
-                        final JsonArrayBuilder scopes = Json.createArrayBuilder();
-                        for (String role : g.roles)
-                        {
-                            scopes.add(role);
-                        }
-                        schemes.add(Json.createObjectBuilder()
-                            .add("type", "oauth2")
-                            .add("scopes", scopes));
-                    }
-                }
-                item.add("securitySchemes", schemes);
+                item.add("securitySchemes", toolSchemes);
             }
             tools.add(item);
         }
         return compact(Json.createObjectBuilder().add("tools", tools).build());
+    }
+
+    private static JsonArrayBuilder securitySchemes(
+        List<GuardedConfig> guarded)
+    {
+        JsonArrayBuilder schemes = null;
+        for (GuardedConfig g : guarded)
+        {
+            if (!g.roles.isEmpty())
+            {
+                if (schemes == null)
+                {
+                    schemes = Json.createArrayBuilder();
+                }
+                final JsonArrayBuilder scopes = Json.createArrayBuilder();
+                for (String role : g.roles)
+                {
+                    scopes.add(role);
+                }
+                schemes.add(Json.createObjectBuilder()
+                    .add("type", "oauth2")
+                    .add("scopes", scopes));
+            }
+        }
+        return schemes;
     }
 
     private String buildResourcesList(
@@ -2309,12 +2490,15 @@ public final class McpHttpProxyFactory implements BindingHandler
         final JsonArrayBuilder resources = Json.createArrayBuilder();
         for (McpHttpResourceConfig resource : binding.resources())
         {
+            if (resource.template)
+            {
+                continue;
+            }
             final JsonObjectBuilder item = Json.createObjectBuilder()
                 .add("name", resource.name);
             if (resource.uri != null)
             {
-                final String key = resource.uri.indexOf('{') >= 0 ? "uriTemplate" : "uri";
-                item.add(key, resource.uri);
+                item.add("uri", resource.uri);
             }
             if (resource.description != null)
             {
@@ -2324,80 +2508,45 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 item.add("mimeType", resource.mimeType);
             }
+            final JsonArrayBuilder resourceSchemes = securitySchemes(binding.resourceGuarded(resource.name));
+            if (resourceSchemes != null)
+            {
+                item.add("securitySchemes", resourceSchemes);
+            }
             resources.add(item);
         }
         return compact(Json.createObjectBuilder().add("resources", resources).build());
     }
 
-    private String buildPromptsList(
+    private String buildResourcesTemplatesList(
         McpHttpBindingConfig binding)
     {
-        final JsonArrayBuilder prompts = Json.createArrayBuilder();
-        for (McpHttpPromptConfig prompt : binding.prompts())
+        final JsonArrayBuilder resourceTemplates = Json.createArrayBuilder();
+        for (McpHttpResourceConfig resource : binding.resources())
         {
+            if (!resource.template)
+            {
+                continue;
+            }
             final JsonObjectBuilder item = Json.createObjectBuilder()
-                .add("name", prompt.name);
-            if (prompt.description != null)
+                .add("name", resource.name)
+                .add("uriTemplate", resource.uri);
+            if (resource.description != null)
             {
-                item.add("description", prompt.description);
+                item.add("description", resource.description);
             }
-            if (prompt.arguments != null)
+            if (resource.mimeType != null)
             {
-                final JsonArrayBuilder arguments = Json.createArrayBuilder();
-                for (McpHttpPromptArgumentConfig argument : prompt.arguments)
-                {
-                    final JsonObjectBuilder argumentItem = Json.createObjectBuilder()
-                        .add("name", argument.name);
-                    if (argument.description != null)
-                    {
-                        argumentItem.add("description", argument.description);
-                    }
-                    argumentItem.add("required", argument.required);
-                    arguments.add(argumentItem);
-                }
-                item.add("arguments", arguments);
+                item.add("mimeType", resource.mimeType);
             }
-            prompts.add(item);
-        }
-        return compact(Json.createObjectBuilder().add("prompts", prompts).build());
-    }
-
-    // Assembles {"description":<d>,"messages":[{"role":<r>,"content":{"type":"text","text":<t>}},...]} into
-    // replyBuffer (description optional), interpolating each message text into the escaped value directly,
-    // returning its length — replaces the per-request jakarta DOM + compact round-trip.
-    private int buildPromptGet(
-        McpHttpPromptConfig prompt,
-        int argsLength)
-    {
-        int progress;
-        if (prompt.description != null)
-        {
-            progress = put(replyBuffer, 0, PROMPT_DESCRIPTION);
-            progress = putJsonString(replyBuffer, progress, prompt.description);
-            progress = put(replyBuffer, progress, PROMPT_MESSAGES);
-        }
-        else
-        {
-            progress = put(replyBuffer, 0, PROMPT_MESSAGES_OPEN);
-        }
-        boolean first = true;
-        for (McpHttpPromptMessageConfig message : prompt.messages)
-        {
-            if (!first)
+            final JsonArrayBuilder templateSchemes = securitySchemes(binding.resourceGuarded(resource.name));
+            if (templateSchemes != null)
             {
-                replyBuffer.putByte(progress++, (byte) ',');
+                item.add("securitySchemes", templateSchemes);
             }
-            first = false;
-            final String text = interpolate(message.text,
-                expr -> expr.startsWith("args.") ? navigateBytes(argsBuffer, argsLength, expr.substring(5)) : "");
-            progress = put(replyBuffer, progress, PROMPT_MESSAGE_ROLE);
-            progress = putJsonString(replyBuffer, progress, message.role);
-            progress = put(replyBuffer, progress, PROMPT_MESSAGE_CONTENT);
-            progress = putJsonString(replyBuffer, progress, text);
-            progress = put(replyBuffer, progress, PROMPT_MESSAGE_END);
+            resourceTemplates.add(item);
         }
-        progress = put(replyBuffer, progress, PROMPT_SUFFIX);
-        return progress;
+        return compact(Json.createObjectBuilder().add("resourceTemplates", resourceTemplates).build());
     }
 
     private JsonObject schemaObject(
@@ -2406,22 +2555,6 @@ public final class McpHttpProxyFactory implements BindingHandler
     {
         final String text = model != null ? binding.schemaText(model) : null;
         return text != null ? parseObject(text) : null;
-    }
-
-    private static String text(
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        final byte[] bytes = new byte[length];
-        buffer.getBytes(offset, bytes);
-        return new String(bytes, UTF_8);
-    }
-
-    private static String cap(
-        String text)
-    {
-        return text.length() > MAX_ERROR_BODY ? text.substring(0, MAX_ERROR_BODY) : text;
     }
 
     private static JsonObject parseObject(
@@ -2495,31 +2628,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         return result;
     }
 
-    private static String encode(
-        String value)
-    {
-        final StringBuilder builder = new StringBuilder();
-        final byte[] bytes = value.getBytes(UTF_8);
-        for (byte b : bytes)
-        {
-            final int c = b & 0xff;
-            if (c >= 'A' && c <= 'Z' ||
-                c >= 'a' && c <= 'z' ||
-                c >= '0' && c <= '9' ||
-                c == '-' || c == '.' || c == '_' || c == '~')
-            {
-                builder.append((char) c);
-            }
-            else
-            {
-                builder.append('%');
-                builder.append(Character.toUpperCase(Character.forDigit(c >> 4 & 0xf, 16)));
-                builder.append(Character.toUpperCase(Character.forDigit(c & 0xf, 16)));
-            }
-        }
-        return builder.toString();
-    }
-
+    // ASCII input (the common case for tool args, ids, route params) is percent-encoded by iterating
+    // chars directly, skipping the UTF-8 byte conversion the general case requires below: a single-byte
     private static int put(
         MutableDirectBufferEx buffer,
         int offset,
@@ -2651,6 +2761,32 @@ public final class McpHttpProxyFactory implements BindingHandler
                 result.add(template.substring(start + 7, end));
                 index = end + 1;
                 start = template.indexOf("${args.", index);
+            }
+        }
+        return result;
+    }
+
+    // Extracts the result.<path> references from a tool.summary template (e.g. "result.number" from
+    // "Created pull request #${result.number}"), the set McpHttpResults is asked to capture as the response
+    // streams past.
+    private static List<String> resultReferences(
+        String template)
+    {
+        final List<String> result = new ArrayList<>();
+        if (template != null)
+        {
+            int index = 0;
+            int start = template.indexOf("${result.", index);
+            while (start >= 0)
+            {
+                final int end = template.indexOf('}', start);
+                if (end < 0)
+                {
+                    break;
+                }
+                result.add(template.substring(start + 9, end));
+                index = end + 1;
+                start = template.indexOf("${result.", index);
             }
         }
         return result;

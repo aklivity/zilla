@@ -113,6 +113,35 @@ public class McpServerIT
     }
 
     @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.anonymous/client",
+        "${app}/lifecycle.initialize.anonymous/server"})
+    public void shouldInitializeLifecycleAnonymouslyWithMissingBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.reject.bearer.invalid/client"})
+    public void shouldRejectLifecycleInitializeWithInvalidBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.guarded/client",
+        "${app}/lifecycle.initialize.guarded/server"})
+    public void shouldInitializeLifecycleWithGuardedBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.initialize.reject.bearer.resource.metadata/client",
@@ -509,6 +538,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/resources.templates.list.aborted/client",
+        "${app}/resources.templates.list.aborted/server"})
+    public void shouldAbortListResourcesTemplates() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/resources.read.aborted/client",
         "${app}/resources.read.aborted/server"})
     public void shouldAbortReadResource() throws Exception
@@ -552,6 +591,16 @@ public class McpServerIT
         "${net}/resources.list/client",
         "${app}/resources.list/server"})
     public void shouldListResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.templates.list/client",
+        "${app}/resources.templates.list/server"})
+    public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
     }

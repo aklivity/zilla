@@ -443,11 +443,19 @@ public class ProtobufJsonTest
         return wire(g ->
         {
             g.writeString(1, "neo");
-            g.startMessage(2, 16).writeString(1, "Zion").endMessage();
+            g.startMessage(2, 16);
+            g.writeString(1, "Zion");
+            g.endMessage();
             g.writeInt32(3, 1).writeInt32(3, 2);
             g.writeString(4, "a").writeString(4, "b");
-            g.startMessage(5, 16).writeString(1, "k").writeString(2, "v").endMessage();
-            g.startMessage(6, 16).writeString(1, "s").writeInt32(2, 7).endMessage();
+            g.startMessage(5, 16);
+            g.writeString(1, "k");
+            g.writeString(2, "v");
+            g.endMessage();
+            g.startMessage(6, 16);
+            g.writeString(1, "s");
+            g.writeInt32(2, 7);
+            g.endMessage();
         });
     }
 

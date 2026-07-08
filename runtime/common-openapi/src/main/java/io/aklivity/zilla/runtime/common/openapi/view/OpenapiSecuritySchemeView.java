@@ -14,7 +14,13 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.view;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSecurityScheme;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
@@ -27,7 +33,10 @@ public final class OpenapiSecuritySchemeView
     public final String scheme;
     public final String bearerFormat;
     public final String openidConnectUrl;
+    public final OpenapiOAuthFlowsView flows;
     public final List<String> scopes;
+
+    private final Map<String, Object> extensions;
 
     OpenapiSecuritySchemeView(
         OpenapiResolver resolver,
@@ -49,6 +58,34 @@ public final class OpenapiSecuritySchemeView
         this.scheme = resolved.scheme;
         this.bearerFormat = resolved.bearerFormat;
         this.openidConnectUrl = resolved.openidConnectUrl;
-        this.scopes = List.of(); // TODO: resolved.scopes;
+        this.flows = resolved.flows != null ? new OpenapiOAuthFlowsView(resolved.flows) : null;
+        this.scopes = this.flows != null ? resolveScopes(this.flows) : List.of();
+        this.extensions = resolved.extensions;
+    }
+
+    public boolean hasExtension(
+        String name)
+    {
+        return extensions != null && extensions.containsKey(name);
+    }
+
+    public <T> Optional<T> extension(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
+    }
+
+    private static List<String> resolveScopes(
+        OpenapiOAuthFlowsView flows)
+    {
+        Set<String> scopes = new LinkedHashSet<>();
+        Stream.of(flows.implicit, flows.password, flows.clientCredentials, flows.authorizationCode)
+            .filter(Objects::nonNull)
+            .map(flow -> flow.scopes)
+            .filter(Objects::nonNull)
+            .forEach(flowScopes -> scopes.addAll(flowScopes.keySet()));
+
+        return List.copyOf(scopes);
     }
 }

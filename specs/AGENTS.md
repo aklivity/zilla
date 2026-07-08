@@ -28,6 +28,59 @@ the classpath, one per installed component. The result is a single aggregated
 schema that reflects exactly the components present in the running Zilla
 instance — no component contributes schema for types that are not installed.
 
+### Nested extension points within a component's own schema
+
+Some components define further-pluggable sub-concepts inside their own
+`options` — for example, a binding might maintain an internal registry of
+named sub-behaviors (index types, transform types, etc.) that other,
+independently-versioned modules should be able to extend without ever editing
+the owning component's schema patch. This is a different problem from the
+top-level `type` discriminator (`$defs/binding`, `$defs/guard`, etc.) above,
+since a sub-concept's implementations may ship from other modules, or from
+another repository entirely.
+
+The convention is a dedicated top-level `$defs` scaffold per component kind:
+`$defs/binding-ext`, `$defs/guard-ext`, `$defs/vault-ext`, `$defs/catalog-ext`,
+`$defs/store-ext`, `$defs/exporter-ext`, `$defs/model-ext`. These are
+pre-seeded as empty objects in the base engine schema, exactly like
+`$defs/guard`/`$defs/vault`/`$defs/models` are pre-seeded for the top-level
+discriminators. Pre-seeding is what makes them safe for independent,
+unordered contributions: JSON Patch's `add` operation replaces an existing
+key's value wholesale, so a parent that multiple unrelated modules might add
+sub-keys under must already exist before any of them run — otherwise whichever
+patch applies second silently wipes out the first's contribution.
+
+A component that owns a sub-concept adds its own key under the relevant
+`-ext` scaffold, once, in its own schema patch:
+
+```json
+{ "op": "add", "path": "/$defs/binding-ext/mcp", "value": {
+    "indexes": { "properties": { "type": { "enum": [] } }, "allOf": [] }
+} }
+```
+
+This `add` is safe even though `binding-ext` itself is shared, because
+`binding-mcp` is the only thing that will ever name the `mcp` key underneath
+it. Each pluggable implementation of that sub-concept — in-tree or from a
+separate module or repository — then contributes its own patch appending into
+the now-existing scaffold, using the same append-only idiom as the top-level
+discriminators:
+
+```json
+{ "op": "add", "path": "/$defs/binding-ext/mcp/indexes/properties/type/enum/-", "value": "keyword" },
+{ "op": "add", "path": "/$defs/binding-ext/mcp/indexes/allOf/-", "value": {
+    "if": { "properties": { "type": { "const": "keyword" } } },
+    "then": { "additionalProperties": false }
+} }
+```
+
+Path shape: `/$defs/<kind>-ext/<type>/<extension-point-name>`, where `<kind>`
+is the owning component's kind (`binding`, `guard`, `vault`, `catalog`,
+`store`, `exporter`, `model`) and `<type>` is that component's own `type`
+value (e.g. `mcp`). This keeps every component's sub-extension points
+consistently namespaced and discoverable by grepping for `-ext`, regardless
+of which module or repository ends up contributing to them.
+
 ### Schema file locations
 
 Each component's JSON schema patch is checked in once, in the spec project:

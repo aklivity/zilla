@@ -369,7 +369,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
-    public ProtobufGenerator startMessage(
+    public boolean startMessage(
         int field,
         int length)
     {
@@ -378,11 +378,11 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         int width = varintSize(length);
         int slot = writer.reserve(width);
         push(field, KIND_MESSAGE, slot, width);
-        return this;
+        return true;
     }
 
     @Override
-    public ProtobufGenerator endMessage()
+    public boolean endMessage()
     {
         int level = depth - 1;
         if (kinds[level] != KIND_MESSAGE)
@@ -394,21 +394,21 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
             fillMessage(level);
         }
         depth--;
-        return this;
+        return true;
     }
 
     @Override
-    public ProtobufGenerator startGroup(
+    public boolean startGroup(
         int field)
     {
         reopen();
         writer.writeTag(field, ProtobufWireType.SGROUP);
         push(field, KIND_GROUP, 0, 0);
-        return this;
+        return true;
     }
 
     @Override
-    public ProtobufGenerator endGroup()
+    public boolean endGroup()
     {
         int level = depth - 1;
         if (kinds[level] != KIND_GROUP)
@@ -420,7 +420,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
             writer.writeTag(fields[level], ProtobufWireType.EGROUP);
         }
         depth--;
-        return this;
+        return true;
     }
 
     @Override
@@ -463,7 +463,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
-    public ProtobufGenerator flush()
+    public boolean flush()
     {
         // a record closes at the value being fragmented, so each message length counts the deferred value
         // bytes plus the end-tags of the open groups inside it (those EGROUPs are emitted when the value
@@ -501,7 +501,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         }
         needsReopen = depth > 0;
         flushed = true;
-        return this;
+        return true;
     }
 
     private void reopen()

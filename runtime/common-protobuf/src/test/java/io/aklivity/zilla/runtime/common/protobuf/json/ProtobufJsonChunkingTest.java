@@ -207,11 +207,13 @@ public class ProtobufJsonChunkingTest
         // the multi-fragment accumulation path that materializes the key once complete
         String key = "the-quick-brown-fox-jumps-over-the-lazy-dog";
 
-        byte[] wire = wire(g -> g
-            .startMessage(1, 64)
-            .writeString(1, key)
-            .writeString(2, "v")
-            .endMessage());
+        byte[] wire = wire(g ->
+        {
+            g.startMessage(1, 64);
+            g.writeString(1, key);
+            g.writeString(2, "v");
+            g.endMessage();
+        });
 
         // a 4-byte input window forces the key's wire bytes to arrive in many fragments (STARVED), while a
         // generous output window keeps the whole document in one chunk

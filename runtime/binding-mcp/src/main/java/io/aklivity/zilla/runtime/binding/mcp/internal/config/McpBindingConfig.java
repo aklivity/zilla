@@ -24,8 +24,11 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import jakarta.json.Json;
@@ -41,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -64,6 +68,7 @@ public final class McpBindingConfig
     private static final String HTTP_HEADER_SCHEME = ":scheme";
     private static final String HTTP_HEADER_AUTHORITY = ":authority";
     private static final String HTTP_HEADER_PATH = ":path";
+    private static final String HTTP_HEADER_AUTHORIZATION = "authorization";
 
     private static final String SCHEME_HTTPS = "https";
     private static final int PORT_HTTP = 80;
@@ -79,11 +84,15 @@ public final class McpBindingConfig
 
     private static final Map<String, List<String>> EMPTY_ROLES = Map.of();
 
+    public static final String CREDENTIALS_PLACEHOLDER = "{credentials}";
+
     public final long id;
     public final McpOptionsConfig options;
     public final GuardHandler guard;
     public final GuardHandler filterGuard;
     public final String credentials;
+    public final boolean needsCredentials;
+    public final Pattern credentialsPattern;
     public final McpProxyCache cache;
     public final Map<String, McpProxySession> sessions;
     public final Map<String, McpRouteConfig> routeByPrefix;
@@ -114,20 +123,7 @@ public final class McpBindingConfig
             .map(McpRouteConfig::new)
             .collect(Collectors.toList());
 
-        final Map<String, McpRouteConfig> routeByPrefix = new LinkedHashMap<>();
-        if (routes.size() > 1)
-        {
-            final List<String> toolkits = routes.stream()
-                .map(McpRouteConfig::toolkit)
-                .collect(Collectors.toList());
-            final Map<String, String> prefixesByToolkit = McpAggregateEventId.computePrefixes(toolkits);
-            for (McpRouteConfig route : routes)
-            {
-                final String prefix = prefixesByToolkit.get(route.toolkit());
-                routeByPrefix.put(prefix, route);
-            }
-        }
-        this.routeByPrefix = routeByPrefix;
+        this.routeByPrefix = computeRouteByPrefix(routes);
 
         this.aggregateRoutes = routeByPrefix.entrySet().stream()
             .sorted(Map.Entry.comparingByKey())
@@ -156,6 +152,12 @@ public final class McpBindingConfig
             .map(a -> a.credentials)
             .filter(c -> !c.isEmpty())
             .orElse(null);
+
+        this.needsCredentials = credentials == null || credentials.contains(CREDENTIALS_PLACEHOLDER);
+
+        this.credentialsPattern = credentials != null
+            ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
+            : null;
 
         this.cache = Optional.ofNullable(options)
             .map(o -> o.cache)
@@ -534,6 +536,30 @@ public final class McpBindingConfig
             : authority;
     }
 
+    static Map<String, McpRouteConfig> computeRouteByPrefix(
+        List<McpRouteConfig> routes)
+    {
+        final Map<String, McpRouteConfig> routeByPrefix = new LinkedHashMap<>();
+        if (routes.size() > 1)
+        {
+            final List<String> toolkits = routes.stream()
+                .map(McpRouteConfig::toolkit)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+            final Map<String, String> prefixesByToolkit = McpAggregateEventId.computePrefixes(toolkits);
+            for (McpRouteConfig route : routes)
+            {
+                final String toolkit = route.toolkit();
+                if (toolkit != null)
+                {
+                    final String prefix = prefixesByToolkit.get(toolkit);
+                    routeByPrefix.put(prefix, route);
+                }
+            }
+        }
+        return routeByPrefix;
+    }
+
     public Map<String, List<String>> getRoles(
         long routeId)
     {
@@ -541,6 +567,33 @@ public final class McpBindingConfig
         for (McpRouteConfig route : routes)
         {
             if (route.id == routeId)
+            {
+                result = route.roles;
+                break;
+            }
+        }
+        return result;
+    }
+
+    public Map<String, List<String>> getRoles(
+        String toolName)
+    {
+        return rolesForTool(routes, toolName);
+    }
+
+    public boolean hasToolGuardedRoutes()
+    {
+        return routes.stream().anyMatch(r -> !r.roles.isEmpty());
+    }
+
+    static Map<String, List<String>> rolesForTool(
+        List<McpRouteConfig> routes,
+        String toolName)
+    {
+        Map<String, List<String>> result = EMPTY_ROLES;
+        for (McpRouteConfig route : routes)
+        {
+            if (route.matchesTool(toolName))
             {
                 result = route.roles;
                 break;
@@ -710,6 +763,67 @@ public final class McpBindingConfig
             }
         }
         return redirectURI;
+    }
+
+    public boolean isAuthCallbackPath(
+        String path)
+    {
+        boolean match = false;
+        if (path != null)
+        {
+            final String callback = Optional.ofNullable(options)
+                .map(o -> o.elicitation)
+                .map(e -> e.callback)
+                .orElse(DEFAULT_CALLBACK_PATH);
+            final int queryAt = path.indexOf('?');
+            final String pathOnly = queryAt >= 0 ? path.substring(0, queryAt) : path;
+            final String suffix = "/" + callback;
+            match = pathOnly.endsWith(suffix);
+        }
+        return match;
+    }
+
+    public McpAuthorizationResult authorize(
+        long traceId,
+        long routedId,
+        long initialId,
+        long authorization,
+        HttpBeginExFW httpBeginEx,
+        String path)
+    {
+        McpAuthorizationResult result = new McpAuthorizationResult(authorization, null);
+        if (guard != null && !isAuthCallbackPath(path))
+        {
+            final String authorizationHeader = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_AUTHORIZATION.equals(h.name().asString())))
+                .map(h -> h.value().asString())
+                .orElse(null);
+
+            // No Authorization header at all is not itself a rejection: leave authorization
+            // unresolved (anonymous) and let a downstream guarded route decide, exactly as
+            // an unauthenticated http request reaches an unguarded route. A header that was
+            // sent but does not match the configured credentials pattern, or a credential
+            // that fails reauthorization, are active (if unsuccessful) attempts to authenticate
+            // and are rejected here.
+            if (authorizationHeader != null)
+            {
+                final Matcher credentialsMatcher = credentialsPattern.matcher(authorizationHeader);
+                final String credentials = credentialsMatcher.matches()
+                    ? credentialsMatcher.group("credentials")
+                    : null;
+
+                final long sessionAuth = credentials != null
+                    ? guard.reauthorize(traceId, routedId, initialId, credentials)
+                    : GuardHandler.NOT_AUTHORIZED;
+
+                result = (sessionAuth & GuardHandler.MASK_AUTHORIZED) != 0L
+                    ? new McpAuthorizationResult(sessionAuth, null)
+                    : new McpAuthorizationResult(authorization, credentials == null
+                        ? McpBearerError.INVALID_REQUEST
+                        : McpBearerError.INVALID_TOKEN);
+            }
+        }
+        return result;
     }
 
 }

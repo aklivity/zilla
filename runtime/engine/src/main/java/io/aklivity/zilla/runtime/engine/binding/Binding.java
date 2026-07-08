@@ -19,6 +19,8 @@ import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.EngineController;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 /**
@@ -143,5 +145,30 @@ public interface Binding
         KindConfig kind)
     {
         return Integer.MAX_VALUE;
+    }
+
+    /**
+     * Validates a binding's fully-resolved configuration at load time.
+     * <p>
+     * Called once per binding, after its options and routes have been resolved into
+     * {@link BindingConfig} and {@code RouteConfig} objects, but before the binding is
+     * registered and begins routing traffic. This is the place for cross-field or
+     * multi-object checks that span the binding's own already-parsed config tree — the
+     * kind of validation a {@code ConfigAdapter} should not carry because it spans more
+     * than the single JSON shape being adapted.
+     * </p>
+     * <p>
+     * Does nothing by default. Implementations that need this hook should throw
+     * {@link ConfigException} to fail the configuration load; validation that depends on
+     * data resolved asynchronously from outside the config document itself does not belong
+     * here.
+     * </p>
+     *
+     * @param binding  the fully-resolved binding configuration
+     * @throws ConfigException  if the binding configuration is invalid
+     */
+    default void validate(
+        BindingConfig binding) throws ConfigException
+    {
     }
 }

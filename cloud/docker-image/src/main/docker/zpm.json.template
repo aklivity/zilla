@@ -26,6 +26,8 @@
     "io.aklivity.zilla:binding-kafka-grpc",
     "io.aklivity.zilla:binding-kafka",
     "io.aklivity.zilla:binding-mcp",
+    "io.aklivity.zilla:binding-mcp-http",
+    "io.aklivity.zilla:binding-mcp-openapi",
     "io.aklivity.zilla:binding-mqtt",
     "io.aklivity.zilla:binding-mqtt-kafka",
     "io.aklivity.zilla:binding-openapi",

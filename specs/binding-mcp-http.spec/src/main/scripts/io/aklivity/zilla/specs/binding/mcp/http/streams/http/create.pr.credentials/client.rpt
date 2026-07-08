@@ -17,7 +17,8 @@ connect "zilla://streams/http0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
-# guard credentials injected as the authorization header per options.authorization
+# guard credentials injected as the authorization header, and guard identity substituted into
+# x-user-identity, both per options.authorization
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "POST")
@@ -26,6 +27,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":path", "/repos/acme/widget/pulls")
                             .header("content-type", "application/json")
                             .header("authorization", "Bearer ghp_secret")
+                            .header("x-user-identity", "test")
                             .build()}
 
 connected

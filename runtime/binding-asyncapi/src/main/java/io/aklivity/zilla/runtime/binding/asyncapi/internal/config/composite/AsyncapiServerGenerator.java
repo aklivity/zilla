@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.AsyncapiHttpOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -250,7 +251,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 if (Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.operations.values().stream())
-                    .anyMatch(AsyncapiOperationView::hasBindingsSse))
+                    .anyMatch(op -> op.hasBinding("x-zilla-sse")))
                 {
                     namespace.inject(this::injectSseServer);
                 }
@@ -300,14 +301,15 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.operations.values().stream())
-                    .filter(AsyncapiOperationView::hasBindingsHttp)
+                    .filter(op -> op.hasBinding("http"))
                     .filter(AsyncapiOperationView::hasMessagesOrParameters)
                     .forEach(operation ->
                     {
                         options
                             .request()
                                 .path(operation.channel.address)
-                                .method(Method.valueOf(operation.bindings.http.method))
+                                .method(Method.valueOf(
+                                    operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method))
                                 .inject(request -> injectHttpContent(request, operation))
                                 .inject(request -> injectHttpPathParams(request, operation))
                             .build();
@@ -401,14 +403,15 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     {
                         final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
-                        if (operation.hasBindingsHttp())
+                        if (operation.hasBinding("http"))
                         {
                             binding
                                 .route()
                                 .exit(config.qname)
                                 .when(HttpConditionConfig::builder)
                                     .header(":path", path)
-                                    .header(":method", operation.bindings.http.method)
+                                    .header(":method",
+                                        operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method)
                                     .build()
                                 .with(HttpWithConfig::builder)
                                     .compositeId(operation.compositeId)
@@ -416,7 +419,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                                 .inject(route -> injectHttpServerRouteGuarded(route, operation))
                                 .build();
                         }
-                        else if (operation.hasBindingsSse())
+                        else if (operation.hasBinding("x-zilla-sse"))
                         {
                             binding
                                 .route()
@@ -474,7 +477,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.operations.values().stream())
-                    .filter(AsyncapiOperationView::hasBindingsSse)
+                    .filter(op -> op.hasBinding("x-zilla-sse"))
                     .filter(AsyncapiOperationView::hasMessagesOrParameters)
                     .forEach(operation ->
                     {
@@ -514,7 +517,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .filter(v -> v.servers.stream()
                         .anyMatch(s -> s.protocol.startsWith("http")))
                     .flatMap(v -> v.operations.values().stream())
-                    .filter(AsyncapiOperationView::hasBindingsSse)
+                    .filter(op -> op.hasBinding("x-zilla-sse"))
                     .forEach(operation ->
                     {
                         final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");

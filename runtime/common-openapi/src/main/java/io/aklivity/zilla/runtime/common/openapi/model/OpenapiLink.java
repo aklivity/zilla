@@ -24,4 +24,6 @@ public class OpenapiLink extends AbstractOpenapiResolvable
     public Map<String, String> parameters;
     public String requestBody;
     public OpenapiServer server;
+
+    public Map<String, Object> extensions;
 }
