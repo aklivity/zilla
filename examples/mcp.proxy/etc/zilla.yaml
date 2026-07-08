@@ -16,10 +16,76 @@ guards:
           alg: RS256
           kid: example
 catalogs:
+  github_catalog:
+    type: inline
+    options:
+      subjects:
+        create_pr_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": [ "owner", "repo", "title", "head", "base" ],
+              "properties": {
+                "owner": { "type": "string" },
+                "repo": { "type": "string" },
+                "title": { "type": "string" },
+                "head": { "type": "string" },
+                "base": { "type": "string" },
+                "body": { "type": "string" }
+              }
+            }
+        create_pr_body:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": [ "title", "head", "base" ],
+              "properties": {
+                "title": { "type": "string" },
+                "head": { "type": "string" },
+                "base": { "type": "string" },
+                "body": { "type": "string" }
+              }
+            }
+        create_pr_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "number": { "type": "integer" },
+                "html_url": { "type": "string" },
+                "state": { "type": "string" },
+                "title": { "type": "string" }
+              }
+            }
   petstore_catalog:
     type: inline
     options:
       subjects:
+        create_pet_input:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": [ "name" ],
+              "properties": {
+                "name": { "type": "string" },
+                "tag": { "type": "string" }
+              }
+            }
+        create_pet_output:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "id": { "type": "integer" },
+                "name": { "type": "string" },
+                "tag": { "type": "string" }
+              }
+            }
         petstore:
           version: latest
           schema: |
@@ -80,6 +146,58 @@ catalogs:
                     "responses": {
                       "201": {
                         "description": "created",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "integer" },
+                                "name": { "type": "string" },
+                                "tag": { "type": "string" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "/pets/featured": {
+                  "get": {
+                    "operationId": "list_featured_pets",
+                    "summary": "List featured pets, hand-picked by the store",
+                    "responses": {
+                      "200": {
+                        "description": "ok",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "integer" },
+                                  "name": { "type": "string" },
+                                  "tag": { "type": "string" }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "/pets/{petId}": {
+                  "get": {
+                    "operationId": "get_pet",
+                    "summary": "Get a pet by identifier",
+                    "parameters": [
+                      { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+                    ],
+                    "responses": {
+                      "200": {
+                        "description": "ok",
                         "content": {
                           "application/json": {
                             "schema": {
@@ -192,7 +310,20 @@ bindings:
       tools:
         create_pr:
           description: Create a pull request to merge one branch into another.
-          summary: "Created pull request #${result.number}"
+          summary: "Created pull request #${result.number}: ${result.title}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: create_pr_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: create_pr_result
+                    version: latest
     routes:
       # base route with no `when` applies its guard to every tool in this
       # binding, layered underneath any tool-specific guard below
@@ -210,6 +341,15 @@ bindings:
             ":scheme": http
             ":authority": ghapi:4001
             ":path": /repos/${args.owner}/${args.repo}/pulls
+          # owner/repo are already consumed above by the :path template, so
+          # the body schema below omits them -- everything else in the
+          # tools/call arguments still forwards as the request body
+          body:
+            model: json
+            catalog:
+              github_catalog:
+                - subject: create_pr_body
+                  version: latest
   south_http_client_ghapi:
     type: http
     kind: client
@@ -237,6 +377,26 @@ bindings:
           description: List pets in the store.
         create_pet:
           description: Add a new pet to the store.
+          # explicit override of the auto-derived input/output schema,
+          # demonstrating the same schema-mapping mechanism as mcp_http,
+          # this time optional rather than required
+          input:
+            model: json
+            catalog:
+              petstore_catalog:
+                - subject: create_pet_input
+                  version: latest
+          output:
+            model: json
+            catalog:
+              petstore_catalog:
+                - subject: create_pet_output
+                  version: latest
+      resources:
+        featured_pets:
+          description: Featured pets, hand-picked by the store.
+        pet_by_id:
+          description: A single pet by identifier.
     routes:
       - when:
           - tool: list_pets
@@ -248,6 +408,19 @@ bindings:
         with:
           spec: petstore
           operation: create_pet
+      # GET with no path params -> a static resource, listed once with a fixed URI
+      - when:
+          - resource: featured_pets
+        with:
+          spec: petstore
+          operation: list_featured_pets
+      # GET with a path param -> a dynamic resource template ("/pets/{petId}"),
+      # listed under resources/templates and read with a concrete petId
+      - when:
+          - resource: pet_by_id
+        with:
+          spec: petstore
+          operation: get_pet
 telemetry:
   metrics:
     - mcp.initialize

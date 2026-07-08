@@ -1,15 +1,21 @@
-// Headless MCP client that connects through the Zilla mcp proxy and prints
-// the name of every tool returned by tools/list, one per line. Optionally
-// carries a bearer token on the initial request so .github/test.sh can
-// observe how the result set changes with the caller's authorized scopes --
-// unauthorized toolkits and tools are absent from the list entirely, never
-// present-but-marked-denied.
+// Headless MCP client that connects through the Zilla mcp proxy. In its
+// default (list) mode it prints every tool, resource, and resource template
+// it can see -- one per line, tools bare (e.g. "everything__echo"), resources
+// prefixed "resource:", and resource templates prefixed "template:". Set
+// CALL_TOOL (and optionally CALL_ARGS, a JSON object) to instead call one
+// tool and print its result's text content. Optionally carries a bearer
+// token on the initial request so .github/test.sh can observe how the
+// result set (or an authorized call's effect) changes with the caller's
+// authorized scopes -- unauthorized toolkits and tools/resources are absent
+// from the list entirely, never present-but-marked-denied.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const MCP_URL = process.env.MCP_URL ?? "http://localhost:7114/mcp";
 const JWT_TOKEN = process.env.JWT_TOKEN;
+const CALL_TOOL = process.env.CALL_TOOL;
+const CALL_ARGS = JSON.parse(process.env.CALL_ARGS ?? "{}");
 
 const headers = JWT_TOKEN ? { authorization: `Bearer ${JWT_TOKEN}` } : {};
 
@@ -25,12 +31,30 @@ const main = async () =>
     await client.connect(transport);
     log(`connected, protocolVersion=${transport.protocolVersion}`);
 
+    if (CALL_TOOL)
+    {
+        const result = await client.callTool({ name: CALL_TOOL, arguments: CALL_ARGS });
+        await client.close();
+        console.log(result.content?.map((c) => c.text).join(" ") ?? "");
+        return;
+    }
+
     const { tools } = await client.listTools();
+    const { resources } = await client.listResources().catch(() => ({ resources: [] }));
+    const { resourceTemplates } = await client.listResourceTemplates().catch(() => ({ resourceTemplates: [] }));
     await client.close();
 
     for (const tool of tools)
     {
         console.log(tool.name);
+    }
+    for (const resource of resources)
+    {
+        console.log(`resource:${resource.uri}`);
+    }
+    for (const template of resourceTemplates)
+    {
+        console.log(`template:${template.uriTemplate}`);
     }
 };
 

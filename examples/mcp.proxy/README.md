@@ -50,6 +50,12 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp(proxy)` route for `petstore` toolkit | `routes[].guarded` on the toolkit route | `petstore:tools` |
 | `mcp_openapi(client)` operation `create_pet` | the OpenAPI document's own `security` requirement, mapped to `authn_jwt` via `options.specs.petstore.security` | `petstore:tools` **and** `pets:write` |
 
+`list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
+of their own, so they need only the toolkit-level `petstore:tools` scope --
+the same "toolkit access is not tool access" layering `mcp_http` demonstrates
+with `github:pr:write`, expressed through OpenAPI's own security model
+instead of an explicit `guarded:` route.
+
 The `everything` toolkit has no `guarded:` route at all, so it is reachable by
 any session that can complete `initialize` -- including one with no token.
 
@@ -164,6 +170,55 @@ curl -N http://localhost:7114/mcp \
 
 The response's `html_url` points at the fabricated `ghapi` pull request, and
 `opened_by` echoes the identity extracted from the JWT.
+
+### Schema-validated tool calls, and where the arguments go
+
+`mcp_http` requires every tool to declare an input schema
+(`options.tools.create_pr.schemas.input`, backed by the `github_catalog`
+inline catalog) -- a call is validated against it before Zilla builds the
+upstream request at all. `mcp_openapi` makes the same `input`/`output`
+override optional: `list_pets` relies on the schema auto-derived from the
+OpenAPI document, while `create_pet` explicitly overrides both
+(`options.tools.create_pet.input`/`output`, backed by `petstore_catalog`) to
+show the same mechanism used deliberately rather than inferred.
+
+Once validated, an argument only reaches the upstream request where a route
+says to put it. `create_pr`'s route consumes `owner`/`repo` in the `:path`
+template (`/repos/${args.owner}/${args.repo}/pulls`) and forwards the rest
+(`title`, `head`, `base`, optionally `body`) as the JSON request body via
+`with.body`, whose schema (`create_pr_body`) is the input schema minus
+`owner`/`repo` -- omitting `with.body` entirely does not mean "send
+everything"; it means the validated arguments are discarded with nowhere to
+go, so a route that consumes some arguments as path segments and wants the
+remainder forwarded still needs an explicit `with.body` scoped to what's left.
+
+### Browse petstore resources (static and templated)
+
+`mcp_openapi` maps OpenAPI `GET` operations to MCP resources instead of
+tools when the route's `when` says `resource:` instead of `tool:`. Whether
+the result is a fixed entry in `resources/list` or a `resources/templates`
+entry depends entirely on the OpenAPI path itself:
+
+- `list_featured_pets` (`GET /pets/featured`, no path parameters) becomes a
+  **static** resource at the fixed URI `petstore+/pets/featured`.
+- `get_pet` (`GET /pets/{petId}`, one path parameter) becomes a **dynamic**
+  resource template `petstore+/pets/{petId}`, read with a concrete `petId`
+  substituted in.
+
+Both need only the toolkit-level `petstore:tools` scope -- see them appear
+with any `petstore:tools`-scoped token from above (`$JWT_TOKEN` currently
+holds the full-scope one):
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
+# ...
+# resource:petstore+/pets/featured
+# template:petstore+/pets/{petId}
+```
+
+Read the templated resource for a specific pet with MCP Inspector's Resources
+tab, or with any MCP client that supports `resources/read` against
+`petstore+/pets/1`.
 
 ### Trigger a form elicitation round-trip
 

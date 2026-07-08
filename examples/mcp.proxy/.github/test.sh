@@ -88,20 +88,23 @@ list_tools() {
 }
 
 # WHEN: a caller presents no JWT at all
-# THEN: the ungated "everything" toolkit is listed, every guarded toolkit is not
+# THEN: the ungated "everything" toolkit is listed, every guarded toolkit --
+#       and its resources -- is not
 assert_no_token() {
   TOOLS_NONE=$(list_tools "$JWT_NONE")
   echo "$TOOLS_NONE" | grep -q '^everything__' &&
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
-    ! echo "$TOOLS_NONE" | grep -q '^petstore__'
+    ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
+    ! echo "$TOOLS_NONE" | grep -q 'petstore+'
 }
 retry_until 5 3 assert_no_token
 echo "TOOLS_NONE=$TOOLS_NONE"
 if echo "$TOOLS_NONE" | grep -q '^everything__' &&
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
-    ! echo "$TOOLS_NONE" | grep -q '^petstore__'; then
+    ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
+    ! echo "$TOOLS_NONE" | grep -q 'petstore+'; then
   echo "✅ no token: only the ungated everything toolkit is listed"
 else
   echo "❌ no token: tools/list did not filter to only the everything toolkit"
@@ -110,13 +113,17 @@ fi
 
 # WHEN: a caller has toolkit-level scopes (github:tools, petstore:tools) but
 #       none of the finer-grained operation scopes
-# THEN: petstore__list_pets is listed (no operation-level security in its
-#       OpenAPI spec) but petstore__create_pet and github__create_pr are not
-#       (they require pets:write / github:pr:write respectively) -- proof that
-#       toolkit access alone does not imply access to every tool in it
+# THEN: petstore__list_pets and both petstore resources are listed (neither
+#       list_pets, list_featured_pets, nor get_pet declare their own
+#       operation-level security) but petstore__create_pet and
+#       github__create_pr are not (they require pets:write / github:pr:write
+#       respectively) -- proof that toolkit access alone does not imply
+#       access to every tool/resource in it
 assert_partial_token() {
   TOOLS_PARTIAL=$(list_tools "$JWT_PARTIAL")
   echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^resource:petstore+/pets/featured$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__'
@@ -124,24 +131,28 @@ assert_partial_token() {
 retry_until 5 3 assert_partial_token
 echo "TOOLS_PARTIAL=$TOOLS_PARTIAL"
 if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^resource:petstore+/pets/featured$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__'; then
-  echo "✅ toolkit-only scope: sees list_pets but not create_pet or create_pr"
+  echo "✅ toolkit-only scope: sees list_pets and both resources, but not create_pet or create_pr"
 else
   echo "❌ toolkit-only scope did not layer as expected"
   EXIT=1
 fi
 
 # WHEN: a caller has every scope required by every guarded route
-# THEN: every tool across every toolkit is listed
+# THEN: every tool, resource, and resource template across every toolkit is listed
 assert_full_token() {
   TOOLS_FULL=$(list_tools "$JWT_FULL")
   echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
     echo "$TOOLS_FULL" | grep -q '^github__create_pr$' &&
     echo "$TOOLS_FULL" | grep -q '^petstore__list_pets$' &&
-    echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$'
+    echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
+    echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
+    echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -149,10 +160,37 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
     echo "$TOOLS_FULL" | grep -q '^github__create_pr$' &&
     echo "$TOOLS_FULL" | grep -q '^petstore__list_pets$' &&
-    echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$'; then
-  echo "✅ full scope: every toolkit's tools are listed"
+    echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
+    echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
+    echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$'; then
+  echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
+  EXIT=1
+fi
+
+# WHEN: an authorized caller calls github__create_pr with title/head/base
+# THEN: those arguments reach the ghapi mock as the JSON request body (not
+#       just owner/repo, which are consumed by the :path template) --
+#       verifying with.body still forwards the call arguments even though
+#       owner/repo are excluded from the body schema. The result summary
+#       template "...${result.title}" surfaces ghapi's echoed title back
+#       through the tool call result, which is what this grep observes.
+call_create_pr() {
+  CREATE_PR_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="github__create_pr" \
+      -e CALL_ARGS='{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main"}' \
+      tools-list-client 2>&1)
+  echo "$CREATE_PR_OUT" | grep -q 'Add feature'
+}
+retry_until 5 3 call_create_pr
+echo "CREATE_PR_OUT=$CREATE_PR_OUT"
+if echo "$CREATE_PR_OUT" | grep -q 'Add feature'; then
+  echo "✅ github__create_pr forwarded title/head/base to ghapi as the request body"
+else
+  echo "❌ github__create_pr did not forward the call arguments as the request body"
   EXIT=1
 fi
 
