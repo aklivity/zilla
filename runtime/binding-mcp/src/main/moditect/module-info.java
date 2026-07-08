@@ -18,10 +18,12 @@ module io.aklivity.zilla.runtime.binding.mcp
     requires io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.runtime.binding.mcp.config;
+    exports io.aklivity.zilla.runtime.binding.mcp.search;
 
     opens io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
     uses io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfigAdapterSpi;
+    uses io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.McpBindingFactorySpi;
@@ -37,4 +39,7 @@ module io.aklivity.zilla.runtime.binding.mcp
 
     provides io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpKeywordToolSearchIndexConfigAdapterSpi;
+
+    provides io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi
+        with io.aklivity.zilla.runtime.binding.mcp.internal.search.McpKeywordToolSearchIndexFactorySpi;
 }
