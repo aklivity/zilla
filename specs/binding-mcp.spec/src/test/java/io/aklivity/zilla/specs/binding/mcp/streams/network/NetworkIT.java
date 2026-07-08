@@ -101,9 +101,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/lifecycle.initialize.reject.bearer.missing/client",
-        "${net}/lifecycle.initialize.reject.bearer.missing/server"})
-    public void shouldRejectLifecycleInitializeWithMissingBearer() throws Exception
+        "${net}/lifecycle.initialize.anonymous/client",
+        "${net}/lifecycle.initialize.anonymous/server"})
+    public void shouldInitializeLifecycleAnonymouslyWithMissingBearer() throws Exception
     {
         k3po.finish();
     }

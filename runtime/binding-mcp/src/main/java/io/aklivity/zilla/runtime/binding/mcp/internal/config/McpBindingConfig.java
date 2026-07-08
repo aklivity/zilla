@@ -799,23 +799,29 @@ public final class McpBindingConfig
                 .map(h -> h.value().asString())
                 .orElse(null);
 
-            final Matcher credentialsMatcher = authorizationHeader != null
-                ? credentialsPattern.matcher(authorizationHeader)
-                : null;
+            // No Authorization header at all is not itself a rejection: leave authorization
+            // unresolved (anonymous) and let a downstream guarded route decide, exactly as
+            // an unauthenticated http request reaches an unguarded route. A header that was
+            // sent but does not match the configured credentials pattern, or a credential
+            // that fails reauthorization, are active (if unsuccessful) attempts to authenticate
+            // and are rejected here.
+            if (authorizationHeader != null)
+            {
+                final Matcher credentialsMatcher = credentialsPattern.matcher(authorizationHeader);
+                final String credentials = credentialsMatcher.matches()
+                    ? credentialsMatcher.group("credentials")
+                    : null;
 
-            final String credentials = credentialsMatcher != null && credentialsMatcher.matches()
-                ? credentialsMatcher.group("credentials")
-                : null;
+                final long sessionAuth = credentials != null
+                    ? guard.reauthorize(traceId, routedId, initialId, credentials)
+                    : GuardHandler.NOT_AUTHORIZED;
 
-            final long sessionAuth = credentials != null
-                ? guard.reauthorize(traceId, routedId, initialId, credentials)
-                : GuardHandler.NOT_AUTHORIZED;
-
-            result = (sessionAuth & GuardHandler.MASK_AUTHORIZED) != 0L
-                ? new McpAuthorizationResult(sessionAuth, null)
-                : new McpAuthorizationResult(authorization, credentials == null
-                    ? McpBearerError.INVALID_REQUEST
-                    : McpBearerError.INVALID_TOKEN);
+                result = (sessionAuth & GuardHandler.MASK_AUTHORIZED) != 0L
+                    ? new McpAuthorizationResult(sessionAuth, null)
+                    : new McpAuthorizationResult(authorization, credentials == null
+                        ? McpBearerError.INVALID_REQUEST
+                        : McpBearerError.INVALID_TOKEN);
+            }
         }
         return result;
     }
