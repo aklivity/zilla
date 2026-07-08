@@ -30,7 +30,7 @@ This one configuration exercises all five `mcp*` binding kinds:
 | --- | --- | --- |
 | `mcp` | `server` | Terminates Streamable HTTP, authenticates the session with the `authn_jwt` guard |
 | `mcp` | `proxy` | Aggregates toolkits behind one endpoint, gates each toolkit's routes with `guarded:` |
-| `mcp` | `client` | Talks to an upstream server that is itself MCP (`everything`, `urlelicit`) |
+| `mcp` | `client` | Talks to an upstream server that is itself MCP (`everything`, `urlelicit`); `urlelicit` also forwards the caller's own JWT upstream |
 | `mcp_http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp_openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
 
@@ -220,6 +220,30 @@ Read the templated resource for a specific pet with MCP Inspector's Resources
 tab, or with any MCP client that supports `resources/read` against
 `petstore+/pets/1`.
 
+### Redirect the outbound host, and rename an argument (mcp_openapi)
+
+The petstore OpenAPI document declares its public server as
+`https://api.petstore.example.com` -- a realistic, external-looking address,
+not the local mock. `options.specs.petstore.server: http://petstore:4002`
+overrides where Zilla actually sends the request, independent of what the
+document says; nothing else about routing changes.
+
+`search_pets` renames its one argument from the OpenAPI parameter's own name
+(`tag`, a query parameter) to `category`, via a custom input schema
+(`options.tools.search_pets.input`) plus `routes[].with.params: {tag:
+"${args.category}"}` reconciling the two. Call it and watch the mock observe
+the original parameter name:
+
+```bash
+docker compose logs -f petstore &
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=petstore__search_pets -e CALL_ARGS='{"category":"cat"}' \
+    tools-list-client
+```
+
+`petstore`'s log line reads `search_pets query: {"tag":"cat"}` -- the caller
+said `category`, the request said `tag`.
+
 ### Trigger a form elicitation round-trip
 
 Call the `everything` server's elicitation-demo tool through the gateway (no
@@ -258,6 +282,33 @@ the client unchanged; once the out-of-band interaction completes, the server
 sends `notifications/elicitation/complete`, which Zilla also relays. URL-mode
 elicitation only flows when the client advertised `elicitation.url` at
 `initialize` -- a form-only or older client never sees the url request.
+
+### Forward the caller's own credential to an upstream MCP server
+
+`south_mcp_client_urlelicit` sets its own `options.authorization`, using the
+same `authn_jwt` guard as the `mcp(server)` binding. Because its `credentials`
+pattern is the default `Bearer {credentials}`, the guard resolves the
+*original* bearer token that was validated when this session was
+authenticated -- not a separate service credential -- and Zilla attaches it
+as the `Authorization` header on every request to `urlelicit`. Confirm it
+arrives unchanged:
+
+```bash
+docker compose logs urlelicit | grep authorization:
+```
+
+Each line shows the exact JWT a given caller presented at the gateway. This
+is the `mcp(client)` binding's own credential-forwarding mechanism -- a
+narrower, single-header equivalent of `mcp_http`'s
+`options.authorization.credentials.headers` map used for `github__create_pr`
+above, without needing to name the header or interpolate `{identity}`
+separately.
+
+> A more elaborate scenario -- an `mcp(client)` binding that itself drives an
+> elicitation round-trip to obtain a credential for an OAuth-protected
+> upstream, rather than simply forwarding one it already has -- likely needs
+> an `oauth` guard that doesn't exist in the open-source runtime yet, so it's
+> a better fit for a future zilla-plus version of this example.
 
 ### Observe the cache
 

@@ -38,6 +38,18 @@ app.post("/pets", (req, res) =>
 // fixed-URI entry in resources/list rather than a resources/templates entry.
 app.get("/pets/featured", (req, res) => res.json(pets.filter((pet) => FEATURED_IDS.has(pet.id))));
 
+// The OpenAPI "tag" query param arrives as ?tag= regardless of what the tool
+// argument is named -- the mcp_openapi route's with.params renames it from
+// the caller-facing "category" back to "tag" before this request is built.
+// Logged (rather than asserted on the MCP response) so .github/test.sh can
+// confirm the rename reached this service exactly as configured.
+app.get("/pets/search", (req, res) =>
+{
+    const { tag } = req.query;
+    console.log(`search_pets query: ${JSON.stringify(req.query)}`);
+    res.json(tag ? pets.filter((pet) => pet.tag === tag) : pets);
+});
+
 // Dynamic resource: the {petId} path param makes mcp_openapi expose this as
 // a resources/templates entry, read with a concrete URI per pet.
 app.get("/pets/:petId", (req, res) =>
