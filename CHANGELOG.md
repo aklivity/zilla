@@ -1,5 +1,127 @@
 # Changelog
 
+## [1.2.6](https://github.com/aklivity/zilla/tree/1.2.6) (2026-07-09)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-21...1.2.6)
+
+**Implemented enhancements:**
+
+- common-json: stream object keys larger than the input window through the parser and all key-matching consumers [\#1954](https://github.com/aklivity/zilla/issues/1954)
+
+**Closed issues:**
+
+- binding-mcp: add telemetry events for session lifecycle, bearer auth rejection, and elicitation timeout [\#2070](https://github.com/aklivity/zilla/issues/2070)
+- Align route when/with naming \(api-id/operation-id → spec/operation\) and add tag/glob bulk selection across openapi, openapi-asyncapi, asyncapi [\#2067](https://github.com/aklivity/zilla/issues/2067)
+- mcp proxy: toolkit-level guarded routes don't propagate scope into cached tools/list, leaking to unauthenticated callers [\#2063](https://github.com/aklivity/zilla/issues/2063)
+- mcp proxy: routes\[\].with.cache.credentials should fall back to options.cache.authorization's credential [\#2062](https://github.com/aklivity/zilla/issues/2062)
+- mcp url-mode elicitation: tool call never resumes/returns its result after elicitation completes [\#2060](https://github.com/aklivity/zilla/issues/2060)
+- mcp\_openapi/mcp\_http tool calls with a JSON body fail: call arguments not forwarded to the backend request body [\#2059](https://github.com/aklivity/zilla/issues/2059)
+- mcp\_proxy tools/list omits mcp\_http/mcp\_openapi toolkits under any scoped token [\#2058](https://github.com/aklivity/zilla/issues/2058)
+
+## [2.0.0-alpha-21](https://github.com/aklivity/zilla/tree/2.0.0-alpha-21) (2026-07-08)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-20...2.0.0-alpha-21)
+
+**Implemented enhancements:**
+
+- common-json: stream window-fragmented unconstrained values through the schema validator \(forward-and-suppress\) [\#1926](https://github.com/aklivity/zilla/issues/1926)
+
+**Closed issues:**
+
+- binding-mcp: client kind lacks per-tool scope guarding \(when/guarded + securitySchemes injection\) [\#2046](https://github.com/aklivity/zilla/issues/2046)
+- common-json: JsonGeneratorImpl's GENERATE\_ESCAPED mode under-reserves room, overrunning the wrapped buffer [\#2043](https://github.com/aklivity/zilla/issues/2043)
+- common-json/common-avro/common-protobuf: JsonGeneratorImpl's atomic write methods have no room check [\#2040](https://github.com/aklivity/zilla/issues/2040)
+- binding-mcp: support resources/templates/list as a distinct JSON-RPC method \(server, proxy, client kinds\) [\#2033](https://github.com/aklivity/zilla/issues/2033)
+- engine: add Binding.validate\(BindingConfig\) SPI hook for cross-field config validation at load time [\#2031](https://github.com/aklivity/zilla/issues/2031)
+- mcp\_openapi: options.resources overrides, resource/template discrimination, query param omit-when-absent [\#2023](https://github.com/aklivity/zilla/issues/2023)
+- mcp\_openapi: params: rebinding and authored tool input schemas [\#2022](https://github.com/aklivity/zilla/issues/2022)
+- mcp\_openapi: bulk/tag/pattern route selection, when.capability, deterministic tool naming [\#2021](https://github.com/aklivity/zilla/issues/2021)
+- common-openapi: resolve full servers\[\] precedence \(operation \> path-item \> root\) in OpenapiOperationView [\#2020](https://github.com/aklivity/zilla/issues/2020)
+- mcp\_http: remove static prompts support [\#2018](https://github.com/aklivity/zilla/issues/2018)
+- common-json: JsonGeneratorEx's convenience write API has no real bounds check against its wrap\(\) limit [\#2017](https://github.com/aklivity/zilla/issues/2017)
+- common-json: JsonSchema validator stalls forever \(never REJECTED\) on a scalar value larger than the fed window [\#2016](https://github.com/aklivity/zilla/issues/2016)
+- UnsafeBufferEx.asNative\(\) drops wrapAdjustment when wrapping a sub-range of a direct ByteBuffer [\#2014](https://github.com/aklivity/zilla/issues/2014)
+- common-asyncapi: introduce AsyncapiExtension for generic x-\* vendor extensions, mirroring OpenapiExtension [\#2011](https://github.com/aklivity/zilla/issues/2011)
+- common-openapi: scope extension registration by OpenAPI object kind, not name alone [\#2008](https://github.com/aklivity/zilla/issues/2008)
+- common-openapi: support prefix-wildcard extension registration \(withExtension\("x-google-\*", type\)\) [\#2006](https://github.com/aklivity/zilla/issues/2006)
+- common-openapi: model oauth2 securityScheme flows as typed OpenapiOAuthFlow\(s\) instead of raw Object [\#2003](https://github.com/aklivity/zilla/issues/2003)
+- common-asyncapi: adopt generic extension/binding access instead of hardcoded consumer types [\#2002](https://github.com/aklivity/zilla/issues/2002)
+- common-json/common-agrona: relocate DirectBufferInputStreamEx to common-agrona; clean up JsonNode's dependency on it [\#1999](https://github.com/aklivity/zilla/issues/1999)
+- common-yaml: YamlJsonParser.getObject\(\)/getValue\(\) corrupt parser position from a JSON-B custom deserializer or adapter [\#1997](https://github.com/aklivity/zilla/issues/1997)
+- refactor\(binding-mcp-http\): split the general-purpose proxy stream into per-request-kind stream classes [\#1976](https://github.com/aklivity/zilla/issues/1976)
+- feat\(binding-mcp\): configurable eager tool set under cache.tools.eager [\#1970](https://github.com/aklivity/zilla/issues/1970)
+- feat\(binding-mcp\): agent-callable tool search in mcp proxy with BM25 ranking [\#1969](https://github.com/aklivity/zilla/issues/1969)
+- binding-mcp-openapi: implement mcp\_openapi · proxy binding [\#1673](https://github.com/aklivity/zilla/issues/1673)
+
+**Merged pull requests:**
+
+- fix\(binding-mcp\): thread inherited authorization into guard fallback calls [\#2061](https://github.com/aklivity/zilla/pull/2061) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): configurable eager tool set under cache.tools.eager [\#2055](https://github.com/aklivity/zilla/pull/2055) ([jfallows](https://github.com/jfallows))
+- fix\(docker-image\): package binding-mcp-http and binding-mcp-openapi modules [\#2054](https://github.com/aklivity/zilla/pull/2054) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): allow anonymous requests to reach unguarded mcp kind:server routes [\#2052](https://github.com/aklivity/zilla/pull/2052) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): agent-callable tool search in mcp proxy with BM25 ranking [\#2051](https://github.com/aklivity/zilla/pull/2051) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): validate inbound bearer token against guard for kind:server [\#2050](https://github.com/aklivity/zilla/pull/2050) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp-http\): align route when/guarded semantics with mcp binding [\#2049](https://github.com/aklivity/zilla/pull/2049) ([jfallows](https://github.com/jfallows))
+- refactor\(binding-mcp-http\): nest body/bodyTemplate into McpHttpBodyConfig [\#2048](https://github.com/aklivity/zilla/pull/2048) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): support per-tool guarded routes for client kind [\#2047](https://github.com/aklivity/zilla/pull/2047) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp-openapi\): params: binding map, schemas.input, and path/query/header/cookie rebinding [\#2045](https://github.com/aklivity/zilla/pull/2045) ([jfallows](https://github.com/jfallows))
+- fix\(common-json\): account for double-escaping cost in GENERATE\_ESCAPED width budgets [\#2044](https://github.com/aklivity/zilla/pull/2044) ([jfallows](https://github.com/jfallows))
+- fix\(common-json,common-avro,common-protobuf\): add room checks to atomic generator writes [\#2042](https://github.com/aklivity/zilla/pull/2042) ([jfallows](https://github.com/jfallows))
+- fix\(common-json\): guard JsonGeneratorImpl's unconditional quote/comma writes [\#2041](https://github.com/aklivity/zilla/pull/2041) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-http\): release encode/decode slots on every close path [\#2039](https://github.com/aklivity/zilla/pull/2039) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): guard fanout initial abort/reset against unopened stream [\#2038](https://github.com/aklivity/zilla/pull/2038) ([jfallows](https://github.com/jfallows))
+- feat\(common-json\): stream window-fragmented values with no content keyword \(forward-and-suppress\) [\#2037](https://github.com/aklivity/zilla/pull/2037) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): support resources/templates/list as a distinct JSON-RPC method [\#2036](https://github.com/aklivity/zilla/pull/2036) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp-openapi\): options.resources overrides, resource/template classification, optional query param omission [\#2035](https://github.com/aklivity/zilla/pull/2035) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add Binding.validate\(BindingConfig\) SPI hook for config load-time validation [\#2034](https://github.com/aklivity/zilla/pull/2034) ([jfallows](https://github.com/jfallows))
+- fix\(common-json\): resolve terminal-window STARVED to REJECTED [\#2032](https://github.com/aklivity/zilla/pull/2032) ([jfallows](https://github.com/jfallows))
+- Remove prompts support from MCP HTTP binding [\#2030](https://github.com/aklivity/zilla/pull/2030) ([jfallows](https://github.com/jfallows))
+- Support bulk operation selection by tag and glob pattern [\#2029](https://github.com/aklivity/zilla/pull/2029) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp-openapi\): pick up OpenAPI operation summary and description for generated tools [\#2028](https://github.com/aklivity/zilla/pull/2028) ([jfallows](https://github.com/jfallows))
+- Optimize MemorySegment.copy calls by avoiding wrapper allocation [\#2027](https://github.com/aklivity/zilla/pull/2027) ([jfallows](https://github.com/jfallows))
+- fix\(common-openapi\): resolve full servers\[\] precedence in OpenapiOperationView [\#2026](https://github.com/aklivity/zilla/pull/2026) ([jfallows](https://github.com/jfallows))
+- Bound buffer writes in JSON assembly and staging [\#2024](https://github.com/aklivity/zilla/pull/2024) ([jfallows](https://github.com/jfallows))
+- Fix UnsafeBufferEx.asNative\(\) to preserve offset for sub-range wraps [\#2015](https://github.com/aklivity/zilla/pull/2015) ([jfallows](https://github.com/jfallows))
+- fix\(examples\): fix flaky grpc.kafka.fanout test and harden zilla healthchecks [\#2013](https://github.com/aklivity/zilla/pull/2013) ([jfallows](https://github.com/jfallows))
+- Support scoped AsyncAPI extensions [\#2012](https://github.com/aklivity/zilla/pull/2012) ([jfallows](https://github.com/jfallows))
+- Add scope-based extension registration for OpenAPI parser [\#2010](https://github.com/aklivity/zilla/pull/2010) ([jfallows](https://github.com/jfallows))
+- feat\(common-asyncapi\): generic access to x-\* specification extensions [\#2009](https://github.com/aklivity/zilla/pull/2009) ([jfallows](https://github.com/jfallows))
+- Support prefix wildcard extensions in OpenAPI parser [\#2007](https://github.com/aklivity/zilla/pull/2007) ([jfallows](https://github.com/jfallows))
+- Add OAuth2 flows and scopes support to OpenAPI security schemes [\#2005](https://github.com/aklivity/zilla/pull/2005) ([jfallows](https://github.com/jfallows))
+- Refactor AsyncAPI bindings to support generic binding registration [\#2004](https://github.com/aklivity/zilla/pull/2004) ([jfallows](https://github.com/jfallows))
+- refactor\(common-json\): relocate DirectBufferInputStreamEx to common-agrona [\#2000](https://github.com/aklivity/zilla/pull/2000) ([jfallows](https://github.com/jfallows))
+- fix\(common-yaml\): advance parser cursor when materializing getObject\(\)/getValue\(\)/getArray\(\) [\#1998](https://github.com/aklivity/zilla/pull/1998) ([jfallows](https://github.com/jfallows))
+- feat\(common-openapi\): generic access to x-\* specification extensions [\#1994](https://github.com/aklivity/zilla/pull/1994) ([jfallows](https://github.com/jfallows))
+- Refactor MCP HTTP proxy into kind-specific implementations [\#1977](https://github.com/aklivity/zilla/pull/1977) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp-openapi\): implement mcp\_openapi proxy binding [\#1891](https://github.com/aklivity/zilla/pull/1891) ([jfallows](https://github.com/jfallows))
+
+## [2.0.0-alpha-20](https://github.com/aklivity/zilla/tree/2.0.0-alpha-20) (2026-07-03)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-19...2.0.0-alpha-20)
+
+**Implemented enhancements:**
+
+- Hoist AsyncAPI model/view/parser APIs into a runtime/common-asyncapi module [\#1890](https://github.com/aklivity/zilla/issues/1890)
+
+**Merged pull requests:**
+
+- feat\(common-asyncapi\): hoist AsyncAPI model/view/parser API into shared module [\#1996](https://github.com/aklivity/zilla/pull/1996) ([jfallows](https://github.com/jfallows))
+- feat\(manager\): support enabling incubator modules via --incubator [\#1995](https://github.com/aklivity/zilla/pull/1995) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): generate delegate module-info with strict jdeps validation [\#1979](https://github.com/aklivity/zilla/pull/1979) ([jfallows](https://github.com/jfallows))
+
+## [2.0.0-alpha-19](https://github.com/aklivity/zilla/tree/2.0.0-alpha-19) (2026-07-02)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.6-rc3...2.0.0-alpha-19)
+
+**Implemented enhancements:**
+
+- Hoist OpenAPI model/view/parser APIs into a runtime/common-openapi module [\#1889](https://github.com/aklivity/zilla/issues/1889)
+
+**Merged pull requests:**
+
+- ci\(release\): generalize no-merge/tag-first protection on develop's own release.yml [\#1993](https://github.com/aklivity/zilla/pull/1993) ([jfallows](https://github.com/jfallows))
+- feat\(common-openapi\): hoist OpenAPI model/view/parser API into shared module [\#1978](https://github.com/aklivity/zilla/pull/1978) ([jfallows](https://github.com/jfallows))
+
 ## [1.2.6-rc3](https://github.com/aklivity/zilla/tree/1.2.6-rc3) (2026-07-02)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-18...1.2.6-rc3)
@@ -319,7 +441,7 @@
 - Support aggregate event IDs for multi-toolkit MCP proxy [\#1791](https://github.com/aklivity/zilla/pull/1791) ([jfallows](https://github.com/jfallows))
 - Add lock, unlock, and watch operations to StoreHandler [\#1790](https://github.com/aklivity/zilla/pull/1790) ([jfallows](https://github.com/jfallows))
 - Add support for MCP list changed notifications [\#1789](https://github.com/aklivity/zilla/pull/1789) ([jfallows](https://github.com/jfallows))
-- immediate retry metadata refresh [\#1786](https://github.com/aklivity/zilla/pull/1786) ([ankitk-me](https://github.com/ankitk-me))
+- fix\(binding-kafka\): immediate retry metadata refresh [\#1786](https://github.com/aklivity/zilla/pull/1786) ([ankitk-me](https://github.com/ankitk-me))
 - Add MCP lifecycle and toolkit integration tests [\#1784](https://github.com/aklivity/zilla/pull/1784) ([jfallows](https://github.com/jfallows))
 - build\(deps\): bump org.testcontainers:testcontainers-bom from 2.0.2 to 2.0.5 [\#1780](https://github.com/aklivity/zilla/pull/1780) ([dependabot[bot]](https://github.com/apps/dependabot))
 - build\(deps\): bump ubuntu from jammy-20260410 to jammy-20260509 in /cloud/docker-image/src/main/docker [\#1779](https://github.com/aklivity/zilla/pull/1779) ([dependabot[bot]](https://github.com/apps/dependabot))
@@ -327,7 +449,7 @@
 - feat\(binding-mcp\): mcp · proxy cache option \(\#1737\) [\#1774](https://github.com/aklivity/zilla/pull/1774) ([jfallows](https://github.com/jfallows))
 - feat\(binding-mcp\): emit Alt-Svc response header from server [\#1773](https://github.com/aklivity/zilla/pull/1773) ([jfallows](https://github.com/jfallows))
 - Support routing based on TLS client certificate presence/signer for mixed-auth endpoints on shared port [\#1769](https://github.com/aklivity/zilla/pull/1769) ([akrambek](https://github.com/akrambek))
-- binding-kafka events update [\#1768](https://github.com/aklivity/zilla/pull/1768) ([ankitk-me](https://github.com/ankitk-me))
+- fix\(binding-kafka\): export telemetry events [\#1768](https://github.com/aklivity/zilla/pull/1768) ([ankitk-me](https://github.com/ankitk-me))
 - build\(deps\): bump docker/login-action from 3 to 4 [\#1645](https://github.com/aklivity/zilla/pull/1645) ([dependabot[bot]](https://github.com/apps/dependabot))
 
 ## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
