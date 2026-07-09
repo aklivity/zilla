@@ -28,6 +28,7 @@
     "io.aklivity.zilla:binding-mcp",
     "io.aklivity.zilla:binding-mcp-http",
     "io.aklivity.zilla:binding-mcp-openapi",
+    "io.aklivity.zilla:binding-mcp-schema-registry",
     "io.aklivity.zilla:binding-mqtt",
     "io.aklivity.zilla:binding-mqtt-kafka",
     "io.aklivity.zilla:binding-openapi",
