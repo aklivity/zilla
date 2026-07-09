@@ -19,9 +19,6 @@ bindings:
   net0:
     type: grpc
     kind: server
-    options:
-      services:
-        - protobuf/echo.proto
     routes:
       - exit: app0
         when:

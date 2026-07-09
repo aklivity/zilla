@@ -119,7 +119,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         MessageConsumer newStream = null;
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
-        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, null, groupId) : null;
+        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, null) : null;
 
         if (resolved != null)
         {

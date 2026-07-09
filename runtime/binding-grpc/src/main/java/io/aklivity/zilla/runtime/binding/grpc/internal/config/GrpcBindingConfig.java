@@ -38,7 +38,6 @@ import org.agrona.AsciiSequenceView;
 import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
@@ -68,7 +67,6 @@ public final class GrpcBindingConfig
     public final long id;
     public final String name;
     public final KindConfig kind;
-    public final GrpcOptionsConfig options;
     public final List<GrpcRouteConfig> routes;
 
     private final GrpcProtobufParser parser;
@@ -83,7 +81,6 @@ public final class GrpcBindingConfig
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
-        this.options = GrpcOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(GrpcRouteConfig::new).collect(toList());
         this.parser = new GrpcProtobufParser();
         this.helper = new HttpGrpcHeaderHelper(metadataBuffer);
@@ -130,11 +127,6 @@ public final class GrpcBindingConfig
 
             GrpcMethodConfig method = resolveMethod(catalogs, serviceName, methodName);
 
-            if (method == null && options != null)
-            {
-                method = resolveMethod(options.protobufs, serviceName, methodName);
-            }
-
             if (method != null)
             {
                 methodResolver = new GrpcMethodResult(
@@ -159,14 +151,6 @@ public final class GrpcBindingConfig
         String methodName)
     {
         return resolveMethod(catalogs.stream().map(GrpcCatalogSchema::resolveProtobuf), serviceName, methodName);
-    }
-
-    private GrpcMethodConfig resolveMethod(
-        List<GrpcProtobufConfig> protobufs,
-        CharSequence serviceName,
-        String methodName)
-    {
-        return resolveMethod(protobufs.stream(), serviceName, methodName);
     }
 
     private GrpcMethodConfig resolveMethod(

@@ -110,18 +110,4 @@ public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, Jso
     @Override
     OptionsConfig adaptFromJson(
         JsonObject object);
-
-    /**
-     * Supplies a {@link ConfigAdapterContext} to this adapter after construction, allowing
-     * it to read referenced resource files during deserialization.
-     *
-     * @param context  the adapter context
-     * @deprecated {@link ConfigAdapterContext} is deprecated; resource resolution is now
-     *             handled via the engine's path resolution mechanism
-     */
-    @Deprecated
-    default void adaptContext(
-        ConfigAdapterContext context)
-    {
-    }
 }

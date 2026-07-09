@@ -111,7 +111,7 @@ public final class KafkaCacheInitProducerIdFactory implements BindingHandler
         MessageConsumer newStream = null;
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
-        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, null, null) : null;
+        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, null) : null;
 
         if (resolved != null)
         {

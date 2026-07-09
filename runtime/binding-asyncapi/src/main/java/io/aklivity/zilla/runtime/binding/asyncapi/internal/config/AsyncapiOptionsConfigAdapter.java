@@ -41,7 +41,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBui
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -88,6 +87,8 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
+        ensureNestedOptions();
+
         AsyncapiOptionsConfig asyncapiOptions = (AsyncapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
@@ -209,6 +210,8 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
+        ensureNestedOptions();
+
         final AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> builder = AsyncapiOptionsConfig.builder();
 
         if (object.containsKey(SPECS_NAME))
@@ -343,19 +346,20 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         return builder.build();
     }
 
-    @Override
-    public void adaptContext(
-        ConfigAdapterContext context)
+    private void ensureNestedOptions()
     {
-        this.tcpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
-        this.tcpOptions.adaptType("tcp");
-        this.tlsOptions = new OptionsConfigAdapter(Kind.BINDING, context);
-        this.tlsOptions.adaptType("tls");
-        this.httpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
-        this.httpOptions.adaptType("http");
-        this.mqttOptions = new OptionsConfigAdapter(Kind.BINDING, context);
-        this.mqttOptions.adaptType("mqtt");
-        this.kafkaOptions = new OptionsConfigAdapter(Kind.BINDING, context);
-        this.kafkaOptions.adaptType("kafka");
+        if (tcpOptions == null)
+        {
+            tcpOptions = new OptionsConfigAdapter(Kind.BINDING);
+            tcpOptions.adaptType("tcp");
+            tlsOptions = new OptionsConfigAdapter(Kind.BINDING);
+            tlsOptions.adaptType("tls");
+            httpOptions = new OptionsConfigAdapter(Kind.BINDING);
+            httpOptions.adaptType("http");
+            mqttOptions = new OptionsConfigAdapter(Kind.BINDING);
+            mqttOptions.adaptType("mqtt");
+            kafkaOptions = new OptionsConfigAdapter(Kind.BINDING);
+            kafkaOptions.adaptType("kafka");
+        }
     }
 }

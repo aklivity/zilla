@@ -69,7 +69,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("client.when.binary.metadata.yaml")
+    @Configuration("client.when.catalog.yaml")
     @Specification({
         "${app}/binary.metadata/client",
         "${net}/binary.metadata/server",

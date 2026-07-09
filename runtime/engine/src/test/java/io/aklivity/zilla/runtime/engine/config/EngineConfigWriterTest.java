@@ -28,7 +28,6 @@ import jakarta.json.JsonPatch;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
@@ -41,15 +40,12 @@ public class EngineConfigWriterTest
     @Rule
     public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
 
-    @Mock
-    private ConfigAdapterContext context;
-
     private EngineConfigWriter yaml;
 
     @Before
     public void initYaml()
     {
-        yaml = new EngineConfigWriter(context);
+        yaml = new EngineConfigWriter();
     }
 
     @Test

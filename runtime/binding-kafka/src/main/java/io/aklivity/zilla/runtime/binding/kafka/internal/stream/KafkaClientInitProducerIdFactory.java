@@ -175,7 +175,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
         final KafkaRouteConfig resolved = binding != null ?
-            binding.resolve(authorization, null, null) : null;
+            binding.resolve(authorization, null) : null;
 
         if (resolved != null)
         {

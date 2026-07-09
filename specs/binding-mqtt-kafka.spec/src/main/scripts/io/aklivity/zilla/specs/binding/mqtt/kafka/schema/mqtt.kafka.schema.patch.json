@@ -38,11 +38,6 @@
                     {
                         "properties":
                         {
-                            "server":
-                            {
-                                "title": "Server Reference",
-                                "type": "string"
-                            },
                             "topics":
                             {
                                 "title": "Topics",
