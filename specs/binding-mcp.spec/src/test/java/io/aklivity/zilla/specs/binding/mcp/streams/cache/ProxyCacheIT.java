@@ -323,4 +323,22 @@ public class ProxyCacheIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.execute.tool.not.found/client",
+        "${app}/cache.serve.execute.tool.not.found/server" })
+    public void shouldServeExecuteToolNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.execute.tool.invalid.params/client",
+        "${app}/cache.serve.execute.tool.invalid.params/server" })
+    public void shouldServeExecuteToolInvalidParams() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpDescribeToolCallScanner;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpExecuteToolCallScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpJsonStringEscaper;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolCallScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
@@ -92,6 +93,26 @@ abstract class McpProxyItemFactory implements BindingHandler
         "{\"content\":[{\"type\":\"text\",\"text\":\"Tool not found\"}],\"isError\":true}"
             .getBytes(StandardCharsets.US_ASCII);
 
+    // execute_tool's own not-found/unauthorized response is the same fixed constant, for the same
+    // reason describe_tool's is: the outer execute_tool call was validly authorized, but resolving
+    // the inner target tool failed (unknown name or not authorized for this caller) -- surfaced as a
+    // tool-result error rather than a stream RESET, since a RESET would incorrectly fail the
+    // already-accepted execute_tool stream itself
+    private static final byte[] EXECUTE_NOT_FOUND_RESPONSE =
+        "{\"content\":[{\"type\":\"text\",\"text\":\"Tool not found\"}],\"isError\":true}"
+            .getBytes(StandardCharsets.US_ASCII);
+
+    // literal byte constants execute_tool uses to reconstruct the exact wire body a direct tools/call
+    // for the resolved target would have carried -- {"name":"<target>","arguments":<raw span>} -- so
+    // the delegate McpServer's downstream framing (contentLength, prefix stripping) behaves exactly as
+    // it would for a real tools/call, with zero duplicated dispatch logic
+    private static final byte[] EXECUTE_BODY_NAME_OPEN = "{\"name\":\"".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] EXECUTE_BODY_ARGUMENTS_KEY = "\",\"arguments\":".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] EXECUTE_BODY_CLOSE = "}".getBytes(StandardCharsets.US_ASCII);
+    // the target tool's own arguments default to an empty object when the caller omits them, matching
+    // the MCP convention that CallToolRequest.params.arguments is optional
+    private static final byte[] EXECUTE_DEFAULT_ARGUMENTS = "{}".getBytes(StandardCharsets.US_ASCII);
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -113,6 +134,7 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
+    private final DirectBufferEx executeDefaultArgumentsRO = new UnsafeBufferEx(EXECUTE_DEFAULT_ARGUMENTS);
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx codecBuffer;
@@ -130,6 +152,9 @@ abstract class McpProxyItemFactory implements BindingHandler
     // dedicated trimmed copy, since it is cached and drained over multiple WINDOW credits per stream
     private byte[] searchStructuredArray = new byte[0];
     private byte[] searchResponseArray = new byte[0];
+    // reusable, growable per-worker scratch array execute_tool assembles its reconstructed wire body
+    // into -- {"name":"<target>","arguments":<raw span>} -- reconfigured per request, never reallocated
+    private byte[] executeBodyArray = new byte[0];
 
     McpProxyItemFactory(
         McpConfiguration config,
@@ -178,6 +203,9 @@ abstract class McpProxyItemFactory implements BindingHandler
                 final McpProxyCache.McpListCache describeCache = searchCache == null
                     ? describeCacheFor(binding, beginEx)
                     : null;
+                final McpProxyCache.McpListCache executeCache = searchCache == null && describeCache == null
+                    ? executeCacheFor(binding, beginEx)
+                    : null;
                 if (searchCache != null)
                 {
                     newStream = new McpToolSearchServer(
@@ -202,6 +230,18 @@ abstract class McpProxyItemFactory implements BindingHandler
                         authorization,
                         binding.filterGuard,
                         describeCache)::onDescribeToolMessage;
+                }
+                else if (executeCache != null)
+                {
+                    newStream = new McpExecuteToolServer(
+                        binding,
+                        lifecycle,
+                        sender,
+                        originId,
+                        routedId,
+                        initialId,
+                        affinity,
+                        authorization)::onExecuteToolMessage;
                 }
                 else
                 {
@@ -281,6 +321,34 @@ abstract class McpProxyItemFactory implements BindingHandler
         return describeCache;
     }
 
+    // execute_tool doesn't serve a response from the cache -- it only needs the same "is the
+    // search-family feature enabled and does this name match" signal search_tools/describe_tool use,
+    // to decide whether to intercept this tools/call as the synthetic execute_tool dispatcher rather
+    // than resolving a real route directly
+    private McpProxyCache.McpListCache executeCacheFor(
+        McpBindingConfig binding,
+        McpBeginExFW beginEx)
+    {
+        McpProxyCache.McpListCache executeCache = null;
+
+        final McpCacheToolsSearchConfig search = binding.cache != null && binding.options.cache.tools != null
+            ? binding.options.cache.tools.search
+            : null;
+
+        if (kind == McpBeginExFW.KIND_TOOLS_CALL &&
+            search != null &&
+            McpToolNames.effectiveName(search.toolkit, McpToolNames.EXECUTE_TOOL).equals(beginEx.toolsCall().name().asString()))
+        {
+            final McpProxyCache.McpListCache listCache = binding.cache.cacheOf(McpBeginExFW.KIND_TOOLS_LIST);
+            if (listCache != null && listCache.searchIndex() != null)
+            {
+                executeCache = listCache;
+            }
+        }
+
+        return executeCache;
+    }
+
     // assembles the full envelope into searchResponseArray: the literal prefix, an escaped copy of
     // the structuredContent bytes (searchStructuredArray[0, structuredLength)) for the "text" field,
     // the literal middle, the raw structuredContent bytes, then the literal suffix -- shared by both
@@ -313,6 +381,42 @@ abstract class McpProxyItemFactory implements BindingHandler
 
         System.arraycopy(SEARCH_RESPONSE_SUFFIX, 0, searchResponseArray, produced, SEARCH_RESPONSE_SUFFIX.length);
         produced += SEARCH_RESPONSE_SUFFIX.length;
+
+        return produced;
+    }
+
+    // reconstructs the exact wire body a direct tools/call for the resolved target would have carried:
+    // {"name":"<target>","arguments":<raw span>} -- the target name is escaped (it is a Java String,
+    // not raw source bytes), but the arguments span is spliced verbatim, never re-serialized
+    private int writeExecuteBody(
+        byte[] identifierBytes,
+        DirectBufferEx argumentsSource,
+        int argumentsLength)
+    {
+        final int capacity = EXECUTE_BODY_NAME_OPEN.length +
+            McpJsonStringEscaper.maxEscapedLength(identifierBytes.length) +
+            EXECUTE_BODY_ARGUMENTS_KEY.length +
+            argumentsLength +
+            EXECUTE_BODY_CLOSE.length;
+        if (executeBodyArray.length < capacity)
+        {
+            executeBodyArray = new byte[capacity];
+        }
+
+        int produced = 0;
+        System.arraycopy(EXECUTE_BODY_NAME_OPEN, 0, executeBodyArray, produced, EXECUTE_BODY_NAME_OPEN.length);
+        produced += EXECUTE_BODY_NAME_OPEN.length;
+
+        produced += McpJsonStringEscaper.escape(identifierBytes, 0, identifierBytes.length, executeBodyArray, produced);
+
+        System.arraycopy(EXECUTE_BODY_ARGUMENTS_KEY, 0, executeBodyArray, produced, EXECUTE_BODY_ARGUMENTS_KEY.length);
+        produced += EXECUTE_BODY_ARGUMENTS_KEY.length;
+
+        argumentsSource.getBytes(0, executeBodyArray, produced, argumentsLength);
+        produced += argumentsLength;
+
+        System.arraycopy(EXECUTE_BODY_CLOSE, 0, executeBodyArray, produced, EXECUTE_BODY_CLOSE.length);
+        produced += EXECUTE_BODY_CLOSE.length;
 
         return produced;
     }
@@ -1504,6 +1608,520 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             replyAck = reset.acknowledge();
             state = McpState.closedReply(state);
+        }
+
+        private void emitIfReady(
+            long traceId)
+        {
+            if (!ready || McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            while (emitOffset < cachedLen)
+            {
+                final int replyWin = replyMax - (int) (replySeq - replyAck) - replyPad;
+                if (replyWin <= 0)
+                {
+                    return;
+                }
+                final int chunkLen = Math.min(replyWin, cachedLen - emitOffset);
+                doServerData(traceId, 0L, DATA_FLAG_COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
+                emitOffset += chunkLen;
+            }
+
+            doServerEnd(traceId);
+        }
+
+        private void doServerBegin(
+            long traceId)
+        {
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity, emptyRO);
+            state = McpState.openingReply(state);
+        }
+
+        private void doServerData(
+            long traceId,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBufferEx payload,
+            int offset,
+            int length)
+        {
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, flags, budgetId, reserved, payload, offset, length);
+            replySeq += reserved;
+        }
+
+        private void doServerEnd(
+            long traceId)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization);
+                state = McpState.closedReply(state);
+            }
+        }
+
+        private void doServerAbort(
+            long traceId)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization);
+                state = McpState.closedReply(state);
+            }
+        }
+
+        private void doServerWindow(
+            long traceId,
+            long budgetId,
+            int padding)
+        {
+            state = McpState.openedInitial(state);
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, padding);
+        }
+
+        private void flushServerWindow(
+            long traceId,
+            long budgetId,
+            int padding,
+            long minInitialNoAck,
+            int minInitialMax)
+        {
+            final long newInitialAck = Math.max(initialAck, initialSeq - minInitialNoAck);
+            final int newInitialMax = Math.max(initialMax, minInitialMax);
+
+            if (newInitialAck > initialAck || newInitialMax > initialMax || !McpState.initialOpened(state))
+            {
+                initialAck = newInitialAck;
+                initialMax = newInitialMax;
+                doServerWindow(traceId, budgetId, padding);
+            }
+        }
+
+        private void doServerReset(
+            long traceId,
+            Flyweight extension)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                    extension);
+                state = McpState.closedInitial(state);
+            }
+        }
+    }
+
+    // execute_tool dynamically invokes an arbitrary named tool through the identical route-resolution
+    // and dispatch path a direct tools/call for that name would take. It buffers the incoming request
+    // (its own initial side) exactly like McpDescribeToolServer/McpToolSearchServer, but instead of
+    // answering from cache it resolves a route for the target name and, once resolved, constructs a
+    // real McpServer -- the SAME inner class a genuine tools/call BEGIN would construct -- passing this
+    // stream's own sender/originId/routedId/initialId/affinity/authorization so the delegate's reply
+    // frames go straight to the real caller with no relay/copy object in between. The delegate is
+    // driven with synthetic BEGIN/DATA/END frames reconstructing the exact wire body a direct call
+    // would have carried; from that point this class is a thin pass-through, forwarding every
+    // subsequent frame on this stream straight into the delegate's own onServerMessage.
+    private final class McpExecuteToolServer implements McpRouteRequest
+    {
+        private final McpBindingConfig binding;
+        private final McpLifecycleServer lifecycle;
+        private final MessageConsumer sender;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long affinity;
+        private final long authorization;
+        private final McpExecuteToolCallScanner scanner;
+        // survives the async gap between registering for the delegate's upstream lifecycle to settle
+        // and that settlement actually happening -- unlike the factory's shared, per-worker scratch
+        // arrays, this body must not be clobbered by another stream's execute_tool request interleaving
+        // on the same worker before settlement fires
+        private final ExpandableDirectByteBufferEx pendingBody = new ExpandableDirectByteBufferEx();
+        private int pendingBodyLength;
+
+        private McpServer delegate;
+        private int state;
+        private boolean ready;
+        private DirectBufferEx cachedBuf;
+        private int cachedLen;
+        private int emitOffset;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private int replyPad;
+
+        private McpExecuteToolServer(
+            McpBindingConfig binding,
+            McpLifecycleServer lifecycle,
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long affinity,
+            long authorization)
+        {
+            this.binding = binding;
+            this.lifecycle = lifecycle;
+            this.sender = sender;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.scanner = new McpExecuteToolCallScanner();
+        }
+
+        private void onExecuteToolMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            if (delegate != null)
+            {
+                onDelegatedMessage(msgTypeId, buffer, index, length);
+            }
+            else
+            {
+                onBufferingMessage(msgTypeId, buffer, index, length);
+            }
+        }
+
+        // once delegated, the real caller's own initial-direction frames (BEGIN/DATA/END/ABORT/FLUSH)
+        // are absorbed rather than forwarded: this class already fully buffered and consumed the whole
+        // incoming request during the buffering phase (ready == true before delegate is ever
+        // constructed), and the delegate's own initial side is driven entirely by this class's
+        // synthetic BEGIN/DATA/END -- forwarding the real caller's trailing frames (its own closing
+        // END, most commonly) into the delegate would clobber that independently-driven synthetic
+        // lifecycle before it has a chance to settle. Only reply-direction frames -- the real caller
+        // flow-controlling or aborting the delegate's own replies -- belong to the delegate
+        private void onDelegatedMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case WindowFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+            case ChallengeFW.TYPE_ID:
+                delegate.onServerMessage(msgTypeId, buffer, index, length);
+                break;
+            default:
+                break;
+            }
+        }
+
+        // the delegate's own McpClient only acquires a sender once its upstream lifecycle round trip
+        // actually completes -- a real network exchange that need not have finished by the time the
+        // synthetic BEGIN returns. Rather than guess a delay, this registers itself as a second
+        // McpRouteRequest on the exact same McpLifecycleClient the delegate's own McpClient already
+        // registered against (reachable via sibling-inner-class private access, the same technique the
+        // constructor already relies on) -- the identical "call me back once settled" mechanism the
+        // delegate itself depends on, so both fire together once the real lifecycle response arrives,
+        // with no separate timing mechanism of its own
+        @Override
+        public void onLifecycleSettled(
+            long traceId)
+        {
+            driveDelegateData(traceId);
+        }
+
+        private void onBufferingMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onServerBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case DataFW.TYPE_ID:
+                onServerData(dataRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onServerEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+                onServerAbort(abortRO.wrap(buffer, index, index + length));
+                break;
+            case WindowFW.TYPE_ID:
+                onServerWindow(windowRO.wrap(buffer, index, index + length));
+                break;
+            case ResetFW.TYPE_ID:
+                onServerReset(resetRO.wrap(buffer, index, index + length));
+                break;
+            default:
+                break;
+            }
+        }
+
+        // grants initial window only -- mirrors the real McpServer's own onServerBegin, which also
+        // defers the reply-side BEGIN until its upstream connection actually responds, rather than
+        // eagerly opening the reply (as McpDescribeToolServer/McpToolSearchServer do, since they never
+        // need to decide between self-answering and delegating to a real upstream)
+        private void onServerBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            state = McpState.openingInitial(state);
+
+            flushServerWindow(traceId, 0L, 0, 0L, codecBuffer.capacity());
+        }
+
+        private void onServerData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final int flags = data.flags();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge <= initialAck;
+
+            initialSeq = sequence + reserved;
+
+            assert initialAck <= initialSeq;
+
+            final boolean last = (flags & DATA_FLAG_FIN) != 0x00;
+            scanner.feed(payload.buffer(), payload.offset(), payload.sizeof(), last);
+
+            if (last)
+            {
+                onRequestReady(traceId);
+            }
+        }
+
+        private void onServerEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            initialSeq = end.sequence();
+            if (!ready)
+            {
+                onRequestReady(traceId);
+            }
+            state = McpState.closedInitial(state);
+        }
+
+        private void onServerAbort(
+            AbortFW abort)
+        {
+            initialSeq = abort.sequence();
+            state = McpState.closedInitial(state);
+            doServerAbort(abort.traceId());
+        }
+
+        private void onServerWindow(
+            WindowFW window)
+        {
+            replyAck = window.acknowledge();
+            replyMax = window.maximum();
+            replyPad = window.padding();
+            state = McpState.openedReply(state);
+            emitIfReady(window.traceId());
+        }
+
+        private void onServerReset(
+            ResetFW reset)
+        {
+            replyAck = reset.acknowledge();
+            state = McpState.closedReply(state);
+        }
+
+        private void onRequestReady(
+            long traceId)
+        {
+            final String targetName = scanner.name;
+            if (scanner.malformed || targetName == null || targetName.isEmpty())
+            {
+                final McpResetExFW resetEx = mcpResetExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
+                    .build();
+                doServerReset(traceId, resetEx);
+            }
+            else
+            {
+                resolveAndDispatch(traceId, targetName);
+            }
+            ready = true;
+        }
+
+        // resolves the target tool's route through the exact same call a real tools/call BEGIN goes
+        // through (McpBindingConfig.resolve(McpBeginExFW, long)), via a synthetic, reused-builder
+        // McpBeginExFW carrying only the target name -- byte-for-byte the same enforcement, zero
+        // duplicated logic. No route (unknown name or not authorized) answers isError:true; a resolved
+        // route constructs and drives the real delegate.
+        private void resolveAndDispatch(
+            long traceId,
+            String targetName)
+        {
+            final McpBeginExFW targetBeginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .toolsCall(t -> t.sessionId("").name(targetName).contentLength(-1))
+                .build();
+            final McpRouteConfig route = binding.resolve(targetBeginEx, authorization);
+
+            if (route == null)
+            {
+                respondNotFound(traceId);
+            }
+            else
+            {
+                final String identifier = route.strip(targetBeginEx);
+                final String prefix = route.prefix(targetBeginEx);
+                dispatchToDelegate(traceId, route, identifier, prefix);
+            }
+        }
+
+        private void respondNotFound(
+            long traceId)
+        {
+            cachedBuf = new UnsafeBufferEx(EXECUTE_NOT_FOUND_RESPONSE);
+            cachedLen = EXECUTE_NOT_FOUND_RESPONSE.length;
+            doServerBegin(traceId);
+            emitIfReady(traceId);
+        }
+
+        private void dispatchToDelegate(
+            long traceId,
+            McpRouteConfig route,
+            String identifier,
+            String prefix)
+        {
+            final DirectBufferEx argumentsSource = scanner.argumentsLength > 0
+                ? scanner.arguments
+                : executeDefaultArgumentsRO;
+            final int argumentsLength = scanner.argumentsLength > 0
+                ? scanner.argumentsLength
+                : EXECUTE_DEFAULT_ARGUMENTS.length;
+
+            final byte[] identifierBytes = identifier.getBytes(StandardCharsets.UTF_8);
+            final int bodyLength = writeExecuteBody(identifierBytes, argumentsSource, argumentsLength);
+            pendingBody.putBytes(0, new UnsafeBufferEx(executeBodyArray), 0, bodyLength);
+            pendingBodyLength = bodyLength;
+
+            delegate = new McpServer(
+                binding,
+                lifecycle,
+                sender,
+                originId,
+                routedId,
+                initialId,
+                route.id,
+                affinity,
+                authorization,
+                identifier,
+                prefix.length() + bodyLength,
+                prefix);
+
+            driveDelegateBegin(traceId);
+        }
+
+        // originates the delegate's own initial-side lifecycle with a synthetic, reused-builder BEGIN
+        // frame -- the same self-dispatch idiom the factory's own private newStream(...) helper uses to
+        // originate frames -- which itself registers the delegate's McpClient against its upstream
+        // McpLifecycleClient. This registers a second, independent request against that exact same
+        // McpLifecycleClient (reachable via sibling-inner-class private access): register() fires
+        // onLifecycleSettled immediately if the route's lifecycle already settled from an earlier
+        // request (a warm route), or queues it to fire alongside the delegate's own callback once a
+        // fresh lifecycle round trip completes -- either way, driveDelegateData never runs before the
+        // delegate's McpClient actually has a sender to forward through
+        private void driveDelegateBegin(
+            long traceId)
+        {
+            final BeginFW syntheticBegin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(initialId)
+                .sequence(0L)
+                .acknowledge(0L)
+                .maximum(0)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(emptyRO.buffer(), emptyRO.offset(), emptyRO.sizeof())
+                .build();
+            delegate.onServerMessage(BeginFW.TYPE_ID, syntheticBegin.buffer(), syntheticBegin.offset(),
+                syntheticBegin.sizeof());
+
+            delegate.client.lifecycle.register(traceId, this);
+        }
+
+        // drives the delegate's own initial-side DATA (the reconstructed body, chunked from the
+        // per-stream pendingBody snapshot) and END, resuming once the delegate's upstream lifecycle
+        // has settled
+        private void driveDelegateData(
+            long traceId)
+        {
+            final int bodyLength = pendingBodyLength;
+            int offset = 0;
+            while (offset < bodyLength)
+            {
+                final int chunk = Math.min(bodyLength - offset, codecBuffer.capacity());
+                final boolean first = offset == 0;
+                final boolean last = offset + chunk >= bodyLength;
+                final int flags = (first ? DATA_FLAG_INIT : 0) | (last ? DATA_FLAG_FIN : 0);
+
+                final DataFW syntheticData = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                    .originId(originId)
+                    .routedId(routedId)
+                    .streamId(initialId)
+                    .sequence((long) offset)
+                    .acknowledge(0L)
+                    .maximum(0)
+                    .traceId(traceId)
+                    .authorization(authorization)
+                    .flags(flags)
+                    .budgetId(0L)
+                    .reserved(chunk)
+                    .payload(pendingBody, offset, chunk)
+                    .build();
+                delegate.onServerMessage(DataFW.TYPE_ID, syntheticData.buffer(), syntheticData.offset(),
+                    syntheticData.sizeof());
+
+                offset += chunk;
+            }
+
+            final EndFW syntheticEnd = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(initialId)
+                .sequence((long) bodyLength)
+                .acknowledge(0L)
+                .maximum(0)
+                .traceId(traceId)
+                .authorization(authorization)
+                .build();
+            delegate.onServerMessage(EndFW.TYPE_ID, syntheticEnd.buffer(), syntheticEnd.offset(), syntheticEnd.sizeof());
         }
 
         private void emitIfReady(

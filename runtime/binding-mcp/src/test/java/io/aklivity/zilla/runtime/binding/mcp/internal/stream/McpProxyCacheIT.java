@@ -601,6 +601,38 @@ public class McpProxyCacheIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool/client",
+        "${app}/cache.serve.execute.tool/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeExecuteTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.unmatched.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool.not.found/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeExecuteToolNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool.invalid.params/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeExecuteToolInvalidParams() throws Exception
+    {
+        k3po.finish();
+    }
+
     private static final List<String> SESSION_IDS = List.of("hydrate-1", "agent-1");
     private static Iterator<String> sessionIds = SESSION_IDS.iterator();
 
