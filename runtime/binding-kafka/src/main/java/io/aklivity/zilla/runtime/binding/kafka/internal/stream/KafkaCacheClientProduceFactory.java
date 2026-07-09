@@ -104,9 +104,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private static final int PRODUCE_API_KEY = 0;
     private static final int PRODUCE_API_VERSION = 3;
 
-    private static final int PRODUCE_API_KEY = 0;
-    private static final int PRODUCE_API_VERSION = 3;
-
     private static final int ERROR_CORRUPT_MESSAGE = 2;
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
