@@ -19,6 +19,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -55,9 +57,25 @@ public class OpenapiConditionConfigAdapterTest
     }
 
     @Test
+    public void shouldReadConditionWithTag()
+    {
+        String text =
+            "{" +
+                "\"spec\":\"test\"," +
+                "\"tag\":\"admin\"" +
+            "}";
+
+        OpenapiConditionConfig condition = jsonb.fromJson(text, OpenapiConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.spec, equalTo("test"));
+        assertThat(condition.tag, equalTo("admin"));
+    }
+
+    @Test
     public void shouldWriteCondition()
     {
-        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", "testOperationId");
+        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", "testOperationId", null);
 
         String text = jsonb.toJson(condition);
 
@@ -67,5 +85,38 @@ public class OpenapiConditionConfigAdapterTest
                     "\"spec\":\"test\"," +
                     "\"operation\":\"testOperationId\"" +
                 "}"));
+    }
+
+    @Test
+    public void shouldWriteConditionWithTag()
+    {
+        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, "admin");
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                    "\"spec\":\"test\"," +
+                    "\"tag\":\"admin\"" +
+                "}"));
+    }
+
+    @Test
+    public void shouldMatchOperationGlob()
+    {
+        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", "list*", null);
+
+        assertThat(condition.matches("test", "listPets", null), equalTo(true));
+        assertThat(condition.matches("test", "createPets", null), equalTo(false));
+    }
+
+    @Test
+    public void shouldMatchTag()
+    {
+        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, "admin");
+
+        assertThat(condition.matches("test", "listPets", List.of("admin")), equalTo(true));
+        assertThat(condition.matches("test", "listPets", List.of("pets")), equalTo(false));
     }
 }

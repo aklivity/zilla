@@ -78,7 +78,6 @@ bindings:
     routes:
       - when:
           - spec: petstore
-        with:
-          tag: pets
-          operation: listPets
+            tag: pets
+            operation: listPets
         exit: pets_backend

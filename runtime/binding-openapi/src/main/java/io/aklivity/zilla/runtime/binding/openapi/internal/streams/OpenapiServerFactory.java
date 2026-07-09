@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
+import java.util.List;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -186,16 +187,14 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                 {
                     final String apiId = specification.label;
                     final String operationId = operation != null ? operation.id : null;
+                    final List<String> tags = operation != null ? operation.tags : null;
 
-                    final OpenapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
+                    final OpenapiRouteConfig route = binding.resolve(authorization, apiId, operationId, tags);
 
                     if (route != null)
                     {
                         final long resolvedId = route.id;
-                        final long resolvedApiId = composite.resolveApiId(
-                            binding.resolveSpecLabel(route, apiId));
-                        final String resolvedOperationId =
-                            binding.resolveOperationId(route, operationId);
+                        final long resolvedApiId = composite.resolveApiId(apiId);
 
                         newStream = new CompositeStream(
                             receiver,
@@ -206,7 +205,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                             authorization,
                             resolvedId,
                             resolvedApiId,
-                            resolvedOperationId)::onCompositeMessage;
+                            operationId)::onCompositeMessage;
                     }
                 }
             }

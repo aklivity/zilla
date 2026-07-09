@@ -135,10 +135,18 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
-    @Test(expected = JsonException.class)
-    public void shouldRejectServerWithRouteTagAndOperation()
+    @Test
+    public void shouldValidateServerWithRouteTagAndOperation()
     {
-        schema.validate("server.route.tag.and.operation.invalid.yaml");
+        JsonObject config = schema.validate("server.route.tag.and.operation.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithRouteWith()
+    {
+        schema.validate("server.route.with.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)

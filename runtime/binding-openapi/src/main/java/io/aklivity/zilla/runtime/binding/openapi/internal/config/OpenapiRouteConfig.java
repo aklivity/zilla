@@ -27,7 +27,6 @@ public final class OpenapiRouteConfig
 {
     public final long id;
     public final List<OpenapiConditionConfig> when;
-    public final OpenapiWithConfig with;
 
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
@@ -39,7 +38,6 @@ public final class OpenapiRouteConfig
         this.when = route.when.stream()
             .map(OpenapiConditionConfig.class::cast)
             .collect(toList());
-        this.with = (OpenapiWithConfig) route.with;
     }
 
     boolean authorized(
@@ -50,16 +48,9 @@ public final class OpenapiRouteConfig
 
     boolean matches(
         String apiId,
-        String operationId)
+        String operationId,
+        List<String> tags)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, operationId));
-    }
-
-    public boolean isBulk()
-    {
-        return with != null &&
-            (with.tag != null ||
-                with.operation == null ||
-                with.operation.indexOf('*') != -1);
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, operationId, tags));
     }
 }

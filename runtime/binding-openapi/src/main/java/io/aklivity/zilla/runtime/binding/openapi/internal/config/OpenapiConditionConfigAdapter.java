@@ -27,6 +27,7 @@ public class OpenapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
+    private static final String TAG_NAME = "tag";
 
     @Override
     public String type()
@@ -50,6 +51,11 @@ public class OpenapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
         {
             object.add(OPERATION_NAME, openapiCondition.operation);
         }
+
+        if (openapiCondition.tag != null)
+        {
+            object.add(TAG_NAME, openapiCondition.tag);
+        }
         return object.build();
     }
 
@@ -65,6 +71,10 @@ public class OpenapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
             ? object.getString(OPERATION_NAME)
             : null;
 
-        return new OpenapiConditionConfig(spec, operation);
+        String tag = object.containsKey(TAG_NAME)
+            ? object.getString(TAG_NAME)
+            : null;
+
+        return new OpenapiConditionConfig(spec, operation, tag);
     }
 }

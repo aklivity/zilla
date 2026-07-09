@@ -163,38 +163,19 @@
                                             },
                                             "operation":
                                             {
-                                                "title": "Operation",
+                                                "title": "Operation Id or glob pattern",
+                                                "type": "string"
+                                            },
+                                            "tag":
+                                            {
+                                                "title": "Tag",
                                                 "type": "string"
                                             }
                                         },
                                         "additionalProperties": false
                                     }
                                 },
-                                "with":
-                                {
-                                    "properties":
-                                    {
-                                        "spec":
-                                        {
-                                            "title": "Spec",
-                                            "type": "string"
-                                        },
-                                        "operation":
-                                        {
-                                            "title": "Operation Id or glob pattern",
-                                            "type": "string"
-                                        },
-                                        "tag":
-                                        {
-                                            "title": "Tag",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "not":
-                                    {
-                                        "required": [ "tag", "operation" ]
-                                    }
-                                }
+                                "with": false
                             }
                         }
                     },

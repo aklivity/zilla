@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static io.aklivity.zilla.runtime.common.openapi.view.OpenapiCompositeId.compositeId;
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -23,12 +21,9 @@ import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
-import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -95,101 +90,12 @@ public final class OpenapiBindingConfig
     public OpenapiRouteConfig resolve(
         long authorization,
         String apiId,
-        String operationId)
+        String operationId,
+        List<String> tags)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(apiId, operationId))
-            .filter(r -> !r.isBulk() || matchesBulkTarget(r, apiId, operationId))
+            .filter(r -> r.authorized(authorization) && r.matches(apiId, operationId, tags))
             .findFirst()
             .orElse(null);
-    }
-
-    public String resolveSpecLabel(
-        OpenapiRouteConfig route,
-        String apiId)
-    {
-        return route.with != null && route.with.spec != null
-            ? route.with.spec
-            : apiId;
-    }
-
-    public String resolveOperationId(
-        OpenapiRouteConfig route,
-        String operationId)
-    {
-        return route.with != null && !route.isBulk()
-            ? route.with.operation
-            : operationId;
-    }
-
-    private boolean matchesBulkTarget(
-        OpenapiRouteConfig route,
-        String apiId,
-        String operationId)
-    {
-        boolean matches = false;
-        OpenapiView specification = resolveSpecification(resolveSpecLabel(route, apiId));
-
-        if (specification != null && specification.operations != null)
-        {
-            OpenapiOperationView candidate = specification.operations.get(operationId);
-            matches = candidate != null && matchesBulk(candidate, route.with);
-        }
-
-        return matches;
-    }
-
-    private OpenapiView resolveSpecification(
-        String label)
-    {
-        OpenapiView specification = null;
-        long apiId = composite.resolveApiId(label);
-
-        if (apiId != NO_SCHEMA_ID)
-        {
-            specification = composite.resolveSpecification(compositeId((int) apiId, 0));
-        }
-
-        return specification;
-    }
-
-    private static boolean matchesBulk(
-        OpenapiOperationView operation,
-        OpenapiWithConfig with)
-    {
-        boolean matches = true;
-
-        if (with.tag != null)
-        {
-            matches = operation.tags != null && operation.tags.contains(with.tag);
-        }
-        else if (with.operation != null)
-        {
-            matches = compileGlob(with.operation).matcher(operation.id).matches();
-        }
-
-        return matches;
-    }
-
-    private static Pattern compileGlob(
-        String glob)
-    {
-        StringBuilder regex = new StringBuilder();
-        String[] literals = glob.split("\\*", -1);
-
-        for (int index = 0; index < literals.length; index++)
-        {
-            if (index > 0)
-            {
-                regex.append(".*");
-            }
-
-            if (!literals[index].isEmpty())
-            {
-                regex.append(Pattern.quote(literals[index]));
-            }
-        }
-
-        return Pattern.compile(regex.toString());
     }
 }
