@@ -47,6 +47,7 @@ public class AsyncapiProxyIT
         .external("asyncapi_kafka0")
         .configure(ENGINE_VERBOSE, false)
         .configure(ENGINE_VERBOSE_COMPOSITES, false)
+        .aroundStart(k3po::deferStartable)
         .clean();
 
     @Rule
