@@ -50,7 +50,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write '{"name":"register_schema","arguments":{"subject":"orders-value","schemaType":"AVRO","schema":"\"string\""}}'
+write '{"name":"register_schema","arguments":{"subject":"orders-value","schemaType":"AVRO","schema":"\\"string\\""}}'
 
 read  '{"structuredContent":{"id":1},"content":[{"type":"text","text":"Register schema"}],"isError":false}'
 read closed

@@ -25,6 +25,6 @@ write http:status "200" "OK"
 write http:header "content-type" "application/json"
 write http:content-length
 
-write '{"subject":"orders-value","id":1,"version":1,"schemaType":"AVRO","schema":"\"string\""}'
+write '{"subject":"orders-value","id":1,"version":1,"schemaType":"AVRO","schema":"\\"string\\""}'
 
 write close

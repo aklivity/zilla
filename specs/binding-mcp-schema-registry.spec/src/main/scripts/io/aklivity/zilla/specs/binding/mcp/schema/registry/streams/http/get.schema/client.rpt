@@ -23,5 +23,5 @@ write close
 read http:status "200" "OK"
 read http:header "content-type" "application/json"
 
-read '{"subject":"orders-value","id":1,"version":1,"schemaType":"AVRO","schema":"\"string\""}'
+read '{"subject":"orders-value","id":1,"version":1,"schemaType":"AVRO","schema":"\\"string\\""}'
 read closed

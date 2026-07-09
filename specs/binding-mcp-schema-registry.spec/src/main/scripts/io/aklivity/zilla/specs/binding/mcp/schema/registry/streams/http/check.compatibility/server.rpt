@@ -21,7 +21,7 @@ connected
 read http:method "POST"
 read http:header "content-type" "application/json"
 
-read '{"schemaType":"AVRO","schema":"\"string\""}'
+read '{"schemaType":"AVRO","schema":"\\"string\\""}'
 read closed
 
 write http:status "200" "OK"

@@ -21,7 +21,7 @@ write http:host
 write http:header "content-type" "application/json"
 write http:content-length
 
-write '{"schemaType":"AVRO","schema":"\"string\""}'
+write '{"schemaType":"AVRO","schema":"\\"string\\""}'
 write close
 
 read http:status "200" "OK"

@@ -12,13 +12,17 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.mcp.schema.registry
+package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config;
+
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+
+public final class McpSchemaRegistryConditionConfig extends ConditionConfig
 {
-    requires io.aklivity.zilla.runtime.engine;
+    public final String tool;
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.McpSchemaRegistryBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryConditionConfigAdapter;
+    public McpSchemaRegistryConditionConfig(
+        String tool)
+    {
+        this.tool = tool;
+    }
 }

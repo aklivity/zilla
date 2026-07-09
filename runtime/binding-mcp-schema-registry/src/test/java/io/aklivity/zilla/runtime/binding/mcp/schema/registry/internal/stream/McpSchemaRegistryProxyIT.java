@@ -28,13 +28,6 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-/*
- * Not yet runnable: no BindingFactorySpi is registered for type "mcp_schema_registry"
- * or "openapi" catalog wiring for this fixture until the runtime implementation lands.
- * Expected failure mode until then: engine config load rejects the fixture with an
- * unrecognized binding type / unresolved catalog subject error, per the test-first
- * discipline in AGENTS.md ("confirm the tests fail for the right reason").
- */
 public class McpSchemaRegistryProxyIT
 {
     private final K3poRule k3po = new K3poRule()
@@ -47,8 +40,15 @@ public class McpSchemaRegistryProxyIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/schema/registry/config")
+        .configure("zilla.binding.mcp.schema.registry.session.id",
+            "%s::sessionId".formatted(McpSchemaRegistryProxyIT.class.getName()))
         .external("http0")
         .clean();
+
+    public static String sessionId()
+    {
+        return "session-1";
+    }
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);

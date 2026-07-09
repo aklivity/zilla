@@ -50,7 +50,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-read  '{"name":"register_schema","arguments":{"subject":"orders-value","schemaType":"AVRO","schema":"\"string\""}}'
+read  '{"name":"register_schema","arguments":{"subject":"orders-value","schemaType":"AVRO","schema":"\\"string\\""}}'
 
 write flush
 

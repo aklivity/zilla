@@ -50,7 +50,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write '{"name":"check_compatibility","arguments":{"subject":"orders-value","version":"1","schemaType":"AVRO","schema":"\"string\""}}'
+write '{"name":"check_compatibility","arguments":{"subject":"orders-value","version":"1","schemaType":"AVRO","schema":"\\"string\\""}}'
 
 read  '{"structuredContent":{"is_compatible":true},"content":[{"type":"text","text":"Check compatibility"}],"isError":false}'
 read closed
