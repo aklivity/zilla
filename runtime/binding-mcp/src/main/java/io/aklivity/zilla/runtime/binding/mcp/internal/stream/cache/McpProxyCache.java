@@ -45,6 +45,8 @@ import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRangeScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchDocumentScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchIndexFactory;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchDocument;
@@ -315,6 +317,8 @@ public final class McpProxyCache
         private final List<Pattern> eagerMatch;
         private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
         private Map<CharSequence, String> descriptionsByName = Collections.emptyMap();
+        private Map<CharSequence, McpToolByteRange> toolRangesByName = Collections.emptyMap();
+        private byte[] toolsBytes = new byte[0];
         private long lastChecksum = -1L;
         private String lockToken;
 
@@ -339,6 +343,16 @@ public final class McpProxyCache
         public Map<CharSequence, String> descriptionsByName()
         {
             return descriptionsByName;
+        }
+
+        public Map<CharSequence, McpToolByteRange> toolRangesByName()
+        {
+            return toolRangesByName;
+        }
+
+        public byte[] toolsBytes()
+        {
+            return toolsBytes;
         }
 
         public McpToolSearchIndex searchIndex()
@@ -505,6 +519,8 @@ public final class McpProxyCache
                 final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
                 descriptionsByName = indexDescriptionsByName(documents);
                 searchIndex.index(documents);
+                toolsBytes = value.getBytes(StandardCharsets.UTF_8);
+                toolRangesByName = McpToolByteRangeScanner.scan(toolsBytes);
             }
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
@@ -564,6 +580,8 @@ public final class McpProxyCache
                     final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
                     descriptionsByName = indexDescriptionsByName(documents);
                     searchIndex.index(documents);
+                    toolsBytes = value.getBytes(StandardCharsets.UTF_8);
+                    toolRangesByName = McpToolByteRangeScanner.scan(toolsBytes);
                 }
             }
             else

@@ -539,6 +539,28 @@ public class McpProxyCacheIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.cache.seeded.tools.search.10k.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.search.10k/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeToolsSearch10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.seeded.tools.search.100k.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.search.100k/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeToolsSearch100k() throws Exception
+    {
+        k3po.finish();
+    }
+
     private static final List<String> SESSION_IDS = List.of("hydrate-1", "agent-1");
     private static Iterator<String> sessionIds = SESSION_IDS.iterator();
 

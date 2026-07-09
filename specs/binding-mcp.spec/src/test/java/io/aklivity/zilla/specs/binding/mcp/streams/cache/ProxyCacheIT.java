@@ -269,4 +269,22 @@ public class ProxyCacheIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.search.10k/client",
+        "${app}/cache.serve.tools.search.10k/server" })
+    public void shouldServeToolsSearch10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.search.100k/client",
+        "${app}/cache.serve.tools.search.100k/server" })
+    public void shouldServeToolsSearch100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

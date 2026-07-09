@@ -14,16 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.search;
 
-public final class McpSearchToolCallArgs
+public record McpToolByteRange(
+    int offset,
+    int length)
 {
-    public final String query;
-    public final int maxResults;
-
-    public McpSearchToolCallArgs(
-        String query,
-        int maxResults)
-    {
-        this.query = query;
-        this.maxResults = maxResults;
-    }
 }

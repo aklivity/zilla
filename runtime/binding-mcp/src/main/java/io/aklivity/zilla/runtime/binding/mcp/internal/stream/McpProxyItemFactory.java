@@ -17,22 +17,19 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
-import jakarta.json.Json;
-import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
-import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolCallArgs;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpJsonStringEscaper;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolCallScanner;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleClient;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpRouteRequest;
@@ -70,6 +67,18 @@ abstract class McpProxyItemFactory implements BindingHandler
     private static final int ERROR_CODE_INVALID_PARAMS = -32602;
     private static final String ERROR_MESSAGE_INVALID_PARAMS = "Invalid params";
 
+    // literal byte constants the search response is assembled from -- the matched tools' own JSON
+    // bytes are copied verbatim out of the cache in between, never re-serialized
+    private static final byte[] SEARCH_RESPONSE_PREFIX =
+        "{\"content\":[{\"type\":\"text\",\"text\":\"".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] SEARCH_RESPONSE_MIDDLE =
+        "\"}],\"structuredContent\":".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] SEARCH_RESPONSE_SUFFIX =
+        ",\"isError\":false}".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] SEARCH_TOOLS_OPEN = "{\"tools\":[".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] SEARCH_TOOLS_CLOSE = "]}".getBytes(StandardCharsets.US_ASCII);
+    private static final byte SEARCH_TOOLS_SEPARATOR = ',';
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -101,6 +110,12 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
     private final int kind;
+
+    // reusable, growable per-worker scratch arrays for tools/search response assembly (reconfigured
+    // per request, never reallocated); the final response returned to the caller is always a
+    // dedicated trimmed copy, since it is cached and drained over multiple WINDOW credits per stream
+    private byte[] searchStructuredArray = new byte[0];
+    private byte[] searchResponseArray = new byte[0];
 
     McpProxyItemFactory(
         McpConfiguration config,
@@ -775,9 +790,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final GuardHandler filterGuard;
         private final McpProxyCache.McpListCache cache;
         private final int limitDefault;
-
-        private ExpandableDirectByteBufferEx argsBuffer;
-        private int argsProgress;
+        private final McpSearchToolCallScanner scanner;
 
         private int state;
         private boolean ready;
@@ -815,6 +828,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.filterGuard = filterGuard;
             this.cache = cache;
             this.limitDefault = limitDefault;
+            this.scanner = new McpSearchToolCallScanner();
         }
 
         private void onToolSearchMessage(
@@ -879,34 +893,20 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            bufferQuery(payload.buffer(), payload.offset(), payload.sizeof());
+            final boolean last = (flags & DATA_FLAG_FIN) != 0x00;
+            scanner.feed(payload.buffer(), payload.offset(), payload.sizeof(), last);
 
-            if ((flags & DATA_FLAG_FIN) != 0x00)
+            if (last)
             {
                 onQueryReady(traceId);
             }
         }
 
-        private void bufferQuery(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            if (argsBuffer == null)
-            {
-                argsBuffer = new ExpandableDirectByteBufferEx();
-            }
-            argsBuffer.putBytes(argsProgress, buffer, offset, length);
-            argsProgress += length;
-        }
-
         private void onQueryReady(
             long traceId)
         {
-            final McpSearchToolCallArgs args = argsBuffer != null
-                ? McpSearchToolCallScanner.scan(argsBuffer, 0, argsProgress)
-                : null;
-            if (args == null || args.query == null || args.query.isEmpty())
+            final String query = scanner.query;
+            if (scanner.malformed || query == null || query.isEmpty())
             {
                 final McpResetExFW resetEx = mcpResetExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
@@ -917,8 +917,8 @@ abstract class McpProxyItemFactory implements BindingHandler
             }
             else
             {
-                final int limit = args.maxResults > 0 ? Math.min(args.maxResults, limitDefault) : limitDefault;
-                final byte[] bytes = buildResponse(args.query, limit);
+                final int limit = scanner.maxResults > 0 ? Math.min(scanner.maxResults, limitDefault) : limitDefault;
+                final byte[] bytes = buildResponse(query, limit);
                 cachedBuf = new UnsafeBufferEx(bytes);
                 cachedLen = bytes.length;
                 ready = true;
@@ -926,55 +926,106 @@ abstract class McpProxyItemFactory implements BindingHandler
             }
         }
 
+        // MCP's CallToolResult.content only accepts text/image/audio/resource_link/resource blocks --
+        // there is no "tool reference" content type, so the matches are carried in structuredContent
+        // instead, with a serialized-JSON text block alongside for clients that predate
+        // structuredContent (the pattern the spec itself recommends). Each matched tool's own JSON
+        // object is already valid, verbatim bytes sitting in the cache -- both copies below are
+        // straight System.arraycopy out of cache.toolsBytes(), never a DOM rebuild.
         private byte[] buildResponse(
             String query,
             int limit)
         {
             final Map<CharSequence, List<String>> scopesByName = cache.scopesByName();
-            final Map<CharSequence, String> descriptionsByName = cache.descriptionsByName();
+            final Map<CharSequence, McpToolByteRange> rangesByName = cache.toolRangesByName();
+            final byte[] toolsBytes = cache.toolsBytes();
             final List<McpToolSearchMatch> matches = cache.searchIndex().query(query);
 
-            final JsonArrayBuilder tools = Json.createArrayBuilder();
+            final int structuredLength = writeStructuredContent(matches, scopesByName, rangesByName, toolsBytes, limit);
+            final int responseLength = writeResponse(structuredLength);
+
+            return Arrays.copyOf(searchResponseArray, responseLength);
+        }
+
+        // assembles {"tools":[<match>,<match>,...]} into searchStructuredArray, growing it to a safe
+        // upper bound first -- the copied tool bytes are a subset of toolsBytes, so toolsBytes.length
+        // plus one separator per candidate match is always enough, regardless of which are admitted
+        private int writeStructuredContent(
+            List<McpToolSearchMatch> matches,
+            Map<CharSequence, List<String>> scopesByName,
+            Map<CharSequence, McpToolByteRange> rangesByName,
+            byte[] toolsBytes,
+            int limit)
+        {
+            final int capacity = toolsBytes.length + SEARCH_TOOLS_OPEN.length + SEARCH_TOOLS_CLOSE.length + matches.size();
+            if (searchStructuredArray.length < capacity)
+            {
+                searchStructuredArray = new byte[capacity];
+            }
+
+            int produced = 0;
+            System.arraycopy(SEARCH_TOOLS_OPEN, 0, searchStructuredArray, produced, SEARCH_TOOLS_OPEN.length);
+            produced += SEARCH_TOOLS_OPEN.length;
+
             int admitted = 0;
             for (int i = 0; i < matches.size() && admitted < limit; i++)
             {
                 final McpToolSearchMatch match = matches.get(i);
                 final List<String> roles = scopesByName.get(match.name);
+                final McpToolByteRange range = rangesByName.get(match.name);
                 // a null roles entry means no security scheme at all (or one that declares no
                 // authorization), matching McpScopeFilter's own admit-without-checking convention
                 // for the same scopesByName map -- only a non-null roles list is worth verifying
-                if (roles == null || filterGuard == null || filterGuard.verify(authorization, roles))
+                if (range != null && (roles == null || filterGuard == null || filterGuard.verify(authorization, roles)))
                 {
-                    final JsonObjectBuilder tool = Json.createObjectBuilder()
-                        .add("name", match.name);
-                    final String description = descriptionsByName.get(match.name);
-                    if (description != null)
+                    if (admitted > 0)
                     {
-                        tool.add("description", description);
+                        searchStructuredArray[produced++] = SEARCH_TOOLS_SEPARATOR;
                     }
-                    tools.add(tool);
+                    System.arraycopy(toolsBytes, range.offset(), searchStructuredArray, produced, range.length());
+                    produced += range.length();
                     admitted++;
                 }
             }
 
-            // MCP's CallToolResult.content only accepts text/image/audio/resource_link/resource
-            // blocks -- there is no "tool reference" content type, so the matches are carried in
-            // structuredContent instead, with a serialized-JSON text block alongside for clients
-            // that predate structuredContent (the pattern the spec itself recommends)
-            final JsonObject structuredContent = Json.createObjectBuilder()
-                .add("tools", tools)
-                .build();
+            System.arraycopy(SEARCH_TOOLS_CLOSE, 0, searchStructuredArray, produced, SEARCH_TOOLS_CLOSE.length);
+            produced += SEARCH_TOOLS_CLOSE.length;
 
-            final JsonObject response = Json.createObjectBuilder()
-                .add("content", Json.createArrayBuilder()
-                    .add(Json.createObjectBuilder()
-                        .add("type", "text")
-                        .add("text", structuredContent.toString())))
-                .add("structuredContent", structuredContent)
-                .add("isError", false)
-                .build();
+            return produced;
+        }
 
-            return response.toString().getBytes(StandardCharsets.UTF_8);
+        // assembles the full envelope into searchResponseArray: the literal prefix, an escaped copy of
+        // the structuredContent bytes for the "text" field, the literal middle, the raw structuredContent
+        // bytes, then the literal suffix
+        private int writeResponse(
+            int structuredLength)
+        {
+            final int capacity = SEARCH_RESPONSE_PREFIX.length +
+                McpJsonStringEscaper.maxEscapedLength(structuredLength) +
+                SEARCH_RESPONSE_MIDDLE.length +
+                structuredLength +
+                SEARCH_RESPONSE_SUFFIX.length;
+            if (searchResponseArray.length < capacity)
+            {
+                searchResponseArray = new byte[capacity];
+            }
+
+            int produced = 0;
+            System.arraycopy(SEARCH_RESPONSE_PREFIX, 0, searchResponseArray, produced, SEARCH_RESPONSE_PREFIX.length);
+            produced += SEARCH_RESPONSE_PREFIX.length;
+
+            produced += McpJsonStringEscaper.escape(searchStructuredArray, 0, structuredLength, searchResponseArray, produced);
+
+            System.arraycopy(SEARCH_RESPONSE_MIDDLE, 0, searchResponseArray, produced, SEARCH_RESPONSE_MIDDLE.length);
+            produced += SEARCH_RESPONSE_MIDDLE.length;
+
+            System.arraycopy(searchStructuredArray, 0, searchResponseArray, produced, structuredLength);
+            produced += structuredLength;
+
+            System.arraycopy(SEARCH_RESPONSE_SUFFIX, 0, searchResponseArray, produced, SEARCH_RESPONSE_SUFFIX.length);
+            produced += SEARCH_RESPONSE_SUFFIX.length;
+
+            return produced;
         }
 
         private void onServerEnd(

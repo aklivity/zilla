@@ -29,42 +29,82 @@ public class McpSearchToolCallScannerTest
     @Test
     public void shouldScanQuery()
     {
-        McpSearchToolCallArgs args = scan("{\"name\":\"zilla__search_tools\",\"arguments\":{\"query\":\"weather\"}}");
+        McpSearchToolCallScanner scanner = scan("{\"name\":\"zilla__search_tools\",\"arguments\":{\"query\":\"weather\"}}");
 
-        assertThat(args.query, equalTo("weather"));
-        assertThat(args.maxResults, equalTo(0));
+        assertThat(scanner.query, equalTo("weather"));
+        assertThat(scanner.maxResults, equalTo(0));
+        assertThat(scanner.malformed, equalTo(false));
     }
 
     @Test
     public void shouldScanQueryAndMaxResults()
     {
-        McpSearchToolCallArgs args = scan(
+        McpSearchToolCallScanner scanner = scan(
             "{\"name\":\"zilla__search_tools\",\"arguments\":{\"query\":\"weather\",\"max_results\":3}}");
 
-        assertThat(args.query, equalTo("weather"));
-        assertThat(args.maxResults, equalTo(3));
+        assertThat(scanner.query, equalTo("weather"));
+        assertThat(scanner.maxResults, equalTo(3));
     }
 
     @Test
     public void shouldReturnNullQueryWhenMissing()
     {
-        McpSearchToolCallArgs args = scan("{\"name\":\"zilla__search_tools\",\"arguments\":{}}");
+        McpSearchToolCallScanner scanner = scan("{\"name\":\"zilla__search_tools\",\"arguments\":{}}");
 
-        assertThat(args.query, nullValue());
+        assertThat(scanner.query, nullValue());
     }
 
     @Test
     public void shouldReturnNullForMalformedJson()
     {
-        McpSearchToolCallArgs args = scan("not valid json at all");
+        McpSearchToolCallScanner scanner = scan("not valid json at all");
 
-        assertThat(args, nullValue());
+        assertThat(scanner.query, nullValue());
+        assertThat(scanner.malformed, equalTo(true));
     }
 
-    private static McpSearchToolCallArgs scan(
+    @Test
+    public void shouldScanQuerySplitAcrossWindowBoundary()
+    {
+        final byte[] bytes =
+            "{\"name\":\"zilla__search_tools\",\"arguments\":{\"query\":\"weather forecast\"}}"
+                .getBytes(StandardCharsets.UTF_8);
+
+        for (int split = 1; split < bytes.length; split++)
+        {
+            final McpSearchToolCallScanner scanner = new McpSearchToolCallScanner();
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+            scanner.feed(buffer, 0, split, false);
+            scanner.feed(buffer, split, bytes.length - split, true);
+
+            assertThat("failed at split=" + split, scanner.query, equalTo("weather forecast"));
+        }
+    }
+
+    @Test
+    public void shouldScanQueryFedOneByteAtATime()
+    {
+        final byte[] bytes =
+            "{\"name\":\"zilla__search_tools\",\"arguments\":{\"query\":\"weather\",\"max_results\":12}}"
+                .getBytes(StandardCharsets.UTF_8);
+
+        final McpSearchToolCallScanner scanner = new McpSearchToolCallScanner();
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        for (int i = 0; i < bytes.length; i++)
+        {
+            scanner.feed(buffer, i, 1, i == bytes.length - 1);
+        }
+
+        assertThat(scanner.query, equalTo("weather"));
+        assertThat(scanner.maxResults, equalTo(12));
+    }
+
+    private static McpSearchToolCallScanner scan(
         String json)
     {
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-        return McpSearchToolCallScanner.scan(new UnsafeBufferEx(bytes), 0, bytes.length);
+        McpSearchToolCallScanner scanner = new McpSearchToolCallScanner();
+        scanner.feed(new UnsafeBufferEx(bytes), 0, bytes.length, true);
+        return scanner;
     }
 }

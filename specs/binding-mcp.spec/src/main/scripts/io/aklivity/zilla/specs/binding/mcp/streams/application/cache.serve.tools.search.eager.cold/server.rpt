@@ -60,7 +60,7 @@ read  '{'
 
 write flush
 
-write '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\":\\"github__delete_repo\\",\\"description\\":\\"Delete a repository\\"}]}"}],"structuredContent":{"tools":[{"name":"github__delete_repo","description":"Delete a repository"}]},"isError":false}'
+write '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\": \\"github__delete_repo\\",\\"description\\": \\"Delete a repository\\"}]}"}],"structuredContent":{"tools":[{"name": "github__delete_repo","description": "Delete a repository"}]},"isError":false}'
 write flush
 
 write close

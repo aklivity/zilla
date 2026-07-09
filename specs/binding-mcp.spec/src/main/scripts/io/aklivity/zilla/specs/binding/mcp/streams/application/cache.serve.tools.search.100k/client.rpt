@@ -44,7 +44,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("agent-1")
                                .name("zilla__search_tools")
-                               .contentLength(62)
+                               .contentLength(63)
                                .build()
                            .build()}
 
@@ -54,11 +54,15 @@ write '{'
         '"name":"zilla__search_tools",'
         '"arguments":'
         '{'
-          '"query": "delete"'
+          '"query": "weather"'
         '}'
       '}'
 
 write close
 
-read  '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\": \\"github__delete_repo\\",\\"description\\": \\"Delete a repository\\"}]}"}],"structuredContent":{"tools":[{"name": "github__delete_repo","description": "Delete a repository"}]},"isError":false}'
+read '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\": \\"weather_forecast_tool\\",\\"description\\": \\"weather forecast tool '
+read ${core:randomBase64(100000)}
+read '\\"}]}"}],"structuredContent":{"tools":[{"name": "weather_forecast_tool","description": "weather forecast tool '
+read ${core:randomBase64(100000)}
+read '"}]},"isError":false}'
 read closed
