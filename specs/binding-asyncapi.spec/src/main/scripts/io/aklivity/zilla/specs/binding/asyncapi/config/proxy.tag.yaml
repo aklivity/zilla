@@ -51,6 +51,8 @@ catalogs:
               action: send
               channel:
                 $ref: '#/channels/sensors'
+              tags:
+                - name: sensors
 
           components:
             parameters:
@@ -149,8 +151,8 @@ bindings:
     routes:
       - when:
           - spec: mqtt_api
-            operation: sendEvents
+            tag: sensors
         exit: asyncapi_kafka0
         with:
           spec: kafka_api
-          tag: sensors
+          operation: toSensorData

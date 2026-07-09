@@ -220,67 +220,6 @@
                             }
                         },
                         "additionalProperties": false
-                    },
-                    "routes":
-                    {
-                        "title": "Routes",
-                        "type": "array",
-                        "items":
-                        {
-                            "type": "object",
-                            "properties":
-                            {
-                                "when":
-                                {
-                                    "title": "When",
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "properties":
-                                        {
-                                            "spec":
-                                            {
-                                                "title": "Spec",
-                                                "type": "string"
-                                            },
-                                            "operation":
-                                            {
-                                                "title": "Operation",
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                },
-                                "with":
-                                {
-                                    "properties":
-                                    {
-                                        "spec":
-                                        {
-                                            "title": "Spec",
-                                            "type": "string"
-                                        },
-                                        "operation":
-                                        {
-                                            "title": "Operation Id or glob pattern",
-                                            "type": "string"
-                                        },
-                                        "tag":
-                                        {
-                                            "title": "Tag",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "additionalProperties": false,
-                                    "not":
-                                    {
-                                        "required": [ "tag", "operation" ]
-                                    }
-                                }
-                            }
-                        }
                     }
                 },
                 "oneOf":
@@ -291,6 +230,47 @@
                             "kind":
                             {
                                 "const": "server"
+                            },
+                            "routes":
+                            {
+                                "title": "Routes",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "when":
+                                        {
+                                            "title": "When",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "properties":
+                                                {
+                                                    "spec":
+                                                    {
+                                                        "title": "Spec",
+                                                        "type": "string"
+                                                    },
+                                                    "operation":
+                                                    {
+                                                        "title": "Operation Id or glob pattern",
+                                                        "type": "string"
+                                                    },
+                                                    "tag":
+                                                    {
+                                                        "title": "Tag",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "with": false
+                                    }
+                                }
                             }
                         },
                         "anyOf":
@@ -325,6 +305,71 @@
                             "kind":
                             {
                                 "const": "proxy"
+                            },
+                            "routes":
+                            {
+                                "title": "Routes",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "when":
+                                        {
+                                            "title": "When",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "properties":
+                                                {
+                                                    "spec":
+                                                    {
+                                                        "title": "Spec",
+                                                        "type": "string"
+                                                    },
+                                                    "operation":
+                                                    {
+                                                        "title": "Operation Id or glob pattern",
+                                                        "type": "string"
+                                                    },
+                                                    "tag":
+                                                    {
+                                                        "title": "Tag",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "with":
+                                        {
+                                            "properties":
+                                            {
+                                                "spec":
+                                                {
+                                                    "title": "Spec",
+                                                    "type": "string"
+                                                },
+                                                "operation":
+                                                {
+                                                    "title": "Operation",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "spec"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "with"
+                                    ]
+                                }
                             }
                         },
                         "anyOf":
@@ -360,16 +405,7 @@
                             {
                                 "const": "client"
                             },
-                            "routes":
-                            {
-                                "items":
-                                {
-                                    "properties":
-                                    {
-                                        "exit": false
-                                    }
-                                }
-                            },
+                            "routes": false,
                             "exit": false
                         }
                     }

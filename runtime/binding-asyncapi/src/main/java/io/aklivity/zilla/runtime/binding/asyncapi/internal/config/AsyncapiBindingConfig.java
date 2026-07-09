@@ -102,11 +102,12 @@ public final class AsyncapiBindingConfig
 
     public AsyncapiRouteConfig resolve(
         long authorization,
-        String apiId,
-        String operationId)
+        String spec,
+        String operation,
+        List<String> tags)
     {
         return routes.stream()
-                .filter(r -> r.authorized(authorization) && r.matches(apiId, operationId))
+                .filter(r -> r.authorized(authorization) && r.matches(spec, operation, tags))
                 .findFirst()
                 .orElse(null);
     }

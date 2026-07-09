@@ -41,26 +41,26 @@ public class OpenapiConditionConfig extends ConditionConfig
     }
 
     public boolean matches(
-        String apiId,
-        String operationId,
+        String spec,
+        String operation,
         List<String> tags)
     {
-        return matchesSpec(apiId) &&
-            matchesOperation(operationId) &&
+        return matchesSpec(spec) &&
+            matchesOperation(operation) &&
             matchesTag(tags);
     }
 
     private boolean matchesSpec(
-        String apiId)
+        String spec)
     {
-        return this.spec == null || this.spec.equals(apiId);
+        return this.spec == null || this.spec.equals(spec);
     }
 
     private boolean matchesOperation(
-        String operationId)
+        String operation)
     {
         return this.operation == null ||
-            (operationGlob != null ? operationGlob.matcher(operationId).matches() : this.operation.equals(operationId));
+            (operationGlob != null ? operationGlob.matcher(operation).matches() : this.operation.equals(operation));
     }
 
     private boolean matchesTag(

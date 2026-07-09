@@ -27,6 +27,7 @@ public class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
+    private static final String TAG_NAME = "tag";
 
     @Override
     public String type()
@@ -47,6 +48,11 @@ public class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi
         {
             object.add(OPERATION_NAME, asyncapiCondition.operation);
         }
+
+        if (asyncapiCondition.tag != null)
+        {
+            object.add(TAG_NAME, asyncapiCondition.tag);
+        }
         return object.build();
     }
 
@@ -62,6 +68,10 @@ public class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi
             ? object.getString(OPERATION_NAME)
             : null;
 
-        return new AsyncapiConditionConfig(spec, operation);
+        String tag = object.containsKey(TAG_NAME)
+            ? object.getString(TAG_NAME)
+            : null;
+
+        return new AsyncapiConditionConfig(spec, operation, tag);
     }
 }

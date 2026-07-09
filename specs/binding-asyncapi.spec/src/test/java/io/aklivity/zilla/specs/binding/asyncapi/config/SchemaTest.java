@@ -173,8 +173,14 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectAsyncapiProxyWithTagAndOperation()
+    public void shouldRejectAsyncapiProxyWithTag()
     {
-        schema.validate("proxy.tag.and.operation.invalid.yaml");
+        schema.validate("proxy.with.tag.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAsyncapiProxyMissingWith()
+    {
+        schema.validate("proxy.missing.with.invalid.yaml");
     }
 }

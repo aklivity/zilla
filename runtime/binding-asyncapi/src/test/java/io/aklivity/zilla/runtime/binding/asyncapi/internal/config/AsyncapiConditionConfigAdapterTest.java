@@ -19,6 +19,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -55,9 +57,25 @@ public class AsyncapiConditionConfigAdapterTest
     }
 
     @Test
+    public void shouldReadConditionWithTag()
+    {
+        String text =
+            "{" +
+                "\"spec\":\"test\"," +
+                "\"tag\":\"admin\"" +
+            "}";
+
+        AsyncapiConditionConfig condition = jsonb.fromJson(text, AsyncapiConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.spec, equalTo("test"));
+        assertThat(condition.tag, equalTo("admin"));
+    }
+
+    @Test
     public void shouldWriteCondition()
     {
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", "testOperationId");
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", "testOperationId", null);
 
         String text = jsonb.toJson(condition);
 
@@ -67,5 +85,38 @@ public class AsyncapiConditionConfigAdapterTest
                     "\"spec\":\"test\"," +
                     "\"operation\":\"testOperationId\"" +
                 "}"));
+    }
+
+    @Test
+    public void shouldWriteConditionWithTag()
+    {
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, "admin");
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                    "\"spec\":\"test\"," +
+                    "\"tag\":\"admin\"" +
+                "}"));
+    }
+
+    @Test
+    public void shouldMatchOperationGlob()
+    {
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", "list*", null);
+
+        assertThat(condition.matches("test", "listPets", null), equalTo(true));
+        assertThat(condition.matches("test", "createPets", null), equalTo(false));
+    }
+
+    @Test
+    public void shouldMatchTag()
+    {
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, "admin");
+
+        assertThat(condition.matches("test", "listPets", List.of("admin")), equalTo(true));
+        assertThat(condition.matches("test", "listPets", List.of("pets")), equalTo(false));
     }
 }

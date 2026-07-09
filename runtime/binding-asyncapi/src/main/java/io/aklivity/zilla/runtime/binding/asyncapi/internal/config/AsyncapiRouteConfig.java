@@ -49,16 +49,10 @@ public final class AsyncapiRouteConfig
     }
 
     boolean matches(
-        String apiId,
-        String operationId)
+        String spec,
+        String operation,
+        List<String> tags)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, operationId));
-    }
-
-    public boolean isBulk()
-    {
-        return with.tag != null ||
-            with.operation == null ||
-            with.operation.indexOf('*') != -1;
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operation, tags));
     }
 }

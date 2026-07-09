@@ -89,12 +89,12 @@ public final class OpenapiBindingConfig
 
     public OpenapiRouteConfig resolve(
         long authorization,
-        String apiId,
-        String operationId,
+        String spec,
+        String operation,
         List<String> tags)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(apiId, operationId, tags))
+            .filter(r -> r.authorized(authorization) && r.matches(spec, operation, tags))
             .findFirst()
             .orElse(null);
     }

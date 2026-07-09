@@ -14,38 +14,80 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class AsyncapiConditionConfig extends ConditionConfig
 {
     public final String spec;
     public final String operation;
+    public final String tag;
+
+    private final Pattern operationGlob;
 
     public AsyncapiConditionConfig(
         String spec,
-        String operation)
+        String operation,
+        String tag)
     {
         this.spec = spec;
         this.operation = operation;
+        this.tag = tag;
+        this.operationGlob = operation != null && operation.indexOf('*') != -1
+            ? compileGlob(operation)
+            : null;
     }
 
     public boolean matches(
-        String apiId,
-        String operationId)
+        String spec,
+        String operation,
+        List<String> tags)
     {
-        return matchesSpec(apiId) &&
-            matchesOperation(operationId);
+        return matchesSpec(spec) &&
+            matchesOperation(operation) &&
+            matchesTag(tags);
     }
 
     private boolean matchesSpec(
-        String apiId)
+        String spec)
     {
-        return this.spec == null || this.spec.equals(apiId);
+        return this.spec == null || this.spec.equals(spec);
     }
 
     private boolean matchesOperation(
-        String operationId)
+        String operation)
     {
-        return this.operation == null || this.operation.equals(operationId);
+        return this.operation == null ||
+            (operationGlob != null ? operationGlob.matcher(operation).matches() : this.operation.equals(operation));
+    }
+
+    private boolean matchesTag(
+        List<String> tags)
+    {
+        return this.tag == null || tags != null && tags.contains(this.tag);
+    }
+
+    private static Pattern compileGlob(
+        String glob)
+    {
+        StringBuilder regex = new StringBuilder();
+        String[] literals = glob.split("\\*", -1);
+
+        for (int index = 0; index < literals.length; index++)
+        {
+            if (index > 0)
+            {
+                regex.append(".*");
+            }
+
+            if (!literals[index].isEmpty())
+            {
+                regex.append(Pattern.quote(literals[index]));
+            }
+        }
+
+        return Pattern.compile(regex.toString());
     }
 }

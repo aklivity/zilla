@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
+import java.util.List;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -179,20 +180,14 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                 {
                     final String apiId = specification.label;
                     final String operationId = operation != null ? operation.name : null;
+                    final List<String> tags = operation != null ? operation.tags : null;
 
-                    final AsyncapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
+                    final AsyncapiRouteConfig route = binding.resolve(authorization, apiId, operationId, tags);
 
                     if (route != null)
                     {
                         final long resolvedId = route.id;
-                        final long resolvedApiId = composite.resolveApiId(
-                            route.with != null
-                                ? route.with.spec
-                                : apiId);
-                        final String resolvedOperationId =
-                            route.with != null && !route.isBulk()
-                                ? route.with.operation
-                                : operationId;
+                        final long resolvedApiId = composite.resolveApiId(apiId);
 
                         newStream = new CompositeStream(
                             receiver,
@@ -203,7 +198,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                             authorization,
                             resolvedId,
                             resolvedApiId,
-                            resolvedOperationId)::onCompositeMessage;
+                            operationId)::onCompositeMessage;
                     }
                 }
             }

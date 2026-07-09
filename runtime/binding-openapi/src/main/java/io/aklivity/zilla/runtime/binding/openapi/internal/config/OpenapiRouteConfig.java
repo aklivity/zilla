@@ -47,10 +47,10 @@ public final class OpenapiRouteConfig
     }
 
     boolean matches(
-        String apiId,
-        String operationId,
+        String spec,
+        String operation,
         List<String> tags)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, operationId, tags));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operation, tags));
     }
 }
