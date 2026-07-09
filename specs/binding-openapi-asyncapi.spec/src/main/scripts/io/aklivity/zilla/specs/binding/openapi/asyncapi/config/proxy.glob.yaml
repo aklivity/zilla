@@ -50,26 +50,6 @@ catalogs:
                       application/json:
                         schema:
                           $ref: "#/components/schemas/Error"
-              post:
-                summary: Create a pet
-                operationId: createPets
-                tags:
-                  - pets
-                requestBody:
-                  content:
-                    application/json:
-                      schema:
-                        $ref: '#/components/schemas/Pet'
-                  required: true
-                responses:
-                  '201':
-                    description: Null response
-                  default:
-                    description: unexpected error
-                    content:
-                      application/json:
-                        schema:
-                          $ref: "#/components/schemas/Error"
           components:
             schemas:
               Pet:
@@ -117,11 +97,6 @@ catalogs:
             host: 'localhost:9092'
             protocol: kafka-secure
             description: Test broker
-            tags:
-              - name: 'kind:remote'
-                description: This server is a remote server. Not exposed by the application.
-              - name: 'visibility:private'
-                description: This resource is private and only available to certain users.
         channels:
           petstore:
             address: 'petstore'
@@ -136,18 +111,6 @@ catalogs:
               $ref: '#/channels/petstore'
             summary: >-
               List all pets.
-            traits:
-              - $ref: '#/components/operationTraits/kafka'
-            messages:
-              - $ref: '#/channels/petstore/messages/pet'
-          createPets:
-            action: send
-            channel:
-              $ref: '#/channels/petstore'
-            summary: >-
-              Create a pet.
-            traits:
-              - $ref: '#/components/operationTraits/kafka'
             messages:
               - $ref: '#/channels/petstore/messages/pet'
         components:
@@ -158,8 +121,6 @@ catalogs:
               summary: >-
                 Inform about Pet.
               contentType: application/json
-              traits:
-                - $ref: '#/components/messageTraits/commonHeaders'
               payload:
                 $ref: '#/components/schemas/petPayload'
           schemas:
@@ -173,26 +134,6 @@ catalogs:
                 name:
                   type: string
                   description: Pet name.
-                tag:
-                  type: string
-                  description: Tag.
-          messageTraits:
-            commonHeaders:
-              headers:
-                type: object
-                properties:
-                  my-app-header:
-                    type: integer
-                    minimum: 0
-                    maximum: 100
-          operationTraits:
-            kafka:
-              bindings:
-                kafka:
-                  clientId:
-                    type: string
-                    enum:
-                      - my-app-id
 
 bindings:
   composite0:
@@ -218,3 +159,4 @@ bindings:
         exit: asyncapi_client0
         with:
           spec: asyncapi-id
+          operation: "list*"

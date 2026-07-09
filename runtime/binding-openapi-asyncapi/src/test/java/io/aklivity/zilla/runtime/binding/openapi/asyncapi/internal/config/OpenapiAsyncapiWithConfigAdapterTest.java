@@ -41,23 +41,35 @@ public class OpenapiAsyncapiWithConfigAdapterTest
     @Test
     public void shouldReadWith()
     {
-        String text = "{\"api-id\":\"test\",\"operation-id\":\"o-id\"}";
+        String text = "{\"spec\":\"test\",\"operation\":\"o-id\"}";
 
         OpenapiAsyncapiWithConfig with = jsonb.fromJson(text, OpenapiAsyncapiWithConfig.class);
 
         assertThat(with, not(nullValue()));
-        assertThat(with.apiId, equalTo("test"));
-        assertThat(with.operationId, equalTo("o-id"));
+        assertThat(with.spec, equalTo("test"));
+        assertThat(with.operation, equalTo("o-id"));
+    }
+
+    @Test
+    public void shouldReadWithTag()
+    {
+        String text = "{\"spec\":\"test\",\"tag\":\"pets\"}";
+
+        OpenapiAsyncapiWithConfig with = jsonb.fromJson(text, OpenapiAsyncapiWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.spec, equalTo("test"));
+        assertThat(with.tag, equalTo("pets"));
     }
 
     @Test
     public void shouldWriteWith()
     {
-        OpenapiAsyncapiWithConfig with = new OpenapiAsyncapiWithConfig("test", "o-id");
+        OpenapiAsyncapiWithConfig with = new OpenapiAsyncapiWithConfig("test", "o-id", null);
 
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"api-id\":\"test\",\"operation-id\":\"o-id\"}"));
+        assertThat(text, equalTo("{\"spec\":\"test\",\"operation\":\"o-id\"}"));
     }
 }

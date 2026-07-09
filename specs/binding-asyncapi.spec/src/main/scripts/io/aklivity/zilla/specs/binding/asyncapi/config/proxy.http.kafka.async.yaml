@@ -258,9 +258,9 @@ bindings:
               version: latest
     routes:
       - when:
-          - api-id: http_api
-            operation-id: createCustomer
+          - spec: http_api
+            operation: createCustomer
         exit: asyncapi_kafka0
         with:
-          api-id: kafka_api
-          operation-id: createCustomer
+          spec: kafka_api
+          operation: createCustomer
