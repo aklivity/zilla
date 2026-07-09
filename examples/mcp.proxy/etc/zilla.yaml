@@ -326,6 +326,23 @@ bindings:
         authorization:
           authn_jwt:
             credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzNzEyNTMwNCwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSJ9.DEsguNDaHgHgn7MaK8KY1I9dW9SpTc5AUnVTQjY5v-Jmm1IWSpt-xModSTnWqfnlUImYNEbImlyXfSjFXiAd1rBCl-Sw9n6DCdkVPN2VQ1gybGNxVWyp1hlOGzQQSXWEmIOYjlRliRiTpaskNjgoyY7qawncIlIOY8xX0HnP11dONyNxgzSwaPio80e2cNlWjgHTrxSDY4ms5Svv4AInSr8BxSdvl3eOpFVlJ-XhZeOo4STcpaK1FeJgxwkxM6RGUk6ltCOc3V2gdmF6gFE_t41UzzSEvxzPPsW48VmigmCp29vC9Doi6WG_1H2M_CX85sEx7_R12Gh_Pmj53NBNuw"
+        # a fixed handful of frequently used tools stay eagerly listed; every other
+        # tool across every toolkit (the "everything" reference server's dozen-plus
+        # demo tools, most visibly) is omitted from tools/list -- because the search
+        # tool below exists, "omitted" means discoverable by keyword, not gone: a
+        # cold tool remains directly callable by name, exactly like an eager one
+        tools:
+          eager:
+            policy: explicit
+            match:
+              - everything__echo
+              - urlelicit__authorize
+              - github__create_pr
+              - petstore__list_pets
+              - petstore__search_pets
+              - petstore__create_pet
+          search:
+            tool: zilla__search_tools
     routes:
       - exit: south_mcp_client_everything
         when:
