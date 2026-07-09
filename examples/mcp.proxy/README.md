@@ -151,18 +151,21 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 ```
 
-### Search tools by keyword instead of listing them all
+### Search, describe, and execute tools without listing them all
 
 `options.cache.tools.eager` on `north_mcp_proxy` keeps only a fixed set of
 frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `github__create_pr`, `petstore__list_pets`, `petstore__search_pets`, and
 `petstore__create_pet` -- eagerly listed in `tools/list`. Every other tool is
-"cold": because `options.cache.tools.search` also configures a
-`zilla__search_tools` tool, cold tools are omitted from `tools/list`
-entirely rather than crowding it out. This is most visible on the
-`everything` reference server, which registers over a dozen demo tools --
-`everything__get-sum`, `everything__get-env`, `everything__get-tiny-image`,
-and more -- of which only `echo` is eager.
+"cold": because `options.cache.tools.search` also configures a `toolkit`
+(`zilla` here), cold tools are omitted from `tools/list` entirely rather than
+crowding it out, and three fixed-purpose tools are advertised instead --
+`zilla__search_tools`, `zilla__describe_tool`, and `zilla__execute_tool` --
+covering discovery, schema resolution, and invocation respectively without
+ever requiring every cold tool's full definition up front. This is most
+visible on the `everything` reference server, which registers over a dozen
+demo tools -- `everything__get-sum`, `everything__get-env`,
+`everything__get-tiny-image`, and more -- of which only `echo` is eager.
 
 List tools with the full-scope `$JWT_TOKEN` from above and note how few
 tools come back compared to what every toolkit actually exposes:
@@ -179,6 +182,8 @@ petstore__list_pets
 petstore__search_pets
 petstore__create_pet
 zilla__search_tools
+zilla__describe_tool
+zilla__execute_tool
 resource:petstore+/pets/featured
 template:petstore+/pets/{petId}
 template:github+pr://{owner}/{repo}/{number}
@@ -186,7 +191,9 @@ template:github+pr://{owner}/{repo}/{number}
 
 `everything__get-sum` -- one of the cold tools just omitted -- is still
 discoverable by keyword. `zilla__search_tools` only ever searches within the
-caller's own authorized scope, the same as `tools/list` itself:
+caller's own authorized scope, the same as `tools/list` itself, and its
+matches are schema-free by design -- name and description only, so scanning
+many candidates never costs more than a digest:
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
@@ -203,9 +210,39 @@ serialized-JSON `text` block for clients that predate `structuredContent`) --
 there is no Zilla-specific content type involved, so this call works through
 the same MCP SDK client used everywhere else in this example.
 
+Once a match is worth acting on, `zilla__describe_tool` resolves its full
+definition -- the same shape `tools/list` would show, schema included --
+still enforcing the same per-tool scope a caller would need to see it listed
+at all:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=zilla__describe_tool -e CALL_ARGS='{"name":"everything__get-sum"}' \
+    tools-list-client
+```
+
+The response is the tool's full cached JSON object -- `name`, `description`,
+and `inputSchema` (the real parameter names `@modelcontextprotocol/server-everything`
+declares for `get-sum`) -- exactly what `tools/list` would show for this tool
+were it not cold.
+
+And `zilla__execute_tool` invokes it by name, through the identical
+route-resolution and authorization path a direct `tools/call` for
+`everything__get-sum` would take -- its result is the target tool's own
+result, passed through unchanged:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=zilla__execute_tool \
+    -e CALL_ARGS='{"name":"everything__get-sum","arguments":{"a":2,"b":3}}' \
+    tools-list-client
+# The sum of 2 and 3 is 5.
+```
+
 Cold does not mean inaccessible -- nothing about `options.cache.tools.eager`
 touches `tools/call` routing, only what `tools/list` reports. Calling
-`everything__get-sum` directly by name succeeds identically to an eager tool:
+`everything__get-sum` directly by name succeeds identically to an eager tool,
+the same result `zilla__execute_tool` produced above:
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \

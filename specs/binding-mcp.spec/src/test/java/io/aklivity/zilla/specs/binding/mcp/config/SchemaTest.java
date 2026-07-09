@@ -184,9 +184,9 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectProxyCacheToolsSearchMissingTool()
+    public void shouldRejectProxyCacheToolsSearchWithInvalidToolkitType()
     {
-        schema.validate("proxy.cache.tools.search.tool.missing.invalid.yaml");
+        schema.validate("proxy.cache.tools.search.toolkit.invalid.yaml");
     }
 
     @Test

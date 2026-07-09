@@ -14,15 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.search;
 
-import jakarta.json.stream.JsonParser;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
 /**
- * Scans a buffered {@code tools/call} request payload for the agent-callable search tool,
- * extracting {@code arguments.query} and {@code arguments.max_results} without materializing a DOM.
+ * Incrementally scans a {@code tools/call} request payload for the agent-callable search tool, one
+ * {@code DATA} frame at a time via {@link #feed}, extracting {@code arguments.query} and
+ * {@code arguments.max_results} without materializing a DOM or buffering the whole request.
+ * <p>
+ * One instance is created per stream and fed every frame in order. Per {@link JsonParserEx}'s
+ * windowed contract, a value that straddles a window boundary is declined ({@code consumed(0)})
+ * until it arrives whole, so {@link #query} and {@link #maxResults} are only ever assigned a
+ * complete value, never a fragment.
  */
 public final class McpSearchToolCallScanner
 {
@@ -30,110 +36,170 @@ public final class McpSearchToolCallScanner
     private static final String QUERY_NAME = "query";
     private static final String MAX_RESULTS_NAME = "max_results";
 
-    private McpSearchToolCallScanner()
+    private final JsonParserEx parser;
+    private final ExpandableDirectByteBufferEx carry;
+    private final ExpandableDirectByteBufferEx window;
+
+    private int windowLength;
+    private int depth;
+    private int argumentsDepth = -1;
+    private boolean argumentsArmed;
+    private boolean queryArmed;
+    private boolean maxResultsArmed;
+    private boolean done;
+
+    public String query;
+    public int maxResults;
+    public boolean malformed;
+
+    public McpSearchToolCallScanner()
     {
+        this.parser = JsonEx.createParser();
+        this.carry = new ExpandableDirectByteBufferEx();
+        this.window = new ExpandableDirectByteBufferEx();
     }
 
-    public static McpSearchToolCallArgs scan(
+    public void feed(
         DirectBufferEx buffer,
-        int index,
-        int limit)
+        int offset,
+        int length,
+        boolean last)
     {
-        McpSearchToolCallArgs args;
+        if (done)
+        {
+            return;
+        }
 
-        final JsonParserEx parser = JsonEx.createParser();
-        parser.wrap(buffer, index, limit);
+        final int carryLength = parser.remaining();
+        if (carryLength > 0)
+        {
+            carry.putBytes(0, window, windowLength - carryLength, carryLength);
+        }
+        window.putBytes(0, carry, 0, carryLength);
+        window.putBytes(carryLength, buffer, offset, length);
+        windowLength = carryLength + length;
+
+        parser.wrap(window, 0, windowLength, last);
+
         try
         {
-            args = scanRequest(parser);
+            scan();
         }
         catch (Exception ex)
         {
-            args = null;
+            malformed = true;
+            done = true;
         }
-
-        return args;
     }
 
-    private static McpSearchToolCallArgs scanRequest(
-        JsonParserEx parser)
+    private void scan()
     {
-        String query = null;
-        int maxResults = 0;
-
-        if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
+        JsonEvent event;
+        while (!done && (event = parser.nextEvent()) != null)
         {
-            int depth = 1;
-            while (depth > 0 && parser.hasNext())
+            switch (event)
             {
-                final JsonParser.Event event = parser.next();
-                switch (event)
-                {
-                case START_OBJECT:
-                case START_ARRAY:
-                    depth++;
-                    break;
-                case END_OBJECT:
-                case END_ARRAY:
-                    depth--;
-                    break;
-                case KEY_NAME:
-                    if (depth == 1 && ARGUMENTS_NAME.contentEquals(parser.getStringView()))
-                    {
-                        final McpSearchToolCallArgs arguments = scanArguments(parser);
-                        query = arguments.query;
-                        maxResults = arguments.maxResults;
-                    }
-                    break;
-                default:
-                    break;
-                }
+            case START_OBJECT:
+            case START_ARRAY:
+                onOpen();
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                onClose();
+                break;
+            case KEY_NAME:
+                onKey();
+                break;
+            case VALUE_STRING:
+                onStringValue();
+                break;
+            case VALUE_NUMBER:
+                onNumberValue();
+                break;
+            case END_DOCUMENT:
+                done = true;
+                break;
+            default:
+                break;
             }
         }
-
-        return new McpSearchToolCallArgs(query, maxResults);
     }
 
-    private static McpSearchToolCallArgs scanArguments(
-        JsonParserEx parser)
+    private void onOpen()
     {
-        String query = null;
-        int maxResults = 0;
-
-        if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
+        depth++;
+        if (argumentsArmed)
         {
-            int depth = 1;
-            while (depth > 0 && parser.hasNext())
+            argumentsArmed = false;
+            argumentsDepth = depth;
+        }
+    }
+
+    private void onClose()
+    {
+        if (depth == argumentsDepth)
+        {
+            argumentsDepth = -1;
+            queryArmed = false;
+            maxResultsArmed = false;
+        }
+        depth--;
+        if (depth == 0)
+        {
+            done = true;
+        }
+    }
+
+    private void onKey()
+    {
+        if (parser.deferredBytes())
+        {
+            parser.consumed(0);
+        }
+        else
+        {
+            final CharSequence key = parser.getStringView();
+            if (depth == 1)
             {
-                final JsonParser.Event event = parser.next();
-                switch (event)
-                {
-                case START_OBJECT:
-                case START_ARRAY:
-                    depth++;
-                    break;
-                case END_OBJECT:
-                case END_ARRAY:
-                    depth--;
-                    break;
-                case KEY_NAME:
-                    if (depth == 1 && QUERY_NAME.contentEquals(parser.getStringView()))
-                    {
-                        parser.next();
-                        query = parser.getString();
-                    }
-                    else if (depth == 1 && MAX_RESULTS_NAME.contentEquals(parser.getStringView()))
-                    {
-                        parser.next();
-                        maxResults = (int) parser.getLong();
-                    }
-                    break;
-                default:
-                    break;
-                }
+                argumentsArmed = ARGUMENTS_NAME.contentEquals(key);
+            }
+            else if (depth == argumentsDepth)
+            {
+                queryArmed = QUERY_NAME.contentEquals(key);
+                maxResultsArmed = MAX_RESULTS_NAME.contentEquals(key);
             }
         }
+    }
 
-        return new McpSearchToolCallArgs(query, maxResults);
+    private void onStringValue()
+    {
+        if (queryArmed)
+        {
+            if (parser.deferredBytes())
+            {
+                parser.consumed(0);
+            }
+            else
+            {
+                query = parser.getString();
+                queryArmed = false;
+            }
+        }
+    }
+
+    private void onNumberValue()
+    {
+        if (maxResultsArmed)
+        {
+            if (parser.deferredBytes())
+            {
+                parser.consumed(0);
+            }
+            else
+            {
+                maxResults = (int) parser.getLong();
+                maxResultsArmed = false;
+            }
+        }
     }
 }

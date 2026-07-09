@@ -219,9 +219,9 @@ public class McpProxyCacheIT
     @Test
     @Configuration("proxy.cache.tools.search.serve.yaml")
     @Specification({
-        "${app}/cache.serve.tools.search/client" })
+        "${app}/cache.serve.search.tools/client" })
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
-    public void shouldServeToolsSearch() throws Exception
+    public void shouldServeSearchTools() throws Exception
     {
         k3po.finish();
     }
@@ -269,9 +269,9 @@ public class McpProxyCacheIT
     @Test
     @Configuration("proxy.cache.tools.eager.serve.explicit.search.yaml")
     @Specification({
-        "${app}/cache.serve.tools.search.eager.cold/client" })
+        "${app}/cache.serve.search.tools.eager.cold/client" })
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
-    public void shouldServeToolsSearchEagerCold() throws Exception
+    public void shouldServeSearchToolsEagerCold() throws Exception
     {
         k3po.finish();
     }
@@ -535,6 +535,100 @@ public class McpProxyCacheIT
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     public void shouldServeToolsList100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.seeded.tools.search.10k.yaml")
+    @Specification({
+        "${app}/cache.serve.search.tools.10k/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeSearchTools10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.seeded.tools.search.100k.yaml")
+    @Specification({
+        "${app}/cache.serve.search.tools.100k/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeSearchTools100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.describe.tool/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeDescribeTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.describe.tool.not.found/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeDescribeToolNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.guarded.yaml")
+    @Specification({
+        "${app}/cache.serve.describe.tool.unauthorized/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeDescribeToolUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.describe.tool.invalid.params/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeDescribeToolInvalidParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool/client",
+        "${app}/cache.serve.execute.tool/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeExecuteTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.unmatched.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool.not.found/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeExecuteToolNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool.invalid.params/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeExecuteToolInvalidParams() throws Exception
     {
         k3po.finish();
     }

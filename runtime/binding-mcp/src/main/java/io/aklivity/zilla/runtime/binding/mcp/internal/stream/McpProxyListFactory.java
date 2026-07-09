@@ -2163,11 +2163,22 @@ abstract class McpProxyListFactory implements BindingHandler
             {
                 final byte[] filtered = filterByScopes(value);
                 final byte[] eagerFiltered = applyEagerPolicy(filtered);
-                final byte[] bytes = McpSearchToolInjector.inject(eagerFiltered, cache.searchToolBytes());
+                final byte[] bytes = injectSearchTools(eagerFiltered);
                 cachedBuf = new UnsafeBufferEx(bytes);
                 cachedLen = bytes.length;
             }
             emitIfReady(supplyTraceId.getAsLong());
+        }
+
+        // splices all three search-family descriptors in, unconditionally -- these are never subject
+        // to per-tool scope filtering, so this always runs after filterByScopes/applyEagerPolicy
+        private byte[] injectSearchTools(
+            byte[] json)
+        {
+            byte[] result = McpSearchToolInjector.inject(json, cache.searchToolsBytes());
+            result = McpSearchToolInjector.inject(result, cache.describeToolBytes());
+            result = McpSearchToolInjector.inject(result, cache.executeToolBytes());
+            return result;
         }
 
         private byte[] filterByScopes(
@@ -2217,7 +2228,7 @@ abstract class McpProxyListFactory implements BindingHandler
             byte[] output = json;
             if (cache.eagerConfigured())
             {
-                eagerFilter.init(arrayKey(), cache::eager, cache.searchToolBytes() != null);
+                eagerFilter.init(arrayKey(), cache::eager, cache.searchToolsBytes() != null);
 
                 // annotating cold items can grow the output; a cold item's added "defer_loading":true member
                 // is a small, fixed cost against the item's own JSON, so doubling the source is ample headroom
@@ -2301,9 +2312,9 @@ abstract class McpProxyListFactory implements BindingHandler
                 final byte[] empty = new byte[prelude.capacity() + listReplyCloseRO.capacity()];
                 prelude.getBytes(0, empty, 0, prelude.capacity());
                 listReplyCloseRO.getBytes(0, empty, prelude.capacity(), listReplyCloseRO.capacity());
-                final byte[] withSearchTool = McpSearchToolInjector.inject(empty, cache.searchToolBytes());
-                cachedBuf = new UnsafeBufferEx(withSearchTool);
-                cachedLen = withSearchTool.length;
+                final byte[] withSearchTools = injectSearchTools(empty);
+                cachedBuf = new UnsafeBufferEx(withSearchTools);
+                cachedLen = withSearchTools.length;
             }
 
             while (emitOffset < cachedLen)
