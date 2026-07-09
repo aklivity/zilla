@@ -382,4 +382,22 @@ public class ProduceIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/message.too.large/client",
+        "${app}/message.too.large/server"})
+    public void shouldRejectMessageTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transaction.id.authorization.error/client",
+        "${app}/transaction.id.authorization.error/server"})
+    public void shouldRejectTransactionalIdAuthorizationError() throws Exception
+    {
+        k3po.finish();
+    }
 }
