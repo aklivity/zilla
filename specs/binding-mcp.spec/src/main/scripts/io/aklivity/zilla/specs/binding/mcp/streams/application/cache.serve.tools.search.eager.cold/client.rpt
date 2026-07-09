@@ -58,7 +58,7 @@ write '{'
         '}'
       '}'
 
+write close
+
 read  '{"content":[{"type":"tool_reference","tool_name":"github__delete_repo"}],"isError":false}'
 read closed
-
-write close

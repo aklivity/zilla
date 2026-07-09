@@ -186,16 +186,39 @@ template:github+pr://{owner}/{repo}/{number}
 
 `everything__get-sum` -- one of the cold tools just omitted -- is still
 discoverable by keyword. `zilla__search_tools` only ever searches within the
-caller's own authorized scope, the same as `tools/list` itself:
+caller's own authorized scope, the same as `tools/list` itself.
+
+Its result content uses `{"type":"tool_reference","tool_name":"..."}`, a
+Zilla-specific content block with no entry in the MCP `CallToolResult`
+content schema (`text`, `image`, `audio`, `resource_link`, `resource`) --
+`tools-list-client`'s strict SDK client rejects it as invalid, so call it
+over raw HTTP instead, reusing the session `initialize` establishes:
 
 ```bash
-docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=zilla__search_tools -e CALL_ARGS='{"query":"sum"}' \
-    tools-list-client
+SESSION_ID=$(curl -sS -D - -o /dev/null http://localhost:7114/mcp \
+    -H "Authorization: Bearer $JWT_TOKEN" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}' \
+    | grep -i '^mcp-session-id:' | tr -d '\r' | cut -d' ' -f2)
+
+curl -sS -N http://localhost:7114/mcp \
+    -H "Authorization: Bearer $JWT_TOKEN" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -H "Mcp-Session-Id: $SESSION_ID" \
+    -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+
+curl -sS -N http://localhost:7114/mcp \
+    -H "Authorization: Bearer $JWT_TOKEN" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -H "Mcp-Session-Id: $SESSION_ID" \
+    -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"zilla__search_tools","arguments":{"query":"sum"}}}'
 ```
 
 ```text
-tool_reference:everything__get-sum
+{"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"tool_reference","tool_name":"everything__get-sum"}],"isError":false}}
 ```
 
 Cold does not mean inaccessible -- nothing about `options.cache.tools.eager`

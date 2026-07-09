@@ -156,7 +156,6 @@ abstract class McpProxyItemFactory implements BindingHandler
                         authorization,
                         binding.filterGuard,
                         searchCache,
-                        contentLength(beginEx),
                         binding.options.cache.tools.search.limit)::onToolSearchMessage;
                 }
                 else
@@ -774,7 +773,6 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final long authorization;
         private final GuardHandler filterGuard;
         private final McpProxyCache.McpListCache cache;
-        private final int contentLength;
         private final int limitDefault;
 
         private ExpandableDirectByteBufferEx argsBuffer;
@@ -804,7 +802,6 @@ abstract class McpProxyItemFactory implements BindingHandler
             long authorization,
             GuardHandler filterGuard,
             McpProxyCache.McpListCache cache,
-            int contentLength,
             int limitDefault)
         {
             this.sender = sender;
@@ -816,7 +813,6 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.authorization = authorization;
             this.filterGuard = filterGuard;
             this.cache = cache;
-            this.contentLength = contentLength;
             this.limitDefault = limitDefault;
         }
 
@@ -870,6 +866,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
+            final int flags = data.flags();
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
 
@@ -881,11 +878,15 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            bufferQuery(traceId, payload.buffer(), payload.offset(), payload.sizeof());
+            bufferQuery(payload.buffer(), payload.offset(), payload.sizeof());
+
+            if ((flags & DATA_FLAG_FIN) != 0x00)
+            {
+                onQueryReady(traceId);
+            }
         }
 
         private void bufferQuery(
-            long traceId,
             DirectBufferEx buffer,
             int offset,
             int length)
@@ -896,17 +897,14 @@ abstract class McpProxyItemFactory implements BindingHandler
             }
             argsBuffer.putBytes(argsProgress, buffer, offset, length);
             argsProgress += length;
-
-            if (argsProgress >= contentLength)
-            {
-                onQueryReady(traceId);
-            }
         }
 
         private void onQueryReady(
             long traceId)
         {
-            final McpSearchToolCallArgs args = McpSearchToolCallScanner.scan(argsBuffer, 0, argsProgress);
+            final McpSearchToolCallArgs args = argsBuffer != null
+                ? McpSearchToolCallScanner.scan(argsBuffer, 0, argsProgress)
+                : null;
             if (args == null || args.query == null || args.query.isEmpty())
             {
                 final McpResetExFW resetEx = mcpResetExRW
@@ -940,7 +938,10 @@ abstract class McpProxyItemFactory implements BindingHandler
             {
                 final McpToolSearchMatch match = matches.get(i);
                 final List<String> roles = scopesByName.get(match.name);
-                if (filterGuard == null || filterGuard.verify(authorization, roles != null ? roles : List.of()))
+                // a null roles entry means no security scheme at all (or one that declares no
+                // authorization), matching McpScopeFilter's own admit-without-checking convention
+                // for the same scopesByName map -- only a non-null roles list is worth verifying
+                if (roles == null || filterGuard == null || filterGuard.verify(authorization, roles))
                 {
                     content.add(Json.createObjectBuilder()
                         .add("type", "tool_reference")
@@ -960,7 +961,13 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void onServerEnd(
             EndFW end)
         {
+            final long traceId = end.traceId();
+
             initialSeq = end.sequence();
+            if (!ready)
+            {
+                onQueryReady(traceId);
+            }
             state = McpState.closedInitial(state);
         }
 
