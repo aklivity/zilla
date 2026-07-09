@@ -99,6 +99,16 @@
         <groupId>org.eclipse</groupId>
         <artifactId>yasson</artifactId>
         <version>3.0.4</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.glassfish</groupId>
+            <artifactId>jakarta.json</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.eclipse.parsson</groupId>
+            <artifactId>parsson</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>junit</groupId>

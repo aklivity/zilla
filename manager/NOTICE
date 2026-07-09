@@ -18,7 +18,6 @@ This project includes:
   Apache Commons Lang under Apache License, Version 2.0
   Apache HttpClient under Apache License, Version 2.0
   Apache HttpCore under Apache License, Version 2.0
-  Eclipse Parsson under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   error-prone annotations under Apache 2.0
   Gson under Apache-2.0
   Jakarta Dependency Injection under The Apache Software License, Version 2.0
