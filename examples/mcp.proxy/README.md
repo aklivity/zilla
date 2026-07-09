@@ -1,50 +1,68 @@
 # mcp.proxy
 
-Aggregates multiple upstream MCP (Model Context Protocol) servers behind a single
-Streamable HTTP endpoint on port `7114`, with a shared in-memory cache for
+Aggregates multiple upstream MCP (Model Context Protocol) tool sources behind a
+single Streamable HTTP endpoint on port `7114`, fronted by JWT authentication
+and per-toolkit / per-tool authorization, with a shared in-memory cache for
 `tools` / `prompts` / `resources` listings.
 
 ```text
-              ┌──────────────────── Zilla ─────────────────────┐
-              │   tcp(7114) → http → mcp(server) → mcp(proxy)  │
-client ──────►│                            │                   │
-              │                 ┌──────────┴──────────┐        │
-              │                 ▼                     ▼        │
-              │        mcp(client) everything   mcp(client) urlelicit
-              │                 │                     │        │
-              │                 ▼                     ▼        │
-              │              http →                http →      │
-              │              tcp                   tcp         │
-              └─────────────────┼─────────────────────┼───────┘
-                                ▼                     ▼
-                         everything:3001        urlelicit:3003
-                         (reference server)     (url-mode elicitation)
+                                     ┌────────────────────────────────── Zilla ───────────────────────────────────┐
+                                     │  tcp(7114) → http → mcp(server, jwt) → mcp(proxy, guarded routes)           │
+client ── Authorization: Bearer ───►│                                     │                                       │
+                                     │            ┌────────────┬──────────┴───────────┬───────────────┐          │
+                                     │            ▼            ▼                      ▼               ▼          │
+                                     │    mcp(client)     mcp(client)          mcp_http(proxy)   mcp_openapi(client)
+                                     │    everything       urlelicit           github toolkit     petstore toolkit
+                                     │       │                │                      │                   │        │
+                                     │       ▼                ▼                      ▼                   ▼        │
+                                     │     http →           http →              http(client) →      http(client) →
+                                     │     tcp               tcp                 tcp                   tcp        │
+                                     └───────┼────────────────┼──────────────────────┼───────────────────┼───────┘
+                                             ▼                ▼                      ▼                   ▼
+                                      everything:3001   urlelicit:3003          ghapi:4001         petstore:4002
+                                      (reference server) (url-mode elicitation) (mock GitHub API)  (mock REST API,
+                                                                                                     OpenAPI-described)
 ```
 
-The proxy demonstrates, in one configuration:
+This one configuration exercises all five `mcp*` binding kinds:
 
-- **Multi-toolkit aggregation** — `routes[].when.toolkit` fans one Streamable HTTP
-  endpoint into multiple upstream MCP servers.
-- **Shared cache** — `options.cache` backs `tools` / `prompts` / `resources`
-  listings with an in-memory store and a five-minute TTL.
-- **Protocol version negotiation** — Zilla offers MCP protocol `2025-11-25` and
-  negotiates down per peer; the negotiated version is echoed on the `initialize`
-  response and stamped on every upstream request.
-- **Form elicitation pass-through** — Zilla forwards MCP `elicitation/create`
-  messages in both directions, so any upstream that elicits structured user input
-  drives the flow through the gateway with no extra configuration. The
-  `everything` reference server's `trigger-elicitation-request-async` tool
-  exercises this directly.
-- **URL-mode elicitation pass-through (SEP-1036)** — when the client advertises
-  the `elicitation.url` capability, Zilla advertises it to the upstream, so a
-  url-mode-capable upstream can ask the user to complete a secure out-of-band
-  interaction in their browser. Zilla relays the `mode:"url"` `elicitation/create`
-  request and the `notifications/elicitation/complete` notification end-to-end.
-  The `urlelicit` server's `authorize` tool exercises this directly.
-- **MCP metrics** — the `mcp(server)` binding records per-method counters and
-  duration histograms (`mcp.initialize`, `mcp.tools.list`, `mcp.tools.call`,
-  `mcp.prompts.*`, `mcp.resources.*`), dimensioned by `method`, `tool`, and
-  `outcome`, exported over Prometheus on port `7190`.
+| Binding | Kind | Role in this example |
+| --- | --- | --- |
+| `mcp` | `server` | Terminates Streamable HTTP, authenticates the session with the `authn_jwt` guard |
+| `mcp` | `proxy` | Aggregates toolkits behind one endpoint, gates each toolkit's routes with `guarded:` |
+| `mcp` | `client` | Talks to an upstream server that is itself MCP (`everything`, `urlelicit`); `urlelicit` also forwards the caller's own JWT upstream |
+| `mcp_http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
+| `mcp_openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
+
+## Authorization model
+
+Every session must present a JWT bearer token validated by the `authn_jwt`
+guard (`options.authorization` on the `mcp(server)` binding). The token's
+`scope` claim is a space-separated list of roles, matched against the roles
+each `guarded:` route requires. Layering happens at three different points in
+the pipeline, each demonstrating a different mechanism:
+
+| Layer | Mechanism | Requires |
+| --- | --- | --- |
+| `mcp(proxy)` route for `urlelicit` toolkit | `routes[].guarded` on the toolkit route | `urlelicit:authorize` |
+| `mcp(proxy)` route for `github` toolkit | `routes[].guarded` on the toolkit route | `github:tools` |
+| `mcp_http(proxy)` route for `create_pr` | a second, tool-specific `routes[].guarded`, layered under the `mcp_http` binding's base guarded route | `github:tools` **and** `github:pr:write` |
+| `mcp(proxy)` route for `petstore` toolkit | `routes[].guarded` on the toolkit route | `petstore:tools` |
+| `mcp_openapi(client)` operation `create_pet` | the OpenAPI document's own `security` requirement, mapped to `authn_jwt` via `options.specs.petstore.security` | `petstore:tools` **and** `pets:write` |
+
+`list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
+of their own, so they need only the toolkit-level `petstore:tools` scope --
+the same "toolkit access is not tool access" layering `mcp_http` demonstrates
+with `github:pr:write`, expressed through OpenAPI's own security model
+instead of an explicit `guarded:` route.
+
+The `everything` toolkit has no `guarded:` route at all, so it is reachable by
+any session that can complete `initialize` -- including one with no token.
+
+The key observable behavior: a session that is not authorized for a toolkit or
+tool never sees it in `tools/list`. There is no "tool present but access
+denied" state -- unauthorized tools are absent, exactly as if they did not
+exist.
 
 ## Requirements
 
@@ -56,9 +74,11 @@ The proxy demonstrates, in one configuration:
 docker compose up -d
 ```
 
-This starts Zilla plus two locally-reachable upstream MCP servers: a Node
-`everything` reference server on `:3001`, and a minimal `urlelicit` server on
-`:3003` that demonstrates url-mode elicitation.
+This starts Zilla plus four locally-reachable upstream services: a Node
+`everything` reference MCP server on `:3001`, a minimal `urlelicit` MCP server
+on `:3003` demonstrating url-mode elicitation, and two plain REST mocks --
+`ghapi` on `:4001` (subset of the GitHub API) and `petstore` on `:4002`
+(a small Petstore API, described by an inline OpenAPI document).
 
 ## Verify
 
@@ -68,33 +88,173 @@ Run the automated smoke test that the build workflow uses:
 ./.github/test.sh
 ```
 
-Or drive the gateway interactively with the MCP Inspector:
+Or drive the gateway interactively with the MCP Inspector, supplying a bearer
+token as described below:
 
 ```bash
 npx @modelcontextprotocol/inspector http://localhost:7114/mcp
 ```
 
-### Initialize the MCP session
+### Mint a JWT with jwt-cli
 
-A client that supports url-mode elicitation advertises the `elicitation.url`
-capability and offers protocol `2025-11-25`; Zilla echoes the negotiated version:
+Tokens are signed with the RSA key in [private.pem](private.pem) (generated
+with `openssl genrsa -out private.pem 2048`; see [http.proxy.jwt](../http.proxy.jwt/README.md)
+for the equivalent walkthrough of extracting the public modulus into
+`guards.authn_jwt.options.keys`). Mint one with the bundled `jwt-cli` service:
+
+```bash
+export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
+    --alg "RS256" \
+    --kid "example" \
+    --iss "https://auth.example.com" \
+    --aud "https://api.example.com" \
+    --exp=+1d \
+    --no-iat \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write" \
+    --secret @/private.pem | tr -d '\r\n')
+```
+
+Omit scopes from `--payload` to see them disappear from `tools/list`.
+
+### Observe filtered tools/list results
+
+The bundled `tools-list-client` connects, lists tools, and prints one tool
+name per line -- pass a token (or none) as `JWT_TOKEN`:
+
+```bash
+# No token: only the ungated "everything" toolkit is visible
+docker compose run --rm tools-list-client
+
+# Toolkit-level scopes only, no operation-level scopes: petstore__list_pets
+# appears (its OpenAPI operation has no security requirement) but
+# petstore__create_pet and github__create_pr do not -- toolkit access alone
+# is not tool access
+export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
+    --alg "RS256" --kid "example" \
+    --iss "https://auth.example.com" --aud "https://api.example.com" \
+    --exp=+1d --no-iat \
+    --payload "scope=github:tools petstore:tools" \
+    --secret @/private.pem | tr -d '\r\n')
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
+
+# Every scope: every toolkit's tools are listed
+export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
+    --alg "RS256" --kid "example" \
+    --iss "https://auth.example.com" --aud "https://api.example.com" \
+    --exp=+1d --no-iat \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write" \
+    --secret @/private.pem | tr -d '\r\n')
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
+```
+
+### Call an authorized tool
+
+With the full-scope `$JWT_TOKEN` from above, calling `github__create_pr`
+reaches the `ghapi` mock and forwards the caller's own bearer credential and
+identity upstream (`options.authorization.credentials.headers` on the
+`mcp_http` binding):
+
+```bash
+curl -N http://localhost:7114/mcp \
+    -H "Authorization: Bearer $JWT_TOKEN" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
+
+curl -N http://localhost:7114/mcp \
+    -H "Authorization: Bearer $JWT_TOKEN" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"github__create_pr","arguments":{"owner":"acme","repo":"widget","title":"Add feature","head":"feature","base":"main"}}}'
+```
+
+The response's `html_url` points at the fabricated `ghapi` pull request, and
+`opened_by` echoes the identity extracted from the JWT.
+
+### Schema-validated tool calls, and where the arguments go
+
+`mcp_http` requires every tool to declare an input schema
+(`options.tools.create_pr.schemas.input`, backed by the `github_catalog`
+inline catalog) -- a call is validated against it before Zilla builds the
+upstream request at all. `mcp_openapi` makes the same `input`/`output`
+override optional: `list_pets` relies on the schema auto-derived from the
+OpenAPI document, while `create_pet` explicitly overrides both
+(`options.tools.create_pet.input`/`output`, backed by `petstore_catalog`) to
+show the same mechanism used deliberately rather than inferred.
+
+Once validated, an argument only reaches the upstream request where a route
+says to put it. `create_pr`'s route consumes `owner`/`repo` in the `:path`
+template (`/repos/${args.owner}/${args.repo}/pulls`) and forwards the rest
+(`title`, `head`, `base`, optionally `body`) as the JSON request body via
+`with.body`, whose schema (`create_pr_body`) is the input schema minus
+`owner`/`repo` -- omitting `with.body` entirely does not mean "send
+everything"; it means the validated arguments are discarded with nowhere to
+go, so a route that consumes some arguments as path segments and wants the
+remainder forwarded still needs an explicit `with.body` scoped to what's left.
+
+### Browse petstore resources (static and templated)
+
+`mcp_openapi` maps OpenAPI `GET` operations to MCP resources instead of
+tools when the route's `when` says `resource:` instead of `tool:`. Whether
+the result is a fixed entry in `resources/list` or a `resources/templates`
+entry depends entirely on the OpenAPI path itself:
+
+- `list_featured_pets` (`GET /pets/featured`, no path parameters) becomes a
+  **static** resource at the fixed URI `petstore+/pets/featured`.
+- `get_pet` (`GET /pets/{petId}`, one path parameter) becomes a **dynamic**
+  resource template `petstore+/pets/{petId}`, read with a concrete `petId`
+  substituted in.
+
+Both need only the toolkit-level `petstore:tools` scope -- see them appear
+with any `petstore:tools`-scoped token from above (`$JWT_TOKEN` currently
+holds the full-scope one):
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
+# ...
+# resource:petstore+/pets/featured
+# template:petstore+/pets/{petId}
+```
+
+Read the templated resource for a specific pet with MCP Inspector's Resources
+tab, or with any MCP client that supports `resources/read` against
+`petstore+/pets/1`.
+
+### Redirect the outbound host, and rename an argument (mcp_openapi)
+
+The petstore OpenAPI document declares its public server as
+`https://api.petstore.example.com` -- a realistic, external-looking address,
+not the local mock. `options.specs.petstore.server: http://petstore:4002`
+overrides where Zilla actually sends the request, independent of what the
+document says; nothing else about routing changes.
+
+`search_pets` renames its one argument from the OpenAPI parameter's own name
+(`tag`, a query parameter) to `category`, via a custom input schema
+(`options.tools.search_pets.input`) plus `routes[].with.params: {tag:
+"${args.category}"}` reconciling the two. Call it and watch the mock observe
+the original parameter name:
+
+```bash
+docker compose logs -f petstore &
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=petstore__search_pets -e CALL_ARGS='{"category":"cat"}' \
+    tools-list-client
+```
+
+`petstore`'s log line reads `search_pets query: {"tag":"cat"}` -- the caller
+said `category`, the request said `tag`.
+
+### Trigger a form elicitation round-trip
+
+Call the `everything` server's elicitation-demo tool through the gateway (no
+token required -- `everything` has no `guarded:` route):
 
 ```bash
 curl -N http://localhost:7114/mcp \
     -H "Content-Type: application/json" \
     -H "Accept: application/json, text/event-stream" \
     -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"elicitation":{"url":{}}},"clientInfo":{"name":"curl","version":"0"}}}'
-```
 
-The `result.protocolVersion` in the response is `2025-11-25`. Because the client
-advertised `elicitation.url`, Zilla advertises the same capability on its
-`initialize` request to each upstream.
-
-### Trigger a form elicitation round-trip
-
-Call the `everything` server's elicitation-demo tool through the gateway:
-
-```bash
 curl -N http://localhost:7114/mcp \
     -H "Content-Type: application/json" \
     -H "Accept: application/json, text/event-stream" \
@@ -107,8 +267,10 @@ JSON-RPC request bound for the client. Zilla forwards it back through
 
 ### Trigger a url-mode elicitation round-trip
 
-Use MCP Inspector (which knows how to handle `elicitation/create`) to call the
-`urlelicit` server's `authorize` tool:
+Mint a token with the `urlelicit:authorize` scope (see above), then use MCP
+Inspector (which knows how to handle `elicitation/create`) to call the
+`urlelicit` toolkit's `authorize` tool, supplying `Authorization: Bearer
+$JWT_TOKEN` as a custom header:
 
 ```text
 urlelicit__authorize { "resource": "demo" }
@@ -119,7 +281,34 @@ carrying a link for the user to open in their browser. Zilla relays it back to
 the client unchanged; once the out-of-band interaction completes, the server
 sends `notifications/elicitation/complete`, which Zilla also relays. URL-mode
 elicitation only flows when the client advertised `elicitation.url` at
-`initialize` — a form-only or older client never sees the url request.
+`initialize` -- a form-only or older client never sees the url request.
+
+### Forward the caller's own credential to an upstream MCP server
+
+`south_mcp_client_urlelicit` sets its own `options.authorization`, using the
+same `authn_jwt` guard as the `mcp(server)` binding. Because its `credentials`
+pattern is the default `Bearer {credentials}`, the guard resolves the
+*original* bearer token that was validated when this session was
+authenticated -- not a separate service credential -- and Zilla attaches it
+as the `Authorization` header on every request to `urlelicit`. Confirm it
+arrives unchanged:
+
+```bash
+docker compose logs urlelicit | grep authorization:
+```
+
+Each line shows the exact JWT a given caller presented at the gateway. This
+is the `mcp(client)` binding's own credential-forwarding mechanism -- a
+narrower, single-header equivalent of `mcp_http`'s
+`options.authorization.credentials.headers` map used for `github__create_pr`
+above, without needing to name the header or interpolate `{identity}`
+separately.
+
+> A more elaborate scenario -- an `mcp(client)` binding that itself drives an
+> elicitation round-trip to obtain a credential for an OAuth-protected
+> upstream, rather than simply forwarding one it already has -- likely needs
+> an `oauth` guard that doesn't exist in the open-source runtime yet, so it's
+> a better fit for a future zilla-plus version of this example.
 
 ### Observe the cache
 
@@ -129,8 +318,9 @@ Repeat a `tools/list` request within five minutes and tail Zilla's logs:
 docker compose logs -f zilla | grep mcp.proxy.cache
 ```
 
-The first call shows a cache miss; subsequent ones within `ttl` are served from
-memory.
+The first call shows a cache miss; subsequent ones within `ttl` are served
+from memory. The cache is keyed per authorization, so different callers with
+different scopes never see each other's filtered results.
 
 ### Observe MCP metrics
 
@@ -142,10 +332,10 @@ records each request as a counter plus a duration histogram, attributed by
 curl -s http://localhost:7190/metrics | grep '^mcp_'
 ```
 
-After an `everything__echo` tool call, for example, you will see:
+After a `github__create_pr` tool call, for example, you will see:
 
 ```text
-mcp_tools_call_total{method="tools.call",outcome="ok",tool="everything__echo"} 1
+mcp_tools_call_total{method="tools.call",outcome="ok",tool="github__create_pr"} 1
 ```
 
 ## Teardown
@@ -156,7 +346,9 @@ docker compose down -v
 
 ## References
 
-- [Zilla docs — `binding-mcp`](https://docs.aklivity.io/zilla/latest/reference/config/bindings/binding-mcp.html)
-- [MCP — Streamable HTTP transport](https://modelcontextprotocol.io/docs/concepts/transports)
-- [MCP — elicitation](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation)
-- [SEP-1036 — URL mode elicitation](https://modelcontextprotocol.io/seps/1036-url-mode-elicitation-for-secure-out-of-band-intera)
+- [Zilla docs -- `mcp` bindings](https://docs.aklivity.io/zilla/latest/reference/config/bindings/mcp/README.html)
+- [Zilla docs -- `mcp-http` binding](https://docs.aklivity.io/zilla/latest/reference/config/bindings/mcp-http/README.html)
+- [Zilla docs -- `jwt` guard](https://docs.aklivity.io/zilla/latest/reference/config/guards/jwt.html)
+- [MCP -- Streamable HTTP transport](https://modelcontextprotocol.io/docs/concepts/transports)
+- [MCP -- elicitation](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation)
+- [SEP-1036 -- URL mode elicitation](https://modelcontextprotocol.io/seps/1036-url-mode-elicitation-for-secure-out-of-band-intera)

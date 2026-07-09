@@ -49,6 +49,33 @@ public class TransferCodingsIT
 
     @Test
     @Specification({
+        "${app}/request.transfer.encoding.chunked.single.data.frame/client",
+        "${app}/request.transfer.encoding.chunked.single.data.frame/server" })
+    public void shouldRequestTransferEncodingChunkedSingleDataFrame() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/request.transfer.encoding.chunked.multiple.data.frames/client",
+        "${app}/request.transfer.encoding.chunked.multiple.data.frames/server" })
+    public void shouldRequestTransferEncodingChunkedMultipleDataFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/request.transfer.encoding.chunked.without.header/client",
+        "${app}/request.transfer.encoding.chunked.without.header/server" })
+    public void shouldRequestTransferEncodingChunkedWithoutHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/multiple.requests.transfer.encoding.chunked/client",
         "${app}/multiple.requests.transfer.encoding.chunked/server" })
     public void multipleRequestsTransferEncodingChunked() throws Exception

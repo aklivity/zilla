@@ -26,6 +26,10 @@ services:
         condition: service_healthy
       urlelicit:
         condition: service_healthy
+      ghapi:
+        condition: service_healthy
+      petstore:
+        condition: service_healthy
 
   everything:
     image: node:20-alpine
@@ -72,6 +76,65 @@ services:
     volumes:
       - ./url-elicit:/app
     entrypoint: ["node", "/app/client.mjs"]
+
+  # Mock GitHub REST API backing the mcp_http "github" toolkit.
+  ghapi:
+    image: node:20-alpine
+    hostname: ghapi
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4001"
+    volumes:
+      - ./ghapi:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4001"]
+
+  # Mock Petstore REST API backing the mcp_openapi "petstore" toolkit.
+  petstore:
+    image: node:20-alpine
+    hostname: petstore
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4002"
+    volumes:
+      - ./petstore:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4002"]
+
+  # Mints JWTs for the authn_jwt guard. Run on demand, e.g.:
+  #   docker compose run --rm jwt-cli encode --alg RS256 --kid example \
+  #       --iss https://auth.example.com --aud https://api.example.com \
+  #       --exp=+1d --no-iat --payload "scope=github:tools" --secret @/private.pem
+  jwt-cli:
+    image: bitnamilegacy/jwt-cli
+    stdin_open: true
+    tty: true
+    profiles:
+      - on-demand
+    volumes:
+      - ./private.pem:/private.pem
+
+  # Run on demand: `docker compose run --rm -e JWT_TOKEN=$JWT_TOKEN tools-list-client`.
+  tools-list-client:
+    image: node:20-alpine
+    deploy:
+      replicas: 0
+    working_dir: /app
+    environment:
+      MCP_URL: "http://zilla:7114/mcp"
+    volumes:
+      - ./tools-list-client:/app
+    entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
 
 networks:
   default:

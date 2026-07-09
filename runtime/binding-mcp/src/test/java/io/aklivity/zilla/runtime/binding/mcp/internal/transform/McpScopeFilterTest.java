@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -66,6 +67,96 @@ public class McpScopeFilterTest
         // method fixed alongside the key-fragmentation issue this class targets
         String json = "{\"tools\":[{\"name\":\"alphabetagammadelta\",\"x\":1}]}";
         assertEquals(json, filterWindowed("tools", Map.of(), ADMIT_ALL, json, 6));
+    }
+
+    @Test
+    public void shouldPassThroughUnscopedResourceWithMultipleFieldsAfterName()
+    {
+        // a resource item (unlike the two-field {"name":...,"x":1} tools fixture above) carries several
+        // fields after "name" -- uri, description, mimeType -- mirroring a real upstream MCP resource; an
+        // item absent from scopesByName (unguarded, or guarded only by its own toolkit route with no
+        // operation-level scheme of its own) must still copy through byte-for-byte once admitted
+        Map<CharSequence, List<String>> scopesByName = Map.of("featured_pets", List.of("petstore:tools"));
+        String json = """
+            {"resources":[{"name":"architecture.md","uri":"everything+demo://resource/architecture.md",\
+            "description":"Architecture doc","mimeType":"text/markdown"}]}""";
+        assertEquals(json, filterWindowed("resources", scopesByName, ADMIT_ALL, json, json.length()));
+    }
+
+    @Test
+    public void shouldPassThroughMultipleResourceItemsWithMixedScopes()
+    {
+        // an unguarded item (no entry in scopesByName) immediately followed by a guarded, admitted item --
+        // mirrors the real everything+petstore aggregated resources list this class's fix now exercises
+        Map<CharSequence, List<String>> scopesByName = Map.of("featured_pets", List.of("petstore:tools"));
+        String json = """
+            {"resources":[{"name":"architecture.md","uri":"everything+demo://resource/architecture.md",\
+            "description":"Architecture doc","mimeType":"text/markdown"},\
+            {"name":"featured_pets","uri":"petstore+/pets/featured","description":"Featured pets",\
+            "mimeType":"application/json","securitySchemes":[{"type":"oauth2","scopes":["petstore:tools"]}]}]}""";
+        assertEquals(json, filterWindowed("resources", scopesByName, ADMIT_ALL, json, json.length()));
+    }
+
+    @Test
+    public void shouldPassThroughSevenUnscopedItemsBeforeGuardedItemAtSmallWindow()
+    {
+        // full-scale reproduction of the everything+petstore aggregated resources list (7 unguarded static
+        // documents ahead of 1 guarded item) fed at a small window to exercise the same STARVED/resume path
+        // production hits when the document exceeds the parser's own internal read buffer
+        Map<CharSequence, List<String>> scopesByName = Map.of("featured_pets", List.of("petstore:tools"));
+        StringBuilder items = new StringBuilder();
+        String[] docs = { "architecture", "extension", "features", "how-it-works", "instructions", "startup", "structure" };
+        for (String doc : docs)
+        {
+            if (items.length() > 0)
+            {
+                items.append(',');
+            }
+            items.append("{\"name\":\"").append(doc).append(".md\",\"uri\":\"everything+demo://resource/static/document/")
+                .append(doc).append(".md\",\"description\":\"Static document file exposed from /docs: ").append(doc)
+                .append(".md\",\"mimeType\":\"text/markdown\"}");
+        }
+        items.append(",{\"name\":\"featured_pets\",\"uri\":\"petstore+/pets/featured\",\"description\":\"Featured pets\",")
+            .append("\"mimeType\":\"application/json\",")
+            .append("\"securitySchemes\":[{\"type\":\"oauth2\",\"scopes\":[\"petstore:tools\"]}]}");
+        String json = "{\"resources\":[" + items + "]}";
+
+        assertEquals(json, filterWindowed("resources", scopesByName, ADMIT_ALL, json, 64));
+    }
+
+    @Test
+    @Ignore("onPending forwards container/scalar fields preceding \"name\" instead of buffering them for " +
+        "replay, corrupting admitted items whose upstream shape puts \"uri\" (or anything else) before " +
+        "\"name\" -- https://github.com/aklivity/zilla/issues/2073")
+    public void shouldPreserveFieldsPrecedingNameKey()
+    {
+        // a real upstream MCP resource commonly orders "uri" before "name" (unlike Zilla's own
+        // mcp_http/mcp_openapi-generated lists, which always emit "name" first) -- fields preceding "name"
+        // must still reach the output once the item is admitted, not be silently dropped or forwarded
+        // without their key
+        String json = """
+            {"resources":[{"uri":"everything+demo://resource/architecture.md","name":"architecture.md",\
+            "description":"Architecture doc","mimeType":"text/markdown"}]}""";
+        assertEquals(json, filterWindowed("resources", Map.of(), ADMIT_ALL, json, json.length()));
+    }
+
+    @Test
+    @Ignore("see https://github.com/aklivity/zilla/issues/2073")
+    public void shouldPreserveFieldsPrecedingNameKeyAcrossMultipleItems()
+    {
+        // the uri-before-name shape repeated across several unguarded items followed by a guarded,
+        // admitted one -- mirrors the real everything+petstore aggregated resources list end to end
+        Map<CharSequence, List<String>> scopesByName = Map.of("featured_pets", List.of("petstore:tools"));
+        String json = """
+            {"resources":[\
+            {"uri":"everything+demo://resource/architecture.md","name":"architecture.md",\
+            "description":"Architecture doc","mimeType":"text/markdown"},\
+            {"uri":"everything+demo://resource/extension.md","name":"extension.md",\
+            "description":"Extension doc","mimeType":"text/markdown"},\
+            {"name":"featured_pets","uri":"petstore+/pets/featured","description":"Featured pets",\
+            "mimeType":"application/json","securitySchemes":[{"type":"oauth2","scopes":["petstore:tools"]}]}\
+            ]}""";
+        assertEquals(json, filterWindowed("resources", scopesByName, ADMIT_ALL, json, json.length()));
     }
 
     private static String filterWindowed(

@@ -143,6 +143,12 @@ public class JwtGuardHandler implements GuardHandler
         authorize:
         try
         {
+            if (credentials == null)
+            {
+                reason = "Missing credentials.";
+                break authorize;
+            }
+
             signature.setCompactSerialization(credentials);
 
             String kid = signature.getKeyIdHeaderValue();

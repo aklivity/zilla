@@ -668,6 +668,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.completed.preauthorized/client",
+        "${app}/tools.call.elicit.completed.preauthorized/server"})
+    public void shouldCallToolElicitCompletedPreauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.declined/client",
         "${app}/tools.call.elicit.declined/server"})
     public void shouldCallToolElicitDeclined() throws Exception
@@ -986,6 +995,15 @@ public class ApplicationIT
         "${app}/tools.call.toolkit.prefixed/client",
         "${app}/tools.call.toolkit.prefixed/server"})
     public void shouldCallToolWithToolkitPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.toolkit.prefixed.fragmented/client",
+        "${app}/tools.call.toolkit.prefixed.fragmented/server"})
+    public void shouldCallToolWithToolkitPrefixedFragmented() throws Exception
     {
         k3po.finish();
     }

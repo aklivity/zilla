@@ -124,6 +124,26 @@ public class McpHttpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/create.widget/client",
+        "${http}/create.widget/server"})
+    public void shouldCallToolCreateWidgetWithNoPathParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/create.widget.fragmented/client",
+        "${http}/create.widget.fragmented/server"})
+    public void shouldCallToolCreateWidgetFragmentedWithNoPathParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/create.pr.rich/client",
         "${http}/create.pr.rich/server"})
     public void shouldCallToolCreatePrWithStructuredArguments() throws Exception

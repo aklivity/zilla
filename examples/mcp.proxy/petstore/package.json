@@ -1,0 +1,10 @@
+{
+  "name": "petstore",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal mock Petstore REST API, described by the OpenAPI spec used by the mcp_openapi \"petstore\" toolkit",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

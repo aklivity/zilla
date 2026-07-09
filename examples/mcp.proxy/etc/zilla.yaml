@@ -3,6 +3,269 @@ name: example
 stores:
   cache:
     type: memory
+guards:
+  authn_jwt:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      keys:
+        - kty: RSA
+          n: lphdEcMpCplK5UYAhxPnF/kuE8dL9dHznfb8z124/vgI3CGDB9AQCGzcNOYOT4h9q+M9nKidcWnPyyIZ/GrGa7YWPQusckpPbWOaNMxjwRZ799TVHVV2xdJxige5C1lMpunho/vDlnUh1UmTsPXOmdWR3KS/+uFZzVAjNaFphpnl/1nGZAjtje5ynf/UHZ2rZPMUL6gkPqJ3kgWZugaCe0G8QWaETn1sLNInb93g5yVQCmF3KSg+xsWUIG5OYvVrKLvNNXgKOWyFbTR5Ium63kM6Rm2d3YoX5V0e7ucu1Hj52QkF0pCVXwOfqeYwkQ2O3m7HXbDVcMQLVanAmfFj2w==
+          e: AQAB
+          alg: RS256
+          kid: example
+catalogs:
+  github_catalog:
+    type: inline
+    options:
+      subjects:
+        create_pr_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": [ "owner", "repo", "title", "head", "base" ],
+              "properties": {
+                "owner": { "type": "string" },
+                "repo": { "type": "string" },
+                "title": { "type": "string" },
+                "head": { "type": "string" },
+                "base": { "type": "string" },
+                "body": { "type": "string" }
+              }
+            }
+        create_pr_body:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": [ "title", "head", "base" ],
+              "properties": {
+                "title": { "type": "string" },
+                "head": { "type": "string" },
+                "base": { "type": "string" },
+                "body": { "type": "string" }
+              }
+            }
+        create_pr_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "number": { "type": "integer" },
+                "html_url": { "type": "string" },
+                "state": { "type": "string" },
+                "title": { "type": "string" }
+              }
+            }
+        pull_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "number": { "type": "integer" },
+                "html_url": { "type": "string" },
+                "state": { "type": "string" },
+                "title": { "type": "string" }
+              }
+            }
+  petstore_catalog:
+    type: inline
+    options:
+      subjects:
+        create_pet_input:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": [ "name" ],
+              "properties": {
+                "name": { "type": "string" },
+                "tag": { "type": "string" }
+              }
+            }
+        create_pet_output:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "id": { "type": "integer" },
+                "name": { "type": "string" },
+                "tag": { "type": "string" }
+              }
+            }
+        search_pets_input:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "category": { "type": "string" }
+              }
+            }
+        petstore:
+          version: latest
+          schema: |
+            {
+              "openapi": "3.1.0",
+              "info": { "title": "Petstore", "version": "1.0.0" },
+              "servers": [ { "url": "https://api.petstore.example.com" } ],
+              "components": {
+                "securitySchemes": {
+                  "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "jwt" }
+                }
+              },
+              "paths": {
+                "/pets": {
+                  "get": {
+                    "operationId": "list_pets",
+                    "summary": "List pets in the store",
+                    "responses": {
+                      "200": {
+                        "description": "ok",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "integer" },
+                                  "name": { "type": "string" },
+                                  "tag": { "type": "string" }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "post": {
+                    "operationId": "create_pet",
+                    "summary": "Add a new pet to the store",
+                    "security": [ { "bearerAuth": [ "pets:write" ] } ],
+                    "requestBody": {
+                      "required": true,
+                      "content": {
+                        "application/json": {
+                          "schema": {
+                            "type": "object",
+                            "required": [ "name" ],
+                            "properties": {
+                              "name": { "type": "string" },
+                              "tag": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "responses": {
+                      "201": {
+                        "description": "created",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "integer" },
+                                "name": { "type": "string" },
+                                "tag": { "type": "string" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "/pets/featured": {
+                  "get": {
+                    "operationId": "list_featured_pets",
+                    "summary": "List featured pets, hand-picked by the store",
+                    "responses": {
+                      "200": {
+                        "description": "ok",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "integer" },
+                                  "name": { "type": "string" },
+                                  "tag": { "type": "string" }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "/pets/{petId}": {
+                  "get": {
+                    "operationId": "get_pet",
+                    "summary": "Get a pet by identifier",
+                    "parameters": [
+                      { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+                    ],
+                    "responses": {
+                      "200": {
+                        "description": "ok",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "integer" },
+                                "name": { "type": "string" },
+                                "tag": { "type": "string" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "/pets/search": {
+                  "get": {
+                    "operationId": "search_pets",
+                    "summary": "Search pets by tag",
+                    "parameters": [
+                      { "name": "tag", "in": "query", "required": false, "schema": { "type": "string" } }
+                    ],
+                    "responses": {
+                      "200": {
+                        "description": "ok",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "integer" },
+                                  "name": { "type": "string" },
+                                  "tag": { "type": "string" }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
 bindings:
   north_tcp_server:
     type: tcp
@@ -30,6 +293,10 @@ bindings:
   north_mcp_server:
     type: mcp
     kind: server
+    options:
+      authorization:
+        authn_jwt:
+          credentials: "Bearer {credentials}"
     exit: north_mcp_proxy
     telemetry:
       metrics:
@@ -45,6 +312,20 @@ bindings:
       cache:
         store: cache
         ttl: PT5M
+        # warms the cache for every guarded toolkit route below, independent of
+        # any real caller's own token -- tools/list is served from this cache
+        # and filtered per caller by each tool's own security scheme (see
+        # "Toolkit access vs per-tool access" in the README), so hydration
+        # needs a credential broad enough to see everything once, up front,
+        # not to grant any real caller access. Every guarded route below falls
+        # back to this same shared credential for its own hydration south
+        # connection unless it configures its own routes[].with.cache.credentials
+        # override, so one broad credential is enough here. This is the raw
+        # JWT, not a "Bearer "-prefixed header value -- it's handed directly to
+        # guard.reauthorize(), not extracted from a header
+        authorization:
+          authn_jwt:
+            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzNzEyNTMwNCwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSJ9.DEsguNDaHgHgn7MaK8KY1I9dW9SpTc5AUnVTQjY5v-Jmm1IWSpt-xModSTnWqfnlUImYNEbImlyXfSjFXiAd1rBCl-Sw9n6DCdkVPN2VQ1gybGNxVWyp1hlOGzQQSXWEmIOYjlRliRiTpaskNjgoyY7qawncIlIOY8xX0HnP11dONyNxgzSwaPio80e2cNlWjgHTrxSDY4ms5Svv4AInSr8BxSdvl3eOpFVlJ-XhZeOo4STcpaK1FeJgxwkxM6RGUk6ltCOc3V2gdmF6gFE_t41UzzSEvxzPPsW48VmigmCp29vC9Doi6WG_1H2M_CX85sEx7_R12Gh_Pmj53NBNuw"
     routes:
       - exit: south_mcp_client_everything
         when:
@@ -53,6 +334,21 @@ bindings:
         when:
           - toolkit: urlelicit
             tools: ["*"]
+        guarded:
+          authn_jwt:
+            - urlelicit:authorize
+      - exit: south_mcp_http_github
+        when:
+          - toolkit: github
+        guarded:
+          authn_jwt:
+            - github:tools
+      - exit: south_mcp_openapi_petstore
+        when:
+          - toolkit: petstore
+        guarded:
+          authn_jwt:
+            - petstore:tools
   south_mcp_client_everything:
     type: mcp
     kind: client
@@ -64,7 +360,188 @@ bindings:
     kind: client
     options:
       server: http://urlelicit:3003/mcp
+      # forwards this session's own JWT upstream: authn_jwt.credentials(authorization)
+      # returns the original bearer token that was validated for this session, so
+      # urlelicit sees exactly the caller's own token, not a separate service credential
+      authorization:
+        authn_jwt:
+          credentials: "Bearer {credentials}"
     exit: sys:http_client
+  south_mcp_http_github:
+    type: mcp_http
+    kind: proxy
+    options:
+      authorization:
+        authn_jwt:
+          credentials:
+            headers:
+              authorization: "Bearer {credentials}"
+              x-user-identity: "{identity}"
+      tools:
+        create_pr:
+          description: Create a pull request to merge one branch into another.
+          summary: "Created pull request #${result.number}: ${result.title}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: create_pr_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: create_pr_result
+                    version: latest
+      resources:
+        pull_by_number:
+          # {owner}/{repo}/{number} makes this a resource TEMPLATE, listed under
+          # resources/templates/list instead of resources/list -- purely from
+          # the presence of {...} in the uri, no separate flag to set
+          uri: "pr://{owner}/{repo}/{number}"
+          description: A pull request by owner, repo, and number.
+          mimeType: application/json
+          schemas:
+            output:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: pull_result
+                    version: latest
+    routes:
+      # base route with no `when` applies its guard to every tool in this
+      # binding, layered underneath any tool-specific guard below
+      - guarded:
+          authn_jwt: []
+      - when:
+          - tool: create_pr
+        exit: south_http_client_ghapi
+        guarded:
+          authn_jwt:
+            - github:pr:write
+        with:
+          headers:
+            ":method": POST
+            ":scheme": http
+            ":authority": ghapi:4001
+            ":path": /repos/${args.owner}/${args.repo}/pulls
+          # owner/repo are already consumed above by the :path template, so
+          # the body schema below omits them -- everything else in the
+          # tools/call arguments still forwards as the request body
+          body:
+            model: json
+            catalog:
+              github_catalog:
+                - subject: create_pr_body
+                  version: latest
+      # read-only, so (unlike create_pr) no scope beyond the base route's
+      # authn_jwt is required -- captured path params surface as ${params.x},
+      # never ${args.x} (that accessor is tool-call-only)
+      - when:
+          - resource: pull_by_number
+        exit: south_http_client_ghapi
+        with:
+          headers:
+            ":method": GET
+            ":scheme": http
+            ":authority": ghapi:4001
+            ":path": /repos/${params.owner}/${params.repo}/pulls/${params.number}
+  south_http_client_ghapi:
+    type: http
+    kind: client
+    exit: south_tcp_client_ghapi
+  south_tcp_client_ghapi:
+    type: tcp
+    kind: client
+    options:
+      host: ghapi
+      port: 4001
+  south_mcp_openapi_petstore:
+    type: mcp_openapi
+    kind: client
+    options:
+      specs:
+        petstore:
+          catalog:
+            petstore_catalog:
+              subject: petstore
+              version: latest
+          # the OpenAPI document declares the public https://api.petstore.example.com
+          # server; this overrides the actual outbound target to the local mock
+          server: http://petstore:4002
+          security:
+            bearerAuth: authn_jwt
+      tools:
+        list_pets:
+          description: List pets in the store.
+        search_pets:
+          description: Search pets by category.
+          # the OpenAPI query param is named "tag"; this schema renames the
+          # argument callers see to "category" -- with.params on the route
+          # below reconciles the two
+          input:
+            model: json
+            catalog:
+              petstore_catalog:
+                - subject: search_pets_input
+                  version: latest
+        create_pet:
+          description: Add a new pet to the store.
+          summary: "Added pet: ${result.name}"
+          # explicit override of the auto-derived input/output schema,
+          # demonstrating the same schema-mapping mechanism as mcp_http,
+          # this time optional rather than required
+          input:
+            model: json
+            catalog:
+              petstore_catalog:
+                - subject: create_pet_input
+                  version: latest
+          output:
+            model: json
+            catalog:
+              petstore_catalog:
+                - subject: create_pet_output
+                  version: latest
+      resources:
+        featured_pets:
+          description: Featured pets, hand-picked by the store.
+        pet_by_id:
+          description: A single pet by identifier.
+    routes:
+      - when:
+          - tool: list_pets
+        with:
+          spec: petstore
+          operation: list_pets
+      - when:
+          - tool: create_pet
+        with:
+          spec: petstore
+          operation: create_pet
+      # the OpenAPI operation's query param is named "tag"; with.params renames
+      # the tool argument callers see to "category" instead of the default args.tag
+      - when:
+          - tool: search_pets
+        with:
+          spec: petstore
+          operation: search_pets
+          params:
+            tag: "${args.category}"
+      # GET with no path params -> a static resource, listed once with a fixed URI
+      - when:
+          - resource: featured_pets
+        with:
+          spec: petstore
+          operation: list_featured_pets
+      # GET with a path param -> a dynamic resource template ("/pets/{petId}"),
+      # listed under resources/templates and read with a concrete petId
+      - when:
+          - resource: pet_by_id
+        with:
+          spec: petstore
+          operation: get_pet
 telemetry:
   metrics:
     - mcp.initialize

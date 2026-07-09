@@ -6,6 +6,10 @@
 // `notifications/elicitation/complete`. Used by .github/test.sh to assert the
 // gateway relays both directions; built on the published SDK already installed
 // for the url-elicit server.
+//
+// The urlelicit toolkit route is guarded (urlelicit:authorize), so a JWT with
+// that scope must be supplied as JWT_TOKEN -- an anonymous request never
+// reaches urlelicit__authorize at all.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -17,6 +21,9 @@ import {
 const MCP_URL = process.env.MCP_URL ?? "http://localhost:7114/mcp";
 const TOOL = process.env.TOOL ?? "urlelicit__authorize";
 const TIMEOUT_MS = Number(process.env.TIMEOUT_MS ?? 15000);
+const JWT_TOKEN = process.env.JWT_TOKEN;
+
+const headers = JWT_TOKEN ? { authorization: `Bearer ${JWT_TOKEN}` } : {};
 
 const log = (...args) => console.error("[client]", ...args);
 
@@ -56,7 +63,7 @@ client.setNotificationHandler(ElicitationCompleteNotificationSchema, (notificati
 
 const main = async () =>
 {
-    const transport = new StreamableHTTPClientTransport(new URL(MCP_URL));
+    const transport = new StreamableHTTPClientTransport(new URL(MCP_URL), { requestInit: { headers } });
     await client.connect(transport);
     log(`connected, protocolVersion=${transport.protocolVersion}`);
 
