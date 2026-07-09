@@ -48,6 +48,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.McpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.transform.McpSchemeInjector;
@@ -55,6 +56,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizationError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ChallengeFW;
@@ -237,6 +239,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final Map<String, McpStream> sessions = new Object2ObjectHashMap<>();
     private final Int2ObjectHashMap<McpSessionIdResolver> resolvers;
     private final Int2ObjectHashMap<McpRequestStreamFactory> requestFactories;
+    private final McpEventContext events;
 
     public McpClientFactory(
         McpConfiguration config,
@@ -287,6 +290,7 @@ public final class McpClientFactory implements McpStreamFactory
         requestFactories.put(KIND_RESOURCES_READ, McpResourcesReadStream::new);
         requestFactories.put(KIND_RESOURCES_TEMPLATES_LIST, McpResourcesTemplatesListStream::new);
         this.requestFactories = requestFactories;
+        this.events = new McpEventContext(context);
     }
 
     private McpLifecycleStream lookupSession(
@@ -2977,6 +2981,7 @@ public final class McpClientFactory implements McpStreamFactory
                 decoder = decodeRequestEnd;
                 emitElicitComplete(traceId, authorization);
                 doAppAbort(traceId, authorization);
+                events.elicitationTimeout(traceId, routedId, session.transportSessionId(), elicitElicitationId);
                 return;
             }
 
@@ -3764,6 +3769,8 @@ public final class McpClientFactory implements McpStreamFactory
                     .build();
                 mcp.doAppReset(traceId, authorization, mcpResetEx);
                 doNetReset(traceId, authorization);
+                events.authorizationFailed(traceId, mcp.routedId, realm, scopes, resourceMetadata,
+                    McpAuthorizationError.valueOf(error.name()));
             }
             else
             {
