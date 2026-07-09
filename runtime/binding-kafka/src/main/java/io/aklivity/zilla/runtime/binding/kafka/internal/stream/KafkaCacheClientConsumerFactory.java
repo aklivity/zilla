@@ -152,7 +152,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         MessageConsumer newStream = null;
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
-        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topic, groupId) : null;
+        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topic) : null;
 
         if (resolved != null)
         {

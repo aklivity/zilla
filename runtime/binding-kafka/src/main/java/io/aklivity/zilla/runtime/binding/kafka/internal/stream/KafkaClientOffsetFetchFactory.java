@@ -202,7 +202,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
         final KafkaRouteConfig resolved = binding != null ?
-            binding.resolve(authorization, null, groupId) : null;
+            binding.resolve(authorization, null) : null;
 
         if (resolved != null)
         {
