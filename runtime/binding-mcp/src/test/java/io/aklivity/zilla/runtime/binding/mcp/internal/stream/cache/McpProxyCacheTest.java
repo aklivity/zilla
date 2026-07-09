@@ -194,7 +194,7 @@ public class McpProxyCacheTest
             .store("memory0")
             .tools()
                 .search()
-                    .tool("zilla__search_tools")
+                    .toolkit("zilla")
                     .fields(of("name", "description"))
                     .index(new McpKeywordToolSearchIndexConfig())
                     .build()
@@ -220,5 +220,56 @@ public class McpProxyCacheTest
             equalTo("{\"name\": \"get_weather\",\"description\": \"Get current weather\"}"));
         assertThat(new String(bytes, delete.offset(), delete.length(), UTF_8),
             equalTo("{\"name\": \"github__delete_repo\",\"description\": \"Delete a repository\"}"));
+
+        assertThat(new String(bytes, weather.nameOffset(), weather.nameLength(), UTF_8), equalTo("get_weather"));
+        assertThat(weather.hasDescription(), equalTo(true));
+        assertThat(new String(bytes, weather.descriptionOffset(), weather.descriptionLength(), UTF_8),
+            equalTo("Get current weather"));
+
+        assertThat(new String(bytes, delete.nameOffset(), delete.nameLength(), UTF_8), equalTo("github__delete_repo"));
+        assertThat(delete.hasDescription(), equalTo(true));
+        assertThat(new String(bytes, delete.descriptionOffset(), delete.descriptionLength(), UTF_8),
+            equalTo("Delete a repository"));
+    }
+
+    @Test
+    public void shouldIndexToolByteRangeWithoutDescription()
+    {
+        EngineContext context = mock(EngineContext.class);
+        when(context.supplyStore(anyLong())).thenReturn(mock(StoreHandler.class));
+        when(context.supplyGuard(anyLong())).thenReturn(guard);
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp")
+            .kind(KindConfig.PROXY)
+            .build();
+        binding.id = 1L;
+        binding.resolveId = name -> 1L;
+
+        McpCacheConfig cacheConfig = McpCacheConfig.builder()
+            .store("memory0")
+            .tools()
+                .search()
+                    .toolkit("zilla")
+                    .fields(of("name", "description"))
+                    .index(new McpKeywordToolSearchIndexConfig())
+                    .build()
+                .build()
+            .build();
+
+        McpProxyCache searchCache = new McpProxyCache(binding, new McpConfiguration(), context, cacheConfig);
+        McpListCache tools = searchCache.cacheOf(KIND_TOOLS_LIST);
+
+        String value = """
+            {"tools":[{"name": "no_description_tool"}]}""";
+
+        tools.put(value, completion -> {});
+
+        Map<CharSequence, McpToolByteRange> ranges = tools.toolRangesByName();
+        McpToolByteRange range = ranges.get("no_description_tool");
+
+        assertThat(range.hasDescription(), equalTo(false));
     }
 }

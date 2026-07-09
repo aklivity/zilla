@@ -35,5 +35,5 @@ bindings:
             match:
               - github__list_repos
           search:
-            tool: zilla__search_tools
+            toolkit: zilla
     exit: app1

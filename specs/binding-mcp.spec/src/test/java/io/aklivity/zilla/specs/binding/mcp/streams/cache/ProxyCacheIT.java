@@ -110,9 +110,9 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.serve.tools.search/client",
-        "${app}/cache.serve.tools.search/server" })
-    public void shouldServeToolsSearch() throws Exception
+        "${app}/cache.serve.search.tools/client",
+        "${app}/cache.serve.search.tools/server" })
+    public void shouldServeSearchTools() throws Exception
     {
         k3po.finish();
     }
@@ -245,9 +245,9 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.serve.tools.search.eager.cold/client",
-        "${app}/cache.serve.tools.search.eager.cold/server" })
-    public void shouldServeToolsSearchEagerCold() throws Exception
+        "${app}/cache.serve.search.tools.eager.cold/client",
+        "${app}/cache.serve.search.tools.eager.cold/server" })
+    public void shouldServeSearchToolsEagerCold() throws Exception
     {
         k3po.finish();
     }
@@ -272,18 +272,18 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.serve.tools.search.10k/client",
-        "${app}/cache.serve.tools.search.10k/server" })
-    public void shouldServeToolsSearch10k() throws Exception
+        "${app}/cache.serve.search.tools.10k/client",
+        "${app}/cache.serve.search.tools.10k/server" })
+    public void shouldServeSearchTools10k() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/cache.serve.tools.search.100k/client",
-        "${app}/cache.serve.tools.search.100k/server" })
-    public void shouldServeToolsSearch100k() throws Exception
+        "${app}/cache.serve.search.tools.100k/client",
+        "${app}/cache.serve.search.tools.100k/server" })
+    public void shouldServeSearchTools100k() throws Exception
     {
         k3po.finish();
     }

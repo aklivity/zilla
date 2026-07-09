@@ -14,8 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.search;
 
+/**
+ * The whole-object {@code [offset, length)} range for one cached tool entry, plus the raw string-token
+ * byte ranges of its {@code name} and (when present) {@code description} values -- the exact
+ * already-escaped bytes between the quotes, as they appear in the scanned source, with no re-escaping
+ * required to reuse them. {@code descriptionOffset} is {@code -1} when the tool has no description.
+ */
 public record McpToolByteRange(
     int offset,
-    int length)
+    int length,
+    int nameOffset,
+    int nameLength,
+    int descriptionOffset,
+    int descriptionLength)
 {
+    public boolean hasDescription()
+    {
+        return descriptionOffset >= 0;
+    }
 }

@@ -22,20 +22,20 @@ import java.util.function.Function;
 
 public final class McpCacheToolsSearchConfig
 {
-    public final String tool;
+    public final String toolkit;
     public final int limit;
     public final List<String> fields;
     public final Map<String, Double> weights;
     public final List<McpToolSearchIndexConfig> indexes;
 
     McpCacheToolsSearchConfig(
-        String tool,
+        String toolkit,
         int limit,
         List<String> fields,
         Map<String, Double> weights,
         List<McpToolSearchIndexConfig> indexes)
     {
-        this.tool = tool;
+        this.toolkit = toolkit;
         this.limit = limit;
         this.fields = fields;
         this.weights = weights;

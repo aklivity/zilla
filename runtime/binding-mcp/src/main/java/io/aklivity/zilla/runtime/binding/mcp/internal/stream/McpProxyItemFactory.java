@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpJsonStringEscaper;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolCallScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolNames;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleClient;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpRouteRequest;
@@ -67,8 +68,8 @@ abstract class McpProxyItemFactory implements BindingHandler
     private static final int ERROR_CODE_INVALID_PARAMS = -32602;
     private static final String ERROR_MESSAGE_INVALID_PARAMS = "Invalid params";
 
-    // literal byte constants the search response is assembled from -- the matched tools' own JSON
-    // bytes are copied verbatim out of the cache in between, never re-serialized
+    // literal byte constants the search response is assembled from -- each match's raw name/description
+    // token bytes are copied verbatim out of the cache in between, never re-serialized or re-escaped
     private static final byte[] SEARCH_RESPONSE_PREFIX =
         "{\"content\":[{\"type\":\"text\",\"text\":\"".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] SEARCH_RESPONSE_MIDDLE =
@@ -78,6 +79,9 @@ abstract class McpProxyItemFactory implements BindingHandler
     private static final byte[] SEARCH_TOOLS_OPEN = "{\"tools\":[".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] SEARCH_TOOLS_CLOSE = "]}".getBytes(StandardCharsets.US_ASCII);
     private static final byte SEARCH_TOOLS_SEPARATOR = ',';
+    private static final byte[] DIGEST_NAME_OPEN = "{\"name\":\"".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] DIGEST_DESCRIPTION_KEY = "\",\"description\":\"".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] DIGEST_CLOSE = "\"}".getBytes(StandardCharsets.US_ASCII);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -216,7 +220,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
         if (kind == McpBeginExFW.KIND_TOOLS_CALL &&
             search != null &&
-            search.tool.equals(beginEx.toolsCall().name().asString()))
+            McpToolNames.effectiveName(search.toolkit, McpToolNames.SEARCH_TOOLS).equals(beginEx.toolsCall().name().asString()))
         {
             final McpProxyCache.McpListCache listCache = binding.cache.cacheOf(McpBeginExFW.KIND_TOOLS_LIST);
             if (listCache != null && listCache.searchIndex() != null)
@@ -929,9 +933,10 @@ abstract class McpProxyItemFactory implements BindingHandler
         // MCP's CallToolResult.content only accepts text/image/audio/resource_link/resource blocks --
         // there is no "tool reference" content type, so the matches are carried in structuredContent
         // instead, with a serialized-JSON text block alongside for clients that predate
-        // structuredContent (the pattern the spec itself recommends). Each matched tool's own JSON
-        // object is already valid, verbatim bytes sitting in the cache -- both copies below are
-        // straight System.arraycopy out of cache.toolsBytes(), never a DOM rebuild.
+        // structuredContent (the pattern the spec itself recommends). search_tools is a cheap,
+        // schema-free digest by design -- only each matched tool's name and description are copied,
+        // as raw verbatim bytes straight out of cache.toolsBytes(), never a DOM rebuild; the full
+        // definition (schema included) is resolved separately via describe_tool.
         private byte[] buildResponse(
             String query,
             int limit)
@@ -947,9 +952,10 @@ abstract class McpProxyItemFactory implements BindingHandler
             return Arrays.copyOf(searchResponseArray, responseLength);
         }
 
-        // assembles {"tools":[<match>,<match>,...]} into searchStructuredArray, growing it to a safe
-        // upper bound first -- the copied tool bytes are a subset of toolsBytes, so toolsBytes.length
-        // plus one separator per candidate match is always enough, regardless of which are admitted
+        // assembles {"tools":[<digest>,<digest>,...]} into searchStructuredArray, growing it to a safe
+        // upper bound first -- each digest's copied name/description bytes are a subset of toolsBytes,
+        // so toolsBytes.length plus the fixed per-match digest scaffolding is always enough, regardless
+        // of which candidates are admitted
         private int writeStructuredContent(
             List<McpToolSearchMatch> matches,
             Map<CharSequence, List<String>> scopesByName,
@@ -957,7 +963,10 @@ abstract class McpProxyItemFactory implements BindingHandler
             byte[] toolsBytes,
             int limit)
         {
-            final int capacity = toolsBytes.length + SEARCH_TOOLS_OPEN.length + SEARCH_TOOLS_CLOSE.length + matches.size();
+            final int perMatchOverhead =
+                DIGEST_NAME_OPEN.length + DIGEST_DESCRIPTION_KEY.length + DIGEST_CLOSE.length + 1;
+            final int capacity = toolsBytes.length + SEARCH_TOOLS_OPEN.length + SEARCH_TOOLS_CLOSE.length +
+                matches.size() * perMatchOverhead;
             if (searchStructuredArray.length < capacity)
             {
                 searchStructuredArray = new byte[capacity];
@@ -982,8 +991,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     {
                         searchStructuredArray[produced++] = SEARCH_TOOLS_SEPARATOR;
                     }
-                    System.arraycopy(toolsBytes, range.offset(), searchStructuredArray, produced, range.length());
-                    produced += range.length();
+                    produced += writeDigest(range, toolsBytes, produced);
                     admitted++;
                 }
             }
@@ -992,6 +1000,38 @@ abstract class McpProxyItemFactory implements BindingHandler
             produced += SEARCH_TOOLS_CLOSE.length;
 
             return produced;
+        }
+
+        // {"name":"<raw name bytes>"[,"description":"<raw description bytes>"]} -- literal byte
+        // constants plus the two raw verbatim splices; no escaping needed since the source bytes are
+        // already valid escaped JSON string content
+        private int writeDigest(
+            McpToolByteRange range,
+            byte[] toolsBytes,
+            int offset)
+        {
+            int produced = offset;
+
+            System.arraycopy(DIGEST_NAME_OPEN, 0, searchStructuredArray, produced, DIGEST_NAME_OPEN.length);
+            produced += DIGEST_NAME_OPEN.length;
+
+            System.arraycopy(toolsBytes, range.nameOffset(), searchStructuredArray, produced, range.nameLength());
+            produced += range.nameLength();
+
+            if (range.hasDescription())
+            {
+                System.arraycopy(DIGEST_DESCRIPTION_KEY, 0, searchStructuredArray, produced, DIGEST_DESCRIPTION_KEY.length);
+                produced += DIGEST_DESCRIPTION_KEY.length;
+
+                System.arraycopy(toolsBytes, range.descriptionOffset(), searchStructuredArray, produced,
+                    range.descriptionLength());
+                produced += range.descriptionLength();
+            }
+
+            System.arraycopy(DIGEST_CLOSE, 0, searchStructuredArray, produced, DIGEST_CLOSE.length);
+            produced += DIGEST_CLOSE.length;
+
+            return produced - offset;
         }
 
         // assembles the full envelope into searchResponseArray: the literal prefix, an escaped copy of

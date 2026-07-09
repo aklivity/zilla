@@ -31,5 +31,5 @@ bindings:
         store: memory0
         tools:
           search:
-            tool: zilla__search_tools
+            toolkit: zilla
     exit: app1

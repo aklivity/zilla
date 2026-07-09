@@ -46,7 +46,7 @@ public class McpToolSearchIndexFactoryTest
     public void shouldReturnNullWhenNoIndexesConfigured()
     {
         McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
-            .tool("zilla__search_tools")
+            .toolkit("zilla")
             .fields(List.of("name", "description"))
             .build();
 
@@ -57,7 +57,7 @@ public class McpToolSearchIndexFactoryTest
     public void shouldCreateWorkingIndexForSingleConfiguredType()
     {
         McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
-            .tool("zilla__search_tools")
+            .toolkit("zilla")
             .fields(List.of("name", "description"))
             .index(new McpKeywordToolSearchIndexConfig())
             .build();
@@ -77,7 +77,7 @@ public class McpToolSearchIndexFactoryTest
     public void shouldComposeMultipleConfiguredIndexes()
     {
         McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
-            .tool("zilla__search_tools")
+            .toolkit("zilla")
             .fields(List.of("name", "description"))
             .index(new McpKeywordToolSearchIndexConfig())
             .index(new McpKeywordToolSearchIndexConfig())

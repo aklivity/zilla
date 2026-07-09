@@ -60,9 +60,9 @@ write '{'
 
 write close
 
-read '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\": \\"weather_forecast_tool\\",\\"description\\": \\"weather forecast tool '
+read '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\":\\"weather_forecast_tool\\",\\"description\\":\\"weather forecast tool '
 read ${core:randomBase64(10000)}
-read '\\"}]}"}],"structuredContent":{"tools":[{"name": "weather_forecast_tool","description": "weather forecast tool '
+read '\\"}]}"}],"structuredContent":{"tools":[{"name":"weather_forecast_tool","description":"weather forecast tool '
 read ${core:randomBase64(10000)}
 read '"}]},"isError":false}'
 read closed

@@ -219,9 +219,9 @@ public class McpProxyCacheIT
     @Test
     @Configuration("proxy.cache.tools.search.serve.yaml")
     @Specification({
-        "${app}/cache.serve.tools.search/client" })
+        "${app}/cache.serve.search.tools/client" })
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
-    public void shouldServeToolsSearch() throws Exception
+    public void shouldServeSearchTools() throws Exception
     {
         k3po.finish();
     }
@@ -269,9 +269,9 @@ public class McpProxyCacheIT
     @Test
     @Configuration("proxy.cache.tools.eager.serve.explicit.search.yaml")
     @Specification({
-        "${app}/cache.serve.tools.search.eager.cold/client" })
+        "${app}/cache.serve.search.tools.eager.cold/client" })
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
-    public void shouldServeToolsSearchEagerCold() throws Exception
+    public void shouldServeSearchToolsEagerCold() throws Exception
     {
         k3po.finish();
     }
@@ -542,10 +542,10 @@ public class McpProxyCacheIT
     @Test
     @Configuration("proxy.cache.seeded.tools.search.10k.yaml")
     @Specification({
-        "${app}/cache.serve.tools.search.10k/client" })
+        "${app}/cache.serve.search.tools.10k/client" })
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
-    public void shouldServeToolsSearch10k() throws Exception
+    public void shouldServeSearchTools10k() throws Exception
     {
         k3po.finish();
     }
@@ -553,10 +553,10 @@ public class McpProxyCacheIT
     @Test
     @Configuration("proxy.cache.seeded.tools.search.100k.yaml")
     @Specification({
-        "${app}/cache.serve.tools.search.100k/client" })
+        "${app}/cache.serve.search.tools.100k/client" })
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
-    public void shouldServeToolsSearch100k() throws Exception
+    public void shouldServeSearchTools100k() throws Exception
     {
         k3po.finish();
     }

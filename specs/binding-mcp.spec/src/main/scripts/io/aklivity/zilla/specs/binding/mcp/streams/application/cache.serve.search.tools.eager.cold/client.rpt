@@ -13,44 +13,44 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("agent-1")
                                .build()
                            .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("agent-1")
-                              .name("zilla__search_tools")
-                              .contentLength(62)
-                              .build()
-                          .build()}
 
 connected
 
-read  '{'
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("agent-1")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsCall()
+                               .sessionId("agent-1")
+                               .name("zilla__search_tools")
+                               .contentLength(62)
+                               .build()
+                           .build()}
+
+connected
+
+write '{'
         '"name":"zilla__search_tools",'
         '"arguments":'
         '{'
@@ -58,11 +58,7 @@ read  '{'
         '}'
       '}'
 
-write flush
-
-write '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\": \\"github__delete_repo\\",\\"description\\": \\"Delete a repository\\"}]}"}],"structuredContent":{"tools":[{"name": "github__delete_repo","description": "Delete a repository"}]},"isError":false}'
-write flush
-
 write close
 
+read  '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\":\\"github__delete_repo\\",\\"description\\":\\"Delete a repository\\"}]}"}],"structuredContent":{"tools":[{"name":"github__delete_repo","description":"Delete a repository"}]},"isError":false}'
 read closed

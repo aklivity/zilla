@@ -44,7 +44,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("agent-1")
                               .name("zilla__search_tools")
-                              .contentLength(63)
+                              .contentLength(62)
                               .build()
                           .build()}
 
@@ -54,13 +54,13 @@ read  '{'
         '"name":"zilla__search_tools",'
         '"arguments":'
         '{'
-          '"query": "weather"'
+          '"query": "delete"'
         '}'
       '}'
 
 write flush
 
-write '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\": \\"get_weather\\",\\"title\\": \\"Weather Information Provider\\",\\"description\\": \\"Get current weather information for a location\\",\\"inputSchema\\": {\\"type\\": \\"object\\",\\"properties\\": {\\"location\\": {\\"type\\": \\"string\\",\\"description\\": \\"City name or zip code\\"}},\\"required\\": [\\"location\\"]},\\"icons\\": [{\\"src\\": \\"https://example.com/weather-icon.png\\",\\"mimeType\\": \\"image/png\\",\\"sizes\\": [\\"48x48\\"]}],\\"execution\\": {\\"taskSupport\\": \\"optional\\"}}]}"}],"structuredContent":{"tools":[{"name": "get_weather","title": "Weather Information Provider","description": "Get current weather information for a location","inputSchema": {"type": "object","properties": {"location": {"type": "string","description": "City name or zip code"}},"required": ["location"]},"icons": [{"src": "https://example.com/weather-icon.png","mimeType": "image/png","sizes": ["48x48"]}],"execution": {"taskSupport": "optional"}}]},"isError":false}'
+write '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\":\\"github__delete_repo\\",\\"description\\":\\"Delete a repository\\"}]}"}],"structuredContent":{"tools":[{"name":"github__delete_repo","description":"Delete a repository"}]},"isError":false}'
 write flush
 
 write close

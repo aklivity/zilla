@@ -33,6 +33,8 @@ public final class McpToolByteRangeScanner
 {
     private static final String TOOLS_NAME = "tools";
     private static final String NAME_NAME = "name";
+    private static final String DESCRIPTION_NAME = "description";
+    private static final byte QUOTE = '"';
 
     private McpToolByteRangeScanner()
     {
@@ -49,7 +51,7 @@ public final class McpToolByteRangeScanner
             parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
             try
             {
-                scanToolsList(parser, ranges);
+                scanToolsList(parser, bytes, ranges);
             }
             catch (Exception ex)
             {
@@ -62,6 +64,7 @@ public final class McpToolByteRangeScanner
 
     private static void scanToolsList(
         JsonParserEx parser,
+        byte[] bytes,
         Map<CharSequence, McpToolByteRange> ranges)
     {
         if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
@@ -83,7 +86,7 @@ public final class McpToolByteRangeScanner
                 case KEY_NAME:
                     if (depth == 1 && TOOLS_NAME.contentEquals(parser.getStringView()))
                     {
-                        scanTools(parser, ranges);
+                        scanTools(parser, bytes, ranges);
                     }
                     break;
                 default:
@@ -95,6 +98,7 @@ public final class McpToolByteRangeScanner
 
     private static void scanTools(
         JsonParserEx parser,
+        byte[] bytes,
         Map<CharSequence, McpToolByteRange> ranges)
     {
         if (parser.hasNext() && parser.next() == JsonParser.Event.START_ARRAY)
@@ -109,7 +113,7 @@ public final class McpToolByteRangeScanner
                     // the tokenizer's stream offset already includes the just-consumed '{', so the
                     // object's own start is one byte earlier
                     final int start = (int) parser.getLocation().getStreamOffset() - 1;
-                    scanTool(parser, ranges, start);
+                    scanTool(parser, bytes, ranges, start);
                     break;
                 case END_ARRAY:
                     items = false;
@@ -123,10 +127,15 @@ public final class McpToolByteRangeScanner
 
     private static void scanTool(
         JsonParserEx parser,
+        byte[] bytes,
         Map<CharSequence, McpToolByteRange> ranges,
         int start)
     {
         String name = null;
+        int nameOffset = -1;
+        int nameLength = 0;
+        int descriptionOffset = -1;
+        int descriptionLength = 0;
         int depth = 1;
         while (depth > 0 && parser.hasNext())
         {
@@ -144,8 +153,26 @@ public final class McpToolByteRangeScanner
             case KEY_NAME:
                 if (depth == 1 && NAME_NAME.contentEquals(parser.getStringView()))
                 {
-                    parser.next();
-                    name = parser.getString();
+                    final int valueStart = (int) parser.getLocation().getStreamOffset();
+                    if (parser.hasNext() && parser.next() == JsonParser.Event.VALUE_STRING)
+                    {
+                        name = parser.getString();
+                        final int valueEnd = (int) parser.getLocation().getStreamOffset();
+                        final int quoteAt = indexOfQuote(bytes, valueStart, valueEnd);
+                        nameOffset = quoteAt + 1;
+                        nameLength = valueEnd - 1 - nameOffset;
+                    }
+                }
+                else if (depth == 1 && DESCRIPTION_NAME.contentEquals(parser.getStringView()))
+                {
+                    final int valueStart = (int) parser.getLocation().getStreamOffset();
+                    if (parser.hasNext() && parser.next() == JsonParser.Event.VALUE_STRING)
+                    {
+                        final int valueEnd = (int) parser.getLocation().getStreamOffset();
+                        final int quoteAt = indexOfQuote(bytes, valueStart, valueEnd);
+                        descriptionOffset = quoteAt + 1;
+                        descriptionLength = valueEnd - 1 - descriptionOffset;
+                    }
                 }
                 break;
             default:
@@ -156,7 +183,21 @@ public final class McpToolByteRangeScanner
         if (name != null)
         {
             final int end = (int) parser.getLocation().getStreamOffset();
-            ranges.put(name, new McpToolByteRange(start, end - start));
+            ranges.put(name, new McpToolByteRange(start, end - start,
+                nameOffset, nameLength, descriptionOffset, descriptionLength));
         }
+    }
+
+    private static int indexOfQuote(
+        byte[] bytes,
+        int from,
+        int to)
+    {
+        int index = from;
+        while (index < to && bytes[index] != QUOTE)
+        {
+            index++;
+        }
+        return index;
     }
 }
