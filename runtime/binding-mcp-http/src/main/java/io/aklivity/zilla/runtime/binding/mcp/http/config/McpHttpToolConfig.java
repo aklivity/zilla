@@ -23,6 +23,7 @@ public final class McpHttpToolConfig
     public final String description;
     public final ModelConfig input;
     public final ModelConfig output;
+    public final boolean outputWrapped;
 
     public McpHttpToolConfig(
         String name,
@@ -31,10 +32,25 @@ public final class McpHttpToolConfig
         ModelConfig input,
         ModelConfig output)
     {
+        this(name, summary, description, input, output, false);
+    }
+
+    // outputWrapped is true when output describes {"result": <value>} rather than <value> directly --
+    // McpHttpResultWrap wraps the real response body to match before it is validated/projected against
+    // output, so structuredContent stays consistent with the outputSchema advertised in tools/list
+    public McpHttpToolConfig(
+        String name,
+        String summary,
+        String description,
+        ModelConfig input,
+        ModelConfig output,
+        boolean outputWrapped)
+    {
         this.name = name;
         this.summary = summary;
         this.description = description;
         this.input = input;
         this.output = output;
+        this.outputWrapped = outputWrapped;
     }
 }

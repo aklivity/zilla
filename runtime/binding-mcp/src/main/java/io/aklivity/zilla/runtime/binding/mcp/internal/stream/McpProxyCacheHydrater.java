@@ -35,6 +35,7 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
@@ -64,6 +65,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 public final class McpProxyCacheHydrater
 {
+    private static final String NAME = "name";
     private static final String SECURITY_SCHEMES = "securitySchemes";
     private static final String TYPE = "type";
     private static final String SCOPES = "scopes";
@@ -369,9 +371,7 @@ public final class McpProxyCacheHydrater
                 for (McpRoutePrefix route : routes)
                 {
                     final long authorization = binding.routeCacheAuthorization(traceId, route.resolvedId());
-                    final List<String> routeScopes = kind == KIND_TOOLS_LIST
-                        ? flattenRoles(route.route().roles)
-                        : List.of();
+                    final List<String> routeScopes = flattenRoles(route.route().roles);
                     final McpListRouteSink sink = new McpListRouteSink(this, route.prefix().asString(), routeScopes);
                     sinks.add(sink);
                     sink.server = listFactory.newHydrationList(
@@ -535,29 +535,31 @@ public final class McpProxyCacheHydrater
             final int open = envelope.indexOf('[');
             final int close = envelope.lastIndexOf(']');
             final String items = open >= 0 && close > open ? envelope.substring(open + 1, close) : "";
-            return routeScopes.isEmpty() || items.isEmpty() ? items : injectRouteScopes(items, routeScopes);
+            return items.isEmpty() ? items : normalizeItems(items, routeScopes);
         }
     }
 
-    // merges a toolkit-guarded route's own required scopes into each cached tool's securitySchemes,
-    // so a caller admitted only by the route's own scope still sees tools annotated with everything
-    // each tool additionally requires -- McpScopeFilter then enforces the union unmodified
-    private static String injectRouteScopes(
+    // McpScopeFilter's streaming admission check requires each item's "name" key to arrive first
+    // (see its class-level contract); south bindings are free to order their own fields however they
+    // like -- e.g. many resources put "uri" before "name" -- so every cached item is reordered here,
+    // regardless of whether this route also has its own scopes to merge in via injectToolScopes
+    private static String normalizeItems(
         String items,
         List<String> routeScopes)
     {
         String result;
         try (JsonReader reader = Json.createReader(new StringReader("[" + items + "]")))
         {
-            final JsonArrayBuilder toolsBuilder = Json.createArrayBuilder();
-            for (JsonValue tool : reader.readArray())
+            final JsonArrayBuilder itemsBuilder = Json.createArrayBuilder();
+            for (JsonValue item : reader.readArray())
             {
-                toolsBuilder.add(injectToolScopes((JsonObject) tool, routeScopes));
+                final JsonObject reordered = nameFirst((JsonObject) item);
+                itemsBuilder.add(routeScopes.isEmpty() ? reordered : injectToolScopes(reordered, routeScopes));
             }
             final StringWriter writer = new StringWriter();
             try (JsonWriter jsonWriter = Json.createWriter(writer))
             {
-                jsonWriter.writeArray(toolsBuilder.build());
+                jsonWriter.writeArray(itemsBuilder.build());
             }
             final String written = writer.toString();
             result = written.substring(1, written.length() - 1);
@@ -567,6 +569,25 @@ public final class McpProxyCacheHydrater
             result = items;
         }
         return result;
+    }
+
+    private static JsonObject nameFirst(
+        JsonObject item)
+    {
+        final JsonValue name = item.get(NAME);
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        if (name != null)
+        {
+            builder.add(NAME, name);
+        }
+        for (Map.Entry<String, JsonValue> entry : item.entrySet())
+        {
+            if (!NAME.equals(entry.getKey()))
+            {
+                builder.add(entry.getKey(), entry.getValue());
+            }
+        }
+        return builder.build();
     }
 
     private static JsonObject injectToolScopes(

@@ -2233,6 +2233,9 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert stream == null;
             stream = new McpRequestStream(session, this);
+            stream.schemePipeline = JsonEx.stream(JsonEx.createParser())
+                .transform(new McpSchemeExcluder("prompts"))
+                .into(JsonEx.createGenerator());
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -2271,6 +2274,9 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert stream == null;
             stream = new McpRequestStream(session, this);
+            stream.schemePipeline = JsonEx.stream(JsonEx.createParser())
+                .transform(new McpSchemeExcluder("resources"))
+                .into(JsonEx.createGenerator());
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -2288,6 +2294,9 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert stream == null;
             stream = new McpRequestStream(session, this);
+            stream.schemePipeline = JsonEx.stream(JsonEx.createParser())
+                .transform(new McpSchemeExcluder("resourceTemplates"))
+                .into(JsonEx.createGenerator());
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 

@@ -34,41 +34,45 @@ const main = async () =>
     await client.connect(transport);
     log(`connected, protocolVersion=${transport.protocolVersion}`);
 
-    if (CALL_TOOL)
+    try
     {
-        const result = await client.callTool({ name: CALL_TOOL, arguments: CALL_ARGS });
-        await client.close();
-        console.log(result.content?.map((c) => c.text).join(" ") ?? "");
-        return;
-    }
-
-    if (READ_RESOURCE)
-    {
-        const result = await client.readResource({ uri: READ_RESOURCE });
-        await client.close();
-        for (const entry of result.contents ?? [])
+        if (CALL_TOOL)
         {
-            console.log(entry.text ?? JSON.stringify(entry));
+            const result = await client.callTool({ name: CALL_TOOL, arguments: CALL_ARGS });
+            console.log(result.content?.map((c) => c.text).join(" ") ?? "");
+            return;
         }
-        return;
-    }
 
-    const { tools } = await client.listTools();
-    const { resources } = await client.listResources().catch(() => ({ resources: [] }));
-    const { resourceTemplates } = await client.listResourceTemplates().catch(() => ({ resourceTemplates: [] }));
-    await client.close();
+        if (READ_RESOURCE)
+        {
+            const result = await client.readResource({ uri: READ_RESOURCE });
+            for (const entry of result.contents ?? [])
+            {
+                console.log(entry.text ?? JSON.stringify(entry));
+            }
+            return;
+        }
 
-    for (const tool of tools)
-    {
-        console.log(tool.name);
+        const { tools } = await client.listTools();
+        const { resources } = await client.listResources().catch(() => ({ resources: [] }));
+        const { resourceTemplates } = await client.listResourceTemplates().catch(() => ({ resourceTemplates: [] }));
+
+        for (const tool of tools)
+        {
+            console.log(tool.name);
+        }
+        for (const resource of resources)
+        {
+            console.log(`resource:${resource.uri}`);
+        }
+        for (const template of resourceTemplates)
+        {
+            console.log(`template:${template.uriTemplate}`);
+        }
     }
-    for (const resource of resources)
+    finally
     {
-        console.log(`resource:${resource.uri}`);
-    }
-    for (const template of resourceTemplates)
-    {
-        console.log(`template:${template.uriTemplate}`);
+        await client.close();
     }
 };
 

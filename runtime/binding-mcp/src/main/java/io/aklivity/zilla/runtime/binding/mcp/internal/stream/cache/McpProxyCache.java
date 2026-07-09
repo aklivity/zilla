@@ -63,6 +63,14 @@ public final class McpProxyCache
     private static final String STORE_KEY_RESOURCES_TEMPLATES = "resources/templates";
     private static final String STORE_KEY_PROMPTS = "prompts";
     private static final String STORE_LOCK_SUFFIX = ".lock";
+
+    // the JSON array key each kind's assembled list is wrapped in on the wire -- e.g. {"resources":[...]}
+    // for KIND_RESOURCES_LIST -- matching McpProxyResourcesListFactory.arrayKey() and its siblings; distinct
+    // from the STORE_KEY_* constants above, which name the store entry rather than the wire array key
+    private static final String ARRAY_KEY_TOOLS = "tools";
+    private static final String ARRAY_KEY_RESOURCES = "resources";
+    private static final String ARRAY_KEY_RESOURCES_TEMPLATES = "resourceTemplates";
+    private static final String ARRAY_KEY_PROMPTS = "prompts";
     private static final String STORE_LOCK_KEY_TOOLS = STORE_KEY_TOOLS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_RESOURCES_TEMPLATES = STORE_KEY_RESOURCES_TEMPLATES + STORE_LOCK_SUFFIX;
@@ -568,19 +576,51 @@ public final class McpProxyCache
             checkReady();
         }
 
+        private String arrayKeyOf(
+            int kind)
+        {
+            final String arrayKey;
+            if (kind == KIND_TOOLS_LIST)
+            {
+                arrayKey = ARRAY_KEY_TOOLS;
+            }
+            else if (kind == KIND_RESOURCES_LIST)
+            {
+                arrayKey = ARRAY_KEY_RESOURCES;
+            }
+            else if (kind == KIND_RESOURCES_TEMPLATES_LIST)
+            {
+                arrayKey = ARRAY_KEY_RESOURCES_TEMPLATES;
+            }
+            else if (kind == KIND_PROMPTS_LIST)
+            {
+                arrayKey = ARRAY_KEY_PROMPTS;
+            }
+            else
+            {
+                arrayKey = null;
+            }
+            return arrayKey;
+        }
+
+        // scopesByName drives McpScopeFilter for every list kind, not just tools -- a resource or prompt
+        // guarded only by its toolkit route's own scope (no operation-level security of its own) carries
+        // that scope in securitySchemes exactly like a tool does (see McpProxyCacheHydrater), so indexing
+        // must cover every kind's own array key or such items would never be filtered at all
         private Map<CharSequence, List<String>> indexScopesByName(
             String value)
         {
             final Map<CharSequence, List<String>> index = new TreeMap<>(CharSequence::compare);
 
-            if (kind == KIND_TOOLS_LIST && value != null)
+            final String arrayKey = arrayKeyOf(kind);
+            if (arrayKey != null && value != null)
             {
                 final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
                 final JsonParserEx parser = JsonEx.createParser();
                 parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
                 try
                 {
-                    scanToolsList(parser, index);
+                    scanList(parser, arrayKey, index);
                 }
                 catch (Exception ex)
                 {
@@ -591,8 +631,9 @@ public final class McpProxyCache
             return index;
         }
 
-        private void scanToolsList(
+        private void scanList(
             JsonParserEx parser,
+            String arrayKey,
             Map<CharSequence, List<String>> index)
         {
             if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
@@ -612,9 +653,9 @@ public final class McpProxyCache
                         depth--;
                         break;
                     case KEY_NAME:
-                        if (depth == 1 && "tools".contentEquals(parser.getStringView()))
+                        if (depth == 1 && arrayKey.contentEquals(parser.getStringView()))
                         {
-                            scanTools(parser, index);
+                            scanItems(parser, index);
                         }
                         break;
                     default:
@@ -624,7 +665,7 @@ public final class McpProxyCache
             }
         }
 
-        private void scanTools(
+        private void scanItems(
             JsonParserEx parser,
             Map<CharSequence, List<String>> index)
         {
@@ -637,7 +678,7 @@ public final class McpProxyCache
                     switch (event)
                     {
                     case START_OBJECT:
-                        scanTool(parser, index);
+                        scanItem(parser, index);
                         break;
                     case END_ARRAY:
                         items = false;
@@ -649,7 +690,7 @@ public final class McpProxyCache
             }
         }
 
-        private void scanTool(
+        private void scanItem(
             JsonParserEx parser,
             Map<CharSequence, List<String>> index)
         {

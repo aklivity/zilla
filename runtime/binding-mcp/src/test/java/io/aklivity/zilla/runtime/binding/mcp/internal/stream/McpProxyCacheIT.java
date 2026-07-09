@@ -323,6 +323,17 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.toolkit.route.guarded.yaml")
+    @Specification({
+        "${app}/cache.serve.resources.list.route.guarded.unauthorized/server",
+        "${app}/cache.serve.resources.list.route.guarded.unauthorized/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "resources")
+    public void shouldServeResourcesListExcludingRouteGuardedToolkitFromUnauthorizedCaller() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.serve.tools.list.degraded/server",
