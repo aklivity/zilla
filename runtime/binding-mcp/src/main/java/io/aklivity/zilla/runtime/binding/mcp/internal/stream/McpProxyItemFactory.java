@@ -25,6 +25,7 @@ import java.util.function.LongUnaryOperator;
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -930,9 +931,10 @@ abstract class McpProxyItemFactory implements BindingHandler
             int limit)
         {
             final Map<CharSequence, List<String>> scopesByName = cache.scopesByName();
+            final Map<CharSequence, String> descriptionsByName = cache.descriptionsByName();
             final List<McpToolSearchMatch> matches = cache.searchIndex().query(query);
 
-            final JsonArrayBuilder content = Json.createArrayBuilder();
+            final JsonArrayBuilder tools = Json.createArrayBuilder();
             int admitted = 0;
             for (int i = 0; i < matches.size() && admitted < limit; i++)
             {
@@ -943,15 +945,32 @@ abstract class McpProxyItemFactory implements BindingHandler
                 // for the same scopesByName map -- only a non-null roles list is worth verifying
                 if (roles == null || filterGuard == null || filterGuard.verify(authorization, roles))
                 {
-                    content.add(Json.createObjectBuilder()
-                        .add("type", "tool_reference")
-                        .add("tool_name", match.name));
+                    final JsonObjectBuilder tool = Json.createObjectBuilder()
+                        .add("name", match.name);
+                    final String description = descriptionsByName.get(match.name);
+                    if (description != null)
+                    {
+                        tool.add("description", description);
+                    }
+                    tools.add(tool);
                     admitted++;
                 }
             }
 
+            // MCP's CallToolResult.content only accepts text/image/audio/resource_link/resource
+            // blocks -- there is no "tool reference" content type, so the matches are carried in
+            // structuredContent instead, with a serialized-JSON text block alongside for clients
+            // that predate structuredContent (the pattern the spec itself recommends)
+            final JsonObject structuredContent = Json.createObjectBuilder()
+                .add("tools", tools)
+                .build();
+
             final JsonObject response = Json.createObjectBuilder()
-                .add("content", content)
+                .add("content", Json.createArrayBuilder()
+                    .add(Json.createObjectBuilder()
+                        .add("type", "text")
+                        .add("text", structuredContent.toString())))
+                .add("structuredContent", structuredContent)
                 .add("isError", false)
                 .build();
 

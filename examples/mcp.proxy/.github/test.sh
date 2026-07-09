@@ -232,49 +232,20 @@ else
 fi
 
 # WHEN: that same caller calls zilla__search_tools for "sum"
-# THEN: the cold everything__get-sum tool comes back as a tool_reference --
-#       proving a tool omitted from tools/list is discoverable by keyword,
-#       not gone. Asserted over raw HTTP (initialize -> notifications/initialized
-#       -> tools/call, reusing the Mcp-Session-Id header) rather than through
-#       tools-list-client's MCP SDK client: "tool_reference" is a Zilla-specific
-#       content type with no entry in the SDK's own CallToolResult content-block
-#       schema (text/image/audio/resource_link/resource only), so the strict
-#       client-side validator rejects it before this script ever sees the
-#       result -- a known limitation of the search feature's response shape,
-#       independent of anything this example configures. This check verifies
-#       what Zilla itself puts on the wire, consistent with every other
-#       assertion in this script
+# THEN: the cold everything__get-sum tool comes back in structuredContent.tools --
+#       proving a tool omitted from tools/list is discoverable by keyword, not gone
 search_cold_tool() {
-  _session_headers=$(mktemp)
-  curl -sS -N --max-time 10 -D "$_session_headers" \
-      -H "Authorization: Bearer $JWT_FULL" \
-      -H "Content-Type: application/json" \
-      -H "Accept: application/json, text/event-stream" \
-      "http://localhost:$PORT/mcp" \
-      -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}' >/dev/null
-  _session_id=$(grep -i "mcp-session-id" "$_session_headers" | tr -d '\r' | cut -d' ' -f2)
-  rm -f "$_session_headers"
-  curl -sS -N --max-time 10 \
-      -H "Authorization: Bearer $JWT_FULL" \
-      -H "Content-Type: application/json" \
-      -H "Accept: application/json, text/event-stream" \
-      -H "Mcp-Session-Id: $_session_id" \
-      "http://localhost:$PORT/mcp" \
-      -d '{"jsonrpc":"2.0","method":"notifications/initialized"}' >/dev/null
-  SEARCH_OUT=$(curl -sS -N --max-time 10 \
-      -H "Authorization: Bearer $JWT_FULL" \
-      -H "Content-Type: application/json" \
-      -H "Accept: application/json, text/event-stream" \
-      -H "Mcp-Session-Id: $_session_id" \
-      "http://localhost:$PORT/mcp" \
-      -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"zilla__search_tools","arguments":{"query":"sum"}}}')
-  echo "$SEARCH_OUT" | grep -q '"type":"tool_reference"' &&
-    echo "$SEARCH_OUT" | grep -q '"tool_name":"everything__get-sum"'
+  SEARCH_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="zilla__search_tools" \
+      -e CALL_ARGS='{"query":"sum"}' \
+      tools-list-client 2>&1)
+  echo "$SEARCH_OUT" | grep -q 'everything__get-sum'
 }
 retry_until 5 3 search_cold_tool
 echo "SEARCH_OUT=$SEARCH_OUT"
-if echo "$SEARCH_OUT" | grep -q '"type":"tool_reference"' &&
-    echo "$SEARCH_OUT" | grep -q '"tool_name":"everything__get-sum"'; then
+if echo "$SEARCH_OUT" | grep -q 'everything__get-sum'; then
   echo "✅ zilla__search_tools surfaced the cold everything__get-sum tool by keyword"
 else
   echo "❌ zilla__search_tools did not surface everything__get-sum for query \"sum\""

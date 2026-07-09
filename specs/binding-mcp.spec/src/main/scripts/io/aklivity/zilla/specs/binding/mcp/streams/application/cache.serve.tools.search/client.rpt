@@ -60,5 +60,5 @@ write '{'
 
 write close
 
-read  '{"content":[{"type":"tool_reference","tool_name":"get_weather"}],"isError":false}'
+read  '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\":\\"get_weather\\",\\"description\\":\\"Get current weather information for a location\\"}]}"}],"structuredContent":{"tools":[{"name":"get_weather","description":"Get current weather information for a location"}]},"isError":false}'
 read closed
