@@ -110,6 +110,66 @@ public class ClientFetchIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/partition.not.leader/client",
+        "${net}/storage.error/server"})
+    public void shouldRejectStorageError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/partition.not.leader/client",
+        "${net}/fenced.leader.epoch/server"})
+    public void shouldRejectFencedLeaderEpoch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/partition.not.leader/client",
+        "${net}/unknown.leader.epoch/server"})
+    public void shouldRejectUnknownLeaderEpoch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/partition.not.leader/client",
+        "${net}/offset.not.available/server"})
+    public void shouldRejectOffsetNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/partition.not.leader/client",
+        "${net}/replica.not.available/server"})
+    public void shouldRejectReplicaNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/partition.not.leader/client",
+        "${net}/unknown.topic.id/server"})
+    public void shouldRejectUnknownTopicId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/partition.offset/client",
         "${net}/partition.offset/server"})
     public void shouldRequestPartitionOffset() throws Exception

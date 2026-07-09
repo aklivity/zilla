@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMetaBeginExFW;
@@ -63,7 +64,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaCacheMetaFactory implements BindingHandler
+public final class KafkaCacheServerMetaFactory implements BindingHandler
 {
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -84,6 +85,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
@@ -106,7 +108,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
     private final LongBinaryOperator supplyCacheId;
     private final int reconnectDelay;
 
-    public KafkaCacheMetaFactory(
+    public KafkaCacheServerMetaFactory(
         KafkaConfiguration config,
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
@@ -169,22 +171,23 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             final long resolvedId = resolved.id;
             final KafkaCacheRoute cacheRoute = supplyCacheRoute.apply(resolvedId);
             final int topicKey = cacheRoute.topicKey(topicName);
-            KafkaCacheMetaFanout fanout = cacheRoute.metaFanoutsByTopic.get(topicKey);
+            KafkaCacheServerMetaFanout fanout = cacheRoute.serverMetaFanoutsByTopic.get(topicKey);
             if (fanout == null)
             {
                 final long cacheId = supplyCacheId.applyAsLong(routedId, resolvedId);
                 final String cacheName = String.format("%s.%s", supplyNamespace.apply(cacheId), supplyLocalName.apply(cacheId));
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
-                final KafkaCacheMetaFanout newFanout = new KafkaCacheMetaFanout(routedId, resolvedId, authorization, topic);
+                final KafkaCacheServerMetaFanout newFanout = new KafkaCacheServerMetaFanout(routedId, resolvedId, authorization,
+                    topic);
 
-                cacheRoute.metaFanoutsByTopic.put(topicKey, newFanout);
+                cacheRoute.serverMetaFanoutsByTopic.put(topicKey, newFanout);
                 fanout = newFanout;
             }
 
             if (fanout != null)
             {
-                newStream = new KafkaCacheMetaStream(
+                newStream = new KafkaCacheServerMetaStream(
                         fanout,
                         sender,
                         originId,
@@ -231,6 +234,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
         return receiver;
     }
+
     private void doBegin(
         MessageConsumer receiver,
         long originId,
@@ -374,6 +378,37 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .extension(extension)
+                .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+    }
+
     private void doReset(
         MessageConsumer sender,
         long originId,
@@ -399,13 +434,13 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaCacheMetaFanout
+    final class KafkaCacheServerMetaFanout
     {
         private final long originId;
         private final long routedId;
         private final long authorization;
         private final KafkaCacheTopic topic;
-        private final List<KafkaCacheMetaStream> members;
+        private final List<KafkaCacheServerMetaStream> members;
         private final KafkaCacheRoute cacheRoute;
         private final Int2IntHashMap leadersByPartitionId;
 
@@ -426,7 +461,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         private long reconnectAt = NO_CANCEL_ID;
         private int reconnectAttempt;
 
-        private KafkaCacheMetaFanout(
+        private KafkaCacheServerMetaFanout(
             long originId,
             long routedId,
             long authorization,
@@ -443,7 +478,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
         private void onMetaFanoutMemberOpening(
             long traceId,
-            KafkaCacheMetaStream member)
+            KafkaCacheServerMetaStream member)
         {
             members.add(member);
 
@@ -464,7 +499,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
         private void onMetaFanoutMemberOpened(
             long traceId,
-            KafkaCacheMetaStream member)
+            KafkaCacheServerMetaStream member)
         {
             if (!leadersByPartitionId.isEmpty())
             {
@@ -480,7 +515,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
         private void onMetaFanoutMemberClosed(
             long traceId,
-            KafkaCacheMetaStream member)
+            KafkaCacheServerMetaStream member)
         {
             members.remove(member);
 
@@ -731,7 +766,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onMetaFanoutSignal);
             }
@@ -768,7 +803,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onMetaFanoutSignal);
             }
@@ -786,13 +821,24 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         private void onMetaFanoutSignal(
             int signalId)
         {
-            assert signalId == SIGNAL_RECONNECT;
-
-            this.reconnectAt = NO_CANCEL_ID;
-
             final long traceId = supplyTraceId.getAsLong();
 
-            doMetaFanoutInitialBeginIfNecessary(traceId);
+            if (signalId == SIGNAL_RECONNECT)
+            {
+                this.reconnectAt = NO_CANCEL_ID;
+
+                doMetaFanoutInitialBeginIfNecessary(traceId);
+            }
+        }
+
+        private void doMetaFanoutFlushIfNecessary(
+            long traceId)
+        {
+            if (KafkaState.initialOpened(state))
+            {
+                doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, 0L, 0, EMPTY_EXTENSION);
+            }
         }
 
         private void doMetaFanoutReplyResetIfNecessary(
@@ -835,9 +881,9 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         }
     }
 
-    private final class KafkaCacheMetaStream
+    private final class KafkaCacheServerMetaStream
     {
-        private final KafkaCacheMetaFanout group;
+        private final KafkaCacheServerMetaFanout group;
         private final MessageConsumer sender;
         private final long originId;
         private final long routedId;
@@ -859,8 +905,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
         private long replyBudgetId;
 
-        KafkaCacheMetaStream(
-            KafkaCacheMetaFanout group,
+        KafkaCacheServerMetaStream(
+            KafkaCacheServerMetaFanout group,
             MessageConsumer sender,
             long originId,
             long routedId,
