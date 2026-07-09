@@ -26,8 +26,8 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 public final class OpenapiAsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
     JsonbAdapter<ConditionConfig, JsonObject>
 {
-    private static final String API_ID_NAME = "api-id";
-    private static final String OPERATION_ID_NAME = "operation-id";
+    private static final String SPEC_NAME = "spec";
+    private static final String OPERATION_NAME = "operation";
 
     @Override
     public String type()
@@ -42,11 +42,11 @@ public final class OpenapiAsyncapiConditionConfigAdapter implements ConditionCon
         OpenapiAsyncapiConditionConfig asyncapiCondition = (OpenapiAsyncapiConditionConfig) condition;
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(API_ID_NAME, asyncapiCondition.apiId);
+        object.add(SPEC_NAME, asyncapiCondition.spec);
 
-        if (asyncapiCondition.operationId != null)
+        if (asyncapiCondition.operation != null)
         {
-            object.add(OPERATION_ID_NAME, asyncapiCondition.operationId);
+            object.add(OPERATION_NAME, asyncapiCondition.operation);
         }
 
         return object.build();
@@ -56,14 +56,14 @@ public final class OpenapiAsyncapiConditionConfigAdapter implements ConditionCon
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String apiId = object.containsKey(API_ID_NAME)
-            ? object.getString(API_ID_NAME)
+        String spec = object.containsKey(SPEC_NAME)
+            ? object.getString(SPEC_NAME)
             : null;
 
-        String operationId = object.containsKey(OPERATION_ID_NAME)
-            ? object.getString(OPERATION_ID_NAME)
+        String operation = object.containsKey(OPERATION_NAME)
+            ? object.getString(OPERATION_NAME)
             : null;
 
-        return new OpenapiAsyncapiConditionConfig(apiId, operationId);
+        return new OpenapiAsyncapiConditionConfig(spec, operation);
     }
 }

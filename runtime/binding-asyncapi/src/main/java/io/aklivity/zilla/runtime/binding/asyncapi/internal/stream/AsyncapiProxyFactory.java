@@ -179,10 +179,10 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                     if (route != null)
                     {
                         final long resolvedId = route.id;
-                        final long resolvedApiId = composite.resolveApiId(route.with.apiId);
-                        final String resolvedOperationId = route.with.operationId != null
-                            ? route.with.operationId
-                            : operationId;
+                        final long resolvedApiId = composite.resolveApiId(route.with.spec);
+                        final String resolvedOperationId = route.isBulk()
+                            ? operationId
+                            : route.with.operation;
 
                         newStream = new CompositeClientStream(
                             receiver,
@@ -201,8 +201,8 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                     // JRF: can we remove this? current used by will stream which arrives proactively, so no compositeId
                     Optional<AsyncapiRouteConfig> routeRef = binding.routes.stream().findFirst();
                     final long resolvedId = routeRef.map(r -> r.id).orElse(0L);
-                    final long resolvedApiId = routeRef.map(r -> composite.resolveApiId(r.with.apiId)).orElse(0L);
-                    final String resolvedOperationId = routeRef.map(r -> r.with.operationId).orElse(null);
+                    final long resolvedApiId = routeRef.map(r -> composite.resolveApiId(r.with.spec)).orElse(0L);
+                    final String resolvedOperationId = routeRef.map(r -> r.with.operation).orElse(null);
 
                     newStream = new CompositeClientStream(
                         receiver,

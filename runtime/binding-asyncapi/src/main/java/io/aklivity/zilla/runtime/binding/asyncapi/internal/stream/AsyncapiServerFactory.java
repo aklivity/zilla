@@ -187,11 +187,11 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                         final long resolvedId = route.id;
                         final long resolvedApiId = composite.resolveApiId(
                             route.with != null
-                                ? route.with.apiId
+                                ? route.with.spec
                                 : apiId);
                         final String resolvedOperationId =
-                            route.with != null
-                                ? route.with.operationId
+                            route.with != null && !route.isBulk()
+                                ? route.with.operation
                                 : operationId;
 
                         newStream = new CompositeStream(

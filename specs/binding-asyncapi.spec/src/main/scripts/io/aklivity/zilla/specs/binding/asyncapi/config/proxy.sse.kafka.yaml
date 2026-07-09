@@ -170,7 +170,7 @@ bindings:
               version: latest
     routes:
       - when:
-          - api-id: sse_api
+          - spec: sse_api
         exit: asyncapi_kafka0
         with:
-          api-id: kafka_api
+          spec: kafka_api

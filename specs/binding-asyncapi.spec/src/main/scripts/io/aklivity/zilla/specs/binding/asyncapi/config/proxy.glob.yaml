@@ -34,7 +34,7 @@ catalogs:
               host: localhost:1883
               protocol: mqtt
           defaultContentType: application/json
-  
+
           channels:
             sensors:
               address: "sensors/{sensorId}"
@@ -45,18 +45,13 @@ catalogs:
               messages:
                 items:
                   $ref: '#/components/messages/item'
-  
+
           operations:
             sendEvents:
               action: send
               channel:
                 $ref: '#/channels/sensors'
-  
-            receiveEvents:
-              action: receive
-              channel:
-                $ref: '#/channels/sensors'
-  
+
           components:
             parameters:
               sensorId:
@@ -93,10 +88,6 @@ catalogs:
             protocol: kafka
 
         operations:
-          onSensorData:
-            action: receive
-            channel:
-              $ref: '#/channels/sensorData'
           toSensorData:
             action: send
             channel:
@@ -160,11 +151,4 @@ bindings:
         exit: asyncapi_kafka0
         with:
           spec: kafka_api
-          operation: toSensorData
-      - when:
-          - spec: mqtt_api
-            operation: receiveEvents
-        exit: asyncapi_kafka0
-        with:
-          spec: kafka_api
-          operation: onSensorData
+          operation: "toSensor*"

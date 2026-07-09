@@ -226,14 +226,14 @@
                                         "additionalProperties": false,
                                         "properties":
                                         {
-                                            "api-id":
+                                            "spec":
                                             {
-                                                "title": "Spec API Id",
+                                                "title": "Spec",
                                                 "type": "string"
                                             },
-                                            "operation-id":
+                                            "operation":
                                             {
-                                                "title": "MQTT Operation Id",
+                                                "title": "Operation",
                                                 "type": "string"
                                             }
                                         }
@@ -243,18 +243,27 @@
                                 {
                                     "properties":
                                     {
-                                        "api-id":
+                                        "spec":
                                         {
-                                            "title": "Spec API Id",
+                                            "title": "Spec",
                                             "type": "string"
                                         },
-                                        "operation-id":
+                                        "operation":
                                         {
-                                            "title": "MQTT Operation Id",
+                                            "title": "Operation Id or glob pattern",
+                                            "type": "string"
+                                        },
+                                        "tag":
+                                        {
+                                            "title": "Tag",
                                             "type": "string"
                                         }
                                     },
-                                    "additionalProperties": false
+                                    "additionalProperties": false,
+                                    "not":
+                                    {
+                                        "required": [ "tag", "operation" ]
+                                    }
                                 }
                             }
                         }

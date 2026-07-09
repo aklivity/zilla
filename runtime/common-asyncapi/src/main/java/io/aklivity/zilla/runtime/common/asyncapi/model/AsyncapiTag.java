@@ -14,18 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
-import java.util.List;
-import java.util.Map;
-
-public class AsyncapiOperation extends AbstractAsyncapiResolvable
+public class AsyncapiTag
 {
-    public AsyncapiChannel channel;
-    public String action;
-    public AsyncapiReply reply;
-    public List<AsyncapiMessage> messages;
-    public List<AsyncapiSecurityScheme> security;
-    public List<AsyncapiTag> tags;
-    public Map<String, Object> bindings;
-
-    public Map<String, Object> extensions;
+    public String name;
 }

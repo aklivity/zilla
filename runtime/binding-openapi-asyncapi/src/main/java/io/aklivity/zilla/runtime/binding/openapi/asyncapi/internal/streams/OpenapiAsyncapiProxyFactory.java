@@ -179,10 +179,10 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
                     if (route != null)
                     {
                         final long resolvedId = route.id;
-                        final long resolvedApiId = composite.resolveApiId(route.with.apiId);
-                        final String resolvedOperationId = route.with.operationId != null
-                            ? route.with.operationId
-                            : operationId;
+                        final long resolvedApiId = composite.resolveApiId(route.with.spec);
+                        final String resolvedOperationId = route.isBulk()
+                            ? operationId
+                            : route.with.operation;
 
                         newStream = new CompositeClientStream(
                             receiver,
