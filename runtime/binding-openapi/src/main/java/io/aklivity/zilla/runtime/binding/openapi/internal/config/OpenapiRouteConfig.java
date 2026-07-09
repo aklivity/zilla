@@ -54,4 +54,12 @@ public final class OpenapiRouteConfig
     {
         return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, operationId));
     }
+
+    public boolean isBulk()
+    {
+        return with != null &&
+            (with.tag != null ||
+                with.operation == null ||
+                with.operation.indexOf('*') != -1);
+    }
 }
