@@ -561,6 +561,46 @@ public class McpProxyCacheIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.describe.tool/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeDescribeTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.describe.tool.not.found/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeDescribeToolNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.guarded.yaml")
+    @Specification({
+        "${app}/cache.serve.describe.tool.unauthorized/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeDescribeToolUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.describe.tool.invalid.params/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeDescribeToolInvalidParams() throws Exception
+    {
+        k3po.finish();
+    }
+
     private static final List<String> SESSION_IDS = List.of("hydrate-1", "agent-1");
     private static Iterator<String> sessionIds = SESSION_IDS.iterator();
 

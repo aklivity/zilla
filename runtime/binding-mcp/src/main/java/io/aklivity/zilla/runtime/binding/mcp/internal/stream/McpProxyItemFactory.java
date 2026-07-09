@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpDescribeToolCallScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpJsonStringEscaper;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolCallScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
@@ -83,6 +84,14 @@ abstract class McpProxyItemFactory implements BindingHandler
     private static final byte[] DIGEST_DESCRIPTION_KEY = "\",\"description\":\"".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] DIGEST_CLOSE = "\"}".getBytes(StandardCharsets.US_ASCII);
 
+    // describe_tool's not-found/unauthorized response is a fixed constant -- existence and
+    // authorization failures are indistinguishable to the caller by design, so there is nothing
+    // request-specific to assemble; the same immutable array is reused as the response body for
+    // every denied lookup, with no per-request allocation or copy
+    private static final byte[] DESCRIBE_NOT_FOUND_RESPONSE =
+        "{\"content\":[{\"type\":\"text\",\"text\":\"Tool not found\"}],\"isError\":true}"
+            .getBytes(StandardCharsets.US_ASCII);
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -115,8 +124,9 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final LongFunction<McpBindingConfig> supplyBinding;
     private final int kind;
 
-    // reusable, growable per-worker scratch arrays for tools/search response assembly (reconfigured
-    // per request, never reallocated); the final response returned to the caller is always a
+    // reusable, growable per-worker scratch arrays shared by both search-family tools' response
+    // assembly (search_tools' digest and describe_tool's whole-object copy), reconfigured per
+    // request and never reallocated; the final response returned to the caller is always a
     // dedicated trimmed copy, since it is cached and drained over multiple WINDOW credits per stream
     private byte[] searchStructuredArray = new byte[0];
     private byte[] searchResponseArray = new byte[0];
@@ -165,6 +175,9 @@ abstract class McpProxyItemFactory implements BindingHandler
             if (binding.sessions.get(sessionId) instanceof McpLifecycleServer lifecycle)
             {
                 final McpProxyCache.McpListCache searchCache = searchCacheFor(binding, beginEx);
+                final McpProxyCache.McpListCache describeCache = searchCache == null
+                    ? describeCacheFor(binding, beginEx)
+                    : null;
                 if (searchCache != null)
                 {
                     newStream = new McpToolSearchServer(
@@ -177,6 +190,18 @@ abstract class McpProxyItemFactory implements BindingHandler
                         binding.filterGuard,
                         searchCache,
                         binding.options.cache.tools.search.limit)::onToolSearchMessage;
+                }
+                else if (describeCache != null)
+                {
+                    newStream = new McpDescribeToolServer(
+                        sender,
+                        originId,
+                        routedId,
+                        initialId,
+                        affinity,
+                        authorization,
+                        binding.filterGuard,
+                        describeCache)::onDescribeToolMessage;
                 }
                 else
                 {
@@ -230,6 +255,66 @@ abstract class McpProxyItemFactory implements BindingHandler
         }
 
         return searchCache;
+    }
+
+    private McpProxyCache.McpListCache describeCacheFor(
+        McpBindingConfig binding,
+        McpBeginExFW beginEx)
+    {
+        McpProxyCache.McpListCache describeCache = null;
+
+        final McpCacheToolsSearchConfig search = binding.cache != null && binding.options.cache.tools != null
+            ? binding.options.cache.tools.search
+            : null;
+
+        if (kind == McpBeginExFW.KIND_TOOLS_CALL &&
+            search != null &&
+            McpToolNames.effectiveName(search.toolkit, McpToolNames.DESCRIBE_TOOL).equals(beginEx.toolsCall().name().asString()))
+        {
+            final McpProxyCache.McpListCache listCache = binding.cache.cacheOf(McpBeginExFW.KIND_TOOLS_LIST);
+            if (listCache != null && listCache.searchIndex() != null)
+            {
+                describeCache = listCache;
+            }
+        }
+
+        return describeCache;
+    }
+
+    // assembles the full envelope into searchResponseArray: the literal prefix, an escaped copy of
+    // the structuredContent bytes (searchStructuredArray[0, structuredLength)) for the "text" field,
+    // the literal middle, the raw structuredContent bytes, then the literal suffix -- shared by both
+    // search_tools' digest response and describe_tool's whole-object response, since both use the
+    // identical {"content":[...],"structuredContent":<raw>,"isError":false} envelope shape
+    private int writeSearchFamilyResponse(
+        int structuredLength)
+    {
+        final int capacity = SEARCH_RESPONSE_PREFIX.length +
+            McpJsonStringEscaper.maxEscapedLength(structuredLength) +
+            SEARCH_RESPONSE_MIDDLE.length +
+            structuredLength +
+            SEARCH_RESPONSE_SUFFIX.length;
+        if (searchResponseArray.length < capacity)
+        {
+            searchResponseArray = new byte[capacity];
+        }
+
+        int produced = 0;
+        System.arraycopy(SEARCH_RESPONSE_PREFIX, 0, searchResponseArray, produced, SEARCH_RESPONSE_PREFIX.length);
+        produced += SEARCH_RESPONSE_PREFIX.length;
+
+        produced += McpJsonStringEscaper.escape(searchStructuredArray, 0, structuredLength, searchResponseArray, produced);
+
+        System.arraycopy(SEARCH_RESPONSE_MIDDLE, 0, searchResponseArray, produced, SEARCH_RESPONSE_MIDDLE.length);
+        produced += SEARCH_RESPONSE_MIDDLE.length;
+
+        System.arraycopy(searchStructuredArray, 0, searchResponseArray, produced, structuredLength);
+        produced += structuredLength;
+
+        System.arraycopy(SEARCH_RESPONSE_SUFFIX, 0, searchResponseArray, produced, SEARCH_RESPONSE_SUFFIX.length);
+        produced += SEARCH_RESPONSE_SUFFIX.length;
+
+        return produced;
     }
 
     protected abstract void injectInitialBeginEx(
@@ -947,7 +1032,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             final List<McpToolSearchMatch> matches = cache.searchIndex().query(query);
 
             final int structuredLength = writeStructuredContent(matches, scopesByName, rangesByName, toolsBytes, limit);
-            final int responseLength = writeResponse(structuredLength);
+            final int responseLength = writeSearchFamilyResponse(structuredLength);
 
             return Arrays.copyOf(searchResponseArray, responseLength);
         }
@@ -1034,36 +1119,351 @@ abstract class McpProxyItemFactory implements BindingHandler
             return produced - offset;
         }
 
-        // assembles the full envelope into searchResponseArray: the literal prefix, an escaped copy of
-        // the structuredContent bytes for the "text" field, the literal middle, the raw structuredContent
-        // bytes, then the literal suffix
-        private int writeResponse(
-            int structuredLength)
+        private void onServerEnd(
+            EndFW end)
         {
-            final int capacity = SEARCH_RESPONSE_PREFIX.length +
-                McpJsonStringEscaper.maxEscapedLength(structuredLength) +
-                SEARCH_RESPONSE_MIDDLE.length +
-                structuredLength +
-                SEARCH_RESPONSE_SUFFIX.length;
-            if (searchResponseArray.length < capacity)
+            final long traceId = end.traceId();
+
+            initialSeq = end.sequence();
+            if (!ready)
             {
-                searchResponseArray = new byte[capacity];
+                onQueryReady(traceId);
+            }
+            state = McpState.closedInitial(state);
+        }
+
+        private void onServerAbort(
+            AbortFW abort)
+        {
+            initialSeq = abort.sequence();
+            state = McpState.closedInitial(state);
+            doServerAbort(abort.traceId());
+        }
+
+        private void onServerWindow(
+            WindowFW window)
+        {
+            replyAck = window.acknowledge();
+            replyMax = window.maximum();
+            replyPad = window.padding();
+            state = McpState.openedReply(state);
+            emitIfReady(window.traceId());
+        }
+
+        private void onServerReset(
+            ResetFW reset)
+        {
+            replyAck = reset.acknowledge();
+            state = McpState.closedReply(state);
+        }
+
+        private void emitIfReady(
+            long traceId)
+        {
+            if (!ready || McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            while (emitOffset < cachedLen)
+            {
+                final int replyWin = replyMax - (int) (replySeq - replyAck) - replyPad;
+                if (replyWin <= 0)
+                {
+                    return;
+                }
+                final int chunkLen = Math.min(replyWin, cachedLen - emitOffset);
+                doServerData(traceId, 0L, DATA_FLAG_COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
+                emitOffset += chunkLen;
+            }
+
+            doServerEnd(traceId);
+        }
+
+        private void doServerBegin(
+            long traceId)
+        {
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity, emptyRO);
+            state = McpState.openingReply(state);
+        }
+
+        private void doServerData(
+            long traceId,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBufferEx payload,
+            int offset,
+            int length)
+        {
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, flags, budgetId, reserved, payload, offset, length);
+            replySeq += reserved;
+        }
+
+        private void doServerEnd(
+            long traceId)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization);
+                state = McpState.closedReply(state);
+            }
+        }
+
+        private void doServerAbort(
+            long traceId)
+        {
+            if (!McpState.replyClosed(state))
+            {
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization);
+                state = McpState.closedReply(state);
+            }
+        }
+
+        private void doServerWindow(
+            long traceId,
+            long budgetId,
+            int padding)
+        {
+            state = McpState.openedInitial(state);
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, padding);
+        }
+
+        private void flushServerWindow(
+            long traceId,
+            long budgetId,
+            int padding,
+            long minInitialNoAck,
+            int minInitialMax)
+        {
+            final long newInitialAck = Math.max(initialAck, initialSeq - minInitialNoAck);
+            final int newInitialMax = Math.max(initialMax, minInitialMax);
+
+            if (newInitialAck > initialAck || newInitialMax > initialMax || !McpState.initialOpened(state))
+            {
+                initialAck = newInitialAck;
+                initialMax = newInitialMax;
+                doServerWindow(traceId, budgetId, padding);
+            }
+        }
+
+        private void doServerReset(
+            long traceId,
+            Flyweight extension)
+        {
+            if (!McpState.initialClosed(state))
+            {
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                    extension);
+                state = McpState.closedInitial(state);
+            }
+        }
+    }
+
+    private final class McpDescribeToolServer
+    {
+        private final MessageConsumer sender;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final long affinity;
+        private final long authorization;
+        private final GuardHandler filterGuard;
+        private final McpProxyCache.McpListCache cache;
+        private final McpDescribeToolCallScanner scanner;
+
+        private int state;
+        private boolean ready;
+        private DirectBufferEx cachedBuf;
+        private int cachedLen;
+        private int emitOffset;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private int replyPad;
+
+        private McpDescribeToolServer(
+            MessageConsumer sender,
+            long originId,
+            long routedId,
+            long initialId,
+            long affinity,
+            long authorization,
+            GuardHandler filterGuard,
+            McpProxyCache.McpListCache cache)
+        {
+            this.sender = sender;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.filterGuard = filterGuard;
+            this.cache = cache;
+            this.scanner = new McpDescribeToolCallScanner();
+        }
+
+        private void onDescribeToolMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onServerBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case DataFW.TYPE_ID:
+                onServerData(dataRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onServerEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+                onServerAbort(abortRO.wrap(buffer, index, index + length));
+                break;
+            case WindowFW.TYPE_ID:
+                onServerWindow(windowRO.wrap(buffer, index, index + length));
+                break;
+            case ResetFW.TYPE_ID:
+                onServerReset(resetRO.wrap(buffer, index, index + length));
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onServerBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            state = McpState.openingInitial(state);
+
+            doServerBegin(traceId);
+            flushServerWindow(traceId, 0L, 0, 0L, codecBuffer.capacity());
+        }
+
+        private void onServerData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final int flags = data.flags();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge <= initialAck;
+
+            initialSeq = sequence + reserved;
+
+            assert initialAck <= initialSeq;
+
+            final boolean last = (flags & DATA_FLAG_FIN) != 0x00;
+            scanner.feed(payload.buffer(), payload.offset(), payload.sizeof(), last);
+
+            if (last)
+            {
+                onNameReady(traceId);
+            }
+        }
+
+        private void onNameReady(
+            long traceId)
+        {
+            final String name = scanner.name;
+            if (scanner.malformed || name == null || name.isEmpty())
+            {
+                final McpResetExFW resetEx = mcpResetExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
+                    .build();
+                doServerReset(traceId, resetEx);
+            }
+            else
+            {
+                final byte[] bytes = buildResponse(name);
+                cachedBuf = new UnsafeBufferEx(bytes);
+                cachedLen = bytes.length;
+                ready = true;
+                emitIfReady(traceId);
+            }
+        }
+
+        // exact name lookup against the same byte-range index search_tools uses, enforcing the same
+        // per-tool scope admission rule (a null roles entry means no security scheme at all, or one
+        // that declares no authorization). Unlike search_tools, describe_tool returns the tool's
+        // entire cached JSON object verbatim -- the caller is resolving the full schema here, not
+        // browsing a digest -- wrapped in the same {"tools":[...]} envelope shape. Not found and
+        // not admitted are indistinguishable to the caller by design, both answered with the same
+        // fixed isError:true response, so existence of a scope-guarded tool is never leaked
+        private byte[] buildResponse(
+            String name)
+        {
+            final Map<CharSequence, List<String>> scopesByName = cache.scopesByName();
+            final Map<CharSequence, McpToolByteRange> rangesByName = cache.toolRangesByName();
+            final McpToolByteRange range = rangesByName.get(name);
+            final List<String> roles = scopesByName.get(name);
+            final boolean admitted =
+                range != null && (roles == null || filterGuard == null || filterGuard.verify(authorization, roles));
+
+            final byte[] response;
+            if (admitted)
+            {
+                final byte[] toolsBytes = cache.toolsBytes();
+                final int structuredLength = writeDescribeStructuredContent(range, toolsBytes);
+                final int responseLength = writeSearchFamilyResponse(structuredLength);
+                response = Arrays.copyOf(searchResponseArray, responseLength);
+            }
+            else
+            {
+                response = DESCRIBE_NOT_FOUND_RESPONSE;
+            }
+
+            return response;
+        }
+
+        // assembles {"tools":[<verbatim whole-object bytes>]} into searchStructuredArray -- unlike
+        // search_tools' per-match digest, this copies the tool's entire cached JSON object verbatim,
+        // never re-serialized or re-escaped
+        private int writeDescribeStructuredContent(
+            McpToolByteRange range,
+            byte[] toolsBytes)
+        {
+            final int capacity = SEARCH_TOOLS_OPEN.length + range.length() + SEARCH_TOOLS_CLOSE.length;
+            if (searchStructuredArray.length < capacity)
+            {
+                searchStructuredArray = new byte[capacity];
             }
 
             int produced = 0;
-            System.arraycopy(SEARCH_RESPONSE_PREFIX, 0, searchResponseArray, produced, SEARCH_RESPONSE_PREFIX.length);
-            produced += SEARCH_RESPONSE_PREFIX.length;
+            System.arraycopy(SEARCH_TOOLS_OPEN, 0, searchStructuredArray, produced, SEARCH_TOOLS_OPEN.length);
+            produced += SEARCH_TOOLS_OPEN.length;
 
-            produced += McpJsonStringEscaper.escape(searchStructuredArray, 0, structuredLength, searchResponseArray, produced);
+            System.arraycopy(toolsBytes, range.offset(), searchStructuredArray, produced, range.length());
+            produced += range.length();
 
-            System.arraycopy(SEARCH_RESPONSE_MIDDLE, 0, searchResponseArray, produced, SEARCH_RESPONSE_MIDDLE.length);
-            produced += SEARCH_RESPONSE_MIDDLE.length;
-
-            System.arraycopy(searchStructuredArray, 0, searchResponseArray, produced, structuredLength);
-            produced += structuredLength;
-
-            System.arraycopy(SEARCH_RESPONSE_SUFFIX, 0, searchResponseArray, produced, SEARCH_RESPONSE_SUFFIX.length);
-            produced += SEARCH_RESPONSE_SUFFIX.length;
+            System.arraycopy(SEARCH_TOOLS_CLOSE, 0, searchStructuredArray, produced, SEARCH_TOOLS_CLOSE.length);
+            produced += SEARCH_TOOLS_CLOSE.length;
 
             return produced;
         }
@@ -1076,7 +1476,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             initialSeq = end.sequence();
             if (!ready)
             {
-                onQueryReady(traceId);
+                onNameReady(traceId);
             }
             state = McpState.closedInitial(state);
         }

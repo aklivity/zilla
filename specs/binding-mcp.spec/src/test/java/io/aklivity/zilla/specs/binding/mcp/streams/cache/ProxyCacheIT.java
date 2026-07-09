@@ -287,4 +287,40 @@ public class ProxyCacheIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.describe.tool/client",
+        "${app}/cache.serve.describe.tool/server" })
+    public void shouldServeDescribeTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.describe.tool.not.found/client",
+        "${app}/cache.serve.describe.tool.not.found/server" })
+    public void shouldServeDescribeToolNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.describe.tool.unauthorized/client",
+        "${app}/cache.serve.describe.tool.unauthorized/server" })
+    public void shouldServeDescribeToolUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.describe.tool.invalid.params/client",
+        "${app}/cache.serve.describe.tool.invalid.params/server" })
+    public void shouldServeDescribeToolInvalidParams() throws Exception
+    {
+        k3po.finish();
+    }
 }
