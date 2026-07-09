@@ -236,4 +236,55 @@ scope mcp
             McpElicitAction action;
         }
     }
+
+    scope event
+    {
+        enum McpEventType (uint8)
+        {
+            SESSION_ESTABLISHED (1),
+            SESSION_CLOSED (2),
+            AUTHORIZATION_FAILED (3),
+            ELICITATION_TIMEOUT (4)
+        }
+
+        struct McpSessionEstablishedEx extends core::stream::Extension
+        {
+            string16 sessionId;
+        }
+
+        struct McpSessionClosedEx extends core::stream::Extension
+        {
+            string16 sessionId;
+            string16 reason = null;
+        }
+
+        enum McpAuthorizationError (uint8)
+        {
+            INVALID_REQUEST(0),
+            INVALID_TOKEN(1),
+            INSUFFICIENT_SCOPE(2)
+        }
+
+        struct McpAuthorizationFailedEx extends core::stream::Extension
+        {
+            string16 realm = null;
+            string16 scopes = null;
+            string16 resourceMetadata = null;
+            McpAuthorizationError error;
+        }
+
+        struct McpElicitationTimeoutEx extends core::stream::Extension
+        {
+            string16 sessionId;
+            string16 elicitationId = null;
+        }
+
+        union McpEventEx switch (McpEventType)
+        {
+            case SESSION_ESTABLISHED: McpSessionEstablishedEx sessionEstablished;
+            case SESSION_CLOSED: McpSessionClosedEx sessionClosed;
+            case AUTHORIZATION_FAILED: McpAuthorizationFailedEx authorizationFailed;
+            case ELICITATION_TIMEOUT: McpElicitationTimeoutEx elicitationTimeout;
+        }
+    }
 }

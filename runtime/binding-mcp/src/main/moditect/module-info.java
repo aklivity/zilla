@@ -37,6 +37,9 @@ module io.aklivity.zilla.runtime.binding.mcp
     provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpWithConfigAdapter;
 
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.binding.mcp.internal.McpEventFormatterFactory;
+
     provides io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpKeywordToolSearchIndexConfigAdapterSpi;
 
