@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import org.junit.Rule;
@@ -84,5 +85,41 @@ public class SchemaTest
         JsonObject config = schema.validate("client.multiple.specs.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWithRouteSpecOperation()
+    {
+        JsonObject config = schema.validate("server.route.spec.operation.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWithRouteTag()
+    {
+        JsonObject config = schema.validate("server.route.tag.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWithRouteOperationGlob()
+    {
+        JsonObject config = schema.validate("server.route.operation.glob.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithRouteTagAndOperation()
+    {
+        schema.validate("server.route.tag.and.operation.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithRoute()
+    {
+        schema.validate("client.route.invalid.yaml");
     }
 }

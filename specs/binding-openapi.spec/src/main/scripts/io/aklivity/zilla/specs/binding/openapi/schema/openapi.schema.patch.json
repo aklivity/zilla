@@ -124,7 +124,66 @@
                         },
                         "additionalProperties": false
                     },
-                    "routes": false,
+                    "routes":
+                    {
+                        "title": "Routes",
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "object",
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "title": "When",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "spec":
+                                            {
+                                                "title": "Spec",
+                                                "type": "string"
+                                            },
+                                            "operation":
+                                            {
+                                                "title": "Operation",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with":
+                                {
+                                    "properties":
+                                    {
+                                        "spec":
+                                        {
+                                            "title": "Spec",
+                                            "type": "string"
+                                        },
+                                        "operation":
+                                        {
+                                            "title": "Operation Id or glob pattern",
+                                            "type": "string"
+                                        },
+                                        "tag":
+                                        {
+                                            "title": "Tag",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "not":
+                                    {
+                                        "required": [ "tag", "operation" ]
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "entry": false
                 },
                 "oneOf":
@@ -144,6 +203,12 @@
                                 [
                                     "exit"
                                 ]
+                            },
+                            {
+                                "required":
+                                [
+                                    "routes"
+                                ]
                             }
                         ]
                     },
@@ -154,7 +219,8 @@
                             {
                                 "const": "client"
                             },
-                            "exit": false
+                            "exit": false,
+                            "routes": false
                         }
                     }
                 ]
