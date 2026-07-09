@@ -22,6 +22,13 @@
 #      not just listed
 #   9. petstore's featured_pets resource (a static, non-templated resource)
 #      is read end-to-end
+#  10. options.cache.tools.eager keeps tools/list short even for a fully
+#      authorized caller: a cold tool (everything__get-sum) never appears
+#      alongside the eagerly-matched ones and the synthesized search tool
+#  11. the cold tool is still discoverable by keyword through the synthesized
+#      zilla__search_tools tool
+#  12. the cold tool is still directly callable by name -- "cold" only ever
+#      changes what tools/list reports, never what tools/call accepts
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -207,6 +214,63 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
+  EXIT=1
+fi
+
+# WHEN: that same fully authorized caller's tools/list is inspected for a
+#       "cold" tool -- one options.cache.tools.eager does not explicitly match
+# THEN: everything__get-sum never appears, even though the caller is
+#       authorized for the everything toolkit and every other eager tool from
+#       it (everything__echo) is listed -- proving eager, not authorization,
+#       is what kept it out of this response
+if echo "$TOOLS_FULL" | grep -q '^everything__echo$' &&
+    ! echo "$TOOLS_FULL" | grep -q '^everything__get-sum$'; then
+  echo "✅ options.cache.tools.eager kept the cold everything__get-sum tool out of tools/list"
+else
+  echo "❌ everything__get-sum was listed despite not matching options.cache.tools.eager.match"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls zilla__search_tools for "sum"
+# THEN: the cold everything__get-sum tool comes back in structuredContent.tools --
+#       proving a tool omitted from tools/list is discoverable by keyword, not gone
+search_cold_tool() {
+  SEARCH_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="zilla__search_tools" \
+      -e CALL_ARGS='{"query":"sum"}' \
+      tools-list-client 2>&1)
+  echo "$SEARCH_OUT" | grep -q 'everything__get-sum'
+}
+retry_until 5 3 search_cold_tool
+echo "SEARCH_OUT=$SEARCH_OUT"
+if echo "$SEARCH_OUT" | grep -q 'everything__get-sum'; then
+  echo "✅ zilla__search_tools surfaced the cold everything__get-sum tool by keyword"
+else
+  echo "❌ zilla__search_tools did not surface everything__get-sum for query \"sum\""
+  EXIT=1
+fi
+
+# WHEN: that same caller calls everything__get-sum directly by name, despite
+#       it never appearing in tools/list above
+# THEN: the call still succeeds -- options.cache.tools.eager only changes what
+#       tools/list reports, never what tools/call accepts
+call_cold_tool() {
+  COLD_CALL_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="everything__get-sum" \
+      -e CALL_ARGS='{"a":2,"b":3}' \
+      tools-list-client 2>&1)
+  echo "$COLD_CALL_OUT" | grep -q 'The sum of 2 and 3 is 5'
+}
+retry_until 5 3 call_cold_tool
+echo "COLD_CALL_OUT=$COLD_CALL_OUT"
+if echo "$COLD_CALL_OUT" | grep -q 'The sum of 2 and 3 is 5'; then
+  echo "✅ everything__get-sum, though cold, still succeeded when called directly by name"
+else
+  echo "❌ everything__get-sum did not succeed when called directly despite being cold, not unauthorized"
   EXIT=1
 fi
 

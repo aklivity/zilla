@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchDocumentScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchIndexFactory;
+import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchDocument;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -313,6 +314,7 @@ public final class McpProxyCache
         private final McpCacheToolsEagerPolicy eagerPolicy;
         private final List<Pattern> eagerMatch;
         private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
+        private Map<CharSequence, String> descriptionsByName = Collections.emptyMap();
         private long lastChecksum = -1L;
         private String lockToken;
 
@@ -332,6 +334,11 @@ public final class McpProxyCache
         public Map<CharSequence, List<String>> scopesByName()
         {
             return scopesByName;
+        }
+
+        public Map<CharSequence, String> descriptionsByName()
+        {
+            return descriptionsByName;
         }
 
         public McpToolSearchIndex searchIndex()
@@ -495,7 +502,9 @@ public final class McpProxyCache
             scopesByName = indexScopesByName(value);
             if (searchIndex != null)
             {
-                searchIndex.index(McpToolSearchDocumentScanner.scan(value, searchFields));
+                final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
+                descriptionsByName = indexDescriptionsByName(documents);
+                searchIndex.index(documents);
             }
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
@@ -552,7 +561,9 @@ public final class McpProxyCache
                 scopesByName = indexScopesByName(value);
                 if (searchIndex != null)
                 {
-                    searchIndex.index(McpToolSearchDocumentScanner.scan(value, searchFields));
+                    final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
+                    descriptionsByName = indexDescriptionsByName(documents);
+                    searchIndex.index(documents);
                 }
             }
             else
@@ -625,6 +636,25 @@ public final class McpProxyCache
                 catch (Exception ex)
                 {
                     index.clear();
+                }
+            }
+
+            return index;
+        }
+
+        // built from the same McpToolSearchDocumentScanner pass already fed to searchIndex.index(),
+        // so a search result can surface a tool's description without re-parsing the cached tools/list
+        private static Map<CharSequence, String> indexDescriptionsByName(
+            List<McpToolSearchDocument> documents)
+        {
+            final Map<CharSequence, String> index = new TreeMap<>(CharSequence::compare);
+
+            for (McpToolSearchDocument document : documents)
+            {
+                final String description = document.field("description");
+                if (description != null)
+                {
+                    index.put(document.name, description);
                 }
             }
 

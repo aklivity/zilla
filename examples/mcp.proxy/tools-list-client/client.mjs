@@ -1,15 +1,20 @@
 // Headless MCP client that connects through the Zilla mcp proxy. In its
 // default (list) mode it prints every tool, resource, and resource template
 // it can see -- one per line, tools bare (e.g. "everything__echo"), resources
-// prefixed "resource:", and resource templates prefixed "template:". Set
-// CALL_TOOL (and optionally CALL_ARGS, a JSON object) to instead call one
-// tool and print its result's text content, or READ_RESOURCE (a concrete
-// URI, with any {template} placeholders already substituted) to read one
-// resource and print its contents. Optionally carries a bearer token on the
-// initial request so .github/test.sh can observe how the result set (or an
-// authorized call/read's effect) changes with the caller's authorized scopes
-// -- unauthorized toolkits and tools/resources are absent from the list
-// entirely, never present-but-marked-denied.
+// prefixed "resource:", and resource templates prefixed "template:". A tool
+// omitted from this list is not necessarily gone -- options.cache.tools.eager
+// on north_mcp_proxy keeps only a fixed set eagerly listed; the rest are
+// "cold" and absent here but still callable by name and discoverable via the
+// zilla__search_tools tool. Set CALL_TOOL (and optionally CALL_ARGS, a JSON
+// object) to instead call one tool and print its result -- zilla__search_tools
+// returns matches in structuredContent.tools, printed space-separated by name;
+// every other tool's result prints its text content as-is -- or READ_RESOURCE
+// (a concrete URI, with any {template} placeholders already substituted) to
+// read one resource and print its contents. Optionally carries a bearer
+// token on the initial request so .github/test.sh can observe how the result
+// set (or an authorized call/read's effect) changes with the caller's
+// authorized scopes -- unauthorized toolkits and tools/resources are absent
+// from the list entirely, never present-but-marked-denied.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -39,7 +44,13 @@ const main = async () =>
         if (CALL_TOOL)
         {
             const result = await client.callTool({ name: CALL_TOOL, arguments: CALL_ARGS });
-            console.log(result.content?.map((c) => c.text).join(" ") ?? "");
+            if (Array.isArray(result.structuredContent?.tools))
+            {
+                console.log(result.structuredContent.tools.map((tool) => tool.name).join(" "));
+                return;
+            }
+            const describe = (c) => c.text ?? JSON.stringify(c);
+            console.log(result.content?.map(describe).join(" ") ?? "");
             return;
         }
 

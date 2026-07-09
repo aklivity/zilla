@@ -3,7 +3,11 @@
 Aggregates multiple upstream MCP (Model Context Protocol) tool sources behind a
 single Streamable HTTP endpoint on port `7114`, fronted by JWT authentication
 and per-toolkit / per-tool authorization, with a shared in-memory cache for
-`tools` / `prompts` / `resources` listings.
+`tools` / `prompts` / `resources` listings. The cache also keeps `tools/list`
+short as toolkits accumulate: a fixed set of frequently used tools stays
+eagerly listed, while every other tool is discoverable on demand through a
+synthesized `zilla__search_tools` keyword-search tool instead of crowding out
+every `tools/list` response.
 
 ```text
                                      ┌────────────────────────────────── Zilla ───────────────────────────────────┐
@@ -145,6 +149,69 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
+```
+
+### Search tools by keyword instead of listing them all
+
+`options.cache.tools.eager` on `north_mcp_proxy` keeps only a fixed set of
+frequently used tools -- `everything__echo`, `urlelicit__authorize`,
+`github__create_pr`, `petstore__list_pets`, `petstore__search_pets`, and
+`petstore__create_pet` -- eagerly listed in `tools/list`. Every other tool is
+"cold": because `options.cache.tools.search` also configures a
+`zilla__search_tools` tool, cold tools are omitted from `tools/list`
+entirely rather than crowding it out. This is most visible on the
+`everything` reference server, which registers over a dozen demo tools --
+`everything__get-sum`, `everything__get-env`, `everything__get-tiny-image`,
+and more -- of which only `echo` is eager.
+
+List tools with the full-scope `$JWT_TOKEN` from above and note how few
+tools come back compared to what every toolkit actually exposes:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
+```
+
+```text
+everything__echo
+urlelicit__authorize
+github__create_pr
+petstore__list_pets
+petstore__search_pets
+petstore__create_pet
+zilla__search_tools
+resource:petstore+/pets/featured
+template:petstore+/pets/{petId}
+template:github+pr://{owner}/{repo}/{number}
+```
+
+`everything__get-sum` -- one of the cold tools just omitted -- is still
+discoverable by keyword. `zilla__search_tools` only ever searches within the
+caller's own authorized scope, the same as `tools/list` itself:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=zilla__search_tools -e CALL_ARGS='{"query":"sum"}' \
+    tools-list-client
+```
+
+```text
+everything__get-sum
+```
+
+Matches come back in the standard `structuredContent` field (alongside a
+serialized-JSON `text` block for clients that predate `structuredContent`) --
+there is no Zilla-specific content type involved, so this call works through
+the same MCP SDK client used everywhere else in this example.
+
+Cold does not mean inaccessible -- nothing about `options.cache.tools.eager`
+touches `tools/call` routing, only what `tools/list` reports. Calling
+`everything__get-sum` directly by name succeeds identically to an eager tool:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=everything__get-sum -e CALL_ARGS='{"a":2,"b":3}' \
+    tools-list-client
+# The sum of 2 and 3 is 5.
 ```
 
 ### Call an authorized tool

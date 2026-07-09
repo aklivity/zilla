@@ -58,7 +58,7 @@ write '{'
         '}'
       '}'
 
-read  '{"content":[{"type":"tool_reference","tool_name":"github__delete_repo"}],"isError":false}'
-read closed
-
 write close
+
+read  '{"content":[{"type":"text","text":"{\\"tools\\":[{\\"name\\":\\"github__delete_repo\\",\\"description\\":\\"Delete a repository\\"}]}"}],"structuredContent":{"tools":[{"name":"github__delete_repo","description":"Delete a repository"}]},"isError":false}'
+read closed
