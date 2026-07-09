@@ -21,6 +21,7 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -48,6 +49,8 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
+    private static final String SERVER_NAME = "server";
+    private static final String NAMES_NAME = "names";
     private static final String SERVERS_NAME = "servers";
     private static final String SERVER_HOST_NAME = "host";
     private static final String SERVER_URL_NAME = "url";
@@ -101,6 +104,19 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
                 final JsonArrayBuilder servers = Json.createArrayBuilder();
                 final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
+
+                if (asyncapiConfig.server != null)
+                {
+                    catalogObject.add(SERVER_NAME, asyncapiConfig.server);
+                }
+
+                if (asyncapiConfig.names != null && !asyncapiConfig.names.isEmpty())
+                {
+                    final JsonArrayBuilder names = Json.createArrayBuilder();
+                    asyncapiConfig.names.forEach(names::add);
+                    catalogObject.add(NAMES_NAME, names);
+                }
+
                 for (AsyncapiCatalogConfig catalog : asyncapiConfig.catalogs)
                 {
                     JsonObjectBuilder schemaObject = Json.createObjectBuilder();
@@ -226,6 +242,17 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 specBuilder.label(label);
 
                 final JsonObject spec = entry.getValue().asJsonObject();
+
+                if (spec.containsKey(SERVER_NAME))
+                {
+                    specBuilder.serverOverride(spec.getString(SERVER_NAME));
+                }
+
+                if (spec.containsKey(NAMES_NAME))
+                {
+                    spec.getJsonArray(NAMES_NAME).forEach(n -> specBuilder.name(((JsonString) n).getString()));
+                }
+
                 if (spec.containsKey(CATALOG_NAME))
                 {
                     final JsonObject catalogs = spec.getJsonObject(CATALOG_NAME);

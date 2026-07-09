@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -482,6 +483,19 @@ public abstract class AsyncapiCompositeGenerator
 
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
+
+            protected final boolean matchesNames(
+                AsyncapiServerView server)
+            {
+                List<String> names = config.options.specs.stream()
+                    .filter(s -> name.equals(s.label))
+                    .map(s -> s.names)
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElse(null);
+
+                return names == null || names.isEmpty() || names.contains(server.name);
+            }
 
             protected final void injectPayloadModel(
                 Consumer<ModelConfig> injector,

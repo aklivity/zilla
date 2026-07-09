@@ -23,6 +23,8 @@ public class AsyncapiSpecificationConfigBuilder<T>
     private final Function<AsyncapiSpecificationConfig, T> mapper;
 
     private String label;
+    private String server;
+    private List<String> names;
     private List<AsyncapiServerConfig> servers;
     private List<AsyncapiCatalogConfig> catalogs;
 
@@ -30,6 +32,25 @@ public class AsyncapiSpecificationConfigBuilder<T>
         String label)
     {
         this.label = label;
+        return this;
+    }
+
+    public AsyncapiSpecificationConfigBuilder<T> serverOverride(
+        String server)
+    {
+        this.server = server;
+        return this;
+    }
+
+    public AsyncapiSpecificationConfigBuilder<T> name(
+        String name)
+    {
+        if (names == null)
+        {
+            names = new LinkedList<>();
+        }
+
+        names.add(name);
         return this;
     }
 
@@ -70,7 +91,7 @@ public class AsyncapiSpecificationConfigBuilder<T>
     public T build()
     {
         return mapper.apply(
-            new AsyncapiSpecificationConfig(label, servers, catalogs));
+            new AsyncapiSpecificationConfig(label, server, names, servers, catalogs));
     }
 
     AsyncapiSpecificationConfigBuilder(

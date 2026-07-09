@@ -61,6 +61,22 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateMqttClientWithServerOverride()
+    {
+        JsonObject config = schema.validate("client.mqtt.server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateMqttClientWithNames()
+    {
+        JsonObject config = schema.validate("client.mqtt.names.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateMqttServer()
     {
         JsonObject config = schema.validate("server.mqtt.yaml");

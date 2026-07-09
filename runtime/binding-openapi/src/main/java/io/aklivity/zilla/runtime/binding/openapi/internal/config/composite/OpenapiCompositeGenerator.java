@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiRequestBodyView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -421,6 +422,19 @@ public abstract class OpenapiCompositeGenerator
 
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
+
+            protected final boolean matchesPaths(
+                OpenapiServerView server)
+            {
+                List<String> paths = config.options.specs.stream()
+                    .filter(s -> name.equals(s.label))
+                    .map(s -> s.paths)
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElse(null);
+
+                return paths == null || paths.isEmpty() || paths.contains(server.url.getPath());
+            }
 
             protected final void injectPayloadModel(
                 Consumer<ModelConfig> injector,

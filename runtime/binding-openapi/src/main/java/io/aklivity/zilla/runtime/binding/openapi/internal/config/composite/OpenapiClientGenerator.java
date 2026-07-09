@@ -16,9 +16,11 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
+import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -140,14 +142,36 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         .inject(this::injectTcpClient);
             }
 
+            private URI resolveServer()
+            {
+                return config.options.specs.stream()
+                    .filter(s -> schema.apiLabel.equals(s.label))
+                    .map(s -> s.server)
+                    .filter(server -> server != null)
+                    .findFirst()
+                    .map(URI::create)
+                    .orElse(null);
+            }
+
+            private Optional<String> resolveScheme()
+            {
+                URI server = resolveServer();
+
+                return server != null
+                    ? Optional.of(server.getScheme())
+                    : Stream.of(schema)
+                        .map(s -> s.openapi)
+                        .flatMap(v -> v.servers.stream())
+                        .filter(this::matchesPaths)
+                        .findFirst()
+                        .map(s -> s.url.getScheme());
+            }
+
             private <C> NamespaceConfigBuilder<C> injectHttpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (Stream.of(schema)
-                    .map(s -> s.openapi)
-                    .flatMap(v -> v.servers.stream())
-                    .findFirst()
-                    .filter(s -> secure.contains(s.url.getScheme()))
+                if (resolveScheme()
+                    .filter(secure::contains)
                     .isPresent())
                 {
                     namespace
@@ -183,11 +207,8 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (Stream.of(schema)
-                    .map(s -> s.openapi)
-                    .flatMap(v -> v.servers.stream())
-                    .findFirst()
-                    .filter(s -> secure.contains(s.url.getScheme()))
+                if (resolveScheme()
+                    .filter(secure::contains)
                     .isPresent())
                 {
                     namespace
@@ -208,14 +229,17 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTcpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
+                final URI server = resolveServer();
                 final TcpOptionsConfig tcpOptions = config.options.tcp != null
                         ? config.options.tcp
                         : TcpOptionsConfig.builder()
-                            .inject(o ->
-                                Stream.of(schema)
+                            .inject(o -> server != null
+                                ? o.host(server.getHost()).ports(new int[] { server.getPort() })
+                                : Stream.of(schema)
                                     .map(s -> s.openapi)
                                     .flatMap(v -> v.servers.stream())
                                     .filter(s -> s.url != null)
+                                    .filter(this::matchesPaths)
                                     .findFirst()
                                     .map(s -> o
                                         .host(s.url.getHost())
@@ -242,14 +266,16 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasResponses)
                     .forEach(operation ->
-                        operation.servers.forEach(server ->
-                            options
-                                .request()
-                                    .path(server.requestPath(operation.path))
-                                    .method(HttpRequestConfig.Method.valueOf(operation.method))
-                                    .inject(request -> injectHttpResponses(request, operation))
-                                    .build()
-                                .build()));
+                        operation.servers.stream()
+                            .filter(this::matchesPaths)
+                            .forEach(server ->
+                                options
+                                    .request()
+                                        .path(server.requestPath(operation.path))
+                                        .method(HttpRequestConfig.Method.valueOf(operation.method))
+                                        .inject(request -> injectHttpResponses(request, operation))
+                                        .build()
+                                    .build()));
 
                 return options;
             }

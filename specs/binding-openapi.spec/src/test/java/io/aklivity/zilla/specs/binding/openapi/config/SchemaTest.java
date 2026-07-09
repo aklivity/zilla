@@ -72,6 +72,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerWithPaths()
+    {
+        JsonObject config = schema.validate("server.paths.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateClient()
     {
         JsonObject config = schema.validate("client.yaml");
@@ -83,6 +91,22 @@ public class SchemaTest
     public void shouldValidateClientWithMultipleSpecifications()
     {
         JsonObject config = schema.validate("client.multiple.specs.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithServerOverride()
+    {
+        JsonObject config = schema.validate("client.server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithPaths()
+    {
+        JsonObject config = schema.validate("client.paths.yaml");
 
         assertThat(config, not(nullValue()));
     }

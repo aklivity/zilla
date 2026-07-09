@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
+import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -189,6 +190,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
+                    .filter(this::matchesNames)
                     .map(s -> s.protocol)
                     .distinct()
                     .map(protocols::get)
@@ -198,12 +200,34 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 return namespace;
             }
 
+            private URI resolveServer()
+            {
+                return config.options.specs.stream()
+                    .filter(s -> schema.apiLabel.equals(s.label))
+                    .map(s -> s.server)
+                    .filter(server -> server != null)
+                    .findFirst()
+                    .map(URI::create)
+                    .orElse(null);
+            }
+
+            private boolean isSecure()
+            {
+                URI server = resolveServer();
+
+                return server != null
+                    ? secure.stream().anyMatch(protocol -> protocol.equals(server.getScheme()))
+                    : Stream.of(schema)
+                        .map(s -> s.asyncapi)
+                        .flatMap(v -> v.servers.stream())
+                        .filter(this::matchesNames)
+                        .anyMatch(s -> secure.contains(s.protocol));
+            }
+
             private <C> NamespaceConfigBuilder<C> injectTlsClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream()).anyMatch(s -> secure.contains(s.protocol)))
+                if (isSecure())
                 {
                     namespace
                         .binding()
@@ -223,13 +247,16 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTcpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
+                final URI server = resolveServer();
                 final TcpOptionsConfig tcpOptions = config.options.tcp != null
                         ? config.options.tcp
                         : TcpOptionsConfig.builder()
-                            .inject(o ->
-                                Stream.of(schema)
+                            .inject(o -> server != null
+                                ? o.host(server.getHost()).ports(new int[] { server.getPort() })
+                                : Stream.of(schema)
                                     .map(s -> s.asyncapi)
                                     .flatMap(v -> v.servers.stream())
+                                    .filter(this::matchesNames)
                                     .findFirst()
                                     .map(s -> o
                                         .host(s.hostname)
@@ -448,6 +475,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
+                    .filter(this::matchesNames)
                     .forEach(s ->
                         options.server()
                             .host(s.hostname)

@@ -20,6 +20,8 @@ import java.util.function.Function;
 public class AsyncapiSpecificationConfig
 {
     public final String label;
+    public final String server;
+    public final List<String> names;
     public final List<AsyncapiCatalogConfig> catalogs;
     public final List<AsyncapiServerConfig> servers;
 
@@ -36,10 +38,14 @@ public class AsyncapiSpecificationConfig
 
     AsyncapiSpecificationConfig(
         String label,
+        String server,
+        List<String> names,
         List<AsyncapiServerConfig> servers,
         List<AsyncapiCatalogConfig> catalogs)
     {
         this.label = label;
+        this.server = server;
+        this.names = names;
         this.catalogs = catalogs;
         this.servers = servers;
     }

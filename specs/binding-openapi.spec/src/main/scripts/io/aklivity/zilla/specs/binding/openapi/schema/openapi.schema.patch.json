@@ -68,6 +68,20 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                            "server":
+                                            {
+                                                "title": "Server",
+                                                "type": "string"
+                                            },
+                                            "paths":
+                                            {
+                                                "title": "Paths",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
                                             "servers":
                                             {
                                                 "title": "Servers",

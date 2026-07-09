@@ -180,6 +180,70 @@ public class AsyncapiOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithServerAndNames() throws IOException
+    {
+        String yaml =
+                """
+                specs:
+                  kafka_api:
+                    server: "kafka://broker1.example.com:9092"
+                    names:
+                      - production
+                    catalog:
+                      catalog0:
+                        subject: smartylighting
+                        version: latest
+                """;
+
+        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        AsyncapiSpecificationConfig asyncapi = options.specs.get(0);
+        assertThat(asyncapi.server, equalTo("kafka://broker1.example.com:9092"));
+        assertThat(asyncapi.names, equalTo(asList("production")));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithServerAndNames() throws IOException
+    {
+        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
+            .inject(Function.identity())
+            .spec()
+                .label("kafka_api")
+                .serverOverride("kafka://broker1.example.com:9092")
+                .name("production")
+                .catalog()
+                    .name("catalog0")
+                    .subject("smartylighting")
+                    .version("latest")
+                    .build()
+                .build()
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+            """
+            specs:
+              kafka_api:
+                server: "kafka://broker1.example.com:9092"
+                names:
+                  - production
+                catalog:
+                  catalog0:
+                    subject: smartylighting
+                    version: latest
+                servers: []
+            mqtt-kafka:
+              channels:
+                sessions: mqttSessions
+                messages: mqttMessages
+                retained: mqttRetained
+            """));
+    }
+
+    @Test
     public void shouldReadOptionsKafka() throws IOException
     {
         String yaml =

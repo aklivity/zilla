@@ -116,6 +116,17 @@ public class OpenapiServerIT
     }
 
     @Test
+    @Configuration("server.paths.yaml")
+    @Specification({
+        "${composite}/create.pet.prod/client",
+        "${openapi}/create.pet.prod/server"
+    })
+    public void shouldCreatePetWithPathsSelection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${composite}/create.pet.invalid/client",

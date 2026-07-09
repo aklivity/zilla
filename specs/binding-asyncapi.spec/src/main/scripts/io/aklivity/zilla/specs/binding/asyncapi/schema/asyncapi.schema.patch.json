@@ -48,6 +48,20 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                            "server":
+                                            {
+                                                "title": "Server",
+                                                "type": "string"
+                                            },
+                                            "names":
+                                            {
+                                                "title": "Names",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
                                             "servers":
                                             {
                                                 "title": "Servers",

@@ -38,7 +38,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecurityRequirementView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
@@ -137,6 +136,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         .ports(Stream.of(schema)
                             .map(s -> s.openapi)
                             .flatMap(v -> v.servers.stream())
+                            .filter(this::matchesPaths)
                             .mapToInt(s -> s.url.getPort())
                             .distinct()
                             .toArray())
@@ -162,6 +162,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .map(s -> s.openapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> plain.contains(s.url.getScheme()))
+                    .filter(this::matchesPaths)
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
                             .port(s.url.getPort())
@@ -173,6 +174,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .map(s -> s.openapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> secure.contains(s.url.getScheme()))
+                    .filter(this::matchesPaths)
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
                             .port(s.url.getPort())
@@ -189,6 +191,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 if (Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.servers.stream())
+                    .filter(this::matchesPaths)
                     .anyMatch(s -> secure.contains(s.url.getScheme())))
                 {
                     namespace.binding()
@@ -211,6 +214,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .map(s -> s.openapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> secure.contains(s.url.getScheme()))
+                    .filter(this::matchesPaths)
                     .forEach(s -> binding.route()
                         .when(TlsConditionConfig::builder)
                             .port(s.url.getPort())
@@ -265,18 +269,16 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasRequestBodyOrParameters)
                     .forEach(operation ->
-                    {
-                        for (OpenapiServerView server : operation.servers)
-                        {
-                            options
-                                .request()
-                                    .path(server.requestPath(operation.path))
-                                    .method(Method.valueOf(operation.method))
-                                    .inject(request -> injectHttpParams(request, operation))
-                                    .inject(request -> injectHttpContent(request, operation))
-                                .build();
-                        }
-                    });
+                        operation.servers.stream()
+                            .filter(this::matchesPaths)
+                            .forEach(server ->
+                                options
+                                    .request()
+                                        .path(server.requestPath(operation.path))
+                                        .method(Method.valueOf(operation.method))
+                                        .inject(request -> injectHttpParams(request, operation))
+                                        .inject(request -> injectHttpContent(request, operation))
+                                    .build()));
 
                 return options;
             }
@@ -378,19 +380,22 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .flatMap(v -> v.operations.values().stream())
                     .filter(o -> o.servers != null)
                     .forEach(operation ->
-                        operation.servers.forEach(server ->
-                            binding
-                                .route()
-                                .exit(config.qname)
-                                .when(HttpConditionConfig::builder)
-                                    .header(":path", server.requestPath(operation.path).replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
-                                    .header(":method", operation.method)
-                                    .build()
-                                .with(HttpWithConfig::builder)
-                                    .compositeId(operation.compositeId)
-                                    .build()
-                                .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                                .build()));
+                        operation.servers.stream()
+                            .filter(this::matchesPaths)
+                            .forEach(server ->
+                                binding
+                                    .route()
+                                    .exit(config.qname)
+                                    .when(HttpConditionConfig::builder)
+                                        .header(":path",
+                                            server.requestPath(operation.path).replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
+                                        .header(":method", operation.method)
+                                        .build()
+                                    .with(HttpWithConfig::builder)
+                                        .compositeId(operation.compositeId)
+                                        .build()
+                                    .inject(route -> injectHttpServerRouteGuarded(route, operation))
+                                    .build()));
 
                 return binding;
             }

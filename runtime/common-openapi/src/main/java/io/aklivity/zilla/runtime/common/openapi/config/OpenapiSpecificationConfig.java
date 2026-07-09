@@ -21,23 +21,37 @@ import java.util.List;
 public class OpenapiSpecificationConfig
 {
     public final String label;
+    public final String server;
+    public final List<String> paths;
     public final List<OpenapiServerConfig> servers;
     public final List<OpenapiCatalogConfig> catalogs;
+
+    public OpenapiSpecificationConfig(
+        String label,
+        String server,
+        List<String> paths,
+        List<OpenapiServerConfig> servers,
+        List<OpenapiCatalogConfig> catalogs)
+    {
+        this.label = label;
+        this.server = server;
+        this.paths = paths;
+        this.servers = servers;
+        this.catalogs = catalogs;
+    }
 
     public OpenapiSpecificationConfig(
         String label,
         List<OpenapiServerConfig> servers,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this.label = label;
-        this.servers = servers;
-        this.catalogs = catalogs;
+        this(label, null, emptyList(), servers, catalogs);
     }
 
     public OpenapiSpecificationConfig(
         String apiLabel,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(apiLabel, emptyList(), catalogs);
+        this(apiLabel, null, emptyList(), emptyList(), catalogs);
     }
 }
