@@ -223,7 +223,7 @@ jobs:
           timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
 
       - name: Download Docker image
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: zilla-image
           path: ~/docker-cache
