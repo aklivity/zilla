@@ -75,6 +75,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
@@ -191,8 +192,10 @@ public final class McpOpenapiCompositeGenerator
                     continue;
                 }
 
+                final List<GuardedRef> guarded = combineGuarded(binding, route, resolution.guarded);
+
                 routed.add(new RoutedOperation(toolConfig(binding, routeTool), resourceConfig(binding, resource),
-                    operation, resolution.guarded, serverByLabel.get(with.spec), with.params, with.body));
+                    operation, guarded, serverByLabel.get(with.spec), with.params, with.body));
             }
         }
 
@@ -601,6 +604,34 @@ public final class McpOpenapiCompositeGenerator
         }
 
         return result;
+    }
+
+    private static List<GuardedRef> combineGuarded(
+        McpOpenapiBindingConfig binding,
+        McpOpenapiRouteConfig route,
+        List<GuardedRef> derived)
+    {
+        List<GuardedRef> combined = derived;
+
+        if (!route.guarded.isEmpty())
+        {
+            final Map<String, List<String>> rolesByQName = new LinkedHashMap<>();
+            for (GuardedRef ref : derived)
+            {
+                rolesByQName.computeIfAbsent(ref.qname, q -> new ArrayList<>()).addAll(ref.roles);
+            }
+            for (GuardedConfig guarded : route.guarded)
+            {
+                final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guarded.name));
+                rolesByQName.computeIfAbsent(qname, q -> new ArrayList<>()).addAll(guarded.roles);
+            }
+
+            combined = rolesByQName.entrySet().stream()
+                .map(e -> new GuardedRef(e.getKey(), e.getValue().stream().distinct().toList()))
+                .toList();
+        }
+
+        return combined;
     }
 
     private static GuardedResolution resolveAlternative(
