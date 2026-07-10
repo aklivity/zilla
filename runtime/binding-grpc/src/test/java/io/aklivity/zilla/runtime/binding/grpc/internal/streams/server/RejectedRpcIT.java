@@ -66,7 +66,7 @@ public class RejectedRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${net}/unsupported.content.type/client"
     })
@@ -76,7 +76,7 @@ public class RejectedRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${net}/missing.te.trailers/client",
     })

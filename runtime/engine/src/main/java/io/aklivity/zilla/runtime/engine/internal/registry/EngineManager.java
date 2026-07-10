@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
@@ -55,7 +54,6 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ConfigException;
 import io.aklivity.zilla.runtime.engine.config.EngineConfig;
 import io.aklivity.zilla.runtime.engine.config.EngineConfigReader;
@@ -302,7 +300,7 @@ public class EngineManager
             if (!systemPatched.equals(systemBase))
             {
                 JsonbConfig config = new JsonbConfig()
-                    .withAdapters(new NamespaceAdapter(null))
+                    .withAdapters(new NamespaceAdapter())
                     .withFormatting(true);
                 Jsonb jsonb = JsonbBuilder.newBuilder()
                     .withProvider(schemaProvider)
@@ -311,7 +309,7 @@ public class EngineManager
 
                 NamespaceConfig namespace = jsonb.fromJson(systemPatched.toString(), NamespaceConfig.class);
 
-                EngineConfigWriter writer = new EngineConfigWriter(null);
+                EngineConfigWriter writer = new EngineConfigWriter();
                 systemYaml = writer.write(namespace);
             }
         }
@@ -332,7 +330,6 @@ public class EngineManager
         {
             EngineConfigReader reader = new EngineConfigReader(
                 config,
-                new NamespaceConfigAdapterContext(Path.of(config.configURI())),
                 expressions,
                 schemaTypes,
                 logger);
@@ -642,36 +639,6 @@ public class EngineManager
             return String.format("%s:%s",
                     supplyName.apply(NamespacedId.namespaceId(namespacedId)),
                     supplyName.apply(NamespacedId.localId(namespacedId)));
-        }
-    }
-
-    private static final class NamespaceConfigAdapterContext implements ConfigAdapterContext
-    {
-        private final Path configPath;
-
-        NamespaceConfigAdapterContext(
-            Path configPath)
-        {
-            this.configPath = configPath;
-        }
-
-        @Override
-        public String readResource(
-            String location)
-        {
-            String content = null;
-
-            try
-            {
-                Path path = configPath.resolveSibling(location);
-                content = Files.readString(path);
-            }
-            catch (IOException ex)
-            {
-                rethrowUnchecked(ex);
-            }
-
-            return content;
         }
     }
 

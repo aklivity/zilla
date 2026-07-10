@@ -193,13 +193,9 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                     {
                         final long resolvedId = route.id;
                         final long resolvedApiId = composite.resolveApiId(
-                            route.with != null
-                                ? route.with.apiId
-                                : apiId);
+                            binding.resolveSpecLabel(route, apiId));
                         final String resolvedOperationId =
-                            route.with != null
-                                ? route.with.operationId
-                                : operationId;
+                            binding.resolveOperationId(route, operationId);
 
                         newStream = new CompositeStream(
                             receiver,

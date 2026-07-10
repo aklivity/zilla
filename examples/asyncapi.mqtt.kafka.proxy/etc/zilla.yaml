@@ -40,40 +40,40 @@ bindings:
           messages: mqttMessages
     routes:
       - when:
-          - api-id: mqtt_api
-            operation-id: turnOn
+          - spec: mqtt_api
+            operation: turnOn
         exit: south_kafka_client
         with:
-          api-id: kafka_api
-          operation-id: toStreetlightData
+          spec: kafka_api
+          operation: toStreetlightData
       - when:
-          - api-id: mqtt_api
-            operation-id: receiveLightMeasurement
+          - spec: mqtt_api
+            operation: receiveLightMeasurement
         exit: south_kafka_client
         with:
-          api-id: kafka_api
-          operation-id: onStreetlightData
+          spec: kafka_api
+          operation: onStreetlightData
       - when:
-          - api-id: mqtt_api
-            operation-id: sendLightMeasurement
+          - spec: mqtt_api
+            operation: sendLightMeasurement
         exit: south_kafka_client
         with:
-          api-id: kafka_api
-          operation-id: toStreetlightData
+          spec: kafka_api
+          operation: toStreetlightData
       - when:
-          - api-id: mqtt_api
-            operation-id: turnOff
+          - spec: mqtt_api
+            operation: turnOff
         exit: south_kafka_client
         with:
-          api-id: kafka_api
-          operation-id: toStreetlightData
+          spec: kafka_api
+          operation: toStreetlightData
       - when:
-          - api-id: mqtt_api
-            operation-id: dimLight
+          - spec: mqtt_api
+            operation: dimLight
         exit: south_kafka_client
         with:
-          api-id: kafka_api
-          operation-id: toStreetlightData
+          spec: kafka_api
+          operation: toStreetlightData
   south_kafka_client:
     type: asyncapi
     kind: client

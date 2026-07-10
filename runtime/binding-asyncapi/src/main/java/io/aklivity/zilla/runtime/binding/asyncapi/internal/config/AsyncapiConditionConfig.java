@@ -18,34 +18,34 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class AsyncapiConditionConfig extends ConditionConfig
 {
-    public final String apiId;
-    public final String operationId;
+    public final String spec;
+    public final String operation;
 
     public AsyncapiConditionConfig(
-        String apiId,
-        String operationId)
+        String spec,
+        String operation)
     {
-        this.apiId = apiId;
-        this.operationId = operationId;
+        this.spec = spec;
+        this.operation = operation;
     }
 
     public boolean matches(
         String apiId,
         String operationId)
     {
-        return matchesApiId(apiId) &&
-            matchesOperationId(operationId);
+        return matchesSpec(apiId) &&
+            matchesOperation(operationId);
     }
 
-    private boolean matchesApiId(
+    private boolean matchesSpec(
         String apiId)
     {
-        return this.apiId == null || this.apiId.equals(apiId);
+        return this.spec == null || this.spec.equals(apiId);
     }
 
-    private boolean matchesOperationId(
+    private boolean matchesOperation(
         String operationId)
     {
-        return this.operationId == null || this.operationId.equals(operationId);
+        return this.operation == null || this.operation.equals(operationId);
     }
 }

@@ -153,22 +153,6 @@ public final class ZillaStartCommand extends ZillaCommand
 
         EngineConfiguration config = new EngineConfiguration(props);
 
-        Path configPath = Path.of(config.configURI());
-        if ("file".equals(configPath.getFileSystem().provider().getScheme()))
-        {
-            if (configPath.endsWith("zilla.yaml") && Files.notExists(configPath))
-            {
-                Path configJson = configPath.resolveSibling("zilla.json");
-
-                if (Files.exists(configJson))
-                {
-                    System.out.format("WARNING %s is deprecated, use %s instead\n", configJson, configPath);
-
-                    props.setProperty(ENGINE_CONFIG_URL.name(), String.format("file:%s", configJson));
-                }
-            }
-        }
-
         final ErrorHandler onError = ex -> stop.countDown();
         final Consumer<Throwable> errorReporter = config.errorReporter();
 

@@ -64,6 +64,7 @@ public class MqttKafkaSessionProxyIT
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyWillId")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/kafka/config")
         .external("kafka0")
+        .aroundStart(k3po::deferStartable)
         .clean();
 
     @Rule

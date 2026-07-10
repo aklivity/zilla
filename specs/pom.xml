@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>2.0.0-alpha-21</version>
+    <version>2.0.0-alpha-22</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -189,4 +189,13 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jasig.maven</groupId>
+        <artifactId>maven-notice-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 </project>

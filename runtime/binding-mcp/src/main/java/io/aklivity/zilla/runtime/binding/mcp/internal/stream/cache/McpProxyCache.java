@@ -38,14 +38,18 @@ import java.util.zip.CRC32;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Long2LongHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRangeScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchDocumentScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolSearchIndexFactory;
+import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchDocument;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -62,6 +66,14 @@ public final class McpProxyCache
     private static final String STORE_KEY_RESOURCES_TEMPLATES = "resources/templates";
     private static final String STORE_KEY_PROMPTS = "prompts";
     private static final String STORE_LOCK_SUFFIX = ".lock";
+
+    // the JSON array key each kind's assembled list is wrapped in on the wire -- e.g. {"resources":[...]}
+    // for KIND_RESOURCES_LIST -- matching McpProxyResourcesListFactory.arrayKey() and its siblings; distinct
+    // from the STORE_KEY_* constants above, which name the store entry rather than the wire array key
+    private static final String ARRAY_KEY_TOOLS = "tools";
+    private static final String ARRAY_KEY_RESOURCES = "resources";
+    private static final String ARRAY_KEY_RESOURCES_TEMPLATES = "resourceTemplates";
+    private static final String ARRAY_KEY_PROMPTS = "prompts";
     private static final String STORE_LOCK_KEY_TOOLS = STORE_KEY_TOOLS + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_RESOURCES = STORE_KEY_RESOURCES + STORE_LOCK_SUFFIX;
     private static final String STORE_LOCK_KEY_RESOURCES_TEMPLATES = STORE_KEY_RESOURCES_TEMPLATES + STORE_LOCK_SUFFIX;
@@ -87,6 +99,7 @@ public final class McpProxyCache
 
     private final StoreHandler store;
     private final Int2ObjectHashMap<McpListCache> caches;
+    private final Long2LongHashMap routeAuthorizations;
     private final List<Runnable> awaiters;
     private final CRC32 crc32 = new CRC32();
     private String lockToken;
@@ -125,6 +138,7 @@ public final class McpProxyCache
         this.cacheTtl = cache.ttl;
         this.awaiters = new ArrayList<>();
         this.caches = new Int2ObjectHashMap<>();
+        this.routeAuthorizations = new Long2LongHashMap(-1L);
 
         final IntPredicate filter = config.hydrateFilter();
         if (filter.test(KIND_TOOLS_LIST))
@@ -135,13 +149,22 @@ public final class McpProxyCache
             final List<String> searchFields = cache.tools != null && cache.tools.search != null
                 ? cache.tools.search.fields
                 : null;
-            final byte[] searchToolBytes = cache.tools != null && cache.tools.search != null
-                ? McpSearchToolDescriptor.build(cache.tools.search.tool)
+            final String searchToolkit = cache.tools != null && cache.tools.search != null
+                ? cache.tools.search.toolkit
+                : null;
+            final byte[] searchToolsBytes = cache.tools != null && cache.tools.search != null
+                ? McpSearchToolDescriptor.buildSearchTools(searchToolkit)
+                : null;
+            final byte[] describeToolBytes = cache.tools != null && cache.tools.search != null
+                ? McpSearchToolDescriptor.buildDescribeTool(searchToolkit)
+                : null;
+            final byte[] executeToolBytes = cache.tools != null && cache.tools.search != null
+                ? McpSearchToolDescriptor.buildExecuteTool(searchToolkit)
                 : null;
             final McpCacheToolsEagerConfig eager = cache.tools != null ? cache.tools.eager : null;
             caches.put(KIND_TOOLS_LIST,
                 new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS,
-                    searchIndex, searchFields, searchToolBytes, eager));
+                    searchIndex, searchFields, searchToolsBytes, describeToolBytes, executeToolBytes, eager));
         }
         if (filter.test(KIND_RESOURCES_LIST))
         {
@@ -169,6 +192,22 @@ public final class McpProxyCache
     public Int2ObjectHashMap<McpListCache> caches()
     {
         return caches;
+    }
+
+    // memoizes the reauthorized session for a route's own with.cache.credentials override, so
+    // multiple south connections for the same route within one hydration attempt share one session
+    // instead of each minting a fresh one from the guard
+    public long routeAuthorization(
+        long traceId,
+        long routedId,
+        String credentials)
+    {
+        return routeAuthorizations.computeIfAbsent(routedId, id -> guard.reauthorize(traceId, bindingId, 0L, credentials));
+    }
+
+    public void resetRouteAuthorizations()
+    {
+        routeAuthorizations.clear();
     }
 
     public void register(
@@ -282,10 +321,15 @@ public final class McpProxyCache
         private final Map<String, String> fragments;
         private final McpToolSearchIndex searchIndex;
         private final List<String> searchFields;
-        private final byte[] searchToolBytes;
+        private final byte[] searchToolsBytes;
+        private final byte[] describeToolBytes;
+        private final byte[] executeToolBytes;
         private final McpCacheToolsEagerPolicy eagerPolicy;
         private final List<Pattern> eagerMatch;
         private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
+        private Map<CharSequence, String> descriptionsByName = Collections.emptyMap();
+        private Map<CharSequence, McpToolByteRange> toolRangesByName = Collections.emptyMap();
+        private byte[] toolsBytes = new byte[0];
         private long lastChecksum = -1L;
         private String lockToken;
 
@@ -307,14 +351,39 @@ public final class McpProxyCache
             return scopesByName;
         }
 
+        public Map<CharSequence, String> descriptionsByName()
+        {
+            return descriptionsByName;
+        }
+
+        public Map<CharSequence, McpToolByteRange> toolRangesByName()
+        {
+            return toolRangesByName;
+        }
+
+        public byte[] toolsBytes()
+        {
+            return toolsBytes;
+        }
+
         public McpToolSearchIndex searchIndex()
         {
             return searchIndex;
         }
 
-        public byte[] searchToolBytes()
+        public byte[] searchToolsBytes()
         {
-            return searchToolBytes;
+            return searchToolsBytes;
+        }
+
+        public byte[] describeToolBytes()
+        {
+            return describeToolBytes;
+        }
+
+        public byte[] executeToolBytes()
+        {
+            return executeToolBytes;
         }
 
         public boolean eagerConfigured()
@@ -353,7 +422,7 @@ public final class McpProxyCache
             String storeKey,
             String storeLockKey)
         {
-            this(kind, storeKey, storeLockKey, null, null, null, null);
+            this(kind, storeKey, storeLockKey, null, null, null, null, null, null);
         }
 
         private McpListCache(
@@ -362,7 +431,9 @@ public final class McpProxyCache
             String storeLockKey,
             McpToolSearchIndex searchIndex,
             List<String> searchFields,
-            byte[] searchToolBytes,
+            byte[] searchToolsBytes,
+            byte[] describeToolBytes,
+            byte[] executeToolBytes,
             McpCacheToolsEagerConfig eager)
         {
             this.kind = kind;
@@ -371,7 +442,9 @@ public final class McpProxyCache
             this.fragments = new TreeMap<>();
             this.searchIndex = searchIndex;
             this.searchFields = searchFields;
-            this.searchToolBytes = searchToolBytes;
+            this.searchToolsBytes = searchToolsBytes;
+            this.describeToolBytes = describeToolBytes;
+            this.executeToolBytes = executeToolBytes;
             this.eagerPolicy = eager != null ? eager.policy : McpCacheToolsEagerPolicy.NONE;
             this.eagerMatch = eager != null && eager.match != null ? compileEagerMatch(eager.match) : null;
         }
@@ -468,7 +541,11 @@ public final class McpProxyCache
             scopesByName = indexScopesByName(value);
             if (searchIndex != null)
             {
-                searchIndex.index(McpToolSearchDocumentScanner.scan(value, searchFields));
+                final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
+                descriptionsByName = indexDescriptionsByName(documents);
+                searchIndex.index(documents);
+                toolsBytes = value.getBytes(StandardCharsets.UTF_8);
+                toolRangesByName = McpToolByteRangeScanner.scan(toolsBytes);
             }
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
@@ -525,7 +602,11 @@ public final class McpProxyCache
                 scopesByName = indexScopesByName(value);
                 if (searchIndex != null)
                 {
-                    searchIndex.index(McpToolSearchDocumentScanner.scan(value, searchFields));
+                    final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
+                    descriptionsByName = indexDescriptionsByName(documents);
+                    searchIndex.index(documents);
+                    toolsBytes = value.getBytes(StandardCharsets.UTF_8);
+                    toolRangesByName = McpToolByteRangeScanner.scan(toolsBytes);
                 }
             }
             else
@@ -549,19 +630,51 @@ public final class McpProxyCache
             checkReady();
         }
 
+        private String arrayKeyOf(
+            int kind)
+        {
+            final String arrayKey;
+            if (kind == KIND_TOOLS_LIST)
+            {
+                arrayKey = ARRAY_KEY_TOOLS;
+            }
+            else if (kind == KIND_RESOURCES_LIST)
+            {
+                arrayKey = ARRAY_KEY_RESOURCES;
+            }
+            else if (kind == KIND_RESOURCES_TEMPLATES_LIST)
+            {
+                arrayKey = ARRAY_KEY_RESOURCES_TEMPLATES;
+            }
+            else if (kind == KIND_PROMPTS_LIST)
+            {
+                arrayKey = ARRAY_KEY_PROMPTS;
+            }
+            else
+            {
+                arrayKey = null;
+            }
+            return arrayKey;
+        }
+
+        // scopesByName drives McpScopeFilter for every list kind, not just tools -- a resource or prompt
+        // guarded only by its toolkit route's own scope (no operation-level security of its own) carries
+        // that scope in securitySchemes exactly like a tool does (see McpProxyCacheHydrater), so indexing
+        // must cover every kind's own array key or such items would never be filtered at all
         private Map<CharSequence, List<String>> indexScopesByName(
             String value)
         {
             final Map<CharSequence, List<String>> index = new TreeMap<>(CharSequence::compare);
 
-            if (kind == KIND_TOOLS_LIST && value != null)
+            final String arrayKey = arrayKeyOf(kind);
+            if (arrayKey != null && value != null)
             {
                 final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
                 final JsonParserEx parser = JsonEx.createParser();
                 parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
                 try
                 {
-                    scanToolsList(parser, index);
+                    scanList(parser, arrayKey, index);
                 }
                 catch (Exception ex)
                 {
@@ -572,8 +685,28 @@ public final class McpProxyCache
             return index;
         }
 
-        private void scanToolsList(
+        // built from the same McpToolSearchDocumentScanner pass already fed to searchIndex.index(),
+        // so a search result can surface a tool's description without re-parsing the cached tools/list
+        private static Map<CharSequence, String> indexDescriptionsByName(
+            List<McpToolSearchDocument> documents)
+        {
+            final Map<CharSequence, String> index = new TreeMap<>(CharSequence::compare);
+
+            for (McpToolSearchDocument document : documents)
+            {
+                final String description = document.field("description");
+                if (description != null)
+                {
+                    index.put(document.name, description);
+                }
+            }
+
+            return index;
+        }
+
+        private void scanList(
             JsonParserEx parser,
+            String arrayKey,
             Map<CharSequence, List<String>> index)
         {
             if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
@@ -593,9 +726,9 @@ public final class McpProxyCache
                         depth--;
                         break;
                     case KEY_NAME:
-                        if (depth == 1 && "tools".contentEquals(parser.getStringView()))
+                        if (depth == 1 && arrayKey.contentEquals(parser.getStringView()))
                         {
-                            scanTools(parser, index);
+                            scanItems(parser, index);
                         }
                         break;
                     default:
@@ -605,7 +738,7 @@ public final class McpProxyCache
             }
         }
 
-        private void scanTools(
+        private void scanItems(
             JsonParserEx parser,
             Map<CharSequence, List<String>> index)
         {
@@ -618,7 +751,7 @@ public final class McpProxyCache
                     switch (event)
                     {
                     case START_OBJECT:
-                        scanTool(parser, index);
+                        scanItem(parser, index);
                         break;
                     case END_ARRAY:
                         items = false;
@@ -630,7 +763,7 @@ public final class McpProxyCache
             }
         }
 
-        private void scanTool(
+        private void scanItem(
             JsonParserEx parser,
             Map<CharSequence, List<String>> index)
         {

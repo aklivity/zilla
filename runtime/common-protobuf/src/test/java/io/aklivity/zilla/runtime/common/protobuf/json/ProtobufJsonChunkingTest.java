@@ -249,6 +249,74 @@ public class ProtobufJsonChunkingTest
         assertEquals("{\"id\":\"123\",\"" + LONG_KEY + "\":\"OK\"}", drained.json);
     }
 
+    @Test
+    public void shouldMatchFieldNameKeyThatFragmentsAcrossJsonInputWindows()
+    {
+        // the field name key itself is longer than the JSON input feed window and fragments across STARVED
+        // windows before messageStep()'s field lookup sees it complete; the field must still be found once
+        // the key finishes reassembling, rather than being rejected (or matched) on a prefix
+        String json = Json.createObjectBuilder()
+            .add("id", "123")
+            .add(LONG_KEY, "OK")
+            .build()
+            .toString();
+
+        byte[] wire = fromJsonInputWindowed("Event", json.getBytes(UTF_8), 8);
+
+        JsonObject object = parse(toJson("Event", wire));
+        assertEquals("123", object.getString("id"));
+        assertEquals("OK", object.getString(LONG_KEY));
+    }
+
+    @Test
+    public void shouldResolveMapKeyThatFragmentsAcrossJsonInputWindows()
+    {
+        // a string map key long enough to fragment across the JSON input feed window before mapStep() sees
+        // it complete; the map entry must still resolve to the correct (whole) key
+        String key = "the-quick-brown-fox-jumps-over-the-lazy-dog";
+        String json = "{\"props\":{\"" + key + "\":\"v\"}}";
+
+        byte[] wire = fromJsonInputWindowed("Props", json.getBytes(UTF_8), 4);
+
+        JsonObject object = parse(toJson("Props", wire));
+        assertEquals("v", object.getJsonObject("props").getString(key));
+    }
+
+    // Drives the JSON -> wire direction (ProtobufJsonParserImpl) through fixed-size JSON input windows,
+    // carrying the unconsumed tail (pipeline.remaining()) across STARVED feeds the way a real caller does, so
+    // a field-name or map key larger than the window fragments and reassembles before the schema walk reads it.
+    private byte[] fromJsonInputWindowed(
+        String messageName,
+        byte[] json,
+        int window)
+    {
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[Math.max(256, json.length * 4)]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
+        ProtobufPipeline pipeline = Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName))
+            .into(ProtobufSink.of(generator, schema, messageName));
+        pipeline.reset();
+
+        UnsafeBufferEx in = new UnsafeBufferEx(json);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + window, json.length);
+            boolean last = limit >= json.length;
+            status = pipeline.transform(in, progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                progress = limit - pipeline.remaining();
+            }
+        }
+        assertEquals(Status.COMPLETED, status);
+        byte[] wire = new byte[generator.length()];
+        out.getBytes(0, wire);
+        return wire;
+    }
+
     private Drained toJsonBounded(
         String messageName,
         byte[] wire,

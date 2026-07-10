@@ -26,7 +26,6 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -44,8 +43,7 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 
     private int index;
 
-    public RouteAdapter(
-        ConfigAdapterContext context)
+    public RouteAdapter()
     {
         condition = new ConditionAdapter();
         with = new WithAdapter();

@@ -293,15 +293,17 @@ public final class JsonTokenizer
     private boolean onScalarStarved()
     {
         final boolean midScalar =
-            (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER) && !segmenting;
+            (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER ||
+                resumeOp == ResumeOp.KEY_STRING) && !segmenting;
         boolean delivered = false;
         if (midScalar)
         {
             final long valueBytes = streamOffset - valueStreamStart;
-            // a kept scalar leaf fragments verbatim on any starve; a decoded value only once it fills the window
+            // a kept scalar leaf fragments verbatim on any starve; a decoded value (or key) only once it
+            // fills the window
             final boolean fragment =
                 !terminalEof && (scalarSegment || fragmenting || valueBytes >= windowLength);
-            if (fragment && resumeOp == ResumeOp.VALUE_STRING)
+            if (fragment && (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.KEY_STRING))
             {
                 // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
                 streamOffset = unitStartOffset;
@@ -318,8 +320,15 @@ public final class JsonTokenizer
                 {
                     valueStreamStart = fragmentStart;
                     valueStreamEnd = streamOffset;
-                    stringVerbatim = scalarSegment || segmenting;
-                    pendingEvent = JsonParser.Event.VALUE_STRING;
+                    if (resumeOp == ResumeOp.KEY_STRING)
+                    {
+                        pendingEvent = JsonParser.Event.KEY_NAME;
+                    }
+                    else
+                    {
+                        stringVerbatim = scalarSegment || segmenting;
+                        pendingEvent = JsonParser.Event.VALUE_STRING;
+                    }
                     // capture lazily: a verbatim/segmented consumer reads only getSegment() and never
                     // materializes the decoded chars, so leave them in scratch (cleared when the next
                     // fragment resumes) and let stringValue() take them on demand
@@ -573,13 +582,16 @@ public final class JsonTokenizer
         switch (resumeOp)
         {
         case KEY_STRING:
+            // keep the part of the prior fragment the consumer did not take (a decliner keeps all of it
+            // via consumed(0)) so the next fragment accumulates onto the remainder and the key is
+            // re-presented whole; a consumer that took the whole fragment drops it all, as before
+            scratch.delete(0, Math.min(scratchConsumed, scratch.length()));
+            scratchConsumed = 0;
+            fragmentStart = streamOffset;
             continueStringContent(in);
             if (!starved)
             {
-                pendingEvent = JsonParser.Event.KEY_NAME;
-                captureKey();
-                resumeOp = ResumeOp.NONE;
-                state = ParseState.OBJ_AFTER_KEY;
+                finishKeyValue();
             }
             break;
         case VALUE_STRING:
@@ -676,6 +688,22 @@ public final class JsonTokenizer
         fragmenting = false;
         resumeOp = ResumeOp.NONE;
         afterValueConsumed();
+    }
+
+    // Completes a KEY_STRING scan: continueStringContent only returns here once the closing quote is seen
+    // (otherwise onScalarStarved decides fragment-vs-reassemble), so the key is whole — the final fragment
+    // of a fragmented key, or a key that fit one window. captureKey() mirrors it into pathKeyChars for
+    // currentPath(); when the key fragmented and each fragment was fully consumed downstream (so scratch
+    // was trimmed each round rather than accumulating via consumed(0)), only the final fragment's chars are
+    // mirrored — currentPath() is not guaranteed exact mid-document for a window-spanning key, only once
+    // the surrounding container's traversal has moved on.
+    private void finishKeyValue()
+    {
+        pendingEvent = JsonParser.Event.KEY_NAME;
+        captureKey();
+        fragmenting = false;
+        resumeOp = ResumeOp.NONE;
+        state = ParseState.OBJ_AFTER_KEY;
     }
 
     private String takeScratch()
@@ -878,6 +906,10 @@ public final class JsonTokenizer
         {
             throw new JsonParsingException("Expected '\"' for key but got: " + describe(c), null);
         }
+        valueStreamStart = streamOffset - 1;
+        fragmentStart = streamOffset - 1;
+        valueLine = line;
+        valueColumn = column - 1;
         scratch.setLength(0);
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -885,10 +917,7 @@ public final class JsonTokenizer
         continueStringContent(in);
         if (!starved)
         {
-            pendingEvent = JsonParser.Event.KEY_NAME;
-            captureKey();
-            resumeOp = ResumeOp.NONE;
-            state = ParseState.OBJ_AFTER_KEY;
+            finishKeyValue();
         }
     }
 

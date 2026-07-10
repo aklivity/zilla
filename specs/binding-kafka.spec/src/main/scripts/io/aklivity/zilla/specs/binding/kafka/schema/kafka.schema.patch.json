@@ -56,12 +56,6 @@
                                             {
                                                 "title": "Topic",
                                                 "type": "string"
-                                            },
-                                            "groupId":
-                                            {
-                                                "title": "groupId",
-                                                "type": "string",
-                                                "deprecated": true
                                             }
                                         },
                                         "additionalProperties": false

@@ -387,7 +387,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         if (binding != null)
         {
-            resolved = binding.resolve(authorization, null, groupId);
+            resolved = binding.resolve(authorization, null);
 
             if (resolved != null)
             {

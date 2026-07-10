@@ -205,6 +205,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.elicit.completed.preauthorized/client",
+        "${net}/tools.call.elicit.completed.proxied/server"})
+    public void shouldCallToolElicitCompletedPreauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/lifecycle.timeout.rejected/client",

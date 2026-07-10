@@ -29,9 +29,9 @@ import org.junit.Test;
 public class McpSearchToolDescriptorTest
 {
     @Test
-    public void shouldBuildToolWithConfiguredName()
+    public void shouldBuildSearchToolsWithToolkitPrefix()
     {
-        byte[] bytes = McpSearchToolDescriptor.build("zilla__search_tools");
+        byte[] bytes = McpSearchToolDescriptor.buildSearchTools("zilla");
 
         JsonObject tool = parse(bytes);
 
@@ -40,17 +40,80 @@ public class McpSearchToolDescriptorTest
     }
 
     @Test
-    public void shouldBuildInputSchemaRequiringQuery()
+    public void shouldBuildSearchToolsWithoutToolkit()
     {
-        byte[] bytes = McpSearchToolDescriptor.build("zilla__search_tools");
+        byte[] bytes = McpSearchToolDescriptor.buildSearchTools(null);
+
+        JsonObject tool = parse(bytes);
+
+        assertThat(tool.getString("name"), equalTo("search_tools"));
+    }
+
+    @Test
+    public void shouldBuildSearchToolsInputSchemaRequiringQuery()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildSearchTools("zilla");
 
         JsonObject tool = parse(bytes);
         JsonObject inputSchema = tool.getJsonObject("inputSchema");
 
         assertThat(inputSchema.getString("type"), equalTo("object"));
         assertThat(inputSchema.getJsonObject("properties").containsKey("query"), equalTo(true));
+        assertThat(inputSchema.getJsonObject("properties").containsKey("max_results"), equalTo(true));
         assertThat(inputSchema.getJsonArray("required").getString(0), equalTo("query"));
         assertThat(inputSchema.getJsonArray("required"), hasItem(Json.createValue("query")));
+    }
+
+    @Test
+    public void shouldBuildDescribeToolWithToolkitPrefix()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildDescribeTool("zilla");
+
+        JsonObject tool = parse(bytes);
+
+        assertThat(tool.getString("name"), equalTo("zilla__describe_tool"));
+        assertThat(tool.containsKey("description"), equalTo(true));
+    }
+
+    @Test
+    public void shouldBuildDescribeToolInputSchemaRequiringName()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildDescribeTool("zilla");
+
+        JsonObject tool = parse(bytes);
+        JsonObject inputSchema = tool.getJsonObject("inputSchema");
+
+        assertThat(inputSchema.getString("type"), equalTo("object"));
+        assertThat(inputSchema.getJsonObject("properties").containsKey("name"), equalTo(true));
+        assertThat(inputSchema.getJsonArray("required"), hasItem(Json.createValue("name")));
+    }
+
+    @Test
+    public void shouldBuildExecuteToolWithToolkitPrefix()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildExecuteTool("zilla");
+
+        JsonObject tool = parse(bytes);
+
+        assertThat(tool.getString("name"), equalTo("zilla__execute_tool"));
+        assertThat(tool.containsKey("description"), equalTo(true));
+    }
+
+    @Test
+    public void shouldBuildExecuteToolInputSchemaWithNameRequiredAndArgumentsOptional()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildExecuteTool("zilla");
+
+        JsonObject tool = parse(bytes);
+        JsonObject inputSchema = tool.getJsonObject("inputSchema");
+        JsonObject properties = inputSchema.getJsonObject("properties");
+
+        assertThat(inputSchema.getString("type"), equalTo("object"));
+        assertThat(properties.containsKey("name"), equalTo(true));
+        assertThat(properties.containsKey("arguments"), equalTo(true));
+        assertThat(properties.getJsonObject("arguments").getString("type"), equalTo("object"));
+        assertThat(inputSchema.getJsonArray("required"), hasItem(Json.createValue("name")));
+        assertThat(inputSchema.getJsonArray("required").size(), equalTo(1));
     }
 
     private static JsonObject parse(

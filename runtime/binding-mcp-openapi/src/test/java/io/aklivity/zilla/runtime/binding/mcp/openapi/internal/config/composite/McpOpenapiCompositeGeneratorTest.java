@@ -265,6 +265,27 @@ public class McpOpenapiCompositeGeneratorTest
         }
         """;
 
+    private static final String PETSTORE_SPEC =
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "petstore", "version": "1.0.0" },
+          "servers": [ { "url": "https://api.petstore.example.com" } ],
+          "paths": {
+            "/pets": {
+              "get": {
+                "operationId": "list_pets",
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": {
+                    "type": "array",
+                    "items": { "type": "object", "properties": {
+                      "id": { "type": "integer" }, "name": { "type": "string" } } } } } } } }
+              }
+            }
+          }
+        }
+        """;
+
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
 
@@ -1539,6 +1560,165 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
+    public void shouldGuardOperatorDeclaredRouteWithNoSpecSecurity()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("repo://{owner}/{repo}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("repos/get")
+                    .build())
+                .guarded()
+                    .name("guard1")
+                    .role("read")
+                    .build()
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        RouteConfig getRoute = mcpHttp.routes.stream()
+            .filter(r -> "GET".equals(((McpHttpWithConfig) r.with).headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        List<GuardedConfig> guarded = getRoute.guarded;
+        assertThat(guarded, hasSize(1));
+        assertThat(guarded.get(0).name, equalTo("test1"));
+        assertThat(guarded.get(0).roles, containsInAnyOrder("read"));
+    }
+
+    @Test
+    public void shouldComposeOperatorDeclaredGuardWithDistinctSpecDerivedGuard()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .guarded()
+                    .name("guard1")
+                    .role("write")
+                    .build()
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        RouteConfig postRoute = mcpHttp.routes.stream()
+            .filter(r -> "POST".equals(((McpHttpWithConfig) r.with).headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        List<GuardedConfig> guarded = postRoute.guarded;
+        assertThat(guarded, hasSize(2));
+        GuardedConfig specDerived = guarded.stream().filter(g -> "test0".equals(g.name)).findFirst().orElse(null);
+        GuardedConfig operatorDeclared = guarded.stream().filter(g -> "test1".equals(g.name)).findFirst().orElse(null);
+        assertThat(specDerived, notNullValue());
+        assertThat(specDerived.roles, containsInAnyOrder("repo", "pr:write"));
+        assertThat(operatorDeclared, notNullValue());
+        assertThat(operatorDeclared.roles, containsInAnyOrder("write"));
+    }
+
+    @Test
+    public void shouldUnionOperatorDeclaredRolesWithSpecDerivedGuardForSameGuard()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .guarded()
+                    .name("guard0")
+                    .role("write")
+                    .build()
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        RouteConfig postRoute = mcpHttp.routes.stream()
+            .filter(r -> "POST".equals(((McpHttpWithConfig) r.with).headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        List<GuardedConfig> guarded = postRoute.guarded;
+        assertThat(guarded, hasSize(1));
+        assertThat(guarded.get(0).name, equalTo("test0"));
+        assertThat(guarded.get(0).roles, containsInAnyOrder("repo", "pr:write", "write"));
+    }
+
+    @Test
     public void shouldDenyOperationRequiringMultipleDistinctGuards()
     {
         BindingConfig binding = BindingConfig.builder()
@@ -2206,5 +2386,132 @@ public class McpOpenapiCompositeGeneratorTest
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
         List<String> toolNames = mcpHttpOptions.tools.stream().map(t -> t.name).toList();
         assertThat(toolNames, containsInAnyOrder("get_widget", "get_widgets_b"));
+    }
+
+    @Test
+    public void shouldWrapOutputSchemaForArrayTypedResponse()
+    {
+        lenient().when(catalog.resolve(eq("petstore-api"), eq("latest"))).thenReturn(66);
+        lenient().when(catalog.resolve(eq(66))).thenReturn(PETSTORE_SPEC);
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("petstore")
+                    .server("https://api.petstore.example.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("petstore-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("list_pets")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("petstore")
+                    .operation("list_pets")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        BindingConfig mcpHttp = namespace.bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "list_pets".equals(t.name))
+            .findFirst()
+            .orElse(null);
+
+        assertThat(tool, notNullValue());
+        assertThat(tool.output, notNullValue());
+        assertThat(tool.outputWrapped, equalTo(true));
+
+        String outputSchema = namespace.catalogs.stream()
+            .map(c -> c.options)
+            .filter(InlineOptionsConfig.class::isInstance)
+            .map(InlineOptionsConfig.class::cast)
+            .flatMap(o -> o.subjects.stream())
+            .filter(s -> "list_pets-output".equals(s.subject))
+            .map(s -> s.schema)
+            .findFirst()
+            .orElse(null);
+
+        assertThat(outputSchema, notNullValue());
+        JsonObject outputSchemaObject = Json.createReader(new StringReader(outputSchema)).readObject();
+        assertThat(outputSchemaObject.getString("type"), equalTo("object"));
+        assertThat(outputSchemaObject.getJsonArray("required").getString(0), equalTo("result"));
+        JsonObject result = outputSchemaObject.getJsonObject("properties").getJsonObject("result");
+        assertThat(result.getString("type"), equalTo("array"));
+    }
+
+    @Test
+    public void shouldNotWrapExplicitOutputOverrideEvenForArrayTypedResponse()
+    {
+        lenient().when(catalog.resolve(eq("petstore-api"), eq("latest"))).thenReturn(66);
+        lenient().when(catalog.resolve(eq(66))).thenReturn(PETSTORE_SPEC);
+
+        ModelConfig override = StringModelConfig.builder().build();
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("petstore")
+                    .server("https://api.petstore.example.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("petstore-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .tool()
+                    .name("list_pets")
+                    .description("List pets in the store.")
+                    .output(override)
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("list_pets")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("petstore")
+                    .operation("list_pets")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "list_pets".equals(t.name))
+            .findFirst()
+            .orElse(null);
+
+        assertThat(tool, notNullValue());
+        assertThat(tool.output, sameInstance(override));
+        assertThat(tool.outputWrapped, equalTo(false));
     }
 }

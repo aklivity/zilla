@@ -54,4 +54,11 @@ public final class OpenapiAsyncapiRouteConfig
     {
         return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, operationId));
     }
+
+    public boolean isBulk()
+    {
+        return with.tag != null ||
+            with.operation == null ||
+            with.operation.indexOf('*') != -1;
+    }
 }

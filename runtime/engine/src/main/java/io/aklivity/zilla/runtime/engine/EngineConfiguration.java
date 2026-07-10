@@ -242,7 +242,6 @@ public class EngineConfiguration extends Configuration
         return ENGINE_VERSION.get(this);
     }
 
-    @Override
     public final Path directory()
     {
         return Paths.get(ENGINE_DIRECTORY.get(this));

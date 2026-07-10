@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.tcp.streams;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -26,6 +27,7 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.specs.binding.tcp.internal.IPv6Support;
 
 public class NetworkRoutingIT
 {
@@ -81,6 +83,8 @@ public class NetworkRoutingIT
         "${net}/client.connect.with.ipv6.extension/server" })
     public void shouldConnectClientWithIpv6Extension() throws Exception
     {
+        Assume.assumeTrue(IPv6Support.isAvailable());
+
         k3po.finish();
     }
 }

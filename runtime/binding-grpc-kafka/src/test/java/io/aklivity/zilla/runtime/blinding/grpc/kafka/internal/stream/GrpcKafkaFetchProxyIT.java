@@ -45,6 +45,7 @@ public class GrpcKafkaFetchProxyIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/grpc/kafka/config")
         .external("kafka0")
+        .aroundStart(k3po::deferStartable)
         .clean();
 
     @Rule

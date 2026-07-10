@@ -27,11 +27,7 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaPropertiesConfig;
@@ -39,24 +35,18 @@ import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConf
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class RisingwaveOptionsConfigAdapterTest
 {
-    @Rule
-    public MockitoRule rule = MockitoJUnit.rule();
-    @Mock
-    private ConfigAdapterContext context;
-
     private Jsonb jsonb;
 
     @Before
     public void initJson() throws IOException
     {
-        OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING);
         adapter.adaptType("risingwave");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);

@@ -46,25 +46,23 @@ public class KafkaConditionConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"topic\": \"test\"," +
-                    "\"groupId\": \"test\"" +
+                    "\"topic\": \"test\"" +
                 "}";
 
         KafkaConditionConfig condition = jsonb.fromJson(text, KafkaConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
         assertThat(condition.topic, equalTo("test"));
-        assertThat(condition.groupId, equalTo("test"));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        KafkaConditionConfig condition = new KafkaConditionConfig("test", "test");
+        KafkaConditionConfig condition = new KafkaConditionConfig("test");
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"topic\":\"test\",\"groupId\":\"test\"}"));
+        assertThat(text, equalTo("{\"topic\":\"test\"}"));
     }
 }

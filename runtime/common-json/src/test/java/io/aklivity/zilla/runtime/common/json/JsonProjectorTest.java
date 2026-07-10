@@ -197,6 +197,108 @@ class JsonProjectorTest
                 "{\"alpha\":1,\"beta\":2,\"gamma\":3,\"delta\":4,\"epsilon\":5}", 12));
     }
 
+    @Test
+    void shouldRetainValueUnderKeyThatFragmentsAcrossInputWindows()
+    {
+        // the retained key is longer than the feed window, so it fragments across STARVED windows before
+        // the projector can match it against the trie; the match must still land once it completes
+        String key = "x".repeat(40);
+        assertEquals("{\"" + key + "\":1}",
+            projectWindowed(List.of("/" + key), "{\"" + key + "\":1,\"other\":2}", 8));
+    }
+
+    @Test
+    void shouldDropValueUnderKeyThatFragmentsAcrossInputWindowsWhenNotRetained()
+    {
+        // the dropped member's own key is longer than the feed window and fragments; the sibling that
+        // follows must still render correctly once the dropped member's key/value are skipped
+        String key = "x".repeat(40);
+        assertEquals("{\"kept\":2}",
+            projectWindowed(List.of("/kept"), "{\"" + key + "\":1,\"kept\":2}", 8));
+    }
+
+    @Test
+    void shouldDropHugeNonMatchingKeyWithoutHittingValueSizeCap()
+    {
+        // "kept" (root's only child, maxKeyLength 4) can never match the 500-char "xxxx..." key: onKey
+        // decides SKIP as soon as the fragment exceeds 4 chars, and every further fragment of the huge
+        // non-matching key is consumed and discarded rather than retained, so completion never depends on
+        // MAX_VALUE_SIZE — set here far smaller than the dropped key (500 chars) to prove it, but comfortably
+        // above one window's worth of scanned-but-undecided content (the tokenizer only checks the
+        // fragment-vs-reassemble threshold once a window's bytes are already scanned into its retained
+        // buffer, so the cap must clear that floor regardless of this test — an orthogonal, pre-existing
+        // constraint on maxValueSize vs. window size, not something decline-to-N changes). A decline-and-cap
+        // approach would REJECT this well before scanning all 500 chars; decline-to-N does not accumulate
+        // the key's content at all.
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 50)))
+            .transform(JsonTransforms.projector(List.of("/kept")))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        pipeline.reset();
+
+        String hugeKey = "x".repeat(500);
+        String json = "{\"" + hugeKey + "\":1,\"kept\":2}";
+        byte[] msg = json.getBytes(UTF_8);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + 8, msg.length);
+            boolean last = limit >= msg.length;
+            status = pipeline.transform(new UnsafeBufferEx(msg), progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                progress = limit - pipeline.remaining();
+            }
+        }
+
+        assertEquals(Status.COMPLETED, status);
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        assertEquals("{\"kept\":2}", new String(out, UTF_8));
+    }
+
+    // Drives the projection through fixed-size input windows, carrying the unconsumed tail
+    // (pipeline.remaining()) across STARVED feeds the way a real caller does, so an over-window key
+    // fragments and reassembles before the projector matches it.
+    private static String projectWindowed(
+        List<String> retained,
+        String input,
+        int window)
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonTransforms.projector(retained))
+            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
+        gen.wrap(buffer, 0, buffer.capacity());
+        pipeline.reset();
+
+        byte[] msg = (input + " ").getBytes(UTF_8);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + window, msg.length);
+            boolean last = limit >= msg.length;
+            status = pipeline.transform(new UnsafeBufferEx(msg), progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                progress = limit - pipeline.remaining();
+            }
+        }
+        assertEquals(Status.COMPLETED, status);
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        return new String(out, UTF_8);
+    }
+
     private static String project(
         List<String> retained,
         String input)

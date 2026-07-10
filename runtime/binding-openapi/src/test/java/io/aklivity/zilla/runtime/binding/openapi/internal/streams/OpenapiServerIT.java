@@ -83,6 +83,28 @@ public class OpenapiServerIT
     }
 
     @Test
+    @Configuration("server.route.yaml")
+    @Specification({
+        "${composite}/create.pet/client",
+        "${openapi}/create.pet/server"
+    })
+    public void shouldCreatePetViaExplicitRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.tag.for.it.yaml")
+    @Specification({
+        "${composite}/create.pet/client",
+        "${openapi}/create.pet/server"
+    })
+    public void shouldCreatePetViaBulkTagRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.env.prod.yaml")
     @Specification({
         "${composite}/create.pet.prod/client",

@@ -75,6 +75,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
@@ -191,8 +192,10 @@ public final class McpOpenapiCompositeGenerator
                     continue;
                 }
 
+                final List<GuardedRef> guarded = combineGuarded(binding, route, resolution.guarded);
+
                 routed.add(new RoutedOperation(toolConfig(binding, routeTool), resourceConfig(binding, resource),
-                    operation, resolution.guarded, serverByLabel.get(with.spec), with.params, with.body));
+                    operation, guarded, serverByLabel.get(with.spec), with.params, with.body));
             }
         }
 
@@ -329,10 +332,16 @@ public final class McpOpenapiCompositeGenerator
                     {
                         if (typed.schema != null)
                         {
+                            final String schemaJson = toSchemaJson(jsonb, typed.schema.model);
+                            // only a tool's outputSchema is advertised as MCP structured-output JSON Schema
+                            // (and must therefore be object-typed); a resource's output schema is purely an
+                            // internal projector for its read body and carries no such constraint, so only
+                            // tool responses get wrapped when the OpenAPI response itself is non-object
+                            final boolean wrap = entry.tool != null && !isObjectSchema(typed.schema.model);
                             options.schema()
                                 .subject("%s-output".formatted(name))
                                 .version("latest")
-                                .schema(toSchemaJson(jsonb, typed.schema.model))
+                                .schema(wrap ? wrapAsObjectSchema(schemaJson) : schemaJson)
                                 .build();
                         }
                     }
@@ -378,6 +387,7 @@ public final class McpOpenapiCompositeGenerator
 
             if (entry.tool != null)
             {
+                final boolean outputWrapped = entry.tool.output == null && !hasObjectOutputSchema(entry.operation);
                 final ModelConfig output = entry.tool.output != null
                     ? qualifyModel(binding, entry.tool.output)
                     : jsonModel("%s-output".formatted(name));
@@ -394,7 +404,7 @@ public final class McpOpenapiCompositeGenerator
                     : entry.operation.summary != null
                         ? entry.operation.summary
                         : "Call %s".formatted(entry.operation.id);
-                tools.add(new McpHttpToolConfig(entry.tool.name, summary, description, input, output));
+                tools.add(new McpHttpToolConfig(entry.tool.name, summary, description, input, output, outputWrapped));
             }
             else
             {
@@ -594,6 +604,34 @@ public final class McpOpenapiCompositeGenerator
         }
 
         return result;
+    }
+
+    private static List<GuardedRef> combineGuarded(
+        McpOpenapiBindingConfig binding,
+        McpOpenapiRouteConfig route,
+        List<GuardedRef> derived)
+    {
+        List<GuardedRef> combined = derived;
+
+        if (!route.guarded.isEmpty())
+        {
+            final Map<String, List<String>> rolesByQName = new LinkedHashMap<>();
+            for (GuardedRef ref : derived)
+            {
+                rolesByQName.computeIfAbsent(ref.qname, q -> new ArrayList<>()).addAll(ref.roles);
+            }
+            for (GuardedConfig guarded : route.guarded)
+            {
+                final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guarded.name));
+                rolesByQName.computeIfAbsent(qname, q -> new ArrayList<>()).addAll(guarded.roles);
+            }
+
+            combined = rolesByQName.entrySet().stream()
+                .map(e -> new GuardedRef(e.getKey(), e.getValue().stream().distinct().toList()))
+                .toList();
+        }
+
+        return combined;
     }
 
     private static GuardedResolution resolveAlternative(
@@ -939,6 +977,49 @@ public final class McpOpenapiCompositeGenerator
                 .orElse(null);
         }
         return result;
+    }
+
+    // MCP's tool outputSchema (and the structuredContent it describes) must be a JSON object; an OpenAPI
+    // response whose own schema is array- or primitive-typed is wrapped as {"result": <schema>} instead
+    // of advertised as-is -- see wrapAsObjectSchema and McpHttpResultWrap, which wraps the real response
+    // body the same way so structuredContent still matches the advertised schema. A resource's own output
+    // schema has no such constraint (it is never advertised, only used to project the read body), so this
+    // check and the wrapping it drives applies to tools only
+    private static boolean hasObjectOutputSchema(
+        OpenapiOperationView operation)
+    {
+        boolean result = false;
+        final OpenapiResponseView success = successResponse(operation);
+        if (success != null && success.content != null)
+        {
+            for (OpenapiMediaTypeView typed : success.content.values())
+            {
+                if (typed.schema != null && isObjectSchema(typed.schema.model))
+                {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    private static boolean isObjectSchema(
+        OpenapiSchemaView.OpenapiJsonSchema schema)
+    {
+        return schema.type == null || "object".equals(schema.type);
+    }
+
+    private static String wrapAsObjectSchema(
+        String schemaJson)
+    {
+        final JsonValue schema = Json.createReader(new StringReader(schemaJson)).readValue();
+        return Json.createObjectBuilder()
+            .add("type", "object")
+            .add("properties", Json.createObjectBuilder().add("result", schema))
+            .add("required", Json.createArrayBuilder().add("result"))
+            .build()
+            .toString();
     }
 
     private static String inputSchema(

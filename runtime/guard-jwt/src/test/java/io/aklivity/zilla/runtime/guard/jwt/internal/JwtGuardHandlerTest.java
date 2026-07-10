@@ -265,6 +265,22 @@ public class JwtGuardHandlerTest
     }
 
     @Test
+    public void shouldNotAuthorizeWhenCredentialsMissing()
+    {
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .build();
+        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement);
+
+        long sessionId = guard.reauthorize(0L, 0L, 101L, null);
+
+        assertThat(sessionId, equalTo(0L));
+    }
+
+    @Test
     public void shouldNotAuthorizeWhenSignatureInvalid() throws Exception
     {
         JwtOptionsConfig options = JwtOptionsConfig.builder()

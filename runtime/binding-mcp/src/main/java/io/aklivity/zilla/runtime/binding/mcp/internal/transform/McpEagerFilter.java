@@ -107,29 +107,58 @@ public final class McpEagerFilter implements JsonTransform
         JsonEvent event,
         JsonSink sink)
     {
-        switch (event)
+        Status status;
+        if (event == JsonEvent.KEY_NAME)
         {
-        case START_OBJECT:
-        case START_ARRAY:
-            depth++;
-            if (itemsArmed && event == JsonEvent.START_ARRAY)
-            {
-                itemsArmed = false;
-                itemDepth = 0;
-                state = items;
-            }
-            break;
-        case END_OBJECT:
-        case END_ARRAY:
-            depth--;
-            break;
-        case KEY_NAME:
-            itemsArmed = depth == 1 && arrayKey.contentEquals(source.getStringView());
-            break;
-        default:
-            break;
+            status = onOuterKey(source, sink);
         }
-        return sink.transform(mediator, source, event);
+        else
+        {
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                depth++;
+                if (itemsArmed && event == JsonEvent.START_ARRAY)
+                {
+                    itemsArmed = false;
+                    itemDepth = 0;
+                    state = items;
+                }
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                depth--;
+                break;
+            default:
+                break;
+            }
+            status = sink.transform(mediator, source, event);
+        }
+        return status;
+    }
+
+    // the arm key is forwarded either way (every outer key passes through unconditionally), so a fragmented
+    // key is declined until complete before the arm decision and forward, rather than deciding on a prefix
+    private Status onOuterKey(
+        JsonSource source,
+        JsonSink sink)
+    {
+        Status status;
+        if (depth == 1 && source.deferredBytes())
+        {
+            mediator.delegate.consumed(0);
+            status = Status.STARVED;
+        }
+        else
+        {
+            if (depth == 1)
+            {
+                itemsArmed = arrayKey.contentEquals(source.getStringView());
+            }
+            status = sink.transform(mediator, source, JsonEvent.KEY_NAME);
+        }
+        return status;
     }
 
     // between items in the target array: each item object defers its emission until its name resolves
@@ -187,8 +216,7 @@ public final class McpEagerFilter implements JsonTransform
         case KEY_NAME:
             if (itemDepth == 1)
             {
-                nameArmed = NAME_KEY.contentEquals(source.getStringView());
-                status = Status.ADVANCED;
+                status = onNameKey(source);
             }
             else
             {
@@ -196,9 +224,19 @@ public final class McpEagerFilter implements JsonTransform
             }
             break;
         case VALUE_STRING:
-            status = nameArmed
-                ? resolveItem(source, event, sink)
-                : sink.transform(mediator, source, event);
+            if (nameArmed && source.deferredBytes())
+            {
+                // eager.test() needs the whole name value; decline the fragment so the source accumulates
+                // it whole and re-presents it complete on a later window, then resolve once total.
+                mediator.delegate.consumed(0);
+                status = Status.STARVED;
+            }
+            else
+            {
+                status = nameArmed
+                    ? resolveItem(source, event, sink)
+                    : sink.transform(mediator, source, event);
+            }
             break;
         default:
             status = Status.ADVANCED;
@@ -261,6 +299,27 @@ public final class McpEagerFilter implements JsonTransform
             break;
         }
         return Status.ADVANCED;
+    }
+
+    // the key is swallowed either way (a synthetic "name" key replaces it once resolveItem() fires, or it
+    // is simply dropped if some other key preceded "name"), so there is no forwarded content whose byte
+    // fidelity a fragmented key could compromise -- decline the fragment so the source accumulates it whole
+    // and re-presents it complete on a later window, then decide once total.
+    private Status onNameKey(
+        JsonSource source)
+    {
+        Status status;
+        if (source.deferredBytes())
+        {
+            mediator.delegate.consumed(0);
+            status = Status.STARVED;
+        }
+        else
+        {
+            nameArmed = NAME_KEY.contentEquals(source.getStringView());
+            status = Status.ADVANCED;
+        }
+        return status;
     }
 
     private Status resolveItem(

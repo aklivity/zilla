@@ -293,6 +293,19 @@ bindings:
                 http_github0:
                   - subject: add_pr_comment_result
                     version: latest
+        create_widget:
+          description: >
+            Create a widget. A body-only tool with no path parameters,
+            covering the with.body request-shaping path independently of
+            any path-arg-driven readiness gate.
+          summary: "Created widget: ${result.name}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: create_pr_body
+                    version: latest
         search_code:
           description: >
             Search for code across repositories using code search syntax.
@@ -451,6 +464,21 @@ bindings:
             ":scheme": https
             ":authority": api.github.com
             ":path": /repos/${args.owner}/${args.repo}/pulls
+          body:
+            model: json
+            catalog:
+              http_github0:
+                - subject: create_pr_body
+                  version: latest
+      - when:
+          - tool: create_widget
+        exit: http0
+        with:
+          headers:
+            ":method": POST
+            ":scheme": https
+            ":authority": api.github.com
+            ":path": /widgets
           body:
             model: json
             catalog:

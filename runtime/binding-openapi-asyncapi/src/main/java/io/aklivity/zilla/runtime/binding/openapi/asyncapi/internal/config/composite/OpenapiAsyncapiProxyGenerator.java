@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.Openap
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiRouteConfig;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaFilter;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationEx;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
@@ -76,8 +77,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
             .flatMap(r -> r.when.stream()
                 .map(w ->
                     new ProxyMapping(
-                        openapisByApiId.get(w.apiId),
-                        asyncapisByApiId.get(r.with.apiId))))
+                        openapisByApiId.get(w.spec),
+                        asyncapisByApiId.get(r.with.spec))))
             .distinct()
             .toList();
 
@@ -155,15 +156,17 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
             {
                 private final List<ProxyWhenHelper> when;
                 private final ProxyWithHelper with;
+                private final boolean bulk;
 
                 private ProxyRouteHelper(
                     OpenapiAsyncapiRouteConfig route)
                 {
                     this.when = route.when.stream()
-                            .filter(c -> mapping.when.apiLabel.equals(c.apiId))
-                            .map(c -> new ProxyWhenHelper(mapping.when, c.operationId))
+                            .filter(c -> mapping.when.apiLabel.equals(c.spec))
+                            .map(c -> new ProxyWhenHelper(mapping.when, c.operation))
                             .toList();
-                    this.with = new ProxyWithHelper(mapping.with, route.with.operationId);
+                    this.with = new ProxyWithHelper(mapping.with, route.with);
+                    this.bulk = route.isBulk();
                 }
 
                 private boolean hasWithProtocol(
@@ -197,14 +200,14 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
             private final class ProxyWithHelper
             {
                 private final AsyncapiSchemaConfig schema;
-                private final String operationId;
+                private final OpenapiAsyncapiWithConfig config;
 
                 private ProxyWithHelper(
                     AsyncapiSchemaConfig schema,
-                    String operationId)
+                    OpenapiAsyncapiWithConfig config)
                 {
                     this.schema = schema;
-                    this.operationId = operationId;
+                    this.config = config;
                 }
             }
 
@@ -264,6 +267,9 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     for (ProxyRouteHelper route : httpKafkaRoutes)
                     {
                         Map<String, AsyncapiOperationView> kafkaOpsById = route.with.schema.asyncapi.operations;
+                        Map<String, AsyncapiOperationView> candidateKafkaOpsById = route.bulk
+                            ? bulkCandidates(kafkaOpsById, route.with.config)
+                            : kafkaOpsById;
 
                         for (ProxyWhenHelper condition : route.when)
                         {
@@ -274,11 +280,11 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                             {
                                 for (OpenapiOperationView httpAnyOp : httpOpsById.values())
                                 {
-                                    String kafkaOpId = route.with.operationId != null
-                                        ? route.with.operationId
-                                        : httpAnyOp.id;
+                                    String kafkaOpId = route.bulk
+                                        ? httpAnyOp.id
+                                        : route.with.config.operation;
 
-                                    AsyncapiOperationView kafkaOp = kafkaOpsById.get(kafkaOpId);
+                                    AsyncapiOperationView kafkaOp = candidateKafkaOpsById.get(kafkaOpId);
 
                                     if (kafkaOp == null)
                                     {
@@ -295,7 +301,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
 
                                         if (httpFormatOp != null)
                                         {
-                                            kafkaOp = kafkaOpsById.get(httpFormatOp.id);
+                                            kafkaOp = candidateKafkaOpsById.get(httpFormatOp.id);
                                         }
                                     }
 
@@ -307,13 +313,59 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                             }
                             else
                             {
-                                AsyncapiOperationView kafkaOp = kafkaOpsById.get(route.with.operationId);
+                                String kafkaOpId = route.bulk
+                                    ? httpOp.id
+                                    : route.with.config.operation;
+                                AsyncapiOperationView kafkaOp = candidateKafkaOpsById.get(kafkaOpId);
                                 binding.inject(b -> injectHttpKafkaRoute(b, httpOp, kafkaOp));
                             }
                         }
                     }
 
                     return binding;
+                }
+
+                private Map<String, AsyncapiOperationView> bulkCandidates(
+                    Map<String, AsyncapiOperationView> kafkaOpsById,
+                    OpenapiAsyncapiWithConfig with)
+                {
+                    final Predicate<AsyncapiOperationView> matches;
+                    if (with.tag != null)
+                    {
+                        matches = operation -> operation.tags != null && operation.tags.contains(with.tag);
+                    }
+                    else if (with.operation != null)
+                    {
+                        final Pattern pattern = compileGlob(with.operation);
+                        matches = operation -> operation.name != null && pattern.matcher(operation.name).matches();
+                    }
+                    else
+                    {
+                        matches = operation -> true;
+                    }
+
+                    return kafkaOpsById.entrySet().stream()
+                        .filter(entry -> matches.test(entry.getValue()))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                }
+
+                private Pattern compileGlob(
+                    String glob)
+                {
+                    final StringBuilder regex = new StringBuilder();
+                    final String[] literals = glob.split("\\*", -1);
+                    for (int index = 0; index < literals.length; index++)
+                    {
+                        if (index > 0)
+                        {
+                            regex.append(".*");
+                        }
+                        if (!literals[index].isEmpty())
+                        {
+                            regex.append(Pattern.quote(literals[index]));
+                        }
+                    }
+                    return Pattern.compile(regex.toString());
                 }
 
                 private <C> BindingConfigBuilder<C> injectHttpKafkaRoute(

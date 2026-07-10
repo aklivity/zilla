@@ -37,5 +37,6 @@ write close
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
                              .header(":status", "200")
+                             .header("content-length", "0")
                              .build()}
 read closed

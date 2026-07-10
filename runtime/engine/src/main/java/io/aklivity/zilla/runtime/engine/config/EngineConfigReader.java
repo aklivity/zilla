@@ -55,20 +55,17 @@ public final class EngineConfigReader
         YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true));
 
     private final EngineConfiguration config;
-    private final ConfigAdapterContext context;
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
     private final Consumer<String> logger;
 
     public EngineConfigReader(
         EngineConfiguration config,
-        ConfigAdapterContext context,
         Resolver expressions,
         Collection<URL> schemaTypes,
         Consumer<String> logger)
     {
         this.config = config;
-        this.context = context;
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
         this.logger = logger;
@@ -122,7 +119,7 @@ public final class EngineConfigReader
             }
 
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(context));
+                .withAdapters(new NamespaceAdapter());
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(CONFIG_PROVIDER)
                 .withConfig(config)

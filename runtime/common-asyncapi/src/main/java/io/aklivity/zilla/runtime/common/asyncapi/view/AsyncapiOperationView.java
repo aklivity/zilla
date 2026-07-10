@@ -32,6 +32,7 @@ public final class AsyncapiOperationView
     public final AsyncapiReplyView reply;
     public final List<AsyncapiMessageView> messages;
     public final List<AsyncapiSecuritySchemeView> security;
+    public final List<String> tags;
 
     private final Map<String, Object> bindings;
     private final Map<String, Object> extensions;
@@ -97,6 +98,11 @@ public final class AsyncapiOperationView
         this.security = resolved.security != null
                 ? resolved.security.stream()
                     .map(scheme -> new AsyncapiSecuritySchemeView(resolver, scheme))
+                    .toList()
+                : null;
+        this.tags = resolved.tags != null
+                ? resolved.tags.stream()
+                    .map(tag -> tag.name)
                     .toList()
                 : null;
     }

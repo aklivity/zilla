@@ -35,10 +35,10 @@ bindings:
               subject: kafka
     routes:
       - when:
-          - api-id: sse_api
+          - spec: sse_api
         exit: south_kafka_client
         with:
-          api-id: kafka_api
+          spec: kafka_api
   south_kafka_client:
     type: asyncapi
     kind: client

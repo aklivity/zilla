@@ -83,7 +83,6 @@ public final class ZillaExtConfiguration extends Configuration
         super(ZILLA_EXT_CONFIG, config, defaultOverrides);
     }
 
-    @Override
     public Path directory()
     {
         return Paths.get(ZILLA_EXT_DIRECTORY.get(this));

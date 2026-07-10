@@ -39,6 +39,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.McpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpInitializeParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpNotifyCanceledParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAuthorizationResult;
@@ -50,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizationError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ChallengeFW;
@@ -256,6 +258,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpConfiguration config;
     private final Long2ObjectHashMap<McpBindingConfig> bindings;
     private final Map<String, McpServerFactory.McpLifecycleStream> sessions;
+    private final McpEventContext events;
 
     public McpServerFactory(
         McpConfiguration config,
@@ -289,6 +292,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.sessions = new Object2ObjectHashMap<>();
         this.parserFactory = JsonEx.createParserFactory(Map.of());
+        this.events = new McpEventContext(context);
     }
 
     @Override
@@ -1808,6 +1812,8 @@ public final class McpServerFactory implements McpStreamFactory
                 final String status = bearerChallengeStatus(error);
                 final String wwwAuthenticate = bearerChallengeHeader(realm, scopes, resourceMetadata, error);
                 doNetBeginRejectedBearer(traceId, authorization, status, wwwAuthenticate);
+                events.authorizationFailed(traceId, routedId, realm, scopes, resourceMetadata,
+                    McpAuthorizationError.valueOf(error.name()));
                 rejected = true;
             }
             return rejected;
@@ -2073,6 +2079,7 @@ public final class McpServerFactory implements McpStreamFactory
             long authorization)
         {
             assert session != null;
+            events.sessionEstablished(traceId, routedId, session.sessionId);
         }
 
         private int onDecodeInitialize(
@@ -2233,6 +2240,9 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert stream == null;
             stream = new McpRequestStream(session, this);
+            stream.schemePipeline = JsonEx.stream(JsonEx.createParser())
+                .transform(new McpSchemeExcluder("prompts"))
+                .into(JsonEx.createGenerator());
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -2271,6 +2281,9 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert stream == null;
             stream = new McpRequestStream(session, this);
+            stream.schemePipeline = JsonEx.stream(JsonEx.createParser())
+                .transform(new McpSchemeExcluder("resources"))
+                .into(JsonEx.createGenerator());
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -2288,6 +2301,9 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert stream == null;
             stream = new McpRequestStream(session, this);
+            stream.schemePipeline = JsonEx.stream(JsonEx.createParser())
+                .transform(new McpSchemeExcluder("resourceTemplates"))
+                .into(JsonEx.createGenerator());
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
@@ -3861,6 +3877,7 @@ public final class McpServerFactory implements McpStreamFactory
                 }
                 doAppEnd(traceId, authorization);
                 sessions.remove(sessionId);
+                events.sessionClosed(traceId, routedId, sessionId, "inactivity timeout");
             }
             else
             {
@@ -4265,6 +4282,8 @@ public final class McpServerFactory implements McpStreamFactory
                     .inject(this::injectAltSvc)
                     .build());
                 doNetEnd(traceId, authorization);
+                events.authorizationFailed(traceId, routedId, realm, scopes, resourceMetadata,
+                    McpAuthorizationError.valueOf(error.name()));
                 rejected = true;
             }
             return rejected;

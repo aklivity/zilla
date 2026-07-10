@@ -20,6 +20,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class McpOpenapiRouteConfig
@@ -27,6 +28,7 @@ public final class McpOpenapiRouteConfig
     public final long id;
     public final List<McpOpenapiConditionConfig> when;
     public final McpOpenapiWithConfig with;
+    public final List<GuardedConfig> guarded;
 
     public McpOpenapiRouteConfig(
         RouteConfig route)
@@ -36,6 +38,7 @@ public final class McpOpenapiRouteConfig
             .map(McpOpenapiConditionConfig.class::cast)
             .collect(toList());
         this.with = (McpOpenapiWithConfig) route.with;
+        this.guarded = route.guarded;
     }
 
     public boolean isBulk()

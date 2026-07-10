@@ -23,32 +23,17 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaConditionConfig;
 public final class KafkaConditionMatcher
 {
     private final Matcher topicMatch;
-    private final Matcher grouoIdMatch;
 
     public KafkaConditionMatcher(
         KafkaConditionConfig condition)
     {
         this.topicMatch = condition.topic != null ? asMatcher(condition.topic) : null;
-        this.grouoIdMatch = condition.groupId != null ? asMatcher(condition.groupId) : null;
     }
 
     public boolean matches(
-        String topic,
-        String groupId)
-    {
-        return matchesTopic(topic) && matchesGroupId(groupId);
-    }
-
-    private boolean matchesTopic(
         String topic)
     {
         return this.topicMatch == null || this.topicMatch.reset(topic).matches();
-    }
-
-    private boolean matchesGroupId(
-        String groupId)
-    {
-        return this.grouoIdMatch == null || this.grouoIdMatch.reset(groupId).matches();
     }
 
     private static Matcher asMatcher(
