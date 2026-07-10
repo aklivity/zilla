@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class McpKafkaOptionsConfigAdapterTest
 {
@@ -139,6 +140,53 @@ public class McpKafkaOptionsConfigAdapterTest
                       mechanism: scram-sha-512
                       username: "{identity}"
                       password: "{credentials}"
+                """));
+    }
+
+    @Test
+    public void shouldReadTopics()
+    {
+        String yaml = """
+                servers:
+                  - localhost:9092
+                topics:
+                  - name: orders
+                    value:
+                      model: test
+                """;
+
+        McpKafkaOptionsConfig options = jsonb.fromJson(yaml, McpKafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.topics.size(), equalTo(1));
+        assertThat(options.topics.get(0).name, equalTo("orders"));
+        assertThat(options.topics.get(0).value.model, equalTo("test"));
+    }
+
+    @Test
+    public void shouldWriteTopics()
+    {
+        McpKafkaOptionsConfig options = McpKafkaOptionsConfig.builder()
+            .server()
+                .host("localhost")
+                .port(9092)
+                .build()
+            .topic()
+                .name("orders")
+                .value(TestModelConfig.builder().build())
+                .build()
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                servers:
+                  - "localhost:9092"
+                topics:
+                  - name: orders
+                    value: test
                 """));
     }
 }

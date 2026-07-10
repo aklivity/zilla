@@ -145,6 +145,31 @@
                             "authorization":
                             {
                                 "$ref": "#/$defs/options/binding/kafka/authorization"
+                            },
+                            "topics":
+                            {
+                                "title": "Topics",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties":
+                                    {
+                                        "name":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "key":
+                                        {
+                                            "$ref": "#/$defs/models"
+                                        },
+                                        "value":
+                                        {
+                                            "$ref": "#/$defs/models"
+                                        }
+                                    }
+                                }
                             }
                         },
                         "required":

@@ -34,6 +34,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class McpKafkaClientGeneratorTest
 {
@@ -166,6 +167,47 @@ public class McpKafkaClientGeneratorTest
 
         BindingConfig cacheClient = findBinding(composite.namespaces.get(0).bindings, "kafka_cache_client0");
         assertThat(cacheClient.routes.get(0).exit, equalTo("kafka_cache_server0"));
+    }
+
+    @Test
+    public void shouldPropagateTopicModels()
+    {
+        when(context.supplyBindingId(any(NamespaceConfig.class), any(BindingConfig.class))).thenReturn(0L);
+
+        McpKafkaOptionsConfig options = McpKafkaOptionsConfig.builder()
+            .server()
+                .host("localhost")
+                .port(9092)
+                .build()
+            .topic()
+                .name("orders")
+                .value(TestModelConfig.builder().build())
+                .build()
+            .build();
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp0")
+            .type("mcp_kafka")
+            .kind(KindConfig.CLIENT)
+            .options(options)
+            .build();
+
+        McpKafkaCompositeConfig composite = generator.generate(binding, context);
+
+        List<BindingConfig> bindings = composite.namespaces.get(0).bindings;
+
+        BindingConfig cacheClient = findBinding(bindings, "kafka_cache_client0");
+        KafkaOptionsConfig cacheClientOptions = (KafkaOptionsConfig) cacheClient.options;
+        assertThat(cacheClientOptions.topics.size(), equalTo(1));
+        assertThat(cacheClientOptions.topics.get(0).name, equalTo("orders"));
+        assertThat(cacheClientOptions.topics.get(0).value.model, equalTo("test"));
+
+        BindingConfig cacheServer = findBinding(bindings, "kafka_cache_server0");
+        KafkaOptionsConfig cacheServerOptions = (KafkaOptionsConfig) cacheServer.options;
+        assertThat(cacheServerOptions.topics.size(), equalTo(1));
+        assertThat(cacheServerOptions.topics.get(0).name, equalTo("orders"));
+        assertThat(cacheServerOptions.topics.get(0).value.model, equalTo("test"));
     }
 
     private static BindingConfig findBinding(

@@ -32,6 +32,7 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/kafka/schema/kafka.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/binding/mcp/kafka/schema/mcp.kafka.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/kafka/config");
 
     @Test
@@ -74,6 +75,14 @@ public class SchemaTest
     public void shouldValidateProxyProduceTopicAllowlist()
     {
         JsonObject config = schema.validate("proxy.produce.topic.allowlist.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientTopics()
+    {
+        JsonObject config = schema.validate("client.topics.yaml");
 
         assertThat(config, not(nullValue()));
     }

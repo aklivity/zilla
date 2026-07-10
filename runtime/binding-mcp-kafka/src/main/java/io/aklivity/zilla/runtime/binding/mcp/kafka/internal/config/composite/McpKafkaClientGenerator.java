@@ -57,7 +57,7 @@ public final class McpKafkaClientGenerator
 
         NamespaceConfig namespace = NamespaceConfig.builder()
             .name("%s/mcp_kafka".formatted(binding.qname))
-            .inject(this::injectKafkaCache)
+            .inject(n -> injectKafkaCache(n, options))
             .inject(n -> injectKafkaClient(n, options))
             .inject(n -> injectTcpClient(n, options))
             .build();
@@ -74,21 +74,40 @@ public final class McpKafkaClientGenerator
     }
 
     private <C> NamespaceConfigBuilder<C> injectKafkaCache(
-        NamespaceConfigBuilder<C> namespace)
+        NamespaceConfigBuilder<C> namespace,
+        McpKafkaOptionsConfig options)
     {
         return namespace
             .binding()
                 .name(CACHE_CLIENT_NAME)
                 .type(KAFKA_TYPE_NAME)
                 .kind(CACHE_CLIENT)
+                .options(KafkaOptionsConfig::builder)
+                    .inject(o -> injectKafkaTopics(o, options))
+                    .build()
                 .exit(CACHE_SERVER_NAME)
                 .build()
             .binding()
                 .name(CACHE_SERVER_NAME)
                 .type(KAFKA_TYPE_NAME)
                 .kind(CACHE_SERVER)
+                .options(KafkaOptionsConfig::builder)
+                    .inject(o -> injectKafkaTopics(o, options))
+                    .build()
                 .exit(KAFKA_CLIENT_NAME)
                 .build();
+    }
+
+    private <C> KafkaOptionsConfigBuilder<C> injectKafkaTopics(
+        KafkaOptionsConfigBuilder<C> options,
+        McpKafkaOptionsConfig mcpOptions)
+    {
+        if (mcpOptions.topics != null)
+        {
+            mcpOptions.topics.forEach(options::topic);
+        }
+
+        return options;
     }
 
     private <C> NamespaceConfigBuilder<C> injectKafkaClient(

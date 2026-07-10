@@ -24,9 +24,12 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaBinding;
+import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -41,6 +44,13 @@ public final class McpKafkaOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String CREDENTIALS_PASSWORD_NAME = "password";
     private static final String CREDENTIALS_TOKEN_NAME = "token";
     private static final String OAUTHBEARER_MECHANISM = "oauthbearer";
+    private static final String TOPICS_NAME = "topics";
+    private static final String TOPIC_NAME_NAME = "name";
+    private static final String TOPIC_KEY_NAME = "key";
+    private static final String TOPIC_VALUE_NAME = "value";
+    private static final String TOPIC_SUBJECT_NAME = "subject";
+
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
 
     @Override
     public Kind kind()
@@ -93,6 +103,40 @@ public final class McpKafkaOptionsConfigAdapter implements OptionsConfigAdapterS
             authorizations.add(mcpKafkaOptions.authorization.name, authorization);
 
             object.add(AUTHORIZATION_NAME, authorizations);
+        }
+
+        if (mcpKafkaOptions.topics != null &&
+            !mcpKafkaOptions.topics.isEmpty())
+        {
+            JsonArrayBuilder entries = Json.createArrayBuilder();
+            mcpKafkaOptions.topics.forEach(t -> entries.add(topicToJson(t)));
+
+            object.add(TOPICS_NAME, entries);
+        }
+
+        return object.build();
+    }
+
+    private JsonObject topicToJson(
+        KafkaTopicConfig topic)
+    {
+        JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (topic.name != null)
+        {
+            object.add(TOPIC_NAME_NAME, topic.name);
+        }
+
+        if (topic.key != null)
+        {
+            model.adaptType(topic.key.model);
+            object.add(TOPIC_KEY_NAME, model.adaptToJson(topic.key));
+        }
+
+        if (topic.value != null)
+        {
+            model.adaptType(topic.value.model);
+            object.add(TOPIC_VALUE_NAME, model.adaptToJson(topic.value));
         }
 
         return object.build();
@@ -148,6 +192,42 @@ public final class McpKafkaOptionsConfigAdapter implements OptionsConfigAdapterS
             }
         }
 
+        if (object.containsKey(TOPICS_NAME))
+        {
+            object.getJsonArray(TOPICS_NAME).stream()
+                .map(JsonObject.class::cast)
+                .forEach(t -> options.topic(topicFromJson(t)));
+        }
+
         return options.build();
+    }
+
+    private KafkaTopicConfig topicFromJson(
+        JsonObject object)
+    {
+        String name = object.containsKey(TOPIC_NAME_NAME)
+            ? object.getString(TOPIC_NAME_NAME)
+            : null;
+
+        KafkaTopicConfigBuilder<KafkaTopicConfig> topic = KafkaTopicConfig.builder();
+        topic.name(name);
+
+        if (object.containsKey(TOPIC_KEY_NAME))
+        {
+            JsonObjectBuilder keyObject = Json.createObjectBuilder(object.getJsonObject(TOPIC_KEY_NAME));
+            keyObject.add(TOPIC_SUBJECT_NAME, name + "-key");
+
+            topic.key(model.adaptFromJson(keyObject.build()));
+        }
+
+        if (object.containsKey(TOPIC_VALUE_NAME))
+        {
+            JsonObjectBuilder valueObject = Json.createObjectBuilder(object.getJsonObject(TOPIC_VALUE_NAME));
+            valueObject.add(TOPIC_SUBJECT_NAME, name + "-value");
+
+            topic.value(model.adaptFromJson(valueObject.build()));
+        }
+
+        return topic.build();
     }
 }

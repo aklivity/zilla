@@ -22,6 +22,8 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfigBuilder;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
@@ -30,12 +32,14 @@ public final class McpKafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, McpK
     private final Function<OptionsConfig, T> mapper;
     private List<KafkaServerConfig> servers;
     private KafkaAuthorizationConfig authorization;
+    private List<KafkaTopicConfig> topics;
 
     McpKafkaOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
         this.servers = new ArrayList<>();
+        this.topics = new ArrayList<>();
     }
 
     @Override
@@ -69,9 +73,21 @@ public final class McpKafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, McpK
         return KafkaAuthorizationConfig.builder(this::authorization);
     }
 
+    public McpKafkaOptionsConfigBuilder<T> topic(
+        KafkaTopicConfig topic)
+    {
+        topics.add(topic);
+        return this;
+    }
+
+    public KafkaTopicConfigBuilder<McpKafkaOptionsConfigBuilder<T>> topic()
+    {
+        return KafkaTopicConfig.builder(this::topic);
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpKafkaOptionsConfig(servers, authorization));
+        return mapper.apply(new McpKafkaOptionsConfig(servers, authorization, topics));
     }
 }
