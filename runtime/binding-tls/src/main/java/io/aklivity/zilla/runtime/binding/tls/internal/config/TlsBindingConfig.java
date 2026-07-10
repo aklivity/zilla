@@ -93,8 +93,14 @@ public final class TlsBindingConfig
         VaultHandler vault,
         SecureRandom random)
     {
-        KeyManagerFactory keys = newKeys(config, vault, options.keys, options.signers);
-        TrustManagerFactory trust = newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
+        boolean nothingConfigured = options.keys == null && options.trust == null && options.signers == null;
+
+        KeyManagerFactory keys = nothingConfigured
+            ? newKeysWildcard(vault)
+            : newKeys(config, vault, options.keys, options.signers);
+        TrustManagerFactory trust = nothingConfigured
+            ? newTrustWildcard(config, vault, options.trustcacerts && kind == KindConfig.CLIENT)
+            : newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
 
         try
         {
@@ -474,6 +480,61 @@ public final class TlsBindingConfig
             if (vault != null)
             {
                 trust = vault.initTrust(trustNames, cacerts);
+            }
+            else if (cacerts != null)
+            {
+                TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                factory.init(cacerts);
+                trust = factory;
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return trust;
+    }
+
+    private KeyManagerFactory newKeysWildcard(
+        VaultHandler vault)
+    {
+        KeyManagerFactory keys = null;
+
+        try
+        {
+            if (vault != null)
+            {
+                keys = vault.initKeys();
+
+                if (keys == null)
+                {
+                    keys = vault.initSigners();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return keys;
+    }
+
+    private TrustManagerFactory newTrustWildcard(
+        TlsConfiguration config,
+        VaultHandler vault,
+        boolean trustcacerts)
+    {
+        TrustManagerFactory trust = null;
+
+        try
+        {
+            KeyStore cacerts = trustcacerts ? Trusted.cacerts(config) : null;
+
+            if (vault != null)
+            {
+                trust = vault.initTrust(cacerts);
             }
             else if (cacerts != null)
             {

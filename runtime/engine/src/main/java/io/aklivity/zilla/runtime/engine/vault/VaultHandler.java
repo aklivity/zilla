@@ -41,14 +41,25 @@ public interface VaultHandler
      * a TLS handshake.
      * </p>
      *
-     * @param keyRefs  list of vault entry names identifying the private keys to include,
-     *                 or {@code null} or empty to resolve every private key entry this
-     *                 vault instance is configured to expose
+     * @param keyRefs  list of vault entry names identifying the private keys to include
      * @return an initialized {@link KeyManagerFactory}, or {@code null} if none of the
      *         referenced keys could be resolved
      */
     KeyManagerFactory initKeys(
         List<String> keyRefs);
+
+    /**
+     * Initializes a {@link KeyManagerFactory} from every private key entry this vault
+     * instance is configured to expose.
+     * <p>
+     * Used when the caller has no way to itemize specific key aliases, such as a
+     * dynamically assembled binding configuration.
+     * </p>
+     *
+     * @return an initialized {@link KeyManagerFactory}, or {@code null} if this vault
+     *         instance exposes no private keys
+     */
+    KeyManagerFactory initKeys();
 
     /**
      * Initializes a {@link KeyManagerFactory} from the named signing certificate entries
@@ -58,14 +69,25 @@ public interface VaultHandler
      * a full key pair.
      * </p>
      *
-     * @param signerRefs  list of vault entry names identifying the signing certificates,
-     *                     or {@code null} or empty to resolve every signing certificate entry
-     *                     this vault instance is configured to expose
+     * @param signerRefs  list of vault entry names identifying the signing certificates
      * @return an initialized {@link KeyManagerFactory}, or {@code null} if none of the
      *         referenced signers could be resolved
      */
     KeyManagerFactory initSigners(
         List<String> signerRefs);
+
+    /**
+     * Initializes a {@link KeyManagerFactory} from every signing certificate entry this
+     * vault instance is configured to expose.
+     * <p>
+     * Used when the caller has no way to itemize specific signer aliases, such as a
+     * dynamically assembled binding configuration.
+     * </p>
+     *
+     * @return an initialized {@link KeyManagerFactory}, or {@code null} if this vault
+     *         instance exposes no signing certificates
+     */
+    KeyManagerFactory initSigners();
 
     /**
      * Initializes a {@link TrustManagerFactory} from the named trusted certificate entries
@@ -74,14 +96,27 @@ public interface VaultHandler
      * Used to build the trust anchors for verifying peer TLS certificates.
      * </p>
      *
-     * @param certRefs  list of vault entry names identifying the trusted certificates to include,
-     *                  or {@code null} or empty to resolve every trusted certificate entry this
-     *                  vault instance is configured to expose
+     * @param certRefs  list of vault entry names identifying the trusted certificates to include
      * @param cacerts   the JVM default trust store to merge with, or {@code null} to use only
      *                  the vault-provided certificates
      * @return an initialized {@link TrustManagerFactory}
      */
     TrustManagerFactory initTrust(
         List<String> certRefs,
+        KeyStore cacerts);
+
+    /**
+     * Initializes a {@link TrustManagerFactory} from every trusted certificate entry this
+     * vault instance is configured to expose, merged with the provided system CA certificates.
+     * <p>
+     * Used when the caller has no way to itemize specific trust aliases, such as a
+     * dynamically assembled binding configuration.
+     * </p>
+     *
+     * @param cacerts   the JVM default trust store to merge with, or {@code null} to use only
+     *                  the vault-provided certificates
+     * @return an initialized {@link TrustManagerFactory}
+     */
+    TrustManagerFactory initTrust(
         KeyStore cacerts);
 }

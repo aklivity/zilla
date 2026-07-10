@@ -90,7 +90,7 @@ public class FileSystemVaultTest
     }
 
     @Test
-    public void shouldResolveAllKeysWhenAliasesAbsent() throws Exception
+    public void shouldResolveAllKeysViaWildcard() throws Exception
     {
         FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
             .keys()
@@ -102,7 +102,7 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
-        KeyManagerFactory keys = vault.initKeys(null);
+        KeyManagerFactory keys = vault.initKeys();
 
         assertThat(keys, not(nullValue()));
         assertThat(privateKey(keys, "alias1"), not(nullValue()));
@@ -110,7 +110,7 @@ public class FileSystemVaultTest
     }
 
     @Test
-    public void shouldResolveAllKeysWhenAliasesEmpty() throws Exception
+    public void shouldResolveNoKeysWhenAliasesEmpty() throws Exception
     {
         FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
             .keys()
@@ -125,12 +125,12 @@ public class FileSystemVaultTest
         KeyManagerFactory keys = vault.initKeys(List.of());
 
         assertThat(keys, not(nullValue()));
-        assertThat(privateKey(keys, "alias1"), not(nullValue()));
-        assertThat(privateKey(keys, "alias2"), not(nullValue()));
+        assertThat(privateKey(keys, "alias1"), nullValue());
+        assertThat(privateKey(keys, "alias2"), nullValue());
     }
 
     @Test
-    public void shouldResolveConfiguredEntriesWhenAliasesAbsent() throws Exception
+    public void shouldResolveConfiguredEntriesViaWildcard() throws Exception
     {
         FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
             .keys()
@@ -143,7 +143,7 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
-        KeyManagerFactory keys = vault.initKeys(null);
+        KeyManagerFactory keys = vault.initKeys();
 
         assertThat(keys, not(nullValue()));
         assertThat(privateKey(keys, "alias1"), not(nullValue()));
@@ -151,7 +151,7 @@ public class FileSystemVaultTest
     }
 
     @Test
-    public void shouldResolveAllTrustWhenAliasesAbsent() throws Exception
+    public void shouldResolveAllTrustViaWildcard() throws Exception
     {
         FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
             .trust()
@@ -163,14 +163,14 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
-        TrustManagerFactory trust = vault.initTrust(null, null);
+        TrustManagerFactory trust = vault.initTrust(null);
 
         assertThat(trust, not(nullValue()));
         assertThat(acceptedIssuers(trust), hasSize(2));
     }
 
     @Test
-    public void shouldResolveConfiguredEntriesForTrustWhenAliasesAbsent() throws Exception
+    public void shouldResolveConfiguredEntriesForTrustViaWildcard() throws Exception
     {
         FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
             .trust()
@@ -183,7 +183,7 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
-        TrustManagerFactory trust = vault.initTrust(null, null);
+        TrustManagerFactory trust = vault.initTrust(null);
 
         assertThat(trust, not(nullValue()));
         assertThat(acceptedIssuers(trust), hasSize(1));
