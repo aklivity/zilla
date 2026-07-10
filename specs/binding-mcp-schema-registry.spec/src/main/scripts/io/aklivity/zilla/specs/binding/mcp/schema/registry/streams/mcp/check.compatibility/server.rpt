@@ -54,7 +54,7 @@ read  '{"name":"check_compatibility","arguments":{"subject":"orders-value","vers
 
 write flush
 
-write '{"structuredContent":{"is_compatible":true},"content":[{"type":"text","text":"Check schema compatibility against a specific version"}],"isError":false}'
+write '{"structuredContent":{"result":{"is_compatible":true}},"content":[{"type":"text","text":"Check schema compatibility against a specific version"}],"isError":false}'
 write flush
 
 write close

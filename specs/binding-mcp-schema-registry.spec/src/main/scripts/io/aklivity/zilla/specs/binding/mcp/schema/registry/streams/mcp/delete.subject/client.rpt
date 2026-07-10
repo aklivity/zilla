@@ -52,7 +52,7 @@ connected
 
 write '{"name":"delete_subject","arguments":{"subject":"orders-value"}}'
 
-read  '{"structuredContent":[1,2],"content":[{"type":"text","text":"Delete a subject and all its versions"}],"isError":false}'
+read  '{"structuredContent":{"result":[1,2]},"content":[{"type":"text","text":"Delete a subject and all its versions"}],"isError":false}'
 read closed
 
 write close

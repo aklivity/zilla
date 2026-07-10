@@ -54,7 +54,7 @@ read  '{"name":"describe_subject","arguments":{"subject":"orders-value"}}'
 
 write flush
 
-write '{"structuredContent":[1,2],"content":[{"type":"text","text":"List versions for a subject"}],"isError":false}'
+write '{"structuredContent":{"result":[1,2]},"content":[{"type":"text","text":"List versions for a subject"}],"isError":false}'
 write flush
 
 write close

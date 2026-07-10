@@ -54,7 +54,7 @@ read  '{"name":"set_compatibility","arguments":{"subject":"orders-value","compat
 
 write flush
 
-write '{"structuredContent":{"compatibility":"BACKWARD"},"content":[{"type":"text","text":"Set the compatibility level for a subject"}],"isError":false}'
+write '{"structuredContent":{"result":{"compatibility":"BACKWARD"}},"content":[{"type":"text","text":"Set the compatibility level for a subject"}],"isError":false}'
 write flush
 
 write close
