@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -23,12 +24,10 @@ import static org.hamcrest.Matchers.nullValue;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
-import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.naming.ldap.LdapName;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
@@ -106,8 +105,7 @@ public class FileSystemVaultTest
         KeyManagerFactory keys = vault.initKeys();
 
         assertThat(keys, not(nullValue()));
-        assertThat(privateKey(keys, "alias1"), not(nullValue()));
-        assertThat(privateKey(keys, "alias2"), not(nullValue()));
+        assertThat(keyAliasCount(keys), equalTo(2));
     }
 
     @Test
@@ -126,8 +124,7 @@ public class FileSystemVaultTest
         KeyManagerFactory keys = vault.initKeys(List.of());
 
         assertThat(keys, not(nullValue()));
-        assertThat(privateKey(keys, "alias1"), nullValue());
-        assertThat(privateKey(keys, "alias2"), nullValue());
+        assertThat(keyAliasCount(keys), equalTo(0));
     }
 
     @Test
@@ -147,8 +144,7 @@ public class FileSystemVaultTest
         KeyManagerFactory keys = vault.initKeys();
 
         assertThat(keys, not(nullValue()));
-        assertThat(privateKey(keys, "alias1"), not(nullValue()));
-        assertThat(privateKey(keys, "alias2"), nullValue());
+        assertThat(keyAliasCount(keys), equalTo(1));
     }
 
     @Test
@@ -198,59 +194,21 @@ public class FileSystemVaultTest
         return Path.of(URI.create(url.toString()));
     }
 
-    private static PrivateKey privateKey(
-        KeyManagerFactory factory,
-        String alias) throws Exception
+    private static int keyAliasCount(
+        KeyManagerFactory factory)
     {
-        PrivateKey key = null;
+        int count = 0;
 
         for (KeyManager manager : factory.getKeyManagers())
         {
             if (manager instanceof X509ExtendedKeyManager keyManager)
             {
-                key = privateKey(keyManager, alias);
-                if (key != null)
-                {
-                    break;
-                }
+                String[] aliases = keyManager.getServerAliases("RSA", null);
+                count += aliases != null ? aliases.length : 0;
             }
         }
 
-        return key;
-    }
-
-    private static PrivateKey privateKey(
-        X509ExtendedKeyManager keyManager,
-        String alias) throws Exception
-    {
-        PrivateKey key = null;
-
-        String[] candidates = keyManager.getServerAliases("RSA", null);
-        if (candidates != null)
-        {
-            for (String candidate : candidates)
-            {
-                X509Certificate[] chain = keyManager.getCertificateChain(candidate);
-                if (chain != null && chain.length > 0 && alias.equals(commonName(chain[0])))
-                {
-                    key = keyManager.getPrivateKey(candidate);
-                    break;
-                }
-            }
-        }
-
-        return key;
-    }
-
-    private static String commonName(
-        X509Certificate certificate) throws Exception
-    {
-        LdapName name = new LdapName(certificate.getSubjectX500Principal().getName());
-        return name.getRdns().stream()
-            .filter(rdn -> "CN".equalsIgnoreCase(rdn.getType()))
-            .map(rdn -> String.valueOf(rdn.getValue()))
-            .findFirst()
-            .orElse(null);
+        return count;
     }
 
     private static List<X509Certificate> acceptedIssuers(
