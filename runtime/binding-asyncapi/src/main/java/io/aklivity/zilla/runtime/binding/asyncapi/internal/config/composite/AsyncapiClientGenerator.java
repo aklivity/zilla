@@ -41,7 +41,8 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
@@ -172,8 +173,9 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     "http", this::injectHttp,
                     "https", this::injectHttps,
                     "mqtt", this::injectMqtt,
-                    "mqtts", this::injectMqtts);
-                this.secure = List.of("kafka-secure", "https", "mqtts");
+                    "mqtts", this::injectMqtts,
+                    "mqtt+secure", this::injectMqtts);
+                this.secure = List.of("kafka-secure", "https", "mqtts", "mqtt+secure");
             }
 
             @Override
@@ -540,40 +542,15 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
-                    .inject(this::injectMqttTcpClient)
                     .binding()
                         .name("mqtt_client0")
                         .type("mqtt")
                         .kind(CLIENT)
+                        .options(MqttOptionsConfig::builder)
+                            .inject(this::injectMqttOptions)
+                            .build()
                         .inject(this::injectMetrics)
-                        .exit("mqtt_tcp_client0")
-                        .build();
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectMqttTcpClient(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                final URI server = resolveServer();
-                final TcpOptionsConfig tcpOptions = TcpOptionsConfig.builder()
-                    .inject(o -> server != null
-                        ? o.host(server.getHost()).ports(new int[] { server.getPort() })
-                        : Stream.of(schema)
-                            .map(s -> s.asyncapi)
-                            .flatMap(v -> v.servers.stream())
-                            .findFirst()
-                            .map(s -> o
-                                .host(s.hostname)
-                                .ports(new int[] { s.port }))
-                            .get())
-                    .build();
-
-                return namespace
-                    .binding()
-                        .name("mqtt_tcp_client0")
-                        .type("tcp")
-                        .kind(CLIENT)
-                        .inject(this::injectMetrics)
-                        .options(tcpOptions)
+                        .exit("sys:tcp_client")
                         .build();
             }
 
@@ -585,9 +562,20 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .name("mqtt_client0")
                         .type("mqtt")
                         .kind(CLIENT)
+                        .options(MqttOptionsConfig::builder)
+                            .inject(this::injectMqttOptions)
+                            .build()
                         .inject(this::injectMetrics)
                         .exit("tls_client0")
                         .build();
+            }
+
+            private <C> MqttOptionsConfigBuilder<C> injectMqttOptions(
+                MqttOptionsConfigBuilder<C> options)
+            {
+                resolveAuthority().ifPresent(authority -> options.server("mqtt://" + authority));
+
+                return options;
             }
         }
     }

@@ -45,6 +45,7 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     private static final String TOPICS_NAME = "topics";
     private static final String VERSIONS_NAME = "versions";
     private static final String STORE_NAME = "store";
+    private static final String SERVER_NAME = "server";
 
     private final MqttTopicConfigAdapter mqttTopic = new MqttTopicConfigAdapter();
 
@@ -119,6 +120,12 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
             object.add(STORE_NAME, store);
         }
 
+        String server = mqttOptions.server;
+        if (server != null)
+        {
+            object.add(SERVER_NAME, server);
+        }
+
         return object.build();
     }
 
@@ -179,6 +186,11 @@ public class MqttOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
         if (object.containsKey(STORE_NAME))
         {
             mqttOptions.store(object.getString(STORE_NAME));
+        }
+
+        if (object.containsKey(SERVER_NAME))
+        {
+            mqttOptions.server(object.getString(SERVER_NAME));
         }
 
         return mqttOptions.build();

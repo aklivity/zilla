@@ -96,7 +96,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core mqtt protocol</scopeNames>
+          <scopeNames>core mqtt protocol proxy</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.mqtt.internal.types</packageName>
         </configuration>
         <executions>
