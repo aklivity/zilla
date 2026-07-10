@@ -29,12 +29,14 @@ public class McpKafkaConfiguration extends Configuration
     private static final ConfigurationDef MCP_KAFKA_CONFIG;
 
     public static final PropertyDef<SessionIdSupplier> MCP_KAFKA_SESSION_ID;
+    public static final PropertyDef<String> MCP_KAFKA_CACHE_CLIENT_EXIT;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp.kafka");
         MCP_KAFKA_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
             McpKafkaConfiguration::decodeSessionIdSupplier, McpKafkaConfiguration::defaultSessionIdSupplier);
+        MCP_KAFKA_CACHE_CLIENT_EXIT = config.property("cache.client.exit", "");
         MCP_KAFKA_CONFIG = config;
     }
 
@@ -52,6 +54,11 @@ public class McpKafkaConfiguration extends Configuration
     public Supplier<String> sessionIdSupplier()
     {
         return MCP_KAFKA_SESSION_ID.get(this)::get;
+    }
+
+    public String cacheClientExit()
+    {
+        return MCP_KAFKA_CACHE_CLIENT_EXIT.get(this);
     }
 
     private static SessionIdSupplier decodeSessionIdSupplier(

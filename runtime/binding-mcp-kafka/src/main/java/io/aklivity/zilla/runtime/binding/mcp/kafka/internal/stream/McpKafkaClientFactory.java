@@ -36,7 +36,7 @@ public final class McpKafkaClientFactory extends McpKafkaProxyFactory
     {
         super(config, context);
         this.context = context;
-        this.generator = new McpKafkaClientGenerator();
+        this.generator = new McpKafkaClientGenerator(config.cacheClientExit());
         this.composites = new Long2ObjectHashMap<>();
     }
 

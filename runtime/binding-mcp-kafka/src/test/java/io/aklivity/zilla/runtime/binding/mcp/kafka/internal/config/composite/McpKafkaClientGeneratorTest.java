@@ -37,17 +37,17 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public class McpKafkaClientGeneratorTest
 {
-    private static final long KAFKA_CLIENT_BINDING_ID = 42L;
+    private static final long CACHE_CLIENT_BINDING_ID = 42L;
 
     private final EngineContext context = mock(EngineContext.class);
-    private final McpKafkaClientGenerator generator = new McpKafkaClientGenerator();
+    private final McpKafkaClientGenerator generator = new McpKafkaClientGenerator("");
 
     @Test
     public void shouldGenerateKafkaClientPipeline()
     {
         when(context.supplyBindingId(any(NamespaceConfig.class), any(BindingConfig.class)))
-            .thenAnswer(inv -> "kafka_client0".equals(((BindingConfig) inv.getArgument(1)).name)
-                ? KAFKA_CLIENT_BINDING_ID
+            .thenAnswer(inv -> "kafka_cache_client0".equals(((BindingConfig) inv.getArgument(1)).name)
+                ? CACHE_CLIENT_BINDING_ID
                 : 0L);
 
         McpKafkaOptionsConfig options = McpKafkaOptionsConfig.builder()
@@ -67,7 +67,7 @@ public class McpKafkaClientGeneratorTest
 
         McpKafkaCompositeConfig composite = generator.generate(binding, context);
 
-        assertThat(composite.exitId, equalTo(KAFKA_CLIENT_BINDING_ID));
+        assertThat(composite.exitId, equalTo(CACHE_CLIENT_BINDING_ID));
         assertThat(composite.namespaces.size(), equalTo(1));
 
         NamespaceConfig namespace = composite.namespaces.get(0);
@@ -137,6 +137,35 @@ public class McpKafkaClientGeneratorTest
         assertThat(kafkaOptions.authorization, not(nullValue()));
         assertThat(kafkaOptions.authorization.name, equalTo("guard0"));
         assertThat(kafkaOptions.authorization.credentials.mechanism, equalTo("plain"));
+    }
+
+    @Test
+    public void shouldOverrideCacheClientExit()
+    {
+        McpKafkaClientGenerator overridden = new McpKafkaClientGenerator("test:kafka0");
+
+        McpKafkaOptionsConfig options = McpKafkaOptionsConfig.builder()
+            .server()
+                .host("localhost")
+                .port(9092)
+                .build()
+            .build();
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp0")
+            .type("mcp_kafka")
+            .kind(KindConfig.CLIENT)
+            .options(options)
+            .build();
+        binding.resolveId = name -> "test:kafka0".equals(name) ? CACHE_CLIENT_BINDING_ID : 0L;
+
+        McpKafkaCompositeConfig composite = overridden.generate(binding, context);
+
+        assertThat(composite.exitId, equalTo(CACHE_CLIENT_BINDING_ID));
+
+        BindingConfig cacheClient = findBinding(composite.namespaces.get(0).bindings, "kafka_cache_client0");
+        assertThat(cacheClient.routes.get(0).exit, equalTo("kafka_cache_server0"));
     }
 
     private static BindingConfig findBinding(

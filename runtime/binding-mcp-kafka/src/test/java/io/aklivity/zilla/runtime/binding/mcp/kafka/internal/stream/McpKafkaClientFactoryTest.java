@@ -46,7 +46,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public class McpKafkaClientFactoryTest
 {
     private static final long BINDING_ID = 1L;
-    private static final long KAFKA_CLIENT_BINDING_ID = 42L;
+    private static final long CACHE_CLIENT_BINDING_ID = 42L;
 
     private final EngineContext context = mock(EngineContext.class);
     private final BindingHandler streamFactory = mock(BindingHandler.class);
@@ -66,8 +66,8 @@ public class McpKafkaClientFactoryTest
         when(context.supplyInitialId(anyLong())).thenAnswer(inv -> supplyId.getAndIncrement());
         when(context.supplyReplyId(anyLong())).thenAnswer(inv -> ((long) inv.getArgument(0)) | 0x01L);
         when(context.supplyBindingId(any(NamespaceConfig.class), any(BindingConfig.class)))
-            .thenAnswer(inv -> "kafka_client0".equals(((BindingConfig) inv.getArgument(1)).name)
-                ? KAFKA_CLIENT_BINDING_ID
+            .thenAnswer(inv -> "kafka_cache_client0".equals(((BindingConfig) inv.getArgument(1)).name)
+                ? CACHE_CLIENT_BINDING_ID
                 : 0L);
 
         this.factory = new McpKafkaClientFactory(new McpKafkaConfiguration(), context);
@@ -81,7 +81,7 @@ public class McpKafkaClientFactoryTest
         factory.attach(binding);
 
         McpKafkaBindingConfig attached = factory.bindings.get(BINDING_ID);
-        assertThat(attached.routes.get(0).id, equalTo(KAFKA_CLIENT_BINDING_ID));
+        assertThat(attached.routes.get(0).id, equalTo(CACHE_CLIENT_BINDING_ID));
 
         verify(context, times(1)).attachComposite(any(NamespaceConfig.class));
     }
