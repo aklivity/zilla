@@ -76,4 +76,13 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jasig.maven</groupId>
+        <artifactId>maven-notice-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 </project>
