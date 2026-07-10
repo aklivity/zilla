@@ -61,7 +61,7 @@
     <byteman.version>4.0.26</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.23.0</mockito.version>
-    <k3po.version>3.4.3</k3po.version>
+    <k3po.version>3.4.4</k3po.version>
     <jmh.version>1.37</jmh.version>
     <helm.version>3.16.4</helm.version>
   </properties>

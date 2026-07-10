@@ -273,7 +273,7 @@ final class ZillaPartition implements AutoCloseable
 
             fireChannelBound(childChannel, childChannel.getLocalAddress());
 
-            sender.doReset(originId, routedId, initialId, sequence, acknowledge, traceId, maximum);
+            sender.doReset(childChannel, originId, routedId, initialId, sequence, acknowledge, traceId, maximum);
 
             childChannel.setReadClosed();
         }
