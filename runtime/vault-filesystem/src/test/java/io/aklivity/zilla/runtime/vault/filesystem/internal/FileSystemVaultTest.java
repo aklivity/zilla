@@ -178,6 +178,36 @@ public class FileSystemVaultTest
     }
 
     @Test
+    public void shouldRestrictExplicitKeyAliasesToConfiguredEntries() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .keys()
+                .store("stores/wildcard/keys")
+                .type("pkcs12")
+                .password("generated")
+                .entries(List.of("alias1"))
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        KeyManagerFactory keys = vault.initKeys(List.of("alias1", "alias2"));
+
+        int aliasCount = 0;
+        for (KeyManager manager : keys.getKeyManagers())
+        {
+            if (manager instanceof X509ExtendedKeyManager keyManager)
+            {
+                String[] aliases = keyManager.getServerAliases("RSA", null);
+                aliasCount += aliases != null ? aliases.length : 0;
+            }
+        }
+
+        assertThat(keys, not(nullValue()));
+        assertThat(aliasCount, equalTo(1));
+    }
+
+    @Test
     public void shouldResolveAllTrustViaWildcard() throws Exception
     {
         FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
@@ -220,6 +250,35 @@ public class FileSystemVaultTest
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
         TrustManagerFactory trust = vault.initTrust(null);
+
+        List<X509Certificate> issuers = new ArrayList<>();
+        for (TrustManager manager : trust.getTrustManagers())
+        {
+            if (manager instanceof X509TrustManager trustManager)
+            {
+                issuers.addAll(List.of(trustManager.getAcceptedIssuers()));
+            }
+        }
+
+        assertThat(trust, not(nullValue()));
+        assertThat(issuers, hasSize(1));
+    }
+
+    @Test
+    public void shouldRestrictExplicitTrustAliasesToConfiguredEntries() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .trust()
+                .store("stores/wildcard/trust")
+                .type("pkcs12")
+                .password("generated")
+                .entries(List.of("alias1"))
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        TrustManagerFactory trust = vault.initTrust(List.of("alias1", "alias2"), null);
 
         List<X509Certificate> issuers = new ArrayList<>();
         for (TrustManager manager : trust.getTrustManagers())

@@ -338,13 +338,17 @@ public class FileSystemVaultHandler implements VaultHandler
         private PrivateKeyEntry key(
             String alias)
         {
-            return entry(store, protection, alias, PrivateKeyEntry.class);
+            return entries == null || entries.contains(alias)
+                ? entry(store, protection, alias, PrivateKeyEntry.class)
+                : null;
         }
 
         private TrustedCertificateEntry certificate(
             String alias)
         {
-            return entry(store, null, alias, TrustedCertificateEntry.class);
+            return entries == null || entries.contains(alias)
+                ? entry(store, null, alias, TrustedCertificateEntry.class)
+                : null;
         }
 
         private List<String> issuedKeys(
