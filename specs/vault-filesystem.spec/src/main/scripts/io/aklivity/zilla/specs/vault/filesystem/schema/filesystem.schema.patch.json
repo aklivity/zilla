@@ -49,6 +49,15 @@
                                     "password":
                                     {
                                         "type": "string"
+                                    },
+                                    "entries":
+                                    {
+                                        "title": "Entries",
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "type": "string"
+                                        }
                                     }
                                 },
                                 "additionalProperties": false
@@ -71,6 +80,15 @@
                                     "password":
                                     {
                                         "type": "string"
+                                    },
+                                    "entries":
+                                    {
+                                        "title": "Entries",
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "type": "string"
+                                        }
                                     }
                                 },
                                 "additionalProperties": false
@@ -93,6 +111,15 @@
                                     "password":
                                     {
                                         "type": "string"
+                                    },
+                                    "entries":
+                                    {
+                                        "title": "Entries",
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "type": "string"
+                                        }
                                     }
                                 },
                                 "additionalProperties": false

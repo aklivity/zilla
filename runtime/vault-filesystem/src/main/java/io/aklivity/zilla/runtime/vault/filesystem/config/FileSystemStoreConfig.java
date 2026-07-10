@@ -17,11 +17,14 @@ package io.aklivity.zilla.runtime.vault.filesystem.config;
 
 import static java.util.function.Function.identity;
 
+import java.util.List;
+
 public final class FileSystemStoreConfig
 {
     public final String store;
     public final String type;
     public final String password;
+    public final List<String> entries;
 
     public static FileSystemStoreConfigBuilder<FileSystemStoreConfig> builder()
     {
@@ -31,10 +34,12 @@ public final class FileSystemStoreConfig
     FileSystemStoreConfig(
         String store,
         String type,
-        String password)
+        String password,
+        List<String> entries)
     {
         this.store = store;
         this.type = type;
         this.password = password;
+        this.entries = entries;
     }
 }

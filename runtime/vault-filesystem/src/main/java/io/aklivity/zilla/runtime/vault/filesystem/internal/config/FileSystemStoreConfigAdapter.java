@@ -15,9 +15,17 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
@@ -28,6 +36,7 @@ public final class FileSystemStoreConfigAdapter implements JsonbAdapter<FileSyst
     private static final String STORE_NAME = "store";
     private static final String TYPE_NAME = "type";
     private static final String PASSWORD_NAME = "password";
+    private static final String ENTRIES_NAME = "entries";
 
     @Override
     public JsonObject adaptToJson(
@@ -45,6 +54,13 @@ public final class FileSystemStoreConfigAdapter implements JsonbAdapter<FileSyst
         if (store.password != null)
         {
             object.add(PASSWORD_NAME, store.password);
+        }
+
+        if (store.entries != null)
+        {
+            JsonArrayBuilder entries = Json.createArrayBuilder();
+            store.entries.forEach(entries::add);
+            object.add(ENTRIES_NAME, entries);
         }
 
         return object.build();
@@ -67,6 +83,25 @@ public final class FileSystemStoreConfigAdapter implements JsonbAdapter<FileSyst
             fsStore.password(object.getString(PASSWORD_NAME));
         }
 
+        if (object.containsKey(ENTRIES_NAME))
+        {
+            fsStore.entries(asListString(object.getJsonArray(ENTRIES_NAME)));
+        }
+
         return fsStore.build();
+    }
+
+    private static List<String> asListString(
+        JsonArray array)
+    {
+        return array.stream()
+            .map(FileSystemStoreConfigAdapter::asString)
+            .collect(toList());
+    }
+
+    private static String asString(
+        JsonValue value)
+    {
+        return ((JsonString) value).getString();
     }
 }
