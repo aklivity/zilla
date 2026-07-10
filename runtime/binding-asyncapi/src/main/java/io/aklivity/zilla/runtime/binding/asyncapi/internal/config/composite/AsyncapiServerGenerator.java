@@ -718,7 +718,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                                 .build()
                             .build()
                         .with(MqttWithConfig::builder)
-                            .compositeId(schema.asyncapi.compositeId)
+                            .compositeId(operation.compositeId)
                             .build()
                         .build();
                 }
