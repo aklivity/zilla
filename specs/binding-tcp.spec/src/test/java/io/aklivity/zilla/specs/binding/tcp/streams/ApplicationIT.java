@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.tcp.streams;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -26,6 +27,7 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.specs.binding.tcp.internal.IPv6Support;
 
 /**
  * RFC-793
@@ -245,6 +247,8 @@ public class ApplicationIT
         "${app}/connection.established.ipv6/server" })
     public void shouldEstablishConnectionIPv6() throws Exception
     {
+        Assume.assumeTrue(IPv6Support.isAvailable());
+
         k3po.finish();
     }
 

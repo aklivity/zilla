@@ -58,6 +58,9 @@ public class FileSystemVaultHandler implements VaultHandler
     private final Function<List<String>, KeyManagerFactory> supplySigners;
     private final BiFunction<List<String>, KeyStore, TrustManagerFactory> supplyTrust;
     private final RevocationStrategy revocation;
+    private final FileSystemStoreInfo keys;
+    private final FileSystemStoreInfo signers;
+    private final FileSystemStoreInfo trust;
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
@@ -71,18 +74,18 @@ public class FileSystemVaultHandler implements VaultHandler
         Function<String, Path> resolvePath,
         RevocationStrategy revocation)
     {
-        FileSystemStoreInfo keys = supplyStoreInfo(resolvePath, options.keys);
+        this.keys = supplyStoreInfo(resolvePath, options.keys);
         supplyKeys = keys != null
             ? keys::newKeysFactory
             : aliases -> null;
 
-        FileSystemStoreInfo signers = supplyStoreInfo(resolvePath, options.signers);
+        this.signers = supplyStoreInfo(resolvePath, options.signers);
         supplySigners = signers != null && keys != null
             ? aliases -> newSignersFactory(aliases, signers, keys)
             : aliases -> null;
 
         this.revocation = options.revocation != null ? options.revocation : revocation;
-        FileSystemStoreInfo trust = supplyStoreInfo(resolvePath, options.trust);
+        this.trust = supplyStoreInfo(resolvePath, options.trust);
         supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
     }
 
@@ -94,6 +97,12 @@ public class FileSystemVaultHandler implements VaultHandler
     }
 
     @Override
+    public KeyManagerFactory initKeys()
+    {
+        return keys != null ? initKeys(keys.allKeyAliases()) : null;
+    }
+
+    @Override
     public TrustManagerFactory initTrust(
         List<String> aliases,
         KeyStore cacerts)
@@ -102,10 +111,23 @@ public class FileSystemVaultHandler implements VaultHandler
     }
 
     @Override
+    public TrustManagerFactory initTrust(
+        KeyStore cacerts)
+    {
+        return initTrust(trust != null ? trust.allCertificateAliases() : null, cacerts);
+    }
+
+    @Override
     public KeyManagerFactory initSigners(
         List<String> aliases)
     {
         return supplySigners.apply(aliases);
+    }
+
+    @Override
+    public KeyManagerFactory initSigners()
+    {
+        return signers != null ? initSigners(signers.allCertificateAliases()) : null;
     }
 
     private static FileSystemStoreInfo supplyStoreInfo(
@@ -127,7 +149,7 @@ public class FileSystemVaultHandler implements VaultHandler
                     KeyStore store = KeyStore.getInstance(type);
                     store.load(input, password);
 
-                    info = new FileSystemStoreInfo(store, password);
+                    info = new FileSystemStoreInfo(store, password, config.entries);
                 }
             }
             catch (Exception ex)
@@ -190,7 +212,7 @@ public class FileSystemVaultHandler implements VaultHandler
                     }
                 }
 
-                if (cacerts != null)
+                if (cacerts != null && aliases != null)
                 {
                     for (String alias : aliases)
                     {
@@ -238,13 +260,16 @@ public class FileSystemVaultHandler implements VaultHandler
     {
         private final KeyStore store;
         private final KeyStore.PasswordProtection protection;
+        private final List<String> entries;
 
         private FileSystemStoreInfo(
             KeyStore store,
-            char[] password)
+            char[] password,
+            List<String> entries)
         {
             this.store = store;
             this.protection = password != null ? new KeyStore.PasswordProtection(password) : null;
+            this.entries = entries;
         }
 
         private KeyManagerFactory newKeysFactory(
@@ -280,16 +305,50 @@ public class FileSystemVaultHandler implements VaultHandler
             return factory;
         }
 
+        private List<String> allKeyAliases()
+        {
+            return entries != null ? entries : allAliases(PrivateKeyEntry.class, protection);
+        }
+
+        private List<String> allCertificateAliases()
+        {
+            return entries != null ? entries : allAliases(TrustedCertificateEntry.class, null);
+        }
+
+        private List<String> allAliases(
+            Class<? extends Entry> type,
+            KeyStore.PasswordProtection entryProtection)
+        {
+            List<String> aliases = Collections.emptyList();
+
+            try
+            {
+                aliases = Collections.list(store.aliases()).stream()
+                    .filter(alias -> entry(store, entryProtection, alias, type) != null)
+                    .toList();
+            }
+            catch (Exception ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+
+            return aliases;
+        }
+
         private PrivateKeyEntry key(
             String alias)
         {
-            return entry(store, protection, alias, PrivateKeyEntry.class);
+            return entries == null || entries.contains(alias)
+                ? entry(store, protection, alias, PrivateKeyEntry.class)
+                : null;
         }
 
         private TrustedCertificateEntry certificate(
             String alias)
         {
-            return entry(store, null, alias, TrustedCertificateEntry.class);
+            return entries == null || entries.contains(alias)
+                ? entry(store, null, alias, TrustedCertificateEntry.class)
+                : null;
         }
 
         private List<String> issuedKeys(

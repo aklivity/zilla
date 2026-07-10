@@ -133,6 +133,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/specs/binding/tcp/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/specs/binding/tcp/internal/IPv6Support.class</exclude>
           </excludes>
           <rules>
             <rule>

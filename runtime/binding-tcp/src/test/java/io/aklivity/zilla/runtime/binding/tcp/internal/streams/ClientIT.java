@@ -30,6 +30,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.function.LongSupplier;
 
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -42,6 +43,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
+import io.aklivity.zilla.specs.binding.tcp.internal.IPv6Support;
 
 public class ClientIT
 {
@@ -207,6 +209,8 @@ public class ClientIT
     @ScriptProperty("address \"tcp://[::1]:12345\"")
     public void shouldEstablishConnectionIPv6() throws Exception
     {
+        Assume.assumeTrue(IPv6Support.isAvailable());
+
         k3po.finish();
     }
 

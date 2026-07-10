@@ -48,4 +48,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateVaultWithEntries()
+    {
+        JsonObject config = schema.validate("vault.entries.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

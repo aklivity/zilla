@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.config;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -26,6 +27,7 @@ public final class FileSystemStoreConfigBuilder<T> extends ConfigBuilder<T, File
     private String store;
     private String type;
     private String password;
+    private List<String> entries;
 
     FileSystemStoreConfigBuilder(
         Function<FileSystemStoreConfig, T> mapper)
@@ -61,9 +63,16 @@ public final class FileSystemStoreConfigBuilder<T> extends ConfigBuilder<T, File
         return this;
     }
 
+    public FileSystemStoreConfigBuilder<T> entries(
+        List<String> entries)
+    {
+        this.entries = entries;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new FileSystemStoreConfig(store, type, password));
+        return mapper.apply(new FileSystemStoreConfig(store, type, password, entries));
     }
 }

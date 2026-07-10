@@ -888,6 +888,33 @@ final class ZillaTarget implements AutoCloseable
         streamsBuffer.write(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
+    void doReset(
+        final ZillaChannel channel,
+        final long originId,
+        final long routedId,
+        final long streamId,
+        final long sequence,
+        final long acknowledge,
+        final long traceId,
+        final int maximum)
+    {
+        final ChannelBuffer extension = channel.readExtBuffer(RESET, true);
+        final byte[] extensionCopy = writeExtCopy(extension);
+
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .extension(p -> p.set(extensionCopy))
+                .build();
+
+        streamsBuffer.write(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
     void doAbortInput(
         final ZillaChannel channel,
         final long traceId)
@@ -1184,6 +1211,21 @@ final class ZillaTarget implements AutoCloseable
         private void onResetBeforeHandshake(
             ResetFW reset)
         {
+            final OctetsFW resetExt = reset.extension();
+
+            int resetExtBytes = resetExt.sizeof();
+            if (resetExtBytes != 0)
+            {
+                final DirectBufferEx buffer = resetExt.buffer();
+                final int offset = resetExt.offset();
+
+                // TODO: avoid allocation
+                final byte[] resetExtCopy = new byte[resetExtBytes];
+                buffer.getBytes(offset, resetExtCopy);
+
+                channel.writeExtBuffer(RESET, false).writeBytes(resetExtCopy);
+            }
+
             handshakeFuture.setFailure(new ChannelException("handshake failed"));
         }
 

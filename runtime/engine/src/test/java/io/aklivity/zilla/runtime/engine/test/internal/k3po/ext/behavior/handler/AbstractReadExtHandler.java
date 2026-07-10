@@ -25,9 +25,10 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelHandlerContext;
 
 import io.aklivity.k3po.runtime.driver.internal.behavior.handler.codec.ChannelDecoder;
+import io.aklivity.k3po.runtime.driver.internal.behavior.handler.codec.DecodingHandler;
 import io.aklivity.k3po.runtime.driver.internal.behavior.handler.event.AbstractEventHandler;
 
-public abstract class AbstractReadExtHandler extends AbstractEventHandler
+public abstract class AbstractReadExtHandler extends AbstractEventHandler implements DecodingHandler
 {
     protected final ChannelDecoder decoder;
 
@@ -46,6 +47,12 @@ public abstract class AbstractReadExtHandler extends AbstractEventHandler
     {
         super(expectedEvents);
         this.decoder = requireNonNull(decoder, "decoder");
+    }
+
+    @Override
+    public ChannelDecoder getDecoder()
+    {
+        return decoder;
     }
 
     protected final void doReadExtension(
