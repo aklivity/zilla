@@ -126,7 +126,6 @@
                         "enum": [ "client" ]
                     },
                     "catalog": false,
-                    "vault": false,
                     "options":
                     {
                         "properties":

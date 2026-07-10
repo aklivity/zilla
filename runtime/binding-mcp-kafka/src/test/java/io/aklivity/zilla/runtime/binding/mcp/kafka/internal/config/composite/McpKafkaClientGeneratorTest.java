@@ -210,6 +210,113 @@ public class McpKafkaClientGeneratorTest
         assertThat(cacheServerOptions.topics.get(0).value.model, equalTo("test"));
     }
 
+    @Test
+    public void shouldGenerateTlsClientWhenAuthorizationConfigured()
+    {
+        when(context.supplyBindingId(any(NamespaceConfig.class), any(BindingConfig.class))).thenReturn(0L);
+
+        McpKafkaOptionsConfig options = McpKafkaOptionsConfig.builder()
+            .server()
+                .host("localhost")
+                .port(9092)
+                .build()
+            .authorization()
+                .name("guard0")
+                .credentials()
+                    .mechanism("plain")
+                    .username("username")
+                    .password("password")
+                    .build()
+                .build()
+            .build();
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp0")
+            .type("mcp_kafka")
+            .kind(KindConfig.CLIENT)
+            .options(options)
+            .build();
+
+        McpKafkaCompositeConfig composite = generator.generate(binding, context);
+
+        List<BindingConfig> bindings = composite.namespaces.get(0).bindings;
+        assertThat(bindings.size(), equalTo(5));
+
+        BindingConfig kafkaClient = findBinding(bindings, "kafka_client0");
+        assertThat(kafkaClient.routes.get(0).exit, equalTo("tls_client0"));
+
+        BindingConfig tlsClient = findBinding(bindings, "tls_client0");
+        assertThat(tlsClient.type, equalTo("tls"));
+        assertThat(tlsClient.kind, equalTo(KindConfig.CLIENT));
+        assertThat(tlsClient.vault, nullValue());
+        assertThat(tlsClient.routes.get(0).exit, equalTo("tcp_client0"));
+    }
+
+    @Test
+    public void shouldGenerateTlsClientWhenVaultConfigured()
+    {
+        when(context.supplyBindingId(any(NamespaceConfig.class), any(BindingConfig.class))).thenReturn(0L);
+
+        McpKafkaOptionsConfig options = McpKafkaOptionsConfig.builder()
+            .server()
+                .host("localhost")
+                .port(9092)
+                .build()
+            .build();
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp0")
+            .type("mcp_kafka")
+            .kind(KindConfig.CLIENT)
+            .vault("vault0")
+            .options(options)
+            .build();
+        binding.qvault = "test:vault0";
+
+        McpKafkaCompositeConfig composite = generator.generate(binding, context);
+
+        List<BindingConfig> bindings = composite.namespaces.get(0).bindings;
+        assertThat(bindings.size(), equalTo(5));
+
+        BindingConfig kafkaClient = findBinding(bindings, "kafka_client0");
+        assertThat(kafkaClient.routes.get(0).exit, equalTo("tls_client0"));
+
+        BindingConfig tlsClient = findBinding(bindings, "tls_client0");
+        assertThat(tlsClient.vault, equalTo("test:vault0"));
+        assertThat(tlsClient.routes.get(0).exit, equalTo("tcp_client0"));
+    }
+
+    @Test
+    public void shouldNotGenerateTlsClientWhenNeitherAuthorizationNorVaultConfigured()
+    {
+        when(context.supplyBindingId(any(NamespaceConfig.class), any(BindingConfig.class))).thenReturn(0L);
+
+        McpKafkaOptionsConfig options = McpKafkaOptionsConfig.builder()
+            .server()
+                .host("localhost")
+                .port(9092)
+                .build()
+            .build();
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp0")
+            .type("mcp_kafka")
+            .kind(KindConfig.CLIENT)
+            .options(options)
+            .build();
+
+        McpKafkaCompositeConfig composite = generator.generate(binding, context);
+
+        List<BindingConfig> bindings = composite.namespaces.get(0).bindings;
+        assertThat(bindings.size(), equalTo(4));
+
+        BindingConfig kafkaClient = findBinding(bindings, "kafka_client0");
+        assertThat(kafkaClient.routes.get(0).exit, equalTo("tcp_client0"));
+    }
+
     private static BindingConfig findBinding(
         List<BindingConfig> bindings,
         String name)

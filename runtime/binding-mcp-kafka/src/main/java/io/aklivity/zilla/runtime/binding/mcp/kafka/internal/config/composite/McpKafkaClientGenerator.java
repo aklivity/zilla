@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaCompositeConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -35,10 +36,12 @@ public final class McpKafkaClientGenerator
 {
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final String TCP_TYPE_NAME = "tcp";
+    private static final String TLS_TYPE_NAME = "tls";
 
     private static final String CACHE_CLIENT_NAME = "kafka_cache_client0";
     private static final String CACHE_SERVER_NAME = "kafka_cache_server0";
     private static final String KAFKA_CLIENT_NAME = "kafka_client0";
+    private static final String TLS_CLIENT_NAME = "tls_client0";
     private static final String TCP_CLIENT_NAME = "tcp_client0";
 
     private final String cacheClientExit;
@@ -54,11 +57,13 @@ public final class McpKafkaClientGenerator
         EngineContext context)
     {
         McpKafkaOptionsConfig options = (McpKafkaOptionsConfig) binding.options;
+        boolean secure = options.authorization != null || binding.vault != null;
 
         NamespaceConfig namespace = NamespaceConfig.builder()
             .name("%s/mcp_kafka".formatted(binding.qname))
             .inject(n -> injectKafkaCache(n, options))
-            .inject(n -> injectKafkaClient(n, options))
+            .inject(n -> injectKafkaClient(n, options, secure))
+            .inject(n -> injectTlsClient(n, binding, secure))
             .inject(n -> injectTcpClient(n, options))
             .build();
 
@@ -112,7 +117,8 @@ public final class McpKafkaClientGenerator
 
     private <C> NamespaceConfigBuilder<C> injectKafkaClient(
         NamespaceConfigBuilder<C> namespace,
-        McpKafkaOptionsConfig options)
+        McpKafkaOptionsConfig options,
+        boolean secure)
     {
         return namespace
             .binding()
@@ -123,8 +129,30 @@ public final class McpKafkaClientGenerator
                     .inject(o -> injectKafkaServers(o, options))
                     .inject(o -> injectKafkaAuthorization(o, options))
                     .build()
-                .exit(TCP_CLIENT_NAME)
+                .exit(secure ? TLS_CLIENT_NAME : TCP_CLIENT_NAME)
                 .build();
+    }
+
+    private <C> NamespaceConfigBuilder<C> injectTlsClient(
+        NamespaceConfigBuilder<C> namespace,
+        BindingConfig binding,
+        boolean secure)
+    {
+        if (secure)
+        {
+            namespace
+                .binding()
+                    .name(TLS_CLIENT_NAME)
+                    .type(TLS_TYPE_NAME)
+                    .kind(CLIENT)
+                    .options(TlsOptionsConfig::builder)
+                        .build()
+                    .vault(binding.qvault)
+                    .exit(TCP_CLIENT_NAME)
+                    .build();
+        }
+
+        return namespace;
     }
 
     private <C> KafkaOptionsConfigBuilder<C> injectKafkaServers(

@@ -18,6 +18,7 @@ module io.aklivity.zilla.runtime.binding.mcp.kafka
     requires io.aklivity.zilla.runtime.binding.mcp;
     requires io.aklivity.zilla.runtime.binding.kafka;
     requires io.aklivity.zilla.runtime.binding.tcp;
+    requires io.aklivity.zilla.runtime.binding.tls;
 
     exports io.aklivity.zilla.runtime.binding.mcp.kafka.config;
 

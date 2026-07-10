@@ -86,4 +86,18 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateClientVault()
+    {
+        JsonObject config = schema.validate("client.vault.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWithVault()
+    {
+        schema.validate("proxy.with.vault.yaml");
+    }
 }
