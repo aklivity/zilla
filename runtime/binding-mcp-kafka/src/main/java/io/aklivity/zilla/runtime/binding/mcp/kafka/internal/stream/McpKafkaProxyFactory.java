@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpEndExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpOutcome;
@@ -109,6 +110,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final int CONSUME_TIMEOUT_SIGNAL_ID = 1;
     private static final long DEFAULT_CONSUME_TIMEOUT_MILLIS = 30_000L;
 
+    private static final int KAFKA_ERROR_INVALID_RECORD = 87;
+
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -119,6 +122,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final ResetFW resetRO = new ResetFW();
     private final SignalFW signalRO = new SignalFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
+    private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -1495,7 +1499,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             if (produce)
             {
-                finishProduce(traceId, false);
+                finishProduce(traceId, false, kafkaResetError(reset));
                 doKafkaAbort(traceId);
                 doKafkaReset(traceId);
             }
@@ -1525,14 +1529,35 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId,
             boolean success)
         {
+            finishProduce(traceId, success, 0);
+        }
+
+        private void finishProduce(
+            long traceId,
+            boolean success,
+            int error)
+        {
             if (!produceDone)
             {
                 produceDone = true;
                 final String text = success
                     ? "Produced record to " + topic
-                    : "Failed to produce record to " + topic;
+                    : error == KAFKA_ERROR_INVALID_RECORD
+                        ? "Record for " + topic + " failed schema validation"
+                        : "Failed to produce record to " + topic;
                 peer.doMcpResult(traceId, text, !success);
             }
+        }
+
+        private int kafkaResetError(
+            ResetFW reset)
+        {
+            final OctetsFW extension = reset.extension();
+            final KafkaResetExFW kafkaResetEx = extension.sizeof() != 0
+                ? kafkaResetExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            return kafkaResetEx != null ? kafkaResetEx.error() : 0;
         }
 
         private void finishConsume(

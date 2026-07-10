@@ -72,6 +72,16 @@ public class McpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.produce.yaml")
+    @Specification({
+        "${mcp}/produce.rejected.invalid.record/client",
+        "${kafka}/produce.rejected.invalid.record/server"})
+    public void shouldRejectProduceWithInvalidRecord() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.consume.yaml")
     @Specification({
         "${mcp}/consume/client",

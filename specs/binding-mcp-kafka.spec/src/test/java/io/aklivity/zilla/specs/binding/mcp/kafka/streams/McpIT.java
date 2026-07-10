@@ -56,6 +56,15 @@ public class McpIT
 
     @Test
     @Specification({
+        "${mcp}/produce.rejected.invalid.record/client",
+        "${mcp}/produce.rejected.invalid.record/server"})
+    public void shouldRejectProduceWithInvalidRecord() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/consume/client",
         "${mcp}/consume/server"})
     public void shouldConsume() throws Exception

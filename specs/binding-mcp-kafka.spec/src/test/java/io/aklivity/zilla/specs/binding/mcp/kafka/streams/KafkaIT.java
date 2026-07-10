@@ -56,6 +56,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/produce.rejected.invalid.record/client",
+        "${kafka}/produce.rejected.invalid.record/server"})
+    public void shouldRejectProduceWithInvalidRecord() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/consume/client",
         "${kafka}/consume/server"})
     public void shouldConsume() throws Exception
