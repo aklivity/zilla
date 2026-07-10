@@ -371,8 +371,6 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            // an END must always be deliverable even if the reply was never opened (e.g. mcp_openapi0 ends its
-            // reply before ever sending a BEGIN) — open the reply first, mirroring doMcpSchemaRegistryAbort below
             doMcpSchemaRegistryBegin(sequence, acknowledge, maximum, traceId, extension);
 
             if (!McpSchemaRegistryState.replyClosed(state))
@@ -391,10 +389,6 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            // an ABORT must always be deliverable even if the reply was never opened — e.g. mcp_openapi0's
-            // upstream aborts before ever sending a response, so no reply BEGIN has gone out yet. Without
-            // opening the reply first, this abort is silently dropped and the real client hangs forever
-            // waiting for any reply frame at all
             doMcpSchemaRegistryBegin(sequence, acknowledge, maximum, traceId, extension);
 
             if (!McpSchemaRegistryState.replyClosed(state))
