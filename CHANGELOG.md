@@ -1,5 +1,61 @@
 # Changelog
 
+## [2.0.0-alpha-22](https://github.com/aklivity/zilla/tree/2.0.0-alpha-22) (2026-07-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.6...2.0.0-alpha-22)
+
+**Closed issues:**
+
+- binding-mcp-openapi: support operator-declared guarded routes independent of OpenAPI security schemes [\#2103](https://github.com/aklivity/zilla/issues/2103)
+- mcp: split search-active tool catalog into search\_tools / describe\_tool / execute\_tool [\#2081](https://github.com/aklivity/zilla/issues/2081)
+- Support `tls` deferring to vault for list of keys or trusted certificates, support `filesystem` vault [\#1576](https://github.com/aklivity/zilla/issues/1576)
+
+**Merged pull requests:**
+
+- feat\(engine\): support connect aborted zilla:reset.ext matcher [\#2115](https://github.com/aklivity/zilla/pull/2115) ([jfallows](https://github.com/jfallows))
+- feat\(vault\): resolve every entry when no refs are given [\#2114](https://github.com/aklivity/zilla/pull/2114) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): skip TrustedTest when javax.net.ssl.trustStore is overridden [\#2112](https://github.com/aklivity/zilla/pull/2112) ([jfallows](https://github.com/jfallows))
+- test\(binding-tcp\): skip IPv6 tests when unavailable in the build environment [\#2111](https://github.com/aklivity/zilla/pull/2111) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): support extension on rejected k3po transport streams [\#2110](https://github.com/aklivity/zilla/pull/2110) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp-openapi\): support operator-declared guarded routes [\#2105](https://github.com/aklivity/zilla/pull/2105) ([jfallows](https://github.com/jfallows))
+- fix\(build\): don't fail PR on cleanup, skip cleanup if testing failed [\#2098](https://github.com/aklivity/zilla/pull/2098) ([jfallows](https://github.com/jfallows))
+- fix\(engine,manager,common-json\): remove parsson from the modular runtime [\#2084](https://github.com/aklivity/zilla/pull/2084) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): split search-active catalog into search\_tools/describe\_tool/execute\_tool [\#2083](https://github.com/aklivity/zilla/pull/2083) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): defer k3po startable until engine start to close IT startup races [\#2082](https://github.com/aklivity/zilla/pull/2082) ([jfallows](https://github.com/jfallows))
+- Add route filtering by operation tag and glob patterns [\#2076](https://github.com/aklivity/zilla/pull/2076) ([jfallows](https://github.com/jfallows))
+- feat\(examples\): demonstrate mcp.proxy tool search and eager tool loading [\#2075](https://github.com/aklivity/zilla/pull/2075) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): add telemetry events for session lifecycle, bearer auth, and elicitation timeout [\#2074](https://github.com/aklivity/zilla/pull/2074) ([jfallows](https://github.com/jfallows))
+- feat\(binding-asyncapi,binding-openapi-asyncapi\): align route when/with vocabulary with mcp-openapi [\#2072](https://github.com/aklivity/zilla/pull/2072) ([jfallows](https://github.com/jfallows))
+- fix: remove orphaned deprecated config ahead of 2.0.0 [\#2071](https://github.com/aklivity/zilla/pull/2071) ([jfallows](https://github.com/jfallows))
+- feat\(common-json\): apply decline-to-N key streaming to related consumers [\#2065](https://github.com/aklivity/zilla/pull/2065) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): fall back to shared cache credentials for hydration south connections [\#2064](https://github.com/aklivity/zilla/pull/2064) ([jfallows](https://github.com/jfallows))
+- feat\(examples\): demonstrate all mcp\* bindings with guarded JWT authorization [\#2053](https://github.com/aklivity/zilla/pull/2053) ([jfallows](https://github.com/jfallows))
+- build\(deps\): Bump ubuntu from jammy-20260509 to jammy-20260627 in /cloud/docker-image/src/main/docker [\#1989](https://github.com/aklivity/zilla/pull/1989) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): Bump actions/download-artifact from 7 to 8 [\#1959](https://github.com/aklivity/zilla/pull/1959) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): Bump actions/github-script from 7 to 9 [\#1958](https://github.com/aklivity/zilla/pull/1958) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): Bump actions/checkout from 6 to 7 [\#1929](https://github.com/aklivity/zilla/pull/1929) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): Bump alpine from 3.23.4 to 3.24.1 in /cloud/docker-image/src/main/docker [\#1899](https://github.com/aklivity/zilla/pull/1899) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): Bump azure/setup-helm from 4 to 5 [\#1778](https://github.com/aklivity/zilla/pull/1778) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): Bump docker/build-push-action from 6 to 7 [\#1777](https://github.com/aklivity/zilla/pull/1777) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [1.2.6](https://github.com/aklivity/zilla/tree/1.2.6) (2026-07-09)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-21...1.2.6)
+
+**Implemented enhancements:**
+
+- common-json: stream object keys larger than the input window through the parser and all key-matching consumers [\#1954](https://github.com/aklivity/zilla/issues/1954)
+
+**Closed issues:**
+
+- binding-mcp: add telemetry events for session lifecycle, bearer auth rejection, and elicitation timeout [\#2070](https://github.com/aklivity/zilla/issues/2070)
+- Align route when/with naming \(api-id/operation-id → spec/operation\) and add tag/glob bulk selection across openapi, openapi-asyncapi, asyncapi [\#2067](https://github.com/aklivity/zilla/issues/2067)
+- mcp proxy: toolkit-level guarded routes don't propagate scope into cached tools/list, leaking to unauthenticated callers [\#2063](https://github.com/aklivity/zilla/issues/2063)
+- mcp proxy: routes\[\].with.cache.credentials should fall back to options.cache.authorization's credential [\#2062](https://github.com/aklivity/zilla/issues/2062)
+- mcp url-mode elicitation: tool call never resumes/returns its result after elicitation completes [\#2060](https://github.com/aklivity/zilla/issues/2060)
+- mcp\_openapi/mcp\_http tool calls with a JSON body fail: call arguments not forwarded to the backend request body [\#2059](https://github.com/aklivity/zilla/issues/2059)
+- mcp\_proxy tools/list omits mcp\_http/mcp\_openapi toolkits under any scoped token [\#2058](https://github.com/aklivity/zilla/issues/2058)
+
 ## [2.0.0-alpha-21](https://github.com/aklivity/zilla/tree/2.0.0-alpha-21) (2026-07-08)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0-alpha-20...2.0.0-alpha-21)
@@ -423,7 +479,7 @@
 - Support aggregate event IDs for multi-toolkit MCP proxy [\#1791](https://github.com/aklivity/zilla/pull/1791) ([jfallows](https://github.com/jfallows))
 - Add lock, unlock, and watch operations to StoreHandler [\#1790](https://github.com/aklivity/zilla/pull/1790) ([jfallows](https://github.com/jfallows))
 - Add support for MCP list changed notifications [\#1789](https://github.com/aklivity/zilla/pull/1789) ([jfallows](https://github.com/jfallows))
-- immediate retry metadata refresh [\#1786](https://github.com/aklivity/zilla/pull/1786) ([ankitk-me](https://github.com/ankitk-me))
+- fix\(binding-kafka\): immediate retry metadata refresh [\#1786](https://github.com/aklivity/zilla/pull/1786) ([ankitk-me](https://github.com/ankitk-me))
 - Add MCP lifecycle and toolkit integration tests [\#1784](https://github.com/aklivity/zilla/pull/1784) ([jfallows](https://github.com/jfallows))
 - build\(deps\): bump org.testcontainers:testcontainers-bom from 2.0.2 to 2.0.5 [\#1780](https://github.com/aklivity/zilla/pull/1780) ([dependabot[bot]](https://github.com/apps/dependabot))
 - build\(deps\): bump ubuntu from jammy-20260410 to jammy-20260509 in /cloud/docker-image/src/main/docker [\#1779](https://github.com/aklivity/zilla/pull/1779) ([dependabot[bot]](https://github.com/apps/dependabot))
@@ -431,7 +487,7 @@
 - feat\(binding-mcp\): mcp · proxy cache option \(\#1737\) [\#1774](https://github.com/aklivity/zilla/pull/1774) ([jfallows](https://github.com/jfallows))
 - feat\(binding-mcp\): emit Alt-Svc response header from server [\#1773](https://github.com/aklivity/zilla/pull/1773) ([jfallows](https://github.com/jfallows))
 - Support routing based on TLS client certificate presence/signer for mixed-auth endpoints on shared port [\#1769](https://github.com/aklivity/zilla/pull/1769) ([akrambek](https://github.com/akrambek))
-- binding-kafka events update [\#1768](https://github.com/aklivity/zilla/pull/1768) ([ankitk-me](https://github.com/ankitk-me))
+- fix\(binding-kafka\): export telemetry events [\#1768](https://github.com/aklivity/zilla/pull/1768) ([ankitk-me](https://github.com/ankitk-me))
 - build\(deps\): bump docker/login-action from 3 to 4 [\#1645](https://github.com/aklivity/zilla/pull/1645) ([dependabot[bot]](https://github.com/apps/dependabot))
 
 ## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
@@ -758,10 +814,6 @@
 ## [0.9.178](https://github.com/aklivity/zilla/tree/0.9.178) (2026-01-14)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.177...0.9.178)
-
-**Closed issues:**
-
-- Support `tls` deferring to vault for list of keys or trusted certificates, support `filesystem` vault [\#1576](https://github.com/aklivity/zilla/issues/1576)
 
 **Merged pull requests:**
 
