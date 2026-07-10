@@ -53,15 +53,6 @@
                                                 "title": "Server",
                                                 "type": "string"
                                             },
-                                            "names":
-                                            {
-                                                "title": "Names",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "string"
-                                                }
-                                            },
                                             "servers":
                                             {
                                                 "title": "Servers",
@@ -121,6 +112,19 @@
                                                     },
                                                     "additionalProperties": false
                                                 }
+                                            },
+                                            "security":
+                                            {
+                                                "title": "Security",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z0-9_\\-]+$":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         },
                                         "additionalProperties": false
@@ -264,6 +268,29 @@
                                                     {
                                                         "title": "Tag",
                                                         "type": "string"
+                                                    },
+                                                    "servers":
+                                                    {
+                                                        "title": "Servers",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "name":
+                                                                {
+                                                                    "title": "Name",
+                                                                    "type": "string"
+                                                                },
+                                                                "url":
+                                                                {
+                                                                    "title": "URL",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
                                                     }
                                                 }
                                             }
@@ -339,6 +366,29 @@
                                                     {
                                                         "title": "Tag",
                                                         "type": "string"
+                                                    },
+                                                    "servers":
+                                                    {
+                                                        "title": "Servers",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "name":
+                                                                {
+                                                                    "title": "Name",
+                                                                    "type": "string"
+                                                                },
+                                                                "url":
+                                                                {
+                                                                    "title": "URL",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
                                                     }
                                                 }
                                             }

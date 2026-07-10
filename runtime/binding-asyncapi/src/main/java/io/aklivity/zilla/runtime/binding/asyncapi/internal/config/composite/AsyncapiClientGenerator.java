@@ -190,7 +190,6 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
-                    .filter(this::matchesNames)
                     .map(s -> s.protocol)
                     .distinct()
                     .map(protocols::get)
@@ -220,7 +219,6 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     : Stream.of(schema)
                         .map(s -> s.asyncapi)
                         .flatMap(v -> v.servers.stream())
-                        .filter(this::matchesNames)
                         .anyMatch(s -> secure.contains(s.protocol));
             }
 
@@ -256,7 +254,6 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                                 : Stream.of(schema)
                                     .map(s -> s.asyncapi)
                                     .flatMap(v -> v.servers.stream())
-                                    .filter(this::matchesNames)
                                     .findFirst()
                                     .map(s -> o
                                         .host(s.hostname)
@@ -475,7 +472,6 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
-                    .filter(this::matchesNames)
                     .forEach(s ->
                         options.server()
                             .host(s.hostname)

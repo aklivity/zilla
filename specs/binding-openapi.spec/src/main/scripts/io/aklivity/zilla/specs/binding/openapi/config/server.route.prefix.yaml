@@ -31,39 +31,64 @@ catalogs:
             name: MIT
         servers:
           - url: http://localhost:8080/v1
-          - url: http://localhost:8080/v2
         paths:
           /pets:
-            get:
-              summary: List all pets
-              operationId: listPets
+            post:
+              summary: Create a pet
+              operationId: createPets
               tags:
                 - pets
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Pet'
+                required: true
               responses:
-                '200':
-                  description: A paged array of pets
+                '201':
+                  description: Null response
+                default:
+                  description: unexpected error
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/Pets"
+                        $ref: "#/components/schemas/Error"
         components:
           schemas:
-            Pets:
-              type: array
-              maxItems: 100
-              items:
-                type: object
-
+            Pet:
+              type: object
+              required:
+                - id
+                - name
+              properties:
+                id:
+                  type: integer
+                  format: int64
+                name:
+                  type: string
+                tag:
+                  type: string
+            Error:
+              type: object
+              required:
+                - code
+                - message
+              properties:
+                code:
+                  type: integer
+                  format: int32
+                message:
+                  type: string
 bindings:
-  openapi0:
+  composite0:
     type: openapi
-    kind: client
+    kind: server
     options:
       specs:
         petstore:
-          paths:
-            - /v1
+          server: https://frontend.example.com/apis
           catalog:
             catalog0:
               subject: petstore
               version: latest
+    exit: openapi0

@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
@@ -51,8 +52,9 @@ public final class AsyncapiRouteConfig
     boolean matches(
         String spec,
         String operation,
-        List<String> tags)
+        List<String> tags,
+        List<AsyncapiServerView> operationServers)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operation, tags));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operation, tags, operationServers));
     }
 }

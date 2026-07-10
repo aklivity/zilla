@@ -17,27 +17,37 @@ package io.aklivity.zilla.runtime.common.openapi.config;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
+import java.util.Map;
 
 public class OpenapiSpecificationConfig
 {
     public final String label;
     public final String server;
-    public final List<String> paths;
     public final List<OpenapiServerConfig> servers;
     public final List<OpenapiCatalogConfig> catalogs;
+    public final Map<String, String> security;
 
     public OpenapiSpecificationConfig(
         String label,
         String server,
-        List<String> paths,
         List<OpenapiServerConfig> servers,
-        List<OpenapiCatalogConfig> catalogs)
+        List<OpenapiCatalogConfig> catalogs,
+        Map<String, String> security)
     {
         this.label = label;
         this.server = server;
-        this.paths = paths;
         this.servers = servers;
         this.catalogs = catalogs;
+        this.security = security;
+    }
+
+    public OpenapiSpecificationConfig(
+        String label,
+        String server,
+        List<OpenapiServerConfig> servers,
+        List<OpenapiCatalogConfig> catalogs)
+    {
+        this(label, server, servers, catalogs, null);
     }
 
     public OpenapiSpecificationConfig(
@@ -45,13 +55,13 @@ public class OpenapiSpecificationConfig
         List<OpenapiServerConfig> servers,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(label, null, emptyList(), servers, catalogs);
+        this(label, null, servers, catalogs, null);
     }
 
     public OpenapiSpecificationConfig(
         String apiLabel,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(apiLabel, null, emptyList(), emptyList(), catalogs);
+        this(apiLabel, null, emptyList(), catalogs, null);
     }
 }

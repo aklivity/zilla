@@ -25,6 +25,7 @@ import java.util.function.ToLongFunction;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -104,10 +105,11 @@ public final class AsyncapiBindingConfig
         long authorization,
         String spec,
         String operation,
-        List<String> tags)
+        List<String> tags,
+        List<AsyncapiServerView> operationServers)
     {
         return routes.stream()
-                .filter(r -> r.authorized(authorization) && r.matches(spec, operation, tags))
+                .filter(r -> r.authorized(authorization) && r.matches(spec, operation, tags, operationServers))
                 .findFirst()
                 .orElse(null);
     }

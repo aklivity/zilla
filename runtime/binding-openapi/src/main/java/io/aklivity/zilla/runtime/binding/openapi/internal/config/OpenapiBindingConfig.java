@@ -46,6 +46,7 @@ public final class OpenapiBindingConfig
     public final LongFunction<CatalogHandler> supplyCatalog;
     public final ToIntFunction<String> supplyTypeId;
     public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
+    public final LongFunction<String> supplyQName;
 
     public transient OpenapiCompositeConfig composite;
 
@@ -71,6 +72,7 @@ public final class OpenapiBindingConfig
         this.supplyBindingId = context::supplyBindingId;
         this.supplyCatalog = context::supplyCatalog;
         this.supplyTypeId = context::supplyTypeId;
+        this.supplyQName = context::supplyQName;
 
         // TODO: move to engine
         if (options != null)
@@ -91,10 +93,11 @@ public final class OpenapiBindingConfig
         long authorization,
         String spec,
         String operation,
-        List<String> tags)
+        List<String> tags,
+        String serverUrl)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(spec, operation, tags))
+            .filter(r -> r.authorized(authorization) && r.matches(spec, operation, tags, serverUrl))
             .findFirst()
             .orElse(null);
     }

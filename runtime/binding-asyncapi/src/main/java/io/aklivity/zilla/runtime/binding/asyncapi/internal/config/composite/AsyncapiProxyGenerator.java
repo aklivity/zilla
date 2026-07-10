@@ -56,6 +56,9 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
+import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedRef;
+import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedResolution;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiCorrelationIdView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
@@ -63,7 +66,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiReplyView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaItemView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
-import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -250,7 +252,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                 private boolean matches(
                     AsyncapiOperationView candidate)
                 {
-                    return condition.matches(condition.spec, candidate.name, candidate.tags);
+                    return condition.matches(condition.spec, candidate.name, candidate.tags, candidate.specification.servers);
                 }
             }
 
@@ -432,7 +434,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                                     if (kafkaOp != null)
                                     {
-                                        injectSseKafkaRoute(binding, sseOp, kafkaOp);
+                                        injectSseKafkaRoute(binding, condition.schema, sseOp, kafkaOp);
                                     }
                                 }
                             }
@@ -444,10 +446,11 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                 private <C> BindingConfigBuilder<C> injectSseKafkaRoute(
                     BindingConfigBuilder<C> binding,
+                    AsyncapiSchemaConfig schema,
                     AsyncapiOperationView sseOperation,
                     AsyncapiOperationView kafkaOperation)
                 {
-                    if (sseOperation.hasBinding("x-zilla-sse"))
+                    if (sseOperation.hasBinding("x-zilla-sse") && allowed(schema, sseOperation))
                     {
                         binding.route()
                             .exit(config.qname)
@@ -455,7 +458,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                                 .path(sseOperation.channel.address)
                                 .build()
                                 .inject(r -> injectSseKafkaRouteWith(r, sseOperation, kafkaOperation))
-                                .inject(r -> injectSseServerRouteGuarded(r, sseOperation.security))
+                                .inject(r -> injectSseServerRouteGuarded(r, schema, sseOperation))
                             .build();
                     }
 
@@ -532,21 +535,22 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                 private <C> RouteConfigBuilder<C> injectSseServerRouteGuarded(
                     RouteConfigBuilder<C> route,
-                    List<AsyncapiSecuritySchemeView> securitySchemes)
+                    AsyncapiSchemaConfig schema,
+                    AsyncapiOperationView operation)
                 {
-                    if (securitySchemes != null && !securitySchemes.isEmpty())
-                    {
-                        AsyncapiSecuritySchemeView securityScheme = securitySchemes.get(0);
+                    final GuardedResolution resolution = AsyncapiGuardResolver.resolve(
+                        operation.name, schema.apiLabel, operation.security, schema.security,
+                        config.resolveId, config.supplyQName);
 
-                        if ("oauth2".equals(securityScheme.type))
-                        {
-                            route
-                                .guarded()
-                                .name(String.format("%s:jwt0", config.namespace))
-                                .inject(guarded -> injectGuardedRoles(guarded, securityScheme.scopes))
+                    for (GuardedRef ref : resolution.guarded)
+                    {
+                        route
+                            .guarded()
+                                .name(ref.qname)
+                                .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                                 .build();
-                        }
                     }
+
                     return route;
                 }
             }
@@ -622,7 +626,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                                     if (kafkaOp != null)
                                     {
-                                        injectHttpKafkaRoute(binding, httpOp, kafkaOp);
+                                        injectHttpKafkaRoute(binding, condition.schema, httpOp, kafkaOp);
                                     }
                                 }
                             }
@@ -634,10 +638,11 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                 private <C> BindingConfigBuilder<C> injectHttpKafkaRoute(
                     BindingConfigBuilder<C> binding,
+                    AsyncapiSchemaConfig schema,
                     AsyncapiOperationView httpOperation,
                     AsyncapiOperationView kafkaOperation)
                 {
-                    if (httpOperation.hasBinding("http"))
+                    if (httpOperation.hasBinding("http") && allowed(schema, httpOperation))
                     {
                         final AsyncapiChannelView httpChannel = httpOperation.channel;
                         final String httpMethod = httpOperation
@@ -684,7 +689,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                                 .path(httpPath)
                                 .build()
                             .inject(r -> injectHttpKafkaRouteWith(r, httpOperation, kafkaOperation))
-                            .inject(r -> injectHttpServerRouteGuarded(r, httpOperation.security))
+                            .inject(r -> injectHttpServerRouteGuarded(r, schema, httpOperation))
                             .build();
                     }
 
@@ -882,21 +887,22 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                 private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
                     RouteConfigBuilder<C> route,
-                    List<AsyncapiSecuritySchemeView> securitySchemes)
+                    AsyncapiSchemaConfig schema,
+                    AsyncapiOperationView operation)
                 {
-                    if (securitySchemes != null && !securitySchemes.isEmpty())
-                    {
-                        AsyncapiSecuritySchemeView security = securitySchemes.get(0);
+                    final GuardedResolution resolution = AsyncapiGuardResolver.resolve(
+                        operation.name, schema.apiLabel, operation.security, schema.security,
+                        config.resolveId, config.supplyQName);
 
-                        if ("oauth2".equals(security.type))
-                        {
-                            route
-                                .guarded()
-                                .name(String.format("%s:jwt0", config.namespace))
-                                .inject(guarded -> injectGuardedRoles(guarded, security.scopes))
+                    for (GuardedRef ref : resolution.guarded)
+                    {
+                        route
+                            .guarded()
+                                .name(ref.qname)
+                                .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                                 .build();
-                        }
                     }
+
                     return route;
                 }
 

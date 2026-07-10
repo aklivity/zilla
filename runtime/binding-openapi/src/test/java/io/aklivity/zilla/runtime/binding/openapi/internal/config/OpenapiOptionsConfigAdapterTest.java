@@ -90,55 +90,6 @@ public class OpenapiOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadOptionsWithServerAndPaths()
-    {
-        String text =
-            """
-            specs:
-              petstore:
-                server: https://api.example.com:443
-                paths:
-                  - /v1
-                catalog:
-                  catalog0:
-                    subject: petstore
-                    version: latest
-            """;
-
-        OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
-
-        assertEquals("https://api.example.com:443", options.specs.get(0).server);
-        assertEquals(of("/v1"), options.specs.get(0).paths);
-    }
-
-    @Test
-    public void shouldWriteOptionsWithServerAndPaths()
-    {
-        String expected =
-            """
-            specs:
-              test:
-                server: "https://api.example.com:443"
-                paths:
-                  - /v1
-                catalog:
-                  catalog0:
-                    subject: petstore
-                    version: latest
-            """;
-
-        OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
-            .spec(new OpenapiSpecificationConfig("test", "https://api.example.com:443", of("/v1"), of(),
-                of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))))
-            .build();
-
-        String text = jsonb.toJson(options);
-
-        assertThat(text, not(nullValue()));
-        assertEquals(expected, text);
-    }
-
-    @Test
     public void shouldWriteOptions()
     {
         String expected =

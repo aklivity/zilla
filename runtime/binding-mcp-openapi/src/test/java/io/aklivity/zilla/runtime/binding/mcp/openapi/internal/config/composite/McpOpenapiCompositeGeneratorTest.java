@@ -395,7 +395,7 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         assertThat(toolWith, notNullValue());
         assertThat(toolWith.headers.get(":scheme"), equalTo("https"));
-        assertThat(toolWith.headers.get(":authority"), equalTo("api.github.com"));
+        assertThat(toolWith.headers.get(":authority"), equalTo("api.github.com:443"));
         assertThat(toolWith.headers.get(":path"), equalTo("/repos/${args.owner}/${args.repo}/pulls"));
         assertThat(toolWith.body, notNullValue());
 
@@ -1658,7 +1658,7 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
-    public void shouldDenyOperationWhenSchemeHasNoGuardConfigured()
+    public void shouldAllowUnguardedWhenSchemeHasNoGuardConfigured()
     {
         BindingConfig binding = BindingConfig.builder()
             .namespace("test")
@@ -1699,16 +1699,13 @@ public class McpOpenapiCompositeGeneratorTest
             .filter(r -> "GET".equals(((McpHttpWithConfig) r.with).headers.get(":method")))
             .findFirst()
             .orElse(null);
-        assertThat(getRoute, nullValue());
-        assertThat(generator.deniedOperations(), hasSize(1));
-        String reason = generator.deniedOperations().get(0);
-        assertThat(reason, containsString("search/code"));
-        assertThat(reason, containsString("oauthScheme"));
-        assertThat(reason, containsString("no guard configured"));
+        assertThat(getRoute, notNullValue());
+        assertThat(getRoute.guarded, empty());
+        assertThat(generator.deniedOperations(), empty());
     }
 
     @Test
-    public void shouldDenyOperationWhenSecurityMapAbsentButOperationRequiresSecurity()
+    public void shouldAllowUnguardedWhenSecurityMapAbsentButOperationRequiresSecurity()
     {
         BindingConfig binding = BindingConfig.builder()
             .namespace("test")
@@ -1748,11 +1745,59 @@ public class McpOpenapiCompositeGeneratorTest
             .filter(r -> "POST".equals(((McpHttpWithConfig) r.with).headers.get(":method")))
             .findFirst()
             .orElse(null);
-        assertThat(postRoute, nullValue());
-        assertThat(generator.deniedOperations(), hasSize(1));
-        String reason = generator.deniedOperations().get(0);
-        assertThat(reason, containsString("pulls/create"));
-        assertThat(reason, containsString("bearerAuth"));
+        assertThat(postRoute, notNullValue());
+        assertThat(postRoute.guarded, empty());
+        assertThat(generator.deniedOperations(), empty());
+    }
+
+    @Test
+    public void shouldGuardOnlyMappedSchemeWhenAlternativeIsMixed()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("merge_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/merge")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        RouteConfig putRoute = mcpHttp.routes.stream()
+            .filter(r -> "PUT".equals(((McpHttpWithConfig) r.with).headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        assertThat(putRoute, notNullValue());
+        List<GuardedConfig> guarded = putRoute.guarded;
+        assertThat(guarded, hasSize(1));
+        assertThat(guarded.get(0).roles, containsInAnyOrder("repo", "pr:write"));
+        assertThat(guarded.get(0).roles, hasSize(2));
+        assertThat(generator.deniedOperations(), empty());
     }
 
     @Test
@@ -1966,7 +2011,8 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
         List<String> toolNames = mcpHttpOptions.tools.stream().map(t -> t.name).toList();
-        assertThat(toolNames, containsInAnyOrder("pulls_create", "repos_get", "search_code", "issues_list"));
+        assertThat(toolNames, containsInAnyOrder(
+            "pulls_create", "repos_get", "search_code", "issues_create", "issues_list", "pulls_merge"));
         assertThat(mcpHttpOptions.resources, nullValue());
     }
 

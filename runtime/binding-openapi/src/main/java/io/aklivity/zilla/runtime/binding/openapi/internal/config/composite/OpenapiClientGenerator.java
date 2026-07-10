@@ -162,7 +162,6 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                     : Stream.of(schema)
                         .map(s -> s.openapi)
                         .flatMap(v -> v.servers.stream())
-                        .filter(this::matchesPaths)
                         .findFirst()
                         .map(s -> s.url.getScheme());
             }
@@ -239,7 +238,6 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                                     .map(s -> s.openapi)
                                     .flatMap(v -> v.servers.stream())
                                     .filter(s -> s.url != null)
-                                    .filter(this::matchesPaths)
                                     .findFirst()
                                     .map(s -> o
                                         .host(s.url.getHost())
@@ -261,21 +259,21 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
+                final String prefix = resolveServerPrefix();
+
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasResponses)
                     .forEach(operation ->
-                        operation.servers.stream()
-                            .filter(this::matchesPaths)
-                            .forEach(server ->
-                                options
-                                    .request()
-                                        .path(server.requestPath(operation.path))
-                                        .method(HttpRequestConfig.Method.valueOf(operation.method))
-                                        .inject(request -> injectHttpResponses(request, operation))
-                                        .build()
-                                    .build()));
+                        operation.servers.forEach(server ->
+                            options
+                                .request()
+                                    .path(prefix + server.requestPath(operation.path))
+                                    .method(HttpRequestConfig.Method.valueOf(operation.method))
+                                    .inject(request -> injectHttpResponses(request, operation))
+                                    .build()
+                                .build()));
 
                 return options;
             }

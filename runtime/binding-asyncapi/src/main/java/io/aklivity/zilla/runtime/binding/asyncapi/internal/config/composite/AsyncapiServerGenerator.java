@@ -45,12 +45,14 @@ import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
+import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedRef;
+import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedResolution;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiParameterView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
-import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
@@ -144,7 +146,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         .ports(Stream.of(schema)
                             .map(s -> s.asyncapi)
                             .flatMap(v -> v.servers.stream())
-                            .filter(this::matchesNames)
                             .mapToInt(s -> s.port)
                             .distinct()
                             .toArray())
@@ -170,7 +171,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> plain.contains(s.protocol))
-                    .filter(this::matchesNames)
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
                             .port(s.port)
@@ -182,7 +182,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> secure.contains(s.protocol))
-                    .filter(this::matchesNames)
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
                             .port(s.port)
@@ -199,7 +198,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 if (Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
-                    .filter(this::matchesNames)
                     .anyMatch(s -> secure.contains(s.protocol)))
                 {
                     namespace.binding()
@@ -222,7 +220,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .filter(s -> secure.contains(s.protocol))
-                    .filter(this::matchesNames)
                     .forEach(s -> binding.route()
                         .when(TlsConditionConfig::builder)
                             .port(s.port)
@@ -239,7 +236,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
-                    .filter(this::matchesNames)
                     .map(s -> s.protocol)
                     .distinct()
                     .map(protocols::get)
@@ -409,7 +405,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     {
                         final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
-                        if (operation.hasBinding("http"))
+                        if (operation.hasBinding("http") && allowed(operation))
                         {
                             binding
                                 .route()
@@ -441,23 +437,41 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return binding;
             }
 
+            private GuardedResolution resolveGuarded(
+                AsyncapiOperationView operation)
+            {
+                return AsyncapiGuardResolver.resolve(
+                    operation.name, schema.apiLabel, operation.security, schema.security,
+                    config.resolveId, config.supplyQName);
+            }
+
+            private boolean allowed(
+                AsyncapiOperationView operation)
+            {
+                final GuardedResolution resolution = resolveGuarded(operation);
+                final boolean allowed = !resolution.denied();
+
+                if (!allowed)
+                {
+                    denied.add(resolution.reason);
+                }
+
+                return allowed;
+            }
+
             private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
                 RouteConfigBuilder<C> route,
                 AsyncapiOperationView operation)
             {
-                if (operation.security != null && !operation.security.isEmpty())
+                for (GuardedRef ref : resolveGuarded(operation).guarded)
                 {
-                    final AsyncapiSecuritySchemeView securityScheme = operation.security.get(0);
-                    if (config.options.http.authorization != null &&
-                        "oauth2".equals(securityScheme.type))
-                    {
-                        route
-                            .guarded()
-                                .name(config.options.http.authorization.qname)
-                                .roles(securityScheme.scopes)
-                                .build();
-                    }
+                    route
+                        .guarded()
+                            .name(ref.qname)
+                            .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
+                            .build();
                 }
+
                 return route;
             }
 
@@ -521,7 +535,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .filter(v -> v.servers.stream()
-                        .filter(this::matchesNames)
                         .anyMatch(s -> s.protocol.startsWith("http")))
                     .flatMap(v -> v.operations.values().stream())
                     .filter(op -> op.hasBinding("x-zilla-sse"))

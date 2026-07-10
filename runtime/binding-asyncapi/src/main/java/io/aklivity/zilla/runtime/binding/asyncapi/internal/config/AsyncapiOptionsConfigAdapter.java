@@ -21,7 +21,6 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -50,7 +49,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 {
     private static final String SPECS_NAME = "specs";
     private static final String SERVER_NAME = "server";
-    private static final String NAMES_NAME = "names";
     private static final String SERVERS_NAME = "servers";
     private static final String SERVER_HOST_NAME = "host";
     private static final String SERVER_URL_NAME = "url";
@@ -64,6 +62,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
+    private static final String SECURITY_NAME = "security";
     private static final String CHANNELS_NAME = "channels";
     private static final String SESSIONS_NAME = "sessions";
     private static final String MESSAGES_NAME = "messages";
@@ -110,13 +109,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     catalogObject.add(SERVER_NAME, asyncapiConfig.server);
                 }
 
-                if (asyncapiConfig.names != null && !asyncapiConfig.names.isEmpty())
-                {
-                    final JsonArrayBuilder names = Json.createArrayBuilder();
-                    asyncapiConfig.names.forEach(names::add);
-                    catalogObject.add(NAMES_NAME, names);
-                }
-
                 for (AsyncapiCatalogConfig catalog : asyncapiConfig.catalogs)
                 {
                     JsonObjectBuilder schemaObject = Json.createObjectBuilder();
@@ -152,6 +144,13 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     });
                 }
                 catalogObject.add(SERVERS_NAME, servers);
+
+                if (asyncapiConfig.security != null && !asyncapiConfig.security.isEmpty())
+                {
+                    final JsonObjectBuilder security = Json.createObjectBuilder();
+                    asyncapiConfig.security.forEach(security::add);
+                    catalogObject.add(SECURITY_NAME, security);
+                }
 
                 specs.add(asyncapiConfig.label, catalogObject);
             }
@@ -248,11 +247,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     specBuilder.serverOverride(spec.getString(SERVER_NAME));
                 }
 
-                if (spec.containsKey(NAMES_NAME))
-                {
-                    spec.getJsonArray(NAMES_NAME).forEach(n -> specBuilder.name(((JsonString) n).getString()));
-                }
-
                 if (spec.containsKey(CATALOG_NAME))
                 {
                     final JsonObject catalogs = spec.getJsonObject(CATALOG_NAME);
@@ -304,6 +298,15 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                         }
 
                         serverBuilder.build();
+                    }
+                }
+
+                if (spec.containsKey(SECURITY_NAME))
+                {
+                    final JsonObject securityObject = spec.getJsonObject(SECURITY_NAME);
+                    for (String scheme : securityObject.keySet())
+                    {
+                        specBuilder.security(scheme, securityObject.getString(scheme));
                     }
                 }
 

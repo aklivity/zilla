@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class AsyncapiConditionConfig extends ConditionConfig
@@ -24,6 +25,7 @@ public class AsyncapiConditionConfig extends ConditionConfig
     public final String spec;
     public final String operation;
     public final String tag;
+    public final List<AsyncapiConditionServerConfig> servers;
 
     private final Pattern operationGlob;
 
@@ -32,9 +34,19 @@ public class AsyncapiConditionConfig extends ConditionConfig
         String operation,
         String tag)
     {
+        this(spec, operation, tag, null);
+    }
+
+    public AsyncapiConditionConfig(
+        String spec,
+        String operation,
+        String tag,
+        List<AsyncapiConditionServerConfig> servers)
+    {
         this.spec = spec;
         this.operation = operation;
         this.tag = tag;
+        this.servers = servers;
         this.operationGlob = operation != null && operation.indexOf('*') != -1
             ? compileGlob(operation)
             : null;
@@ -43,11 +55,13 @@ public class AsyncapiConditionConfig extends ConditionConfig
     public boolean matches(
         String spec,
         String operation,
-        List<String> tags)
+        List<String> tags,
+        List<AsyncapiServerView> operationServers)
     {
         return matchesSpec(spec) &&
             matchesOperation(operation) &&
-            matchesTag(tags);
+            matchesTag(tags) &&
+            matchesServers(operationServers);
     }
 
     private boolean matchesSpec(
@@ -67,6 +81,13 @@ public class AsyncapiConditionConfig extends ConditionConfig
         List<String> tags)
     {
         return this.tag == null || tags != null && tags.contains(this.tag);
+    }
+
+    private boolean matchesServers(
+        List<AsyncapiServerView> operationServers)
+    {
+        return servers == null || servers.isEmpty() ||
+            operationServers != null && servers.stream().anyMatch(s -> operationServers.stream().anyMatch(s::matches));
     }
 
     private static Pattern compileGlob(

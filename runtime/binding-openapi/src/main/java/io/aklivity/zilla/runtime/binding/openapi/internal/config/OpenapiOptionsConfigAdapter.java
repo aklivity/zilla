@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +25,6 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -50,12 +50,12 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String SERVER_NAME = "server";
-    private static final String PATHS_NAME = "paths";
     private static final String SERVERS_NAME = "servers";
     private static final String SERVER_URL_NAME = "url";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
+    private static final String SECURITY_NAME = "security";
 
     private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
@@ -122,13 +122,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     catalogObject.add(SERVER_NAME, openapiConfig.server);
                 }
 
-                if (openapiConfig.paths != null && !openapiConfig.paths.isEmpty())
-                {
-                    final JsonArrayBuilder paths = Json.createArrayBuilder();
-                    openapiConfig.paths.forEach(paths::add);
-                    catalogObject.add(PATHS_NAME, paths);
-                }
-
                 for (OpenapiCatalogConfig catalog : openapiConfig.catalogs)
                 {
                     JsonObjectBuilder schemaObject = Json.createObjectBuilder();
@@ -155,6 +148,13 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                         servers.add(server);
                     });
                     catalogObject.add(SERVERS_NAME, servers);
+                }
+
+                if (openapiConfig.security != null && !openapiConfig.security.isEmpty())
+                {
+                    final JsonObjectBuilder security = Json.createObjectBuilder();
+                    openapiConfig.security.forEach(security::add);
+                    catalogObject.add(SECURITY_NAME, security);
                 }
 
                 specs.add(openapiConfig.label, catalogObject);
@@ -208,12 +208,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     ? specObject.getString(SERVER_NAME)
                     : null;
 
-                final List<String> paths = new LinkedList<>();
-                if (specObject.containsKey(PATHS_NAME))
-                {
-                    specObject.getJsonArray(PATHS_NAME).forEach(p -> paths.add(((JsonString) p).getString()));
-                }
-
                 final List<OpenapiServerConfig> servers = new LinkedList<>();
                 if (serversJson != null)
                 {
@@ -254,7 +248,18 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                         catalogs.add(catalogBuilder.build());
                     }
                 }
-                openapiOptions.spec(new OpenapiSpecificationConfig(apiLabel, server, paths, servers, catalogs));
+                Map<String, String> security = null;
+                if (specObject.containsKey(SECURITY_NAME))
+                {
+                    security = new LinkedHashMap<>();
+                    final JsonObject securityObject = specObject.getJsonObject(SECURITY_NAME);
+                    for (String scheme : securityObject.keySet())
+                    {
+                        security.put(scheme, securityObject.getString(scheme));
+                    }
+                }
+
+                openapiOptions.spec(new OpenapiSpecificationConfig(apiLabel, server, servers, catalogs, security));
             }
         }
 

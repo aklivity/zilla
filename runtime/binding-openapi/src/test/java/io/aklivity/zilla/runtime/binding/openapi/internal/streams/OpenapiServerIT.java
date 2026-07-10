@@ -116,12 +116,23 @@ public class OpenapiServerIT
     }
 
     @Test
-    @Configuration("server.paths.yaml")
+    @Configuration("server.route.servers.yaml")
     @Specification({
         "${composite}/create.pet.prod/client",
         "${openapi}/create.pet.prod/server"
     })
-    public void shouldCreatePetWithPathsSelection() throws Exception
+    public void shouldCreatePetViaServersRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.prefix.yaml")
+    @Specification({
+        "${composite}/create.pet.prefixed/client",
+        "${openapi}/create.pet.prefixed/server"
+    })
+    public void shouldCreatePetWithServerPathPrefix() throws Exception
     {
         k3po.finish();
     }

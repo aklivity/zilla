@@ -49,8 +49,9 @@ public final class OpenapiRouteConfig
     boolean matches(
         String spec,
         String operation,
-        List<String> tags)
+        List<String> tags,
+        String serverUrl)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operation, tags));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operation, tags, serverUrl));
     }
 }

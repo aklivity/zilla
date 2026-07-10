@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -61,7 +60,10 @@ import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiSchemaItem;
+import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
+import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedResolution;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaItemView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
@@ -112,6 +114,7 @@ public abstract class AsyncapiCompositeGenerator
     );
 
     private final Set<String> unresolved = new LinkedHashSet<>();
+    protected final List<String> denied = new ArrayList<>();
 
     public final AsyncapiCompositeConfig generate(
         AsyncapiBindingConfig binding)
@@ -145,7 +148,7 @@ public abstract class AsyncapiCompositeGenerator
 
                 unresolved.addAll(asyncapi.unresolvedRefs());
 
-                schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
+                schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi, specification.security));
             }
         }
 
@@ -155,6 +158,11 @@ public abstract class AsyncapiCompositeGenerator
     public final Collection<String> unresolvedRefs()
     {
         return unresolved;
+    }
+
+    public final Collection<String> deniedOperations()
+    {
+        return denied;
     }
 
     protected abstract AsyncapiCompositeConfig generate(
@@ -484,19 +492,6 @@ public abstract class AsyncapiCompositeGenerator
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
 
-            protected final boolean matchesNames(
-                AsyncapiServerView server)
-            {
-                List<String> names = config.options.specs.stream()
-                    .filter(s -> name.equals(s.label))
-                    .map(s -> s.names)
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(null);
-
-                return names == null || names.isEmpty() || names.contains(server.name);
-            }
-
             protected final void injectPayloadModel(
                 Consumer<ModelConfig> injector,
                 AsyncapiMessageView message)
@@ -595,6 +590,23 @@ public abstract class AsyncapiCompositeGenerator
                 }
 
                 return guarded;
+            }
+
+            protected final boolean allowed(
+                AsyncapiSchemaConfig schema,
+                AsyncapiOperationView operation)
+            {
+                final GuardedResolution resolution = AsyncapiGuardResolver.resolve(
+                    operation.name, schema.apiLabel, operation.security, schema.security,
+                    config.resolveId, config.supplyQName);
+                final boolean allowed = !resolution.denied();
+
+                if (!allowed)
+                {
+                    denied.add(resolution.reason);
+                }
+
+                return allowed;
             }
         }
     }

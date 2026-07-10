@@ -150,10 +150,16 @@ bindings:
     options:
       specs:
         petstore:
-          paths:
-            - /prod
           catalog:
             catalog0:
               subject: petstore
               version: latest
-    exit: openapi0
+    routes:
+      - when:
+          - servers:
+              - url: http://localhost:8080/qa
+        exit: openapi_unused0
+      - when:
+          - servers:
+              - url: http://localhost:9090/prod
+        exit: openapi0

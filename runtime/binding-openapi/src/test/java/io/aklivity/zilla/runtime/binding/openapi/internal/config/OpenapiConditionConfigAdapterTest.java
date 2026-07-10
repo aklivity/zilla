@@ -107,8 +107,8 @@ public class OpenapiConditionConfigAdapterTest
     {
         OpenapiConditionConfig condition = new OpenapiConditionConfig("test", "list*", null);
 
-        assertThat(condition.matches("test", "listPets", null), equalTo(true));
-        assertThat(condition.matches("test", "createPets", null), equalTo(false));
+        assertThat(condition.matches("test", "listPets", null, null), equalTo(true));
+        assertThat(condition.matches("test", "createPets", null, null), equalTo(false));
     }
 
     @Test
@@ -116,7 +116,59 @@ public class OpenapiConditionConfigAdapterTest
     {
         OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, "admin");
 
-        assertThat(condition.matches("test", "listPets", List.of("admin")), equalTo(true));
-        assertThat(condition.matches("test", "listPets", List.of("pets")), equalTo(false));
+        assertThat(condition.matches("test", "listPets", List.of("admin"), null), equalTo(true));
+        assertThat(condition.matches("test", "listPets", List.of("pets"), null), equalTo(false));
+    }
+
+    @Test
+    public void shouldReadConditionWithServers()
+    {
+        String text =
+            "{" +
+                "\"spec\":\"test\"," +
+                "\"servers\":[{\"url\":\"https://api.example.com/v1\"}]" +
+            "}";
+
+        OpenapiConditionConfig condition = jsonb.fromJson(text, OpenapiConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.spec, equalTo("test"));
+        assertThat(condition.servers, not(nullValue()));
+        assertThat(condition.servers.size(), equalTo(1));
+        assertThat(condition.servers.get(0).url, equalTo("https://api.example.com/v1"));
+    }
+
+    @Test
+    public void shouldWriteConditionWithServers()
+    {
+        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, null,
+            List.of(new OpenapiConditionServerConfig("https://api.example.com/v1")));
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                    "\"spec\":\"test\"," +
+                    "\"servers\":[{\"url\":\"https://api.example.com/v1\"}]" +
+                "}"));
+    }
+
+    @Test
+    public void shouldMatchServer()
+    {
+        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, null,
+            List.of(new OpenapiConditionServerConfig("https://api.example.com/v1")));
+
+        assertThat(condition.matches("test", "listPets", null, "https://api.example.com/v1"), equalTo(true));
+        assertThat(condition.matches("test", "listPets", null, "https://api.example.com/v2"), equalTo(false));
+    }
+
+    @Test
+    public void shouldMatchAnyServerWhenOmitted()
+    {
+        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, null);
+
+        assertThat(condition.matches("test", "listPets", null, "https://api.example.com/v1"), equalTo(true));
     }
 }

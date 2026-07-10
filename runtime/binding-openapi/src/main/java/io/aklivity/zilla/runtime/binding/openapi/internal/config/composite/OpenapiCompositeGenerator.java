@@ -18,6 +18,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -51,7 +52,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiRequestBodyView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
@@ -72,6 +72,7 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public abstract class OpenapiCompositeGenerator
 {
     private final Set<String> unresolved = new LinkedHashSet<>();
+    protected final List<String> denied = new ArrayList<>();
 
     public final OpenapiCompositeConfig generate(
         OpenapiBindingConfig binding)
@@ -98,7 +99,7 @@ public abstract class OpenapiCompositeGenerator
 
                 unresolved.addAll(openapi.unresolvedRefs());
 
-                schemas.add(new OpenapiSchemaConfig(label, schemaId, openapi));
+                schemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, specification.security));
             }
         }
 
@@ -108,6 +109,11 @@ public abstract class OpenapiCompositeGenerator
     public final Collection<String> unresolvedRefs()
     {
         return unresolved;
+    }
+
+    public final Collection<String> deniedOperations()
+    {
+        return denied;
     }
 
     protected abstract OpenapiCompositeConfig generate(
@@ -423,17 +429,16 @@ public abstract class OpenapiCompositeGenerator
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
 
-            protected final boolean matchesPaths(
-                OpenapiServerView server)
+            protected final String resolveServerPrefix()
             {
-                List<String> paths = config.options.specs.stream()
+                return config.options.specs.stream()
                     .filter(s -> name.equals(s.label))
-                    .map(s -> s.paths)
+                    .map(s -> s.server)
                     .filter(Objects::nonNull)
                     .findFirst()
-                    .orElse(null);
-
-                return paths == null || paths.isEmpty() || paths.contains(server.url.getPath());
+                    .map(server -> URI.create(server).getPath())
+                    .filter(Objects::nonNull)
+                    .orElse("");
             }
 
             protected final void injectPayloadModel(
