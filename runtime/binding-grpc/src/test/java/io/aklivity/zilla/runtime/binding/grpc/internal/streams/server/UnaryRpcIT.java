@@ -47,7 +47,7 @@ public class UnaryRpcIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${net}/message.exchange/client",
         "${app}/message.exchange/server"
@@ -58,7 +58,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${net}/binary.metadata/client",
         "${app}/binary.metadata/server",
@@ -80,7 +80,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${net}/grpc.web/client",
         "${app}/message.exchange/server",
@@ -91,7 +91,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${net}/empty.message.exchange/client",
         "${app}/empty.message.exchange/server",
@@ -102,7 +102,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${net}/response.timeout/client",
         "${app}/response.timeout/server",
@@ -113,7 +113,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${net}/server.send.read.abort.on.open.request/client",
         "${app}/server.send.read.abort.on.open.request/server"
@@ -124,7 +124,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${app}/server.send.read.abort.on.open.request/client",
         "${app}/server.send.read.abort.on.open.request/server"
@@ -135,7 +135,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${app}/server.send.write.abort.on.open.response/client",
         "${app}/server.send.write.abort.on.open.response/server"
@@ -146,7 +146,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${app}/server.send.write.abort.on.open.request.response/client",
         "${app}/server.send.write.abort.on.open.request.response/server"
@@ -157,7 +157,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.catalog.yaml")
     @Specification({
         "${net}/message.exchange.100k/client",
         "${app}/message.exchange.100k/server"

@@ -24,7 +24,7 @@ bindings:
         store: memory0
         tools:
           search:
-            tool: zilla__search_tools
+            toolkit: zilla
             index:
               - type: keyword
                 model: model0

@@ -110,9 +110,9 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.serve.tools.search/client",
-        "${app}/cache.serve.tools.search/server" })
-    public void shouldServeToolsSearch() throws Exception
+        "${app}/cache.serve.search.tools/client",
+        "${app}/cache.serve.search.tools/server" })
+    public void shouldServeSearchTools() throws Exception
     {
         k3po.finish();
     }
@@ -245,9 +245,9 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.serve.tools.search.eager.cold/client",
-        "${app}/cache.serve.tools.search.eager.cold/server" })
-    public void shouldServeToolsSearchEagerCold() throws Exception
+        "${app}/cache.serve.search.tools.eager.cold/client",
+        "${app}/cache.serve.search.tools.eager.cold/server" })
+    public void shouldServeSearchToolsEagerCold() throws Exception
     {
         k3po.finish();
     }
@@ -266,6 +266,78 @@ public class ProxyCacheIT
         "${app}/cache.serve.tools.list.100k/client",
         "${app}/cache.serve.tools.list.100k/server" })
     public void shouldServeToolsList100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.search.tools.10k/client",
+        "${app}/cache.serve.search.tools.10k/server" })
+    public void shouldServeSearchTools10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.search.tools.100k/client",
+        "${app}/cache.serve.search.tools.100k/server" })
+    public void shouldServeSearchTools100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.describe.tool/client",
+        "${app}/cache.serve.describe.tool/server" })
+    public void shouldServeDescribeTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.describe.tool.not.found/client",
+        "${app}/cache.serve.describe.tool.not.found/server" })
+    public void shouldServeDescribeToolNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.describe.tool.unauthorized/client",
+        "${app}/cache.serve.describe.tool.unauthorized/server" })
+    public void shouldServeDescribeToolUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.describe.tool.invalid.params/client",
+        "${app}/cache.serve.describe.tool.invalid.params/server" })
+    public void shouldServeDescribeToolInvalidParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.execute.tool.not.found/client",
+        "${app}/cache.serve.execute.tool.not.found/server" })
+    public void shouldServeExecuteToolNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.execute.tool.invalid.params/client",
+        "${app}/cache.serve.execute.tool.invalid.params/server" })
+    public void shouldServeExecuteToolInvalidParams() throws Exception
     {
         k3po.finish();
     }

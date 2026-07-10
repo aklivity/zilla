@@ -28,11 +28,7 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
@@ -44,22 +40,17 @@ import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class AsyncapiOptionsConfigAdapterTest
 {
-    @Rule
-    public MockitoRule rule = MockitoJUnit.rule();
-    @Mock
-    private ConfigAdapterContext context;
     private Jsonb jsonb;
 
     @Before
     public void initJson() throws IOException
     {
-        OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        OptionsConfigAdapter adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING);
         adapter.adaptType("asyncapi");
         JsonbConfig config = new JsonbConfig()
             .withAdapters(adapter);

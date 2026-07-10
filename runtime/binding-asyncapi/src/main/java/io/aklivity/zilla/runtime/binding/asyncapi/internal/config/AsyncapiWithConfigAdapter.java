@@ -25,8 +25,9 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
 public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
-    private static final String API_ID_NAME = "api-id";
-    private static final String OPERATION_ID_NAME = "operation-id";
+    private static final String SPEC_NAME = "spec";
+    private static final String OPERATION_NAME = "operation";
+    private static final String TAG_NAME = "tag";
 
     @Override
     public String type()
@@ -42,14 +43,19 @@ public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAda
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (config.apiId != null)
+        if (config.spec != null)
         {
-            object.add(API_ID_NAME, config.apiId);
+            object.add(SPEC_NAME, config.spec);
         }
 
-        if (config.operationId != null)
+        if (config.operation != null)
         {
-            object.add(OPERATION_ID_NAME, config.operationId);
+            object.add(OPERATION_NAME, config.operation);
+        }
+
+        if (config.tag != null)
+        {
+            object.add(TAG_NAME, config.tag);
         }
 
         return object.build();
@@ -59,14 +65,18 @@ public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAda
     public WithConfig adaptFromJson(
         JsonObject object)
     {
-        String apiId = object.containsKey(API_ID_NAME)
-            ? object.getString(API_ID_NAME)
+        String spec = object.containsKey(SPEC_NAME)
+            ? object.getString(SPEC_NAME)
             : null;
 
-        String operationId = object.containsKey(OPERATION_ID_NAME)
-            ? object.getString(OPERATION_ID_NAME)
+        String operation = object.containsKey(OPERATION_NAME)
+            ? object.getString(OPERATION_NAME)
             : null;
 
-        return new AsyncapiWithConfig(apiId, operationId);
+        String tag = object.containsKey(TAG_NAME)
+            ? object.getString(TAG_NAME)
+            : null;
+
+        return new AsyncapiWithConfig(spec, operation, tag);
     }
 }

@@ -30,13 +30,11 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private final Map<String, OptionsConfigAdapterSpi> delegatesByType;
-    private ConfigAdapterContext context;
 
     private OptionsConfigAdapterSpi delegate;
 
     public OptionsConfigAdapter(
-        OptionsConfigAdapterSpi.Kind kind,
-        ConfigAdapterContext context)
+        OptionsConfigAdapterSpi.Kind kind)
     {
         this.delegatesByType = toMap(ServiceLoader
             .load(OptionsConfigAdapterSpi.class)
@@ -44,17 +42,12 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
             .map(Supplier::get)
             .filter(s -> s.kind() == kind)
             .toList());
-        this.context = context;
     }
 
     public void adaptType(
         String type)
     {
         delegate = delegatesByType.get(type);
-        if (delegate != null)
-        {
-            delegate.adaptContext(context);
-        }
     }
 
     @Override

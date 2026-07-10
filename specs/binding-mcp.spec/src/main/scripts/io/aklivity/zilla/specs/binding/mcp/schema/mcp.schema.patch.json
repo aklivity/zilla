@@ -292,9 +292,9 @@
                                                             "type": "object",
                                                             "properties":
                                                             {
-                                                                "tool":
+                                                                "toolkit":
                                                                 {
-                                                                    "title": "Tool",
+                                                                    "title": "Toolkit",
                                                                     "type": "string"
                                                                 },
                                                                 "limit":
@@ -341,7 +341,6 @@
                                                                     }
                                                                 }
                                                             },
-                                                            "required": [ "tool" ],
                                                             "not": { "required": [ "type", "index" ] },
                                                             "additionalProperties": false
                                                         },

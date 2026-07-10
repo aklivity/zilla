@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: Checkout GitHub sources
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Pin maven.packages.aklivity.io to IPv4
       run: |
         ipv4=$(getent ahostsv4 maven.packages.aklivity.io | awk 'NR==1{print $1}')
@@ -121,7 +121,7 @@ jobs:
     outputs:
       all_directories: ${{ steps.all-files.outputs.folders_no_base_path }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Route Docker Hub pulls through mirror.gcr.io
         run: |
@@ -204,7 +204,7 @@ jobs:
       ZILLA_VERSION: develop-SNAPSHOT
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           sparse-checkout: |
             examples/.github
@@ -223,7 +223,7 @@ jobs:
           timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
 
       - name: Download Docker image
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: zilla-image
           path: ~/docker-cache
@@ -277,13 +277,14 @@ jobs:
         run: docker compose down --remove-orphans
 
   cleanup:
-    if: always()
+    if: success()
     needs:
       - testing
     runs-on: ubuntu-latest
     steps:
       - name: Delete Docker image artifact
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
+        continue-on-error: true
         with:
           script: |
             const artifacts = await github.rest.actions.listWorkflowRunArtifacts({

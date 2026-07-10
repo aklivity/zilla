@@ -51,9 +51,8 @@ public final class KafkaRouteConfig
     }
 
     boolean matches(
-        String topic,
-        String groupId)
+        String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic, groupId));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic));
     }
 }

@@ -35,17 +35,17 @@ bindings:
               subject: kafka
     routes:
       - when:
-          - api-id: http_api
-            operation-id: createPets
+          - spec: http_api
+            operation: createPets
         exit: south_kafka_client
         with:
-          api-id: kafka_api
-          operation-id: addPet
+          spec: kafka_api
+          operation: addPet
       - when:
-          - api-id: http_api
+          - spec: http_api
         exit: south_kafka_client
         with:
-          api-id: kafka_api
+          spec: kafka_api
   south_kafka_client:
     type: asyncapi
     kind: client

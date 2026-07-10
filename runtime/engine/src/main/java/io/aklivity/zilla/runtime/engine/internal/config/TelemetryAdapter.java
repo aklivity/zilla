@@ -26,7 +26,6 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryConfigBuilder;
@@ -41,12 +40,11 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
     private final MetricAdapter metric;
     private final ExporterAdapter exporter;
 
-    public TelemetryAdapter(
-        ConfigAdapterContext context)
+    public TelemetryAdapter()
     {
         this.attribute = new AttributeAdapter();
         this.metric = new MetricAdapter();
-        this.exporter = new ExporterAdapter(context);
+        this.exporter = new ExporterAdapter();
     }
 
     public TelemetryAdapter adaptNamespace(

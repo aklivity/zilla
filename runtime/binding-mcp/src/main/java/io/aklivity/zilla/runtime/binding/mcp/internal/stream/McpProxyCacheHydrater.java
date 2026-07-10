@@ -22,10 +22,24 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlu
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_RESOURCES_LIST_CHANGED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW.KIND_TOOLS_LIST_CHANGED;
 
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonException;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
+import jakarta.json.JsonWriter;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
@@ -51,6 +65,13 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 public final class McpProxyCacheHydrater
 {
+    private static final String NAME = "name";
+    private static final String SECURITY_SCHEMES = "securitySchemes";
+    private static final String TYPE = "type";
+    private static final String SCOPES = "scopes";
+    private static final String OAUTH2 = "oauth2";
+    private static final String NOAUTH = "noauth";
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -350,7 +371,8 @@ public final class McpProxyCacheHydrater
                 for (McpRoutePrefix route : routes)
                 {
                     final long authorization = binding.routeCacheAuthorization(traceId, route.resolvedId());
-                    final McpListRouteSink sink = new McpListRouteSink(this, route.prefix().asString());
+                    final List<String> routeScopes = flattenRoles(route.route().roles);
+                    final McpListRouteSink sink = new McpListRouteSink(this, route.prefix().asString(), routeScopes);
                     sinks.add(sink);
                     sink.server = listFactory.newHydrationList(
                         handler.lifecycle, sink::onMessage, authorization,
@@ -406,10 +428,28 @@ public final class McpProxyCacheHydrater
         }
     }
 
+    private static List<String> flattenRoles(
+        Map<String, List<String>> roles)
+    {
+        final List<String> result = new ArrayList<>();
+        for (List<String> scopes : roles.values())
+        {
+            for (String scope : scopes)
+            {
+                if (!result.contains(scope))
+                {
+                    result.add(scope);
+                }
+            }
+        }
+        return result;
+    }
+
     private final class McpListRouteSink
     {
         private final McpListKindHydrater kind;
         private final String prefix;
+        private final List<String> routeScopes;
         private final ExpandableArrayBufferEx bodyBuffer;
 
         private MessageConsumer server;
@@ -419,10 +459,12 @@ public final class McpProxyCacheHydrater
 
         private McpListRouteSink(
             McpListKindHydrater kind,
-            String prefix)
+            String prefix,
+            List<String> routeScopes)
         {
             this.kind = kind;
             this.prefix = prefix;
+            this.routeScopes = routeScopes;
             this.bodyBuffer = new ExpandableArrayBufferEx();
         }
 
@@ -492,7 +534,132 @@ public final class McpProxyCacheHydrater
             final String envelope = bodyBuffer.getStringWithoutLengthUtf8(0, bodyLen);
             final int open = envelope.indexOf('[');
             final int close = envelope.lastIndexOf(']');
-            return open >= 0 && close > open ? envelope.substring(open + 1, close) : "";
+            final String items = open >= 0 && close > open ? envelope.substring(open + 1, close) : "";
+            return items.isEmpty() ? items : normalizeItems(items, routeScopes);
         }
+    }
+
+    // McpScopeFilter's streaming admission check requires each item's "name" key to arrive first
+    // (see its class-level contract); south bindings are free to order their own fields however they
+    // like -- e.g. many resources put "uri" before "name" -- so every cached item is reordered here,
+    // regardless of whether this route also has its own scopes to merge in via injectToolScopes
+    private static String normalizeItems(
+        String items,
+        List<String> routeScopes)
+    {
+        String result;
+        try (JsonReader reader = Json.createReader(new StringReader("[" + items + "]")))
+        {
+            final JsonArrayBuilder itemsBuilder = Json.createArrayBuilder();
+            for (JsonValue item : reader.readArray())
+            {
+                final JsonObject reordered = nameFirst((JsonObject) item);
+                itemsBuilder.add(routeScopes.isEmpty() ? reordered : injectToolScopes(reordered, routeScopes));
+            }
+            final StringWriter writer = new StringWriter();
+            try (JsonWriter jsonWriter = Json.createWriter(writer))
+            {
+                jsonWriter.writeArray(itemsBuilder.build());
+            }
+            final String written = writer.toString();
+            result = written.substring(1, written.length() - 1);
+        }
+        catch (JsonException ex)
+        {
+            result = items;
+        }
+        return result;
+    }
+
+    private static JsonObject nameFirst(
+        JsonObject item)
+    {
+        final JsonValue name = item.get(NAME);
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        if (name != null)
+        {
+            builder.add(NAME, name);
+        }
+        for (Map.Entry<String, JsonValue> entry : item.entrySet())
+        {
+            if (!NAME.equals(entry.getKey()))
+            {
+                builder.add(entry.getKey(), entry.getValue());
+            }
+        }
+        return builder.build();
+    }
+
+    private static JsonObject injectToolScopes(
+        JsonObject tool,
+        List<String> routeScopes)
+    {
+        final JsonArray schemes = tool.getJsonArray(SECURITY_SCHEMES);
+
+        final JsonObject result;
+        if (schemes == null || schemes.isEmpty())
+        {
+            result = Json.createObjectBuilder(tool)
+                .add(SECURITY_SCHEMES, Json.createArrayBuilder()
+                    .add(newOAuth2Scheme(routeScopes)))
+                .build();
+        }
+        else if (NOAUTH.equals(schemes.getJsonObject(0).getString(TYPE, null)))
+        {
+            result = tool;
+        }
+        else
+        {
+            final JsonArrayBuilder schemesBuilder = Json.createArrayBuilder()
+                .add(mergeScopes(schemes.getJsonObject(0), routeScopes));
+            for (int i = 1; i < schemes.size(); i++)
+            {
+                schemesBuilder.add(schemes.get(i));
+            }
+            result = Json.createObjectBuilder(tool)
+                .add(SECURITY_SCHEMES, schemesBuilder)
+                .build();
+        }
+        return result;
+    }
+
+    private static JsonObject mergeScopes(
+        JsonObject scheme,
+        List<String> routeScopes)
+    {
+        final List<String> merged = new ArrayList<>();
+        final JsonArray scopes = scheme.getJsonArray(SCOPES);
+        if (scopes != null)
+        {
+            for (JsonString scope : scopes.getValuesAs(JsonString.class))
+            {
+                merged.add(scope.getString());
+            }
+        }
+        for (String scope : routeScopes)
+        {
+            if (!merged.contains(scope))
+            {
+                merged.add(scope);
+            }
+        }
+
+        final JsonArrayBuilder scopesBuilder = Json.createArrayBuilder();
+        merged.forEach(scopesBuilder::add);
+
+        return Json.createObjectBuilder(scheme)
+            .add(SCOPES, scopesBuilder)
+            .build();
+    }
+
+    private static JsonObject newOAuth2Scheme(
+        List<String> scopes)
+    {
+        final JsonArrayBuilder scopesBuilder = Json.createArrayBuilder();
+        scopes.forEach(scopesBuilder::add);
+        return Json.createObjectBuilder()
+            .add(TYPE, OAUTH2)
+            .add(SCOPES, scopesBuilder)
+            .build();
     }
 }

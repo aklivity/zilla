@@ -1,0 +1,68 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("agent-1")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsCall()
+                               .sessionId("agent-1")
+                               .name("zilla__describe_tool")
+                               .contentLength(72)
+                               .build()
+                           .build()}
+
+connected
+
+# this caller presents no credentials at all (default session 0), which the test0 guard never
+# admits once credentials are configured -- get_secret_report requires the report:read scope via
+# its securitySchemes entry, so the request is denied the same way a not-found lookup would be,
+# without revealing whether the tool exists at all
+write '{'
+        '"name":"zilla__describe_tool",'
+        '"arguments":'
+        '{'
+          '"name": "get_secret_report"'
+        '}'
+      '}'
+
+write close
+
+read  '{"content":[{"type":"text","text":"Tool not found"}],"isError":true}'
+read closed

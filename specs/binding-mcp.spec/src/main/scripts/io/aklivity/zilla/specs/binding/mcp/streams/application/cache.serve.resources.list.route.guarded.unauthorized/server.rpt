@@ -1,0 +1,154 @@
+#
+# Copyright 2021-2024 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property authorization 1L
+
+accept "zilla://streams/app1"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .build()
+                          .build()}
+
+connected
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("hydrate-1")
+                               .build()
+                           .build()}
+write flush
+
+accepted
+
+# hydrate.filter=resources also arms KIND_RESOURCES_TEMPLATES_LIST hydration on the same route,
+# and the engine hydrates that kind first -- respond empty, no templates under test here
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourcesTemplatesList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+write '{"resourceTemplates":[]}'
+write flush
+
+write close
+
+read closed
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourcesList()
+                              .sessionId("hydrate-1")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+# no securitySchemes of its own, exactly like petstore's real featured_pets resource --
+# the route's own petstore:tools guard is the only thing that must exclude it
+write '{"resources":'
+        '['
+          '{'
+            '"name":"featured_pets",'
+            '"uri":"/pets/featured",'
+            '"description":"Featured pets"'
+          '}'
+        ']'
+      '}'
+write flush
+
+write close
+
+read closed
+
+accept "zilla://streams/app2"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .build()
+                          .build()}
+
+connected
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("hydrate-2")
+                               .build()
+                           .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourcesTemplatesList()
+                              .sessionId("hydrate-2")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+write '{"resourceTemplates":[]}'
+write flush
+
+write close
+
+read closed
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourcesList()
+                              .sessionId("hydrate-2")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+write '{"resources":[{"name":"ping_doc","uri":"/ping"}]}'
+write flush
+
+write close
+
+read closed

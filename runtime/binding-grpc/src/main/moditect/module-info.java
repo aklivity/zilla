@@ -24,7 +24,4 @@ module io.aklivity.zilla.runtime.binding.grpc
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcOptionsConfigAdapter;
 }

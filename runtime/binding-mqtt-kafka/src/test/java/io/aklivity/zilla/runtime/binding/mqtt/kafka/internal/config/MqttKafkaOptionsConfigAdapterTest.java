@@ -52,7 +52,6 @@ public class MqttKafkaOptionsConfigAdapterTest
     {
         String text =
             """
-            server: mqtt-1.example.com:1883
             topics:
               sessions: sessions
               messages: messages
@@ -69,7 +68,6 @@ public class MqttKafkaOptionsConfigAdapterTest
         assertThat(options.topics.sessions.asString(), equalTo("sessions"));
         assertThat(options.topics.messages.asString(), equalTo("messages"));
         assertThat(options.topics.retained.asString(), equalTo("retained"));
-        assertThat(options.serverRef, equalTo("mqtt-1.example.com:1883"));
         assertThat(options.clients, not(nullValue()));
         assertThat(options.clients.size(), equalTo(2));
         assertThat(options.clients.get(0), equalTo("/clients/{identity}/#"));
@@ -85,7 +83,6 @@ public class MqttKafkaOptionsConfigAdapterTest
                 .messages("messages")
                 .retained("retained")
                 .build())
-            .serverRef("mqtt-1.example.com:1883")
             .clients(Arrays.asList("/clients/{identity}/#", "/department/clients/{identity}/#"))
             .build();
 
@@ -94,7 +91,6 @@ public class MqttKafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             """
-            server: "mqtt-1.example.com:1883"
             topics:
               sessions: sessions
               messages: messages

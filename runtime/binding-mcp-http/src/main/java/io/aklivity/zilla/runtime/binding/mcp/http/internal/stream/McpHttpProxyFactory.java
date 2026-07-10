@@ -57,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.internal.events.McpHttpEventCo
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpArguments;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpDiscard;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpQuery;
+import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpResultWrap;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpResults;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.transform.McpHttpToolResult;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.types.Flyweight;
@@ -1339,6 +1340,13 @@ public final class McpHttpProxyFactory implements BindingHandler
 
                 responseGenerator = JsonEx.createGenerator();
                 JsonStream stream = JsonEx.stream(JsonEx.createParser());
+                if (tool != null && tool.outputWrapped)
+                {
+                    // the upstream body itself is not an object (e.g. a top-level array); wrap it to match
+                    // the {"result":<value>} shape McpOpenapiCompositeGenerator advertised as outputSchema,
+                    // before validating/projecting against that same wrapped schema below
+                    stream = stream.transform(new McpHttpResultWrap());
+                }
                 if (outputSchema != null)
                 {
                     // validate against the full (unprojected) document before pruning it down, matching the

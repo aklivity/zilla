@@ -48,6 +48,7 @@ public class MqttKafkaSubscribeProxyIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/kafka/config")
         .external("kafka0")
+        .aroundStart(k3po::deferStartable)
         .clean();
 
     @Rule

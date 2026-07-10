@@ -46,6 +46,7 @@ public class KafkaGrpcRemoteServerIT
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/grpc/config")
         .external("grpc0")
         .external("kafka0")
+        .aroundStart(k3po::deferStartable)
         .clean();
 
     @Rule

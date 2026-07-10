@@ -160,14 +160,14 @@
                                         "type": "object",
                                         "properties":
                                         {
-                                            "api-id":
+                                            "spec":
                                             {
-                                                "title": "ApiId",
+                                                "title": "Spec",
                                                 "type": "string"
                                             },
-                                            "operation-id":
+                                            "operation":
                                             {
-                                                "title": "OperationId",
+                                                "title": "Operation",
                                                 "type": "string"
                                             }
                                         },
@@ -178,16 +178,25 @@
                                 {
                                     "properties":
                                     {
-                                        "api-id":
+                                        "spec":
                                         {
-                                            "title": "ApiId",
+                                            "title": "Spec",
                                             "type": "string"
                                         },
-                                        "operation-id":
+                                        "operation":
                                         {
-                                            "title": "OperationId",
+                                            "title": "Operation Id or glob pattern",
+                                            "type": "string"
+                                        },
+                                        "tag":
+                                        {
+                                            "title": "Tag",
                                             "type": "string"
                                         }
+                                    },
+                                    "not":
+                                    {
+                                        "required": [ "tag", "operation" ]
                                     }
                                 }
                             },

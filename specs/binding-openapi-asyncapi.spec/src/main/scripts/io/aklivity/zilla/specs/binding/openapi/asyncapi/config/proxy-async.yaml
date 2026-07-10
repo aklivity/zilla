@@ -267,7 +267,7 @@ bindings:
                 version: latest
     routes:
       - when:
-          - api-id: openapi-id
+          - spec: openapi-id
         exit: asyncapi_client0
         with:
-          api-id: asyncapi-id
+          spec: asyncapi-id

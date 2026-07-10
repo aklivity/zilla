@@ -38,7 +38,6 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuild
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -75,6 +74,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
+        ensureNestedOptions();
+
         OpenapiOptionsConfig openapiOptions = (OpenapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
@@ -152,6 +153,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
+        ensureNestedOptions();
+
         OpenapiOptionsConfigBuilder<OpenapiOptionsConfig> openapiOptions = OpenapiOptionsConfig.builder();
 
         if (object.containsKey(TCP_NAME))
@@ -232,15 +235,16 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         return openapiOptions.build();
     }
 
-    @Override
-    public void adaptContext(
-        ConfigAdapterContext context)
+    private void ensureNestedOptions()
     {
-        this.tcpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
-        this.tcpOptions.adaptType("tcp");
-        this.tlsOptions = new OptionsConfigAdapter(Kind.BINDING, context);
-        this.tlsOptions.adaptType("tls");
-        this.httpOptions = new OptionsConfigAdapter(Kind.BINDING, context);
-        this.httpOptions.adaptType("http");
+        if (tcpOptions == null)
+        {
+            tcpOptions = new OptionsConfigAdapter(Kind.BINDING);
+            tcpOptions.adaptType("tcp");
+            tlsOptions = new OptionsConfigAdapter(Kind.BINDING);
+            tlsOptions.adaptType("tls");
+            httpOptions = new OptionsConfigAdapter(Kind.BINDING);
+            httpOptions.adaptType("http");
+        }
     }
 }

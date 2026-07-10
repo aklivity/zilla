@@ -33,7 +33,6 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -58,12 +57,11 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
     private String namespace;
 
-    public BindingConfigsAdapter(
-        ConfigAdapterContext context)
+    public BindingConfigsAdapter()
     {
-        this.kind = new KindAdapter(context);
-        this.route = new RouteAdapter(context);
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
+        this.kind = new KindAdapter();
+        this.route = new RouteAdapter();
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING);
         this.cataloged = new CatalogedAdapter();
         this.telemetryRef = new TelemetryRefAdapter();
     }

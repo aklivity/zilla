@@ -38,9 +38,9 @@ bindings:
     routes:
       - exit: south_asyncapi_client
         when:
-          - api-id: my-openapi-spec
+          - spec: my-openapi-spec
         with:
-          api-id: my-asyncapi-spec
+          spec: my-asyncapi-spec
   south_asyncapi_client:
     type: asyncapi
     kind: client

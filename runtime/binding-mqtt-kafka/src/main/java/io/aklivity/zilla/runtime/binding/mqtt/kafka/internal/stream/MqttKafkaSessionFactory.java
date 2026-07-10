@@ -271,7 +271,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final KafkaSessionOffsetsHelper sessionOffsetsHelper;
     private final MqttKafkaSessionOffsetsFW sessionOffsetsRO = new MqttKafkaSessionOffsetsFW();
     private final MqttQoS publishQosMax;
-    private final String serviceHostname;
     private final String groupIdPrefixFormat;
     private final Function<Long, String> supplyNamespace;
     private final Function<Long, String> supplyLocalName;
@@ -279,7 +278,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
     private final String replicaId;
 
-    private String serverRef;
     private int reconnectAttempt;
     private int nextContextId;
     private String groupIdPrefix;
@@ -322,7 +320,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.replicaId = instanceId.instanceId().asString();
         this.reconnectDelay = config.willStreamReconnectDelay();
         this.publishQosMax = config.publishQosMax();
-        this.serviceHostname = config.serviceHostname();
         this.qosLevels = new Int2ObjectHashMap<>();
         this.qosLevels.put(0, new String16FW("0"));
         this.qosLevels.put(1, new String16FW("1"));
@@ -376,15 +373,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long bindingId)
     {
         MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
-        final String bindingServerRef = binding.options.serverRef;
-        this.serverRef = bindingServerRef != null ? bindingServerRef : serviceHostname;
         this.groupIdPrefix =
             String.format(groupIdPrefixFormat, supplyNamespace.apply(bindingId), supplyLocalName.apply(bindingId));
-
-        if (bindingServerRef != null && coreIndex == 0)
-        {
-            warnServerRefDeprecated(supplyLocalName.apply(bindingId));
-        }
 
         if (willAvailable && coreIndex == 0)
         {
@@ -396,15 +386,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             binding.willProxy.doKafkaBegin(currentTimeMillis());
         }
         sessionIds.put(bindingId, supplySessionId.get());
-    }
-
-    private void warnServerRefDeprecated(
-        String bindingName)
-    {
-        System.out.printf(
-            "WARN [%s] The 'serverRef' option on mqtt-kafka is deprecated. " +
-            "Configure the engine 'service.hostname' property (zilla.engine.service.hostname) instead.%n",
-            bindingName);
     }
 
     @Override

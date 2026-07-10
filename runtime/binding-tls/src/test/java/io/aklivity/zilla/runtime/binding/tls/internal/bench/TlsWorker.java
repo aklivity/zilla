@@ -37,7 +37,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.concurrent.OneToOneRingBuffer;
 import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
-import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -87,7 +86,7 @@ public class TlsWorker implements EngineContext
     private final Long2ObjectHashMap<MessageConsumer> throtllesById;
     private final BindingFactory factory;
     private final VaultFactory vaultFactory;
-    private final Configuration config;
+    private final EngineConfiguration config;
     private final Path configPath;
     private final Path localConfigPath;
 

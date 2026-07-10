@@ -19,4 +19,16 @@
   <modules>
     <module>flyweight-maven-plugin</module>
   </modules>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jasig.maven</groupId>
+        <artifactId>maven-notice-plugin</artifactId>
+        <configuration>
+          <licenseMapping>flyweight-maven-plugin/src/conf/notice/license-mappings.xml</licenseMapping>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

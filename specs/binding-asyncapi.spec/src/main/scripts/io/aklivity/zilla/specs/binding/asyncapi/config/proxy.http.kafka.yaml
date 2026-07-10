@@ -215,7 +215,7 @@ bindings:
               version: latest
     routes:
       - when:
-          - api-id: http_api
+          - spec: http_api
         exit: asyncapi_kafka0
         with:
-          api-id: kafka_api
+          spec: kafka_api

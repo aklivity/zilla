@@ -155,16 +155,16 @@ bindings:
           messages: mqttMessages
     routes:
       - when:
-          - api-id: mqtt_api
-            operation-id: sendEvents
+          - spec: mqtt_api
+            operation: sendEvents
         exit: asyncapi_kafka0
         with:
-          api-id: kafka_api
-          operation-id: toSensorData
+          spec: kafka_api
+          operation: toSensorData
       - when:
-          - api-id: mqtt_api
-            operation-id: receiveEvents
+          - spec: mqtt_api
+            operation: receiveEvents
         exit: asyncapi_kafka0
         with:
-          api-id: kafka_api
-          operation-id: onSensorData
+          spec: kafka_api
+          operation: onSensorData

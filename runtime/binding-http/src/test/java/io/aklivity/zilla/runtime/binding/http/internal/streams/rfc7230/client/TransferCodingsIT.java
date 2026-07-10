@@ -53,8 +53,37 @@ public class TransferCodingsIT
     @Specification({
         "${app}/request.transfer.encoding.chunked/client",
         "${net}/request.transfer.encoding.chunked/server" })
-    @Ignore // TODO: implement chunked request encoding
     public void requestTransferEncodingChunked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/request.transfer.encoding.chunked.single.data.frame/client",
+        "${net}/request.transfer.encoding.chunked.single.data.frame/server" })
+    public void requestTransferEncodingChunkedSingleDataFrame() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/request.transfer.encoding.chunked.multiple.data.frames/client",
+        "${net}/request.transfer.encoding.chunked.multiple.data.frames/server" })
+    public void requestTransferEncodingChunkedMultipleDataFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/request.transfer.encoding.chunked.without.header/client",
+        "${net}/request.transfer.encoding.chunked.without.header/server" })
+    public void requestTransferEncodingChunkedWithoutHeader() throws Exception
     {
         k3po.finish();
     }

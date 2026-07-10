@@ -18,14 +18,17 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public class OpenapiWithConfig extends WithConfig
 {
-    public final String apiId;
-    public final String operationId;
+    public final String spec;
+    public final String operation;
+    public final String tag;
 
     public OpenapiWithConfig(
-        String apiId,
-        String operationId)
+        String spec,
+        String operation,
+        String tag)
     {
-        this.apiId = apiId;
-        this.operationId = operationId;
+        this.spec = spec;
+        this.operation = operation;
+        this.tag = tag;
     }
 }

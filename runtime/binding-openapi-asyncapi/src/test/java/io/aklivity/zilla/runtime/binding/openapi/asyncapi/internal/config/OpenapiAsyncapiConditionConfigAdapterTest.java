@@ -43,15 +43,15 @@ public class OpenapiAsyncapiConditionConfigAdapterTest
     {
         String text =
             "{" +
-                "\"api-id\":\"test\"," +
-                "\"operation-id\":\"o-id\"" +
+                "\"spec\":\"test\"," +
+                "\"operation\":\"o-id\"" +
             "}";
 
         OpenapiAsyncapiConditionConfig condition = jsonb.fromJson(text, OpenapiAsyncapiConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.apiId, equalTo("test"));
-        assertThat(condition.operationId, equalTo("o-id"));
+        assertThat(condition.spec, equalTo("test"));
+        assertThat(condition.operation, equalTo("o-id"));
     }
 
     @Test
@@ -64,8 +64,8 @@ public class OpenapiAsyncapiConditionConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
             "{" +
-                    "\"api-id\":\"test\"," +
-                    "\"operation-id\":\"o-id\"" +
+                    "\"spec\":\"test\"," +
+                    "\"operation\":\"o-id\"" +
                 "}"));
     }
 }

@@ -24,6 +24,7 @@ public class AsyncapiOperation extends AbstractAsyncapiResolvable
     public AsyncapiReply reply;
     public List<AsyncapiMessage> messages;
     public List<AsyncapiSecurityScheme> security;
+    public List<AsyncapiTag> tags;
     public Map<String, Object> bindings;
 
     public Map<String, Object> extensions;
