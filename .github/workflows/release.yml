@@ -253,7 +253,7 @@ jobs:
         done
 
     - name: Publish zilla image to GitHub Container Registry
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}/tmp/docker-build
         platforms: linux/amd64,linux/arm64
@@ -266,7 +266,7 @@ jobs:
           ${{ steps.tag.outputs.latest && 'ghcr.io/aklivity/zilla:latest' || '' }}
 
     - name: Publish zilla-alpine image to GitHub Container Registry
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}-alpine/tmp/docker-build
         file: cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}-alpine/tmp/docker-build/alpine.Dockerfile
