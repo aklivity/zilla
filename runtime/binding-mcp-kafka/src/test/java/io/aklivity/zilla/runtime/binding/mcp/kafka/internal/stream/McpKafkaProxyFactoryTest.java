@@ -570,7 +570,8 @@ public class McpKafkaProxyFactoryTest
         reset(kafkaSender, kafkaInitialId | 0x01L);
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Failed to produce record to orders\"}],\"isError\": true}",
+        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Failed to produce record to orders topic\"}]," +
+            "\"isError\": true}",
             result);
 
         final McpEndExFW endEx = mcpEndEx(nthOf(mcpSent, EndFW.TYPE_ID, 1));
