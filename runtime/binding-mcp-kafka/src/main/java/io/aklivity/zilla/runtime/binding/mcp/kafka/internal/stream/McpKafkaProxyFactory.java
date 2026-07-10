@@ -1262,18 +1262,18 @@ public class McpKafkaProxyFactory implements BindingHandler
                 break;
             case COMPLETED:
                 cleanupDecodeSlot();
-                onArgsCaptured(traceId);
+                completeArgs(traceId);
                 break;
             case REJECTED:
                 cleanupDecodeSlot();
-                doMcpReset(traceId, invalidParamsResetEx());
+                doMcpReset(traceId, buildInvalidParamsResetEx());
                 break;
             default:
                 break;
             }
         }
 
-        private void onArgsCaptured(
+        private void completeArgs(
             long traceId)
         {
             final McpKafkaToolArgs args = buildToolArgs(tool, capturedArgs);
@@ -1296,11 +1296,11 @@ public class McpKafkaProxyFactory implements BindingHandler
             }
             else
             {
-                doMcpReset(traceId, invalidParamsResetEx());
+                doMcpReset(traceId, buildInvalidParamsResetEx());
             }
         }
 
-        private McpResetExFW invalidParamsResetEx()
+        private McpResetExFW buildInvalidParamsResetEx()
         {
             return mcpResetExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -1761,19 +1761,52 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (consumeSuspended)
                 {
                     flushConsume(traceId);
-                    final Status status = withEncodeSlot(consumeResult::resume);
+                    final Status status;
+                    if (acquireEncodeSlot())
+                    {
+                        final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                        consumeGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
+                        status = consumeResult.resume();
+                        encodeSlotOffset += consumeGenerator.length();
+                    }
+                    else
+                    {
+                        status = Status.REJECTED;
+                    }
                     progress = applyConsumeStatus(traceId, status);
                 }
                 else if (!consumeQueue.isEmpty())
                 {
                     final PendingRecord next = consumeQueue.poll();
-                    final Status status = withEncodeSlot(() -> consumeResult.record(next.key, next.headers, next.value));
+                    final Status status;
+                    if (acquireEncodeSlot())
+                    {
+                        final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                        consumeGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
+                        status = consumeResult.record(next.key, next.headers, next.value);
+                        encodeSlotOffset += consumeGenerator.length();
+                    }
+                    else
+                    {
+                        status = Status.REJECTED;
+                    }
                     progress = applyConsumeStatus(traceId, status);
                 }
                 else if (consumeClosing && !consumeDone)
                 {
                     final String text = "Consumed %d messages from topic %s".formatted(consumeCount, topic);
-                    final Status status = withEncodeSlot(() -> consumeResult.close(consumeCount, text, consumeIsError));
+                    final Status status;
+                    if (acquireEncodeSlot())
+                    {
+                        final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                        consumeGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
+                        status = consumeResult.close(consumeCount, text, consumeIsError);
+                        encodeSlotOffset += consumeGenerator.length();
+                    }
+                    else
+                    {
+                        status = Status.REJECTED;
+                    }
                     progress = applyConsumeStatus(traceId, status);
                 }
             }
@@ -1811,27 +1844,13 @@ public class McpKafkaProxyFactory implements BindingHandler
             return progress;
         }
 
-        private Status withEncodeSlot(
-            Supplier<Status> step)
+        private boolean acquireEncodeSlot()
         {
-            Status status;
             if (encodeSlot == NO_SLOT)
             {
                 encodeSlot = encodePool.acquire(kafkaReplyId);
             }
-
-            if (encodeSlot == NO_SLOT)
-            {
-                status = Status.REJECTED;
-            }
-            else
-            {
-                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
-                consumeGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
-                status = step.get();
-                encodeSlotOffset += consumeGenerator.length();
-            }
-            return status;
+            return encodeSlot != NO_SLOT;
         }
 
         private void flushConsume(
@@ -1890,7 +1909,19 @@ public class McpKafkaProxyFactory implements BindingHandler
                 consumeGenerator = JsonEx.createGenerator();
                 consumeSink = JsonEx.createSink(consumeGenerator);
                 consumeResult = new McpKafkaConsumeResult(consumeSink);
-                final Status status = withEncodeSlot(() -> consumeResult.open(topic));
+
+                final Status status;
+                if (acquireEncodeSlot())
+                {
+                    final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                    consumeGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
+                    status = consumeResult.open(topic);
+                    encodeSlotOffset += consumeGenerator.length();
+                }
+                else
+                {
+                    status = Status.REJECTED;
+                }
                 applyConsumeStatus(traceId, status);
                 pumpConsume(traceId);
                 consumeTimeoutId = signaler.signalAt(System.currentTimeMillis() + consumeTimeoutMillis,
