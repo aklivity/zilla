@@ -24,12 +24,10 @@ bindings:
     options:
       specs:
         my-asyncapi-spec:
+          server: mqtt://${{env.MOSQUITTO_BROKER_HOST}}:${{env.MOSQUITTO_BROKER_PORT}}
           catalog:
             host_filesystem:
               subject: smartylighting
-      tcp:
-        host: ${{env.MOSQUITTO_BROKER_HOST}}
-        port: ${{env.MOSQUITTO_BROKER_PORT}}
 telemetry:
   exporters:
     stdout_logs_exporter:
