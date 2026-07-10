@@ -1211,6 +1211,21 @@ final class ZillaTarget implements AutoCloseable
         private void onResetBeforeHandshake(
             ResetFW reset)
         {
+            final OctetsFW resetExt = reset.extension();
+
+            int resetExtBytes = resetExt.sizeof();
+            if (resetExtBytes != 0)
+            {
+                final DirectBufferEx buffer = resetExt.buffer();
+                final int offset = resetExt.offset();
+
+                // TODO: avoid allocation
+                final byte[] resetExtCopy = new byte[resetExtBytes];
+                buffer.getBytes(offset, resetExtCopy);
+
+                channel.writeExtBuffer(RESET, false).writeBytes(resetExtCopy);
+            }
+
             handshakeFuture.setFailure(new ChannelException("handshake failed"));
         }
 
