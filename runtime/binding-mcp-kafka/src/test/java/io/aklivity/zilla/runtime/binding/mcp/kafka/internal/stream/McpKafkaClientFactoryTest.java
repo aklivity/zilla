@@ -69,6 +69,7 @@ public class McpKafkaClientFactoryTest
             .thenAnswer(inv -> "kafka_cache_client0".equals(((BindingConfig) inv.getArgument(1)).name)
                 ? CACHE_CLIENT_BINDING_ID
                 : 0L);
+        when(context.bufferPool()).thenReturn(new TestBufferPool(65536));
 
         this.factory = new McpKafkaClientFactory(new McpKafkaConfiguration(), context);
     }

@@ -19,25 +19,30 @@ import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaCa
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.ByteArrayInputStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonReader;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaArguments;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaConsumeResult;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaResourceType;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.OctetsFW;
@@ -57,12 +62,17 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.ResetFW
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
@@ -105,6 +115,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     };
 
     private static final int CAPABILITIES_TOOLS = 1;
+    private static final int FLAGS_INIT = 0x01;
+    private static final int FLAGS_FIN = 0x02;
     private static final int FLAGS_COMPLETE = 0x03;
 
     private static final int ERROR_CODE_INVALID_PARAMS = -32602;
@@ -116,6 +128,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final int KAFKA_ERROR_INVALID_RECORD = 87;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
+    private final DirectBufferEx emptyDecodeRO = new UnsafeBufferEx(0L, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -151,6 +164,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final int kafkaTypeId;
     private final byte[] toolsListPayload;
     private final UnsafeBufferEx toolsListBuffer;
+    private final BufferPool decodePool;
+    private final BufferPool encodePool;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
 
@@ -170,6 +185,8 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.toolsListPayload = buildToolsList();
         this.toolsListBuffer = new UnsafeBufferEx(toolsListPayload);
+        this.decodePool = context.bufferPool();
+        this.encodePool = context.bufferPool().duplicate();
     }
 
     @Override
@@ -551,106 +568,98 @@ public class McpKafkaProxyFactory implements BindingHandler
         return schema;
     }
 
-    private McpKafkaToolArgs parseToolArgs(
+    private static McpKafkaToolArgs buildToolArgs(
         String tool,
-        DirectBufferEx buffer,
-        int length)
+        Map<String, String> captured)
     {
-        McpKafkaToolArgs args = null;
-        final byte[] bytes = new byte[length];
-        buffer.getBytes(0, bytes, 0, length);
-
-        try (JsonReader reader = Json.createReader(new ByteArrayInputStream(bytes)))
-        {
-            final JsonObject root = reader.readObject();
-            final JsonObject arguments = root.getJsonObject("arguments");
-            if (arguments != null)
-            {
-                args = TOOL_PRODUCE.equals(tool) ? parseProduceArgs(arguments) : parseConsumeArgs(arguments);
-            }
-        }
-        catch (RuntimeException ex)
-        {
-            args = null;
-        }
-
-        return args;
+        return TOOL_PRODUCE.equals(tool) ? buildProduceArgs(captured) : buildConsumeArgs(captured);
     }
 
-    private McpKafkaToolArgs parseProduceArgs(
-        JsonObject arguments)
+    private static McpKafkaToolArgs buildProduceArgs(
+        Map<String, String> captured)
     {
         McpKafkaToolArgs args = null;
-        final String topic = arguments.getString("topic", null);
-        final String value = arguments.getString("value", null);
+        final String topic = captured.get("arguments.topic");
+        final String value = captured.get("arguments.value");
 
         if (topic != null && value != null)
         {
             args = new McpKafkaToolArgs();
             args.topic = topic;
             args.value = value;
-            args.key = arguments.getString("key", null);
-            args.partitionId = arguments.getInt("partition", -1);
+            args.key = captured.get("arguments.key");
+            args.partitionId = parseInt(captured.get("arguments.partition"), -1);
         }
 
         return args;
     }
 
-    private McpKafkaToolArgs parseConsumeArgs(
-        JsonObject arguments)
+    private static McpKafkaToolArgs buildConsumeArgs(
+        Map<String, String> captured)
     {
         McpKafkaToolArgs args = null;
-        final String topic = arguments.getString("topic", null);
+        final String topic = captured.get("arguments.topic");
 
         if (topic != null)
         {
             args = new McpKafkaToolArgs();
             args.topic = topic;
-            args.partitionId = arguments.getInt("partition", -1);
-            args.partitionOffset = arguments.containsKey("offset")
-                ? arguments.getJsonNumber("offset").longValue()
-                : -2L;
-            args.limit = Math.max(1, Math.min(100, arguments.getInt("limit", 10)));
+            args.partitionId = parseInt(captured.get("arguments.partition"), -1);
+            args.partitionOffset = parseLong(captured.get("arguments.offset"), -2L);
+            args.limit = Math.max(1, Math.min(100, parseInt(captured.get("arguments.limit"), 10)));
         }
 
         return args;
     }
 
-    private byte[] buildToolResult(
-        String text,
-        boolean isError)
+    private static int parseInt(
+        String value,
+        int defaultValue)
     {
-        return buildToolResult(text, null, isError);
+        int parsed = defaultValue;
+        if (value != null)
+        {
+            try
+            {
+                parsed = Integer.parseInt(value);
+            }
+            catch (NumberFormatException ex)
+            {
+            }
+        }
+        return parsed;
+    }
+
+    private static long parseLong(
+        String value,
+        long defaultValue)
+    {
+        long parsed = defaultValue;
+        if (value != null)
+        {
+            try
+            {
+                parsed = Long.parseLong(value);
+            }
+            catch (NumberFormatException ex)
+            {
+            }
+        }
+        return parsed;
     }
 
     private byte[] buildToolResult(
         String text,
-        JsonObject structuredContent,
         boolean isError)
     {
         final StringBuilder result = new StringBuilder()
             .append("{\"content\":[{\"type\": \"text\",\"text\": \"")
             .append(escapeJson(text))
-            .append("\"}]");
-
-        if (structuredContent != null)
-        {
-            result.append(",\"structuredContent\": ").append(structuredContent);
-        }
-
-        result.append(",\"isError\": ")
+            .append("\"}],\"isError\": ")
             .append(isError)
             .append('}');
 
         return result.toString().getBytes(UTF_8);
-    }
-
-    private static JsonObjectBuilder addStringOrNull(
-        JsonObjectBuilder builder,
-        String name,
-        String value)
-    {
-        return value != null ? builder.add(name, value) : builder.addNull(name);
     }
 
     private static String octetsAsString(
@@ -658,15 +667,6 @@ public class McpKafkaProxyFactory implements BindingHandler
         OctetsFW value)
     {
         return length == -1 ? null : value.buffer().getStringWithoutLengthUtf8(value.offset(), value.sizeof());
-    }
-
-    private static JsonObjectBuilder buildHeaderJson(
-        KafkaHeaderFW header)
-    {
-        final JsonObjectBuilder headerJson = Json.createObjectBuilder();
-        addStringOrNull(headerJson, "name", octetsAsString(header.nameLen(), header.name()));
-        addStringOrNull(headerJson, "value", octetsAsString(header.valueLen(), header.value()));
-        return headerJson;
     }
 
     private static String escapeJson(
@@ -776,6 +776,23 @@ public class McpKafkaProxyFactory implements BindingHandler
                 final byte[] bytes = key.getBytes(UTF_8);
                 builder.length(bytes.length).value(new UnsafeBufferEx(bytes), 0, bytes.length);
             }
+        }
+    }
+
+    private static final class PendingRecord
+    {
+        private final String key;
+        private final List<String[]> headers;
+        private final String value;
+
+        private PendingRecord(
+            String key,
+            List<String[]> headers,
+            String value)
+        {
+            this.key = key;
+            this.headers = headers;
+            this.value = value;
         }
     }
 
@@ -1009,12 +1026,13 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final long authorization;
         private final String tool;
         private final boolean awaitingArgs;
-        private final int contentLength;
         private final long timeout;
 
         private long resolvedId;
-        private ExpandableDirectByteBufferEx argsBuffer;
-        private int argsProgress;
+        private JsonPipeline argsPipeline;
+        private Map<String, String> capturedArgs;
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
 
         private KafkaProxy kafka;
         private int state;
@@ -1040,7 +1058,6 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.affinity = affinity;
             this.authorization = authorization;
             this.tool = tool;
-            this.contentLength = Math.max(contentLength, 0);
             this.timeout = timeout;
             this.awaitingArgs = TOOL_PRODUCE.equals(tool) || TOOL_CONSUME.equals(tool);
         }
@@ -1089,7 +1106,14 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             state = McpKafkaState.openingInitial(state);
 
-            if (!awaitingArgs)
+            if (awaitingArgs)
+            {
+                capturedArgs = new HashMap<>();
+                argsPipeline = JsonEx.stream(JsonEx.createParser()).into(new McpKafkaArguments(capturedArgs));
+                argsPipeline.reset();
+                doMcpWindow(traceId, 0, decodePool.slotCapacity(), 0);
+            }
+            else
             {
                 final McpKafkaRouteConfig route = binding.resolve(authorization, tool, null);
                 if (route != null)
@@ -1104,9 +1128,9 @@ public class McpKafkaProxyFactory implements BindingHandler
                 {
                     doMcpReset(traceId);
                 }
-            }
 
-            doMcpWindow(traceId, 0, writeBuffer.capacity(), 0);
+                doMcpWindow(traceId, 0, writeBuffer.capacity(), 0);
+            }
         }
 
         private void onMcpData(
@@ -1122,7 +1146,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 if (payload != null)
                 {
-                    bufferArgs(traceId, payload.buffer(), payload.offset(), payload.sizeof());
+                    appendArgs(traceId, payload.buffer(), payload.offset(), payload.sizeof());
                 }
             }
             else if (kafka != null && payload != null)
@@ -1138,6 +1162,11 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             state = McpKafkaState.closedInitial(state);
 
+            if (awaitingArgs && kafka == null)
+            {
+                pumpArgs(traceId);
+            }
+
             if (kafka != null)
             {
                 kafka.doKafkaEnd(traceId);
@@ -1150,6 +1179,8 @@ public class McpKafkaProxyFactory implements BindingHandler
             final long traceId = abort.traceId();
 
             state = McpKafkaState.closedInitial(state);
+
+            cleanupDecodeSlot();
 
             if (kafka != null)
             {
@@ -1184,29 +1215,68 @@ public class McpKafkaProxyFactory implements BindingHandler
             }
         }
 
-        private void bufferArgs(
+        private void appendArgs(
             long traceId,
             DirectBufferEx buffer,
             int offset,
             int length)
         {
-            if (argsBuffer == null)
+            if (decodeSlot == NO_SLOT)
             {
-                argsBuffer = new ExpandableDirectByteBufferEx();
+                decodeSlot = decodePool.acquire(initialId);
             }
-            argsBuffer.putBytes(argsProgress, buffer, offset, length);
-            argsProgress += length;
 
-            if (argsProgress >= contentLength)
+            if (decodeSlot == NO_SLOT || decodeSlotOffset + length > decodePool.slotCapacity())
             {
-                validateArgs(traceId);
+                cleanupDecodeSlot();
+                doMcpReset(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                slot.putBytes(decodeSlotOffset, buffer, offset, length);
+                decodeSlotOffset += length;
+                pumpArgs(traceId);
             }
         }
 
-        private void validateArgs(
+        private void pumpArgs(
             long traceId)
         {
-            final McpKafkaToolArgs args = parseToolArgs(tool, argsBuffer, argsProgress);
+            final DirectBufferEx buffer = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : emptyDecodeRO;
+            final boolean last = McpKafkaState.initialClosed(state);
+            final Status status = argsPipeline.transform(buffer, 0, decodeSlotOffset, last);
+
+            final int consumed = decodeSlotOffset - argsPipeline.remaining();
+            if (consumed > 0 && decodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                slot.putBytes(0, slot, consumed, decodeSlotOffset - consumed);
+            }
+            decodeSlotOffset -= consumed;
+
+            switch (status)
+            {
+            case STARVED:
+                doMcpWindow(traceId, 0, decodePool.slotCapacity() - decodeSlotOffset, 0);
+                break;
+            case COMPLETED:
+                cleanupDecodeSlot();
+                onArgsCaptured(traceId);
+                break;
+            case REJECTED:
+                cleanupDecodeSlot();
+                doMcpReset(traceId, invalidParamsResetEx());
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onArgsCaptured(
+            long traceId)
+        {
+            final McpKafkaToolArgs args = buildToolArgs(tool, capturedArgs);
 
             if (args != null)
             {
@@ -1226,12 +1296,26 @@ public class McpKafkaProxyFactory implements BindingHandler
             }
             else
             {
-                final McpResetExFW resetEx = mcpResetExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(mcpTypeId)
-                    .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
-                    .build();
-                doMcpReset(traceId, resetEx);
+                doMcpReset(traceId, invalidParamsResetEx());
+            }
+        }
+
+        private McpResetExFW invalidParamsResetEx()
+        {
+            return mcpResetExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
+                .build();
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
             }
         }
 
@@ -1263,16 +1347,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             String text,
             boolean isError)
         {
-            doMcpResult(traceId, text, null, isError);
-        }
-
-        private void doMcpResult(
-            long traceId,
-            String text,
-            JsonObject structuredContent,
-            boolean isError)
-        {
-            final byte[] bytes = buildToolResult(text, structuredContent, isError);
+            final byte[] bytes = buildToolResult(text, isError);
             final UnsafeBufferEx result = new UnsafeBufferEx(bytes);
 
             doMcpData(traceId, 0L, FLAGS_COMPLETE, bytes.length, result, 0, bytes.length);
@@ -1371,9 +1446,18 @@ public class McpKafkaProxyFactory implements BindingHandler
         private McpKafkaToolArgs pendingProduceArgs;
         private boolean produceDone;
 
-        private JsonArrayBuilder consumeMessages;
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private JsonGeneratorEx consumeGenerator;
+        private JsonSink consumeSink;
+        private McpKafkaConsumeResult consumeResult;
+        private final Deque<PendingRecord> consumeQueue = new ArrayDeque<>();
         private int consumeCount;
+        private boolean consumeSuspended;
+        private boolean consumeClosing;
         private boolean consumeDone;
+        private boolean consumeIsError;
+        private boolean consumeStarted;
         private long consumeTimeoutId = Signaler.NO_CANCEL_ID;
 
         private KafkaProxy(
@@ -1481,31 +1565,38 @@ public class McpKafkaProxyFactory implements BindingHandler
             KafkaMergedFetchDataExFW fetchDataEx,
             OctetsFW payload)
         {
-            if (!consumeDone && payload != null)
+            if (!consumeClosing && !consumeDone && payload != null)
             {
-                final JsonObjectBuilder message = Json.createObjectBuilder();
-                final JsonArrayBuilder headers = Json.createArrayBuilder();
+                final String key;
+                final List<String[]> headers = new ArrayList<>();
 
                 if (fetchDataEx != null)
                 {
-                    final KafkaKeyFW key = fetchDataEx.key();
-                    addStringOrNull(message, "key", octetsAsString(key.length(), key.value()));
-                    fetchDataEx.headers().forEach(h -> headers.add(buildHeaderJson(h)));
+                    final KafkaKeyFW keyEx = fetchDataEx.key();
+                    key = octetsAsString(keyEx.length(), keyEx.value());
+                    fetchDataEx.headers().forEach(h -> headers.add(new String[]
+                    {
+                        octetsAsString(h.nameLen(), h.name()),
+                        octetsAsString(h.valueLen(), h.value())
+                    }));
                 }
                 else
                 {
-                    message.addNull("key");
+                    key = null;
                 }
 
-                message.add("headers", headers);
-                message.add("value", payload.buffer().getStringWithoutLengthUtf8(payload.offset(), payload.sizeof()));
+                final String value = payload.buffer().getStringWithoutLengthUtf8(payload.offset(), payload.sizeof());
 
-                consumeMessages.add(message);
+                consumeQueue.add(new PendingRecord(key, headers, value));
                 consumeCount++;
 
                 if (consumeCount >= consumeLimit)
                 {
                     finishConsume(traceId, false);
+                }
+                else
+                {
+                    pumpConsume(traceId);
                 }
             }
         }
@@ -1531,6 +1622,12 @@ public class McpKafkaProxyFactory implements BindingHandler
             final long traceId = abort.traceId();
 
             state = McpKafkaState.closedReply(state);
+
+            if (consume)
+            {
+                cancelConsumeTimeout();
+                cleanupEncodeSlot();
+            }
 
             peer.doMcpAbort(traceId);
         }
@@ -1634,18 +1731,13 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId,
             boolean isError)
         {
-            if (!consumeDone)
+            if (!consumeClosing && !consumeDone)
             {
-                consumeDone = true;
+                consumeClosing = true;
+                consumeIsError = isError;
                 cancelConsumeTimeout();
-                final JsonObject structuredContent = Json.createObjectBuilder()
-                    .add("topic", topic)
-                    .add("count", consumeCount)
-                    .add("messages", consumeMessages)
-                    .build();
-                final String text = "Consumed %d messages from topic %s".formatted(consumeCount, topic);
-                peer.doMcpResult(traceId, text, structuredContent, isError);
                 doKafkaEnd(traceId);
+                pumpConsume(traceId);
             }
         }
 
@@ -1656,6 +1748,128 @@ public class McpKafkaProxyFactory implements BindingHandler
                 signaler.cancel(consumeTimeoutId);
                 consumeTimeoutId = Signaler.NO_CANCEL_ID;
             }
+        }
+
+        private void pumpConsume(
+            long traceId)
+        {
+            boolean progress = true;
+            while (progress)
+            {
+                progress = false;
+
+                if (consumeSuspended)
+                {
+                    flushConsume(traceId);
+                    final Status status = withEncodeSlot(consumeResult::resume);
+                    progress = applyConsumeStatus(traceId, status);
+                }
+                else if (!consumeQueue.isEmpty())
+                {
+                    final PendingRecord next = consumeQueue.poll();
+                    final Status status = withEncodeSlot(() -> consumeResult.record(next.key, next.headers, next.value));
+                    progress = applyConsumeStatus(traceId, status);
+                }
+                else if (consumeClosing && !consumeDone)
+                {
+                    final String text = "Consumed %d messages from topic %s".formatted(consumeCount, topic);
+                    final Status status = withEncodeSlot(() -> consumeResult.close(consumeCount, text, consumeIsError));
+                    progress = applyConsumeStatus(traceId, status);
+                }
+            }
+        }
+
+        private boolean applyConsumeStatus(
+            long traceId,
+            Status status)
+        {
+            boolean progress;
+            switch (status)
+            {
+            case SUSPENDED:
+                consumeSuspended = true;
+                progress = true;
+                break;
+            case COMPLETED:
+                consumeSuspended = false;
+                consumeDone = true;
+                flushConsume(traceId);
+                peer.doMcpEnd(traceId);
+                cleanupEncodeSlot();
+                progress = false;
+                break;
+            case REJECTED:
+                consumeSuspended = false;
+                cleanupConsume(traceId);
+                progress = false;
+                break;
+            default:
+                consumeSuspended = false;
+                progress = true;
+                break;
+            }
+            return progress;
+        }
+
+        private Status withEncodeSlot(
+            Supplier<Status> step)
+        {
+            Status status;
+            if (encodeSlot == NO_SLOT)
+            {
+                encodeSlot = encodePool.acquire(kafkaReplyId);
+            }
+
+            if (encodeSlot == NO_SLOT)
+            {
+                status = Status.REJECTED;
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                consumeGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
+                status = step.get();
+                encodeSlotOffset += consumeGenerator.length();
+            }
+            return status;
+        }
+
+        private void flushConsume(
+            long traceId)
+        {
+            if (encodeSlot != NO_SLOT && encodeSlotOffset > 0)
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                final boolean fin = consumeDone;
+                final int flags = !consumeStarted
+                    ? (fin ? FLAGS_COMPLETE : FLAGS_INIT)
+                    : (fin ? FLAGS_FIN : 0x00);
+                consumeStarted = true;
+
+                peer.doMcpData(traceId, 0L, flags, encodeSlotOffset, slot, 0, encodeSlotOffset);
+                encodeSlotOffset = 0;
+            }
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
+            }
+        }
+
+        private void cleanupConsume(
+            long traceId)
+        {
+            consumeDone = true;
+            cancelConsumeTimeout();
+            cleanupEncodeSlot();
+            doKafkaAbort(traceId);
+            doKafkaReset(traceId);
+            peer.doMcpAbort(traceId);
         }
 
         private void doKafkaBegin(
@@ -1673,7 +1887,12 @@ public class McpKafkaProxyFactory implements BindingHandler
             }
             else if (consume)
             {
-                consumeMessages = Json.createArrayBuilder();
+                consumeGenerator = JsonEx.createGenerator();
+                consumeSink = JsonEx.createSink(consumeGenerator);
+                consumeResult = new McpKafkaConsumeResult(consumeSink);
+                final Status status = withEncodeSlot(() -> consumeResult.open(topic));
+                applyConsumeStatus(traceId, status);
+                pumpConsume(traceId);
                 consumeTimeoutId = signaler.signalAt(System.currentTimeMillis() + consumeTimeoutMillis,
                     originId, resolvedId, kafkaInitialId, traceId, CONSUME_TIMEOUT_SIGNAL_ID, 0);
             }

@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -121,6 +122,8 @@ public class McpKafkaProxyFactoryTest
 
         doAnswer(inv -> record(mcpSent, inv)).when(mcp).accept(anyInt(), any(), anyInt(), anyInt());
         doAnswer(inv -> record(kafkaSent, inv)).when(kafka).accept(anyInt(), any(), anyInt(), anyInt());
+
+        when(context.bufferPool()).thenReturn(new TestBufferPool(65536));
 
         this.factory = new McpKafkaProxyFactory(new McpKafkaConfiguration(), context);
     }
@@ -385,6 +388,15 @@ public class McpKafkaProxyFactoryTest
         return new String(bytes, UTF_8);
     }
 
+    private String concatPayloads(
+        List<Recorded> sink,
+        int typeId)
+    {
+        final StringBuilder text = new StringBuilder();
+        sink.stream().filter(r -> r.typeId == typeId).forEach(r -> text.append(payloadText(r)));
+        return text.toString();
+    }
+
     private KafkaBeginExFW kafkaBeginEx(
         Recorded recorded)
     {
@@ -603,9 +615,9 @@ public class McpKafkaProxyFactoryTest
         assertEquals(1, countOf(kafkaSent, EndFW.TYPE_ID));
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Consumed 2 messages from topic orders\"}]," +
-            "\"structuredContent\": {\"topic\":\"orders\",\"count\":2,\"messages\":[{\"key\":null,\"headers\":[]," +
-            "\"value\":\"value-1\"},{\"key\":null,\"headers\":[],\"value\":\"value-2\"}]},\"isError\": false}",
+        assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[{\"key\":null,\"headers\":[]," +
+            "\"value\":\"value-1\"},{\"key\":null,\"headers\":[],\"value\":\"value-2\"}],\"count\":2}," +
+            "\"content\":[{\"type\":\"text\",\"text\":\"Consumed 2 messages from topic orders\"}],\"isError\":false}",
             result);
 
         // a third record arriving after the limit was already reached must be ignored
@@ -638,9 +650,9 @@ public class McpKafkaProxyFactoryTest
         assertEquals(1, countOf(kafkaSent, EndFW.TYPE_ID));
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Consumed 1 messages from topic orders\"}]," +
-            "\"structuredContent\": {\"topic\":\"orders\",\"count\":1,\"messages\":[{\"key\":null,\"headers\":[]," +
-            "\"value\":\"value-1\"}]},\"isError\": false}",
+        assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[{\"key\":null,\"headers\":[]," +
+            "\"value\":\"value-1\"}],\"count\":1}," +
+            "\"content\":[{\"type\":\"text\",\"text\":\"Consumed 1 messages from topic orders\"}],\"isError\":false}",
             result);
 
         // a late-arriving record after timeout finalized the result must not be appended
@@ -668,8 +680,62 @@ public class McpKafkaProxyFactoryTest
         signal(kafkaSender, kafkaInitialId, signalIdCaptor.getValue());
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Consumed 0 messages from topic orders\"}]," +
-            "\"structuredContent\": {\"topic\":\"orders\",\"count\":0,\"messages\":[]},\"isError\": false}",
+        assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[],\"count\":0}," +
+            "\"content\":[{\"type\":\"text\",\"text\":\"Consumed 0 messages from topic orders\"}],\"isError\":false}",
+            result);
+    }
+
+    @Test
+    public void shouldParseProduceArgsSpanningMultipleDataFrames() throws Exception
+    {
+        when(context.bufferPool()).thenReturn(new TestBufferPool(40));
+        factory = new McpKafkaProxyFactory(new McpKafkaConfiguration(), context);
+        factory.attach(newBinding("produce", "orders"));
+
+        final String body = "{\"name\":\"produce\",\"arguments\":{\"topic\":\"orders\",\"value\":\"hello-world-this-is-long\"}}";
+        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
+
+        final byte[] bytes = body.getBytes(UTF_8);
+        final int chunkSize = 15;
+        for (int offset = 0; offset < bytes.length; offset += chunkSize)
+        {
+            final int length = Math.min(chunkSize, bytes.length - offset);
+            data(stream, INITIAL_ID, new String(bytes, offset, length, UTF_8));
+        }
+
+        assertEquals(1, countOf(kafkaSent, BeginFW.TYPE_ID));
+
+        final KafkaBeginExFW kafkaBeginEx = kafkaBeginEx(nthOf(kafkaSent, BeginFW.TYPE_ID, 1));
+        assertEquals("orders", kafkaBeginEx.merged().topic().asString());
+    }
+
+    @Test
+    public void shouldChunkConsumeResultAcrossEncodeSlotBoundary() throws Exception
+    {
+        when(context.bufferPool()).thenReturn(new TestBufferPool(64));
+        factory = new McpKafkaProxyFactory(new McpKafkaConfiguration(), context);
+        factory.attach(newBinding("consume"));
+
+        final String body = "{\"name\":\"consume\",\"arguments\":{\"topic\":\"orders\",\"limit\":2}}";
+        final MessageConsumer stream = beginToolsCall("consume", body.length(), 0L);
+
+        data(stream, INITIAL_ID, body);
+
+        final MessageConsumer kafkaSender = captureKafkaSender();
+        final long kafkaReplyId = (supplyId.get() - 1L) | 0x01L;
+
+        final String value1 = "value-1-".repeat(10);
+        final String value2 = "value-2-".repeat(10);
+        dataWithPayload(kafkaSender, kafkaReplyId, value1);
+        dataWithPayload(kafkaSender, kafkaReplyId, value2);
+
+        assertTrue(countOf(mcpSent, DataFW.TYPE_ID) > 1);
+
+        final String result = concatPayloads(mcpSent, DataFW.TYPE_ID);
+        assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[{\"key\":null,\"headers\":[]," +
+            "\"value\":\"" + value1 + "\"},{\"key\":null,\"headers\":[],\"value\":\"" + value2 + "\"}]," +
+            "\"count\":2},\"content\":[{\"type\":\"text\",\"text\":\"Consumed 2 messages from topic orders\"}]," +
+            "\"isError\":false}",
             result);
     }
 
