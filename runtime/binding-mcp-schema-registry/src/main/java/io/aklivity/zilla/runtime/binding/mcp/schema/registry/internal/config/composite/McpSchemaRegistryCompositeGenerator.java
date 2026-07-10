@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
@@ -28,9 +29,13 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeRouteConfig;
+import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryRouteConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public final class McpSchemaRegistryCompositeGenerator
 {
@@ -82,7 +87,7 @@ public final class McpSchemaRegistryCompositeGenerator
                             .build()
                         .build()
                     .build()
-                .inject(this::injectRoutes)
+                .inject(b -> injectRoutes(b, binding))
                 .build()
             .build();
 
@@ -94,13 +99,86 @@ public final class McpSchemaRegistryCompositeGenerator
     }
 
     private <C> BindingConfigBuilder<C> injectRoutes(
-        BindingConfigBuilder<C> binding)
+        BindingConfigBuilder<C> mcpOpenapi,
+        McpSchemaRegistryBindingConfig binding)
     {
-        TOOLS.forEach(tool -> binding.route()
-            .when(McpOpenapiConditionConfig.builder().tool(tool).build())
-            .with(McpOpenapiWithConfig.builder().spec(SUBJECT_NAME).operation(tool).build())
-            .build());
-        return binding;
+        for (String tool : TOOLS)
+        {
+            McpSchemaRegistryRouteConfig matched = resolveRoute(binding.routes, tool);
+            if (binding.routes.isEmpty() || matched != null)
+            {
+                List<GuardedConfig> guarded = matched != null ? matched.guarded : List.of();
+                mcpOpenapi.route()
+                    .when(McpOpenapiConditionConfig.builder().tool(tool).build())
+                    .with(McpOpenapiWithConfig.builder().spec(SUBJECT_NAME).operation(tool).build())
+                    .inject(r -> injectGuarded(r, binding, guarded))
+                    .build();
+            }
+        }
+        return mcpOpenapi;
+    }
+
+    private static McpSchemaRegistryRouteConfig resolveRoute(
+        List<McpSchemaRegistryRouteConfig> routes,
+        String tool)
+    {
+        return routes.stream()
+            .filter(route -> route.when.stream().anyMatch(w -> matchesTool(w.tool, tool)))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private static boolean matchesTool(
+        String pattern,
+        String tool)
+    {
+        return compileGlob(pattern).matcher(tool).matches();
+    }
+
+    private <C> RouteConfigBuilder<C> injectGuarded(
+        RouteConfigBuilder<C> route,
+        McpSchemaRegistryBindingConfig binding,
+        List<GuardedConfig> guarded)
+    {
+        for (GuardedConfig guard : guarded)
+        {
+            String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guard.name));
+            route.guarded()
+                .name(qname)
+                .inject(g -> injectRoles(g, guard.roles))
+                .build();
+        }
+        return route;
+    }
+
+    private <C> GuardedConfigBuilder<C> injectRoles(
+        GuardedConfigBuilder<C> guarded,
+        List<String> roles)
+    {
+        roles.forEach(guarded::role);
+        return guarded;
+    }
+
+    private static Pattern compileGlob(
+        String glob)
+    {
+        StringBuilder regex = new StringBuilder();
+        String[] literals = glob.split("\\*", -1);
+
+        for (int index = 0; index < literals.length; index++)
+        {
+            if (index > 0)
+            {
+                regex.append(".*");
+            }
+
+            if (!literals[index].isEmpty())
+            {
+                regex.append(Pattern.quote(literals[index]));
+            }
+        }
+
+        return Pattern.compile(regex.toString());
     }
 
     private static String loadBundledSpec()

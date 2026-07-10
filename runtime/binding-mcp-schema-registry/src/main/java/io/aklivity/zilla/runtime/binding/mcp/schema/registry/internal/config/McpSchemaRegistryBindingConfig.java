@@ -14,7 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+import java.util.function.LongFunction;
 import java.util.function.ToLongBiFunction;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -28,8 +33,11 @@ public final class McpSchemaRegistryBindingConfig
     public final String qname;
     public final KindConfig kind;
     public final McpSchemaRegistryOptionsConfig options;
+    public final List<McpSchemaRegistryRouteConfig> routes;
 
     public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
+    public final ToLongFunction<String> resolveId;
+    public final LongFunction<String> supplyQName;
 
     public transient McpSchemaRegistryCompositeConfig composite;
 
@@ -42,7 +50,12 @@ public final class McpSchemaRegistryBindingConfig
         this.qname = binding.qname;
         this.kind = binding.kind;
         this.options = (McpSchemaRegistryOptionsConfig) binding.options;
+        this.routes = binding.routes.stream()
+            .map(McpSchemaRegistryRouteConfig::new)
+            .collect(toList());
 
         this.supplyBindingId = context::supplyBindingId;
+        this.resolveId = binding.resolveId;
+        this.supplyQName = context::supplyQName;
     }
 }

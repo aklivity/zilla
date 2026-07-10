@@ -23,4 +23,7 @@ module io.aklivity.zilla.runtime.binding.mcp.schema.registry
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryOptionsConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryConditionConfigAdapter;
 }

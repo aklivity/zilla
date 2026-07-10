@@ -46,4 +46,18 @@ public class SchemaTest
     {
         schema.validate("proxy.kind.invalid.yaml");
     }
+
+    @Test
+    public void shouldValidateProxyWithRoutes()
+    {
+        JsonObject config = schema.validate("proxy.routes.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectRouteWithInvalidWith()
+    {
+        schema.validate("proxy.route.with.invalid.yaml");
+    }
 }
