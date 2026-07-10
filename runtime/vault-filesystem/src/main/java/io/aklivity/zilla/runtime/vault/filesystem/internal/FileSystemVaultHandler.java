@@ -127,7 +127,7 @@ public class FileSystemVaultHandler implements VaultHandler
                     KeyStore store = KeyStore.getInstance(type);
                     store.load(input, password);
 
-                    info = new FileSystemStoreInfo(store, password);
+                    info = new FileSystemStoreInfo(store, password, config.entries);
                 }
             }
             catch (Exception ex)
@@ -144,24 +144,19 @@ public class FileSystemVaultHandler implements VaultHandler
         FileSystemStoreInfo signers,
         FileSystemStoreInfo keys)
     {
-        KeyManagerFactory factory = null;
+        List<String> signerAliases = signers.resolveCertificateAliases(aliases);
 
-        if (aliases != null)
-        {
-            factory = keys.newKeysFactory(aliases.stream()
-                .map(signers::certificate)
-                .filter(Objects::nonNull)
-                .map(TrustedCertificateEntry::getTrustedCertificate)
-                .filter(X509Certificate.class::isInstance)
-                .map(X509Certificate.class::cast)
-                .map(X509Certificate::getSubjectX500Principal)
-                .map(keys::issuedKeys)
-                .filter(Objects::nonNull)
-                .flatMap(List::stream)
-                .toList());
-        }
-
-        return factory;
+        return keys.buildKeysFactory(signerAliases.stream()
+            .map(signers::certificate)
+            .filter(Objects::nonNull)
+            .map(TrustedCertificateEntry::getTrustedCertificate)
+            .filter(X509Certificate.class::isInstance)
+            .map(X509Certificate.class::cast)
+            .map(X509Certificate::getSubjectX500Principal)
+            .map(keys::issuedKeys)
+            .filter(Objects::nonNull)
+            .flatMap(List::stream)
+            .toList());
     }
 
     private TrustManagerFactory newTrustFactory(
@@ -173,14 +168,16 @@ public class FileSystemVaultHandler implements VaultHandler
 
         try
         {
-            if (aliases != null || cacerts != null)
+            List<String> resolved = store != null ? store.resolveCertificateAliases(aliases) : aliases;
+
+            if (resolved != null || cacerts != null)
             {
                 KeyStore trust = KeyStore.getInstance(STORE_TYPE_DEFAULT);
                 trust.load(null, null);
 
-                if (aliases != null && store != null)
+                if (resolved != null && store != null)
                 {
-                    for (String alias : aliases)
+                    for (String alias : resolved)
                     {
                         TrustedCertificateEntry cert = store.certificate(alias);
                         if (cert != null)
@@ -190,9 +187,9 @@ public class FileSystemVaultHandler implements VaultHandler
                     }
                 }
 
-                if (cacerts != null)
+                if (cacerts != null && resolved != null)
                 {
-                    for (String alias : aliases)
+                    for (String alias : resolved)
                     {
                         TrustedCertificateEntry cacert = FileSystemStoreInfo.certificate(cacerts, alias);
                         if (cacert != null)
@@ -238,39 +235,45 @@ public class FileSystemVaultHandler implements VaultHandler
     {
         private final KeyStore store;
         private final KeyStore.PasswordProtection protection;
+        private final List<String> entries;
 
         private FileSystemStoreInfo(
             KeyStore store,
-            char[] password)
+            char[] password,
+            List<String> entries)
         {
             this.store = store;
             this.protection = password != null ? new KeyStore.PasswordProtection(password) : null;
+            this.entries = entries;
         }
 
         private KeyManagerFactory newKeysFactory(
+            List<String> aliases)
+        {
+            return buildKeysFactory(resolveKeyAliases(aliases));
+        }
+
+        private KeyManagerFactory buildKeysFactory(
             List<String> aliases)
         {
             KeyManagerFactory factory = null;
 
             try
             {
-                if (aliases != null)
+                KeyStore keys = KeyStore.getInstance(STORE_TYPE_DEFAULT);
+                keys.load(null, protection.getPassword());
+
+                for (String alias : aliases)
                 {
-                    KeyStore keys = KeyStore.getInstance(STORE_TYPE_DEFAULT);
-                    keys.load(null, protection.getPassword());
-
-                    for (String alias : aliases)
+                    PrivateKeyEntry key = key(alias);
+                    if (key != null)
                     {
-                        PrivateKeyEntry key = key(alias);
-                        if (key != null)
-                        {
-                            keys.setEntry(alias, key, protection);
-                        }
+                        keys.setEntry(alias, key, protection);
                     }
-
-                    factory = KeyManagerFactory.getInstance("PKIX");
-                    factory.init(keys, protection.getPassword());
                 }
+
+                factory = KeyManagerFactory.getInstance("PKIX");
+                factory.init(keys, protection.getPassword());
             }
             catch (Exception ex)
             {
@@ -278,6 +281,52 @@ public class FileSystemVaultHandler implements VaultHandler
             }
 
             return factory;
+        }
+
+        private List<String> resolveKeyAliases(
+            List<String> requested)
+        {
+            List<String> resolved = requested;
+
+            if (resolved == null || resolved.isEmpty())
+            {
+                resolved = entries != null ? entries : allAliases(PrivateKeyEntry.class, protection);
+            }
+
+            return resolved;
+        }
+
+        private List<String> resolveCertificateAliases(
+            List<String> requested)
+        {
+            List<String> resolved = requested;
+
+            if (resolved == null || resolved.isEmpty())
+            {
+                resolved = entries != null ? entries : allAliases(TrustedCertificateEntry.class, null);
+            }
+
+            return resolved;
+        }
+
+        private List<String> allAliases(
+            Class<? extends Entry> type,
+            KeyStore.PasswordProtection entryProtection)
+        {
+            List<String> aliases = Collections.emptyList();
+
+            try
+            {
+                aliases = Collections.list(store.aliases()).stream()
+                    .filter(alias -> entry(store, entryProtection, alias, type) != null)
+                    .toList();
+            }
+            catch (Exception ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+
+            return aliases;
         }
 
         private PrivateKeyEntry key(

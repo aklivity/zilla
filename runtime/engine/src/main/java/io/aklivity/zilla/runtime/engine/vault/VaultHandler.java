@@ -41,7 +41,9 @@ public interface VaultHandler
      * a TLS handshake.
      * </p>
      *
-     * @param keyRefs  list of vault entry names identifying the private keys to include
+     * @param keyRefs  list of vault entry names identifying the private keys to include,
+     *                 or {@code null} or empty to resolve every private key entry this
+     *                 vault instance is configured to expose
      * @return an initialized {@link KeyManagerFactory}, or {@code null} if none of the
      *         referenced keys could be resolved
      */
@@ -56,7 +58,9 @@ public interface VaultHandler
      * a full key pair.
      * </p>
      *
-     * @param signerRefs  list of vault entry names identifying the signing certificates
+     * @param signerRefs  list of vault entry names identifying the signing certificates,
+     *                     or {@code null} or empty to resolve every signing certificate entry
+     *                     this vault instance is configured to expose
      * @return an initialized {@link KeyManagerFactory}, or {@code null} if none of the
      *         referenced signers could be resolved
      */
@@ -70,7 +74,9 @@ public interface VaultHandler
      * Used to build the trust anchors for verifying peer TLS certificates.
      * </p>
      *
-     * @param certRefs  list of vault entry names identifying the trusted certificates to include
+     * @param certRefs  list of vault entry names identifying the trusted certificates to include,
+     *                  or {@code null} or empty to resolve every trusted certificate entry this
+     *                  vault instance is configured to expose
      * @param cacerts   the JVM default trust store to merge with, or {@code null} to use only
      *                  the vault-provided certificates
      * @return an initialized {@link TrustManagerFactory}
