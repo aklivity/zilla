@@ -1560,6 +1560,165 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
+    public void shouldGuardOperatorDeclaredRouteWithNoSpecSecurity()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("repo://{owner}/{repo}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("repos/get")
+                    .build())
+                .guarded()
+                    .name("guard1")
+                    .role("read")
+                    .build()
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        RouteConfig getRoute = mcpHttp.routes.stream()
+            .filter(r -> "GET".equals(((McpHttpWithConfig) r.with).headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        List<GuardedConfig> guarded = getRoute.guarded;
+        assertThat(guarded, hasSize(1));
+        assertThat(guarded.get(0).name, equalTo("test1"));
+        assertThat(guarded.get(0).roles, containsInAnyOrder("read"));
+    }
+
+    @Test
+    public void shouldComposeOperatorDeclaredGuardWithDistinctSpecDerivedGuard()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .guarded()
+                    .name("guard1")
+                    .role("write")
+                    .build()
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        RouteConfig postRoute = mcpHttp.routes.stream()
+            .filter(r -> "POST".equals(((McpHttpWithConfig) r.with).headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        List<GuardedConfig> guarded = postRoute.guarded;
+        assertThat(guarded, hasSize(2));
+        GuardedConfig specDerived = guarded.stream().filter(g -> "test0".equals(g.name)).findFirst().orElse(null);
+        GuardedConfig operatorDeclared = guarded.stream().filter(g -> "test1".equals(g.name)).findFirst().orElse(null);
+        assertThat(specDerived, notNullValue());
+        assertThat(specDerived.roles, containsInAnyOrder("repo", "pr:write"));
+        assertThat(operatorDeclared, notNullValue());
+        assertThat(operatorDeclared.roles, containsInAnyOrder("write"));
+    }
+
+    @Test
+    public void shouldUnionOperatorDeclaredRolesWithSpecDerivedGuardForSameGuard()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .guarded()
+                    .name("guard0")
+                    .role("write")
+                    .build()
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        RouteConfig postRoute = mcpHttp.routes.stream()
+            .filter(r -> "POST".equals(((McpHttpWithConfig) r.with).headers.get(":method")))
+            .findFirst()
+            .orElse(null);
+        List<GuardedConfig> guarded = postRoute.guarded;
+        assertThat(guarded, hasSize(1));
+        assertThat(guarded.get(0).name, equalTo("test0"));
+        assertThat(guarded.get(0).roles, containsInAnyOrder("repo", "pr:write", "write"));
+    }
+
+    @Test
     public void shouldDenyOperationRequiringMultipleDistinctGuards()
     {
         BindingConfig binding = BindingConfig.builder()
