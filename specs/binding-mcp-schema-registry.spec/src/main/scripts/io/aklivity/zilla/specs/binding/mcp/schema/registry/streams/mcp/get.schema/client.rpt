@@ -52,7 +52,7 @@ connected
 
 write '{"name":"get_schema","arguments":{"subject":"orders-value","version":"1"}}'
 
-read  '{"structuredContent":{"result":{"subject":"orders-value","id":1,"version":1,"schemaType":"AVRO","schema":"\\"string\\""}},"content":[{"type":"text","text":"Get a schema by subject and version"}],"isError":false}'
+read  '{"structuredContent":{"subject":"orders-value","id":1,"version":1,"schemaType":"AVRO","schema":"\\"string\\""},"content":[{"type":"text","text":"Retrieved schema id 1, version 1"}],"isError":false}'
 read closed
 
 write close

@@ -52,7 +52,7 @@ connected
 
 write '{"name":"register_schema","arguments":{"subject":"orders-value","schemaType":"AVRO","schema":"\\"string\\""}}'
 
-read  '{"structuredContent":{"result":{"id":1}},"content":[{"type":"text","text":"Register a schema under a subject"}],"isError":false}'
+read  '{"structuredContent":{"id":1},"content":[{"type":"text","text":"Registered schema with id 1"}],"isError":false}'
 read closed
 
 write close

@@ -54,7 +54,7 @@ read  '{"name":"get_compatibility","arguments":{"subject":"orders-value"}}'
 
 write flush
 
-write '{"structuredContent":{"result":{"compatibilityLevel":"BACKWARD"}},"content":[{"type":"text","text":"Get the compatibility level for a subject"}],"isError":false}'
+write '{"structuredContent":{"compatibilityLevel":"BACKWARD"},"content":[{"type":"text","text":"Compatibility level is BACKWARD"}],"isError":false}'
 write flush
 
 write close

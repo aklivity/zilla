@@ -52,7 +52,7 @@ connected
 
 write '{"name":"check_compatibility","arguments":{"subject":"orders-value","version":"1","schemaType":"AVRO","schema":"\\"string\\""}}'
 
-read  '{"structuredContent":{"result":{"is_compatible":true}},"content":[{"type":"text","text":"Check schema compatibility against a specific version"}],"isError":false}'
+read  '{"structuredContent":{"is_compatible":true},"content":[{"type":"text","text":"Compatibility check result: true"}],"isError":false}'
 read closed
 
 write close

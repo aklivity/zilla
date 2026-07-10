@@ -54,7 +54,7 @@ read  '{"name":"register_schema","arguments":{"subject":"orders-value","schemaTy
 
 write flush
 
-write '{"structuredContent":{"result":{"id":1}},"content":[{"type":"text","text":"Register a schema under a subject"}],"isError":false}'
+write '{"structuredContent":{"id":1},"content":[{"type":"text","text":"Registered schema with id 1"}],"isError":false}'
 write flush
 
 write close
