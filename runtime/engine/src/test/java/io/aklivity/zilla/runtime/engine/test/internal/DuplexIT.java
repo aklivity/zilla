@@ -109,6 +109,16 @@ public class DuplexIT
 
     @Test
     @Specification({
+        "handshake.reset.ext.rejected/client",
+        "handshake.reset.ext.rejected/server"
+    })
+    public void shouldRejectHandshakeWithResetExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "handshake.unequal.authorization/client",
         "handshake.unequal.authorization/server"
     })

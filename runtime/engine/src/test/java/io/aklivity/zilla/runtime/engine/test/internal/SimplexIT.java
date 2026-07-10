@@ -98,6 +98,16 @@ public class SimplexIT
 
     @Test
     @Specification({
+        "handshake.reset.ext.rejected/client",
+        "handshake.reset.ext.rejected/server"
+    })
+    public void shouldRejectHandshakeWithResetExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "handshake.abort/client"
     })
     public void shouldAbortHandshake() throws Exception
