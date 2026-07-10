@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.streams;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -83,13 +82,6 @@ public class OpenapiAsyncapiIT
         k3po.finish();
     }
 
-    // Denial itself is verified correct by direct trace (RESET propagates end-to-end and
-    // connectFuture fails as expected); k3po reports a bare, message-less AssertionError for
-    // this composite-forwarded rejection instead of a normal script mismatch or "connect
-    // aborted" match, and the root cause is still open. Tracking in the guard-resolution unit
-    // tests (OpenapiAsyncapiProxyGeneratorTest) and the passing shouldCreatePetWhenAuthorized
-    // case, both of which exercise the same guard.
-    @Ignore
     @Test
     @Configuration("proxy.guarded.yaml")
     @Specification({

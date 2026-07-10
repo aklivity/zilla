@@ -496,6 +496,10 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
+            else if (!OpenapiAsyncapiState.replyOpening(state))
+            {
+                context.detachSender(replyId);
+            }
 
             state = OpenapiAsyncapiState.closeInitial(state);
         }
@@ -759,6 +763,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert delegate.initialAck <= delegate.initialSeq;
 
             delegate.doOpenapiReset(traceId);
+            delegate.doOpenapiAbort(traceId);
         }
 
         private void onCompositeWindow(
