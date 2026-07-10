@@ -69,4 +69,12 @@ public class SchemaTest
     {
         schema.validate("proxy.with.options.yaml");
     }
+
+    @Test
+    public void shouldValidateProxyProduceTopicAllowlist()
+    {
+        JsonObject config = schema.validate("proxy.produce.topic.allowlist.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

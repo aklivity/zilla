@@ -20,12 +20,15 @@ public final class McpKafkaConditionConfig extends ConditionConfig
 {
     public final String tool;
     public final String resource;
+    public final String topic;
 
     public McpKafkaConditionConfig(
         String tool,
-        String resource)
+        String resource,
+        String topic)
     {
         this.tool = tool;
         this.resource = resource;
+        this.topic = topic;
     }
 }

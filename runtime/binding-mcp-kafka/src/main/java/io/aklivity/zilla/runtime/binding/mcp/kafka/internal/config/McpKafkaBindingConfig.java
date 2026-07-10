@@ -39,10 +39,11 @@ public final class McpKafkaBindingConfig
 
     public McpKafkaRouteConfig resolve(
         long authorization,
-        String tool)
+        String tool,
+        String topic)
     {
         return routes.stream()
-            .filter(r -> r.matches(tool))
+            .filter(r -> r.matches(tool, topic) && r.authorized(authorization))
             .findFirst()
             .orElse(null);
     }

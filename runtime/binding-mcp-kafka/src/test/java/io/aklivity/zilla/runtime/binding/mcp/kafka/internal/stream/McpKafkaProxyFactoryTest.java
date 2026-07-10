@@ -158,9 +158,16 @@ public class McpKafkaProxyFactoryTest
     private BindingConfig newBinding(
         String tool)
     {
+        return newBinding(tool, null);
+    }
+
+    private BindingConfig newBinding(
+        String tool,
+        String topic)
+    {
         final RouteConfig route = RouteConfig.builder()
             .exit("kafka0")
-            .when(new McpKafkaConditionConfig(tool, null))
+            .when(new McpKafkaConditionConfig(tool, null, topic))
             .build();
         route.id = ROUTE_ID;
 
@@ -673,6 +680,51 @@ public class McpKafkaProxyFactoryTest
         factory.attach(newBinding("produce"));
 
         final MessageConsumer stream = beginToolsCall("consume", 10, 0L);
+
+        assertNull(stream);
+        assertEquals(0, countOf(kafkaSent, BeginFW.TYPE_ID));
+    }
+
+    @Test
+    public void shouldProduceWhenTopicMatchesAllowlist() throws Exception
+    {
+        factory.attach(newBinding("produce", "orders"));
+
+        final String body = "{\"name\":\"produce\",\"arguments\":{\"topic\":\"orders\",\"value\":\"hello\"}}";
+        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
+
+        data(stream, INITIAL_ID, body);
+
+        assertEquals(1, countOf(kafkaSent, BeginFW.TYPE_ID));
+        assertEquals(0, countOf(mcpSent, ResetFW.TYPE_ID));
+    }
+
+    @Test
+    public void shouldRejectProduceWhenTopicNotInAllowlist() throws Exception
+    {
+        factory.attach(newBinding("produce", "orders"));
+
+        final String body = "{\"name\":\"produce\",\"arguments\":{\"topic\":\"other\",\"value\":\"hello\"}}";
+        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
+
+        data(stream, INITIAL_ID, body);
+
+        assertEquals(0, countOf(kafkaSent, BeginFW.TYPE_ID));
+        assertEquals(1, countOf(mcpSent, ResetFW.TYPE_ID));
+
+        final Recorded recorded = nthOf(mcpSent, ResetFW.TYPE_ID, 1);
+        final ResetFW reset = resetRO.wrap(new UnsafeBufferEx(recorded.bytes), 0, recorded.bytes.length);
+        assertEquals(0, reset.extension().sizeof());
+    }
+
+    @Test
+    public void shouldRejectToolsCallWhenRouteNotAuthorized() throws Exception
+    {
+        final BindingConfig binding = newBinding("produce");
+        binding.routes.get(0).authorized = (authorization, identity) -> false;
+        factory.attach(binding);
+
+        final MessageConsumer stream = beginToolsCall("produce", 10, 0L);
 
         assertNull(stream);
         assertEquals(0, countOf(kafkaSent, BeginFW.TYPE_ID));

@@ -69,6 +69,11 @@
                                             {
                                                 "title": "Resource URI",
                                                 "type": "string"
+                                            },
+                                            "topic":
+                                            {
+                                                "title": "Topic Name",
+                                                "type": "string"
                                             }
                                         },
                                         "additionalProperties": false
@@ -174,6 +179,11 @@
                                             "resource":
                                             {
                                                 "title": "Resource URI",
+                                                "type": "string"
+                                            },
+                                            "topic":
+                                            {
+                                                "title": "Topic Name",
                                                 "type": "string"
                                             }
                                         },

@@ -14,18 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config;
 
+import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class McpKafkaRouteConfig
 {
     public long id;
 
     private final List<McpKafkaConditionConfig> when;
+    private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public McpKafkaRouteConfig(
         RouteConfig route)
@@ -34,12 +38,20 @@ public final class McpKafkaRouteConfig
         this.when = route.when.stream()
             .map(McpKafkaConditionConfig.class::cast)
             .collect(toList());
+        this.authorized = route.authorized;
+    }
+
+    public boolean authorized(
+        long authorization)
+    {
+        return authorized == null || authorized.test(authorization, identity());
     }
 
     public boolean matches(
-        String tool)
+        String tool,
+        String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(w -> matchesTool(w, tool));
+        return when.isEmpty() || when.stream().anyMatch(w -> matchesTool(w, tool) && matchesTopic(w, topic));
     }
 
     private boolean matchesTool(
@@ -47,5 +59,12 @@ public final class McpKafkaRouteConfig
         String tool)
     {
         return condition.tool == null || condition.tool.equals(tool);
+    }
+
+    private boolean matchesTopic(
+        McpKafkaConditionConfig condition,
+        String topic)
+    {
+        return topic == null || condition.topic == null || condition.topic.equals(topic);
     }
 }

@@ -28,6 +28,7 @@ public final class McpKafkaConditionConfigAdapter implements ConditionConfigAdap
 {
     private static final String TOOL_NAME = "tool";
     private static final String RESOURCE_NAME = "resource";
+    private static final String TOPIC_NAME = "topic";
 
     @Override
     public String type()
@@ -53,6 +54,11 @@ public final class McpKafkaConditionConfigAdapter implements ConditionConfigAdap
             object.add(RESOURCE_NAME, mcpKafkaCondition.resource);
         }
 
+        if (mcpKafkaCondition.topic != null)
+        {
+            object.add(TOPIC_NAME, mcpKafkaCondition.topic);
+        }
+
         return object.build();
     }
 
@@ -68,6 +74,10 @@ public final class McpKafkaConditionConfigAdapter implements ConditionConfigAdap
             ? object.getString(RESOURCE_NAME)
             : null;
 
-        return new McpKafkaConditionConfig(tool, resource);
+        String topic = object.containsKey(TOPIC_NAME)
+            ? object.getString(TOPIC_NAME)
+            : null;
+
+        return new McpKafkaConditionConfig(tool, resource, topic);
     }
 }

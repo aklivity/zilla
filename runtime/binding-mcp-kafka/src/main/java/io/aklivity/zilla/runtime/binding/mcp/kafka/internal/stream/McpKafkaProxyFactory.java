@@ -235,7 +235,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 case KIND_TOOLS_CALL:
                 {
                     final String tool = mcpBeginEx.toolsCall().name().asString();
-                    final McpKafkaRouteConfig route = binding.resolve(authorization, tool);
+                    final McpKafkaRouteConfig route = binding.resolve(authorization, tool, null);
                     if (route != null)
                     {
                         final McpProxy mcpProxy = new McpProxy(
@@ -243,7 +243,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                             originId,
                             routedId,
                             initialId,
-                            route.id,
+                            binding,
                             affinity,
                             authorization,
                             tool,
@@ -958,7 +958,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final long resolvedId;
+        private final McpKafkaBindingConfig binding;
         private final long affinity;
         private final long authorization;
         private final String tool;
@@ -966,6 +966,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final int contentLength;
         private final long timeout;
 
+        private long resolvedId;
         private ExpandableDirectByteBufferEx argsBuffer;
         private int argsProgress;
 
@@ -977,7 +978,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long originId,
             long routedId,
             long initialId,
-            long resolvedId,
+            McpKafkaBindingConfig binding,
             long affinity,
             long authorization,
             String tool,
@@ -989,7 +990,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.resolvedId = resolvedId;
+            this.binding = binding;
             this.affinity = affinity;
             this.authorization = authorization;
             this.tool = tool;
@@ -1044,10 +1045,19 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             if (!awaitingArgs)
             {
-                final KafkaBeginExFW kafkaBeginEx = buildKafkaBeginEx(tool, null);
+                final McpKafkaRouteConfig route = binding.resolve(authorization, tool, null);
+                if (route != null)
+                {
+                    resolvedId = route.id;
+                    final KafkaBeginExFW kafkaBeginEx = buildKafkaBeginEx(tool, null);
 
-                kafka = new KafkaProxy(this, originId, resolvedId, affinity, authorization, tool, null, timeout);
-                kafka.doKafkaBegin(traceId, kafkaBeginEx, null);
+                    kafka = new KafkaProxy(this, originId, resolvedId, affinity, authorization, tool, null, timeout);
+                    kafka.doKafkaBegin(traceId, kafkaBeginEx, null);
+                }
+                else
+                {
+                    doMcpReset(traceId);
+                }
             }
 
             doMcpWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -1154,10 +1164,19 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             if (args != null)
             {
-                final KafkaBeginExFW kafkaBeginEx = buildKafkaBeginEx(tool, args);
+                final McpKafkaRouteConfig route = binding.resolve(authorization, tool, args.topic);
+                if (route != null)
+                {
+                    resolvedId = route.id;
+                    final KafkaBeginExFW kafkaBeginEx = buildKafkaBeginEx(tool, args);
 
-                kafka = new KafkaProxy(this, originId, resolvedId, affinity, authorization, tool, args, timeout);
-                kafka.doKafkaBegin(traceId, kafkaBeginEx, args);
+                    kafka = new KafkaProxy(this, originId, resolvedId, affinity, authorization, tool, args, timeout);
+                    kafka.doKafkaBegin(traceId, kafkaBeginEx, args);
+                }
+                else
+                {
+                    doMcpReset(traceId);
+                }
             }
             else
             {
