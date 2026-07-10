@@ -164,6 +164,27 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         .map(s -> s.url.getScheme());
             }
 
+            private Optional<String> resolveAuthority()
+            {
+                URI server = resolveServer();
+
+                return server != null
+                    ? Optional.of(authority(server))
+                    : Stream.of(schema)
+                        .map(s -> s.openapi)
+                        .flatMap(v -> v.servers.stream())
+                        .findFirst()
+                        .map(s -> authority(s.url));
+            }
+
+            private String authority(
+                URI uri)
+            {
+                return uri.getPort() != -1
+                    ? "%s:%d".formatted(uri.getHost(), uri.getPort())
+                    : uri.getHost();
+            }
+
             private <C> NamespaceConfigBuilder<C> injectHttpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
@@ -227,6 +248,8 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                 HttpOptionsConfigBuilder<C> options)
             {
                 final String prefix = resolveServerPrefix();
+
+                resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
 
                 Stream.of(schema)
                     .map(s -> s.openapi)

@@ -34,11 +34,14 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompos
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaMessageBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBindingEx;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
+import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
@@ -218,6 +221,27 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .map(s -> s.asyncapi)
                         .flatMap(v -> v.servers.stream())
                         .anyMatch(s -> secure.contains(s.protocol));
+            }
+
+            private Optional<String> resolveAuthority()
+            {
+                URI server = resolveServer();
+
+                return server != null
+                    ? Optional.of(authority(server))
+                    : Stream.of(schema)
+                        .map(s -> s.asyncapi)
+                        .flatMap(v -> v.servers.stream())
+                        .findFirst()
+                        .map(s -> "%s:%d".formatted(s.hostname, s.port));
+            }
+
+            private String authority(
+                URI uri)
+            {
+                return uri.getPort() != -1
+                    ? "%s:%d".formatted(uri.getHost(), uri.getPort())
+                    : uri.getHost();
             }
 
             private <C> NamespaceConfigBuilder<C> injectTlsClient(
@@ -458,6 +482,9 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .name("http_client0")
                         .type("http")
                         .kind(CLIENT)
+                        .options(HttpOptionsConfig::builder)
+                            .inject(this::injectHttpOptions)
+                            .build()
                         .inject(this::injectMetrics)
                         .exit("sys:tcp_client")
                         .build();
@@ -472,9 +499,20 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .name("http_client0")
                         .type("http")
                         .kind(CLIENT)
+                        .options(HttpOptionsConfig::builder)
+                            .inject(this::injectHttpOptions)
+                            .build()
                         .inject(this::injectMetrics)
                         .exit("tls_client0")
                         .build();
+            }
+
+            private <C> HttpOptionsConfigBuilder<C> injectHttpOptions(
+                HttpOptionsConfigBuilder<C> options)
+            {
+                resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
+
+                return options;
             }
 
             private <C> NamespaceConfigBuilder<C> injectSseClient(
@@ -502,12 +540,40 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
+                    .inject(this::injectMqttTcpClient)
                     .binding()
                         .name("mqtt_client0")
                         .type("mqtt")
                         .kind(CLIENT)
                         .inject(this::injectMetrics)
-                        .exit("sys:tcp_client")
+                        .exit("mqtt_tcp_client0")
+                        .build();
+            }
+
+            private <C> NamespaceConfigBuilder<C> injectMqttTcpClient(
+                NamespaceConfigBuilder<C> namespace)
+            {
+                final URI server = resolveServer();
+                final TcpOptionsConfig tcpOptions = TcpOptionsConfig.builder()
+                    .inject(o -> server != null
+                        ? o.host(server.getHost()).ports(new int[] { server.getPort() })
+                        : Stream.of(schema)
+                            .map(s -> s.asyncapi)
+                            .flatMap(v -> v.servers.stream())
+                            .findFirst()
+                            .map(s -> o
+                                .host(s.hostname)
+                                .ports(new int[] { s.port }))
+                            .get())
+                    .build();
+
+                return namespace
+                    .binding()
+                        .name("mqtt_tcp_client0")
+                        .type("tcp")
+                        .kind(CLIENT)
+                        .inject(this::injectMetrics)
+                        .options(tcpOptions)
                         .build();
             }
 
