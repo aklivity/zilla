@@ -104,8 +104,18 @@ public class FileSystemVaultTest
 
         KeyManagerFactory keys = vault.initKeys();
 
+        int aliasCount = 0;
+        for (KeyManager manager : keys.getKeyManagers())
+        {
+            if (manager instanceof X509ExtendedKeyManager keyManager)
+            {
+                String[] aliases = keyManager.getServerAliases("RSA", null);
+                aliasCount += aliases != null ? aliases.length : 0;
+            }
+        }
+
         assertThat(keys, not(nullValue()));
-        assertThat(keyAliasCount(keys), equalTo(2));
+        assertThat(aliasCount, equalTo(2));
     }
 
     @Test
@@ -123,8 +133,18 @@ public class FileSystemVaultTest
 
         KeyManagerFactory keys = vault.initKeys(List.of());
 
+        int aliasCount = 0;
+        for (KeyManager manager : keys.getKeyManagers())
+        {
+            if (manager instanceof X509ExtendedKeyManager keyManager)
+            {
+                String[] aliases = keyManager.getServerAliases("RSA", null);
+                aliasCount += aliases != null ? aliases.length : 0;
+            }
+        }
+
         assertThat(keys, not(nullValue()));
-        assertThat(keyAliasCount(keys), equalTo(0));
+        assertThat(aliasCount, equalTo(0));
     }
 
     @Test
@@ -143,8 +163,18 @@ public class FileSystemVaultTest
 
         KeyManagerFactory keys = vault.initKeys();
 
+        int aliasCount = 0;
+        for (KeyManager manager : keys.getKeyManagers())
+        {
+            if (manager instanceof X509ExtendedKeyManager keyManager)
+            {
+                String[] aliases = keyManager.getServerAliases("RSA", null);
+                aliasCount += aliases != null ? aliases.length : 0;
+            }
+        }
+
         assertThat(keys, not(nullValue()));
-        assertThat(keyAliasCount(keys), equalTo(1));
+        assertThat(aliasCount, equalTo(1));
     }
 
     @Test
@@ -162,8 +192,17 @@ public class FileSystemVaultTest
 
         TrustManagerFactory trust = vault.initTrust(null);
 
+        List<X509Certificate> issuers = new ArrayList<>();
+        for (TrustManager manager : trust.getTrustManagers())
+        {
+            if (manager instanceof X509TrustManager trustManager)
+            {
+                issuers.addAll(List.of(trustManager.getAcceptedIssuers()));
+            }
+        }
+
         assertThat(trust, not(nullValue()));
-        assertThat(acceptedIssuers(trust), hasSize(2));
+        assertThat(issuers, hasSize(2));
     }
 
     @Test
@@ -182,8 +221,17 @@ public class FileSystemVaultTest
 
         TrustManagerFactory trust = vault.initTrust(null);
 
+        List<X509Certificate> issuers = new ArrayList<>();
+        for (TrustManager manager : trust.getTrustManagers())
+        {
+            if (manager instanceof X509TrustManager trustManager)
+            {
+                issuers.addAll(List.of(trustManager.getAcceptedIssuers()));
+            }
+        }
+
         assertThat(trust, not(nullValue()));
-        assertThat(acceptedIssuers(trust), hasSize(1));
+        assertThat(issuers, hasSize(1));
     }
 
     public static Path resourcePath(
@@ -192,38 +240,5 @@ public class FileSystemVaultTest
         URL url = FileSystemVaultTest.class.getResource(resource);
         assert url != null;
         return Path.of(URI.create(url.toString()));
-    }
-
-    private static int keyAliasCount(
-        KeyManagerFactory factory)
-    {
-        int count = 0;
-
-        for (KeyManager manager : factory.getKeyManagers())
-        {
-            if (manager instanceof X509ExtendedKeyManager keyManager)
-            {
-                String[] aliases = keyManager.getServerAliases("RSA", null);
-                count += aliases != null ? aliases.length : 0;
-            }
-        }
-
-        return count;
-    }
-
-    private static List<X509Certificate> acceptedIssuers(
-        TrustManagerFactory factory)
-    {
-        List<X509Certificate> issuers = new ArrayList<>();
-
-        for (TrustManager manager : factory.getTrustManagers())
-        {
-            if (manager instanceof X509TrustManager trustManager)
-            {
-                issuers.addAll(List.of(trustManager.getAcceptedIssuers()));
-            }
-        }
-
-        return issuers;
     }
 }
