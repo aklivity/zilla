@@ -18,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import org.junit.Rule;
@@ -29,6 +30,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
+        .schemaPatch("io/aklivity/zilla/specs/binding/kafka/schema/kafka.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/binding/mcp/kafka/schema/mcp.kafka.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/kafka/config");
 
@@ -46,5 +48,25 @@ public class SchemaTest
         JsonObject config = schema.validate("proxy.consume.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClient()
+    {
+        JsonObject config = schema.validate("client.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientMissingServers()
+    {
+        schema.validate("client.missing.servers.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWithOptions()
+    {
+        schema.validate("proxy.with.options.yaml");
     }
 }

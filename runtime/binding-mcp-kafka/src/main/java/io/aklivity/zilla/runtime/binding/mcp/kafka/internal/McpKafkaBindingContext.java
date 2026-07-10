@@ -14,11 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
-import static java.util.Collections.singletonMap;
 
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.stream.McpKafkaClientFactory;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.stream.McpKafkaProxyFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
@@ -34,7 +35,9 @@ final class McpKafkaBindingContext implements BindingContext
         McpKafkaConfiguration config,
         EngineContext context)
     {
-        this.factories = singletonMap(PROXY, new McpKafkaProxyFactory(config, context));
+        this.factories = Map.of(
+            PROXY, new McpKafkaProxyFactory(config, context),
+            CLIENT, new McpKafkaClientFactory(config, context));
     }
 
     @Override

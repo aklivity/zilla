@@ -62,7 +62,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-public final class McpKafkaProxyFactory implements BindingHandler
+public class McpKafkaProxyFactory implements BindingHandler
 {
     private static final String MCP_TYPE_NAME = "mcp";
     private static final String KAFKA_TYPE_NAME = "kafka";
@@ -144,7 +144,7 @@ public final class McpKafkaProxyFactory implements BindingHandler
     private final byte[] toolsListPayload;
     private final UnsafeBufferEx toolsListBuffer;
 
-    private final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
+    protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
 
     public McpKafkaProxyFactory(
         McpKafkaConfiguration config,

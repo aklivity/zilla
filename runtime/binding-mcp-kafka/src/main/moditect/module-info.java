@@ -17,6 +17,7 @@ module io.aklivity.zilla.runtime.binding.mcp.kafka
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.mcp;
     requires io.aklivity.zilla.runtime.binding.kafka;
+    requires io.aklivity.zilla.runtime.binding.tcp;
 
     exports io.aklivity.zilla.runtime.binding.mcp.kafka.config;
 
@@ -25,4 +26,7 @@ module io.aklivity.zilla.runtime.binding.mcp.kafka
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaConditionConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaOptionsConfigAdapter;
 }

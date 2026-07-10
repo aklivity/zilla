@@ -14,11 +14,34 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.config;
 
+import java.util.List;
+import java.util.function.Function;
+
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class McpKafkaOptionsConfig extends OptionsConfig
 {
-    public McpKafkaOptionsConfig()
+    public final List<KafkaServerConfig> servers;
+    public final KafkaAuthorizationConfig authorization;
+
+    public static McpKafkaOptionsConfigBuilder<McpKafkaOptionsConfig> builder()
     {
+        return new McpKafkaOptionsConfigBuilder<>(McpKafkaOptionsConfig.class::cast);
+    }
+
+    public static <T> McpKafkaOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new McpKafkaOptionsConfigBuilder<>(mapper);
+    }
+
+    McpKafkaOptionsConfig(
+        List<KafkaServerConfig> servers,
+        KafkaAuthorizationConfig authorization)
+    {
+        this.servers = servers;
+        this.authorization = authorization;
     }
 }

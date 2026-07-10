@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class McpKafkaRouteConfig
 {
-    public final long id;
+    public long id;
 
     private final List<McpKafkaConditionConfig> when;
 
