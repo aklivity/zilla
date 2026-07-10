@@ -280,7 +280,7 @@ jobs:
           ${{ steps.tag.outputs.latest && 'ghcr.io/aklivity/zilla:alpine' || '' }}
 
     - name: Setup helm
-      uses: azure/setup-helm@v4
+      uses: azure/setup-helm@v5
 
     - name: Publish zilla chart to GitHub Container Registry
       run: |
