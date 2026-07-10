@@ -28,19 +28,23 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
- * Wraps a {@code tools/call} response body that is not itself a JSON object -- e.g. a top-level array or
- * scalar returned by an OpenAPI operation with no explicit {@code output} override -- into
- * {@code {"result":<value>}} before it reaches the tool's output schema validator/projector. MCP's
- * {@code outputSchema} (and the {@code structuredContent} it describes) must be a JSON object, so
- * {@code McpOpenapiCompositeGenerator} advertises such tools with a {@code {"type":"object","properties":
- * {"result":<original schema>}}} outputSchema; this transform makes the real response body match that
- * shape rather than the raw, unwrapped value the upstream API actually returned.
+ * Wraps a {@code tools/call} response body into {@code {"result":<value>}} before it reaches the tool's
+ * output schema validator/projector, but only when the real body's own root turns out not to already be a
+ * JSON object -- e.g. a top-level array or scalar returned by an OpenAPI operation with no explicit
+ * {@code output} override. MCP's {@code outputSchema} (and the {@code structuredContent} it describes) must
+ * be a JSON object, so a tool advertised with no declared response shape is conservatively routed through
+ * this transform; the decision to actually wrap is made from the real first event of the response body, not
+ * from whether a schema was declared, so an undeclared-schema operation whose response happens to already be
+ * an object streams through unwrapped instead of gaining a spurious {@code result} envelope. A response whose
+ * declared schema is itself array- or primitive-typed is unconditionally wrapped (see
+ * {@code McpOpenapiCompositeGenerator#wrapAsObjectSchema}) and never reaches this transform at all.
  * <p>
  * Positioned immediately before the output schema's validator/projector in the response pipeline, so both
- * see the wrapped shape consistently. Injects the envelope's opening {@code {"result":} bytes as
- * generator-tracked events (mirroring {@link McpHttpToolResult}'s own envelope-injection technique), then
- * forwards the real value's own event stream unchanged, then injects the closing {@code }} once the real
- * value's root closes.
+ * see the same (possibly wrapped) shape consistently. When wrapping, injects the envelope's opening
+ * {@code {"result":} bytes as generator-tracked events (mirroring {@link McpHttpToolResult}'s own
+ * envelope-injection technique), then forwards the real value's own event stream unchanged, then injects the
+ * closing {@code }} once the real value's root closes. When not wrapping, the real value's event stream is
+ * forwarded as-is with no injected structure at all.
  */
 public final class McpHttpResultWrap implements JsonTransform
 {
@@ -57,6 +61,8 @@ public final class McpHttpResultWrap implements JsonTransform
     private final Control inject = new Control(true);
 
     private boolean started;
+    private boolean decided;
+    private boolean wrapping;
     private int step = STEP_WRAP_START;
     private int depth;
     private JsonEvent pendingEvent;
@@ -65,6 +71,8 @@ public final class McpHttpResultWrap implements JsonTransform
     public void reset()
     {
         started = false;
+        decided = false;
+        wrapping = false;
         step = STEP_WRAP_START;
         depth = 0;
         pendingEvent = null;
@@ -88,12 +96,22 @@ public final class McpHttpResultWrap implements JsonTransform
         if (!started)
         {
             started = true;
-            // the parser's own START_DOCUMENT: forward it to preserve its segmentable()/verbatim() side
-            // effects, then begin injecting the wrapper's opening structure
+            // the parser's own START_DOCUMENT: forward it, then wait for the real value's own first event
+            // before deciding whether wrapping is actually needed
             status = sink.transform(mediator, source, event);
-            if (status != Status.REJECTED)
+        }
+        else if (!decided)
+        {
+            decided = true;
+            wrapping = event != JsonEvent.START_OBJECT;
+            if (wrapping)
             {
-                status = continueInjection(sink);
+                status = dispatchDecidedWrap(source, event, sink);
+            }
+            else
+            {
+                step = STEP_REAL_CONTENT;
+                status = onRealEvent(source, event, sink);
             }
         }
         else if (step == STEP_REAL_CONTENT)
@@ -121,13 +139,26 @@ public final class McpHttpResultWrap implements JsonTransform
     {
         mediator.delegate = control;
         Status status;
-        if (step == STEP_REAL_CONTENT)
+        if (!decided)
+        {
+            // the parser's own START_DOCUMENT suspended before a decision could even be made; simply
+            // continue forwarding it and wait for the real first event on a later transform() call
+            status = sink.resume(mediator, source, event);
+        }
+        else if (step == STEP_REAL_CONTENT)
         {
             status = sink.resume(control, source, event);
             if (status != Status.SUSPENDED && status != Status.REJECTED && isRootClose(source, event))
             {
-                step = STEP_WRAP_END;
-                status = continueInjection(sink);
+                if (wrapping)
+                {
+                    step = STEP_WRAP_END;
+                    status = continueInjection(sink);
+                }
+                else
+                {
+                    step = STEP_DONE;
+                }
             }
         }
         else if (step == STEP_DONE)
@@ -136,7 +167,29 @@ public final class McpHttpResultWrap implements JsonTransform
         }
         else
         {
-            status = continueInjection(sink);
+            // still injecting the wrap-start prefix (STEP_WRAP_START/STEP_RESULT_KEY) that transform()
+            // deferred behind the wrap-vs-passthrough decision, or draining the wrap-end trailer -- either
+            // way the real first event (source, event) that triggered the decision is delivered once the
+            // pending injection step reaches STEP_REAL_CONTENT
+            status = dispatchDecidedWrap(source, event, sink);
+        }
+        return status;
+    }
+
+    // Drains any still-pending synthetic injection step, then -- if that lands exactly on STEP_REAL_CONTENT,
+    // meaning the wrap-start prefix just finished -- forwards the real event that triggered the wrap
+    // decision, which transform()/resume() held back until the prefix was fully injected. Reached only on
+    // the wrapping path; a trailer completion (STEP_WRAP_END -> STEP_DONE) leaves step at STEP_DONE, so the
+    // guard below is a no-op then.
+    private Status dispatchDecidedWrap(
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        Status status = continueInjection(sink);
+        if (status != Status.SUSPENDED && status != Status.REJECTED && step == STEP_REAL_CONTENT)
+        {
+            status = onRealEvent(source, event, sink);
         }
         return status;
     }
@@ -172,8 +225,15 @@ public final class McpHttpResultWrap implements JsonTransform
         Status status = sink.transform(mediator, source, event);
         if (status != Status.REJECTED && status != Status.SUSPENDED && isRootClose(source, event))
         {
-            step = STEP_WRAP_END;
-            status = continueInjection(sink);
+            if (wrapping)
+            {
+                step = STEP_WRAP_END;
+                status = continueInjection(sink);
+            }
+            else
+            {
+                step = STEP_DONE;
+            }
         }
         return status;
     }

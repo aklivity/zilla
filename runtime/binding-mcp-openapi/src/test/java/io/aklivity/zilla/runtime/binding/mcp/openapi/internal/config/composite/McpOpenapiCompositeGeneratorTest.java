@@ -2437,7 +2437,7 @@ public class McpOpenapiCompositeGeneratorTest
 
         assertThat(tool, notNullValue());
         assertThat(tool.output, notNullValue());
-        assertThat(tool.outputWrapped, equalTo(true));
+        assertThat(tool.outputMaybeWrapped, equalTo(true));
 
         String outputSchema = namespace.catalogs.stream()
             .map(c -> c.options)
@@ -2512,6 +2512,6 @@ public class McpOpenapiCompositeGeneratorTest
 
         assertThat(tool, notNullValue());
         assertThat(tool.output, sameInstance(override));
-        assertThat(tool.outputWrapped, equalTo(false));
+        assertThat(tool.outputMaybeWrapped, equalTo(false));
     }
 }

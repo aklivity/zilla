@@ -45,10 +45,17 @@ public class McpHttpResultWrapTest
     }
 
     @Test
-    public void shouldWrapObjectRoot()
+    public void shouldNotWrapObjectRoot()
     {
         String json = "{\"id\":1,\"name\":\"Bramble\"}";
-        assertEquals("{\"result\":" + json + "}", wrapWindowed(json, json.length()));
+        assertEquals(json, wrapWindowed(json, json.length()));
+    }
+
+    @Test
+    public void shouldNotWrapObjectRootThatFragmentsAcrossInputWindows()
+    {
+        String json = "{\"id\":1,\"name\":\"Bramble\",\"tag\":\"dog\",\"owner\":{\"id\":2,\"name\":\"Nibbles\"}}";
+        assertEquals(json, wrapWindowed(json, 5));
     }
 
     @Test
