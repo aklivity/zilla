@@ -35,7 +35,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
@@ -73,9 +72,6 @@ public class AsyncapiOptionsConfigAdapterTest
                         version: latest
                     servers:
                       - host: test.mosquitto.org:1883
-                tcp:
-                  host: localhost
-                  port: 7183
                 tls:
                   keys:
                     - localhost
@@ -95,8 +91,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(asyncapi.servers.size(), equalTo(1));
         AsyncapiServerConfig server = asyncapi.servers.get(0);
         assertThat(server.host, equalTo("test.mosquitto.org:1883"));
-        assertThat(options.tcp.host, equalTo("localhost"));
-        assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
@@ -120,10 +114,6 @@ public class AsyncapiOptionsConfigAdapterTest
                     .host("test.mosquitto.org:1883")
                     .build()
                 .build()
-            .tcp(TcpOptionsConfig.builder()
-                .host("localhost")
-                .ports(new int[] { 7183 })
-                .build())
             .tls(TlsOptionsConfig.builder()
                 .keys(asList("localhost"))
                 .trust(asList("serverca"))
@@ -153,9 +143,6 @@ public class AsyncapiOptionsConfigAdapterTest
                     version: latest
                 servers:
                   - host: "test.mosquitto.org:1883"
-            tcp:
-              host: localhost
-              port: 7183
             tls:
               keys:
                 - localhost
@@ -190,9 +177,6 @@ public class AsyncapiOptionsConfigAdapterTest
                       catalog0:
                         subject: smartylighting
                         version: latest
-                tcp:
-                  host: localhost
-                  port: 9092
                 tls:
                   keys:
                     - localhost
@@ -213,8 +197,6 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.tcp.host, equalTo("localhost"));
-        assertThat(options.tcp.ports, equalTo(new int[] { 9092 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
@@ -230,10 +212,6 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
-            .tcp(TcpOptionsConfig.builder()
-                .host("localhost")
-                .ports(new int[] { 7080 })
-                .build())
             .tls(TlsOptionsConfig.builder()
                 .keys(asList("localhost"))
                 .trust(asList("serverca"))
@@ -248,9 +226,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(yaml, not(nullValue()));
         assertThat(yaml, equalTo(
             """
-            tcp:
-              host: localhost
-              port: 7080
             tls:
               keys:
                 - localhost
@@ -274,9 +249,6 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         String yaml =
                 """
-                tcp:
-                  host: localhost
-                  port: 7080
                 tls:
                   keys:
                     - localhost
@@ -292,8 +264,6 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.tcp.host, equalTo("localhost"));
-        assertThat(options.tcp.ports, equalTo(new int[] { 7080 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
@@ -306,10 +276,6 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
-            .tcp(TcpOptionsConfig.builder()
-                .host("localhost")
-                .ports(new int[] { 9092 })
-                .build())
             .tls(TlsOptionsConfig.builder()
                 .keys(asList("localhost"))
                 .trust(asList("serverca"))
@@ -331,9 +297,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(yaml, not(nullValue()));
         assertThat(yaml, equalTo(
             """
-            tcp:
-              host: localhost
-              port: 9092
             tls:
               keys:
                 - localhost

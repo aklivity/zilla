@@ -130,17 +130,15 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTcpServer(
                 NamespaceConfigBuilder<C> namespace)
             {
-                final TcpOptionsConfig tcpOptions = config.options.tcp != null
-                    ? config.options.tcp
-                    : TcpOptionsConfig.builder()
-                        .host("0.0.0.0")
-                        .ports(Stream.of(schema)
-                            .map(s -> s.openapi)
-                            .flatMap(v -> v.servers.stream())
-                            .mapToInt(s -> s.url.getPort())
-                            .distinct()
-                            .toArray())
-                        .build();
+                final TcpOptionsConfig tcpOptions = TcpOptionsConfig.builder()
+                    .host("0.0.0.0")
+                    .ports(Stream.of(schema)
+                        .map(s -> s.openapi)
+                        .flatMap(v -> v.servers.stream())
+                        .mapToInt(s -> s.url.getPort())
+                        .distinct()
+                        .toArray())
+                    .build();
 
                 namespace
                     .binding()

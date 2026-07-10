@@ -132,10 +132,6 @@
                                 },
                                 "additionalProperties": false
                             },
-                            "tcp":
-                            {
-                                "$ref": "#/$defs/options/binding/tcp"
-                            },
                             "tls":
                             {
                                 "$ref": "#/$defs/options/binding/tls"

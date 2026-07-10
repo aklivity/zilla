@@ -20,14 +20,12 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class AsyncapiOptionsConfig extends OptionsConfig
 {
-    public final TcpOptionsConfig tcp;
     public final TlsOptionsConfig tls;
     public final HttpOptionsConfig http;
     public final MqttOptionsConfig mqtt;
@@ -47,7 +45,6 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
     }
 
     AsyncapiOptionsConfig(
-        TcpOptionsConfig tcp,
         TlsOptionsConfig tls,
         HttpOptionsConfig http,
         MqttOptionsConfig mqtt,
@@ -57,7 +54,6 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
     {
         this.http = http;
         this.mqtt = mqtt;
-        this.tcp = tcp;
         this.tls = tls;
         this.kafka = kafka;
         this.mqttKafka = mqttKafka;

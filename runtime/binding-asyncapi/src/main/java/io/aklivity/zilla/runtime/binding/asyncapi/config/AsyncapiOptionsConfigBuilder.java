@@ -24,8 +24,6 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
@@ -49,7 +47,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
 
     private final Function<OptionsConfig, T> mapper;
 
-    private TcpOptionsConfig tcp;
     private TlsOptionsConfig tls;
     private HttpOptionsConfig http;
     private MqttOptionsConfig mqtt;
@@ -68,19 +65,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     protected Class<AsyncapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<AsyncapiOptionsConfigBuilder<T>>) getClass();
-    }
-
-    public TcpOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> tcp()
-    {
-        Function<TcpOptionsConfig, AsyncapiOptionsConfigBuilder<T>> mapper = this::tcp;
-        return TcpOptionsConfig.builder(mapper.compose(TcpOptionsConfig.class::cast));
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> tcp(
-        TcpOptionsConfig tcp)
-    {
-        this.tcp = tcp;
-        return this;
     }
 
     public TlsOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> tls()
@@ -166,6 +150,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     @Override
     public T build()
     {
-        return mapper.apply(new AsyncapiOptionsConfig(tcp, tls, http, mqtt, kafka, mqttKafka, specs));
+        return mapper.apply(new AsyncapiOptionsConfig(tls, http, mqtt, kafka, mqttKafka, specs));
     }
 }

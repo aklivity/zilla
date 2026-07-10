@@ -31,7 +31,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
@@ -94,9 +93,6 @@ public class OpenapiOptionsConfigAdapterTest
     {
         String expected =
             """
-            tcp:
-              host: localhost
-              port: 8080
             tls:
               sni:
                 - example.net
@@ -108,19 +104,12 @@ public class OpenapiOptionsConfigAdapterTest
                     version: latest
             """;
 
-        TcpOptionsConfig tcp = TcpOptionsConfig.builder()
-            .inject(identity())
-            .host("localhost")
-            .ports(new int[] { 8080 })
-            .build();
-
         TlsOptionsConfig tls = TlsOptionsConfig.builder()
             .inject(identity())
             .sni(of("example.net"))
             .build();
 
         OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
-            .tcp(tcp)
             .tls(tls)
             .spec(new OpenapiSpecificationConfig("test",
                 of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))))

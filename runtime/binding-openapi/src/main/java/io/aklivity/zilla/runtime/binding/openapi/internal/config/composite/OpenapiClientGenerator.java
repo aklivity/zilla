@@ -33,7 +33,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingC
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeRouteConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
@@ -138,8 +137,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             {
                 return namespace
                         .inject(this::injectHttpClient)
-                        .inject(this::injectTlsClient)
-                        .inject(this::injectTcpClient);
+                        .inject(this::injectTlsClient);
             }
 
             private URI resolveServer()
@@ -196,7 +194,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                                 .inject(this::injectHttpRequests)
                                 .build()
                             .inject(this::injectMetrics)
-                            .exit("tcp_client0")
+                            .exit("sys:tcp_client")
                             .build();
                 }
 
@@ -218,42 +216,11 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                             .inject(this::injectMetrics)
                             .options(config.options.tls)
                             .vault(config.qvault)
-                            .exit("tcp_client0")
+                            .exit("sys:tcp_client")
                             .build();
                 }
 
                 return namespace;
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectTcpClient(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                final URI server = resolveServer();
-                final TcpOptionsConfig tcpOptions = config.options.tcp != null
-                        ? config.options.tcp
-                        : TcpOptionsConfig.builder()
-                            .inject(o -> server != null
-                                ? o.host(server.getHost()).ports(new int[] { server.getPort() })
-                                : Stream.of(schema)
-                                    .map(s -> s.openapi)
-                                    .flatMap(v -> v.servers.stream())
-                                    .filter(s -> s.url != null)
-                                    .findFirst()
-                                    .map(s -> o
-                                        .host(s.url.getHost())
-                                        .ports(new int[] { s.url.getPort() }))
-                                    .get())
-                            .build();
-
-                return namespace
-                    .binding()
-                        .name("tcp_client0")
-                        .type("tcp")
-                        .kind(CLIENT)
-                        .inject(this::injectMetrics)
-                        .options(tcpOptions)
-                        .build();
-
             }
 
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(

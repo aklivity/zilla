@@ -113,14 +113,11 @@ bindings:
     options:
       specs:
         http_api:
+          server: https://localhost:7080
           catalog:
             catalog0:
               subject: petstore
               version: latest
-      tcp:
-        host: localhost
-        port:
-          - 7080
       tls:
         trust:
           - serverca

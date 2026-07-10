@@ -32,7 +32,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
@@ -46,7 +45,6 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
-    private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String SERVER_NAME = "server";
@@ -57,7 +55,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
 
-    private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
 
@@ -88,12 +85,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             JsonArrayBuilder servers = Json.createArrayBuilder();
             openapiOptions.servers.forEach(servers::add);
             object.add(SERVERS_NAME, servers);
-        }
-
-        if (openapiOptions.tcp != null)
-        {
-            final TcpOptionsConfig tcp = ((OpenapiOptionsConfig) options).tcp;
-            object.add(TCP_NAME, tcpOptions.adaptToJson(tcp));
         }
 
         if (openapiOptions.tls != null)
@@ -172,13 +163,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         ensureNestedOptions();
 
         OpenapiOptionsConfigBuilder<OpenapiOptionsConfig> openapiOptions = OpenapiOptionsConfig.builder();
-
-        if (object.containsKey(TCP_NAME))
-        {
-            final JsonObject tcp = object.getJsonObject(TCP_NAME);
-            final TcpOptionsConfig tcpOptions = (TcpOptionsConfig) this.tcpOptions.adaptFromJson(tcp);
-            openapiOptions.tcp(tcpOptions);
-        }
 
         if (object.containsKey(TLS_NAME))
         {
@@ -268,10 +252,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
     private void ensureNestedOptions()
     {
-        if (tcpOptions == null)
+        if (tlsOptions == null)
         {
-            tcpOptions = new OptionsConfigAdapter(Kind.BINDING);
-            tcpOptions.adaptType("tcp");
             tlsOptions = new OptionsConfigAdapter(Kind.BINDING);
             tlsOptions.adaptType("tls");
             httpOptions = new OptionsConfigAdapter(Kind.BINDING);

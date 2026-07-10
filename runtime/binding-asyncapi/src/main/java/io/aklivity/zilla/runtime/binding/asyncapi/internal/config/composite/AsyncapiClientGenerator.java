@@ -39,7 +39,6 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
@@ -180,8 +179,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             {
                 return namespace
                         .inject(this::injectProtocols)
-                        .inject(this::injectTlsClient)
-                        .inject(this::injectTcpClient);
+                        .inject(this::injectTlsClient);
             }
 
             private <C> NamespaceConfigBuilder<C> injectProtocols(
@@ -235,41 +233,11 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                             .inject(this::injectMetrics)
                             .options(config.options.tls)
                             .vault(config.qvault)
-                            .exit("tcp_client0")
+                            .exit("sys:tcp_client")
                             .build();
                 }
 
                 return namespace;
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectTcpClient(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                final URI server = resolveServer();
-                final TcpOptionsConfig tcpOptions = config.options.tcp != null
-                        ? config.options.tcp
-                        : TcpOptionsConfig.builder()
-                            .inject(o -> server != null
-                                ? o.host(server.getHost()).ports(new int[] { server.getPort() })
-                                : Stream.of(schema)
-                                    .map(s -> s.asyncapi)
-                                    .flatMap(v -> v.servers.stream())
-                                    .findFirst()
-                                    .map(s -> o
-                                        .host(s.hostname)
-                                        .ports(new int[] { s.port }))
-                                    .get())
-                            .build();
-
-                return namespace
-                    .binding()
-                    .name("tcp_client0")
-                    .type("tcp")
-                    .kind(CLIENT)
-                    .inject(this::injectMetrics)
-                    .options(tcpOptions)
-                .build();
-
             }
 
             private <C> NamespaceConfigBuilder<C> injectKafka(
@@ -286,7 +254,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                             .inject(this::injectKafkaServerOptions)
                             .build()
                         .inject(this::injectMetrics)
-                        .exit("tcp_client0")
+                        .exit("sys:tcp_client")
                         .build();
             }
 
@@ -491,7 +459,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .type("http")
                         .kind(CLIENT)
                         .inject(this::injectMetrics)
-                        .exit("tcp_client0")
+                        .exit("sys:tcp_client")
                         .build();
             }
 
@@ -539,7 +507,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .type("mqtt")
                         .kind(CLIENT)
                         .inject(this::injectMetrics)
-                        .exit("tcp_client0")
+                        .exit("sys:tcp_client")
                         .build();
             }
 
