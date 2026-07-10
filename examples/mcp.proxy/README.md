@@ -10,25 +10,25 @@ synthesized `zilla__search_tools` keyword-search tool instead of crowding out
 every `tools/list` response.
 
 ```text
-                                     ┌────────────────────────────────── Zilla ───────────────────────────────────┐
-                                     │  tcp(7114) → http → mcp(server, jwt) → mcp(proxy, guarded routes)           │
-client ── Authorization: Bearer ───►│                                     │                                       │
-                                     │            ┌────────────┬──────────┴───────────┬───────────────┐          │
-                                     │            ▼            ▼                      ▼               ▼          │
-                                     │    mcp(client)     mcp(client)          mcp_http(proxy)   mcp_openapi(client)
-                                     │    everything       urlelicit           github toolkit     petstore toolkit
-                                     │       │                │                      │                   │        │
-                                     │       ▼                ▼                      ▼                   ▼        │
-                                     │     http →           http →              http(client) →      http(client) →
-                                     │     tcp               tcp                 tcp                   tcp        │
-                                     └───────┼────────────────┼──────────────────────┼───────────────────┼───────┘
-                                             ▼                ▼                      ▼                   ▼
-                                      everything:3001   urlelicit:3003          ghapi:4001         petstore:4002
-                                      (reference server) (url-mode elicitation) (mock GitHub API)  (mock REST API,
-                                                                                                     OpenAPI-described)
+                                     ┌───────────────────────────────────── Zilla ─────────────────────────────────────┐
+                                     │  tcp(7114) → http → mcp(server, jwt) → mcp(proxy, guarded routes)                │
+client ── Authorization: Bearer ───►│                                     │                                            │
+                                     │            ┌────────────┬──────────┴───────────┬───────────────┬───────────┐  │
+                                     │            ▼            ▼                      ▼               ▼           ▼  │
+                                     │    mcp(client)     mcp(client)          mcp_http(proxy)   mcp_openapi(client)  mcp_kafka(client)
+                                     │    everything       urlelicit           github toolkit     petstore toolkit   kafka toolkit
+                                     │       │                │                      │                   │             │      │
+                                     │       ▼                ▼                      ▼                   ▼             ▼      │
+                                     │     http →           http →              http(client) →      http(client) →  kafka_cache_client →
+                                     │     tcp               tcp                 tcp                   tcp             kafka_client → tcp
+                                     └───────┼────────────────┼──────────────────────┼───────────────────┼─────────────┼──────┘
+                                             ▼                ▼                      ▼                   ▼             ▼
+                                      everything:3001   urlelicit:3003          ghapi:4001         petstore:4002   kafka.examples.dev:9092
+                                      (reference server) (url-mode elicitation) (mock GitHub API)  (mock REST API,  (real, single-node
+                                                                                                     OpenAPI-described) KRaft Kafka broker)
 ```
 
-This one configuration exercises all five `mcp*` binding kinds:
+This one configuration exercises all six `mcp*` binding kinds:
 
 | Binding | Kind | Role in this example |
 | --- | --- | --- |
@@ -37,6 +37,7 @@ This one configuration exercises all five `mcp*` binding kinds:
 | `mcp` | `client` | Talks to an upstream server that is itself MCP (`everything`, `urlelicit`); `urlelicit` also forwards the caller's own JWT upstream |
 | `mcp_http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp_openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
+| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
 
@@ -53,6 +54,7 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp_http(proxy)` route for `create_pr` | a second, tool-specific `routes[].guarded`, layered under the `mcp_http` binding's base guarded route | `github:tools` **and** `github:pr:write` |
 | `mcp(proxy)` route for `petstore` toolkit | `routes[].guarded` on the toolkit route | `petstore:tools` |
 | `mcp_openapi(client)` operation `create_pet` | the OpenAPI document's own `security` requirement, mapped to `authn_jwt` via `options.specs.petstore.security` | `petstore:tools` **and** `pets:write` |
+| `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
 
 `list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
 of their own, so they need only the toolkit-level `petstore:tools` scope --
@@ -78,11 +80,13 @@ exist.
 docker compose up -d
 ```
 
-This starts Zilla plus four locally-reachable upstream services: a Node
+This starts Zilla plus five locally-reachable upstream services: a Node
 `everything` reference MCP server on `:3001`, a minimal `urlelicit` MCP server
-on `:3003` demonstrating url-mode elicitation, and two plain REST mocks --
+on `:3003` demonstrating url-mode elicitation, two plain REST mocks --
 `ghapi` on `:4001` (subset of the GitHub API) and `petstore` on `:4002`
-(a small Petstore API, described by an inline OpenAPI document).
+(a small Petstore API, described by an inline OpenAPI document) -- and a real,
+single-node KRaft-mode Kafka broker on `:9092` (`kafka.examples.dev`), with an
+`orders` topic created by the one-shot `kafka-init` service.
 
 ## Verify
 
@@ -114,7 +118,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --aud "https://api.example.com" \
     --exp=+1d \
     --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka:tools" \
     --secret @/private.pem | tr -d '\r\n')
 ```
 
@@ -146,7 +150,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka:tools" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 ```
@@ -348,6 +352,53 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 `petstore`'s log line reads `search_pets query: {"tag":"cat"}` -- the caller
 said `category`, the request said `tag`.
 
+### Produce and consume through a real Kafka broker
+
+`south_mcp_kafka_client` is an `mcp_kafka` `kind: client` binding -- unlike
+every other toolkit in this example, it does not proxy to a separate MCP or
+REST server. It generates its own `kafka_cache_client → kafka_client →
+tcp_client` pipeline directly from `options.servers`, talking to the real,
+single-node KRaft-mode Kafka broker this example starts
+(`kafka.examples.dev:9092`, the `kafka` compose service; the `orders` topic
+is created by the one-shot `kafka-init` service, though
+`KAFKA_AUTO_CREATE_TOPICS_ENABLE` would create it anyway on first produce).
+
+Both routes below restrict their tool to exactly the `orders` topic --
+`tool` and `topic` together in one `when` form an allow-list, not just a
+dispatch by tool name; a `produce`/`consume` call naming any other topic has
+no matching route and is rejected.
+
+Produce a record with the full-scope `$JWT_TOKEN` from above:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__produce \
+    -e CALL_ARGS='{"topic":"orders","value":"hello from mcp-kafka"}' \
+    tools-list-client
+# Produced record to orders topic
+```
+
+Then consume it back -- `limit` bounds how many records one call returns
+(1-100, default 10); with nothing else produced to `orders` yet, the earliest
+record is exactly the one just written:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__consume \
+    -e CALL_ARGS='{"topic":"orders","limit":1}' \
+    tools-list-client
+# Consumed 1 messages from topic orders
+# {"topic":"orders","messages":[{"key":null,"headers":[],"value":"hello from mcp-kafka"}],"count":1}
+```
+
+The second line is the tool result's raw `structuredContent` -- each message
+carries its Kafka `key` (`null` here, since `produce` was not given one),
+`headers`, and `value`. Both `produce` and `consume` stream incrementally
+rather than buffering the whole request or result in memory: arguments are
+parsed as they arrive, and consumed records are written to the reply as each
+one comes off the broker, so neither tool is bounded by how large a single
+value or a full result set happens to be.
+
 ### Trigger a form elicitation round-trip
 
 Call the `everything` server's elicitation-demo tool through the gateway (no
@@ -452,6 +503,7 @@ docker compose down -v
 
 - [Zilla docs -- `mcp` bindings](https://docs.aklivity.io/zilla/latest/reference/config/bindings/mcp/README.html)
 - [Zilla docs -- `mcp-http` binding](https://docs.aklivity.io/zilla/latest/reference/config/bindings/mcp-http/README.html)
+- [Zilla docs -- `mcp-kafka` binding](https://docs.aklivity.io/zilla/latest/reference/config/bindings/mcp-kafka/README.html)
 - [Zilla docs -- `jwt` guard](https://docs.aklivity.io/zilla/latest/reference/config/guards/jwt.html)
 - [MCP -- Streamable HTTP transport](https://modelcontextprotocol.io/docs/concepts/transports)
 - [MCP -- elicitation](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation)

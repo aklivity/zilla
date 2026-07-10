@@ -34,6 +34,11 @@
 #      the same result as calling it directly
 #  14. the cold tool is still directly callable by name -- "cold" only ever
 #      changes what tools/list reports, never what tools/call accepts
+#  15. kafka__produce writes a record to a real, single-node KRaft Kafka
+#      broker (mcp_kafka kind:client's own generated cache_client/client/
+#      tcp_client pipeline, not the engine's test double)
+#  16. kafka__consume reads that same record back, round-tripping the exact
+#      value through the real broker
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -66,7 +71,7 @@ encode_jwt() {
 JWT_NONE=""
 JWT_URLELICIT=$(encode_jwt "urlelicit:authorize")
 JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools")
-JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write")
+JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka:tools")
 
 # WHEN: a url-elicitation-capable client initializes against the gateway
 # THEN: the gateway negotiates protocol version 2025-11-25 in the response
@@ -139,6 +144,7 @@ assert_no_token() {
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
     ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^kafka__' &&
     ! echo "$TOOLS_NONE" | grep -q 'petstore+' &&
     ! echo "$TOOLS_NONE" | grep -q 'github+'
 }
@@ -148,6 +154,7 @@ if echo "$TOOLS_NONE" | grep -q '^everything__' &&
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
     ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^kafka__' &&
     ! echo "$TOOLS_NONE" | grep -q 'petstore+' &&
     ! echo "$TOOLS_NONE" | grep -q 'github+'; then
   echo "✅ no token: only the ungated everything toolkit is listed"
@@ -173,7 +180,8 @@ assert_partial_token() {
     echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
-    ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__'
+    ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^kafka__'
 }
 retry_until 5 3 assert_partial_token
 echo "TOOLS_PARTIAL=$TOOLS_PARTIAL"
@@ -184,7 +192,8 @@ if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
-    ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__'; then
+    ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^kafka__'; then
   echo "✅ toolkit-only scope: sees list_pets, search_pets, and all three read-only resources, but not create_pet or create_pr"
 else
   echo "❌ toolkit-only scope did not layer as expected"
@@ -203,7 +212,9 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
     echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
-    echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$'
+    echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__consume$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -215,7 +226,9 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
     echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
-    echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$'; then
+    echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__consume$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -431,6 +444,50 @@ if echo "$CREATE_PET_OUT" | grep -q 'Nibbles'; then
   echo "✅ petstore__create_pet succeeded for a pets:write-scoped caller"
 else
   echo "❌ petstore__create_pet did not succeed as expected"
+  EXIT=1
+fi
+
+# WHEN: a kafka:tools-scoped caller calls kafka__produce
+# THEN: the record reaches the real, single-node KRaft Kafka broker started by
+#       this example -- not the engine's `type: test` double specs/ITs use --
+#       proving mcp_kafka's kind:client composite generator (kafka_cache_client
+#       -> kafka_client -> tcp_client) talks to an actual broker end to end
+call_kafka_produce() {
+  KAFKA_PRODUCE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__produce" \
+      -e CALL_ARGS='{"topic":"orders","value":"hello from mcp-kafka"}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_PRODUCE_OUT" | grep -q 'Produced record to orders topic'
+}
+retry_until 10 3 call_kafka_produce
+echo "KAFKA_PRODUCE_OUT=$KAFKA_PRODUCE_OUT"
+if echo "$KAFKA_PRODUCE_OUT" | grep -q 'Produced record to orders topic'; then
+  echo "✅ kafka__produce wrote a record to the real Kafka broker"
+else
+  echo "❌ kafka__produce did not succeed against the real broker"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__consume for the same topic
+# THEN: the exact value produced above comes back in structuredContent.messages
+#       -- round-tripping through the real broker, not just proving a count
+call_kafka_consume() {
+  KAFKA_CONSUME_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__consume" \
+      -e CALL_ARGS='{"topic":"orders","limit":1}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'
+}
+retry_until 10 3 call_kafka_consume
+echo "KAFKA_CONSUME_OUT=$KAFKA_CONSUME_OUT"
+if echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'; then
+  echo "✅ kafka__consume read the produced record back from the real Kafka broker"
+else
+  echo "❌ kafka__consume did not read the produced record back"
   EXIT=1
 fi
 

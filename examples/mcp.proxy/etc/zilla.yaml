@@ -366,6 +366,12 @@ bindings:
         guarded:
           authn_jwt:
             - petstore:tools
+      - exit: south_mcp_kafka_client
+        when:
+          - toolkit: kafka
+        guarded:
+          authn_jwt:
+            - kafka:tools
   south_mcp_client_everything:
     type: mcp
     kind: client
@@ -559,6 +565,22 @@ bindings:
         with:
           spec: petstore
           operation: get_pet
+  south_mcp_kafka_client:
+    type: mcp_kafka
+    kind: client
+    options:
+      servers:
+        - kafka.examples.dev:29092
+    # tool + topic together restrict each route to exactly one topic -- an
+    # allow-list, not just a tool-name dispatch; a produce/consume call
+    # naming any other topic has no matching route and is rejected
+    routes:
+      - when:
+          - tool: produce
+            topic: orders
+      - when:
+          - tool: consume
+            topic: orders
 telemetry:
   metrics:
     - mcp.initialize
