@@ -28,6 +28,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.naming.ldap.LdapName;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
@@ -199,7 +200,7 @@ public class FileSystemVaultTest
 
     private static PrivateKey privateKey(
         KeyManagerFactory factory,
-        String alias)
+        String alias) throws Exception
     {
         PrivateKey key = null;
 
@@ -207,7 +208,7 @@ public class FileSystemVaultTest
         {
             if (manager instanceof X509ExtendedKeyManager keyManager)
             {
-                key = keyManager.getPrivateKey(alias);
+                key = privateKey(keyManager, alias);
                 if (key != null)
                 {
                     break;
@@ -216,6 +217,40 @@ public class FileSystemVaultTest
         }
 
         return key;
+    }
+
+    private static PrivateKey privateKey(
+        X509ExtendedKeyManager keyManager,
+        String alias) throws Exception
+    {
+        PrivateKey key = null;
+
+        String[] candidates = keyManager.getServerAliases("RSA", null);
+        if (candidates != null)
+        {
+            for (String candidate : candidates)
+            {
+                X509Certificate[] chain = keyManager.getCertificateChain(candidate);
+                if (chain != null && chain.length > 0 && alias.equals(commonName(chain[0])))
+                {
+                    key = keyManager.getPrivateKey(candidate);
+                    break;
+                }
+            }
+        }
+
+        return key;
+    }
+
+    private static String commonName(
+        X509Certificate certificate) throws Exception
+    {
+        LdapName name = new LdapName(certificate.getSubjectX500Principal().getName());
+        return name.getRdns().stream()
+            .filter(rdn -> "CN".equalsIgnoreCase(rdn.getType()))
+            .map(rdn -> String.valueOf(rdn.getValue()))
+            .findFirst()
+            .orElse(null);
     }
 
     private static List<X509Certificate> acceptedIssuers(
