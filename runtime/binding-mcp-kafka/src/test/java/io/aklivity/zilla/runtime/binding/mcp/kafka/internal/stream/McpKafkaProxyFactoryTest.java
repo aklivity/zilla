@@ -545,7 +545,8 @@ public class McpKafkaProxyFactoryTest
         end(kafkaSender, kafkaInitialId | 0x01L);
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Produced record to orders\"}],\"isError\": false}",
+        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Produced record to orders topic\"}]," +
+            "\"isError\": false}",
             result);
 
         assertEquals(1, countOf(mcpSent, EndFW.TYPE_ID));

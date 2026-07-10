@@ -1541,7 +1541,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 produceDone = true;
                 final String text = success
-                    ? "Produced record to " + topic
+                    ? "Produced record to " + topic + " topic"
                     : error == KAFKA_ERROR_INVALID_RECORD
                         ? "Record for " + topic + " topic failed schema validation"
                         : "Failed to produce record to " + topic + " topic";
