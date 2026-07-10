@@ -25,7 +25,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
                            .header(":scheme", "https")
-                           .header(":authority", "api.github.com")
+                           .header(":authority", "api.github.com:443")
                            .header(":path", "/echo")
                            .headerMissing("x-request-id")
                            .build()}

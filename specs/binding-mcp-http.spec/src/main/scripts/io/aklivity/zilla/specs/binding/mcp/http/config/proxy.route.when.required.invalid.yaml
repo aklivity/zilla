@@ -25,5 +25,5 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": example.com
+            ":authority": example.com:443
             ":path": /items

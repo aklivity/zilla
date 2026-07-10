@@ -22,11 +22,9 @@ bindings:
     routes:
       - when:
           - tool: create_pr
-          - tool: search_code
         exit: http0
         with:
           headers:
-            ":method": GET
             ":scheme": https
-            ":authority": example.com:443
+            ":authority": example.com
             ":path": /items
