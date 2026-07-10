@@ -14,21 +14,12 @@
 # under the License.
 #
 
----
-name: test
-bindings:
-  net0:
-    type: http
-    kind: server
-    options:
-      versions:
-        - http/1.1
-    routes:
-      - exit: app0
-        when:
-          - headers:
-              :authority: localhost:8080
-      - exit: app0
-        when:
-          - headers:
-              :authority: localhost:80
+accept "http://localhost/"
+  option http:transport "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+accepted
+connected
+
+write http:version "HTTP/1.1"
+write flush
