@@ -13,19 +13,30 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "http://localhost:8080/compatibility/subjects/orders-value/versions/1"
+connect "zilla://streams/http0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "POST")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/compatibility/subjects/orders-value/versions/1")
+                            .header("content-type", "application/json")
+                            .build()}
+
 connected
 
-write http:method "POST"
-write http:host
-write http:header "content-type" "application/json"
-write http:content-length
-
 write '{"schemaType":"AVRO","schema":"\\"string\\""}'
-write close
 
-read http:status "200" "OK"
-read http:header "content-type" "application/json"
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
+                           .build()}
 
-read '{"is_compatible":true}'
+read  '{"is_compatible":true}'
 read closed
+
+write close

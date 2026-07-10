@@ -31,11 +31,6 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/mcp/schema/registry/schema/mcp_schema_registry.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/binding/openapi/schema/openapi.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/binding/tcp/schema/tcp.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/catalog/inline/schema/inline.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/schema/registry/config");
 
     @Test
@@ -50,17 +45,5 @@ public class SchemaTest
     public void shouldRejectInvalidKind()
     {
         schema.validate("proxy.kind.invalid.yaml");
-    }
-
-    @Test(expected = JsonException.class)
-    public void shouldRejectMissingRoutes()
-    {
-        schema.validate("proxy.routes.missing.invalid.yaml");
-    }
-
-    @Test(expected = JsonException.class)
-    public void shouldRejectUnknownTool()
-    {
-        schema.validate("proxy.route.tool.invalid.yaml");
     }
 }

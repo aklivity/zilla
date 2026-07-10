@@ -54,7 +54,7 @@ read  '{"name":"list_contexts","arguments":{}}'
 
 write flush
 
-write '{"structuredContent":{"contexts":[".","context-a"]},"content":[{"type":"text","text":"List contexts"}],"isError":false}'
+write '{"structuredContent":[".","context-a"],"content":[{"type":"text","text":"List schema registry contexts"}],"isError":false}'
 write flush
 
 write close

@@ -52,7 +52,7 @@ connected
 
 write '{"name":"list_contexts","arguments":{}}'
 
-read  '{"structuredContent":{"contexts":[".","context-a"]},"content":[{"type":"text","text":"List contexts"}],"isError":false}'
+read  '{"structuredContent":[".","context-a"],"content":[{"type":"text","text":"List schema registry contexts"}],"isError":false}'
 read closed
 
 write close

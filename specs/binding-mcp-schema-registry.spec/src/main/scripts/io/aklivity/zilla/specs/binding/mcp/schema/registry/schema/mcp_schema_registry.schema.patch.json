@@ -29,59 +29,30 @@
                     },
                     "kind":
                     {
-                        "enum": [ "proxy" ]
+                        "enum": [ "client" ]
                     },
                     "catalog": false,
                     "vault": false,
                     "entry": false,
-                    "routes":
+                    "exit": false,
+                    "routes": false,
+                    "options":
                     {
-                        "title": "Routes",
-                        "type": "array",
-                        "minItems": 1,
-                        "items":
+                        "title": "Options",
+                        "type": "object",
+                        "properties":
                         {
-                            "type": "object",
-                            "properties":
+                            "server":
                             {
-                                "when":
-                                {
-                                    "title": "When",
-                                    "type": "array",
-                                    "minItems": 1,
-                                    "items":
-                                    {
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "tool":
-                                            {
-                                                "title": "Tool",
-                                                "enum":
-                                                [
-                                                    "list_subjects",
-                                                    "describe_subject",
-                                                    "get_schema",
-                                                    "register_schema",
-                                                    "delete_subject",
-                                                    "delete_schema_version",
-                                                    "check_compatibility",
-                                                    "get_compatibility",
-                                                    "set_compatibility",
-                                                    "list_contexts"
-                                                ]
-                                            }
-                                        },
-                                        "required": [ "tool" ],
-                                        "additionalProperties": false
-                                    }
-                                }
-                            },
-                            "required": [ "when", "exit" ]
-                        }
+                                "title": "Server",
+                                "type": "string"
+                            }
+                        },
+                        "required": [ "server" ],
+                        "additionalProperties": false
                     }
                 },
-                "required": [ "routes" ]
+                "required": [ "options" ]
             }
         }
     }

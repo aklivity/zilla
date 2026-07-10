@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal;
 
-import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.stream.McpSchemaRegistryProxyFactory;
+import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.stream.McpSchemaRegistryClientFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -23,13 +23,13 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class McpSchemaRegistryBindingContext implements BindingContext
 {
-    private final McpSchemaRegistryProxyFactory factory;
+    private final McpSchemaRegistryClientFactory factory;
 
     McpSchemaRegistryBindingContext(
         McpSchemaRegistryConfiguration config,
         EngineContext context)
     {
-        this.factory = new McpSchemaRegistryProxyFactory(config, context);
+        this.factory = new McpSchemaRegistryClientFactory(config, context);
     }
 
     @Override
@@ -37,7 +37,7 @@ final class McpSchemaRegistryBindingContext implements BindingContext
         BindingConfig binding)
     {
         BindingHandler handler = null;
-        if (binding.kind == KindConfig.PROXY)
+        if (binding.kind == KindConfig.CLIENT)
         {
             factory.attach(binding);
             handler = factory;
@@ -49,7 +49,7 @@ final class McpSchemaRegistryBindingContext implements BindingContext
     public void detach(
         BindingConfig binding)
     {
-        if (binding.kind == KindConfig.PROXY)
+        if (binding.kind == KindConfig.CLIENT)
         {
             factory.detach(binding.id);
         }

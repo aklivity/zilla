@@ -13,19 +13,30 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "http://localhost:8080/config/orders-value"
+connect "zilla://streams/http0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "PUT")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/config/orders-value")
+                            .header("content-type", "application/json")
+                            .build()}
+
 connected
 
-write http:method "PUT"
-write http:host
-write http:header "content-type" "application/json"
-write http:content-length
-
 write '{"compatibility":"BACKWARD"}'
-write close
 
-read http:status "200" "OK"
-read http:header "content-type" "application/json"
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
+                           .build()}
 
-read '{"compatibility":"BACKWARD"}'
+read  '{"compatibility":"BACKWARD"}'
 read closed
+
+write close

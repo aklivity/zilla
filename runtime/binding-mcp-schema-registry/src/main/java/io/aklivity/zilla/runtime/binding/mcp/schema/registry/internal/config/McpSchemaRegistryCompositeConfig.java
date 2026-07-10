@@ -14,15 +14,27 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import java.util.List;
 
-public final class McpSchemaRegistryConditionConfig extends ConditionConfig
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+
+public final class McpSchemaRegistryCompositeConfig
 {
-    public final String tool;
+    public final List<NamespaceConfig> namespaces;
+    public final List<McpSchemaRegistryCompositeRouteConfig> routes;
 
-    public McpSchemaRegistryConditionConfig(
-        String tool)
+    public McpSchemaRegistryCompositeConfig(
+        List<NamespaceConfig> namespaces,
+        List<McpSchemaRegistryCompositeRouteConfig> routes)
     {
-        this.tool = tool;
+        this.namespaces = namespaces;
+        this.routes = routes;
+    }
+
+    public McpSchemaRegistryCompositeRouteConfig resolve()
+    {
+        return routes.stream()
+            .findFirst()
+            .orElse(null);
     }
 }

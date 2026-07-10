@@ -18,8 +18,6 @@ name: test
 bindings:
   mcp_schema_registry0:
     type: mcp_schema_registry
-    kind: client
-    routes:
-      - exit: openapi_client0
-        when:
-          - tool: list_subjects
+    kind: proxy
+    options:
+      server: http://localhost:8080

@@ -12,22 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal;
+package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-
-public class McpSchemaRegistryConfiguration extends Configuration
+public final class McpSchemaRegistryCompositeRouteConfig
 {
-    private static final ConfigurationDef MCP_SCHEMA_REGISTRY_CONFIG = new ConfigurationDef("zilla.binding.mcp.schema.registry");
+    public final long id;
 
-    public McpSchemaRegistryConfiguration(
-        Configuration config)
+    public McpSchemaRegistryCompositeRouteConfig(
+        long id)
     {
-        super(MCP_SCHEMA_REGISTRY_CONFIG, config);
-    }
-
-    public McpSchemaRegistryConfiguration()
-    {
-        super(MCP_SCHEMA_REGISTRY_CONFIG, new Configuration());
+        this.id = id;
     }
 }

@@ -26,7 +26,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-public class McpSchemaRegistryConditionConfigAdapterTest
+public class McpSchemaRegistryOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -34,54 +34,32 @@ public class McpSchemaRegistryConditionConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new McpSchemaRegistryConditionConfigAdapter());
+                .withAdapters(new McpSchemaRegistryOptionsConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
     @Test
-    public void shouldReadConditionWithTool()
+    public void shouldReadOptions()
     {
         String text =
                 "{" +
-                    "\"tool\": \"get_schema\"" +
+                    "\"server\": \"http://localhost:8080\"" +
                 "}";
 
-        McpSchemaRegistryConditionConfig condition = jsonb.fromJson(text, McpSchemaRegistryConditionConfig.class);
+        McpSchemaRegistryOptionsConfig options = jsonb.fromJson(text, McpSchemaRegistryOptionsConfig.class);
 
-        assertThat(condition, not(nullValue()));
-        assertThat(condition.tool, equalTo("get_schema"));
+        assertThat(options, not(nullValue()));
+        assertThat(options.server, equalTo("http://localhost:8080"));
     }
 
     @Test
-    public void shouldReadConditionWithoutTool()
+    public void shouldWriteOptions()
     {
-        String text = "{}";
+        McpSchemaRegistryOptionsConfig options = new McpSchemaRegistryOptionsConfig("http://localhost:8080");
 
-        McpSchemaRegistryConditionConfig condition = jsonb.fromJson(text, McpSchemaRegistryConditionConfig.class);
-
-        assertThat(condition, not(nullValue()));
-        assertThat(condition.tool, nullValue());
-    }
-
-    @Test
-    public void shouldWriteConditionWithTool()
-    {
-        McpSchemaRegistryConditionConfig condition = new McpSchemaRegistryConditionConfig("get_schema");
-
-        String text = jsonb.toJson(condition);
+        String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"tool\":\"get_schema\"}"));
-    }
-
-    @Test
-    public void shouldWriteConditionWithoutTool()
-    {
-        McpSchemaRegistryConditionConfig condition = new McpSchemaRegistryConditionConfig(null);
-
-        String text = jsonb.toJson(condition);
-
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{}"));
+        assertThat(text, equalTo("{\"server\":\"http://localhost:8080\"}"));
     }
 }

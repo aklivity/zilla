@@ -28,8 +28,11 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class McpSchemaRegistryProxyIT
+public class McpSchemaRegistryClientIT
 {
+    private static final String HTTP_CLIENT_EXIT_NAME = "zilla.binding.mcp.openapi.http.client.exit";
+    private static final String SESSION_ID_NAME = "zilla.binding.mcp.http.session.id";
+
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("mcp", "io/aklivity/zilla/specs/binding/mcp/schema/registry/streams/mcp")
         .addScriptRoot("http", "io/aklivity/zilla/specs/binding/mcp/schema/registry/streams/http");
@@ -39,9 +42,9 @@ public class McpSchemaRegistryProxyIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
+        .configure(HTTP_CLIENT_EXIT_NAME, "test:http0")
+        .configure(SESSION_ID_NAME, "%s::sessionId".formatted(McpSchemaRegistryClientIT.class.getName()))
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/schema/registry/config")
-        .configure("zilla.binding.mcp.schema.registry.session.id",
-            "%s::sessionId".formatted(McpSchemaRegistryProxyIT.class.getName()))
         .external("http0")
         .clean();
 
@@ -63,7 +66,6 @@ public class McpSchemaRegistryProxyIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -73,7 +75,6 @@ public class McpSchemaRegistryProxyIT
     {
         k3po.finish();
     }
-
 
     @Test
     @Configuration("proxy.yaml")
@@ -85,7 +86,6 @@ public class McpSchemaRegistryProxyIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -95,7 +95,6 @@ public class McpSchemaRegistryProxyIT
     {
         k3po.finish();
     }
-
 
     @Test
     @Configuration("proxy.yaml")
@@ -107,7 +106,6 @@ public class McpSchemaRegistryProxyIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -117,7 +115,6 @@ public class McpSchemaRegistryProxyIT
     {
         k3po.finish();
     }
-
 
     @Test
     @Configuration("proxy.yaml")
@@ -129,7 +126,6 @@ public class McpSchemaRegistryProxyIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -140,7 +136,6 @@ public class McpSchemaRegistryProxyIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -150,7 +145,6 @@ public class McpSchemaRegistryProxyIT
     {
         k3po.finish();
     }
-
 
     @Test
     @Configuration("proxy.yaml")

@@ -52,7 +52,7 @@ connected
 
 write '{"name":"delete_schema_version","arguments":{"subject":"orders-value","version":"1"}}'
 
-read  '{"structuredContent":{"version":1},"content":[{"type":"text","text":"Delete schema version"}],"isError":false}'
+read  '{"structuredContent":1,"content":[{"type":"text","text":"Delete a specific schema version"}],"isError":false}'
 read closed
 
 write close

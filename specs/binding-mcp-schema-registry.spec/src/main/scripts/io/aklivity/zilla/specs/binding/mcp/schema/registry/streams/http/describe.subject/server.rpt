@@ -13,18 +13,34 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "http://localhost:8080/subjects/orders-value/versions"
+property serverAddress "zilla://streams/http0"
+
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
 accepted
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":method", "GET")
+                           .header(":scheme", "http")
+                           .header(":authority", "localhost:8080")
+                           .header(":path", "/subjects/orders-value/versions")
+                           .build()}
+
 connected
 
-read http:method "GET"
-read closed
-
-write http:status "200" "OK"
-write http:header "content-type" "application/json"
-write http:content-length
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "200")
+                            .header("content-type", "application/json")
+                            .build()}
+write flush
 
 write '[1,2]'
+write flush
 
 write close
+
+read closed

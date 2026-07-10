@@ -54,7 +54,7 @@ read  '{"name":"delete_schema_version","arguments":{"subject":"orders-value","ve
 
 write flush
 
-write '{"structuredContent":{"version":1},"content":[{"type":"text","text":"Delete schema version"}],"isError":false}'
+write '{"structuredContent":1,"content":[{"type":"text","text":"Delete a specific schema version"}],"isError":false}'
 write flush
 
 write close

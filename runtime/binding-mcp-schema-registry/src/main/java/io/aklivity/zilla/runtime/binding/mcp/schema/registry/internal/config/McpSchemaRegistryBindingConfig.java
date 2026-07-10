@@ -14,38 +14,35 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config;
 
-import static java.util.stream.Collectors.toList;
+import java.util.function.ToLongBiFunction;
 
-import java.util.List;
-
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class McpSchemaRegistryBindingConfig
 {
     public final long id;
-    public final List<McpSchemaRegistryRouteConfig> routes;
+    public final String namespace;
+    public final String qname;
+    public final KindConfig kind;
+    public final McpSchemaRegistryOptionsConfig options;
+
+    public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
+
+    public transient McpSchemaRegistryCompositeConfig composite;
 
     public McpSchemaRegistryBindingConfig(
+        EngineContext context,
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.routes = binding.routes.stream()
-            .map(McpSchemaRegistryRouteConfig::new)
-            .collect(toList());
-    }
+        this.namespace = binding.namespace;
+        this.qname = binding.qname;
+        this.kind = binding.kind;
+        this.options = (McpSchemaRegistryOptionsConfig) binding.options;
 
-    public McpSchemaRegistryRouteConfig resolveTool(
-        String tool)
-    {
-        McpSchemaRegistryRouteConfig resolved = null;
-        for (McpSchemaRegistryRouteConfig route : routes)
-        {
-            if (route.matchesTool(tool))
-            {
-                resolved = route;
-                break;
-            }
-        }
-        return resolved;
+        this.supplyBindingId = context::supplyBindingId;
     }
 }

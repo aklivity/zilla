@@ -43,12 +43,6 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>binding-openapi.spec</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>binding-http.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -66,23 +60,15 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <!--
-      binding-openapi and catalog-inline are genuinely under test here, not stand-in-able:
-      the runtime IT exercises real apiId agreement (CRC32C of catalog-resolved spec bytes)
-      between this binding and an independently-configured `type: openapi, kind: client`
-      exit binding, which a `type: test` catalog cannot reproduce.
-    -->
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>binding-openapi</artifactId>
+      <artifactId>binding-mcp-openapi</artifactId>
       <version>${project.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>catalog-inline</artifactId>
       <version>${project.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -126,7 +112,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core http mcp openapi</scopeNames>
+          <scopeNames>core</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.types</packageName>
         </configuration>
         <executions>

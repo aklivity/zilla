@@ -54,7 +54,7 @@ read  '{"name":"list_subjects","arguments":{}}'
 
 write flush
 
-write '{"structuredContent":{"subjects":["orders-value","payments-value"]},"content":[{"type":"text","text":"List subjects"}],"isError":false}'
+write '{"structuredContent":["orders-value","payments-value"],"content":[{"type":"text","text":"List subjects"}],"isError":false}'
 write flush
 
 write close

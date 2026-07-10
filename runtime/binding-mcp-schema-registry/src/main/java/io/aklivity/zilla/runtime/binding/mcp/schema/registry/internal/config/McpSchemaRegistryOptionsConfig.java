@@ -12,22 +12,17 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal;
+package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class McpSchemaRegistryConfiguration extends Configuration
+public final class McpSchemaRegistryOptionsConfig extends OptionsConfig
 {
-    private static final ConfigurationDef MCP_SCHEMA_REGISTRY_CONFIG = new ConfigurationDef("zilla.binding.mcp.schema.registry");
+    public final String server;
 
-    public McpSchemaRegistryConfiguration(
-        Configuration config)
+    public McpSchemaRegistryOptionsConfig(
+        String server)
     {
-        super(MCP_SCHEMA_REGISTRY_CONFIG, config);
-    }
-
-    public McpSchemaRegistryConfiguration()
-    {
-        super(MCP_SCHEMA_REGISTRY_CONFIG, new Configuration());
+        this.server = server;
     }
 }

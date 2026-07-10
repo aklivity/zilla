@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.stream;
 
-final class McpSchemaRegistryState
+public final class McpSchemaRegistryState
 {
     private static final int INITIAL_OPENING = 0x10;
     private static final int INITIAL_OPENED = 0x20;
@@ -31,16 +31,16 @@ final class McpSchemaRegistryState
         return state | INITIAL_OPENING;
     }
 
-    static int openedInitial(
+    static int closingInitial(
         int state)
     {
-        return state | INITIAL_OPENING | INITIAL_OPENED;
+        return state | INITIAL_CLOSING;
     }
 
-    static int closedInitial(
+    static int closeInitial(
         int state)
     {
-        return state | INITIAL_CLOSING | INITIAL_CLOSED;
+        return closingInitial(state) | INITIAL_CLOSED;
     }
 
     static boolean initialOpening(
@@ -55,22 +55,28 @@ final class McpSchemaRegistryState
         return (state & INITIAL_CLOSED) != 0;
     }
 
-    static int openedReply(
+    static int openingReply(
         int state)
     {
-        return state | REPLY_OPENING | REPLY_OPENED;
+        return state | REPLY_OPENING;
     }
 
-    static int closedReply(
+    static boolean replyOpening(
         int state)
     {
-        return state | REPLY_CLOSING | REPLY_CLOSED;
+        return (state & REPLY_OPENING) != 0;
     }
 
-    static boolean replyOpened(
+    static int closingReply(
         int state)
     {
-        return (state & REPLY_OPENED) != 0;
+        return state | REPLY_CLOSING;
+    }
+
+    static int closeReply(
+        int state)
+    {
+        return closingReply(state) | REPLY_CLOSED;
     }
 
     static boolean replyClosed(

@@ -52,7 +52,7 @@ connected
 
 write '{"name":"get_compatibility","arguments":{"subject":"orders-value"}}'
 
-read  '{"structuredContent":{"compatibilityLevel":"BACKWARD"},"content":[{"type":"text","text":"Get compatibility"}],"isError":false}'
+read  '{"structuredContent":{"compatibilityLevel":"BACKWARD"},"content":[{"type":"text","text":"Get the compatibility level for a subject"}],"isError":false}'
 read closed
 
 write close

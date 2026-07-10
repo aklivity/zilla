@@ -20,13 +20,19 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.McpSchemaRegistryBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
-public final class McpSchemaRegistryConditionConfigAdapter
-    implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public final class McpSchemaRegistryOptionsConfigAdapter
+    implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String TOOL_NAME = "tool";
+    private static final String SERVER_NAME = "server";
+
+    @Override
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
 
     @Override
     public String type()
@@ -36,28 +42,21 @@ public final class McpSchemaRegistryConditionConfigAdapter
 
     @Override
     public JsonObject adaptToJson(
-        ConditionConfig condition)
+        OptionsConfig options)
     {
-        McpSchemaRegistryConditionConfig registryCondition = (McpSchemaRegistryConditionConfig) condition;
+        McpSchemaRegistryOptionsConfig schemaRegistryOptions = (McpSchemaRegistryOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
-
-        if (registryCondition.tool != null)
-        {
-            object.add(TOOL_NAME, registryCondition.tool);
-        }
-
+        object.add(SERVER_NAME, schemaRegistryOptions.server);
         return object.build();
     }
 
     @Override
-    public ConditionConfig adaptFromJson(
+    public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String tool = object.containsKey(TOOL_NAME)
-            ? object.getString(TOOL_NAME)
-            : null;
+        String server = object.getString(SERVER_NAME);
 
-        return new McpSchemaRegistryConditionConfig(tool);
+        return new McpSchemaRegistryOptionsConfig(server);
     }
 }

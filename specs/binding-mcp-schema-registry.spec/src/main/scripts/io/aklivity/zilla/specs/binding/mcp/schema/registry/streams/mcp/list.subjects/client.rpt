@@ -52,7 +52,7 @@ connected
 
 write '{"name":"list_subjects","arguments":{}}'
 
-read  '{"structuredContent":{"subjects":["orders-value","payments-value"]},"content":[{"type":"text","text":"List subjects"}],"isError":false}'
+read  '{"structuredContent":["orders-value","payments-value"],"content":[{"type":"text","text":"List subjects"}],"isError":false}'
 read closed
 
 write close
