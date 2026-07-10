@@ -26,7 +26,7 @@ public final class McpCacheToolsSearchConfigBuilder<T> extends ConfigBuilder<T, 
 {
     private final Function<McpCacheToolsSearchConfig, T> mapper;
 
-    private String tool;
+    private String toolkit;
     private int limit = -1;
     private List<String> fields;
     private Map<String, Double> weights;
@@ -45,10 +45,10 @@ public final class McpCacheToolsSearchConfigBuilder<T> extends ConfigBuilder<T, 
         return (Class<McpCacheToolsSearchConfigBuilder<T>>) getClass();
     }
 
-    public McpCacheToolsSearchConfigBuilder<T> tool(
-        String tool)
+    public McpCacheToolsSearchConfigBuilder<T> toolkit(
+        String toolkit)
     {
-        this.tool = tool;
+        this.toolkit = toolkit;
         return this;
     }
 
@@ -92,6 +92,6 @@ public final class McpCacheToolsSearchConfigBuilder<T> extends ConfigBuilder<T, 
     @Override
     public T build()
     {
-        return mapper.apply(new McpCacheToolsSearchConfig(tool, limit, fields, weights, indexes));
+        return mapper.apply(new McpCacheToolsSearchConfig(toolkit, limit, fields, weights, indexes));
     }
 }

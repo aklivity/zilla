@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfig;
 public final class McpCacheToolsConfigAdapter
 {
     private static final String SEARCH_NAME = "search";
-    private static final String SEARCH_TOOL_NAME = "tool";
+    private static final String SEARCH_TOOLKIT_NAME = "toolkit";
     private static final String SEARCH_LIMIT_NAME = "limit";
     private static final int SEARCH_LIMIT_DEFAULT = 5;
     private static final String SEARCH_FIELDS_NAME = "fields";
@@ -61,9 +61,14 @@ public final class McpCacheToolsConfigAdapter
         if (tools.search != null)
         {
             McpCacheToolsSearchConfig search = tools.search;
-            JsonObjectBuilder searchObject = Json.createObjectBuilder()
-                .add(SEARCH_TOOL_NAME, search.tool)
-                .add(SEARCH_LIMIT_NAME, search.limit);
+            JsonObjectBuilder searchObject = Json.createObjectBuilder();
+
+            if (search.toolkit != null)
+            {
+                searchObject.add(SEARCH_TOOLKIT_NAME, search.toolkit);
+            }
+
+            searchObject.add(SEARCH_LIMIT_NAME, search.limit);
 
             if (search.fields != null)
             {
@@ -117,8 +122,12 @@ public final class McpCacheToolsConfigAdapter
             JsonObject search = object.getJsonObject(SEARCH_NAME);
 
             McpCacheToolsSearchConfigBuilder<McpCacheToolsConfigBuilder<McpCacheToolsConfig>> searchBuilder = builder.search()
-                .tool(search.getString(SEARCH_TOOL_NAME))
                 .limit(search.containsKey(SEARCH_LIMIT_NAME) ? search.getInt(SEARCH_LIMIT_NAME) : SEARCH_LIMIT_DEFAULT);
+
+            if (search.containsKey(SEARCH_TOOLKIT_NAME))
+            {
+                searchBuilder.toolkit(search.getString(SEARCH_TOOLKIT_NAME));
+            }
 
             List<String> fields = search.containsKey(SEARCH_FIELDS_NAME)
                 ? search.getJsonArray(SEARCH_FIELDS_NAME).getValuesAs(JsonString.class).stream()

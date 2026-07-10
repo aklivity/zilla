@@ -24,10 +24,15 @@
 #      is read end-to-end
 #  10. options.cache.tools.eager keeps tools/list short even for a fully
 #      authorized caller: a cold tool (everything__get-sum) never appears
-#      alongside the eagerly-matched ones and the synthesized search tool
+#      alongside the eagerly-matched ones and the synthesized search-family
+#      tools (zilla__search_tools, zilla__describe_tool, zilla__execute_tool)
 #  11. the cold tool is still discoverable by keyword through the synthesized
 #      zilla__search_tools tool
-#  12. the cold tool is still directly callable by name -- "cold" only ever
+#  12. the cold tool's full definition (schema included) is resolvable by
+#      exact name through zilla__describe_tool
+#  13. the cold tool is invokable by name through zilla__execute_tool, with
+#      the same result as calling it directly
+#  14. the cold tool is still directly callable by name -- "cold" only ever
 #      changes what tools/list reports, never what tools/call accepts
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
@@ -249,6 +254,48 @@ if echo "$SEARCH_OUT" | grep -q 'everything__get-sum'; then
   echo "✅ zilla__search_tools surfaced the cold everything__get-sum tool by keyword"
 else
   echo "❌ zilla__search_tools did not surface everything__get-sum for query \"sum\""
+  EXIT=1
+fi
+
+# WHEN: that same caller calls zilla__describe_tool for the cold tool found above
+# THEN: the full cached definition (schema included) comes back -- the same
+#       shape tools/list would show were it not cold, resolved by exact name
+describe_cold_tool() {
+  DESCRIBE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="zilla__describe_tool" \
+      -e CALL_ARGS='{"name":"everything__get-sum"}' \
+      tools-list-client 2>&1)
+  echo "$DESCRIBE_OUT" | grep -q 'inputSchema'
+}
+retry_until 5 3 describe_cold_tool
+echo "DESCRIBE_OUT=$DESCRIBE_OUT"
+if echo "$DESCRIBE_OUT" | grep -q 'inputSchema' && echo "$DESCRIBE_OUT" | grep -q 'everything__get-sum'; then
+  echo "✅ zilla__describe_tool resolved the cold everything__get-sum tool's full definition"
+else
+  echo "❌ zilla__describe_tool did not resolve everything__get-sum's full definition"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls zilla__execute_tool naming the cold tool found above
+# THEN: it actually invokes it -- the same result as calling everything__get-sum
+#       directly, proving execute_tool dispatches through the real tools/call path
+execute_cold_tool() {
+  EXECUTE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="zilla__execute_tool" \
+      -e CALL_ARGS='{"name":"everything__get-sum","arguments":{"a":2,"b":3}}' \
+      tools-list-client 2>&1)
+  echo "$EXECUTE_OUT" | grep -q 'The sum of 2 and 3 is 5'
+}
+retry_until 5 3 execute_cold_tool
+echo "EXECUTE_OUT=$EXECUTE_OUT"
+if echo "$EXECUTE_OUT" | grep -q 'The sum of 2 and 3 is 5'; then
+  echo "✅ zilla__execute_tool invoked the cold everything__get-sum tool by name"
+else
+  echo "❌ zilla__execute_tool did not successfully invoke everything__get-sum by name"
   EXIT=1
 fi
 

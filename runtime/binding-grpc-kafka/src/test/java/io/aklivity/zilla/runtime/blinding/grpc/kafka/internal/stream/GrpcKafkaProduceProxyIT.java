@@ -43,6 +43,7 @@ public class GrpcKafkaProduceProxyIT
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/grpc/kafka/config")
         .external("kafka0")
+        .aroundStart(k3po::deferStartable)
         .clean();
 
     @Rule

@@ -20,22 +20,33 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 
 /**
- * Builds the synthetic {@code Tool} JSON descriptor advertised in {@code tools/list} for the
- * agent-callable search tool, once per binding lifecycle (never re-serialized per request).
+ * Builds the synthetic {@code Tool} JSON descriptors advertised in {@code tools/list} for the three
+ * agent-callable search-family tools ({@code search_tools}, {@code describe_tool}, {@code execute_tool}),
+ * once per binding lifecycle (never re-serialized per request).
  */
 public final class McpSearchToolDescriptor
 {
-    private static final String DESCRIPTION =
+    private static final String SEARCH_TOOLS_DESCRIPTION =
         "Search the tool catalog by relevance and return references to matching tools.";
     private static final String QUERY_DESCRIPTION = "Natural-language search query";
     private static final String LIMIT_DESCRIPTION = "Maximum number of results to return";
+
+    private static final String DESCRIBE_TOOL_DESCRIPTION =
+        "Look up the full definition (including input/output schema) of a specific tool discovered via " +
+        McpToolNames.SEARCH_TOOLS + ".";
+    private static final String NAME_DESCRIPTION = "Exact tool name, as returned by " + McpToolNames.SEARCH_TOOLS;
+
+    private static final String EXECUTE_TOOL_DESCRIPTION =
+        "Invoke a specific tool by name, exactly as tools/call would, once its schema is known via " +
+        McpToolNames.DESCRIBE_TOOL + ".";
+    private static final String ARGUMENTS_DESCRIPTION = "Arguments to pass to the named tool";
 
     private McpSearchToolDescriptor()
     {
     }
 
-    public static byte[] build(
-        String tool)
+    public static byte[] buildSearchTools(
+        String toolkit)
     {
         JsonObject inputSchema = Json.createObjectBuilder()
             .add("type", "object")
@@ -49,9 +60,50 @@ public final class McpSearchToolDescriptor
             .add("required", Json.createArrayBuilder().add("query"))
             .build();
 
+        return build(McpToolNames.effectiveName(toolkit, McpToolNames.SEARCH_TOOLS), SEARCH_TOOLS_DESCRIPTION, inputSchema);
+    }
+
+    public static byte[] buildDescribeTool(
+        String toolkit)
+    {
+        JsonObject inputSchema = Json.createObjectBuilder()
+            .add("type", "object")
+            .add("properties", Json.createObjectBuilder()
+                .add("name", Json.createObjectBuilder()
+                    .add("type", "string")
+                    .add("description", NAME_DESCRIPTION)))
+            .add("required", Json.createArrayBuilder().add("name"))
+            .build();
+
+        return build(McpToolNames.effectiveName(toolkit, McpToolNames.DESCRIBE_TOOL), DESCRIBE_TOOL_DESCRIPTION, inputSchema);
+    }
+
+    public static byte[] buildExecuteTool(
+        String toolkit)
+    {
+        JsonObject inputSchema = Json.createObjectBuilder()
+            .add("type", "object")
+            .add("properties", Json.createObjectBuilder()
+                .add("name", Json.createObjectBuilder()
+                    .add("type", "string")
+                    .add("description", NAME_DESCRIPTION))
+                .add("arguments", Json.createObjectBuilder()
+                    .add("type", "object")
+                    .add("description", ARGUMENTS_DESCRIPTION)))
+            .add("required", Json.createArrayBuilder().add("name"))
+            .build();
+
+        return build(McpToolNames.effectiveName(toolkit, McpToolNames.EXECUTE_TOOL), EXECUTE_TOOL_DESCRIPTION, inputSchema);
+    }
+
+    private static byte[] build(
+        String name,
+        String description,
+        JsonObject inputSchema)
+    {
         JsonObject descriptor = Json.createObjectBuilder()
-            .add("name", tool)
-            .add("description", DESCRIPTION)
+            .add("name", name)
+            .add("description", description)
             .add("inputSchema", inputSchema)
             .build();
 

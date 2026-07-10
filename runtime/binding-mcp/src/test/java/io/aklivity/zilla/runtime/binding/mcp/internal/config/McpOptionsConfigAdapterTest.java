@@ -143,7 +143,7 @@ public class McpOptionsConfigAdapterTest
                   store: memory0
                   tools:
                     search:
-                      tool: zilla__search_tools
+                      toolkit: zilla
                 """;
 
         McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
@@ -152,11 +152,29 @@ public class McpOptionsConfigAdapterTest
         assertThat(options.cache, not(nullValue()));
         assertThat(options.cache.tools, not(nullValue()));
         assertThat(options.cache.tools.search, not(nullValue()));
-        assertThat(options.cache.tools.search.tool, equalTo("zilla__search_tools"));
+        assertThat(options.cache.tools.search.toolkit, equalTo("zilla"));
         assertThat(options.cache.tools.search.limit, equalTo(5));
         assertThat(options.cache.tools.search.fields, contains("name", "description"));
         assertThat(options.cache.tools.search.indexes, hasSize(1));
         assertThat(options.cache.tools.search.indexes.get(0).type, equalTo(McpKeywordToolSearchIndexConfig.NAME));
+    }
+
+    @Test
+    public void shouldReadOptionsWithCacheToolsSearchWithoutToolkit()
+    {
+        String text =
+                """
+                cache:
+                  store: memory0
+                  tools:
+                    search:
+                      limit: 5
+                """;
+
+        McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options.cache.tools.search, not(nullValue()));
+        assertThat(options.cache.tools.search.toolkit, nullValue());
     }
 
     @Test
@@ -168,7 +186,7 @@ public class McpOptionsConfigAdapterTest
                   store: memory0
                   tools:
                     search:
-                      tool: zilla__search_tools
+                      toolkit: zilla
                       type: keyword
                       limit: 10
                       fields:
@@ -199,7 +217,7 @@ public class McpOptionsConfigAdapterTest
                   store: memory0
                   tools:
                     search:
-                      tool: zilla__search_tools
+                      toolkit: zilla
                       index:
                         - type: keyword
                 """;
@@ -218,7 +236,7 @@ public class McpOptionsConfigAdapterTest
                     .store("memory0")
                     .tools()
                         .search()
-                            .tool("zilla__search_tools")
+                            .toolkit("zilla")
                             .limit(5)
                             .fields(List.of("name", "description"))
                             .index(new McpKeywordToolSearchIndexConfig())
@@ -236,7 +254,7 @@ public class McpOptionsConfigAdapterTest
                   store: memory0
                   tools:
                     search:
-                      tool: zilla__search_tools
+                      toolkit: zilla
                       limit: 5
                       fields:
                         - name

@@ -342,7 +342,7 @@ bindings:
               - petstore__search_pets
               - petstore__create_pet
           search:
-            tool: zilla__search_tools
+            toolkit: zilla
     routes:
       - exit: south_mcp_client_everything
         when:

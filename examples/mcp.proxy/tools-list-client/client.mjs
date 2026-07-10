@@ -5,9 +5,14 @@
 // omitted from this list is not necessarily gone -- options.cache.tools.eager
 // on north_mcp_proxy keeps only a fixed set eagerly listed; the rest are
 // "cold" and absent here but still callable by name and discoverable via the
-// zilla__search_tools tool. Set CALL_TOOL (and optionally CALL_ARGS, a JSON
-// object) to instead call one tool and print its result -- zilla__search_tools
-// returns matches in structuredContent.tools, printed space-separated by name;
+// zilla__search_tools/zilla__describe_tool/zilla__execute_tool family. Set
+// CALL_TOOL (and optionally CALL_ARGS, a JSON object) to instead call one
+// tool and print its result -- zilla__search_tools returns schema-free
+// matches in structuredContent.tools, printed space-separated by name;
+// zilla__describe_tool returns one full tool definition (schema included) in
+// the same field, printed as JSON since there's more than a name to show;
+// zilla__execute_tool's own result is the target tool's real result, passed
+// through unchanged, so it prints exactly like calling that tool directly;
 // every other tool's result prints its text content as-is -- or READ_RESOURCE
 // (a concrete URI, with any {template} placeholders already substituted) to
 // read one resource and print its contents. Optionally carries a bearer
@@ -46,7 +51,9 @@ const main = async () =>
             const result = await client.callTool({ name: CALL_TOOL, arguments: CALL_ARGS });
             if (Array.isArray(result.structuredContent?.tools))
             {
-                console.log(result.structuredContent.tools.map((tool) => tool.name).join(" "));
+                const isDigest = (tool) => Object.keys(tool).every((key) => key === "name" || key === "description");
+                const describeTool = (tool) => isDigest(tool) ? tool.name : JSON.stringify(tool);
+                console.log(result.structuredContent.tools.map(describeTool).join(" "));
                 return;
             }
             const describe = (c) => c.text ?? JSON.stringify(c);

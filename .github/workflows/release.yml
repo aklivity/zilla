@@ -76,7 +76,7 @@ jobs:
         echo "https://x-access-token:${{ secrets.GITFLOW_RELEASES_TOKEN }}@github.com" > ~/.git-credentials
 
     - name: Checkout sources on base branch
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         ref: ${{ github.ref_name }}
         fetch-depth: 0
@@ -162,7 +162,7 @@ jobs:
 
     steps:
     - name: Checkout GitHub sources
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         ref: release/${{ inputs.version }}
         fetch-depth: 0
@@ -273,7 +273,7 @@ jobs:
         done
 
     - name: Publish zilla image to GitHub Container Registry
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}/tmp/docker-build
         platforms: linux/amd64,linux/arm64
@@ -288,7 +288,7 @@ jobs:
           ${{ steps.tag.outputs.latest && 'ghcr.io/aklivity/zilla:latest' || '' }}
 
     - name: Publish zilla-alpine image to GitHub Container Registry
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}-alpine/tmp/docker-build
         file: cloud/docker-image/target/docker/ghcr.io/aklivity/zilla/${{ inputs.version }}-alpine/tmp/docker-build/alpine.Dockerfile
@@ -304,7 +304,7 @@ jobs:
           ${{ steps.tag.outputs.latest && 'ghcr.io/aklivity/zilla:alpine' || '' }}
 
     - name: Setup helm
-      uses: azure/setup-helm@v4
+      uses: azure/setup-helm@v5
 
     - name: Publish zilla chart to GitHub Container Registry
       run: |
@@ -345,7 +345,7 @@ jobs:
         echo "https://x-access-token:${{ secrets.GITFLOW_RELEASES_TOKEN }}@github.com" > ~/.git-credentials
 
     - name: Checkout GitHub sources on release branch
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         ref: release/${{ inputs.version }}
         fetch-depth: 0
