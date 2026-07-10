@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -36,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguratio
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaResourceType;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.OctetsFW;
@@ -45,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpEndExFW;
@@ -122,6 +125,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final ResetFW resetRO = new ResetFW();
     private final SignalFW signalRO = new SignalFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
+    private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
     private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -616,15 +620,53 @@ public class McpKafkaProxyFactory implements BindingHandler
         String text,
         boolean isError)
     {
-        final String result = new StringBuilder()
+        return buildToolResult(text, null, isError);
+    }
+
+    private byte[] buildToolResult(
+        String text,
+        JsonObject structuredContent,
+        boolean isError)
+    {
+        final StringBuilder result = new StringBuilder()
             .append("{\"content\":[{\"type\": \"text\",\"text\": \"")
             .append(escapeJson(text))
-            .append("\"}],\"isError\": ")
-            .append(isError)
-            .append('}')
-            .toString();
+            .append("\"}]");
 
-        return result.getBytes(UTF_8);
+        if (structuredContent != null)
+        {
+            result.append(",\"structuredContent\": ").append(structuredContent);
+        }
+
+        result.append(",\"isError\": ")
+            .append(isError)
+            .append('}');
+
+        return result.toString().getBytes(UTF_8);
+    }
+
+    private static JsonObjectBuilder addStringOrNull(
+        JsonObjectBuilder builder,
+        String name,
+        String value)
+    {
+        return value != null ? builder.add(name, value) : builder.addNull(name);
+    }
+
+    private static String octetsAsString(
+        int length,
+        OctetsFW value)
+    {
+        return length == -1 ? null : value.buffer().getStringWithoutLengthUtf8(value.offset(), value.sizeof());
+    }
+
+    private static JsonObjectBuilder buildHeaderJson(
+        KafkaHeaderFW header)
+    {
+        final JsonObjectBuilder headerJson = Json.createObjectBuilder();
+        addStringOrNull(headerJson, "name", octetsAsString(header.nameLen(), header.name()));
+        addStringOrNull(headerJson, "value", octetsAsString(header.valueLen(), header.value()));
+        return headerJson;
     }
 
     private static String escapeJson(
@@ -1221,7 +1263,16 @@ public class McpKafkaProxyFactory implements BindingHandler
             String text,
             boolean isError)
         {
-            final byte[] bytes = buildToolResult(text, isError);
+            doMcpResult(traceId, text, null, isError);
+        }
+
+        private void doMcpResult(
+            long traceId,
+            String text,
+            JsonObject structuredContent,
+            boolean isError)
+        {
+            final byte[] bytes = buildToolResult(text, structuredContent, isError);
             final UnsafeBufferEx result = new UnsafeBufferEx(bytes);
 
             doMcpData(traceId, 0L, FLAGS_COMPLETE, bytes.length, result, 0, bytes.length);
@@ -1320,7 +1371,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private McpKafkaToolArgs pendingProduceArgs;
         private boolean produceDone;
 
-        private StringBuilder consumeValues;
+        private JsonArrayBuilder consumeMessages;
         private int consumeCount;
         private boolean consumeDone;
         private long consumeTimeoutId = Signaler.NO_CANCEL_ID;
@@ -1412,7 +1463,12 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             if (consume)
             {
-                onKafkaConsumeRecord(traceId, payload);
+                final OctetsFW extension = data.extension();
+                final KafkaMergedFetchDataExFW fetchDataEx = extension.sizeof() != 0 &&
+                    kafkaDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) != null
+                    ? kafkaDataExRO.merged().fetch()
+                    : null;
+                onKafkaConsumeRecord(traceId, fetchDataEx, payload);
             }
             else if (payload != null)
             {
@@ -1422,15 +1478,29 @@ public class McpKafkaProxyFactory implements BindingHandler
 
         private void onKafkaConsumeRecord(
             long traceId,
+            KafkaMergedFetchDataExFW fetchDataEx,
             OctetsFW payload)
         {
             if (!consumeDone && payload != null)
             {
-                if (consumeValues.length() > 0)
+                final JsonObjectBuilder message = Json.createObjectBuilder();
+                final JsonArrayBuilder headers = Json.createArrayBuilder();
+
+                if (fetchDataEx != null)
                 {
-                    consumeValues.append(',');
+                    final KafkaKeyFW key = fetchDataEx.key();
+                    addStringOrNull(message, "key", octetsAsString(key.length(), key.value()));
+                    fetchDataEx.headers().forEach(h -> headers.add(buildHeaderJson(h)));
                 }
-                consumeValues.append(payload.buffer().getStringWithoutLengthUtf8(payload.offset(), payload.sizeof()));
+                else
+                {
+                    message.addNull("key");
+                }
+
+                message.add("headers", headers);
+                message.add("value", payload.buffer().getStringWithoutLengthUtf8(payload.offset(), payload.sizeof()));
+
+                consumeMessages.add(message);
                 consumeCount++;
 
                 if (consumeCount >= consumeLimit)
@@ -1568,7 +1638,13 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 consumeDone = true;
                 cancelConsumeTimeout();
-                peer.doMcpResult(traceId, consumeValues.toString(), isError);
+                final JsonObject structuredContent = Json.createObjectBuilder()
+                    .add("topic", topic)
+                    .add("count", consumeCount)
+                    .add("messages", consumeMessages)
+                    .build();
+                final String text = "Consumed %d messages from topic %s".formatted(consumeCount, topic);
+                peer.doMcpResult(traceId, text, structuredContent, isError);
                 doKafkaEnd(traceId);
             }
         }
@@ -1597,7 +1673,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             }
             else if (consume)
             {
-                consumeValues = new StringBuilder();
+                consumeMessages = Json.createArrayBuilder();
                 consumeTimeoutId = signaler.signalAt(System.currentTimeMillis() + consumeTimeoutMillis,
                     originId, resolvedId, kafkaInitialId, traceId, CONSUME_TIMEOUT_SIGNAL_ID, 0);
             }

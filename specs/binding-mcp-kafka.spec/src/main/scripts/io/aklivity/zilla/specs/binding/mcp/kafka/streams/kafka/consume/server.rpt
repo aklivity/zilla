@@ -36,6 +36,8 @@ write zilla:data.ext ${kafka:dataEx()
                                .fetch()
                                 .partition(0, 0, 1)
                                 .progress(0, 1)
+                                .key("key-1")
+                                .header("h1", "hv1")
                                 .build()
                             .build()}
 write "value-1"

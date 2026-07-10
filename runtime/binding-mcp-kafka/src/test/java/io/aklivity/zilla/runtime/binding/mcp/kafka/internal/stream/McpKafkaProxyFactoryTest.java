@@ -603,7 +603,10 @@ public class McpKafkaProxyFactoryTest
         assertEquals(1, countOf(kafkaSent, EndFW.TYPE_ID));
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"value-1,value-2\"}],\"isError\": false}", result);
+        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Consumed 2 messages from topic orders\"}]," +
+            "\"structuredContent\": {\"topic\":\"orders\",\"count\":2,\"messages\":[{\"key\":null,\"headers\":[]," +
+            "\"value\":\"value-1\"},{\"key\":null,\"headers\":[],\"value\":\"value-2\"}]},\"isError\": false}",
+            result);
 
         // a third record arriving after the limit was already reached must be ignored
         dataWithPayload(kafkaSender, kafkaReplyId, "value-3");
@@ -635,7 +638,10 @@ public class McpKafkaProxyFactoryTest
         assertEquals(1, countOf(kafkaSent, EndFW.TYPE_ID));
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"value-1\"}],\"isError\": false}", result);
+        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Consumed 1 messages from topic orders\"}]," +
+            "\"structuredContent\": {\"topic\":\"orders\",\"count\":1,\"messages\":[{\"key\":null,\"headers\":[]," +
+            "\"value\":\"value-1\"}]},\"isError\": false}",
+            result);
 
         // a late-arriving record after timeout finalized the result must not be appended
         dataWithPayload(kafkaSender, kafkaReplyId, "value-2");
@@ -662,7 +668,9 @@ public class McpKafkaProxyFactoryTest
         signal(kafkaSender, kafkaInitialId, signalIdCaptor.getValue());
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"\"}],\"isError\": false}", result);
+        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Consumed 0 messages from topic orders\"}]," +
+            "\"structuredContent\": {\"topic\":\"orders\",\"count\":0,\"messages\":[]},\"isError\": false}",
+            result);
     }
 
     @Test
