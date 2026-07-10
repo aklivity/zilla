@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assume.assumeTrue;
 
 import java.security.KeyStore;
 import java.security.KeyStore.TrustedCertificateEntry;
@@ -36,6 +37,9 @@ public class TrustedTest
     @Test
     public void shouldConfigureTrustViaCacerts() throws Exception
     {
+        assumeTrue("javax.net.ssl.trustStore is overridden; skipping JDK-bundled cacerts check",
+            System.getProperty("javax.net.ssl.trustStore") == null);
+
         EngineConfiguration config = new EngineConfiguration(new Configuration());
         KeyStore cacerts = Trusted.cacerts(config);
 
