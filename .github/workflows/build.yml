@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: Checkout GitHub sources
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Pin maven.packages.aklivity.io to IPv4
       run: |
         ipv4=$(getent ahostsv4 maven.packages.aklivity.io | awk 'NR==1{print $1}')
@@ -121,7 +121,7 @@ jobs:
     outputs:
       all_directories: ${{ steps.all-files.outputs.folders_no_base_path }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Route Docker Hub pulls through mirror.gcr.io
         run: |
@@ -204,7 +204,7 @@ jobs:
       ZILLA_VERSION: develop-SNAPSHOT
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           sparse-checkout: |
             examples/.github

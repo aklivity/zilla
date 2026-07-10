@@ -76,7 +76,7 @@ jobs:
         echo "https://x-access-token:${{ secrets.GITFLOW_RELEASES_TOKEN }}@github.com" > ~/.git-credentials
 
     - name: Checkout sources on base branch
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         ref: ${{ github.ref_name }}
         fetch-depth: 0
@@ -162,7 +162,7 @@ jobs:
 
     steps:
     - name: Checkout GitHub sources
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         ref: release/${{ inputs.version }}
         fetch-depth: 0
@@ -345,7 +345,7 @@ jobs:
         echo "https://x-access-token:${{ secrets.GITFLOW_RELEASES_TOKEN }}@github.com" > ~/.git-credentials
 
     - name: Checkout GitHub sources on release branch
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         ref: release/${{ inputs.version }}
         fetch-depth: 0
