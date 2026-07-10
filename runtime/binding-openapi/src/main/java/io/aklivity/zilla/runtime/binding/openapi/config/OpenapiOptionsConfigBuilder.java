@@ -28,7 +28,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private List<String> servers;
     private TlsOptionsConfig tls;
     private HttpOptionsConfig http;
     private List<OpenapiSpecificationConfig> specs;
@@ -44,18 +43,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
     protected Class<OpenapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<OpenapiOptionsConfigBuilder<T>>) getClass();
-    }
-
-    public OpenapiOptionsConfigBuilder<T> server(
-        String server)
-    {
-        if (servers == null)
-        {
-            this.servers = new ArrayList<>();
-        }
-        servers.add(server);
-
-        return this;
     }
 
     public OpenapiOptionsConfigBuilder<T> tls(
@@ -86,6 +73,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
     @Override
     public T build()
     {
-        return mapper.apply(new OpenapiOptionsConfig(servers, tls, http, specs));
+        return mapper.apply(new OpenapiOptionsConfig(tls, http, specs));
     }
 }

@@ -80,13 +80,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (openapiOptions.servers != null)
-        {
-            JsonArrayBuilder servers = Json.createArrayBuilder();
-            openapiOptions.servers.forEach(servers::add);
-            object.add(SERVERS_NAME, servers);
-        }
-
         if (openapiOptions.tls != null)
         {
             final TlsOptionsConfig tls = ((OpenapiOptionsConfig) options).tls;
