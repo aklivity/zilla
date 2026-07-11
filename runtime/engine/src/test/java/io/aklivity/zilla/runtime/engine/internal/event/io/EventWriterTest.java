@@ -47,7 +47,7 @@ public class EventWriterTest
     {
         Path path = tempFolder.getRoot().toPath().resolve("events");
 
-        try (EventWriter writer = new EventWriter(path, CAPACITY))
+        try (EventWriter writer = new EventWriter(path, CAPACITY, false))
         {
             writer.writeEvent(42, new UnsafeBuffer(), 0, 0);
             msgTypeId = 0;
@@ -66,7 +66,7 @@ public class EventWriterTest
         Path dir = tempFolder.getRoot().toPath();
         Path path = dir.resolve("events");
 
-        try (EventWriter writer = new EventWriter(path, CAPACITY))
+        try (EventWriter writer = new EventWriter(path, CAPACITY, false))
         {
             EventAccessor accessor = writer.createEventAccessor();
 
@@ -108,7 +108,7 @@ public class EventWriterTest
         Path dir = tempFolder.getRoot().toPath();
         Path path = dir.resolve("events");
 
-        try (EventWriter writer = new EventWriter(path, CAPACITY))
+        try (EventWriter writer = new EventWriter(path, CAPACITY, false))
         {
             EventAccessor accessor1 = writer.createEventAccessor();
             EventAccessor accessor2 = writer.createEventAccessor();
@@ -151,7 +151,7 @@ public class EventWriterTest
         Path dir = tempFolder.getRoot().toPath();
         Path path = dir.resolve("events");
 
-        EventWriter writer = new EventWriter(path, CAPACITY);
+        EventWriter writer = new EventWriter(path, CAPACITY, false);
         writer.createEventAccessor();
 
         // fill buffer and trigger rotation — accessor has not drained the rotated entry

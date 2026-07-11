@@ -38,14 +38,17 @@ public final class EventWriter implements AutoCloseable
     private final Path basePath;
     private final List<EventAccessor> accessors;
     private final Supplier<String> timestamp;
+    private final boolean readonly;
 
     private EventWriterEntry activeEntry;
 
     public EventWriter(
         Path basePath,
-        long capacity)
+        long capacity,
+        boolean readonly)
     {
         this.basePath = basePath;
+        this.readonly = readonly;
         this.activeEntry = new EventWriterEntry(basePath, capacity);
         this.accessors = new ArrayList<>();
 
@@ -107,6 +110,7 @@ public final class EventWriter implements AutoCloseable
             this.layout = new EventsLayout.Builder()
                 .path(path)
                 .capacity(capacity)
+                .readonly(readonly)
                 .build();
         }
 
@@ -148,6 +152,7 @@ public final class EventWriter implements AutoCloseable
                 layout = new EventsLayout.Builder()
                     .path(path)
                     .capacity(capacity)
+                    .readonly(readonly)
                     .build();
                 return this;
             }
