@@ -54,6 +54,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
+    private static final String OVERLAY_NAME = "overlay";
 
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
@@ -119,6 +120,20 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     subjectObject.add(catalog.name, schemaObject);
                 }
                 catalogObject.add(CATALOG_NAME, subjectObject);
+
+                if (openapiConfig.overlay != null)
+                {
+                    final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+                    overlaySchema.add(SUBJECT_NAME, openapiConfig.overlay.subject);
+                    if (openapiConfig.overlay.version != null)
+                    {
+                        overlaySchema.add(VERSION_NAME, openapiConfig.overlay.version);
+                    }
+
+                    final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+                    overlaySubject.add(openapiConfig.overlay.name, overlaySchema);
+                    catalogObject.add(OVERLAY_NAME, overlaySubject);
+                }
 
                 if (openapiConfig.servers != null && !openapiConfig.servers.isEmpty())
                 {
@@ -236,7 +251,29 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     }
                 }
 
-                openapiOptions.spec(new OpenapiSpecificationConfig(apiLabel, server, servers, catalogs, security));
+                OpenapiCatalogConfig overlay = null;
+                if (specObject.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+                    OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> overlayBuilder = OpenapiCatalogConfig.builder();
+                    overlayBuilder.name(overlayEntry.getKey());
+
+                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+                    {
+                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (overlaySchemaObject.containsKey(VERSION_NAME))
+                    {
+                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+                    }
+                    overlay = overlayBuilder.build();
+                }
+
+                openapiOptions.spec(new OpenapiSpecificationConfig(apiLabel, server, servers, catalogs, security, overlay));
             }
         }
 

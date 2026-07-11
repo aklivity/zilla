@@ -14,6 +14,7 @@
  */
 module io.aklivity.zilla.runtime.binding.openapi
 {
+    requires io.aklivity.zilla.runtime.common.json;
     requires transitive io.aklivity.zilla.runtime.common.openapi;
     requires io.aklivity.zilla.runtime.common.yaml;
 

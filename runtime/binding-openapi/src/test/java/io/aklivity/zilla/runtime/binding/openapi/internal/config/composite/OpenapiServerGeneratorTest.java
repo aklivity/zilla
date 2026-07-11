@@ -80,6 +80,27 @@ public class OpenapiServerGeneratorTest
         }
         """;
 
+    private static final String OVERLAY =
+        """
+        {
+          "overlay": "1.0.0",
+          "info": { "title": "test-overlay", "version": "1.0.0" },
+          "actions": [
+            {
+              "target": "$.paths",
+              "update": {
+                "/added": {
+                  "get": {
+                    "operationId": "added",
+                    "responses": { "200": { "description": "ok" } }
+                  }
+                }
+              }
+            }
+          ]
+        }
+        """;
+
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
 
@@ -123,6 +144,29 @@ public class OpenapiServerGeneratorTest
                     List.of(),
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
                     security))
+                .build())
+            .exit("openapi0")
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
+    private BindingConfig bindingWithOverlay(
+        Map<String, String> security)
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("openapi")
+            .kind(SERVER)
+            .options(OpenapiOptionsConfig.builder()
+                .spec(new OpenapiSpecificationConfig(
+                    "petstore",
+                    null,
+                    List.of(),
+                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
+                    security,
+                    new OpenapiCatalogConfig("catalog0", "test-overlay", "latest")))
                 .build())
             .exit("openapi0")
             .build();
@@ -191,5 +235,18 @@ public class OpenapiServerGeneratorTest
             Map.of("bearerAuth", "guard0"))));
 
         assertThat(composite, notNullValue());
+    }
+
+    @Test
+    public void shouldApplyOverlayBeforeGeneratingRoutes()
+    {
+        lenient().when(catalog.resolve(eq("test-overlay"), eq("latest"))).thenReturn(8);
+        lenient().when(catalog.resolve(eq(8))).thenReturn(OVERLAY);
+
+        OpenapiCompositeConfig composite = generator.generate(new OpenapiBindingConfig(context, bindingWithOverlay(null)));
+
+        RouteConfig route = routeFor(composite, "/added");
+
+        assertThat(route.guarded, empty());
     }
 }
