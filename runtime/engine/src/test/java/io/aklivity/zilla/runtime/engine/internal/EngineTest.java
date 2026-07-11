@@ -391,6 +391,61 @@ public class EngineTest
         assertThat(eventCount[0], greaterThan(0));
     }
 
+    @Test
+    public void shouldNotWriteEventWhenClosingReadonlyEngine()
+    {
+        List<Throwable> errors = new LinkedList<>();
+        EngineConfiguration config = new EngineConfiguration(properties);
+
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+            new EngineEventContext(engine).started();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
+        int[] eventCountBeforeClose = { 0 };
+        try (Engine readonlyEngine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .readonly()
+                .build())
+        {
+            readonlyEngine.start();
+            MessageReader events = readonlyEngine.supplyEventReader();
+            events.read((msgTypeId, buffer, index, length) -> eventCountBeforeClose[0]++, 10);
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
+        int[] eventCountAfterClose = { 0 };
+        try (Engine readonlyEngine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .readonly()
+                .build())
+        {
+            readonlyEngine.start();
+            MessageReader events = readonlyEngine.supplyEventReader();
+            events.read((msgTypeId, buffer, index, length) -> eventCountAfterClose[0]++, 10);
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
+        assertThat(errors, empty());
+        assertThat(eventCountAfterClose[0], equalTo(eventCountBeforeClose[0]));
+    }
+
     public static final class TestEngineExt implements EngineExtSpi
     {
         public static volatile CountDownLatch registerLatch = new CountDownLatch(1);
