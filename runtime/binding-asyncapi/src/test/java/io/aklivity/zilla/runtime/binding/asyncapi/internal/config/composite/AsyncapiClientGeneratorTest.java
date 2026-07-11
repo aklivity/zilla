@@ -1,0 +1,161 @@
+/*
+ * Copyright 2021-2024 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
+
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+
+import java.util.function.ToLongFunction;
+
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+
+import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslCredentialsConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+
+public class AsyncapiClientGeneratorTest
+{
+    private static final String SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "broker": { "host": "localhost:9092", "protocol": "kafka" } },
+          "channels": {
+            "events": { "address": "events", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/events" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
+    @Rule
+    public MockitoRule rule = MockitoJUnit.rule();
+
+    @Mock
+    private EngineContext context;
+
+    @Mock
+    private CatalogHandler catalog;
+
+    private final AsyncapiClientGenerator generator = new AsyncapiClientGenerator();
+
+    private final ToLongFunction<String> resolveId = name -> switch (name)
+    {
+    case "catalog0" -> 1L;
+    case "kafkaGuard0" -> 2L;
+    default -> 3L;
+    };
+
+    @Before
+    public void initMocks()
+    {
+        lenient().when(context.supplyCatalog(eq(1L))).thenReturn(catalog);
+        lenient().when(context.supplyBindingId(any(), any())).thenReturn(42L);
+        lenient().when(context.supplyTypeId(any())).thenReturn(9);
+        lenient().when(context.supplyQName(eq(2L))).thenReturn("test:kafkaGuard0");
+        lenient().when(catalog.resolve(eq("test"), eq("latest"))).thenReturn(7);
+        lenient().when(catalog.resolve(anyInt())).thenReturn(SPEC);
+    }
+
+    private BindingConfig binding(
+        KafkaAuthorizationConfig authorization)
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(CLIENT)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec(AsyncapiSpecificationConfig.builder()
+                    .label("kafka_api")
+                    .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"))
+                    .build())
+                .kafka(KafkaOptionsConfig.builder()
+                    .authorization(authorization)
+                    .build())
+                .build())
+            .exit("asyncapi0")
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
+    private KafkaOptionsConfig kafkaClientOptions(
+        AsyncapiCompositeConfig composite)
+    {
+        BindingConfig kafkaClient = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "kafka_client0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        return (KafkaOptionsConfig) kafkaClient.options;
+    }
+
+    @Test
+    public void shouldWireKafkaAuthorizationFromOptions()
+    {
+        KafkaAuthorizationConfig authorization = KafkaAuthorizationConfig.builder()
+            .name("kafkaGuard0")
+            .credentials(KafkaSaslCredentialsConfig.builder()
+                .mechanism("plain")
+                .username("alice")
+                .password("secret")
+                .build())
+            .build();
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding(authorization)));
+
+        KafkaOptionsConfig options = kafkaClientOptions(composite);
+
+        assertThat(options.authorization, notNullValue());
+        assertThat(options.authorization.name, equalTo("test:kafkaGuard0"));
+        assertThat(options.authorization.credentials.username, equalTo("alice"));
+    }
+
+    @Test
+    public void shouldNotNpeWhenKafkaAuthorizationNotConfigured()
+    {
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding(null)));
+
+        KafkaOptionsConfig options = kafkaClientOptions(composite);
+
+        assertThat(options.authorization, nullValue());
+    }
+}

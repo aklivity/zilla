@@ -141,6 +141,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateKafkaClientAuthorization()
+    {
+        JsonObject config = schema.validate("client.kafka.authorization.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateAsyncapiProxy()
     {
         JsonObject config = schema.validate("proxy.mqtt.kafka.yaml");

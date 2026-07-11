@@ -177,6 +177,10 @@
                                     {
                                         "$ref": "#/$defs/options/binding/kafka/sasl"
                                     },
+                                    "authorization":
+                                    {
+                                        "$ref": "#/$defs/options/binding/kafka/authorization"
+                                    },
                                     "topics":
                                     {
                                         "$ref": "#/$defs/options/binding/kafka/cache_server_topics"

@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBindingEx;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -277,6 +278,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .kind(CLIENT)
                         .options(KafkaOptionsConfig::builder)
                             .inject(this::injectKafkaSaslOptions)
+                            .inject(this::injectKafkaAuthorizationOptions)
                             .inject(this::injectKafkaServerOptions)
                             .build()
                         .inject(this::injectMetrics)
@@ -295,6 +297,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .kind(CLIENT)
                         .options(KafkaOptionsConfig::builder)
                             .inject(this::injectKafkaSaslOptions)
+                            .inject(this::injectKafkaAuthorizationOptions)
                             .inject(this::injectKafkaServerOptions)
                             .build()
                         .inject(this::injectMetrics)
@@ -454,6 +457,24 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .mechanism(sasl.mechanism)
                         .username(sasl.username)
                         .password(sasl.password)
+                        .build();
+                }
+
+                return options;
+            }
+
+            private <C> KafkaOptionsConfigBuilder<C> injectKafkaAuthorizationOptions(
+                KafkaOptionsConfigBuilder<C> options)
+            {
+                final KafkaAuthorizationConfig authorization = config.options != null && config.options.kafka != null
+                    ? config.options.kafka.authorization
+                    : null;
+
+                if (authorization != null)
+                {
+                    options.authorization()
+                        .name(authorization.qname)
+                        .credentials(authorization.credentials)
                         .build();
                 }
 
