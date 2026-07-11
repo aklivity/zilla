@@ -66,6 +66,7 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiC
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiRouteConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedResolution;
@@ -77,6 +78,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -130,7 +132,8 @@ public final class McpOpenapiCompositeGenerator
                     final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                     final int schemaId = handler.resolve(catalog.subject, catalog.version);
                     final String payload = handler.resolve(schemaId);
-                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), List.of());
+                    final String materialized = materialize(binding, specification, payload);
+                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized), List.of());
                     specsByLabel.put(label, openapi);
                 }
             }
@@ -227,6 +230,27 @@ public final class McpOpenapiCompositeGenerator
     public List<String> deniedOperations()
     {
         return denied;
+    }
+
+    private String materialize(
+        McpOpenapiBindingConfig binding,
+        McpOpenapiSpecificationConfig specification,
+        String payload)
+    {
+        String materialized = payload;
+        if (specification.overlay != null)
+        {
+            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
+            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final String overlayPayload = handler.resolve(schemaId);
+
+            final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
+            final JsonObject overlayDocument = YamlJson.createReader(new StringReader(overlayPayload)).readObject();
+            materialized = JsonOverlay.of(overlayDocument).apply(document).toString();
+        }
+
+        return materialized;
     }
 
     private McpOpenapiToolConfig toolConfig(

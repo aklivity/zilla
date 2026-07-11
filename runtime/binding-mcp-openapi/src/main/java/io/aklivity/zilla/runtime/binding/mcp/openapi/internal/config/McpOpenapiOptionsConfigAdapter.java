@@ -25,6 +25,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfig;
@@ -44,6 +45,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
     private static final String HEADERS_NAME = "headers";
     private static final String SPECS_NAME = "specs";
     private static final String SECURITY_NAME = "security";
+    private static final String OVERLAY_NAME = "overlay";
     private static final String SERVER_NAME = "server";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
@@ -123,6 +125,20 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     final JsonObjectBuilder security = Json.createObjectBuilder();
                     spec.security.forEach(security::add);
                     specObject.add(SECURITY_NAME, security);
+                }
+
+                if (spec.overlay != null)
+                {
+                    final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+                    overlaySchema.add(SUBJECT_NAME, spec.overlay.subject);
+                    if (spec.overlay.version != null)
+                    {
+                        overlaySchema.add(VERSION_NAME, spec.overlay.version);
+                    }
+
+                    final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+                    overlaySubject.add(spec.overlay.name, overlaySchema);
+                    specObject.add(OVERLAY_NAME, overlaySubject);
                 }
 
                 specs.add(spec.label, specObject);
@@ -257,6 +273,28 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                         security.put(scheme, securityObject.getString(scheme));
                     }
                     spec.security(security);
+                }
+
+                if (specObject.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+                    final McpOpenapiCatalogConfigBuilder<?> overlayBuilder = spec.overlay();
+                    overlayBuilder.name(overlayEntry.getKey());
+
+                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+                    {
+                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (overlaySchemaObject.containsKey(VERSION_NAME))
+                    {
+                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+                    }
+
+                    overlayBuilder.build();
                 }
 
                 spec.build();

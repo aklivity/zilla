@@ -186,6 +186,28 @@ public class McpOpenapiCompositeGeneratorTest
         }
         """;
 
+    private static final String SPEC_OVERLAY =
+        """
+        {
+          "overlay": "1.0.0",
+          "info": { "title": "github-overlay", "version": "1.0.0" },
+          "actions": [
+            {
+              "target": "$.paths",
+              "update": {
+                "/added": {
+                  "get": {
+                    "operationId": "added",
+                    "responses": { "200": { "description": "ok",
+                      "content": { "application/json": { "schema": { "type": "object" } } } } }
+                  }
+                }
+              }
+            }
+          ]
+        }
+        """;
+
     private static final String SPEC_WITH_DEFAULT_SECURITY =
         """
         {
@@ -454,6 +476,58 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(mcpHttpOptions.authorization, notNullValue());
         assertThat(mcpHttpOptions.authorization.name, equalTo("test0"));
         assertThat(mcpHttpOptions.authorization.headers.get("authorization"), equalTo("Bearer {credentials}"));
+    }
+
+    @Test
+    public void shouldApplyOverlayBeforeGeneratingRoutes()
+    {
+        lenient().when(catalog.resolve(eq("rest-api-overlay"), eq("latest"))).thenReturn(9);
+        lenient().when(catalog.resolve(eq(9))).thenReturn(SPEC_OVERLAY);
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .overlay()
+                        .name("catalog0")
+                        .subject("rest-api-overlay")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("added://resource")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("added")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        BindingConfig mcpHttp = namespace.bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        assertThat(mcpHttpOptions.resources, notNullValue());
+        assertThat(mcpHttpOptions.resources.stream().anyMatch(r -> "added://resource".equals(r.name)), equalTo(true));
     }
 
     @Test

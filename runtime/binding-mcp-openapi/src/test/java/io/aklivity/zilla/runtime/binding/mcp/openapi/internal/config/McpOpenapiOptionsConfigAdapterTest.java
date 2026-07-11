@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
@@ -179,6 +180,69 @@ public class McpOpenapiOptionsConfigAdapterTest
 
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .authorization(new McpOpenapiAuthorizationConfig("guard0", Map.of("authorization", "Bearer {credentials}")))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldReadOptionsWithOverlay()
+    {
+        String text =
+            """
+            {
+              "specs": {
+                "openapi_github0": {
+                  "catalog": {
+                    "catalog0": {
+                      "subject": "rest-api",
+                      "version": "latest"
+                    }
+                  },
+                  "overlay": {
+                    "overlay0": {
+                      "subject": "rest-api-overlay",
+                      "version": "latest"
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
+
+        McpOpenapiSpecificationConfig spec = options.specs.get(0);
+        assertThat(spec.overlay, not(nullValue()));
+        assertThat(spec.overlay.name, equalTo("overlay0"));
+        assertThat(spec.overlay.subject, equalTo("rest-api-overlay"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithOverlay()
+    {
+        String expected =
+            "{\"specs\":{\"openapi_github0\":{\"catalog\":{\"catalog0\":" +
+            "{\"subject\":\"rest-api\",\"version\":\"latest\"}}," +
+            "\"overlay\":{\"overlay0\":{\"subject\":\"rest-api-overlay\",\"version\":\"latest\"}}}}}";
+
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec()
+                .label("openapi_github0")
+                .catalog()
+                    .name("catalog0")
+                    .subject("rest-api")
+                    .version("latest")
+                    .build()
+                .overlay()
+                    .name("overlay0")
+                    .subject("rest-api-overlay")
+                    .version("latest")
+                    .build()
+                .build()
             .build();
 
         String text = jsonb.toJson(options);

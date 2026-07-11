@@ -29,6 +29,7 @@ public final class McpOpenapiSpecificationConfigBuilder<T> extends ConfigBuilder
     private String server;
     private List<McpOpenapiCatalogConfig> catalogs;
     private Map<String, String> security;
+    private McpOpenapiCatalogConfig overlay;
 
     McpOpenapiSpecificationConfigBuilder(
         Function<McpOpenapiSpecificationConfig, T> mapper)
@@ -80,9 +81,21 @@ public final class McpOpenapiSpecificationConfigBuilder<T> extends ConfigBuilder
         return this;
     }
 
+    public McpOpenapiCatalogConfigBuilder<McpOpenapiSpecificationConfigBuilder<T>> overlay()
+    {
+        return new McpOpenapiCatalogConfigBuilder<>(this::overlay);
+    }
+
+    public McpOpenapiSpecificationConfigBuilder<T> overlay(
+        McpOpenapiCatalogConfig overlay)
+    {
+        this.overlay = overlay;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiSpecificationConfig(label, server, catalogs, security));
+        return mapper.apply(new McpOpenapiSpecificationConfig(label, server, catalogs, security, overlay));
     }
 }
