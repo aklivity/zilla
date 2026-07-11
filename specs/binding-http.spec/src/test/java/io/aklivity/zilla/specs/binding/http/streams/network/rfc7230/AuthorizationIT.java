@@ -226,4 +226,24 @@ public class AuthorizationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/inject.credentials.cookie/client",
+        "${net}/inject.credentials.cookie/server",
+    })
+    public void shouldInjectCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/inject.credentials.query/client",
+        "${net}/inject.credentials.query/server",
+    })
+    public void shouldInjectCredentialsQuery() throws Exception
+    {
+        k3po.finish();
+    }
 }

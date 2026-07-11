@@ -81,6 +81,8 @@ public final class HttpBindingConfig
     public final GuardHandler guard;
     public final Function<String, String> inject;
     public final String8FW injectHeader;
+    public final Function<String, String> injectCookie;
+    public final Function<String, String> injectQuery;
     public final List<HttpRequestType> requests;
 
     public HttpBindingConfig(
@@ -101,6 +103,8 @@ public final class HttpBindingConfig
         this.guard = authorization != null ? resolveGuard(context, binding, authorization.name) : null;
         this.inject = authorization != null ? asInjector(authorization.credentials) : DEFAULT_INJECT;
         this.injectHeader = authorization != null ? asInjectHeader(authorization.credentials) : null;
+        this.injectCookie = authorization != null ? asInjectCookie(authorization.credentials) : DEFAULT_INJECT;
+        this.injectQuery = authorization != null ? asInjectQuery(authorization.credentials) : DEFAULT_INJECT;
         this.requests = createRequestTypes(context::supplyModel, modelBuffer);
     }
 
@@ -159,6 +163,40 @@ public final class HttpBindingConfig
             injector = !pattern.contains("{credentials}") && formatMatch.matches()
                 ? value -> value != null ? "Basic " + Base64.getEncoder().encodeToString(value.getBytes(UTF_8)) : null
                 : value -> value != null ? pattern.replace("{credentials}", value) : null;
+        }
+
+        return injector;
+    }
+
+    private Function<String, String> asInjectCookie(
+        HttpCredentialsConfig credentials)
+    {
+        Function<String, String> injector = DEFAULT_INJECT;
+        List<HttpPatternConfig> cookies = credentials.cookies;
+
+        if (cookies != null && !cookies.isEmpty())
+        {
+            HttpPatternConfig config = cookies.get(0);
+            String prefix = config.name + "=";
+            String pattern = config.pattern;
+            injector = value -> value != null ? prefix + pattern.replace("{credentials}", value) : null;
+        }
+
+        return injector;
+    }
+
+    private Function<String, String> asInjectQuery(
+        HttpCredentialsConfig credentials)
+    {
+        Function<String, String> injector = DEFAULT_INJECT;
+        List<HttpPatternConfig> parameters = credentials.parameters;
+
+        if (parameters != null && !parameters.isEmpty())
+        {
+            HttpPatternConfig config = parameters.get(0);
+            String prefix = config.name + "=";
+            String pattern = config.pattern;
+            injector = value -> value != null ? prefix + pattern.replace("{credentials}", value) : null;
         }
 
         return injector;

@@ -183,6 +183,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String8FW HEADER_USER_AGENT = new String8FW("user-agent");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
+    private static final String8FW HEADER_COOKIE = new String8FW("cookie");
     private static final String8FW HEADER_HTTP2_SETTINGS = new String8FW("HTTP2-Settings");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
@@ -4799,48 +4800,86 @@ public final class HttpClientFactory implements HttpStreamFactory
                 client.exchange = this;
             }
 
-            final Map<String8FW, String16FW> requestOverrides = resolveOverrides(traceId, authorization);
+            final Map<String8FW, String16FW> requestOverrides = resolveOverrides(authorization, headers);
             client.encoder.doEncodeRequestHeaders(client, this, traceId, authorization, 0, headers, requestOverrides);
         }
 
         private Map<String8FW, String16FW> resolveOverrides(
-            long traceId,
-            long authorization)
+            long authorization,
+            Array32FW<HttpHeaderFW> headers)
         {
             Map<String8FW, String16FW> resolved = overrides;
 
             final GuardHandler guard = binding.guard;
-            if (guard != null && binding.injectHeader != null)
+            if (guard != null && (authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
-                String credential = (authorization & GuardHandler.MASK_AUTHORIZED) != 0L
-                    ? guard.credentials(authorization)
-                    : null;
+                final String credential = guard.credentials(authorization);
 
-                long reauthorized = GuardHandler.NOT_AUTHORIZED;
-                if (credential == null)
+                if (credential != null)
                 {
-                    reauthorized = guard.reauthorize(traceId, routedId, requestId, null);
-                    if ((reauthorized & GuardHandler.MASK_AUTHORIZED) != 0L)
+                    Map<String8FW, String16FW> merged = null;
+
+                    final String injectedHeader = binding.inject.apply(credential);
+                    if (injectedHeader != null)
                     {
-                        credential = guard.credentials(reauthorized);
+                        merged = new LinkedHashMap<>(overrides);
+                        merged.put(binding.injectHeader, new String16FW(injectedHeader));
                     }
-                }
 
-                final String injected = binding.inject.apply(credential);
-                if (injected != null)
-                {
-                    final Map<String8FW, String16FW> merged = new LinkedHashMap<>(overrides);
-                    merged.put(binding.injectHeader, new String16FW(injected));
-                    resolved = merged;
-                }
+                    final String injectedCookie = binding.injectCookie.apply(credential);
+                    if (injectedCookie != null)
+                    {
+                        final String existingCookie = resolveHeaderValue(overrides, headers, HEADER_COOKIE);
+                        final String cookie = existingCookie != null
+                            ? existingCookie + "; " + injectedCookie
+                            : injectedCookie;
+                        merged = merged != null ? merged : new LinkedHashMap<>(overrides);
+                        merged.put(HEADER_COOKIE, new String16FW(cookie));
+                    }
 
-                if ((reauthorized & GuardHandler.MASK_AUTHORIZED) != 0L)
-                {
-                    guard.deauthorize(reauthorized);
+                    final String injectedQuery = binding.injectQuery.apply(credential);
+                    if (injectedQuery != null)
+                    {
+                        final String existingPath = resolveHeaderValue(overrides, headers, HEADER_PATH);
+                        if (existingPath != null)
+                        {
+                            final String path = existingPath +
+                                (existingPath.indexOf('?') != -1 ? '&' : '?') + injectedQuery;
+                            merged = merged != null ? merged : new LinkedHashMap<>(overrides);
+                            merged.put(HEADER_PATH, new String16FW(path));
+                        }
+                    }
+
+                    if (merged != null)
+                    {
+                        resolved = merged;
+                    }
                 }
             }
 
             return resolved;
+        }
+
+        private String resolveHeaderValue(
+            Map<String8FW, String16FW> overrides,
+            Array32FW<HttpHeaderFW> headers,
+            String8FW name)
+        {
+            final String16FW override = overrides.get(name);
+            String value = null;
+            if (override != null)
+            {
+                value = override.asString();
+            }
+            else
+            {
+                final HttpHeaderFW header = headers.matchFirst(h -> name.equals(h.name()));
+                if (header != null)
+                {
+                    value = header.value().asString();
+                }
+            }
+            return value;
         }
 
         private void onRequestFlush(

@@ -66,4 +66,24 @@ public class AuthorizationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.authorization.credentials.cookies.yaml")
+    @Specification({
+        "${app}/inject.credentials.cookie/client",
+        "${net}/inject.credentials.cookie/server" })
+    public void shouldInjectCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.authorization.credentials.query.yaml")
+    @Specification({
+        "${app}/inject.credentials.query/client",
+        "${net}/inject.credentials.query/server" })
+    public void shouldInjectCredentialsQuery() throws Exception
+    {
+        k3po.finish();
+    }
 }

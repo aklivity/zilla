@@ -188,10 +188,20 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
-    @Test(expected = JsonException.class)
-    public void shouldRejectHttp11ClientAuthorizationCredentialsCookies()
+    @Test
+    public void shouldValidateHttp11ClientAuthorizationCredentialsCookies()
     {
-        schema.validate("v1.1/client.authorization.credentials.cookies.invalid.yaml");
+        JsonObject config = schema.validate("v1.1/client.authorization.credentials.cookies.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp11ClientAuthorizationCredentialsQuery()
+    {
+        JsonObject config = schema.validate("v1.1/client.authorization.credentials.query.yaml");
+
+        assertThat(config, not(nullValue()));
     }
 
     @Test
