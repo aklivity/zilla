@@ -83,6 +83,17 @@ public class OpenapiAsyncapiProxyGeneratorTest
                 "x-zilla-http-kafka": { "filters": [ { "key": "{identity}" } ] },
                 "responses": { "200": { "description": "ok" } }
               }
+            },
+            "/produce-mapped": {
+              "post": {
+                "operationId": "produceMapped",
+                "security": [ { "bearerAuth": [ "read" ] } ],
+                "x-zilla-http-kafka": {
+                  "key": "{identity}",
+                  "overrides": { "zilla:identity": "{identity}" }
+                },
+                "responses": { "200": { "description": "ok" } }
+              }
             }
           }
         }
@@ -96,7 +107,8 @@ public class OpenapiAsyncapiProxyGeneratorTest
           "servers": { "broker": { "host": "localhost:9092", "protocol": "kafka" } },
           "channels": {
             "mapped": { "address": "mapped", "messages": { "pet": { "$ref": "#/components/messages/pet" } } },
-            "unmapped": { "address": "unmapped", "messages": { "pet": { "$ref": "#/components/messages/pet" } } }
+            "unmapped": { "address": "unmapped", "messages": { "pet": { "$ref": "#/components/messages/pet" } } },
+            "produceMapped": { "address": "produceMapped", "messages": { "pet": { "$ref": "#/components/messages/pet" } } }
           },
           "operations": {
             "mapped": {
@@ -108,6 +120,11 @@ public class OpenapiAsyncapiProxyGeneratorTest
               "action": "receive",
               "channel": { "$ref": "#/channels/unmapped" },
               "messages": [ { "$ref": "#/channels/unmapped/messages/pet" } ]
+            },
+            "produceMapped": {
+              "action": "send",
+              "channel": { "$ref": "#/channels/produceMapped" },
+              "messages": [ { "$ref": "#/channels/produceMapped/messages/pet" } ]
             }
           },
           "components": {
@@ -338,6 +355,21 @@ public class OpenapiAsyncapiProxyGeneratorTest
 
         assertThat(route.guarded, empty());
         assertThat(with.fetch.get().filters.get().get(0).key.get(), equalTo("{identity}"));
+    }
+
+    @Test
+    public void shouldResolveProduceKeyAndOverridesUsingMappedGuard()
+    {
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context, binding(
+            Map.of("bearerAuth", "guard0"))));
+
+        RouteConfig route = routeFor(composite, "/produce-mapped");
+        HttpKafkaWithConfig with = (HttpKafkaWithConfig) route.with;
+
+        assertThat(with.produce.get().key.get(), equalTo("${guarded['guard0'].identity}"));
+        assertThat(with.produce.get().overrides.get(), hasSize(1));
+        assertThat(with.produce.get().overrides.get().get(0).name, equalTo("zilla:identity"));
+        assertThat(with.produce.get().overrides.get().get(0).value, equalTo("${guarded['guard0'].identity}"));
     }
 
     @Test

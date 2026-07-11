@@ -423,7 +423,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                             .compositeId(httpOperation.compositeId)
                             .produce()
                                 .topic(kafkaOperation.channel.address)
-                                .inject(w -> injectHttpKafkaRouteProduceWith(w, httpServer, httpOperation, kafkaOperation))
+                                .inject(w -> injectHttpKafkaRouteProduceWith(
+                                    w, httpServer, httpOperation, kafkaOperation, guardQname))
                                 .build()
                             .build();
                         break;
@@ -514,7 +515,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     HttpKafkaWithProduceConfigBuilder<C> produce,
                     OpenapiServerView httpServer,
                     OpenapiOperationView httpOperation,
-                    AsyncapiOperationView kafkaOperation)
+                    AsyncapiOperationView kafkaOperation,
+                    String guardQname)
                 {
                     final List<String> httpParamNames = findParams(httpOperation.path);
                     final String key = !httpParamNames.isEmpty()
@@ -559,6 +561,36 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                         if (correlationHeader.reset(correlationId).matches())
                         {
                             produce.correlationId(correlationHeader.group(1));
+                        }
+                    }
+
+                    Optional<OpenapiHttpKafkaOperationEx> httpKafka =
+                        httpOperation.extension("x-zilla-http-kafka", OpenapiHttpKafkaOperationEx.class);
+                    if (httpKafka.isPresent())
+                    {
+                        String httpKafkaKey = httpKafka.get().key;
+                        if (httpKafkaKey != null)
+                        {
+                            httpKafkaKey = resolveIdentity(httpKafkaKey, guardQname);
+
+                            produce.key(httpKafkaKey);
+                        }
+
+                        Map<String, String> overrides = httpKafka.get().overrides;
+                        if (overrides != null)
+                        {
+                            for (Map.Entry<String, String> override : overrides.entrySet())
+                            {
+                                String name = override.getKey();
+                                String value = override.getValue();
+
+                                value = resolveIdentity(value, guardQname);
+
+                                produce.override()
+                                    .name(name)
+                                    .value(value)
+                                    .build();
+                            }
                         }
                     }
 
