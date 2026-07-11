@@ -104,7 +104,7 @@ public class CacheBootstrapIT
     @Configuration("cache.options.bootstrap.yaml")
     @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
     @Specification({
-        "${app}/bootstrap.reconnect.after.describe.error/server"})
+        "${app}/unmerged.fetch.reconnect.after.describe.error/server"})
     public void shouldReconnectBootstrapAfterDescribeError() throws Exception
     {
         k3po.start();
@@ -116,7 +116,7 @@ public class CacheBootstrapIT
     @Configuration("cache.options.bootstrap.yaml")
     @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
     @Specification({
-        "${app}/bootstrap.reconnect.after.fetch.error/server"})
+        "${app}/unmerged.fetch.reconnect.after.fetch.error/server"})
     public void shouldReconnectBootstrapAfterFetchError() throws Exception
     {
         k3po.start();
