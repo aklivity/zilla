@@ -14,7 +14,7 @@ services:
       timeout: 3s
       retries: 5
       start_period: 15s
-      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/7114"]
+      test: ["CMD", "/opt/zilla/zilla", "logs", "--wait-for", "engine.started"]
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
       ZILLA_INCUBATOR_ENABLED: "true"

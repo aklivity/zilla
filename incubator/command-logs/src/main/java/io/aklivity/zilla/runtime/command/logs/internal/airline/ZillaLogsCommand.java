@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.command.logs.internal.airline;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ZILLA_DIRECTORY_PROPERTY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
@@ -40,7 +41,9 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 @Command(name = "logs", description = "Show engine event logs")
 public final class ZillaLogsCommand extends ZillaCommand
 {
-    private static final String OPTION_PROPERTIES_PATH_DEFAULT = ".zilla/zilla.properties";
+    private static final String ZILLA_DIRECTORY = System.getProperty(ZILLA_DIRECTORY_PROPERTY, ".");
+    private static final String OPTION_PROPERTIES_PATH_DEFAULT = String.format("%s/.zilla/zilla.properties", ZILLA_DIRECTORY);
+    private static final String ZILLA_ENGINE_PATH_DEFAULT = String.format("%s/.zilla/engine", ZILLA_DIRECTORY);
     private static final int EVENT_COUNT_LIMIT = 8192;
     private static final long POLL_INTERVAL_MILLIS = 500L;
 
@@ -53,8 +56,9 @@ public final class ZillaLogsCommand extends ZillaCommand
     public String waitFor;
 
     @Option(name = {"--timeout"},
-        description = "Maximum seconds to wait when using --wait-for")
-    public int timeout = 30;
+        description = "Maximum seconds to wait when using --wait-for; defaults to a single check, " +
+            "suitable for a Docker HEALTHCHECK where retries are driven externally")
+    public int timeout;
 
     @Option(name = {"-p", "--properties"},
         description = "Path to properties",
@@ -65,7 +69,7 @@ public final class ZillaLogsCommand extends ZillaCommand
     public void run()
     {
         Properties props = new Properties();
-        props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
+        props.setProperty(ENGINE_DIRECTORY.name(), ZILLA_ENGINE_PATH_DEFAULT);
         Path path = Paths.get(propertiesPath != null ? propertiesPath : OPTION_PROPERTIES_PATH_DEFAULT);
         if (Files.exists(path) || propertiesPath != null)
         {
@@ -117,6 +121,7 @@ public final class ZillaLogsCommand extends ZillaCommand
         }
         catch (Throwable ex)
         {
+            ex.printStackTrace();
             rethrowUnchecked(ex);
         }
     }
