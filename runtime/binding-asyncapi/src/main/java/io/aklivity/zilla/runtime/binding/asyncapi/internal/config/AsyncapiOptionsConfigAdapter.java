@@ -57,6 +57,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
     private static final String STORE_NAME = "store";
+    private static final String OVERLAY_NAME = "overlay";
 
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
@@ -111,6 +112,20 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     subjectObject.add(catalog.name, schemaObject);
                 }
                 catalogObject.add(CATALOG_NAME, subjectObject);
+
+                if (asyncapiConfig.overlay != null)
+                {
+                    final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+                    overlaySchema.add(SUBJECT_NAME, asyncapiConfig.overlay.subject);
+                    if (asyncapiConfig.overlay.version != null)
+                    {
+                        overlaySchema.add(VERSION_NAME, asyncapiConfig.overlay.version);
+                    }
+
+                    final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+                    overlaySubject.add(asyncapiConfig.overlay.name, overlaySchema);
+                    catalogObject.add(OVERLAY_NAME, overlaySubject);
+                }
 
                 if (asyncapiConfig.servers != null)
                 {
@@ -270,6 +285,28 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 if (spec.containsKey(STORE_NAME))
                 {
                     specBuilder.store(spec.getString(STORE_NAME));
+                }
+
+                if (spec.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = spec.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+                    final AsyncapiCatalogConfigBuilder<?> overlayBuilder = specBuilder.overlay();
+                    overlayBuilder.name(overlayEntry.getKey());
+
+                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+                    {
+                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (overlaySchemaObject.containsKey(VERSION_NAME))
+                    {
+                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+                    }
+
+                    overlayBuilder.build();
                 }
 
                 specBuilder.build();

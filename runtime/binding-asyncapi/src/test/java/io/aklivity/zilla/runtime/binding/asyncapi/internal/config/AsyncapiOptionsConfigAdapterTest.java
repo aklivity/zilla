@@ -160,6 +160,71 @@ public class AsyncapiOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithOverlay() throws IOException
+    {
+        String yaml =
+                """
+                specs:
+                  mqtt-api:
+                    catalog:
+                      catalog0:
+                        subject: smartylighting
+                        version: latest
+                    overlay:
+                      catalog0:
+                        subject: smartylighting-overlay
+                        version: latest
+                """;
+
+        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
+
+        AsyncapiSpecificationConfig spec = options.specs.get(0);
+        assertThat(spec.overlay, not(nullValue()));
+        assertThat(spec.overlay.name, equalTo("catalog0"));
+        assertThat(spec.overlay.subject, equalTo("smartylighting-overlay"));
+        assertThat(spec.overlay.version, equalTo("latest"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithOverlay() throws IOException
+    {
+        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
+            .inject(Function.identity())
+            .spec()
+                .label("mqtt-api")
+                .catalog()
+                    .name("catalog0")
+                    .subject("smartylighting")
+                    .version("latest")
+                    .build()
+                .overlay()
+                    .name("catalog0")
+                    .subject("smartylighting-overlay")
+                    .version("latest")
+                    .build()
+                .build()
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+            """
+            specs:
+              mqtt-api:
+                catalog:
+                  catalog0:
+                    subject: smartylighting
+                    version: latest
+                overlay:
+                  catalog0:
+                    subject: smartylighting-overlay
+                    version: latest
+                servers: []
+            """));
+    }
+
+    @Test
     public void shouldReadOptionsKafka() throws IOException
     {
         String yaml =

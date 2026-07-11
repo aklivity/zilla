@@ -68,6 +68,25 @@ public class AsyncapiServerGeneratorTest
         }
         """;
 
+    private static final String OVERLAY =
+        """
+        {
+          "overlay": "1.0.0",
+          "info": { "title": "test-overlay", "version": "1.0.0" },
+          "actions": [
+            {
+              "target": "$.channels",
+              "update": {
+                "added": {
+                  "address": "added",
+                  "messages": { "event": { "$ref": "#/components/messages/event" } }
+                }
+              }
+            }
+          ]
+        }
+        """;
+
     private static final String SECURE_SPEC =
         """
         {
@@ -149,6 +168,26 @@ public class AsyncapiServerGeneratorTest
         return spec.build();
     }
 
+    private BindingConfig bindingWithOverlay()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(SERVER)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec(AsyncapiSpecificationConfig.builder()
+                    .label("mqtt_api")
+                    .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"))
+                    .overlay(new AsyncapiCatalogConfig("catalog0", "test-overlay", "latest"))
+                    .build())
+                .build())
+            .exit("asyncapi0")
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
     private BindingConfig bindingSecure()
     {
         BindingConfig binding = BindingConfig.builder()
@@ -210,6 +249,20 @@ public class AsyncapiServerGeneratorTest
             .toList();
         assertThat(autoStores, hasSize(1));
         assertThat(autoStores.get(0).type, equalTo("memory"));
+    }
+
+    @Test
+    public void shouldApplyOverlayBeforeGeneratingRoutes()
+    {
+        lenient().when(catalog.resolve(eq("test-overlay"), eq("latest"))).thenReturn(8);
+        lenient().when(catalog.resolve(eq(8))).thenReturn(OVERLAY);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, bindingWithOverlay()));
+
+        BindingConfig mqttServer = mqttServerFor(composite);
+        MqttOptionsConfig options = (MqttOptionsConfig) mqttServer.options;
+
+        assertThat(options.topics.stream().anyMatch(t -> "added".equals(t.name)), equalTo(true));
     }
 
     @Test

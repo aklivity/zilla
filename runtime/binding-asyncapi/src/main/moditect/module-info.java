@@ -16,6 +16,7 @@ module io.aklivity.zilla.runtime.binding.asyncapi
 {
     requires transitive io.aklivity.zilla.runtime.common.asyncapi;
     requires io.aklivity.zilla.runtime.common.yaml;
+    requires io.aklivity.zilla.runtime.common.json;
 
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.mqtt;

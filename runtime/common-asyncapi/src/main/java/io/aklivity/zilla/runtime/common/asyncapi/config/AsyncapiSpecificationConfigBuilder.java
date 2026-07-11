@@ -30,6 +30,7 @@ public class AsyncapiSpecificationConfigBuilder<T>
     private List<AsyncapiCatalogConfig> catalogs;
     private Map<String, String> security;
     private String store;
+    private AsyncapiCatalogConfig overlay;
 
     public AsyncapiSpecificationConfigBuilder<T> label(
         String label)
@@ -99,10 +100,22 @@ public class AsyncapiSpecificationConfigBuilder<T>
         return this;
     }
 
+    public AsyncapiCatalogConfigBuilder<AsyncapiSpecificationConfigBuilder<T>> overlay()
+    {
+        return new AsyncapiCatalogConfigBuilder<>(this::overlay);
+    }
+
+    public AsyncapiSpecificationConfigBuilder<T> overlay(
+        AsyncapiCatalogConfig overlay)
+    {
+        this.overlay = overlay;
+        return this;
+    }
+
     public T build()
     {
         return mapper.apply(
-            new AsyncapiSpecificationConfig(label, server, servers, catalogs, security, store));
+            new AsyncapiSpecificationConfig(label, server, servers, catalogs, security, store, overlay));
     }
 
     AsyncapiSpecificationConfigBuilder(
