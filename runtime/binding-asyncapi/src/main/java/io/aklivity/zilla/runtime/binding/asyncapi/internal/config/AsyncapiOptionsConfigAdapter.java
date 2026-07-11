@@ -24,10 +24,6 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
@@ -56,16 +52,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String HTTP_NAME = "http";
     private static final String MQTT_NAME = "mqtt";
     private static final String KAFKA_NAME = "kafka";
-    private static final String MQTT_KAFKA_NAME = "mqtt-kafka";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
     private static final String STORE_NAME = "store";
-    private static final String CHANNELS_NAME = "channels";
-    private static final String SESSIONS_NAME = "sessions";
-    private static final String MESSAGES_NAME = "messages";
-    private static final String RETAINED_NAME = "retained";
 
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
@@ -182,37 +173,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         {
             final KafkaOptionsConfig kafka = asyncapiOptions.kafka;
             object.add(KAFKA_NAME, kafkaOptions.adaptToJson(kafka));
-        }
-
-        if (asyncapiOptions.mqttKafka != null)
-        {
-            AsyncapiMqttKafkaConfig mqttKafka = asyncapiOptions.mqttKafka;
-            JsonObjectBuilder newMqttKafka = Json.createObjectBuilder();
-            AsyncapiChannelsConfig channels = mqttKafka.channels;
-            if (channels != null)
-            {
-                JsonObjectBuilder newChannels = Json.createObjectBuilder();
-                String sessions = channels.sessions;
-                if (sessions != null)
-                {
-                    newChannels.add(SESSIONS_NAME, sessions);
-                }
-
-                String messages = channels.messages;
-                if (messages != null)
-                {
-                    newChannels.add(MESSAGES_NAME, messages);
-                }
-
-                String retained = channels.retained;
-                if (retained != null)
-                {
-                    newChannels.add(RETAINED_NAME, retained);
-                }
-                newMqttKafka.add(CHANNELS_NAME, newChannels);
-
-                object.add(MQTT_KAFKA_NAME, newMqttKafka);
-            }
         }
 
         return object.build();
@@ -338,35 +298,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         {
             final JsonObject kafka = object.getJsonObject(KAFKA_NAME);
             builder.kafka(KafkaOptionsConfig.class.cast(kafkaOptions.adaptFromJson(kafka)));
-        }
-
-        if (object.containsKey(MQTT_KAFKA_NAME))
-        {
-            final AsyncapiMqttKafkaConfigBuilder<?> mqttKafkaBuilder = builder.mqttKafka();
-            final JsonObject mqttKafka = object.getJsonObject(MQTT_KAFKA_NAME);
-
-            if (mqttKafka.containsKey(CHANNELS_NAME))
-            {
-                AsyncapiChannelsConfigBuilder<?> channelsBuilder = mqttKafkaBuilder.channels();
-                JsonObject channels = mqttKafka.getJsonObject(CHANNELS_NAME);
-
-                if (channels.containsKey(SESSIONS_NAME))
-                {
-                    channelsBuilder.sessions(channels.getString(SESSIONS_NAME));
-                }
-                if (channels.containsKey(MESSAGES_NAME))
-                {
-                    channelsBuilder.messages(channels.getString(MESSAGES_NAME));
-                }
-                if (channels.containsKey(RETAINED_NAME))
-                {
-                    channelsBuilder.retained(channels.getString(RETAINED_NAME));
-                }
-
-                channelsBuilder.build();
-            }
-
-            mqttKafkaBuilder.build();
         }
 
         return builder.build();

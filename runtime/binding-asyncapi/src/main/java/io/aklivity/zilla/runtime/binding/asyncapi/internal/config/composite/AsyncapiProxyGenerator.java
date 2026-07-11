@@ -27,7 +27,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
@@ -40,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.k
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka.AsyncapiHttpKafkaOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaFilterEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka.AsyncapiMqttKafkaChannelEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
@@ -297,11 +297,15 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     BindingConfigBuilder<C> binding)
                 {
                     final AsyncapiView specification = mapping.with.asyncapi;
-                    final AsyncapiChannelsConfig channels = config.options.mqttKafka.channels;
+                    final Map<String, AsyncapiChannelView> channelsByRole = specification.channels.values().stream()
+                        .filter(c -> c.hasExtension("x-zilla-mqtt-kafka"))
+                        .collect(Collectors.toMap(
+                            c -> c.extension("x-zilla-mqtt-kafka", AsyncapiMqttKafkaChannelEx.class).get().role,
+                            identity()));
 
-                    final AsyncapiChannelView sessions = specification.channels.get(channels.sessions);
-                    final AsyncapiChannelView messages = specification.channels.get(channels.messages);
-                    final AsyncapiChannelView retained = specification.channels.get(channels.retained);
+                    final AsyncapiChannelView sessions = channelsByRole.get("sessions");
+                    final AsyncapiChannelView messages = channelsByRole.get("messages");
+                    final AsyncapiChannelView retained = channelsByRole.get("retained");
 
                     return binding.options(MqttKafkaOptionsConfig::builder)
                         .topics()

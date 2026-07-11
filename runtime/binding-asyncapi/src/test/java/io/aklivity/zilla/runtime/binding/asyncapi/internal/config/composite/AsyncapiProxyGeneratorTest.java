@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindin
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiWithConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
@@ -123,6 +124,53 @@ public class AsyncapiProxyGeneratorTest
         }
         """;
 
+    private static final String MQTT_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "broker": { "host": "localhost:1883", "protocol": "mqtt" } },
+          "channels": {
+            "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "sendEvents": {
+              "action": "send",
+              "channel": { "$ref": "#/channels/sensors" },
+              "messages": [ { "$ref": "#/channels/sensors/messages/event" } ]
+            }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
+    private static final String MQTT_KAFKA_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "broker": { "host": "localhost:9092", "protocol": "kafka" } },
+          "channels": {
+            "sensorData": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } },
+            "mqttSessions": { "address": "mqtt-sessions", "x-zilla-mqtt-kafka": { "role": "sessions" } },
+            "mqttMessages": { "address": "mqtt-messages", "x-zilla-mqtt-kafka": { "role": "messages" } },
+            "mqttRetained": { "address": "mqtt-retained", "x-zilla-mqtt-kafka": { "role": "retained" } }
+          },
+          "operations": {
+            "toSensorData": {
+              "action": "send",
+              "channel": { "$ref": "#/channels/sensorData" },
+              "messages": [ { "$ref": "#/channels/sensorData/messages/event" } ]
+            }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
 
@@ -135,12 +183,20 @@ public class AsyncapiProxyGeneratorTest
     @Mock
     private CatalogHandler kafkaCatalog;
 
+    @Mock
+    private CatalogHandler mqttCatalog;
+
+    @Mock
+    private CatalogHandler mqttKafkaCatalog;
+
     private final AsyncapiProxyGenerator generator = new AsyncapiProxyGenerator();
 
     private final ToLongFunction<String> resolveId = name -> switch (name)
     {
     case "catalog0" -> 1L;
     case "catalog1" -> 5L;
+    case "catalog2" -> 6L;
+    case "catalog3" -> 10L;
     case "guard0" -> 2L;
     default -> 3L;
     };
@@ -150,6 +206,8 @@ public class AsyncapiProxyGeneratorTest
     {
         lenient().when(context.supplyCatalog(eq(1L))).thenReturn(sseCatalog);
         lenient().when(context.supplyCatalog(eq(5L))).thenReturn(kafkaCatalog);
+        lenient().when(context.supplyCatalog(eq(6L))).thenReturn(mqttCatalog);
+        lenient().when(context.supplyCatalog(eq(10L))).thenReturn(mqttKafkaCatalog);
         lenient().when(context.supplyTypeId(any())).thenReturn(9);
         lenient().when(context.supplyBindingId(any(), any())).thenReturn(42L);
         lenient().when(context.supplyQName(eq(2L))).thenReturn("guard0");
@@ -157,6 +215,10 @@ public class AsyncapiProxyGeneratorTest
         lenient().when(sseCatalog.resolve(anyInt())).thenReturn(SSE_SPEC);
         lenient().when(kafkaCatalog.resolve(eq("test"), eq("latest"))).thenReturn(8);
         lenient().when(kafkaCatalog.resolve(anyInt())).thenReturn(KAFKA_SPEC);
+        lenient().when(mqttCatalog.resolve(eq("test"), eq("latest"))).thenReturn(11);
+        lenient().when(mqttCatalog.resolve(anyInt())).thenReturn(MQTT_SPEC);
+        lenient().when(mqttKafkaCatalog.resolve(eq("test"), eq("latest"))).thenReturn(12);
+        lenient().when(mqttKafkaCatalog.resolve(anyInt())).thenReturn(MQTT_KAFKA_SPEC);
     }
 
     private BindingConfig binding(
@@ -259,5 +321,52 @@ public class AsyncapiProxyGeneratorTest
         assertThat(mapped.guarded, empty());
         assertThat(unmapped.guarded, empty());
         assertThat(generator.deniedOperations(), empty());
+    }
+
+    @Test
+    public void shouldResolveMqttKafkaTopicsFromChannelRoles()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(PROXY)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec()
+                    .label("mqtt-id")
+                    .catalog()
+                        .name("catalog2")
+                        .subject("test")
+                        .version("latest")
+                        .build()
+                    .build()
+                .spec()
+                    .label("kafka-mqtt-id")
+                    .catalog()
+                        .name("catalog3")
+                        .subject("test")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .exit("kafka_client0")
+                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null))
+                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding));
+
+        BindingConfig mqttKafka = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mqtt_kafka_proxy0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+        MqttKafkaOptionsConfig options = (MqttKafkaOptionsConfig) mqttKafka.options;
+
+        assertThat(options.topics.sessions.asString(), equalTo("mqtt-sessions"));
+        assertThat(options.topics.messages.asString(), equalTo("mqtt-messages"));
+        assertThat(options.topics.retained.asString(), equalTo("mqtt-retained"));
     }
 }

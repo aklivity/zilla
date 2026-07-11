@@ -48,12 +48,14 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.AsyncapiSseOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka.AsyncapiMqttKafkaChannelEx;
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParserFactory;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
@@ -126,6 +128,8 @@ public abstract class AsyncapiCompositeGenerator
             .withOperationBinding("x-zilla-sse-kafka", AsyncapiSseKafkaOperationBindingEx.class)
             .withMessageBinding("kafka", AsyncapiKafkaMessageBindingEx.class)
             .withServerBinding("kafka", AsyncapiKafkaServerBindingEx.class)
+            .withExtension(AsyncapiExtension.of(
+                AsyncapiExtension.Scope.CHANNEL, "x-zilla-mqtt-kafka", AsyncapiMqttKafkaChannelEx.class))
             .createParser();
         final List<AsyncapiSchemaConfig> schemas = new ArrayList<>();
 

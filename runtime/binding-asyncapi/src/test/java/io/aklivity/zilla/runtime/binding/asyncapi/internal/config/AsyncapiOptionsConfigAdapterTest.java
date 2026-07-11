@@ -30,8 +30,6 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -158,11 +156,6 @@ public class AsyncapiOptionsConfigAdapterTest
                 mechanism: plain
                 username: username
                 password: password
-            mqtt-kafka:
-              channels:
-                sessions: mqttSessions
-                messages: mqttMessages
-                retained: mqttRetained
             """));
     }
 
@@ -236,11 +229,6 @@ public class AsyncapiOptionsConfigAdapterTest
                 - http.example.net
               alpn:
                 - http
-            mqtt-kafka:
-              channels:
-                sessions: mqttSessions
-                messages: mqttMessages
-                retained: mqttRetained
             """));
     }
 
@@ -312,57 +300,6 @@ public class AsyncapiOptionsConfigAdapterTest
                 mechanism: plain
                 username: username
                 password: password
-            mqtt-kafka:
-              channels:
-                sessions: mqttSessions
-                messages: mqttMessages
-                retained: mqttRetained
-            """));
-    }
-
-    @Test
-    public void shouldReadOptionsMqttKafka() throws IOException
-    {
-        String yaml =
-                """
-                mqtt-kafka:
-                  channels:
-                    sessions: sessionsChannel
-                    messages: messagesChannel
-                    retained: retainedChannel
-                """;
-
-        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.mqttKafka.channels.sessions, equalTo("sessionsChannel"));
-        assertThat(options.mqttKafka.channels.messages, equalTo("messagesChannel"));
-        assertThat(options.mqttKafka.channels.retained, equalTo("retainedChannel"));
-    }
-
-    @Test
-    public void shouldWriteOptionsMqttKafka() throws IOException
-    {
-        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
-            .inject(Function.identity())
-            .mqttKafka(AsyncapiMqttKafkaConfig.builder().channels(AsyncapiChannelsConfig.builder()
-                    .sessions("sessionsChannel")
-                    .messages("messagesChannel")
-                    .retained("retainedChannel")
-                    .build())
-                .build())
-            .build();
-
-        String yaml = jsonb.toJson(options);
-
-        assertThat(yaml, not(nullValue()));
-        assertThat(yaml, equalTo(
-            """
-            mqtt-kafka:
-              channels:
-                sessions: sessionsChannel
-                messages: messagesChannel
-                retained: retainedChannel
             """));
     }
 }
