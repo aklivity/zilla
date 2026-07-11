@@ -52,10 +52,11 @@ public class CacheBootstrapIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("app1")
+        .aroundStart(k3po::deferStartable)
         .clean();
 
     @Rule
-    public final TestRule chain = outerRule(k3po).around(engine).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
     @Configuration("cache.options.bootstrap.yaml")
@@ -63,7 +64,6 @@ public class CacheBootstrapIT
         "${app}/unmerged.fetch.message.values/server"})
     public void shouldReceiveMergedMessageValues() throws Exception
     {
-        Thread.sleep(500);
         k3po.start();
         k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
         Thread.sleep(200); // allow A1, B1, A2, B2 to be merged
@@ -80,7 +80,6 @@ public class CacheBootstrapIT
         "${app}/unmerged.fetch.message.values.live/server"})
     public void shouldReceiveMergedMessageValuesLive() throws Exception
     {
-        Thread.sleep(500);
         k3po.start();
         k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
         Thread.sleep(200); // allow A1, B1, A2, B2 to be merged
@@ -108,7 +107,6 @@ public class CacheBootstrapIT
         "${app}/bootstrap.reconnect.after.describe.error/server"})
     public void shouldReconnectBootstrapAfterDescribeError() throws Exception
     {
-        Thread.sleep(500);
         k3po.start();
         k3po.awaitBarrier("RECEIVED_MESSAGE");
         k3po.finish();
@@ -121,7 +119,6 @@ public class CacheBootstrapIT
         "${app}/bootstrap.reconnect.after.fetch.error/server"})
     public void shouldReconnectBootstrapAfterFetchError() throws Exception
     {
-        Thread.sleep(500);
         k3po.start();
         k3po.awaitBarrier("RECEIVED_MESSAGE");
         k3po.finish();
