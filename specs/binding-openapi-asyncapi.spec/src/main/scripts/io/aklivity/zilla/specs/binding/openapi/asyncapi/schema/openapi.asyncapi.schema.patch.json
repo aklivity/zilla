@@ -55,6 +55,29 @@
                                                 "type": "object",
                                                 "properties":
                                                 {
+                                                    "server":
+                                                    {
+                                                        "title": "Server",
+                                                        "type": "string"
+                                                    },
+                                                    "servers":
+                                                    {
+                                                        "title": "Servers",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "url":
+                                                                {
+                                                                    "title": "URL",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
                                                     "catalog":
                                                     {
                                                         "title": "Catalog",
@@ -144,6 +167,39 @@
                                                 "type": "object",
                                                 "properties":
                                                 {
+                                                    "server":
+                                                    {
+                                                        "title": "Server",
+                                                        "type": "string"
+                                                    },
+                                                    "servers":
+                                                    {
+                                                        "title": "Servers",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "url":
+                                                                {
+                                                                    "title": "URL",
+                                                                    "type": "string"
+                                                                },
+                                                                "host":
+                                                                {
+                                                                    "title": "Host",
+                                                                    "type": "string"
+                                                                },
+                                                                "pathname":
+                                                                {
+                                                                    "title": "Path Name",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
                                                     "catalog":
                                                     {
                                                         "title": "Catalog",
