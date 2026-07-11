@@ -38,6 +38,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
+import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiSpecConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
@@ -71,6 +72,7 @@ public class OpenapiAsyncapiProxyGeneratorTest
               "get": {
                 "operationId": "mapped",
                 "security": [ { "bearerAuth": [ "read" ] } ],
+                "x-zilla-http-kafka": { "filters": [ { "key": "{identity}" } ] },
                 "responses": { "200": { "description": "ok" } }
               }
             },
@@ -78,6 +80,7 @@ public class OpenapiAsyncapiProxyGeneratorTest
               "get": {
                 "operationId": "unmapped",
                 "security": [ { "oauthScheme": [ "read" ] } ],
+                "x-zilla-http-kafka": { "filters": [ { "key": "{identity}" } ] },
                 "responses": { "200": { "description": "ok" } }
               }
             }
@@ -230,5 +233,31 @@ public class OpenapiAsyncapiProxyGeneratorTest
         assertThat(mapped.guarded, empty());
         assertThat(unmapped.guarded, empty());
         assertThat(generator.deniedOperations(), empty());
+    }
+
+    @Test
+    public void shouldResolveIdentityUsingMappedGuard()
+    {
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context, binding(
+            Map.of("bearerAuth", "guard0"))));
+
+        RouteConfig route = routeFor(composite, "/mapped");
+        HttpKafkaWithConfig with = (HttpKafkaWithConfig) route.with;
+
+        assertThat(with.fetch.get().filters.get(), hasSize(1));
+        assertThat(with.fetch.get().filters.get().get(0).key.get(), equalTo("${guarded['guard0'].identity}"));
+    }
+
+    @Test
+    public void shouldLeaveIdentityUnresolvedWhenSchemeNotMapped()
+    {
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context, binding(
+            Map.of("bearerAuth", "guard0"))));
+
+        RouteConfig route = routeFor(composite, "/unmapped");
+        HttpKafkaWithConfig with = (HttpKafkaWithConfig) route.with;
+
+        assertThat(route.guarded, empty());
+        assertThat(with.fetch.get().filters.get().get(0).key.get(), equalTo("{identity}"));
     }
 }

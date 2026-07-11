@@ -236,11 +236,12 @@ public abstract class OpenapiCompositeGenerator
         }
 
         protected final String resolveIdentity(
-            String value)
+            String value,
+            String guardQname)
         {
-            if ("{identity}".equals(value))
+            if ("{identity}".equals(value) && guardQname != null)
             {
-                value = String.format("${guarded['%s:jwt0'].identity}", config.namespace);
+                value = String.format("${guarded['%s'].identity}", guardQname);
             }
 
             return value;

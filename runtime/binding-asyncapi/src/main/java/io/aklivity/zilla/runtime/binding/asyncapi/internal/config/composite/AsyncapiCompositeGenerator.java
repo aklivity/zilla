@@ -261,11 +261,12 @@ public abstract class AsyncapiCompositeGenerator
         }
 
         protected final String resolveIdentity(
-            String value)
+            String value,
+            String guardQname)
         {
-            if ("{identity}".equals(value))
+            if ("{identity}".equals(value) && guardQname != null)
             {
-                value = String.format("${guarded['%s:jwt0'].identity}", config.namespace);
+                value = String.format("${guarded['%s'].identity}", guardQname);
             }
 
             return value;
@@ -592,13 +593,26 @@ public abstract class AsyncapiCompositeGenerator
                 return guarded;
             }
 
+            protected final GuardedResolution resolveGuarded(
+                AsyncapiSchemaConfig schema,
+                AsyncapiOperationView operation)
+            {
+                return AsyncapiGuardResolver.resolve(
+                    operation.name, schema.apiLabel, operation.security, schema.security,
+                    config.resolveId, config.supplyQName);
+            }
+
+            protected final String guardQname(
+                GuardedResolution resolution)
+            {
+                return resolution.guarded.isEmpty() ? null : resolution.guarded.get(0).qname;
+            }
+
             protected final boolean allowed(
                 AsyncapiSchemaConfig schema,
                 AsyncapiOperationView operation)
             {
-                final GuardedResolution resolution = AsyncapiGuardResolver.resolve(
-                    operation.name, schema.apiLabel, operation.security, schema.security,
-                    config.resolveId, config.supplyQName);
+                final GuardedResolution resolution = resolveGuarded(schema, operation);
                 final boolean allowed = !resolution.denied();
 
                 if (!allowed)
