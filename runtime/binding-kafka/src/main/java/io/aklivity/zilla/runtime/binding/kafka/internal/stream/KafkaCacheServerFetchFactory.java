@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheC
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_AUTHORITATIVE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_CONTROL;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheRoute.LEADER_UNKNOWN;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_STABLE_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
@@ -548,7 +549,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             long traceId,
             KafkaCacheServerFetchStream member)
         {
-            if (member.leaderId != KafkaCacheRoute.LEADER_UNKNOWN && member.leaderId != leaderId)
+            if (member.leaderId != LEADER_UNKNOWN && member.leaderId != leaderId)
             {
                 doServerFanoutInitialAbortIfNecessary(traceId);
                 doServerFanoutReplyResetIfNecessary(traceId);
@@ -1384,7 +1385,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long traceId = begin.traceId();
             final long affinity = begin.affinity();
 
-            if (leaderId != KafkaCacheRoute.LEADER_UNKNOWN && affinity != leaderId)
+            if (leaderId != LEADER_UNKNOWN && affinity != leaderId)
             {
                 cleanupServer(traceId, ERROR_NOT_LEADER_FOR_PARTITION);
             }
