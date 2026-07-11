@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.ArrayList;
@@ -303,9 +304,9 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                             c -> c.extension("x-zilla-mqtt-kafka", AsyncapiMqttKafkaChannelEx.class).get().role,
                             identity()));
 
-                    final AsyncapiChannelView sessions = channelsByRole.get("sessions");
-                    final AsyncapiChannelView messages = channelsByRole.get("messages");
-                    final AsyncapiChannelView retained = channelsByRole.get("retained");
+                    final AsyncapiChannelView sessions = requireMqttKafkaRole(channelsByRole, "sessions");
+                    final AsyncapiChannelView messages = requireMqttKafkaRole(channelsByRole, "messages");
+                    final AsyncapiChannelView retained = requireMqttKafkaRole(channelsByRole, "retained");
 
                     return binding.options(MqttKafkaOptionsConfig::builder)
                         .topics()
@@ -317,6 +318,14 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                             .qosMax(MqttQoS.EXACTLY_ONCE.name().toLowerCase())
                             .build()
                         .build();
+                }
+
+                private AsyncapiChannelView requireMqttKafkaRole(
+                    Map<String, AsyncapiChannelView> channelsByRole,
+                    String role)
+                {
+                    return requireNonNull(channelsByRole.get(role),
+                        "x-zilla-mqtt-kafka role \"%s\" not declared on any channel of the kafka spec".formatted(role));
                 }
 
                 private <C> BindingConfigBuilder<C> injectMqttKafkaRoutes(

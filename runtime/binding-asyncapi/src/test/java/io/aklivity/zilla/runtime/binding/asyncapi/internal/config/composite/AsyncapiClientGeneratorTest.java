@@ -39,6 +39,9 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompos
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -128,6 +131,43 @@ public class AsyncapiClientGeneratorTest
         return (KafkaOptionsConfig) kafkaClient.options;
     }
 
+    private KafkaOptionsConfig kafkaCacheClientOptions(
+        AsyncapiCompositeConfig composite)
+    {
+        BindingConfig kafkaCacheClient = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "kafka_cache_client0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        return (KafkaOptionsConfig) kafkaCacheClient.options;
+    }
+
+    private BindingConfig bindingWithTopicDefaults()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(CLIENT)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec(AsyncapiSpecificationConfig.builder()
+                    .label("kafka_api")
+                    .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"))
+                    .build())
+                .kafka(KafkaOptionsConfig.builder()
+                    .topic()
+                        .name("events")
+                        .defaultOffset(KafkaOffsetType.HISTORICAL)
+                        .deltaType(KafkaDeltaType.JSON_PATCH)
+                        .build()
+                    .build())
+                .build())
+            .exit("asyncapi0")
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
     @Test
     public void shouldWireKafkaAuthorizationFromOptions()
     {
@@ -157,5 +197,20 @@ public class AsyncapiClientGeneratorTest
         KafkaOptionsConfig options = kafkaClientOptions(composite);
 
         assertThat(options.authorization, nullValue());
+    }
+
+    @Test
+    public void shouldWireKafkaTopicDefaultOffsetAndDeltaTypeFromOptions()
+    {
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, bindingWithTopicDefaults()));
+
+        KafkaOptionsConfig options = kafkaCacheClientOptions(composite);
+        KafkaTopicConfig topic = options.topics.stream()
+            .filter(t -> "events".equals(t.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(topic.defaultOffset, equalTo(KafkaOffsetType.HISTORICAL));
+        assertThat(topic.deltaType, equalTo(KafkaDeltaType.JSON_PATCH));
     }
 }

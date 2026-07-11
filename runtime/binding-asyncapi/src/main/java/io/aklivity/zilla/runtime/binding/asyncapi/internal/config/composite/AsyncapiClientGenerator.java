@@ -347,7 +347,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .forEach(channel ->
                         options.topic()
                             .name(channel.address)
-                            .inject(t -> injectKafkaTopicTransforms(t, channel, topics))
+                            .inject(t -> injectKafkaTopicDefaults(t, channel, topics))
                             .inject(t -> injectKafkaTopicKey(t, channel))
                             .inject(t -> injectKafkaTopicValue(t, channel))
                             .build());
@@ -355,7 +355,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 return options;
             }
 
-            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicTransforms(
+            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicDefaults(
                 KafkaTopicConfigBuilder<C> topic,
                 AsyncapiChannelView channel,
                 List<KafkaTopicConfig> topics)
@@ -365,13 +365,25 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     Optional<KafkaTopicConfig> topicConfig = topics.stream()
                         .filter(t -> t.name.equals(channel.address))
                         .findFirst();
-                    topicConfig.ifPresent(kafkaTopicConfig -> topic
-                        .transforms()
-                        .extractKey(kafkaTopicConfig.transforms.extractKey)
-                        .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
-                        .build());
+                    topicConfig.ifPresent(kafkaTopicConfig -> injectKafkaTopicConfig(topic, kafkaTopicConfig));
                 }
                 return topic;
+            }
+
+            private <C> void injectKafkaTopicConfig(
+                KafkaTopicConfigBuilder<C> topic,
+                KafkaTopicConfig kafkaTopicConfig)
+            {
+                topic.defaultOffset(kafkaTopicConfig.defaultOffset)
+                    .deltaType(kafkaTopicConfig.deltaType);
+
+                if (kafkaTopicConfig.transforms != null)
+                {
+                    topic.transforms()
+                        .extractKey(kafkaTopicConfig.transforms.extractKey)
+                        .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
+                        .build();
+                }
             }
 
             private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicKey(

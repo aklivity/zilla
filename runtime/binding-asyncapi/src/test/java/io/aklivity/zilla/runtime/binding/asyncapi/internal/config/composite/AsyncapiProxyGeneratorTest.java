@@ -16,9 +16,11 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -171,6 +173,30 @@ public class AsyncapiProxyGeneratorTest
         }
         """;
 
+    private static final String MQTT_KAFKA_SPEC_MISSING_RETAINED =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "broker": { "host": "localhost:9092", "protocol": "kafka" } },
+          "channels": {
+            "sensorData": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } },
+            "mqttSessions": { "address": "mqtt-sessions", "x-zilla-mqtt-kafka": { "role": "sessions" } },
+            "mqttMessages": { "address": "mqtt-messages", "x-zilla-mqtt-kafka": { "role": "messages" } }
+          },
+          "operations": {
+            "toSensorData": {
+              "action": "send",
+              "channel": { "$ref": "#/channels/sensorData" },
+              "messages": [ { "$ref": "#/channels/sensorData/messages/event" } ]
+            }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
 
@@ -219,6 +245,8 @@ public class AsyncapiProxyGeneratorTest
         lenient().when(mqttCatalog.resolve(anyInt())).thenReturn(MQTT_SPEC);
         lenient().when(mqttKafkaCatalog.resolve(eq("test"), eq("latest"))).thenReturn(12);
         lenient().when(mqttKafkaCatalog.resolve(anyInt())).thenReturn(MQTT_KAFKA_SPEC);
+        lenient().when(mqttKafkaCatalog.resolve(eq("missing-retained"), eq("latest"))).thenReturn(13);
+        lenient().when(mqttKafkaCatalog.resolve(eq(13))).thenReturn(MQTT_KAFKA_SPEC_MISSING_RETAINED);
     }
 
     private BindingConfig binding(
@@ -368,5 +396,46 @@ public class AsyncapiProxyGeneratorTest
         assertThat(options.topics.sessions.asString(), equalTo("mqtt-sessions"));
         assertThat(options.topics.messages.asString(), equalTo("mqtt-messages"));
         assertThat(options.topics.retained.asString(), equalTo("mqtt-retained"));
+    }
+
+    @Test
+    public void shouldReportClearErrorWhenMqttKafkaChannelRoleMissing()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(PROXY)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec()
+                    .label("mqtt-id")
+                    .catalog()
+                        .name("catalog2")
+                        .subject("test")
+                        .version("latest")
+                        .build()
+                    .build()
+                .spec()
+                    .label("kafka-mqtt-id")
+                    .catalog()
+                        .name("catalog3")
+                        .subject("missing-retained")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .exit("kafka_client0")
+                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null))
+                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        NullPointerException ex = assertThrows(NullPointerException.class,
+            () -> generator.generate(new AsyncapiBindingConfig(context, binding)));
+
+        assertThat(ex.getMessage(), containsString("x-zilla-mqtt-kafka"));
+        assertThat(ex.getMessage(), containsString("retained"));
     }
 }
