@@ -116,6 +116,55 @@ public class OpenapiAsyncapiProxyGeneratorTest
         }
         """;
 
+    private static final String OPENAPI_OVERLAY =
+        """
+        {
+          "overlay": "1.0.0",
+          "info": { "title": "test-overlay", "version": "1.0.0" },
+          "actions": [
+            {
+              "target": "$.paths",
+              "update": {
+                "/added": {
+                  "get": {
+                    "operationId": "added",
+                    "security": [ { "bearerAuth": [ "read" ] } ],
+                    "x-zilla-http-kafka": { "filters": [ { "key": "{identity}" } ] },
+                    "responses": { "200": { "description": "ok" } }
+                  }
+                }
+              }
+            }
+          ]
+        }
+        """;
+
+    private static final String ASYNCAPI_OVERLAY =
+        """
+        {
+          "overlay": "1.0.0",
+          "info": { "title": "test-overlay", "version": "1.0.0" },
+          "actions": [
+            {
+              "target": "$.channels",
+              "update": {
+                "added": { "address": "added", "messages": { "pet": { "$ref": "#/components/messages/pet" } } }
+              }
+            },
+            {
+              "target": "$.operations",
+              "update": {
+                "added": {
+                  "action": "receive",
+                  "channel": { "$ref": "#/channels/added" },
+                  "messages": [ { "$ref": "#/channels/added/messages/pet" } ]
+                }
+              }
+            }
+          ]
+        }
+        """;
+
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
 
@@ -170,6 +219,36 @@ public class OpenapiAsyncapiProxyGeneratorTest
                 Set.of(AsyncapiSpecificationConfig.builder()
                     .label("asyncapi-id")
                     .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
+                    .build()))))
+            .route()
+                .exit("asyncapi_client0")
+                .when(new OpenapiAsyncapiConditionConfig("openapi-id", null))
+                .with(new OpenapiAsyncapiWithConfig("asyncapi-id", null, null))
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
+    private BindingConfig bindingWithOverlay()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("openapi-asyncapi")
+            .kind(PROXY)
+            .options(new OpenapiAsyncapiOptionsConfig(new OpenapiAsyncapiSpecConfig(
+                Set.of(new OpenapiSpecificationConfig(
+                    "openapi-id",
+                    null,
+                    List.of(),
+                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
+                    Map.of("bearerAuth", "guard0"),
+                    new OpenapiCatalogConfig("catalog0", "test-overlay", "latest"))),
+                Set.of(AsyncapiSpecificationConfig.builder()
+                    .label("asyncapi-id")
+                    .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
+                    .overlay(new AsyncapiCatalogConfig("catalog1", "test-overlay", "latest"))
                     .build()))))
             .route()
                 .exit("asyncapi_client0")
@@ -259,5 +338,24 @@ public class OpenapiAsyncapiProxyGeneratorTest
 
         assertThat(route.guarded, empty());
         assertThat(with.fetch.get().filters.get().get(0).key.get(), equalTo("{identity}"));
+    }
+
+    @Test
+    public void shouldApplyOverlaysBeforeGeneratingRoutes()
+    {
+        lenient().when(openapiCatalog.resolve(eq("test-overlay"), eq("latest"))).thenReturn(70);
+        lenient().when(openapiCatalog.resolve(eq(70))).thenReturn(OPENAPI_OVERLAY);
+        lenient().when(asyncapiCatalog.resolve(eq("test-overlay"), eq("latest"))).thenReturn(80);
+        lenient().when(asyncapiCatalog.resolve(eq(80))).thenReturn(ASYNCAPI_OVERLAY);
+
+        OpenapiAsyncapiCompositeConfig composite =
+            generator.generate(new OpenapiAsyncapiBindingConfig(context, bindingWithOverlay()));
+
+        RouteConfig route = routeFor(composite, "/added");
+        HttpKafkaWithConfig with = (HttpKafkaWithConfig) route.with;
+
+        assertThat(route.guarded, hasSize(1));
+        assertThat(route.guarded.get(0).name, equalTo("guard0"));
+        assertThat(with.fetch.get().topic, equalTo("added"));
     }
 }

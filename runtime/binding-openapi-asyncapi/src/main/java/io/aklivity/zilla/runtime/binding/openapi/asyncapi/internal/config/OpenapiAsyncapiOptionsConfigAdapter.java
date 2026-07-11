@@ -51,6 +51,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
+    private static final String OVERLAY_NAME = "overlay";
 
     @Override
     public Kind kind()
@@ -99,6 +100,20 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                 catalogObject.add(SECURITY_NAME, security);
             }
 
+            if (openapiConfig.overlay != null)
+            {
+                final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+                overlaySchema.add(SUBJECT_NAME, openapiConfig.overlay.subject);
+                if (openapiConfig.overlay.version != null)
+                {
+                    overlaySchema.add(VERSION_NAME, openapiConfig.overlay.version);
+                }
+
+                final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+                overlaySubject.add(openapiConfig.overlay.name, overlaySchema);
+                catalogObject.add(OVERLAY_NAME, overlaySubject);
+            }
+
             openapi.add(openapiConfig.label, catalogObject);
         }
         spec.add(OPENAPI_NAME, openapi);
@@ -127,6 +142,20 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                 final JsonObjectBuilder security = Json.createObjectBuilder();
                 asyncapiConfig.security.forEach(security::add);
                 catalogObject.add(SECURITY_NAME, security);
+            }
+
+            if (asyncapiConfig.overlay != null)
+            {
+                final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+                overlaySchema.add(SUBJECT_NAME, asyncapiConfig.overlay.subject);
+                if (asyncapiConfig.overlay.version != null)
+                {
+                    overlaySchema.add(VERSION_NAME, asyncapiConfig.overlay.version);
+                }
+
+                final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+                overlaySubject.add(asyncapiConfig.overlay.name, overlaySchema);
+                catalogObject.add(OVERLAY_NAME, overlaySubject);
             }
 
             asyncapi.add(asyncapiConfig.label, catalogObject);
@@ -186,7 +215,29 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     }
                 }
 
-                openapis.add(new OpenapiSpecificationConfig(apiLabel, null, List.of(), catalogs, security));
+                OpenapiCatalogConfig overlay = null;
+                if (specObject.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+                    OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> overlayBuilder = OpenapiCatalogConfig.builder();
+                    overlayBuilder.name(overlayEntry.getKey());
+
+                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+                    {
+                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (overlaySchemaObject.containsKey(VERSION_NAME))
+                    {
+                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+                    }
+                    overlay = overlayBuilder.build();
+                }
+
+                openapis.add(new OpenapiSpecificationConfig(apiLabel, null, List.of(), catalogs, security, overlay));
             }
         }
 
@@ -232,6 +283,28 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     {
                         asyncapi.security(scheme, securityObject.getString(scheme));
                     }
+                }
+
+                if (specObject.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+                    final AsyncapiCatalogConfigBuilder<?> overlayBuilder = asyncapi.overlay();
+                    overlayBuilder.name(overlayEntry.getKey());
+
+                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+                    {
+                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (overlaySchemaObject.containsKey(VERSION_NAME))
+                    {
+                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+                    }
+
+                    overlayBuilder.build();
                 }
 
                 asyncapis.add(asyncapi.build());
