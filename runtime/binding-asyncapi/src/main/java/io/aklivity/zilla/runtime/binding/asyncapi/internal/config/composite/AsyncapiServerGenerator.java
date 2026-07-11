@@ -221,6 +221,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .forEach(s -> binding.route()
                         .when(TlsConditionConfig::builder)
                             .port(s.port)
+                            .authority(s.hostname)
                             .build()
                         .exit(String.format("%s_server0", plainBySecure.get(s.protocol)))
                         .build());

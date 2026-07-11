@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 
@@ -38,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
@@ -61,6 +61,24 @@ public class AsyncapiServerGeneratorTest
           "operations": {
             "send": { "action": "send", "channel": { "$ref": "#/channels/sensors" } },
             "receive": { "action": "receive", "channel": { "$ref": "#/channels/sensors" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
+    private static final String SECURE_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "secure": { "host": "broker.example.com:8883", "protocol": "mqtts" } },
+          "channels": {
+            "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/sensors" } }
           },
           "components": {
             "messages": { "event": { "payload": { "type": "object" } } }
@@ -93,7 +111,9 @@ public class AsyncapiServerGeneratorTest
         lenient().when(context.supplyBindingId(any(), any())).thenReturn(42L);
         lenient().when(context.supplyQName(eq(2L))).thenReturn("cluster0");
         lenient().when(catalog.resolve(eq("test"), eq("latest"))).thenReturn(7);
-        lenient().when(catalog.resolve(anyInt())).thenReturn(SPEC);
+        lenient().when(catalog.resolve(eq("secure"), eq("latest"))).thenReturn(8);
+        lenient().when(catalog.resolve(7)).thenReturn(SPEC);
+        lenient().when(catalog.resolve(8)).thenReturn(SECURE_SPEC);
     }
 
     private BindingConfig binding(
@@ -127,6 +147,25 @@ public class AsyncapiServerGeneratorTest
         }
 
         return spec.build();
+    }
+
+    private BindingConfig bindingSecure()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(SERVER)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec(AsyncapiSpecificationConfig.builder()
+                    .label("mqtt_api")
+                    .catalog(new AsyncapiCatalogConfig("catalog0", "secure", "latest"))
+                    .build())
+                .build())
+            .exit("asyncapi0")
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
     }
 
     private BindingConfig mqttServerFor(
@@ -171,5 +210,20 @@ public class AsyncapiServerGeneratorTest
             .toList();
         assertThat(autoStores, hasSize(1));
         assertThat(autoStores.get(0).type, equalTo("memory"));
+    }
+
+    @Test
+    public void shouldPopulateTlsAuthorityForSniRouting()
+    {
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, bindingSecure()));
+
+        BindingConfig tlsServer = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "tls_server0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        TlsConditionConfig when = (TlsConditionConfig) tlsServer.routes.get(0).when.get(0);
+
+        assertThat(when.authority, equalTo("broker.example.com"));
     }
 }

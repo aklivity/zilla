@@ -212,6 +212,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .forEach(s -> binding.route()
                         .when(TlsConditionConfig::builder)
                             .port(s.url.getPort())
+                            .authority(s.url.getHost())
                             .build()
                         .exit("http_server0")
                         .build());
