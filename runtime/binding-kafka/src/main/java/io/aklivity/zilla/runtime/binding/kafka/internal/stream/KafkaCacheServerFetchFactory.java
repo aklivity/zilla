@@ -258,6 +258,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
             final int leaderId = leadersByPartitionId.get(partitionId);
+            final boolean leaderKnown = leaderId != leadersByPartitionId.missingValue();
 
             newStream = new KafkaCacheServerFetchStream(
                     fanout,
@@ -266,6 +267,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     routedId,
                     initialId,
                     leaderId,
+                    leaderKnown,
                     authorization,
                     partitionOffset)::onServerMessage;
         }
@@ -548,7 +550,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             long traceId,
             KafkaCacheServerFetchStream member)
         {
-            if (member.leaderId != leaderId)
+            if (member.leaderKnown && member.leaderId != leaderId)
             {
                 doServerFanoutInitialAbortIfNecessary(traceId);
                 doServerFanoutReplyResetIfNecessary(traceId);
@@ -1304,6 +1306,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final long initialId;
         private final long replyId;
         private final long leaderId;
+        private final boolean leaderKnown;
         private final long authorization;
 
         private int state;
@@ -1327,6 +1330,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             long routedId,
             long initialId,
             long leaderId,
+            boolean leaderKnown,
             long authorization,
             long partitionOffset)
         {
@@ -1337,6 +1341,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.leaderId = leaderId;
+            this.leaderKnown = leaderKnown;
             this.authorization = authorization;
             this.partitionOffset = partitionOffset;
         }
@@ -1384,7 +1389,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long traceId = begin.traceId();
             final long affinity = begin.affinity();
 
-            if (affinity != leaderId)
+            if (leaderKnown && affinity != leaderId)
             {
                 cleanupServer(traceId, ERROR_NOT_LEADER_FOR_PARTITION);
             }

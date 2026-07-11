@@ -92,6 +92,16 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/client.races.ahead.of.leader/client",
+        "${app}/client.races.ahead.of.leader/server"})
+    public void shouldServeClientFetchThatRacesAheadOfLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/compacted.message.with.message/client",
         "${app}/compact.message.with.message/server"})
     public void shouldCompactMessageWithMessage() throws Exception
