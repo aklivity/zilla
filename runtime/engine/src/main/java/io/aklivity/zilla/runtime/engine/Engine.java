@@ -326,7 +326,10 @@ public final class Engine implements Collector, AutoCloseable
 
         final List<Throwable> errors = new ArrayList<>();
 
-        manager.close();
+        if (!readonly)
+        {
+            manager.close();
+        }
 
         try
         {
