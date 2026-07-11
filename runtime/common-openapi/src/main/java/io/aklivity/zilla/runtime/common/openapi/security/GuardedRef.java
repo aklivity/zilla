@@ -12,23 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.internal.config;
+package io.aklivity.zilla.runtime.common.openapi.security;
 
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import java.util.List;
 
-public class OpenapiWithConfig extends WithConfig
+public final class GuardedRef
 {
-    public final String spec;
-    public final String operation;
-    public final String tag;
+    public final String qname;
+    public final List<String> roles;
 
-    public OpenapiWithConfig(
-        String spec,
-        String operation,
-        String tag)
+    public GuardedRef(
+        String qname,
+        List<String> roles)
     {
-        this.spec = spec;
-        this.operation = operation;
-        this.tag = tag;
+        this.qname = qname;
+        this.roles = roles;
     }
 }

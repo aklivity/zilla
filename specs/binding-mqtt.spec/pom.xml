@@ -36,6 +36,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-proxy.spec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>engine.spec</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -76,7 +81,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core mqtt</scopeNames>
+          <scopeNames>core mqtt proxy</scopeNames>
           <packageName>io.aklivity.zilla.specs.binding.mqtt.internal.types</packageName>
         </configuration>
         <executions>

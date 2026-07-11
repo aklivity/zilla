@@ -34,7 +34,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
@@ -48,11 +47,11 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
+    private static final String SERVER_NAME = "server";
     private static final String SERVERS_NAME = "servers";
     private static final String SERVER_HOST_NAME = "host";
     private static final String SERVER_URL_NAME = "url";
     private static final String SERVER_PATHNAME_NAME = "pathname";
-    private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String MQTT_NAME = "mqtt";
@@ -61,12 +60,12 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
+    private static final String SECURITY_NAME = "security";
     private static final String CHANNELS_NAME = "channels";
     private static final String SESSIONS_NAME = "sessions";
     private static final String MESSAGES_NAME = "messages";
     private static final String RETAINED_NAME = "retained";
 
-    private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
     private OptionsConfigAdapter mqttOptions;
@@ -101,6 +100,12 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
                 final JsonArrayBuilder servers = Json.createArrayBuilder();
                 final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
+
+                if (asyncapiConfig.server != null)
+                {
+                    catalogObject.add(SERVER_NAME, asyncapiConfig.server);
+                }
+
                 for (AsyncapiCatalogConfig catalog : asyncapiConfig.catalogs)
                 {
                     JsonObjectBuilder schemaObject = Json.createObjectBuilder();
@@ -137,15 +142,16 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 }
                 catalogObject.add(SERVERS_NAME, servers);
 
+                if (asyncapiConfig.security != null && !asyncapiConfig.security.isEmpty())
+                {
+                    final JsonObjectBuilder security = Json.createObjectBuilder();
+                    asyncapiConfig.security.forEach(security::add);
+                    catalogObject.add(SECURITY_NAME, security);
+                }
+
                 specs.add(asyncapiConfig.label, catalogObject);
             }
             object.add(SPECS_NAME, specs);
-        }
-
-        if (asyncapiOptions.tcp != null)
-        {
-            final TcpOptionsConfig tcp = asyncapiOptions.tcp;
-            object.add(TCP_NAME, tcpOptions.adaptToJson(tcp));
         }
 
         if (asyncapiOptions.tls != null)
@@ -226,6 +232,12 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 specBuilder.label(label);
 
                 final JsonObject spec = entry.getValue().asJsonObject();
+
+                if (spec.containsKey(SERVER_NAME))
+                {
+                    specBuilder.serverOverride(spec.getString(SERVER_NAME));
+                }
+
                 if (spec.containsKey(CATALOG_NAME))
                 {
                     final JsonObject catalogs = spec.getJsonObject(CATALOG_NAME);
@@ -280,14 +292,17 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     }
                 }
 
+                if (spec.containsKey(SECURITY_NAME))
+                {
+                    final JsonObject securityObject = spec.getJsonObject(SECURITY_NAME);
+                    for (String scheme : securityObject.keySet())
+                    {
+                        specBuilder.security(scheme, securityObject.getString(scheme));
+                    }
+                }
+
                 specBuilder.build();
             }
-        }
-
-        if (object.containsKey(TCP_NAME))
-        {
-            final JsonObject tcp = object.getJsonObject(TCP_NAME);
-            builder.tcp(TcpOptionsConfig.class.cast(tcpOptions.adaptFromJson(tcp)));
         }
 
         if (object.containsKey(TLS_NAME))
@@ -348,10 +363,8 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 
     private void ensureNestedOptions()
     {
-        if (tcpOptions == null)
+        if (tlsOptions == null)
         {
-            tcpOptions = new OptionsConfigAdapter(Kind.BINDING);
-            tcpOptions.adaptType("tcp");
             tlsOptions = new OptionsConfigAdapter(Kind.BINDING);
             tlsOptions.adaptType("tls");
             httpOptions = new OptionsConfigAdapter(Kind.BINDING);

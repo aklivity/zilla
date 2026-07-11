@@ -372,7 +372,8 @@ public class EngineWorker implements EngineContext, Agent
 
         this.eventWriter = new EventWriter(
                 config.directory().resolve(String.format("events%d", index)),
-                config.eventsBufferCapacity());
+                config.eventsBufferCapacity(),
+                readonly);
 
         this.eventNames = new Int2ObjectHashMap<>();
 

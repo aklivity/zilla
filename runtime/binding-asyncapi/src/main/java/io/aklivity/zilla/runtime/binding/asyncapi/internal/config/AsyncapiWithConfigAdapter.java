@@ -27,7 +27,6 @@ public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAda
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
-    private static final String TAG_NAME = "tag";
 
     @Override
     public String type()
@@ -53,11 +52,6 @@ public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAda
             object.add(OPERATION_NAME, config.operation);
         }
 
-        if (config.tag != null)
-        {
-            object.add(TAG_NAME, config.tag);
-        }
-
         return object.build();
     }
 
@@ -73,10 +67,6 @@ public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAda
             ? object.getString(OPERATION_NAME)
             : null;
 
-        String tag = object.containsKey(TAG_NAME)
-            ? object.getString(TAG_NAME)
-            : null;
-
-        return new AsyncapiWithConfig(spec, operation, tag);
+        return new AsyncapiWithConfig(spec, operation);
     }
 }

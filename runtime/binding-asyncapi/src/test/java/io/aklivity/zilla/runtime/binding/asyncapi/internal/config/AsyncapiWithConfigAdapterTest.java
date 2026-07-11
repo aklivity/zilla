@@ -50,25 +50,36 @@ public class AsyncapiWithConfigAdapterTest
     }
 
     @Test
-    public void shouldReadWithTag()
+    public void shouldReadWithSpecOnly()
     {
-        String text = "{\"spec\":\"test\",\"tag\":\"pets\"}";
+        String text = "{\"spec\":\"test\"}";
 
         AsyncapiWithConfig with = jsonb.fromJson(text, AsyncapiWithConfig.class);
 
         assertThat(with, not(nullValue()));
         assertThat(with.spec, equalTo("test"));
-        assertThat(with.tag, equalTo("pets"));
+        assertThat(with.operation, equalTo(null));
     }
 
     @Test
     public void shouldWriteWith()
     {
-        AsyncapiWithConfig with = new AsyncapiWithConfig("test", "testOperation", null);
+        AsyncapiWithConfig with = new AsyncapiWithConfig("test", "testOperation");
 
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"spec\":\"test\",\"operation\":\"testOperation\"}"));
+    }
+
+    @Test
+    public void shouldWriteWithSpecOnly()
+    {
+        AsyncapiWithConfig with = new AsyncapiWithConfig("test", null);
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"spec\":\"test\"}"));
     }
 }

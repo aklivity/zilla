@@ -20,15 +20,12 @@ public class AsyncapiWithConfig extends WithConfig
 {
     public final String spec;
     public final String operation;
-    public final String tag;
 
     public AsyncapiWithConfig(
         String spec,
-        String operation,
-        String tag)
+        String operation)
     {
         this.spec = spec;
         this.operation = operation;
-        this.tag = tag;
     }
 }

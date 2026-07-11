@@ -70,4 +70,25 @@ public class OpenapiAsyncapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.guarded.yaml")
+    @Specification({
+        "${openapi}/create.pet/client",
+        "${asyncapi}/create.pet/server"
+    })
+    public void shouldCreatePetWhenAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guarded.yaml")
+    @Specification({
+        "${openapi}/list.pets.forbidden/client"
+    })
+    public void shouldRejectListPetsWhenUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -4,6 +4,9 @@ services:
     image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
     restart: unless-stopped
     hostname: zilla.examples.dev
+    depends_on:
+      kafka:
+        condition: service_healthy
     ports:
       - 7114:7114
     healthcheck:

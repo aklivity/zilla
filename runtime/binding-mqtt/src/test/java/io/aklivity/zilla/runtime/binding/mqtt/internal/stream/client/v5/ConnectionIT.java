@@ -62,6 +62,16 @@ public class ConnectionIT
     }
 
     @Test
+    @Configuration("client.server.yaml")
+    @Specification({
+        "${net}/session.connect.resolved.server/server",
+        "${app}/session.connect.resolved.server/client"})
+    public void shouldResolveConfiguredServer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.credentials.username.yaml")
     @Specification({
         "${net}/connect.username.authentication.successful/server",

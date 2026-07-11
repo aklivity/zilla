@@ -28,3 +28,7 @@ bindings:
         when:
           - headers:
               :authority: localhost:8080
+      - exit: app0
+        when:
+          - headers:
+              :authority: localhost:80

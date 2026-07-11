@@ -157,6 +157,5 @@ bindings:
     routes:
       - when:
           - spec: petstore
-        with:
-          tag: pets
+            tag: pets
         exit: openapi0

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
+import java.util.List;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -41,6 +42,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -179,20 +181,16 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                 {
                     final String apiId = specification.label;
                     final String operationId = operation != null ? operation.name : null;
+                    final List<String> tags = operation != null ? operation.tags : null;
+                    final List<AsyncapiServerView> operationServers = specification.servers;
 
-                    final AsyncapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
+                    final AsyncapiRouteConfig route = binding.resolve(
+                        authorization, apiId, operationId, tags, operationServers);
 
                     if (route != null)
                     {
                         final long resolvedId = route.id;
-                        final long resolvedApiId = composite.resolveApiId(
-                            route.with != null
-                                ? route.with.spec
-                                : apiId);
-                        final String resolvedOperationId =
-                            route.with != null && !route.isBulk()
-                                ? route.with.operation
-                                : operationId;
+                        final long resolvedApiId = composite.resolveApiId(apiId);
 
                         newStream = new CompositeStream(
                             receiver,
@@ -203,7 +201,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                             authorization,
                             resolvedId,
                             resolvedApiId,
-                            resolvedOperationId)::onCompositeMessage;
+                            operationId)::onCompositeMessage;
                     }
                 }
             }

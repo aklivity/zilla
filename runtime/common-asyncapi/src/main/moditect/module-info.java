@@ -23,6 +23,7 @@ module io.aklivity.zilla.runtime.common.asyncapi
     exports io.aklivity.zilla.runtime.common.asyncapi.config;
     exports io.aklivity.zilla.runtime.common.asyncapi.model;
     exports io.aklivity.zilla.runtime.common.asyncapi.model.resolver;
+    exports io.aklivity.zilla.runtime.common.asyncapi.security;
     exports io.aklivity.zilla.runtime.common.asyncapi.view;
 
     opens io.aklivity.zilla.runtime.common.asyncapi.model;

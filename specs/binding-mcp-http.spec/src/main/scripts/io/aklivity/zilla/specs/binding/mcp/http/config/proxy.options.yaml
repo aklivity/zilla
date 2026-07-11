@@ -61,6 +61,8 @@ bindings:
         with:
           headers:
             ":method": POST
+            ":scheme": https
+            ":authority": api.github.com:443
             ":path": /repos/${args.owner}/${args.repo}/pulls
           body:
             model: test
@@ -74,6 +76,8 @@ bindings:
         with:
           headers:
             ":method": POST
+            ":scheme": https
+            ":authority": api.github.com:443
             ":path": /repos/${args.owner}/${args.repo}/pulls
           body:
             template:
@@ -84,6 +88,8 @@ bindings:
         with:
           headers:
             ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
             ":path": /search/code
           query:
             model: test
@@ -97,4 +103,6 @@ bindings:
         with:
           headers:
             ":method": GET
+            ":scheme": https
+            ":authority": api.orders.internal:443
             ":path": /orders/${params.orderId}

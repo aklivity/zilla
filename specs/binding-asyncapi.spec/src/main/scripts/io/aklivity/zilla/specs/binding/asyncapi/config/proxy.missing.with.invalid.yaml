@@ -151,7 +151,3 @@ bindings:
           - spec: mqtt_api
             operation: sendEvents
         exit: asyncapi_kafka0
-        with:
-          spec: kafka_api
-          tag: sensors
-          operation: "toSensor*"

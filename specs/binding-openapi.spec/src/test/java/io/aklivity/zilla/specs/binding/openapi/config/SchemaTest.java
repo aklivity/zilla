@@ -72,6 +72,22 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerWithRouteServers()
+    {
+        JsonObject config = schema.validate("server.route.servers.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWithRoutePrefix()
+    {
+        JsonObject config = schema.validate("server.route.prefix.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateClient()
     {
         JsonObject config = schema.validate("client.yaml");
@@ -83,6 +99,14 @@ public class SchemaTest
     public void shouldValidateClientWithMultipleSpecifications()
     {
         JsonObject config = schema.validate("client.multiple.specs.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithServerOverride()
+    {
+        JsonObject config = schema.validate("client.server.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -111,10 +135,18 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
-    @Test(expected = JsonException.class)
-    public void shouldRejectServerWithRouteTagAndOperation()
+    @Test
+    public void shouldValidateServerWithRouteTagAndOperation()
     {
-        schema.validate("server.route.tag.and.operation.invalid.yaml");
+        JsonObject config = schema.validate("server.route.tag.and.operation.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithRouteWith()
+    {
+        schema.validate("server.route.with.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)

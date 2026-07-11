@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.composite;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
@@ -41,6 +42,13 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public abstract class OpenapiAsyncapiCompositeGenerator
 {
+    protected final List<String> denied = new ArrayList<>();
+
+    public final Collection<String> deniedOperations()
+    {
+        return denied;
+    }
+
     public final OpenapiAsyncapiCompositeConfig generate(
         OpenapiAsyncapiBindingConfig binding)
     {
@@ -67,7 +75,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                         : openapiSpec.servers;
                 final OpenapiView openapi = OpenapiView.of(tagIndex++, label, openapiParser.parse(payload), configs);
 
-                openapiSchemas.add(new OpenapiSchemaConfig(label, schemaId, openapi));
+                openapiSchemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, openapiSpec.security));
             }
         }
 

@@ -47,12 +47,13 @@ import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiReplyView;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
+import io.aklivity.zilla.runtime.common.openapi.security.GuardedResolution;
+import io.aklivity.zilla.runtime.common.openapi.security.OpenapiGuardResolver;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecurityRequirementView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -307,7 +308,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
 
                                     if (kafkaOp != null)
                                     {
-                                        injectHttpKafkaRoute(binding, httpAnyOp, kafkaOp);
+                                        injectHttpKafkaRoute(binding, condition.schema, httpAnyOp, kafkaOp);
                                     }
                                 }
                             }
@@ -317,7 +318,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                                     ? httpOp.id
                                     : route.with.config.operation;
                                 AsyncapiOperationView kafkaOp = candidateKafkaOpsById.get(kafkaOpId);
-                                binding.inject(b -> injectHttpKafkaRoute(b, httpOp, kafkaOp));
+                                binding.inject(b -> injectHttpKafkaRoute(b, condition.schema, httpOp, kafkaOp));
                             }
                         }
                     }
@@ -370,21 +371,25 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
 
                 private <C> BindingConfigBuilder<C> injectHttpKafkaRoute(
                     BindingConfigBuilder<C> binding,
+                    OpenapiSchemaConfig schema,
                     OpenapiOperationView httpOp,
                     AsyncapiOperationView kafkaOp)
                 {
-                    for (OpenapiServerView httpServer : httpOp.servers)
+                    if (allowed(schema, httpOp))
                     {
-                        binding
-                            .route()
-                                .exit(config.qname)
-                                .when(HttpKafkaConditionConfig::builder)
-                                    .method(httpOp.method)
-                                    .path(httpServer.requestPath(httpOp.path))
-                                    .build()
-                                .inject(r -> injectHttpKafkaRouteWith(r, httpServer, httpOp, kafkaOp))
-                                //.inject(r -> injectHttpServerRouteGuarded(r, httpOp))
-                                .build();
+                        for (OpenapiServerView httpServer : httpOp.servers)
+                        {
+                            binding
+                                .route()
+                                    .exit(config.qname)
+                                    .when(HttpKafkaConditionConfig::builder)
+                                        .method(httpOp.method)
+                                        .path(httpServer.requestPath(httpOp.path))
+                                        .build()
+                                    .inject(r -> injectHttpKafkaRouteWith(r, httpServer, httpOp, kafkaOp))
+                                    .inject(r -> injectHttpServerRouteGuarded(r, schema, httpOp))
+                                    .build();
+                        }
                     }
 
                     return binding;
@@ -558,26 +563,43 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
 
                 private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
                     RouteConfigBuilder<C> route,
+                    OpenapiSchemaConfig schema,
                     OpenapiOperationView httpOp)
                 {
-                    Map<String, OpenapiSecuritySchemeView> securitySchemes = httpOp.specification.components.securitySchemes;
-                    final List<List<OpenapiSecurityRequirementView>> security = httpOp.security;
-
-                    if (security != null)
+                    for (GuardedRef ref : resolveGuarded(schema, httpOp).guarded)
                     {
-                        security.stream()
-                            .flatMap(s -> s.stream())
-                            .filter(r -> securitySchemes != null && securitySchemes.containsKey(r.name))
-                            .filter(r -> "jwt".equalsIgnoreCase(securitySchemes.get(r.name).bearerFormat))
-                            .forEach(r ->
-                                route
-                                    .guarded()
-                                        .name(String.format("%s:jwt0", config.namespace))
-                                        .inject(guarded -> injectGuardedRoles(guarded, r.scopes))
-                                        .build());
+                        route
+                            .guarded()
+                                .name(ref.qname)
+                                .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
+                                .build();
                     }
 
                     return route;
+                }
+
+                private GuardedResolution resolveGuarded(
+                    OpenapiSchemaConfig schema,
+                    OpenapiOperationView operation)
+                {
+                    return OpenapiGuardResolver.resolve(
+                        operation.id, schema.apiLabel, operation.security, schema.security,
+                        config.resolveId, config.supplyQName);
+                }
+
+                private boolean allowed(
+                    OpenapiSchemaConfig schema,
+                    OpenapiOperationView operation)
+                {
+                    final GuardedResolution resolution = resolveGuarded(schema, operation);
+                    final boolean allowed = !resolution.denied();
+
+                    if (!allowed)
+                    {
+                        denied.add(resolution.reason);
+                    }
+
+                    return allowed;
                 }
 
                 private List<String> findParams(

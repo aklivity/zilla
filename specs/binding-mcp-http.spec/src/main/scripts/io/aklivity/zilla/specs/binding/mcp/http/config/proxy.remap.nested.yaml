@@ -80,7 +80,7 @@ bindings:
           headers:
             ":method": POST
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /repos/${args.owner}/${args.repo}/pulls
           body:
             template:

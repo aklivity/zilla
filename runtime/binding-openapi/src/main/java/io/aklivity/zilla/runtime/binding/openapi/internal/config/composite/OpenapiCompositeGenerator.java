@@ -18,6 +18,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingC
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
@@ -52,6 +54,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiRequestBodyView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -71,6 +74,7 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public abstract class OpenapiCompositeGenerator
 {
     private final Set<String> unresolved = new LinkedHashSet<>();
+    protected final List<String> denied = new ArrayList<>();
 
     public final OpenapiCompositeConfig generate(
         OpenapiBindingConfig binding)
@@ -89,24 +93,51 @@ public abstract class OpenapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
+                final String materialized = materialize(binding, specification, payload);
                 final List<OpenapiServerConfig> configs =
                     specification.servers == null || specification.servers.isEmpty()
                         ? List.of(OpenapiServerConfig.builder().build())
                         : specification.servers;
-                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), configs);
+                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized), configs);
 
                 unresolved.addAll(openapi.unresolvedRefs());
 
-                schemas.add(new OpenapiSchemaConfig(label, schemaId, openapi));
+                schemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, specification.security));
             }
         }
 
         return generate(binding, schemas);
     }
 
+    private String materialize(
+        OpenapiBindingConfig binding,
+        OpenapiSpecificationConfig specification,
+        String payload)
+    {
+        String materialized = payload;
+        if (specification.overlay != null)
+        {
+            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
+            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final String overlayPayload = handler.resolve(schemaId);
+
+            final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
+            final JsonObject overlayDocument = YamlJson.createReader(new StringReader(overlayPayload)).readObject();
+            materialized = JsonOverlay.of(overlayDocument).apply(document).toString();
+        }
+
+        return materialized;
+    }
+
     public final Collection<String> unresolvedRefs()
     {
         return unresolved;
+    }
+
+    public final Collection<String> deniedOperations()
+    {
+        return denied;
     }
 
     protected abstract OpenapiCompositeConfig generate(
@@ -421,6 +452,18 @@ public abstract class OpenapiCompositeGenerator
 
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
+
+            protected final String resolveServerPrefix()
+            {
+                return config.options.specs.stream()
+                    .filter(s -> name.equals(s.label))
+                    .map(s -> s.server)
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .map(server -> URI.create(server).getPath())
+                    .filter(Objects::nonNull)
+                    .orElse("");
+            }
 
             protected final void injectPayloadModel(
                 Consumer<ModelConfig> injector,

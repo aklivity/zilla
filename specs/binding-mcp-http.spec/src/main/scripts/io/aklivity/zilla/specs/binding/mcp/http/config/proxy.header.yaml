@@ -69,6 +69,6 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /echo
             "x-request-id": ${args.requestId}

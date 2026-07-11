@@ -15,13 +15,16 @@
 package io.aklivity.zilla.runtime.common.asyncapi.config;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class AsyncapiSpecificationConfig
 {
     public final String label;
+    public final String server;
     public final List<AsyncapiCatalogConfig> catalogs;
     public final List<AsyncapiServerConfig> servers;
+    public final Map<String, String> security;
 
     public static AsyncapiSpecificationConfigBuilder<AsyncapiSpecificationConfig> builder()
     {
@@ -36,11 +39,15 @@ public class AsyncapiSpecificationConfig
 
     AsyncapiSpecificationConfig(
         String label,
+        String server,
         List<AsyncapiServerConfig> servers,
-        List<AsyncapiCatalogConfig> catalogs)
+        List<AsyncapiCatalogConfig> catalogs,
+        Map<String, String> security)
     {
         this.label = label;
+        this.server = server;
         this.catalogs = catalogs;
         this.servers = servers;
+        this.security = security;
     }
 }
