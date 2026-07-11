@@ -26,6 +26,23 @@ public class OpenapiSpecificationConfig
     public final List<OpenapiServerConfig> servers;
     public final List<OpenapiCatalogConfig> catalogs;
     public final Map<String, String> security;
+    public final OpenapiCatalogConfig overlay;
+
+    public OpenapiSpecificationConfig(
+        String label,
+        String server,
+        List<OpenapiServerConfig> servers,
+        List<OpenapiCatalogConfig> catalogs,
+        Map<String, String> security,
+        OpenapiCatalogConfig overlay)
+    {
+        this.label = label;
+        this.server = server;
+        this.servers = servers;
+        this.catalogs = catalogs;
+        this.security = security;
+        this.overlay = overlay;
+    }
 
     public OpenapiSpecificationConfig(
         String label,
@@ -34,11 +51,7 @@ public class OpenapiSpecificationConfig
         List<OpenapiCatalogConfig> catalogs,
         Map<String, String> security)
     {
-        this.label = label;
-        this.server = server;
-        this.servers = servers;
-        this.catalogs = catalogs;
-        this.security = security;
+        this(label, server, servers, catalogs, security, null);
     }
 
     public OpenapiSpecificationConfig(
@@ -47,7 +60,7 @@ public class OpenapiSpecificationConfig
         List<OpenapiServerConfig> servers,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(label, server, servers, catalogs, null);
+        this(label, server, servers, catalogs, null, null);
     }
 
     public OpenapiSpecificationConfig(
@@ -55,13 +68,13 @@ public class OpenapiSpecificationConfig
         List<OpenapiServerConfig> servers,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(label, null, servers, catalogs, null);
+        this(label, null, servers, catalogs, null, null);
     }
 
     public OpenapiSpecificationConfig(
         String apiLabel,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(apiLabel, null, emptyList(), catalogs, null);
+        this(apiLabel, null, emptyList(), catalogs, null, null);
     }
 }

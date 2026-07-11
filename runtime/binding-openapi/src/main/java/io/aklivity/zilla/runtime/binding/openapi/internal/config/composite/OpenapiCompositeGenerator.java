@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingC
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
@@ -53,6 +54,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiRequestBodyView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -91,11 +93,12 @@ public abstract class OpenapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
+                final String materialized = materialize(binding, specification, payload);
                 final List<OpenapiServerConfig> configs =
                     specification.servers == null || specification.servers.isEmpty()
                         ? List.of(OpenapiServerConfig.builder().build())
                         : specification.servers;
-                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), configs);
+                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized), configs);
 
                 unresolved.addAll(openapi.unresolvedRefs());
 
@@ -104,6 +107,27 @@ public abstract class OpenapiCompositeGenerator
         }
 
         return generate(binding, schemas);
+    }
+
+    private String materialize(
+        OpenapiBindingConfig binding,
+        OpenapiSpecificationConfig specification,
+        String payload)
+    {
+        String materialized = payload;
+        if (specification.overlay != null)
+        {
+            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
+            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final String overlayPayload = handler.resolve(schemaId);
+
+            final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
+            final JsonObject overlayDocument = YamlJson.createReader(new StringReader(overlayPayload)).readObject();
+            materialized = JsonOverlay.of(overlayDocument).apply(document).toString();
+        }
+
+        return materialized;
     }
 
     public final Collection<String> unresolvedRefs()
