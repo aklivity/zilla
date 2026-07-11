@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.config;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class AsyncapiSpecificationConfigBuilder<T>
@@ -23,13 +25,22 @@ public class AsyncapiSpecificationConfigBuilder<T>
     private final Function<AsyncapiSpecificationConfig, T> mapper;
 
     private String label;
+    private String server;
     private List<AsyncapiServerConfig> servers;
     private List<AsyncapiCatalogConfig> catalogs;
+    private Map<String, String> security;
 
     public AsyncapiSpecificationConfigBuilder<T> label(
         String label)
     {
         this.label = label;
+        return this;
+    }
+
+    public AsyncapiSpecificationConfigBuilder<T> serverOverride(
+        String server)
+    {
+        this.server = server;
         return this;
     }
 
@@ -67,10 +78,23 @@ public class AsyncapiSpecificationConfigBuilder<T>
         return this;
     }
 
+    public AsyncapiSpecificationConfigBuilder<T> security(
+        String scheme,
+        String guard)
+    {
+        if (security == null)
+        {
+            security = new LinkedHashMap<>();
+        }
+
+        security.put(scheme, guard);
+        return this;
+    }
+
     public T build()
     {
         return mapper.apply(
-            new AsyncapiSpecificationConfig(label, servers, catalogs));
+            new AsyncapiSpecificationConfig(label, server, servers, catalogs, security));
     }
 
     AsyncapiSpecificationConfigBuilder(

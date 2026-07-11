@@ -153,7 +153,4 @@ bindings:
             catalog0:
               subject: petstore
               version: latest
-      tcp:
-        host: localhost
-        port: 8080
 

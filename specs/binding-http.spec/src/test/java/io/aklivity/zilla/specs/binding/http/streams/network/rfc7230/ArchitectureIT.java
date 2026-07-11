@@ -84,6 +84,15 @@ public class ArchitectureIT
 
     @Test
     @Specification({
+        "${net}/request.absolute.form.without.port/client",
+        "${net}/request.absolute.form.without.port/server"})
+    public void shouldAcceptRequestWithAbsoluteFormWithoutPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.version.invalid/client",
         "${net}/request.version.invalid/server"})
     public void shouldRejectRequestWhenVersionInvalid() throws Exception

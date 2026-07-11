@@ -18,6 +18,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -71,6 +72,7 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 public abstract class OpenapiCompositeGenerator
 {
     private final Set<String> unresolved = new LinkedHashSet<>();
+    protected final List<String> denied = new ArrayList<>();
 
     public final OpenapiCompositeConfig generate(
         OpenapiBindingConfig binding)
@@ -97,7 +99,7 @@ public abstract class OpenapiCompositeGenerator
 
                 unresolved.addAll(openapi.unresolvedRefs());
 
-                schemas.add(new OpenapiSchemaConfig(label, schemaId, openapi));
+                schemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, specification.security));
             }
         }
 
@@ -107,6 +109,11 @@ public abstract class OpenapiCompositeGenerator
     public final Collection<String> unresolvedRefs()
     {
         return unresolved;
+    }
+
+    public final Collection<String> deniedOperations()
+    {
+        return denied;
     }
 
     protected abstract OpenapiCompositeConfig generate(
@@ -421,6 +428,18 @@ public abstract class OpenapiCompositeGenerator
 
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
+
+            protected final String resolveServerPrefix()
+            {
+                return config.options.specs.stream()
+                    .filter(s -> name.equals(s.label))
+                    .map(s -> s.server)
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .map(server -> URI.create(server).getPath())
+                    .filter(Objects::nonNull)
+                    .orElse("");
+            }
 
             protected final void injectPayloadModel(
                 Consumer<ModelConfig> injector,

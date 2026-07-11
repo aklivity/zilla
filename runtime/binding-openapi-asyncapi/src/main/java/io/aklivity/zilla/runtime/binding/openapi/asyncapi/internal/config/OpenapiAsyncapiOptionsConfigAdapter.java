@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 import static java.util.Collections.unmodifiableSet;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
+    private static final String SECURITY_NAME = "security";
 
     @Override
     public Kind kind()
@@ -89,6 +91,14 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                 subjectObject.add(catalog.name, schemaObject);
             }
             catalogObject.add(CATALOG_NAME, subjectObject);
+
+            if (openapiConfig.security != null && !openapiConfig.security.isEmpty())
+            {
+                final JsonObjectBuilder security = Json.createObjectBuilder();
+                openapiConfig.security.forEach(security::add);
+                catalogObject.add(SECURITY_NAME, security);
+            }
+
             openapi.add(openapiConfig.label, catalogObject);
         }
         spec.add(OPENAPI_NAME, openapi);
@@ -111,6 +121,13 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                 subjectObject.add(catalog.name, schemaObject);
             }
             catalogObject.add(CATALOG_NAME, subjectObject);
+
+            if (asyncapiConfig.security != null && !asyncapiConfig.security.isEmpty())
+            {
+                final JsonObjectBuilder security = Json.createObjectBuilder();
+                asyncapiConfig.security.forEach(security::add);
+                catalogObject.add(SECURITY_NAME, security);
+            }
 
             asyncapi.add(asyncapiConfig.label, catalogObject);
         }
@@ -157,7 +174,19 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     }
                     catalogs.add(catalogBuilder.build());
                 }
-                openapis.add(new OpenapiSpecificationConfig(apiLabel, catalogs));
+
+                Map<String, String> security = null;
+                if (specObject.containsKey(SECURITY_NAME))
+                {
+                    security = new LinkedHashMap<>();
+                    final JsonObject securityObject = specObject.getJsonObject(SECURITY_NAME);
+                    for (String scheme : securityObject.keySet())
+                    {
+                        security.put(scheme, securityObject.getString(scheme));
+                    }
+                }
+
+                openapis.add(new OpenapiSpecificationConfig(apiLabel, null, List.of(), catalogs, security));
             }
         }
 
@@ -195,6 +224,16 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
 
                     catalog.build();
                 }
+
+                if (specObject.containsKey(SECURITY_NAME))
+                {
+                    final JsonObject securityObject = specObject.getJsonObject(SECURITY_NAME);
+                    for (String scheme : securityObject.keySet())
+                    {
+                        asyncapi.security(scheme, securityObject.getString(scheme));
+                    }
+                }
+
                 asyncapis.add(asyncapi.build());
             }
         }

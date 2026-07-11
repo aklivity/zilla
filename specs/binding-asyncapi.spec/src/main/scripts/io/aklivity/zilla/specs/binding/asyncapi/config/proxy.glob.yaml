@@ -147,8 +147,8 @@ bindings:
     routes:
       - when:
           - spec: mqtt_api
-            operation: sendEvents
+            operation: "send*"
         exit: asyncapi_kafka0
         with:
           spec: kafka_api
-          operation: "toSensor*"
+          operation: toSensorData

@@ -121,4 +121,14 @@ public class ArchitectureIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.absolute.form.without.port/client",
+        "${app}/request.absolute.form.without.port/server" })
+    public void shouldAcceptRequestWithAbsoluteFormWithoutPort() throws Exception
+    {
+        k3po.finish();
+    }
 }

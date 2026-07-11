@@ -23,7 +23,7 @@ accept ${serverAddress}
 accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
-                           .compositeId(core:decodeLong("0x0000_0001_0000_0000"))
+                           .compositeId(core:decodeLong("0x0001_0000_0000_0000"))
                            .typeId(zilla:id("mqtt"))
                            .session()
                                .clientId("client")
@@ -46,7 +46,7 @@ write flush
 accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
-                           .compositeId(core:decodeLong("0x0000_0001_0000_0002"))
+                           .compositeId(core:decodeLong("0x0001_0000_0002_0000"))
                            .typeId(zilla:id("mqtt"))
                            .publish()
                                .clientId("client")
@@ -74,7 +74,7 @@ read "asyncapiMessage"
 accepted
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
-                           .compositeId(core:decodeLong("0x0000_0001_0000_0001"))
+                           .compositeId(core:decodeLong("0x0001_0000_0001_0000"))
                            .typeId(zilla:id("mqtt"))
                            .subscribe()
                                .clientId("client")

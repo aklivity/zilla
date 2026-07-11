@@ -90,6 +90,24 @@ public class SchemaTest
         schema.validate("proxy.route.when.multiple.invalid.yaml");
     }
 
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorityWithoutPort()
+    {
+        schema.validate("proxy.route.headers.authority.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectSchemeOtherThanHttpOrHttps()
+    {
+        schema.validate("proxy.route.headers.scheme.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectHeadersWithoutPath()
+    {
+        schema.validate("proxy.route.headers.path.invalid.yaml");
+    }
+
     @Test
     public void shouldValidateGuardedRouteWithoutWhen()
     {

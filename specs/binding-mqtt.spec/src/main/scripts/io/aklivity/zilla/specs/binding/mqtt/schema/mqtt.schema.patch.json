@@ -248,6 +248,11 @@
                             {
                                 "properties":
                                 {
+                                    "server":
+                                    {
+                                        "title": "Server",
+                                        "type": "string"
+                                    },
                                     "authorization":
                                     {
                                         "$ref": "#/$defs/options/binding/mqtt/authorization"

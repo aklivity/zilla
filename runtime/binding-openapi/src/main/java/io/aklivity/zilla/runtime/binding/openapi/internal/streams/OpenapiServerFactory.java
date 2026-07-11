@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
+import java.util.List;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -186,16 +188,16 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                 {
                     final String apiId = specification.label;
                     final String operationId = operation != null ? operation.id : null;
+                    final List<String> tags = operation != null ? operation.tags : null;
+                    final OpenapiServerView server = composite.resolveServer(compositeId);
+                    final String serverUrl = server != null ? server.url.toString() : null;
 
-                    final OpenapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
+                    final OpenapiRouteConfig route = binding.resolve(authorization, apiId, operationId, tags, serverUrl);
 
                     if (route != null)
                     {
                         final long resolvedId = route.id;
-                        final long resolvedApiId = composite.resolveApiId(
-                            binding.resolveSpecLabel(route, apiId));
-                        final String resolvedOperationId =
-                            binding.resolveOperationId(route, operationId);
+                        final long resolvedApiId = composite.resolveApiId(apiId);
 
                         newStream = new CompositeStream(
                             receiver,
@@ -206,7 +208,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                             authorization,
                             resolvedId,
                             resolvedApiId,
-                            resolvedOperationId)::onCompositeMessage;
+                            operationId)::onCompositeMessage;
                     }
                 }
             }

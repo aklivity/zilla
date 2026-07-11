@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.config;
 
+import java.util.Map;
+
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 
 public class AsyncapiSchemaConfig
@@ -21,14 +23,25 @@ public class AsyncapiSchemaConfig
     public final String apiLabel;
     public final int schemaId;
     public final AsyncapiView asyncapi;
+    public final Map<String, String> security;
+
+    public AsyncapiSchemaConfig(
+        String apiLabel,
+        int schemaId,
+        AsyncapiView asyncapi,
+        Map<String, String> security)
+    {
+        this.apiLabel = apiLabel;
+        this.schemaId = schemaId;
+        this.asyncapi = asyncapi;
+        this.security = security;
+    }
 
     public AsyncapiSchemaConfig(
         String apiLabel,
         int schemaId,
         AsyncapiView asyncapi)
     {
-        this.apiLabel = apiLabel;
-        this.schemaId = schemaId;
-        this.asyncapi = asyncapi;
+        this(apiLabel, schemaId, asyncapi, null);
     }
 }

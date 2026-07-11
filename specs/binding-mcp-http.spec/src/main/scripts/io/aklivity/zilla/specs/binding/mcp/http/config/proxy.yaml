@@ -462,7 +462,7 @@ bindings:
           headers:
             ":method": POST
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /repos/${args.owner}/${args.repo}/pulls
           body:
             model: json
@@ -477,7 +477,7 @@ bindings:
           headers:
             ":method": POST
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /widgets
           body:
             model: json
@@ -492,7 +492,7 @@ bindings:
           headers:
             ":method": POST
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /repos/${args.owner}/${args.repo}/issues/${args.number}/comments
           body:
             template:
@@ -504,7 +504,7 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /search/code
           query:
             model: json
@@ -519,7 +519,7 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.orders.internal
+            ":authority": api.orders.internal:443
             ":path": /orders/${params.orderId}
       - when:
           - tool: get_report
@@ -528,7 +528,7 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /report
       - when:
           - tool: ping
@@ -537,7 +537,7 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /ping
       - when:
           - tool: list_tags
@@ -546,7 +546,7 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /tags
       - when:
           - tool: count_items
@@ -555,7 +555,7 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /count
       - when:
           - tool: echo_id
@@ -564,7 +564,7 @@ bindings:
           headers:
             ":method": POST
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /echo/${args.id}
           body:
             model: json
@@ -579,7 +579,7 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /profile
       - when:
           - tool: search_items
@@ -588,5 +588,5 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /items?q=${args.q}&${?args.limit=limit}

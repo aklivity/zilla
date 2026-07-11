@@ -74,6 +74,13 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
         return this;
     }
 
+    public HttpOptionsConfigBuilder<T> override(
+        String name,
+        String value)
+    {
+        return override(new String8FW(name), new String16FW(value));
+    }
+
     public HttpOptionsConfigBuilder<T> requests(
         List<HttpRequestConfig> requests)
     {

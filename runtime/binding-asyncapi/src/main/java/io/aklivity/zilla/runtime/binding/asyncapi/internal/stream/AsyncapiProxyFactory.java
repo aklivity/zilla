@@ -174,15 +174,16 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                 {
                     final String apiId = operation.specification.label;
                     final String operationId = operation.name;
-                    final AsyncapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
+                    final AsyncapiRouteConfig route = binding.resolve(
+                        authorization, apiId, operationId, operation.tags, operation.specification.servers);
 
                     if (route != null)
                     {
                         final long resolvedId = route.id;
                         final long resolvedApiId = composite.resolveApiId(route.with.spec);
-                        final String resolvedOperationId = route.isBulk()
-                            ? operationId
-                            : route.with.operation;
+                        final String resolvedOperationId = route.with.operation != null
+                            ? route.with.operation
+                            : operationId;
 
                         newStream = new CompositeClientStream(
                             receiver,

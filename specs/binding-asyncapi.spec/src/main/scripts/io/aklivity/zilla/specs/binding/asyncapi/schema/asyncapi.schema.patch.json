@@ -48,6 +48,11 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                            "server":
+                                            {
+                                                "title": "Server",
+                                                "type": "string"
+                                            },
                                             "servers":
                                             {
                                                 "title": "Servers",
@@ -107,16 +112,25 @@
                                                     },
                                                     "additionalProperties": false
                                                 }
+                                            },
+                                            "security":
+                                            {
+                                                "title": "Security",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z0-9_\\-]+$":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         },
                                         "additionalProperties": false
                                     }
                                 },
                                 "additionalProperties": false
-                            },
-                            "tcp":
-                            {
-                                "$ref": "#/$defs/options/binding/tcp"
                             },
                             "tls":
                             {
@@ -206,67 +220,6 @@
                             }
                         },
                         "additionalProperties": false
-                    },
-                    "routes":
-                    {
-                        "title": "Routes",
-                        "type": "array",
-                        "items":
-                        {
-                            "type": "object",
-                            "properties":
-                            {
-                                "when":
-                                {
-                                    "title": "When",
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "properties":
-                                        {
-                                            "spec":
-                                            {
-                                                "title": "Spec",
-                                                "type": "string"
-                                            },
-                                            "operation":
-                                            {
-                                                "title": "Operation",
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                },
-                                "with":
-                                {
-                                    "properties":
-                                    {
-                                        "spec":
-                                        {
-                                            "title": "Spec",
-                                            "type": "string"
-                                        },
-                                        "operation":
-                                        {
-                                            "title": "Operation Id or glob pattern",
-                                            "type": "string"
-                                        },
-                                        "tag":
-                                        {
-                                            "title": "Tag",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "additionalProperties": false,
-                                    "not":
-                                    {
-                                        "required": [ "tag", "operation" ]
-                                    }
-                                }
-                            }
-                        }
                     }
                 },
                 "oneOf":
@@ -277,6 +230,70 @@
                             "kind":
                             {
                                 "const": "server"
+                            },
+                            "routes":
+                            {
+                                "title": "Routes",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "when":
+                                        {
+                                            "title": "When",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "properties":
+                                                {
+                                                    "spec":
+                                                    {
+                                                        "title": "Spec",
+                                                        "type": "string"
+                                                    },
+                                                    "operation":
+                                                    {
+                                                        "title": "Operation Id or glob pattern",
+                                                        "type": "string"
+                                                    },
+                                                    "tag":
+                                                    {
+                                                        "title": "Tag",
+                                                        "type": "string"
+                                                    },
+                                                    "servers":
+                                                    {
+                                                        "title": "Servers",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "name":
+                                                                {
+                                                                    "title": "Name",
+                                                                    "type": "string"
+                                                                },
+                                                                "url":
+                                                                {
+                                                                    "title": "URL",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "with": false
+                                    }
+                                }
                             }
                         },
                         "anyOf":
@@ -311,6 +328,94 @@
                             "kind":
                             {
                                 "const": "proxy"
+                            },
+                            "routes":
+                            {
+                                "title": "Routes",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "when":
+                                        {
+                                            "title": "When",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "properties":
+                                                {
+                                                    "spec":
+                                                    {
+                                                        "title": "Spec",
+                                                        "type": "string"
+                                                    },
+                                                    "operation":
+                                                    {
+                                                        "title": "Operation Id or glob pattern",
+                                                        "type": "string"
+                                                    },
+                                                    "tag":
+                                                    {
+                                                        "title": "Tag",
+                                                        "type": "string"
+                                                    },
+                                                    "servers":
+                                                    {
+                                                        "title": "Servers",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "name":
+                                                                {
+                                                                    "title": "Name",
+                                                                    "type": "string"
+                                                                },
+                                                                "url":
+                                                                {
+                                                                    "title": "URL",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "with":
+                                        {
+                                            "properties":
+                                            {
+                                                "spec":
+                                                {
+                                                    "title": "Spec",
+                                                    "type": "string"
+                                                },
+                                                "operation":
+                                                {
+                                                    "title": "Operation",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "spec"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "with"
+                                    ]
+                                }
                             }
                         },
                         "anyOf":
@@ -346,16 +451,7 @@
                             {
                                 "const": "client"
                             },
-                            "routes":
-                            {
-                                "items":
-                                {
-                                    "properties":
-                                    {
-                                        "exit": false
-                                    }
-                                }
-                            },
+                            "routes": false,
                             "exit": false
                         }
                     }

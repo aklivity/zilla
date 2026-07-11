@@ -78,6 +78,5 @@ bindings:
     routes:
       - when:
           - spec: petstore
-        with:
-          operation: list*
+            operation: list*
         exit: pets_backend

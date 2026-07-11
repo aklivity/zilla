@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.net.URI;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,6 +60,8 @@ public final class MqttBindingConfig
     public final ToLongFunction<String> resolveId;
     public final GuardHandler guard;
     public final StoreHandler store;
+    public final String serverHost;
+    public final int serverPort;
 
     public MqttBindingConfig(
         BindingConfig binding,
@@ -97,6 +100,10 @@ public final class MqttBindingConfig
             : null;
         this.versions = options != null &&
             options.versions != null ? options.versions : DEFAULT_VERSIONS;
+
+        URI server = options != null && options.server != null ? URI.create(options.server) : null;
+        this.serverHost = server != null ? server.getHost() : null;
+        this.serverPort = server != null ? server.getPort() : -1;
     }
 
     public MqttRouteConfig resolve(

@@ -18,7 +18,7 @@ import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CRO
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.List;
-import java.util.Map;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
@@ -34,11 +34,11 @@ import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
+import io.aklivity.zilla.runtime.common.openapi.security.GuardedResolution;
+import io.aklivity.zilla.runtime.common.openapi.security.OpenapiGuardResolver;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecurityRequirementView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
@@ -130,17 +130,15 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTcpServer(
                 NamespaceConfigBuilder<C> namespace)
             {
-                final TcpOptionsConfig tcpOptions = config.options.tcp != null
-                    ? config.options.tcp
-                    : TcpOptionsConfig.builder()
-                        .host("0.0.0.0")
-                        .ports(Stream.of(schema)
-                            .map(s -> s.openapi)
-                            .flatMap(v -> v.servers.stream())
-                            .mapToInt(s -> s.url.getPort())
-                            .distinct()
-                            .toArray())
-                        .build();
+                final TcpOptionsConfig tcpOptions = TcpOptionsConfig.builder()
+                    .host("0.0.0.0")
+                    .ports(Stream.of(schema)
+                        .map(s -> s.openapi)
+                        .flatMap(v -> v.servers.stream())
+                        .mapToInt(s -> s.url.getPort())
+                        .distinct()
+                        .toArray())
+                    .build();
 
                 namespace
                     .binding()
@@ -260,23 +258,21 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
+                final String prefix = resolveServerPrefix();
+
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasRequestBodyOrParameters)
                     .forEach(operation ->
-                    {
-                        for (OpenapiServerView server : operation.servers)
-                        {
+                        operation.servers.forEach(server ->
                             options
                                 .request()
-                                    .path(server.requestPath(operation.path))
+                                    .path(prefix + server.requestPath(operation.path))
                                     .method(Method.valueOf(operation.method))
                                     .inject(request -> injectHttpParams(request, operation))
                                     .inject(request -> injectHttpContent(request, operation))
-                                .build();
-                        }
-                    });
+                                .build()));
 
                 return options;
             }
@@ -373,47 +369,67 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectHttpRoutes(
                 BindingConfigBuilder<C> binding)
             {
+                final String prefix = resolveServerPrefix();
+
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(o -> o.servers != null)
+                    .filter(this::allowed)
                     .forEach(operation ->
-                        operation.servers.forEach(server ->
-                            binding
-                                .route()
-                                .exit(config.qname)
-                                .when(HttpConditionConfig::builder)
-                                    .header(":path", server.requestPath(operation.path).replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
-                                    .header(":method", operation.method)
-                                    .build()
-                                .with(HttpWithConfig::builder)
-                                    .compositeId(operation.compositeId)
-                                    .build()
-                                .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                                .build()));
+                        IntStream.range(0, operation.servers.size())
+                            .forEach(i ->
+                                binding
+                                    .route()
+                                    .exit(config.qname)
+                                    .when(HttpConditionConfig::builder)
+                                        .header(":path",
+                                            (prefix + operation.servers.get(i).requestPath(operation.path))
+                                                .replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
+                                        .header(":method", operation.method)
+                                        .build()
+                                    .with(HttpWithConfig::builder)
+                                        .compositeId(operation.compositeId(i + 1))
+                                        .build()
+                                    .inject(route -> injectHttpServerRouteGuarded(route, operation))
+                                    .build()));
 
                 return binding;
+            }
+
+            private GuardedResolution resolveGuarded(
+                OpenapiOperationView operation)
+            {
+                return OpenapiGuardResolver.resolve(
+                    operation.id, schema.apiLabel, operation.security, schema.security,
+                    config.resolveId, config.supplyQName);
+            }
+
+            private boolean allowed(
+                OpenapiOperationView operation)
+            {
+                final GuardedResolution resolution = resolveGuarded(operation);
+                final boolean allowed = !resolution.denied();
+
+                if (!allowed)
+                {
+                    denied.add(resolution.reason);
+                }
+
+                return allowed;
             }
 
             private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
                 RouteConfigBuilder<C> route,
                 OpenapiOperationView operation)
             {
-                Map<String, OpenapiSecuritySchemeView> securitySchemes = operation.specification.components.securitySchemes;
-                final List<List<OpenapiSecurityRequirementView>> security = operation.security;
-
-                if (security != null)
+                for (GuardedRef ref : resolveGuarded(operation).guarded)
                 {
-                    security.stream()
-                        .flatMap(s -> s.stream())
-                        .filter(r -> securitySchemes.containsKey(r.name))
-                        .filter(r -> "jwt".equalsIgnoreCase(securitySchemes.get(r.name).bearerFormat))
-                        .forEach(r ->
-                            route
-                                .guarded()
-                                    .name(config.options.http.authorization.qname)
-                                    .inject(guarded -> injectGuardedRoles(guarded, r.scopes))
-                                    .build());
+                    route
+                        .guarded()
+                            .name(ref.qname)
+                            .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
+                            .build();
                 }
 
                 return route;
