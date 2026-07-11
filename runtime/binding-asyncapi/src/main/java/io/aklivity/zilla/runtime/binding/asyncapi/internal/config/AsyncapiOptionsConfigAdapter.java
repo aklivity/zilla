@@ -61,6 +61,7 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
+    private static final String STORE_NAME = "store";
     private static final String CHANNELS_NAME = "channels";
     private static final String SESSIONS_NAME = "sessions";
     private static final String MESSAGES_NAME = "messages";
@@ -147,6 +148,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     final JsonObjectBuilder security = Json.createObjectBuilder();
                     asyncapiConfig.security.forEach(security::add);
                     catalogObject.add(SECURITY_NAME, security);
+                }
+
+                if (asyncapiConfig.store != null)
+                {
+                    catalogObject.add(STORE_NAME, asyncapiConfig.store);
                 }
 
                 specs.add(asyncapiConfig.label, catalogObject);
@@ -299,6 +305,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     {
                         specBuilder.security(scheme, securityObject.getString(scheme));
                     }
+                }
+
+                if (spec.containsKey(STORE_NAME))
+                {
+                    specBuilder.store(spec.getString(STORE_NAME));
                 }
 
                 specBuilder.build();

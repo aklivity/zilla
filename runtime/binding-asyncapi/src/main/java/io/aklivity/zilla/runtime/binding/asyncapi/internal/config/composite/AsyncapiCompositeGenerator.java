@@ -148,7 +148,7 @@ public abstract class AsyncapiCompositeGenerator
 
                 unresolved.addAll(asyncapi.unresolvedRefs());
 
-                schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi, specification.security));
+                schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi, specification.security, specification.store));
             }
         }
 

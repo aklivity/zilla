@@ -558,9 +558,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectMqtt(
                 NamespaceConfigBuilder<C> namespace)
             {
-                final MqttOptionsConfig mqttOptions = config.options.mqtt;
-                final String store = mqttOptions != null && mqttOptions.store != null
-                    ? config.supplyQName.apply(config.resolveId.applyAsLong(mqttOptions.store))
+                final String store = schema.store != null
+                    ? config.supplyQName.apply(config.resolveId.applyAsLong(schema.store))
                     : "mqtt_store0";
 
                 return namespace
@@ -582,8 +581,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectMqttStore(
                 NamespaceConfigBuilder<C> namespace)
             {
-                final MqttOptionsConfig mqttOptions = config.options.mqtt;
-                if (mqttOptions == null || mqttOptions.store == null)
+                if (schema.store == null)
                 {
                     namespace.store()
                         .name("mqtt_store0")

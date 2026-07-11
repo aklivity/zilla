@@ -29,6 +29,7 @@ public class AsyncapiSpecificationConfigBuilder<T>
     private List<AsyncapiServerConfig> servers;
     private List<AsyncapiCatalogConfig> catalogs;
     private Map<String, String> security;
+    private String store;
 
     public AsyncapiSpecificationConfigBuilder<T> label(
         String label)
@@ -91,10 +92,17 @@ public class AsyncapiSpecificationConfigBuilder<T>
         return this;
     }
 
+    public AsyncapiSpecificationConfigBuilder<T> store(
+        String store)
+    {
+        this.store = store;
+        return this;
+    }
+
     public T build()
     {
         return mapper.apply(
-            new AsyncapiSpecificationConfig(label, server, servers, catalogs, security));
+            new AsyncapiSpecificationConfig(label, server, servers, catalogs, security, store));
     }
 
     AsyncapiSpecificationConfigBuilder(

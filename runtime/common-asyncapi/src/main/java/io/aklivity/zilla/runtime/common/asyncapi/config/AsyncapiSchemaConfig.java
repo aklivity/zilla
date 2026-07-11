@@ -24,6 +24,21 @@ public class AsyncapiSchemaConfig
     public final int schemaId;
     public final AsyncapiView asyncapi;
     public final Map<String, String> security;
+    public final String store;
+
+    public AsyncapiSchemaConfig(
+        String apiLabel,
+        int schemaId,
+        AsyncapiView asyncapi,
+        Map<String, String> security,
+        String store)
+    {
+        this.apiLabel = apiLabel;
+        this.schemaId = schemaId;
+        this.asyncapi = asyncapi;
+        this.security = security;
+        this.store = store;
+    }
 
     public AsyncapiSchemaConfig(
         String apiLabel,
@@ -31,10 +46,7 @@ public class AsyncapiSchemaConfig
         AsyncapiView asyncapi,
         Map<String, String> security)
     {
-        this.apiLabel = apiLabel;
-        this.schemaId = schemaId;
-        this.asyncapi = asyncapi;
-        this.security = security;
+        this(apiLabel, schemaId, asyncapi, security, null);
     }
 
     public AsyncapiSchemaConfig(
@@ -42,6 +54,6 @@ public class AsyncapiSchemaConfig
         int schemaId,
         AsyncapiView asyncapi)
     {
-        this(apiLabel, schemaId, asyncapi, null);
+        this(apiLabel, schemaId, asyncapi, null, null);
     }
 }
