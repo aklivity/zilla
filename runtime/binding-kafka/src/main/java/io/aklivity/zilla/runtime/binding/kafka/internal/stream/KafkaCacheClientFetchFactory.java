@@ -556,7 +556,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long traceId,
             KafkaCacheClientFetchStream member)
         {
-            if (member.leaderId != LEADER_UNKNOWN && member.leaderId != leaderId)
+            if (member.leaderId != leaderId && member.leaderId != LEADER_UNKNOWN)
             {
                 doClientFanoutInitialAbortIfNecessary(traceId);
                 doClientFanoutReplyResetIfNecessary(traceId);
@@ -998,7 +998,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final long traceId = begin.traceId();
             final long affinity = begin.affinity();
 
-            if (leaderId != LEADER_UNKNOWN && affinity != leaderId)
+            if (affinity != leaderId && leaderId != LEADER_UNKNOWN)
             {
                 cleanupClient(traceId, ERROR_NOT_LEADER_FOR_PARTITION);
             }
