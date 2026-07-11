@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
 
@@ -38,6 +39,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
+import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 
 public class EngineTest
 {
@@ -348,6 +350,45 @@ public class EngineTest
         {
             assertThat(errors, empty());
         }
+    }
+
+    @Test
+    public void shouldPreserveEventsWhenAttachingReadonlyEngine()
+    {
+        List<Throwable> errors = new LinkedList<>();
+        EngineConfiguration config = new EngineConfiguration(properties);
+
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+            new EngineEventContext(engine).started();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
+        int[] eventCount = { 0 };
+        try (Engine readonlyEngine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .readonly()
+                .build())
+        {
+            readonlyEngine.start();
+            MessageReader events = readonlyEngine.supplyEventReader();
+            events.read((msgTypeId, buffer, index, length) -> eventCount[0]++, 10);
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
+        assertThat(errors, empty());
+        assertThat(eventCount[0], greaterThan(0));
     }
 
     public static final class TestEngineExt implements EngineExtSpi
