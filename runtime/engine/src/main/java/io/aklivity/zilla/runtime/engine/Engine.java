@@ -177,7 +177,7 @@ public final class Engine implements Collector, AutoCloseable
         }
         this.tuning = tuning;
 
-        this.eventWriter = new EventWriter(config.directory().resolve("events"), config.eventsBufferCapacity());
+        this.eventWriter = new EventWriter(config.directory().resolve("events"), config.eventsBufferCapacity(), readonly);
 
         this.boss = new EngineBoss(config, diagnoseOnError, bindings);
 
