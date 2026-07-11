@@ -195,12 +195,32 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .map(s -> s.protocol)
+                    .map(this::resolveProtocol)
                     .distinct()
                     .map(protocols::get)
                     .filter(Objects::nonNull)
                     .forEach(p -> p.inject(namespace));
 
                 return namespace;
+            }
+
+            private String resolveProtocol(
+                String protocol)
+            {
+                String resolved = protocol;
+                if (resolveServer() != null)
+                {
+                    boolean secure = isSecure();
+                    resolved = switch (protocol)
+                    {
+                    case "kafka", "kafka-secure" -> secure ? "kafka-secure" : "kafka";
+                    case "http", "https" -> secure ? "https" : "http";
+                    case "mqtt", "mqtts", "mqtt+secure" -> secure ? "mqtts" : "mqtt";
+                    default -> protocol;
+                    };
+                }
+
+                return resolved;
             }
 
             private URI resolveServer()
@@ -496,14 +516,25 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> KafkaOptionsConfigBuilder<C> injectKafkaServerOptions(
                 KafkaOptionsConfigBuilder<C> options)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .forEach(s ->
-                        options.server()
-                            .host(s.hostname)
-                            .port(s.port)
-                            .build());
+                URI server = resolveServer();
+                if (server != null)
+                {
+                    options.server()
+                        .host(server.getHost())
+                        .port(server.getPort())
+                        .build();
+                }
+                else
+                {
+                    Stream.of(schema)
+                        .map(s -> s.asyncapi)
+                        .flatMap(v -> v.servers.stream())
+                        .forEach(s ->
+                            options.server()
+                                .host(s.hostname)
+                                .port(s.port)
+                                .build());
+                }
 
                 return options;
             }

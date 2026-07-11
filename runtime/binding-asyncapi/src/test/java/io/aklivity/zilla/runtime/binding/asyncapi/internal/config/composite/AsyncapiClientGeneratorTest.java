@@ -16,7 +16,9 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,6 +26,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.function.ToLongFunction;
 
 import org.junit.Before;
@@ -212,5 +216,118 @@ public class AsyncapiClientGeneratorTest
 
         assertThat(topic.defaultOffset, equalTo(KafkaOffsetType.HISTORICAL));
         assertThat(topic.deltaType, equalTo(KafkaDeltaType.JSON_PATCH));
+    }
+
+    private static final String PLAIN_KAFKA_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "broker": { "host": "localhost:9092", "protocol": "kafka" } },
+          "channels": {
+            "events": { "address": "events", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/events" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
+    private static final String SECURE_KAFKA_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "broker": { "host": "localhost:9092", "protocol": "kafka-secure" } },
+          "channels": {
+            "events": { "address": "events", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/events" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
+    private BindingConfig bindingWithServerOverride(
+        String server)
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(CLIENT)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec(AsyncapiSpecificationConfig.builder()
+                    .label("kafka_api")
+                    .serverOverride(server)
+                    .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"))
+                    .build())
+                .build())
+            .exit("asyncapi0")
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
+    private Optional<BindingConfig> bindingByName(
+        AsyncapiCompositeConfig composite,
+        String name)
+    {
+        return composite.namespaces.get(0).bindings.stream()
+            .filter(b -> name.equals(b.name))
+            .findFirst();
+    }
+
+    @Test
+    public void shouldExitToTlsClientWhenServerOverrideIsSecureAndSpecProtocolPlain()
+    {
+        lenient().when(catalog.resolve(anyInt())).thenReturn(PLAIN_KAFKA_SPEC);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context,
+            bindingWithServerOverride("kafka-secure://broker.example.com:9093")));
+
+        Optional<BindingConfig> tlsClient = bindingByName(composite, "tls_client0");
+        BindingConfig kafkaClient = bindingByName(composite, "kafka_client0").orElseThrow();
+
+        assertThat(tlsClient.isPresent(), equalTo(true));
+        assertThat(kafkaClient.routes.get(0).exit, equalTo("tls_client0"));
+    }
+
+    @Test
+    public void shouldExitToTcpClientWhenServerOverrideIsPlainAndSpecProtocolSecure()
+    {
+        lenient().when(catalog.resolve(anyInt())).thenReturn(SECURE_KAFKA_SPEC);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context,
+            bindingWithServerOverride("kafka://broker.example.com:9092")));
+
+        Optional<BindingConfig> tlsClient = bindingByName(composite, "tls_client0");
+        BindingConfig kafkaClient = bindingByName(composite, "kafka_client0").orElseThrow();
+
+        assertThat(tlsClient.isPresent(), equalTo(false));
+        assertThat(kafkaClient.routes.get(0).exit, equalTo("sys:tcp_client"));
+    }
+
+    @Test
+    public void shouldSourceKafkaBrokerHostAndPortFromServerOverride()
+    {
+        lenient().when(catalog.resolve(anyInt())).thenReturn(PLAIN_KAFKA_SPEC);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context,
+            bindingWithServerOverride("kafka://broker.example.com:9093")));
+
+        KafkaOptionsConfig options = kafkaClientOptions(composite);
+        List<String> hosts = options.servers.stream().map(s -> s.host).toList();
+
+        assertThat(options.servers, hasSize(1));
+        assertThat(hosts, equalTo(List.of("broker.example.com")));
+        assertThat(options.servers.get(0).port, equalTo(9093));
+        assertThat(generator.deniedOperations(), empty());
     }
 }
