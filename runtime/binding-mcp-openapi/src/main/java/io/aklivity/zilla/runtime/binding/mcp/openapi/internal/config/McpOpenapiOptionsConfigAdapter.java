@@ -56,6 +56,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
     private static final String SUMMARY_NAME = "summary";
     private static final String INPUT_NAME = "input";
     private static final String OUTPUT_NAME = "output";
+    private static final String MIME_TYPE_NAME = "mimeType";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -184,6 +185,10 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 if (resource.description != null)
                 {
                     resourceObject.add(DESCRIPTION_NAME, resource.description);
+                }
+                if (resource.mimeType != null)
+                {
+                    resourceObject.add(MIME_TYPE_NAME, resource.mimeType);
                 }
                 if (resource.output != null)
                 {
@@ -341,6 +346,10 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     ? resourceObject.getString(DESCRIPTION_NAME)
                     : null;
 
+                String mimeType = resourceObject.containsKey(MIME_TYPE_NAME)
+                    ? resourceObject.getString(MIME_TYPE_NAME)
+                    : null;
+
                 ModelConfig output = resourceObject.containsKey(OUTPUT_NAME)
                     ? model.adaptFromJson(resourceObject.get(OUTPUT_NAME))
                     : null;
@@ -348,6 +357,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 mcpOpenapiOptions.resource()
                     .uri(uri)
                     .description(description)
+                    .mimeType(mimeType)
                     .output(output)
                     .build();
             }

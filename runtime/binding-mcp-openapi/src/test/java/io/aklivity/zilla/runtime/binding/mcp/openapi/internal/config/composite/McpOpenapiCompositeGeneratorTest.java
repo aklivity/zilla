@@ -826,6 +826,100 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
+    public void shouldOverrideResourceMimeType()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .resource()
+                    .uri("repo://{owner}/{repo}")
+                    .mimeType("application/vnd.github.v3+json")
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("repo://{owner}/{repo}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("repos/get")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpResourceConfig resource = mcpHttpOptions.resources.stream()
+            .filter(r -> "repo://{owner}/{repo}".equals(r.name))
+            .findFirst()
+            .orElse(null);
+        assertThat(resource, notNullValue());
+        assertThat(resource.mimeType, equalTo("application/vnd.github.v3+json"));
+    }
+
+    @Test
+    public void shouldDefaultResourceMimeTypeToOpenapiContentTypeWhenNoOverrideConfigured()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("repo://{owner}/{repo}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("repos/get")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpResourceConfig resource = mcpHttpOptions.resources.get(0);
+        assertThat(resource.mimeType, equalTo("application/json"));
+    }
+
+    @Test
     public void shouldDefaultResourceDescriptionToNullWhenNoOverrideConfigured()
     {
         BindingConfig binding = BindingConfig.builder()

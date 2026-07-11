@@ -224,6 +224,11 @@
                                                 "title": "Resource Description",
                                                 "type": "string"
                                             },
+                                            "mimeType":
+                                            {
+                                                "title": "MIME Type",
+                                                "type": "string"
+                                            },
                                             "output":
                                             {
                                                 "title": "Output Schema",

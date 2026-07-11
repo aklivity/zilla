@@ -306,7 +306,9 @@ public final class McpOpenapiCompositeGenerator
             binding.options.resources.stream()
                 .filter(r -> uri.equals(r.uri))
                 .findFirst()
-                .ifPresent(override -> resource.description(override.description).output(override.output));
+                .ifPresent(override -> resource.description(override.description)
+                    .mimeType(override.mimeType)
+                    .output(override.output));
         }
 
         return resource;
@@ -450,7 +452,7 @@ public final class McpOpenapiCompositeGenerator
                     .template(template)
                     .description(entry.resource.description)
                     .output(output)
-                    .inject(r -> injectMimeType(r, entry.operation))
+                    .inject(r -> injectMimeType(r, entry.resource, entry.operation))
                     .build());
             }
         }
@@ -510,12 +512,20 @@ public final class McpOpenapiCompositeGenerator
 
     private <C> McpHttpResourceConfigBuilder<C> injectMimeType(
         McpHttpResourceConfigBuilder<C> resource,
+        McpOpenapiResourceConfig configured,
         OpenapiOperationView operation)
     {
-        final OpenapiResponseView success = successResponse(operation);
-        if (success != null && success.content != null && !success.content.isEmpty())
+        if (configured.mimeType != null)
         {
-            resource.mimeType(success.content.values().iterator().next().name);
+            resource.mimeType(configured.mimeType);
+        }
+        else
+        {
+            final OpenapiResponseView success = successResponse(operation);
+            if (success != null && success.content != null && !success.content.isEmpty())
+            {
+                resource.mimeType(success.content.values().iterator().next().name);
+            }
         }
 
         return resource;

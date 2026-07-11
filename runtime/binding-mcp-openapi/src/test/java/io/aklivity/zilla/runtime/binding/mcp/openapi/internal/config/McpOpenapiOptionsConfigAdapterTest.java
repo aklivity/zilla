@@ -148,6 +148,53 @@ public class McpOpenapiOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithResourceMimeType()
+    {
+        String text =
+            """
+            {
+              "resources": {
+                "repo://{owner}/{repo}": {
+                  "description": "A GitHub repository.",
+                  "mimeType": "application/vnd.github+json",
+                  "output": {
+                    "model": "string"
+                  }
+                }
+              }
+            }
+            """;
+
+        McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
+
+        assertThat(options.resources, not(nullValue()));
+        assertThat(options.resources.get(0).mimeType, equalTo("application/vnd.github+json"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithResourceMimeType()
+    {
+        String expected =
+            "{\"resources\":{\"repo://{owner}/{repo}\":" +
+            "{\"description\":\"A GitHub repository.\",\"mimeType\":\"application/vnd.github+json\"," +
+            "\"output\":\"string\"}}}";
+
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .resource()
+                .uri("repo://{owner}/{repo}")
+                .description("A GitHub repository.")
+                .mimeType("application/vnd.github+json")
+                .output(StringModelConfig.builder().build())
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
+
+    @Test
     public void shouldReadOptionsWithAuthorization()
     {
         String text =
