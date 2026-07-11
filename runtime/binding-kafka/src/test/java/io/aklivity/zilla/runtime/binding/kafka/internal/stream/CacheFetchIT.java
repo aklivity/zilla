@@ -91,6 +91,7 @@ public class CacheFetchIT
 
     @Test
     @Configuration("cache.yaml")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
     @Specification({
         "${app}/client.races.ahead.of.leader/client",
         "${app}/client.races.ahead.of.leader/server"})

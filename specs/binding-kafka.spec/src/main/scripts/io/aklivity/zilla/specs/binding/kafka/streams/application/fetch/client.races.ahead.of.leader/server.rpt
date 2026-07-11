@@ -25,6 +25,33 @@ accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
+                              .meta()
+                                  .topic("test")
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("test")
+                                   .build()
+                               .build()}
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .meta()
+                                  .partition(0, 1)
+                                  .build()
+                              .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
                                   .partition(0, -2)
