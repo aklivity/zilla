@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
+import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -610,11 +611,24 @@ public final class Engine implements Collector, AutoCloseable
         return worker.supplyLocalName(namespacedId);
     }
 
+    public String supplyQName(
+        long namespacedId)
+    {
+        EngineWorker worker = workers.get(0);
+        return worker.supplyQName(namespacedId);
+    }
+
     public int supplyLabelId(
         String label)
     {
         EngineWorker worker = workers.get(0);
         return worker.supplyTypeId(label);
+    }
+
+    public EventFormatter supplyEventFormatter()
+    {
+        EngineWorker worker = workers.get(0);
+        return worker.supplyEventFormatter();
     }
 
     public long supplyNamespacedId(
