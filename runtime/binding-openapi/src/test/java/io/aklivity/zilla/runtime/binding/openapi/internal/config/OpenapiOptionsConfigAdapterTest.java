@@ -33,6 +33,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -172,6 +173,35 @@ public class OpenapiOptionsConfigAdapterTest
                 of(new OpenapiCatalogConfig("catalog0", "petstore", "latest")),
                 null,
                 new OpenapiCatalogConfig("catalog0", "petstore-overlay", "latest")))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertEquals(expected, text);
+    }
+
+    @Test
+    public void shouldWriteOptionsWithServerMissingUrl()
+    {
+        String expected =
+            """
+            specs:
+              test:
+                catalog:
+                  catalog0:
+                    subject: petstore
+                    version: latest
+                servers:
+                  - {}
+            """;
+
+        OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
+            .spec(new OpenapiSpecificationConfig(
+                "test",
+                null,
+                of(OpenapiServerConfig.builder().build()),
+                of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))))
             .build();
 
         String text = jsonb.toJson(options);

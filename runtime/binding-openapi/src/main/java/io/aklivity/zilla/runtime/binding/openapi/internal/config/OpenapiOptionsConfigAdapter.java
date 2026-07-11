@@ -140,7 +140,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     openapiConfig.servers.forEach(s ->
                     {
                         JsonObjectBuilder server = Json.createObjectBuilder();
-                        if (!s.url.isEmpty())
+                        if (s.url != null && !s.url.isEmpty())
                         {
                             server.add(SERVER_URL_NAME, s.url);
                         }
