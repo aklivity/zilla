@@ -870,7 +870,7 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
-    public void shouldClassifyConcreteResourceWithQueryCaptureSuffix()
+    public void shouldClassifyQueryCaptureResourceAsTemplate()
     {
         lenient().when(catalog.resolve(eq("notifications-api"), eq("latest"))).thenReturn(88);
         lenient().when(catalog.resolve(eq(88))).thenReturn(NOTIFICATIONS_SPEC);
@@ -911,7 +911,7 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
         McpHttpResourceConfig resource = mcpHttpOptions.resources.get(0);
-        assertThat(resource.template, equalTo(false));
+        assertThat(resource.template, equalTo(true));
         assertThat(resource.uri, equalTo("/notifications{?unread}"));
     }
 

@@ -442,10 +442,11 @@ public final class McpOpenapiCompositeGenerator
                 final ModelConfig output = entry.resource.output != null
                     ? qualifyModel(binding, entry.resource.output)
                     : jsonModel("%s-output".formatted(name));
-                final boolean template = entry.operation.path != null && entry.operation.path.indexOf('{') >= 0;
+                final String uri = resourceUri(entry.operation);
+                final boolean template = uri.indexOf('{') >= 0;
                 resources.add(McpHttpResourceConfig.builder()
                     .name(entry.resource.uri)
-                    .uri(resourceUri(entry.operation))
+                    .uri(uri)
                     .template(template)
                     .description(entry.resource.description)
                     .output(output)
