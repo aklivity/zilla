@@ -119,6 +119,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class HttpClientFactory implements HttpStreamFactory
 {
@@ -2973,7 +2974,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
             headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
-            headersMap.putAll(overrides);
+            mergeOverrides(headersMap, overrides);
 
             headersMap.put(HEADER_UPGRADE, UPGRADE_H2C);
             headersMap.put(HEADER_CONNECTION, CONNECTION_UPGRADE_HTTP2_SETTINGS);
@@ -2991,7 +2992,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             headersMap.clear();
             headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
-            headersMap.putAll(overrides);
+            mergeOverrides(headersMap, overrides);
             doEncodeHttp11Headers(traceId, authorization, budgetId, headersMap);
         }
 
@@ -4797,7 +4798,40 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 client.exchange = this;
             }
-            client.encoder.doEncodeRequestHeaders(client, this, traceId, authorization, 0, headers, overrides);
+
+            final Map<String8FW, String16FW> requestOverrides = resolveOverrides(traceId, authorization);
+            client.encoder.doEncodeRequestHeaders(client, this, traceId, authorization, 0, headers, requestOverrides);
+        }
+
+        private Map<String8FW, String16FW> resolveOverrides(
+            long traceId,
+            long authorization)
+        {
+            Map<String8FW, String16FW> resolved = overrides;
+
+            final GuardHandler guard = binding.guard;
+            if (guard != null && binding.injectHeader != null)
+            {
+                String credential = guard.credentials(authorization);
+                if (credential == null)
+                {
+                    final long sessionId = guard.reauthorize(traceId, routedId, requestId, null);
+                    if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+                    {
+                        credential = guard.credentials(sessionId);
+                    }
+                }
+
+                final String injected = binding.inject.apply(credential);
+                if (injected != null)
+                {
+                    final Map<String8FW, String16FW> merged = new LinkedHashMap<>(overrides);
+                    merged.put(binding.injectHeader, new String16FW(injected));
+                    resolved = merged;
+                }
+            }
+
+            return resolved;
         }
 
         private void onRequestFlush(
@@ -5385,7 +5419,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
             headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
-            headersMap.putAll(overrides);
+            mergeOverrides(headersMap, overrides);
 
             final String16FW authority = headersMap.get(HEADER_AUTHORITY);
             if (authority != null)
@@ -5799,5 +5833,23 @@ public final class HttpClientFactory implements HttpStreamFactory
         String16FW value)
     {
         return new String16FW().wrap(value.buffer(), value.offset(), value.limit());
+    }
+
+    private static void mergeOverrides(
+        Map<String8FW, String16FW> headersMap,
+        Map<String8FW, String16FW> overrides)
+    {
+        overrides.forEach((name, value) ->
+        {
+            headersMap.keySet().removeIf(existing -> !existing.equals(name) && equalsIgnoreCase(existing, name));
+            headersMap.put(name, value);
+        });
+    }
+
+    private static boolean equalsIgnoreCase(
+        String8FW nameA,
+        String8FW nameB)
+    {
+        return nameA.asString().equalsIgnoreCase(nameB.asString());
     }
 }

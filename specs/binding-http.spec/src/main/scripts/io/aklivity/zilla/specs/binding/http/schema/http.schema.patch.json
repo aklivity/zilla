@@ -445,8 +445,7 @@
                             {
                                 "properties":
                                 {
-                                    "access-control": false,
-                                    "authorization": false
+                                    "access-control": false
                                 }
                             }
                         }

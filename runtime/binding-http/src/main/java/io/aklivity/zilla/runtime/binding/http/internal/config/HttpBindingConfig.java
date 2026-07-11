@@ -52,6 +52,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
 public final class HttpBindingConfig
@@ -59,6 +60,7 @@ public final class HttpBindingConfig
     private static final Pattern BASIC_FORMAT_PATTERN =
         Pattern.compile("^\\s*Basic\\s+(?<format>(:?[^\\\\{]*\\{[^}]+}[^\\\\{]*)+)$");
     private static final Function<Function<String, String>, String> DEFAULT_CREDENTIALS = f -> null;
+    private static final Function<String, String> DEFAULT_INJECT = credentials -> null;
     private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
     private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL =
         HttpAccessControlConfig.builder().policy(SAME_ORIGIN).build();
@@ -75,6 +77,9 @@ public final class HttpBindingConfig
     public final List<HttpRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
     public final Function<Function<String, String>, String> credentials;
+    public final GuardHandler guard;
+    public final Function<String, String> inject;
+    public final String8FW injectHeader;
     public final List<HttpRequestType> requests;
 
     public HttpBindingConfig(
@@ -92,6 +97,12 @@ public final class HttpBindingConfig
         this.resolveId = binding.resolveId;
         this.credentials = options != null && options.authorization != null ?
                 asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
+        this.guard = options != null && options.authorization != null ?
+                resolveGuard(context, binding, options.authorization.name) : null;
+        this.inject = options != null && options.authorization != null ?
+                asInjector(options.authorization.credentials) : DEFAULT_INJECT;
+        this.injectHeader = options != null && options.authorization != null ?
+                asInjectHeader(options.authorization.credentials) : null;
         this.requests = createRequestTypes(context::supplyModel, modelBuffer);
     }
 
@@ -118,6 +129,37 @@ public final class HttpBindingConfig
     public Function<Function<String, String>, String> credentials()
     {
         return credentials;
+    }
+
+    private GuardHandler resolveGuard(
+        EngineContext context,
+        BindingConfig binding,
+        String guardName)
+    {
+        long guardId = binding.resolveId.applyAsLong(guardName);
+        return context.supplyGuard(guardId);
+    }
+
+    private String8FW asInjectHeader(
+        HttpCredentialsConfig credentials)
+    {
+        List<HttpPatternConfig> headers = credentials.headers;
+        return headers != null && !headers.isEmpty() ? new String8FW(headers.get(0).name) : null;
+    }
+
+    private Function<String, String> asInjector(
+        HttpCredentialsConfig credentials)
+    {
+        Function<String, String> injector = DEFAULT_INJECT;
+        List<HttpPatternConfig> headers = credentials.headers;
+
+        if (headers != null && !headers.isEmpty())
+        {
+            String pattern = headers.get(0).pattern;
+            injector = value -> value != null ? pattern.replace("{credentials}", value) : null;
+        }
+
+        return injector;
     }
 
     private Function<Function<String, String>, String> asAccessor(
