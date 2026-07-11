@@ -93,8 +93,8 @@ public class CacheFetchIT
     @Configuration("cache.yaml")
     @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
     @Specification({
-        "${app}/client.races.ahead.of.leader/client",
-        "${app}/client.races.ahead.of.leader/server"})
+        "${app}/races.ahead.of.leader/client",
+        "${app}/races.ahead.of.leader/server"})
     public void shouldServeClientFetchThatRacesAheadOfLeader() throws Exception
     {
         k3po.finish();
