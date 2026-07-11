@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
+import java.util.Map;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -28,6 +29,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -136,6 +138,47 @@ public class McpOpenapiOptionsConfigAdapterTest
                 .description("A GitHub repository.")
                 .output(StringModelConfig.builder().build())
                 .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldReadOptionsWithAuthorization()
+    {
+        String text =
+            """
+            {
+              "authorization": {
+                "guard0": {
+                  "credentials": {
+                    "headers": {
+                      "authorization": "Bearer {credentials}"
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
+
+        assertThat(options.authorization, not(nullValue()));
+        assertThat(options.authorization.name, equalTo("guard0"));
+        assertThat(options.authorization.headers.get("authorization"), equalTo("Bearer {credentials}"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithAuthorization()
+    {
+        String expected =
+            "{\"authorization\":{\"guard0\":{\"credentials\":{\"headers\":{\"authorization\":\"Bearer {credentials}\"}}}}}";
+
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .authorization(new McpOpenapiAuthorizationConfig("guard0", Map.of("authorization", "Bearer {credentials}")))
             .build();
 
         String text = jsonb.toJson(options);

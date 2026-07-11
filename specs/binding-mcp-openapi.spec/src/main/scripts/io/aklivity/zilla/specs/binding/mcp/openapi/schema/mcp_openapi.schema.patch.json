@@ -37,6 +37,46 @@
                     {
                         "properties":
                         {
+                            "authorization":
+                            {
+                                "title": "Authorization",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[A-Za-z0-9_-]+$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "credentials":
+                                            {
+                                                "title": "Credentials",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "headers":
+                                                    {
+                                                        "title": "Headers",
+                                                        "type": "object",
+                                                        "patternProperties":
+                                                        {
+                                                            "^[A-Za-z0-9:-]+$":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "maxProperties": 1
+                            },
                             "specs":
                             {
                                 "title": "Specs",

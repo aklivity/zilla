@@ -43,6 +43,7 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
@@ -50,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfig;
@@ -428,9 +430,20 @@ public final class McpOpenapiCompositeGenerator
             }
         }
 
-        return new McpHttpOptionsConfig(null,
+        return new McpHttpOptionsConfig(mcpHttpAuthorization(binding),
             tools.isEmpty() ? null : tools,
             resources.isEmpty() ? null : resources);
+    }
+
+    private McpHttpAuthorizationConfig mcpHttpAuthorization(
+        McpOpenapiBindingConfig binding)
+    {
+        final McpOpenapiAuthorizationConfig authorization =
+            binding.options != null ? binding.options.authorization : null;
+
+        return authorization != null
+            ? new McpHttpAuthorizationConfig(authorization.qname, authorization.headers)
+            : null;
     }
 
     private <C> BindingConfigBuilder<C> injectRoutes(

@@ -23,6 +23,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfigBuilder;
@@ -38,6 +39,9 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String CREDENTIALS_NAME = "credentials";
+    private static final String HEADERS_NAME = "headers";
     private static final String SPECS_NAME = "specs";
     private static final String SECURITY_NAME = "security";
     private static final String SERVER_NAME = "server";
@@ -72,6 +76,23 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
         McpOpenapiOptionsConfig mcpOpenapiOptions = (McpOpenapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        McpOpenapiAuthorizationConfig authorization = mcpOpenapiOptions.authorization;
+        if (authorization != null)
+        {
+            JsonObjectBuilder headers = Json.createObjectBuilder();
+            if (authorization.headers != null)
+            {
+                authorization.headers.forEach(headers::add);
+            }
+            JsonObjectBuilder credentials = Json.createObjectBuilder();
+            credentials.add(HEADERS_NAME, headers);
+            JsonObjectBuilder guard = Json.createObjectBuilder();
+            guard.add(CREDENTIALS_NAME, credentials);
+            JsonObjectBuilder authorizations = Json.createObjectBuilder();
+            authorizations.add(authorization.name, guard);
+            object.add(AUTHORIZATION_NAME, authorizations);
+        }
 
         if (mcpOpenapiOptions.specs != null)
         {
@@ -166,6 +187,29 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
         JsonObject object)
     {
         McpOpenapiOptionsConfigBuilder<McpOpenapiOptionsConfig> mcpOpenapiOptions = McpOpenapiOptionsConfig.builder();
+
+        if (object.containsKey(AUTHORIZATION_NAME))
+        {
+            JsonObject authorizations = object.getJsonObject(AUTHORIZATION_NAME);
+            for (String name : authorizations.keySet())
+            {
+                Map<String, String> headers = new LinkedHashMap<>();
+                JsonObject guard = authorizations.getJsonObject(name);
+                if (guard.containsKey(CREDENTIALS_NAME))
+                {
+                    JsonObject credentials = guard.getJsonObject(CREDENTIALS_NAME);
+                    if (credentials.containsKey(HEADERS_NAME))
+                    {
+                        JsonObject headersObject = credentials.getJsonObject(HEADERS_NAME);
+                        for (String header : headersObject.keySet())
+                        {
+                            headers.put(header, headersObject.getString(header));
+                        }
+                    }
+                }
+                mcpOpenapiOptions.authorization(new McpOpenapiAuthorizationConfig(name, headers));
+            }
+        }
 
         if (object.containsKey(SPECS_NAME))
         {
