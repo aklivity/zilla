@@ -445,7 +445,31 @@
                             {
                                 "properties":
                                 {
-                                    "access-control": false
+                                    "access-control": false,
+                                    "authorization":
+                                    {
+                                        "patternProperties":
+                                        {
+                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                            {
+                                                "properties":
+                                                {
+                                                    "credentials":
+                                                    {
+                                                        "properties":
+                                                        {
+                                                            "cookies": false,
+                                                            "query": false,
+                                                            "headers":
+                                                            {
+                                                                "maxProperties": 1
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

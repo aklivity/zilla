@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
@@ -95,14 +96,11 @@ public final class HttpBindingConfig
             new HttpRouteConfig(context, route, options != null ? options.overrides : null))
             .collect(toList());
         this.resolveId = binding.resolveId;
-        this.credentials = options != null && options.authorization != null ?
-                asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
-        this.guard = options != null && options.authorization != null ?
-                resolveGuard(context, binding, options.authorization.name) : null;
-        this.inject = options != null && options.authorization != null ?
-                asInjector(options.authorization.credentials) : DEFAULT_INJECT;
-        this.injectHeader = options != null && options.authorization != null ?
-                asInjectHeader(options.authorization.credentials) : null;
+        final HttpAuthorizationConfig authorization = options != null ? options.authorization : null;
+        this.credentials = authorization != null ? asAccessor(authorization.credentials) : DEFAULT_CREDENTIALS;
+        this.guard = authorization != null ? resolveGuard(context, binding, authorization.name) : null;
+        this.inject = authorization != null ? asInjector(authorization.credentials) : DEFAULT_INJECT;
+        this.injectHeader = authorization != null ? asInjectHeader(authorization.credentials) : null;
         this.requests = createRequestTypes(context::supplyModel, modelBuffer);
     }
 
@@ -156,7 +154,11 @@ public final class HttpBindingConfig
         if (headers != null && !headers.isEmpty())
         {
             String pattern = headers.get(0).pattern;
-            injector = value -> value != null ? pattern.replace("{credentials}", value) : null;
+            Matcher formatMatch = BASIC_FORMAT_PATTERN.matcher(pattern);
+
+            injector = !pattern.contains("{credentials}") && formatMatch.matches()
+                ? value -> value != null ? "Basic " + Base64.getEncoder().encodeToString(value.getBytes(UTF_8)) : null
+                : value -> value != null ? pattern.replace("{credentials}", value) : null;
         }
 
         return injector;

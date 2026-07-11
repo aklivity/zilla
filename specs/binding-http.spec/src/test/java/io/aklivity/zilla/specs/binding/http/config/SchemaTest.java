@@ -188,6 +188,20 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test(expected = JsonException.class)
+    public void shouldRejectHttp11ClientAuthorizationCredentialsCookies()
+    {
+        schema.validate("v1.1/client.authorization.credentials.cookies.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateHttp11ClientAuthorizationCredentialsWithBasicAuth()
+    {
+        JsonObject config = schema.validate("v1.1/client.authorization.credentials.basic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
     @Test
     public void shouldValidateHttp2Client()
     {

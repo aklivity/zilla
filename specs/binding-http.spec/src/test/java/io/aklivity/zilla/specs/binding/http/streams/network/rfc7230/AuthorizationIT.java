@@ -206,4 +206,24 @@ public class AuthorizationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/inject.credentials.header/client",
+        "${net}/inject.credentials.header/server",
+    })
+    public void shouldInjectCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/inject.credentials.header.basic/client",
+        "${net}/inject.credentials.header.basic/server",
+    })
+    public void shouldInjectCredentialsHeaderWithBasicAuth() throws Exception
+    {
+        k3po.finish();
+    }
 }

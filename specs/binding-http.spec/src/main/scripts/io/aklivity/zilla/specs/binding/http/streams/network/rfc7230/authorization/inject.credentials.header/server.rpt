@@ -20,6 +20,7 @@ accept "http://localhost:8080/"
   option http:transport "zilla://streams/net0"
   option zilla:window ${serverInitialWindow}
   option zilla:transmission "duplex"
+  option zilla:authorization 1L
 accepted
 connected
 

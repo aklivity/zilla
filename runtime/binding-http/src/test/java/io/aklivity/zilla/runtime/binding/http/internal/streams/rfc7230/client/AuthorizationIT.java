@@ -56,4 +56,14 @@ public class AuthorizationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.authorization.credentials.basic.yaml")
+    @Specification({
+        "${app}/inject.credentials.header.basic/client",
+        "${net}/inject.credentials.header.basic/server" })
+    public void shouldInjectCredentialsHeaderWithBasicAuth() throws Exception
+    {
+        k3po.finish();
+    }
 }

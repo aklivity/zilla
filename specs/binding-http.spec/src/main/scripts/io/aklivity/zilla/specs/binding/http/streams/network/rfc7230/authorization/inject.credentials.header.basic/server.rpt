@@ -14,27 +14,24 @@
 # under the License.
 #
 
----
-name: test
-guards:
-  test0:
-    type: test
-    options:
-      credentials: TOKEN
-bindings:
-  app0:
-    type: http
-    kind: client
-    options:
-      versions:
-        - h2
-      authorization:
-        test0:
-          credentials:
-            headers:
-              authorization: Bearer {credentials}
-    routes:
-      - exit: net0
-        when:
-          - headers:
-              :authority: localhost:8080
+property serverInitialWindow 8192
+
+accept "http://localhost:8080/"
+  option http:transport "zilla://streams/net0"
+  option zilla:window ${serverInitialWindow}
+  option zilla:transmission "duplex"
+  option zilla:authorization 1L
+accepted
+connected
+
+read http:version "HTTP/1.1"
+read http:header "Authorization" "Basic a2V5OlRPS0VO"
+
+write http:status "200" "OK"
+write http:version "HTTP/1.1"
+write http:header "Transfer-Encoding" "chunked"
+write flush
+
+write "Hello, world"
+
+write close

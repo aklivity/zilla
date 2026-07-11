@@ -4812,13 +4812,17 @@ public final class HttpClientFactory implements HttpStreamFactory
             final GuardHandler guard = binding.guard;
             if (guard != null && binding.injectHeader != null)
             {
-                String credential = guard.credentials(authorization);
+                String credential = (authorization & GuardHandler.MASK_AUTHORIZED) != 0L
+                    ? guard.credentials(authorization)
+                    : null;
+
+                long reauthorized = GuardHandler.NOT_AUTHORIZED;
                 if (credential == null)
                 {
-                    final long sessionId = guard.reauthorize(traceId, routedId, requestId, null);
-                    if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+                    reauthorized = guard.reauthorize(traceId, routedId, requestId, null);
+                    if ((reauthorized & GuardHandler.MASK_AUTHORIZED) != 0L)
                     {
-                        credential = guard.credentials(sessionId);
+                        credential = guard.credentials(reauthorized);
                     }
                 }
 
@@ -4828,6 +4832,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                     final Map<String8FW, String16FW> merged = new LinkedHashMap<>(overrides);
                     merged.put(binding.injectHeader, new String16FW(injected));
                     resolved = merged;
+                }
+
+                if ((reauthorized & GuardHandler.MASK_AUTHORIZED) != 0L)
+                {
+                    guard.deauthorize(reauthorized);
                 }
             }
 
@@ -5841,7 +5850,10 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         overrides.forEach((name, value) ->
         {
-            headersMap.keySet().removeIf(existing -> !existing.equals(name) && equalsIgnoreCase(existing, name));
+            if (!headersMap.containsKey(name))
+            {
+                headersMap.keySet().removeIf(existing -> equalsIgnoreCase(existing, name));
+            }
             headersMap.put(name, value);
         });
     }
