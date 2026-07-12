@@ -26,9 +26,10 @@ public class AsyncapiSpecificationConfigBuilder<T>
 
     private String label;
     private String server;
-    private List<AsyncapiServerConfig> servers;
     private List<AsyncapiCatalogConfig> catalogs;
     private Map<String, String> security;
+    private String store;
+    private AsyncapiCatalogConfig overlay;
 
     public AsyncapiSpecificationConfigBuilder<T> label(
         String label)
@@ -41,23 +42,6 @@ public class AsyncapiSpecificationConfigBuilder<T>
         String server)
     {
         this.server = server;
-        return this;
-    }
-
-    public AsyncapiServerConfigBuilder<AsyncapiSpecificationConfigBuilder<T>> server()
-    {
-        return new AsyncapiServerConfigBuilder<>(this::server);
-    }
-
-    public AsyncapiSpecificationConfigBuilder<T> server(
-        AsyncapiServerConfig server)
-    {
-        if (servers == null)
-        {
-            servers = new LinkedList<>();
-        }
-
-        servers.add(server);
         return this;
     }
 
@@ -91,10 +75,29 @@ public class AsyncapiSpecificationConfigBuilder<T>
         return this;
     }
 
+    public AsyncapiSpecificationConfigBuilder<T> store(
+        String store)
+    {
+        this.store = store;
+        return this;
+    }
+
+    public AsyncapiCatalogConfigBuilder<AsyncapiSpecificationConfigBuilder<T>> overlay()
+    {
+        return new AsyncapiCatalogConfigBuilder<>(this::overlay);
+    }
+
+    public AsyncapiSpecificationConfigBuilder<T> overlay(
+        AsyncapiCatalogConfig overlay)
+    {
+        this.overlay = overlay;
+        return this;
+    }
+
     public T build()
     {
         return mapper.apply(
-            new AsyncapiSpecificationConfig(label, server, servers, catalogs, security));
+            new AsyncapiSpecificationConfig(label, server, catalogs, security, store, overlay));
     }
 
     AsyncapiSpecificationConfigBuilder(

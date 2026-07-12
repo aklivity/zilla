@@ -33,18 +33,6 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, AsyncapiOptionsConfigBuilder<T>>
 {
-    private static final String DEFAULT_SESSIONS_CHANNEL = "mqttSessions";
-    private static final String DEFAULT_RETAINED_CHANNEL = "mqttRetained";
-    private static final String DEFAULT_MESSAGES_CHANNEL = "mqttMessages";
-    private static final AsyncapiMqttKafkaConfig DEFAULT_MQTT_KAFKA =
-        AsyncapiMqttKafkaConfig.builder()
-            .channels()
-                .sessions(DEFAULT_SESSIONS_CHANNEL)
-                .messages(DEFAULT_MESSAGES_CHANNEL)
-                .retained(DEFAULT_RETAINED_CHANNEL)
-                .build()
-            .build();
-
     private final Function<OptionsConfig, T> mapper;
 
     private TlsOptionsConfig tls;
@@ -52,7 +40,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     private MqttOptionsConfig mqtt;
     private KafkaOptionsConfig kafka;
     private List<AsyncapiSpecificationConfig> specs;
-    private AsyncapiMqttKafkaConfig mqttKafka = DEFAULT_MQTT_KAFKA;
 
     AsyncapiOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -119,18 +106,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
         return this;
     }
 
-    public AsyncapiMqttKafkaConfigBuilder<AsyncapiOptionsConfigBuilder<T>> mqttKafka()
-    {
-        return new AsyncapiMqttKafkaConfigBuilder<>(this::mqttKafka);
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> mqttKafka(
-        AsyncapiMqttKafkaConfig mqttKafka)
-    {
-        this.mqttKafka = mqttKafka;
-        return this;
-    }
-
     public AsyncapiSpecificationConfigBuilder<AsyncapiOptionsConfigBuilder<T>> spec()
     {
         return AsyncapiSpecificationConfig.builder(this::spec);
@@ -150,6 +125,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     @Override
     public T build()
     {
-        return mapper.apply(new AsyncapiOptionsConfig(tls, http, mqtt, kafka, mqttKafka, specs));
+        return mapper.apply(new AsyncapiOptionsConfig(tls, http, mqtt, kafka, specs));
     }
 }

@@ -43,6 +43,7 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
@@ -50,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfig;
@@ -64,6 +66,7 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiC
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiRouteConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedResolution;
@@ -75,6 +78,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -93,15 +97,18 @@ public final class McpOpenapiCompositeGenerator
     private static final String CAPABILITY_TOOL = "tool";
     private static final String CAPABILITY_RESOURCE = "resource";
     private static final Pattern PATH_PARAM_PATTERN = Pattern.compile("\\{([^}]+)\\}");
+    private static final Pattern JSON_CONTENT_TYPE_PATTERN = Pattern.compile("^application/(?:.+\\+)?json$");
 
     private final String httpClientExit;
     private final List<String> denied;
+    private final Matcher jsonContentType;
 
     public McpOpenapiCompositeGenerator(
         String httpClientExit)
     {
         this.httpClientExit = httpClientExit;
         this.denied = new ArrayList<>();
+        this.jsonContentType = JSON_CONTENT_TYPE_PATTERN.matcher("");
     }
 
     public McpOpenapiCompositeConfig generate(
@@ -128,7 +135,8 @@ public final class McpOpenapiCompositeGenerator
                     final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                     final int schemaId = handler.resolve(catalog.subject, catalog.version);
                     final String payload = handler.resolve(schemaId);
-                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), List.of());
+                    final String materialized = materialize(binding, specification, payload);
+                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized), List.of());
                     specsByLabel.put(label, openapi);
                 }
             }
@@ -227,6 +235,27 @@ public final class McpOpenapiCompositeGenerator
         return denied;
     }
 
+    private String materialize(
+        McpOpenapiBindingConfig binding,
+        McpOpenapiSpecificationConfig specification,
+        String payload)
+    {
+        String materialized = payload;
+        if (specification.overlay != null)
+        {
+            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
+            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final String overlayPayload = handler.resolve(schemaId);
+
+            final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
+            final JsonObject overlayDocument = YamlJson.createReader(new StringReader(overlayPayload)).readObject();
+            materialized = JsonOverlay.of(overlayDocument).apply(document).toString();
+        }
+
+        return materialized;
+    }
+
     private McpOpenapiToolConfig toolConfig(
         McpOpenapiBindingConfig binding,
         String tool)
@@ -280,7 +309,9 @@ public final class McpOpenapiCompositeGenerator
             binding.options.resources.stream()
                 .filter(r -> uri.equals(r.uri))
                 .findFirst()
-                .ifPresent(override -> resource.description(override.description).output(override.output));
+                .ifPresent(override -> resource.description(override.description)
+                    .mimeType(override.mimeType)
+                    .output(override.output));
         }
 
         return resource;
@@ -416,21 +447,33 @@ public final class McpOpenapiCompositeGenerator
                 final ModelConfig output = entry.resource.output != null
                     ? qualifyModel(binding, entry.resource.output)
                     : jsonModel("%s-output".formatted(name));
-                final boolean template = entry.operation.path != null && entry.operation.path.indexOf('{') >= 0;
+                final String uri = resourceUri(entry.operation);
+                final boolean template = uri.indexOf('{') >= 0;
                 resources.add(McpHttpResourceConfig.builder()
                     .name(entry.resource.uri)
-                    .uri(resourceUri(entry.operation))
+                    .uri(uri)
                     .template(template)
                     .description(entry.resource.description)
                     .output(output)
-                    .inject(r -> injectMimeType(r, entry.operation))
+                    .inject(r -> injectMimeType(r, entry.resource, entry.operation))
                     .build());
             }
         }
 
-        return new McpHttpOptionsConfig(null,
+        return new McpHttpOptionsConfig(mcpHttpAuthorization(binding),
             tools.isEmpty() ? null : tools,
             resources.isEmpty() ? null : resources);
+    }
+
+    private McpHttpAuthorizationConfig mcpHttpAuthorization(
+        McpOpenapiBindingConfig binding)
+    {
+        final McpOpenapiAuthorizationConfig authorization =
+            binding.options != null ? binding.options.authorization : null;
+
+        return authorization != null
+            ? new McpHttpAuthorizationConfig(authorization.qname, authorization.headers)
+            : null;
     }
 
     private <C> BindingConfigBuilder<C> injectRoutes(
@@ -472,12 +515,25 @@ public final class McpOpenapiCompositeGenerator
 
     private <C> McpHttpResourceConfigBuilder<C> injectMimeType(
         McpHttpResourceConfigBuilder<C> resource,
+        McpOpenapiResourceConfig configured,
         OpenapiOperationView operation)
     {
-        final OpenapiResponseView success = successResponse(operation);
-        if (success != null && success.content != null && !success.content.isEmpty())
+        if (configured.mimeType != null)
         {
-            resource.mimeType(success.content.values().iterator().next().name);
+            resource.mimeType(configured.mimeType);
+        }
+        else
+        {
+            final OpenapiResponseView success = successResponse(operation);
+            if (success != null && success.content != null && !success.content.isEmpty())
+            {
+                final String mimeType = success.content.values().stream()
+                    .filter(typed -> jsonContentType.reset(typed.name).matches())
+                    .findFirst()
+                    .map(typed -> typed.name)
+                    .orElseGet(() -> success.content.values().iterator().next().name);
+                resource.mimeType(mimeType);
+            }
         }
 
         return resource;

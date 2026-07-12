@@ -174,11 +174,11 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         {
             final OctetsFW extension = begin.extension();
             final OpenapiBeginExFW beginEx = extension.get(beginExRO::tryWrap);
-            final long apiId = beginEx.apiId();
+            final long specId = beginEx.specId();
             final ExtensionFW extensionEx = beginEx.extension().get(extensionRO::tryWrap);
             final int operationTypeId = extensionEx.typeId();
 
-            final OpenapiCompositeRouteConfig route = composite.resolve(authorization, apiId, operationTypeId);
+            final OpenapiCompositeRouteConfig route = composite.resolve(authorization, specId, operationTypeId);
 
             if (route != null)
             {

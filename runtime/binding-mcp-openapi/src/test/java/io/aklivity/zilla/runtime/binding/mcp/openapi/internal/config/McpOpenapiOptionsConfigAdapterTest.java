@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
+import java.util.Map;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -28,7 +29,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
@@ -135,6 +138,157 @@ public class McpOpenapiOptionsConfigAdapterTest
                 .uri("repo://{owner}/{repo}")
                 .description("A GitHub repository.")
                 .output(StringModelConfig.builder().build())
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldReadOptionsWithResourceMimeType()
+    {
+        String text =
+            """
+            {
+              "resources": {
+                "repo://{owner}/{repo}": {
+                  "description": "A GitHub repository.",
+                  "mimeType": "application/vnd.github+json",
+                  "output": {
+                    "model": "string"
+                  }
+                }
+              }
+            }
+            """;
+
+        McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
+
+        assertThat(options.resources, not(nullValue()));
+        assertThat(options.resources.get(0).mimeType, equalTo("application/vnd.github+json"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithResourceMimeType()
+    {
+        String expected =
+            "{\"resources\":{\"repo://{owner}/{repo}\":" +
+            "{\"description\":\"A GitHub repository.\",\"mimeType\":\"application/vnd.github+json\"," +
+            "\"output\":\"string\"}}}";
+
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .resource()
+                .uri("repo://{owner}/{repo}")
+                .description("A GitHub repository.")
+                .mimeType("application/vnd.github+json")
+                .output(StringModelConfig.builder().build())
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldReadOptionsWithAuthorization()
+    {
+        String text =
+            """
+            {
+              "authorization": {
+                "guard0": {
+                  "credentials": {
+                    "headers": {
+                      "authorization": "Bearer {credentials}"
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
+
+        assertThat(options.authorization, not(nullValue()));
+        assertThat(options.authorization.name, equalTo("guard0"));
+        assertThat(options.authorization.headers.get("authorization"), equalTo("Bearer {credentials}"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithAuthorization()
+    {
+        String expected =
+            "{\"authorization\":{\"guard0\":{\"credentials\":{\"headers\":{\"authorization\":\"Bearer {credentials}\"}}}}}";
+
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .authorization(new McpOpenapiAuthorizationConfig("guard0", Map.of("authorization", "Bearer {credentials}")))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldReadOptionsWithOverlay()
+    {
+        String text =
+            """
+            {
+              "specs": {
+                "openapi_github0": {
+                  "catalog": {
+                    "catalog0": {
+                      "subject": "rest-api",
+                      "version": "latest"
+                    }
+                  },
+                  "overlay": {
+                    "overlay0": {
+                      "subject": "rest-api-overlay",
+                      "version": "latest"
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
+
+        McpOpenapiSpecificationConfig spec = options.specs.get(0);
+        assertThat(spec.overlay, not(nullValue()));
+        assertThat(spec.overlay.name, equalTo("overlay0"));
+        assertThat(spec.overlay.subject, equalTo("rest-api-overlay"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithOverlay()
+    {
+        String expected =
+            "{\"specs\":{\"openapi_github0\":{\"catalog\":{\"catalog0\":" +
+            "{\"subject\":\"rest-api\",\"version\":\"latest\"}}," +
+            "\"overlay\":{\"overlay0\":{\"subject\":\"rest-api-overlay\",\"version\":\"latest\"}}}}}";
+
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .spec()
+                .label("openapi_github0")
+                .catalog()
+                    .name("catalog0")
+                    .subject("rest-api")
+                    .version("latest")
+                    .build()
+                .overlay()
+                    .name("overlay0")
+                    .subject("rest-api-overlay")
+                    .version("latest")
+                    .build()
                 .build()
             .build();
 

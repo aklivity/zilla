@@ -109,7 +109,7 @@ public final class OpenapiOperationView
         int serverIndex)
     {
         return OpenapiCompositeId.compositeId(
-            OpenapiCompositeId.apiId(compositeId),
+            OpenapiCompositeId.specIndex(compositeId),
             OpenapiCompositeId.operationId(compositeId),
             serverIndex);
     }

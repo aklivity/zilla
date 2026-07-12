@@ -198,6 +198,43 @@ public class AsyncapiConditionConfigAdapterTest
     }
 
     @Test
+    public void shouldMatchServerByLiteralUrlRegardlessOfOverride() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 2.6.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              staging:
+                url: 'http://{env}.example.com'
+                protocol: http
+                variables:
+                  env:
+                    default: prod
+                    enum:
+                      - prod
+                      - staging
+            channels: {}
+            """);
+
+        AsyncapiServerConfig override = AsyncapiServerConfig.builder()
+            .url("http://staging.example.com")
+            .build();
+        List<AsyncapiServerView> overridden = AsyncapiView.of(model, List.of(override)).servers;
+
+        AsyncapiConditionConfig literal = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "http://prod.example.com")));
+
+        assertThat(literal.matches("test", "listPets", null, overridden), equalTo(true));
+
+        AsyncapiConditionConfig effective = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "http://staging.example.com")));
+
+        assertThat(effective.matches("test", "listPets", null, overridden), equalTo(false));
+    }
+
+    @Test
     public void shouldMatchAnyServerWhenOmitted() throws Exception
     {
         AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null);

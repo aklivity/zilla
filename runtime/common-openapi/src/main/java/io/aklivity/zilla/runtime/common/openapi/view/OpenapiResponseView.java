@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.openapi.view;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -54,7 +55,7 @@ public final class OpenapiResponseView
         this.content = model.content != null
                 ? model.content.entrySet().stream()
                     .map(e -> new OpenapiMediaTypeView(resolver, e.getKey(), e.getValue()))
-                    .collect(toMap(c -> c.name, identity()))
+                    .collect(toMap(c -> c.name, identity(), (a, b) -> b, LinkedHashMap::new))
                 : null;
 
         this.links = model.links != null

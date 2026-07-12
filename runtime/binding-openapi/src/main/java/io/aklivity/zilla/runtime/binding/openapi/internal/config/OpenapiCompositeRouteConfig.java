@@ -41,9 +41,9 @@ public final class OpenapiCompositeRouteConfig
     }
 
     boolean matches(
-        long apiId,
+        long specId,
         int operationTypeId)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, operationTypeId));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(specId, operationTypeId));
     }
 }

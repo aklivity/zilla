@@ -105,12 +105,18 @@ catalogs:
           mqttSessions:
             description: This channel contains MQTT sessions.
             address: mqtt-sessions
+            x-zilla-mqtt-kafka:
+              role: sessions
           mqttMessages:
             description: This channel contains MQTT messages.
             address: mqtt-messages
+            x-zilla-mqtt-kafka:
+              role: messages
           mqttRetained:
             description: This channel contains MQTT retained messages.
             address: mqtt-retained
+            x-zilla-mqtt-kafka:
+              role: retained
 
         components:
           messages:
@@ -141,11 +147,6 @@ bindings:
             catalog1:
               subject: sensor
               version: latest
-      mqtt-kafka:
-        channels:
-          sessions: mqttSessions
-          retained: mqttRetained
-          messages: mqttMessages
     routes:
       - when:
           - spec: mqtt_api

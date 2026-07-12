@@ -106,8 +106,7 @@ bindings:
     options:
       specs:
         mqtt_api:
-          servers:
-            - host: 'development.dev.example.com:1883'
+          server: 'development.dev.example.com:1883'
           catalog:
             catalog0:
               subject: smartylighting

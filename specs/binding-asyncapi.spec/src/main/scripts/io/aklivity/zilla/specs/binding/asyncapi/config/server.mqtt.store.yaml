@@ -89,6 +89,5 @@ bindings:
             catalog0:
               subject: smartylighting
               version: latest
-      mqtt:
-        store: cluster0
+          store: cluster0
     exit: asyncapi0

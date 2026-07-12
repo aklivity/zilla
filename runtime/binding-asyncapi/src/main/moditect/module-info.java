@@ -16,6 +16,7 @@ module io.aklivity.zilla.runtime.binding.asyncapi
 {
     requires transitive io.aklivity.zilla.runtime.common.asyncapi;
     requires io.aklivity.zilla.runtime.common.yaml;
+    requires io.aklivity.zilla.runtime.common.json;
 
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.mqtt;
@@ -45,6 +46,7 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse;
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka;
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka;
+    opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBindingFactorySpi;
