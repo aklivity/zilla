@@ -23,7 +23,6 @@ public class AsyncapiSpecificationConfig
     public final String label;
     public final String server;
     public final List<AsyncapiCatalogConfig> catalogs;
-    public final List<AsyncapiServerConfig> servers;
     public final Map<String, String> security;
     public final String store;
     public final AsyncapiCatalogConfig overlay;
@@ -42,7 +41,6 @@ public class AsyncapiSpecificationConfig
     AsyncapiSpecificationConfig(
         String label,
         String server,
-        List<AsyncapiServerConfig> servers,
         List<AsyncapiCatalogConfig> catalogs,
         Map<String, String> security,
         String store,
@@ -51,7 +49,6 @@ public class AsyncapiSpecificationConfig
         this.label = label;
         this.server = server;
         this.catalogs = catalogs;
-        this.servers = servers;
         this.security = security;
         this.store = store;
         this.overlay = overlay;
