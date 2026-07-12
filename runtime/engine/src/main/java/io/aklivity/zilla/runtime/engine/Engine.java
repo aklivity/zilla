@@ -166,7 +166,10 @@ public final class Engine implements Collector, AutoCloseable
         IntFunction<ToIntFunction<KindConfig>> maxWorkers = maxWorkersByBindingType::get;
 
         Tuning tuning = new Tuning(config.directory(), workerCount);
-        tuning.reset();
+        if (!readonly)
+        {
+            tuning.reset();
+        }
         for (EngineAffinity affinity : affinities)
         {
             int namespaceId = labels.supplyLabelId(affinity.namespace);
