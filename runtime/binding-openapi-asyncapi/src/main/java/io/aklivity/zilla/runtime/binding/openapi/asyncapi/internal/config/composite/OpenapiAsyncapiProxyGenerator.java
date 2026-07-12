@@ -69,18 +69,18 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
         List<OpenapiSchemaConfig> openapis,
         List<AsyncapiSchemaConfig> asyncapis)
     {
-        final Map<String, OpenapiSchemaConfig> openapisByApiId = openapis.stream()
-                .collect(Collectors.toMap(s -> s.apiLabel, identity()));
+        final Map<String, OpenapiSchemaConfig> openapisBySpecLabel = openapis.stream()
+                .collect(Collectors.toMap(s -> s.specLabel, identity()));
 
-        final Map<String, AsyncapiSchemaConfig> asyncapisByApiId = asyncapis.stream()
-                .collect(Collectors.toMap(s -> s.apiLabel, identity()));
+        final Map<String, AsyncapiSchemaConfig> asyncapisBySpecLabel = asyncapis.stream()
+                .collect(Collectors.toMap(s -> s.specLabel, identity()));
 
         final List<ProxyMapping> mappings = binding.routes.stream()
             .flatMap(r -> r.when.stream()
                 .map(w ->
                     new ProxyMapping(
-                        openapisByApiId.get(w.spec),
-                        asyncapisByApiId.get(r.with.spec))))
+                        openapisBySpecLabel.get(w.spec),
+                        asyncapisBySpecLabel.get(r.with.spec))))
             .distinct()
             .toList();
 
@@ -122,7 +122,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
             OpenapiAsyncapiBindingConfig config,
             ProxyMapping mapping)
         {
-            super(config, "%s+%s".formatted(mapping.when.apiLabel, mapping.with.apiLabel));
+            super(config, "%s+%s".formatted(mapping.when.specLabel, mapping.with.specLabel));
             this.bindings = new ProxyBindingsHelper(mapping);
         }
 
@@ -164,7 +164,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     OpenapiAsyncapiRouteConfig route)
                 {
                     this.when = route.when.stream()
-                            .filter(c -> mapping.when.apiLabel.equals(c.spec))
+                            .filter(c -> mapping.when.specLabel.equals(c.spec))
                             .map(c -> new ProxyWhenHelper(mapping.when, c))
                             .toList();
                     this.with = new ProxyWithHelper(mapping.with, route.with);
@@ -628,7 +628,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     OpenapiOperationView operation)
                 {
                     return OpenapiGuardResolver.resolve(
-                        operation.id, schema.apiLabel, operation.security, schema.security,
+                        operation.id, schema.specLabel, operation.security, schema.security,
                         config.resolveId, config.supplyQName);
                 }
 

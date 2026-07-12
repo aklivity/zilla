@@ -73,11 +73,11 @@ public final class OpenapiAsyncapiBindingConfig
 
     public OpenapiAsyncapiRouteConfig resolve(
         long authorization,
-        String apiId,
+        String spec,
         String operationId)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(apiId, operationId))
+            .filter(r -> r.authorized(authorization) && r.matches(spec, operationId))
             .findFirst()
             .orElse(null);
     }

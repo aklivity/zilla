@@ -46,28 +46,28 @@ public class OpenapiAsyncapiConditionConfig extends ConditionConfig
     }
 
     public boolean matches(
-        String apiId,
+        String spec,
         String operationId)
     {
-        return matches(apiId, operationId, null, null);
+        return matches(spec, operationId, null, null);
     }
 
     public boolean matches(
-        String apiId,
+        String spec,
         String operationId,
         List<String> tags,
         List<OpenapiServerView> operationServers)
     {
-        return matchesSpec(apiId) &&
+        return matchesSpec(spec) &&
             matchesOperation(operationId) &&
             matchesTag(tags) &&
             matchesServers(operationServers);
     }
 
     private boolean matchesSpec(
-        String apiId)
+        String spec)
     {
-        return this.spec == null || this.spec.equals(apiId);
+        return this.spec == null || this.spec.equals(spec);
     }
 
     private boolean matchesOperation(

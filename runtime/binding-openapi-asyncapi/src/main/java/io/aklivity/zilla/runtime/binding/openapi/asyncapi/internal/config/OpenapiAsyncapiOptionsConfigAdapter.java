@@ -179,7 +179,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
         Set<OpenapiSpecificationConfig> openapis = new LinkedHashSet<>();
         for (Map.Entry<String, JsonValue> entry : openapi.entrySet())
         {
-            final String apiLabel = entry.getKey();
+            final String specLabel = entry.getKey();
             final JsonObject specObject = entry.getValue().asJsonObject();
 
             if (specObject.containsKey(CATALOG_NAME))
@@ -239,7 +239,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     overlay = overlayBuilder.build();
                 }
 
-                openapis.add(new OpenapiSpecificationConfig(apiLabel, null, catalogs, security, overlay));
+                openapis.add(new OpenapiSpecificationConfig(specLabel, null, catalogs, security, overlay));
             }
         }
 
@@ -247,11 +247,11 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
         Set<AsyncapiSpecificationConfig> asyncapis = new LinkedHashSet<>();
         for (Map.Entry<String, JsonValue> entry : asyncapiObject.entrySet())
         {
-            final String apiLabel = entry.getKey();
+            final String specLabel = entry.getKey();
             final JsonObject specObject = entry.getValue().asJsonObject();
 
             AsyncapiSpecificationConfigBuilder<AsyncapiSpecificationConfig> asyncapi = AsyncapiSpecificationConfig.builder()
-                .label(apiLabel);
+                .label(specLabel);
 
             if (specObject.containsKey(CATALOG_NAME))
             {
