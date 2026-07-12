@@ -56,10 +56,10 @@ public final class AsyncapiFunctions
             return this;
         }
 
-        public AsyncapiBeginExBuilder apiId(
-            long apiId)
+        public AsyncapiBeginExBuilder specId(
+            long specId)
         {
-            beginExRW.apiId(apiId);
+            beginExRW.specId(specId);
             return this;
         }
 
@@ -93,7 +93,7 @@ public final class AsyncapiFunctions
         private final AsyncapiBeginExFW beginExRO = new AsyncapiBeginExFW();
 
         private Integer typeId;
-        private Long apiId;
+        private Long specId;
         private String operationId;
         private BytesMatcher extension;
 
@@ -111,10 +111,10 @@ public final class AsyncapiFunctions
             return this;
         }
 
-        public AsyncapiBeginExMatcherBuilder apiId(
-            long apiId)
+        public AsyncapiBeginExMatcherBuilder specId(
+            long specId)
         {
-            this.apiId = apiId;
+            this.specId = specId;
             return this;
         }
 
@@ -143,7 +143,7 @@ public final class AsyncapiFunctions
 
             if (beginEx != null &&
                 matchTypeId(beginEx) &&
-                matchApiId(beginEx) &&
+                matchSpecId(beginEx) &&
                 matchOperationId(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof() - beginEx.extension().sizeof());
@@ -162,10 +162,10 @@ public final class AsyncapiFunctions
             return typeId == beginEx.typeId();
         }
 
-        private boolean matchApiId(
+        private boolean matchSpecId(
             AsyncapiBeginExFW beginEx)
         {
-            return apiId == null || apiId == beginEx.apiId();
+            return specId == null || specId == beginEx.specId();
         }
 
         private boolean matchOperationId(

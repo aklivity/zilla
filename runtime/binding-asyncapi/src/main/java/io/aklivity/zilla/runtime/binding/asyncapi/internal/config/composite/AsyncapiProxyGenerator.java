@@ -79,15 +79,15 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
         AsyncapiBindingConfig binding,
         List<AsyncapiSchemaConfig> schemas)
     {
-        final Map<String, AsyncapiSchemaConfig> schemasByApiId = schemas.stream()
-                .collect(Collectors.toMap(s -> s.apiLabel, identity()));
+        final Map<String, AsyncapiSchemaConfig> schemasBySpecLabel = schemas.stream()
+                .collect(Collectors.toMap(s -> s.specLabel, identity()));
 
         final List<ProxyMapping> mappings = binding.routes.stream()
             .flatMap(r -> r.when.stream()
                 .map(w ->
                     new ProxyMapping(
-                        schemasByApiId.get(w.spec),
-                        schemasByApiId.get(r.with.spec))))
+                        schemasBySpecLabel.get(w.spec),
+                        schemasBySpecLabel.get(r.with.spec))))
             .distinct()
             .toList();
 
@@ -129,7 +129,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
             AsyncapiBindingConfig config,
             ProxyMapping mapping)
         {
-            super(config, "%s+%s".formatted(mapping.when.apiLabel, mapping.with.apiLabel));
+            super(config, "%s+%s".formatted(mapping.when.specLabel, mapping.with.specLabel));
             this.bindings = new ProxyBindingsHelper(mapping);
         }
 
@@ -176,7 +176,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     AsyncapiRouteConfig route)
                 {
                     this.when = route.when.stream()
-                            .filter(c -> mapping.when.apiLabel.equals(c.spec))
+                            .filter(c -> mapping.when.specLabel.equals(c.spec))
                             .map(c -> new ProxyOperationHelper(mapping.when, c))
                             .toList();
                     this.with = new ProxyOperationHelper(mapping.with, route.with.operation);

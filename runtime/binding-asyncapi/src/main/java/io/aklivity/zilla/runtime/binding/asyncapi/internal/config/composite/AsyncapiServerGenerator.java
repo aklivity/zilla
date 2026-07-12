@@ -87,7 +87,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             AsyncapiBindingConfig config,
             AsyncapiSchemaConfig schema)
         {
-            super(config, schema.apiLabel);
+            super(config, schema.specLabel);
             this.catalogs = new CatalogsHelper(schema);
             this.bindings = new ServerBindingsHelper(schema);
         }
@@ -440,7 +440,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 AsyncapiOperationView operation)
             {
                 return AsyncapiGuardResolver.resolve(
-                    operation.name, schema.apiLabel, operation.security, schema.security,
+                    operation.name, schema.specLabel, operation.security, schema.security,
                     config.resolveId, config.supplyQName);
             }
 

@@ -629,7 +629,7 @@ public abstract class AsyncapiCompositeGenerator
                 AsyncapiOperationView operation)
             {
                 return AsyncapiGuardResolver.resolve(
-                    operation.name, schema.apiLabel, operation.security, schema.security,
+                    operation.name, schema.specLabel, operation.security, schema.security,
                     config.resolveId, config.supplyQName);
             }
 

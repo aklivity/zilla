@@ -101,7 +101,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             AsyncapiBindingConfig config,
             AsyncapiSchemaConfig schema)
         {
-            super(config, schema.apiLabel);
+            super(config, schema.specLabel);
             this.catalogs = new ClientCatalogsHelper(schema);
             this.bindings = new ClientBindingsHelper(schema);
         }
@@ -226,7 +226,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private URI resolveServer()
             {
                 return config.options.specs.stream()
-                    .filter(s -> schema.apiLabel.equals(s.label))
+                    .filter(s -> schema.specLabel.equals(s.label))
                     .map(s -> s.server)
                     .filter(server -> server != null)
                     .findFirst()

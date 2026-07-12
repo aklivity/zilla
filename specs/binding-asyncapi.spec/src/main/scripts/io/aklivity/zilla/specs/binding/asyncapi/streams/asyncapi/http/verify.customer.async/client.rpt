@@ -20,7 +20,7 @@ connect "zilla://streams/asyncapi_proxy0"
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("createCustomer")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
@@ -41,7 +41,7 @@ write close
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1)
+                             .specId(1)
                              .extension(http:matchBeginEx()
                                    .typeId(zilla:id("http"))
                                    .header(":status", "202")
@@ -62,7 +62,7 @@ connect await RECEIVED_ASYNC_RESPONSE
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("getVerifiedCustomer")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
@@ -79,7 +79,7 @@ write close
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1)
+                             .specId(1)
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
                                   .header(":status", "204")
