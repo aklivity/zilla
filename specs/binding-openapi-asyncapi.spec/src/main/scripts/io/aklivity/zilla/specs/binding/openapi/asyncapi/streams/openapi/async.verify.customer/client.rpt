@@ -19,7 +19,7 @@ connect "zilla://streams/composite0"
 
 write zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("createCustomer")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
@@ -40,7 +40,7 @@ write close
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("createCustomer")
                              .extension(http:matchBeginEx()
                                    .typeId(zilla:id("http"))
@@ -62,7 +62,7 @@ connect await RECEIVED_ASYNC_RESPONSE
 
 write zilla:begin.ext ${openapi:beginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("getVerifiedCustomer")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))
@@ -79,7 +79,7 @@ write close
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("getVerifiedCustomer")
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))

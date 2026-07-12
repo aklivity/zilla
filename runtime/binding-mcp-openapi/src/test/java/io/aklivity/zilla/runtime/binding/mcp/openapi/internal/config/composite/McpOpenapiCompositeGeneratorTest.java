@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
@@ -185,6 +186,28 @@ public class McpOpenapiCompositeGeneratorTest
         }
         """;
 
+    private static final String SPEC_OVERLAY =
+        """
+        {
+          "overlay": "1.0.0",
+          "info": { "title": "github-overlay", "version": "1.0.0" },
+          "actions": [
+            {
+              "target": "$.paths",
+              "update": {
+                "/added": {
+                  "get": {
+                    "operationId": "added",
+                    "responses": { "200": { "description": "ok",
+                      "content": { "application/json": { "schema": { "type": "object" } } } } }
+                  }
+                }
+              }
+            }
+          ]
+        }
+        """;
+
     private static final String SPEC_WITH_DEFAULT_SECURITY =
         """
         {
@@ -280,6 +303,30 @@ public class McpOpenapiCompositeGeneratorTest
                     "type": "array",
                     "items": { "type": "object", "properties": {
                       "id": { "type": "integer" }, "name": { "type": "string" } } } } } } } }
+              }
+            }
+          }
+        }
+        """;
+
+    private static final String MULTI_CONTENT_TYPE_SPEC =
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "multi-content", "version": "1.0.0" },
+          "servers": [ { "url": "https://api.multi.example" } ],
+          "paths": {
+            "/items/{id}": {
+              "get": {
+                "operationId": "items/get",
+                "parameters": [
+                  { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": {
+                    "application/xml": { "schema": { "type": "object" } },
+                    "application/json": { "schema": { "type": "object" } }
+                  } } }
               }
             }
           }
@@ -407,6 +454,104 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(resourceWith, notNullValue());
         assertThat(resourceWith.headers.get(":path"), equalTo("/repos/${params.owner}/${params.repo}"));
         assertThat(resourceWith.body, nullValue());
+    }
+
+    @Test
+    public void shouldForwardAuthorizationToMcpHttp()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .authorization(new McpOpenapiAuthorizationConfig("guard0", Map.of("authorization", "Bearer {credentials}")))
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("repo://{owner}/{repo}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("repos/get")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        BindingConfig mcpHttp = namespace.bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        assertThat(mcpHttpOptions.authorization, notNullValue());
+        assertThat(mcpHttpOptions.authorization.name, equalTo("test0"));
+        assertThat(mcpHttpOptions.authorization.headers.get("authorization"), equalTo("Bearer {credentials}"));
+    }
+
+    @Test
+    public void shouldApplyOverlayBeforeGeneratingRoutes()
+    {
+        lenient().when(catalog.resolve(eq("rest-api-overlay"), eq("latest"))).thenReturn(9);
+        lenient().when(catalog.resolve(eq(9))).thenReturn(SPEC_OVERLAY);
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .overlay()
+                        .name("catalog0")
+                        .subject("rest-api-overlay")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("added://resource")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("added")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        BindingConfig mcpHttp = namespace.bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        assertThat(mcpHttpOptions.resources, notNullValue());
+        assertThat(mcpHttpOptions.resources.stream().anyMatch(r -> "added://resource".equals(r.name)), equalTo(true));
     }
 
     @Test
@@ -705,6 +850,145 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
+    public void shouldOverrideResourceMimeType()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .resource()
+                    .uri("repo://{owner}/{repo}")
+                    .mimeType("application/vnd.github.v3+json")
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("repo://{owner}/{repo}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("repos/get")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpResourceConfig resource = mcpHttpOptions.resources.stream()
+            .filter(r -> "repo://{owner}/{repo}".equals(r.name))
+            .findFirst()
+            .orElse(null);
+        assertThat(resource, notNullValue());
+        assertThat(resource.mimeType, equalTo("application/vnd.github.v3+json"));
+    }
+
+    @Test
+    public void shouldDefaultResourceMimeTypeToOpenapiContentTypeWhenNoOverrideConfigured()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("repo://{owner}/{repo}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("repos/get")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpResourceConfig resource = mcpHttpOptions.resources.get(0);
+        assertThat(resource.mimeType, equalTo("application/json"));
+    }
+
+    @Test
+    public void shouldPreferJsonContentTypeOverDeclarationOrderForResourceMimeType()
+    {
+        lenient().when(catalog.resolve(eq("multi-content-api"), eq("latest"))).thenReturn(77);
+        lenient().when(catalog.resolve(eq(77))).thenReturn(MULTI_CONTENT_TYPE_SPEC);
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("multi_content")
+                    .server("https://api.multi.example")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("multi-content-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("item://{id}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("multi_content")
+                    .operation("items/get")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpResourceConfig resource = mcpHttpOptions.resources.get(0);
+        assertThat(resource.mimeType, equalTo("application/json"));
+    }
+
+    @Test
     public void shouldDefaultResourceDescriptionToNullWhenNoOverrideConfigured()
     {
         BindingConfig binding = BindingConfig.builder()
@@ -749,7 +1033,7 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
-    public void shouldClassifyConcreteResourceWithQueryCaptureSuffix()
+    public void shouldClassifyQueryCaptureResourceAsTemplate()
     {
         lenient().when(catalog.resolve(eq("notifications-api"), eq("latest"))).thenReturn(88);
         lenient().when(catalog.resolve(eq(88))).thenReturn(NOTIFICATIONS_SPEC);
@@ -790,7 +1074,7 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
         McpHttpResourceConfig resource = mcpHttpOptions.resources.get(0);
-        assertThat(resource.template, equalTo(false));
+        assertThat(resource.template, equalTo(true));
         assertThat(resource.uri, equalTo("/notifications{?unread}"));
     }
 

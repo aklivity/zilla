@@ -43,7 +43,7 @@ public class AsyncapiFunctionsTest
     {
         final byte[] array = AsyncapiFunctions.beginEx()
             .typeId(0)
-            .apiId(1)
+            .specId(1)
             .operationId("operationId")
             .extension(new byte[] {1})
             .build();
@@ -52,7 +52,7 @@ public class AsyncapiFunctionsTest
         AsyncapiBeginExFW asyncapiBeginEx = new AsyncapiBeginExFW().wrap(buffer, 0, buffer.capacity());
         MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1]);
 
-        assertEquals(1, asyncapiBeginEx.apiId());
+        assertEquals(1, asyncapiBeginEx.specId());
         assertEquals("operationId", asyncapiBeginEx.operationId().asString());
         assertEquals(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build(),
             asyncapiBeginEx.extension());
@@ -63,7 +63,7 @@ public class AsyncapiFunctionsTest
     {
         BytesMatcher matcher = AsyncapiFunctions.matchBeginEx()
             .typeId(0x00)
-            .apiId(1L)
+            .specId(1L)
             .extension(b -> b.get() == 1 ? new Object() : null)
             .build();
 
@@ -72,7 +72,7 @@ public class AsyncapiFunctionsTest
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
-            .apiId(1L)
+            .specId(1L)
             .extension(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build())
             .build();
 
@@ -84,7 +84,7 @@ public class AsyncapiFunctionsTest
     {
         BytesMatcher matcher = AsyncapiFunctions.matchBeginEx()
             .typeId(0x00)
-            .apiId(1L)
+            .specId(1L)
             .operationId("operationId")
             .extension(b -> b.get() == 1 ? new Object() : null)
             .build();
@@ -94,7 +94,7 @@ public class AsyncapiFunctionsTest
 
         new AsyncapiBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
-            .apiId(1)
+            .specId(1)
             .operationId("operationId")
             .extension(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build())
             .build();

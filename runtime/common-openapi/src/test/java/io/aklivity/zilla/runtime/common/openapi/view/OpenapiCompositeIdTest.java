@@ -25,7 +25,7 @@ public class OpenapiCompositeIdTest
     {
         long compositeId = OpenapiCompositeId.compositeId(7, 42);
 
-        assertEquals(7, OpenapiCompositeId.apiId(compositeId));
+        assertEquals(7, OpenapiCompositeId.specIndex(compositeId));
         assertEquals(42, OpenapiCompositeId.operationId(compositeId));
         assertEquals(0, OpenapiCompositeId.serverIndex(compositeId));
     }
@@ -35,17 +35,17 @@ public class OpenapiCompositeIdTest
     {
         long compositeId = OpenapiCompositeId.compositeId(7, 42, 3);
 
-        assertEquals(7, OpenapiCompositeId.apiId(compositeId));
+        assertEquals(7, OpenapiCompositeId.specIndex(compositeId));
         assertEquals(42, OpenapiCompositeId.operationId(compositeId));
         assertEquals(3, OpenapiCompositeId.serverIndex(compositeId));
     }
 
     @Test
-    public void shouldRoundTripAtApiIdBoundary()
+    public void shouldRoundTripAtSpecIndexBoundary()
     {
         long compositeId = OpenapiCompositeId.compositeId(0xffff, 0, 0);
 
-        assertEquals(0xffff, OpenapiCompositeId.apiId(compositeId));
+        assertEquals(0xffff, OpenapiCompositeId.specIndex(compositeId));
         assertEquals(0, OpenapiCompositeId.operationId(compositeId));
         assertEquals(0, OpenapiCompositeId.serverIndex(compositeId));
     }
@@ -55,7 +55,7 @@ public class OpenapiCompositeIdTest
     {
         long compositeId = OpenapiCompositeId.compositeId(0, 0xffff_ffff, 0);
 
-        assertEquals(0, OpenapiCompositeId.apiId(compositeId));
+        assertEquals(0, OpenapiCompositeId.specIndex(compositeId));
         assertEquals(0xffff_ffff, OpenapiCompositeId.operationId(compositeId));
         assertEquals(0, OpenapiCompositeId.serverIndex(compositeId));
     }
@@ -65,7 +65,7 @@ public class OpenapiCompositeIdTest
     {
         long compositeId = OpenapiCompositeId.compositeId(0, 0, 0xffff);
 
-        assertEquals(0, OpenapiCompositeId.apiId(compositeId));
+        assertEquals(0, OpenapiCompositeId.specIndex(compositeId));
         assertEquals(0, OpenapiCompositeId.operationId(compositeId));
         assertEquals(0xffff, OpenapiCompositeId.serverIndex(compositeId));
     }
@@ -75,7 +75,7 @@ public class OpenapiCompositeIdTest
     {
         long compositeId = OpenapiCompositeId.compositeId(0xffff, 0xffff_ffff, 0xffff);
 
-        assertEquals(0xffff, OpenapiCompositeId.apiId(compositeId));
+        assertEquals(0xffff, OpenapiCompositeId.specIndex(compositeId));
         assertEquals(0xffff_ffff, OpenapiCompositeId.operationId(compositeId));
         assertEquals(0xffff, OpenapiCompositeId.serverIndex(compositeId));
     }
@@ -83,15 +83,15 @@ public class OpenapiCompositeIdTest
     @Test
     public void shouldNotBleedBetweenFields()
     {
-        long apiOnly = OpenapiCompositeId.compositeId(0xffff, 0, 0);
+        long specIndexOnly = OpenapiCompositeId.compositeId(0xffff, 0, 0);
         long operationOnly = OpenapiCompositeId.compositeId(0, 0xffff_ffff, 0);
         long serverOnly = OpenapiCompositeId.compositeId(0, 0, 0xffff);
 
-        assertEquals(0, OpenapiCompositeId.operationId(apiOnly));
-        assertEquals(0, OpenapiCompositeId.serverIndex(apiOnly));
-        assertEquals(0, OpenapiCompositeId.apiId(operationOnly));
+        assertEquals(0, OpenapiCompositeId.operationId(specIndexOnly));
+        assertEquals(0, OpenapiCompositeId.serverIndex(specIndexOnly));
+        assertEquals(0, OpenapiCompositeId.specIndex(operationOnly));
         assertEquals(0, OpenapiCompositeId.serverIndex(operationOnly));
-        assertEquals(0, OpenapiCompositeId.apiId(serverOnly));
+        assertEquals(0, OpenapiCompositeId.specIndex(serverOnly));
         assertEquals(0, OpenapiCompositeId.operationId(serverOnly));
     }
 }

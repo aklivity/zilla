@@ -16,14 +16,14 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 public class OpenapiCompositeWithConfig
 {
-    public final long apiId;
+    public final long specId;
     public final String operationId;
 
     public OpenapiCompositeWithConfig(
-        long apiId,
+        long specId,
         String operationId)
     {
-        this.apiId = apiId;
+        this.specId = specId;
         this.operationId = operationId;
     }
 }

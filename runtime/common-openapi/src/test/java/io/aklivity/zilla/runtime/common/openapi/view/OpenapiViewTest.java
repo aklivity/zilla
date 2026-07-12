@@ -454,6 +454,50 @@ public class OpenapiViewTest
         assertEquals(URI.create("http://prod.example.com:80"), view.servers.get(0).url);
     }
 
+    @Test
+    public void shouldMarkServerOverriddenOnlyWhenOverrideMatchesItsOwnUrl() throws Exception
+    {
+        OpenapiServer prod = new OpenapiServer();
+        prod.url = "http://localhost:9090/prod";
+
+        OpenapiServer qa = new OpenapiServer();
+        qa.url = "http://localhost:8080/qa";
+
+        Openapi model = new Openapi();
+        model.servers = List.of(prod, qa);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder()
+            .url("http://localhost:9090/prod")
+            .build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
+
+        assertTrue(view.servers.get(0).overridden);
+        assertFalse(view.servers.get(1).overridden);
+    }
+
+    @Test
+    public void shouldKeepLiteralUrlAtSpecDefaultRegardlessOfOverride() throws Exception
+    {
+        OpenapiServerVariable variable = new OpenapiServerVariable();
+        variable.values = List.of("prod", "staging");
+        variable.defaultValue = "prod";
+
+        OpenapiServer server = new OpenapiServer();
+        server.url = "http://{env}.example.com";
+        server.variables = Map.of("env", variable);
+
+        Openapi model = new Openapi();
+        model.servers = List.of(server);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder()
+            .url("http://staging.example.com")
+            .build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
+
+        assertEquals(URI.create("http://staging.example.com:80"), view.servers.get(0).url);
+        assertEquals(URI.create("http://prod.example.com:80"), view.servers.get(0).literalUrl);
+    }
+
     public static final class SampleExtension
     {
         public String key;

@@ -30,7 +30,6 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
     public final HttpOptionsConfig http;
     public final MqttOptionsConfig mqtt;
     public final KafkaOptionsConfig kafka;
-    public final AsyncapiMqttKafkaConfig mqttKafka;
     public final List<AsyncapiSpecificationConfig> specs;
 
     public static AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> builder()
@@ -49,14 +48,12 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
         HttpOptionsConfig http,
         MqttOptionsConfig mqtt,
         KafkaOptionsConfig kafka,
-        AsyncapiMqttKafkaConfig mqttKafka,
         List<AsyncapiSpecificationConfig> specs)
     {
         this.http = http;
         this.mqtt = mqtt;
         this.tls = tls;
         this.kafka = kafka;
-        this.mqttKafka = mqttKafka;
         this.specs = specs;
     }
 }

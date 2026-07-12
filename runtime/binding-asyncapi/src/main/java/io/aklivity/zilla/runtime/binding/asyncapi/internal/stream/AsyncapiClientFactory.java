@@ -165,11 +165,11 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         {
             final OctetsFW extension = begin.extension();
             final AsyncapiBeginExFW beginEx = extension.get(beginExRO::tryWrap);
-            final long apiId = beginEx.apiId();
+            final long specId = beginEx.specId();
             final ExtensionFW extensionEx = beginEx.extension().get(extensionRO::tryWrap);
             final int operationTypeId = extensionEx.typeId();
 
-            final AsyncapiCompositeRouteConfig route = composite.resolve(authorization, apiId, operationTypeId);
+            final AsyncapiCompositeRouteConfig route = composite.resolve(authorization, specId, operationTypeId);
 
             if (route != null)
             {
@@ -184,7 +184,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
                     affinity,
                     authorization,
                     resolvedId,
-                    apiId,
+                    specId,
                     operationId)::onAsyncapiMessage;
             }
 
@@ -197,7 +197,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     {
         private final CompositeStream composite;
         private final MessageConsumer sender;
-        private final long apiId;
+        private final long specId;
         private final String operationId;
         private final long originId;
         private final long routedId;
@@ -229,7 +229,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             long affinity,
             long authorization,
             long resolvedId,
-            long apiId,
+            long specId,
             String operationId)
         {
             this.composite =  new CompositeStream(this, routedId, resolvedId, authorization);
@@ -240,7 +240,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.apiId = apiId;
+            this.specId = specId;
             this.operationId = operationId;
         }
 
@@ -447,7 +447,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             final AsyncapiBeginExFW beginEx = beginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(asyncapiTypeId)
-                .apiId(apiId)
+                .specId(specId)
                 .operationId(operationId)
                 .extension(extension)
                 .build();

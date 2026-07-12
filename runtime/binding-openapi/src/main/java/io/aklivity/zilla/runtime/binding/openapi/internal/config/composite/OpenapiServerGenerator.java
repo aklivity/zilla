@@ -73,7 +73,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             OpenapiBindingConfig config,
             OpenapiSchemaConfig schema)
         {
-            super(config, schema.apiLabel);
+            super(config, schema.specLabel);
             this.catalogs = new ServerCatalogsHelper(schema);
             this.bindings = new ServerBindingsHelper(schema);
         }
@@ -212,6 +212,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .forEach(s -> binding.route()
                         .when(TlsConditionConfig::builder)
                             .port(s.url.getPort())
+                            .authority(s.url.getHost())
                             .build()
                         .exit("http_server0")
                         .build());
@@ -268,7 +269,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         operation.servers.forEach(server ->
                             options
                                 .request()
-                                    .path(prefix + server.requestPath(operation.path))
+                                    .path((server.overridden ? "" : prefix) + server.requestPath(operation.path))
                                     .method(Method.valueOf(operation.method))
                                     .inject(request -> injectHttpParams(request, operation))
                                     .inject(request -> injectHttpContent(request, operation))
@@ -384,7 +385,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                                     .exit(config.qname)
                                     .when(HttpConditionConfig::builder)
                                         .header(":path",
-                                            (prefix + operation.servers.get(i).requestPath(operation.path))
+                                            (operation.servers.get(i).overridden ? "" : prefix)
+                                                .concat(operation.servers.get(i).requestPath(operation.path))
                                                 .replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
                                         .header(":method", operation.method)
                                         .build()
@@ -401,7 +403,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 OpenapiOperationView operation)
             {
                 return OpenapiGuardResolver.resolve(
-                    operation.id, schema.apiLabel, operation.security, schema.security,
+                    operation.id, schema.specLabel, operation.security, schema.security,
                     config.resolveId, config.supplyQName);
             }
 

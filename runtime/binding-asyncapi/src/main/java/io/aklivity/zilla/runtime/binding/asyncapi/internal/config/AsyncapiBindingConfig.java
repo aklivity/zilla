@@ -24,6 +24,7 @@ import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -92,6 +93,16 @@ public final class AsyncapiBindingConfig
             if (options.mqtt != null)
             {
                 final MqttAuthorizationConfig authorization = options.mqtt.authorization;
+                if (authorization != null)
+                {
+                    final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
+                    authorization.qname = context.supplyQName(namespacedId);
+                }
+            }
+
+            if (options.kafka != null)
+            {
+                final KafkaAuthorizationConfig authorization = options.kafka.authorization;
                 if (authorization != null)
                 {
                     final long namespacedId = binding.resolveId.applyAsLong(authorization.name);

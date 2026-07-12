@@ -90,7 +90,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             OpenapiBindingConfig config,
             OpenapiSchemaConfig schema)
         {
-            super(config, schema.apiLabel);
+            super(config, schema.specLabel);
             this.catalogs = new ClientCatalogsHelper(schema);
             this.bindings = new ClientBindingsHelper(schema);
         }
@@ -143,7 +143,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private URI resolveServer()
             {
                 return config.options.specs.stream()
-                    .filter(s -> schema.apiLabel.equals(s.label))
+                    .filter(s -> schema.specLabel.equals(s.label))
                     .map(s -> s.server)
                     .filter(server -> server != null)
                     .findFirst()
@@ -259,7 +259,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         operation.servers.forEach(server ->
                             options
                                 .request()
-                                    .path(prefix + server.requestPath(operation.path))
+                                    .path((server.overridden ? "" : prefix) + server.requestPath(operation.path))
                                     .method(HttpRequestConfig.Method.valueOf(operation.method))
                                     .inject(request -> injectHttpResponses(request, operation))
                                     .build()

@@ -18,29 +18,29 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class AsyncapiCompositeConditionConfig extends ConditionConfig
 {
-    public final long apiId;
+    public final long specId;
     public final int operationTypeId;
 
     public AsyncapiCompositeConditionConfig(
-        long apiId,
+        long specId,
         int operationTypeId)
     {
-        this.apiId = apiId;
+        this.specId = specId;
         this.operationTypeId = operationTypeId;
     }
 
     public boolean matches(
-        long apiId,
+        long specId,
         int operationTypeId)
     {
-        return matchesApiId(apiId) &&
+        return matchesSpecId(specId) &&
             matchesOperationTypeId(operationTypeId);
     }
 
-    private boolean matchesApiId(
-        long apiId)
+    private boolean matchesSpecId(
+        long specId)
     {
-        return this.apiId == apiId;
+        return this.specId == specId;
     }
 
     private boolean matchesOperationTypeId(

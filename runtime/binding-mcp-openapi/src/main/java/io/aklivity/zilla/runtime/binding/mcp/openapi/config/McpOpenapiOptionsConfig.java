@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class McpOpenapiOptionsConfig extends OptionsConfig
 {
+    public final McpOpenapiAuthorizationConfig authorization;
     public final List<McpOpenapiSpecificationConfig> specs;
     public final List<McpOpenapiToolConfig> tools;
     public final List<McpOpenapiResourceConfig> resources;
@@ -37,10 +38,12 @@ public final class McpOpenapiOptionsConfig extends OptionsConfig
     }
 
     McpOpenapiOptionsConfig(
+        McpOpenapiAuthorizationConfig authorization,
         List<McpOpenapiSpecificationConfig> specs,
         List<McpOpenapiToolConfig> tools,
         List<McpOpenapiResourceConfig> resources)
     {
+        this.authorization = authorization;
         this.specs = specs;
         this.tools = tools;
         this.resources = resources;

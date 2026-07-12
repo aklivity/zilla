@@ -33,11 +33,6 @@ bindings:
           catalog:
             host_filesystem:
               subject: kafka
-      mqtt-kafka:
-        channels:
-          sessions: mqttSessions
-          retained: mqttRetained
-          messages: mqttMessages
     routes:
       - when:
           - spec: mqtt_api

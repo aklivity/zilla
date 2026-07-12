@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBindingEx;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
@@ -100,7 +101,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             AsyncapiBindingConfig config,
             AsyncapiSchemaConfig schema)
         {
-            super(config, schema.apiLabel);
+            super(config, schema.specLabel);
             this.catalogs = new ClientCatalogsHelper(schema);
             this.bindings = new ClientBindingsHelper(schema);
         }
@@ -194,6 +195,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .map(s -> s.protocol)
+                    .map(this::resolveProtocol)
                     .distinct()
                     .map(protocols::get)
                     .filter(Objects::nonNull)
@@ -202,10 +204,29 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 return namespace;
             }
 
+            private String resolveProtocol(
+                String protocol)
+            {
+                String resolved = protocol;
+                if (resolveServer() != null)
+                {
+                    boolean secure = isSecure();
+                    resolved = switch (protocol)
+                    {
+                    case "kafka", "kafka-secure" -> secure ? "kafka-secure" : "kafka";
+                    case "http", "https" -> secure ? "https" : "http";
+                    case "mqtt", "mqtts", "mqtt+secure" -> secure ? "mqtts" : "mqtt";
+                    default -> protocol;
+                    };
+                }
+
+                return resolved;
+            }
+
             private URI resolveServer()
             {
                 return config.options.specs.stream()
-                    .filter(s -> schema.apiLabel.equals(s.label))
+                    .filter(s -> schema.specLabel.equals(s.label))
                     .map(s -> s.server)
                     .filter(server -> server != null)
                     .findFirst()
@@ -277,6 +298,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .kind(CLIENT)
                         .options(KafkaOptionsConfig::builder)
                             .inject(this::injectKafkaSaslOptions)
+                            .inject(this::injectKafkaAuthorizationOptions)
                             .inject(this::injectKafkaServerOptions)
                             .build()
                         .inject(this::injectMetrics)
@@ -295,6 +317,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .kind(CLIENT)
                         .options(KafkaOptionsConfig::builder)
                             .inject(this::injectKafkaSaslOptions)
+                            .inject(this::injectKafkaAuthorizationOptions)
                             .inject(this::injectKafkaServerOptions)
                             .build()
                         .inject(this::injectMetrics)
@@ -344,7 +367,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .forEach(channel ->
                         options.topic()
                             .name(channel.address)
-                            .inject(t -> injectKafkaTopicTransforms(t, channel, topics))
+                            .inject(t -> injectKafkaTopicDefaults(t, channel, topics))
                             .inject(t -> injectKafkaTopicKey(t, channel))
                             .inject(t -> injectKafkaTopicValue(t, channel))
                             .build());
@@ -352,7 +375,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 return options;
             }
 
-            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicTransforms(
+            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicDefaults(
                 KafkaTopicConfigBuilder<C> topic,
                 AsyncapiChannelView channel,
                 List<KafkaTopicConfig> topics)
@@ -362,13 +385,25 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     Optional<KafkaTopicConfig> topicConfig = topics.stream()
                         .filter(t -> t.name.equals(channel.address))
                         .findFirst();
-                    topicConfig.ifPresent(kafkaTopicConfig -> topic
-                        .transforms()
-                        .extractKey(kafkaTopicConfig.transforms.extractKey)
-                        .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
-                        .build());
+                    topicConfig.ifPresent(kafkaTopicConfig -> injectKafkaTopicConfig(topic, kafkaTopicConfig));
                 }
                 return topic;
+            }
+
+            private <C> void injectKafkaTopicConfig(
+                KafkaTopicConfigBuilder<C> topic,
+                KafkaTopicConfig kafkaTopicConfig)
+            {
+                topic.defaultOffset(kafkaTopicConfig.defaultOffset)
+                    .deltaType(kafkaTopicConfig.deltaType);
+
+                if (kafkaTopicConfig.transforms != null)
+                {
+                    topic.transforms()
+                        .extractKey(kafkaTopicConfig.transforms.extractKey)
+                        .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
+                        .build();
+                }
             }
 
             private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicKey(
@@ -460,17 +495,46 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 return options;
             }
 
+            private <C> KafkaOptionsConfigBuilder<C> injectKafkaAuthorizationOptions(
+                KafkaOptionsConfigBuilder<C> options)
+            {
+                final KafkaAuthorizationConfig authorization = config.options != null && config.options.kafka != null
+                    ? config.options.kafka.authorization
+                    : null;
+
+                if (authorization != null)
+                {
+                    options.authorization()
+                        .name(authorization.qname)
+                        .credentials(authorization.credentials)
+                        .build();
+                }
+
+                return options;
+            }
+
             private <C> KafkaOptionsConfigBuilder<C> injectKafkaServerOptions(
                 KafkaOptionsConfigBuilder<C> options)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .forEach(s ->
-                        options.server()
-                            .host(s.hostname)
-                            .port(s.port)
-                            .build());
+                URI server = resolveServer();
+                if (server != null)
+                {
+                    options.server()
+                        .host(server.getHost())
+                        .port(server.getPort())
+                        .build();
+                }
+                else
+                {
+                    Stream.of(schema)
+                        .map(s -> s.asyncapi)
+                        .flatMap(v -> v.servers.stream())
+                        .forEach(s ->
+                            options.server()
+                                .host(s.hostname)
+                                .port(s.port)
+                                .build());
+                }
 
                 return options;
             }

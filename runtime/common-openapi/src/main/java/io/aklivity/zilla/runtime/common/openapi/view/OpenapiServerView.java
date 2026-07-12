@@ -35,6 +35,8 @@ import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 public final class OpenapiServerView
 {
     public final URI url;
+    public final URI literalUrl;
+    public final boolean overridden;
 
     private final Map<String, Object> extensions;
 
@@ -56,10 +58,17 @@ public final class OpenapiServerView
                     .collect(toMap(v -> v.name, identity()))
                 : Map.of();
 
-        this.url = model.url != null
-                ? resolvePorts(URI.create(new VariableMatcher(variables::get, model.url)
-                        .resolve(config != null ? config.url : null)))
+        VariableMatcher matcher = model.url != null
+                ? new VariableMatcher(variables::get, model.url)
                 : null;
+
+        this.url = matcher != null
+                ? resolvePorts(URI.create(matcher.resolve(config != null ? config.url : null)))
+                : null;
+        this.literalUrl = matcher != null
+                ? resolvePorts(URI.create(matcher.resolve(null)))
+                : null;
+        this.overridden = matcher != null && config != null && matcher.matches(config.url);
         this.extensions = model.extensions;
     }
 
@@ -97,7 +106,13 @@ public final class OpenapiServerView
         public String resolve(
             String value)
         {
-            return value != null && matcher.reset(value).matches() ? value : defaultValue;
+            return matches(value) ? value : defaultValue;
+        }
+
+        public boolean matches(
+            String value)
+        {
+            return value != null && matcher.reset(value).matches();
         }
 
         private VariableMatcher(

@@ -25,6 +25,7 @@ public final class McpOpenapiResourceConfigBuilder<T> extends ConfigBuilder<T, M
 
     private String uri;
     private String description;
+    private String mimeType;
     private ModelConfig output;
 
     McpOpenapiResourceConfigBuilder(
@@ -54,6 +55,13 @@ public final class McpOpenapiResourceConfigBuilder<T> extends ConfigBuilder<T, M
         return this;
     }
 
+    public McpOpenapiResourceConfigBuilder<T> mimeType(
+        String mimeType)
+    {
+        this.mimeType = mimeType;
+        return this;
+    }
+
     public McpOpenapiResourceConfigBuilder<T> output(
         ModelConfig output)
     {
@@ -64,6 +72,6 @@ public final class McpOpenapiResourceConfigBuilder<T> extends ConfigBuilder<T, M
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiResourceConfig(uri, description, output));
+        return mapper.apply(new McpOpenapiResourceConfig(uri, description, mimeType, output));
     }
 }
