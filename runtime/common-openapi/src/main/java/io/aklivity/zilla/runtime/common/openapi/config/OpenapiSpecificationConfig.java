@@ -57,9 +57,9 @@ public class OpenapiSpecificationConfig
     }
 
     public OpenapiSpecificationConfig(
-        String apiLabel,
+        String label,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(apiLabel, null, catalogs, null, null);
+        this(label, null, catalogs, null, null);
     }
 }
