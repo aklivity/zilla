@@ -224,6 +224,26 @@
                                         {
                                             "title": "Headers",
                                             "type": "object",
+                                            "properties":
+                                            {
+                                                ":scheme":
+                                                {
+                                                    "title": "Scheme",
+                                                    "type": "string",
+                                                    "enum": [ "http", "https" ]
+                                                },
+                                                ":authority":
+                                                {
+                                                    "title": "Authority",
+                                                    "type": "string",
+                                                    "pattern": "^[^:/]+:[0-9]+$"
+                                                },
+                                                ":path":
+                                                {
+                                                    "title": "Path",
+                                                    "type": "string"
+                                                }
+                                            },
                                             "patternProperties":
                                             {
                                                 "^[A-Za-z0-9:-]+$":
@@ -231,6 +251,7 @@
                                                     "type": "string"
                                                 }
                                             },
+                                            "required": [ ":scheme", ":authority", ":path" ],
                                             "additionalProperties": false
                                         },
                                         "cookies":

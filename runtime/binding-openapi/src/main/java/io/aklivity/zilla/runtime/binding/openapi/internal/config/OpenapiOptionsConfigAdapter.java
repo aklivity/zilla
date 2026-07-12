@@ -15,13 +15,11 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -31,12 +29,9 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -45,16 +40,15 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
-    private static final String TCP_NAME = "tcp";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
-    private static final String SERVERS_NAME = "servers";
-    private static final String SERVER_URL_NAME = "url";
+    private static final String SERVER_NAME = "server";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
+    private static final String SECURITY_NAME = "security";
+    private static final String OVERLAY_NAME = "overlay";
 
-    private OptionsConfigAdapter tcpOptions;
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
 
@@ -80,19 +74,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (openapiOptions.servers != null)
-        {
-            JsonArrayBuilder servers = Json.createArrayBuilder();
-            openapiOptions.servers.forEach(servers::add);
-            object.add(SERVERS_NAME, servers);
-        }
-
-        if (openapiOptions.tcp != null)
-        {
-            final TcpOptionsConfig tcp = ((OpenapiOptionsConfig) options).tcp;
-            object.add(TCP_NAME, tcpOptions.adaptToJson(tcp));
-        }
-
         if (openapiOptions.tls != null)
         {
             final TlsOptionsConfig tls = ((OpenapiOptionsConfig) options).tls;
@@ -111,8 +92,13 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             for (OpenapiSpecificationConfig openapiConfig : openapiOptions.specs)
             {
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
-                final JsonArrayBuilder servers = Json.createArrayBuilder();
                 final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
+
+                if (openapiConfig.server != null)
+                {
+                    catalogObject.add(SERVER_NAME, openapiConfig.server);
+                }
+
                 for (OpenapiCatalogConfig catalog : openapiConfig.catalogs)
                 {
                     JsonObjectBuilder schemaObject = Json.createObjectBuilder();
@@ -127,18 +113,25 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                 }
                 catalogObject.add(CATALOG_NAME, subjectObject);
 
-                if (openapiConfig.servers != null && !openapiConfig.servers.isEmpty())
+                if (openapiConfig.overlay != null)
                 {
-                    openapiConfig.servers.forEach(s ->
+                    final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+                    overlaySchema.add(SUBJECT_NAME, openapiConfig.overlay.subject);
+                    if (openapiConfig.overlay.version != null)
                     {
-                        JsonObjectBuilder server = Json.createObjectBuilder();
-                        if (!s.url.isEmpty())
-                        {
-                            server.add(SERVER_URL_NAME, s.url);
-                        }
-                        servers.add(server);
-                    });
-                    catalogObject.add(SERVERS_NAME, servers);
+                        overlaySchema.add(VERSION_NAME, openapiConfig.overlay.version);
+                    }
+
+                    final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+                    overlaySubject.add(openapiConfig.overlay.name, overlaySchema);
+                    catalogObject.add(OVERLAY_NAME, overlaySubject);
+                }
+
+                if (openapiConfig.security != null && !openapiConfig.security.isEmpty())
+                {
+                    final JsonObjectBuilder security = Json.createObjectBuilder();
+                    openapiConfig.security.forEach(security::add);
+                    catalogObject.add(SECURITY_NAME, security);
                 }
 
                 specs.add(openapiConfig.label, catalogObject);
@@ -156,13 +149,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         ensureNestedOptions();
 
         OpenapiOptionsConfigBuilder<OpenapiOptionsConfig> openapiOptions = OpenapiOptionsConfig.builder();
-
-        if (object.containsKey(TCP_NAME))
-        {
-            final JsonObject tcp = object.getJsonObject(TCP_NAME);
-            final TcpOptionsConfig tcpOptions = (TcpOptionsConfig) this.tcpOptions.adaptFromJson(tcp);
-            openapiOptions.tcp(tcpOptions);
-        }
 
         if (object.containsKey(TLS_NAME))
         {
@@ -184,25 +170,12 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             JsonObject specs = object.getJsonObject(SPECS_NAME);
             for (Map.Entry<String, JsonValue> entry : specs.entrySet())
             {
-                final String apiLabel = entry.getKey();
+                final String specLabel = entry.getKey();
                 final JsonObject specObject = entry.getValue().asJsonObject();
-                final JsonArray serversJson = specObject.getJsonArray(SERVERS_NAME);
 
-                final List<OpenapiServerConfig> servers = new LinkedList<>();
-                if (serversJson != null)
-                {
-                    serversJson.forEach(s ->
-                    {
-                        JsonObject serverObject = s.asJsonObject();
-                        OpenapiServerConfigBuilder<OpenapiServerConfig> serverBuilder = OpenapiServerConfig.builder();
-                        if (serverObject.containsKey(SERVER_URL_NAME))
-                        {
-                            serverBuilder.url(serverObject.getString(SERVER_URL_NAME));
-                        }
-
-                        servers.add(serverBuilder.build());
-                    });
-                }
+                final String server = specObject.containsKey(SERVER_NAME)
+                    ? specObject.getString(SERVER_NAME)
+                    : null;
 
                 List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
                 if (specObject.containsKey(CATALOG_NAME))
@@ -228,7 +201,40 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                         catalogs.add(catalogBuilder.build());
                     }
                 }
-                openapiOptions.spec(new OpenapiSpecificationConfig(apiLabel, servers, catalogs));
+                Map<String, String> security = null;
+                if (specObject.containsKey(SECURITY_NAME))
+                {
+                    security = new LinkedHashMap<>();
+                    final JsonObject securityObject = specObject.getJsonObject(SECURITY_NAME);
+                    for (String scheme : securityObject.keySet())
+                    {
+                        security.put(scheme, securityObject.getString(scheme));
+                    }
+                }
+
+                OpenapiCatalogConfig overlay = null;
+                if (specObject.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+                    OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> overlayBuilder = OpenapiCatalogConfig.builder();
+                    overlayBuilder.name(overlayEntry.getKey());
+
+                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+                    {
+                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (overlaySchemaObject.containsKey(VERSION_NAME))
+                    {
+                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+                    }
+                    overlay = overlayBuilder.build();
+                }
+
+                openapiOptions.spec(new OpenapiSpecificationConfig(specLabel, server, catalogs, security, overlay));
             }
         }
 
@@ -237,10 +243,8 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 
     private void ensureNestedOptions()
     {
-        if (tcpOptions == null)
+        if (tlsOptions == null)
         {
-            tcpOptions = new OptionsConfigAdapter(Kind.BINDING);
-            tcpOptions.adaptType("tcp");
             tlsOptions = new OptionsConfigAdapter(Kind.BINDING);
             tlsOptions.adaptType("tls");
             httpOptions = new OptionsConfigAdapter(Kind.BINDING);

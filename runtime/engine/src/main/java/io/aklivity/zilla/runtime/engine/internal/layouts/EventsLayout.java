@@ -81,6 +81,7 @@ public final class EventsLayout implements AutoCloseable
     {
         private long capacity;
         private Path path;
+        private boolean readonly;
 
         public Builder capacity(
             long capacity)
@@ -96,10 +97,20 @@ public final class EventsLayout implements AutoCloseable
             return this;
         }
 
+        public Builder readonly(
+            boolean readonly)
+        {
+            this.readonly = readonly;
+            return this;
+        }
+
         public EventsLayout build()
         {
             final File layoutFile = path.toFile();
-            CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
+            if (!readonly)
+            {
+                CloseHelper.close(createEmptyFile(layoutFile, capacity + RingBufferDescriptor.TRAILER_LENGTH));
+            }
             final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "events");
             final AtomicBufferEx atomicBuffer = new UnsafeBufferEx(mappedBuffer).asNative();
             final RingBufferEx ringBuffer = new OneToOneRingBuffer(atomicBuffer);

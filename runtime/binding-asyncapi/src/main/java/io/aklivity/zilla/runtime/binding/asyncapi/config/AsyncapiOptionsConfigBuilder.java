@@ -24,8 +24,6 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
@@ -35,27 +33,13 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, AsyncapiOptionsConfigBuilder<T>>
 {
-    private static final String DEFAULT_SESSIONS_CHANNEL = "mqttSessions";
-    private static final String DEFAULT_RETAINED_CHANNEL = "mqttRetained";
-    private static final String DEFAULT_MESSAGES_CHANNEL = "mqttMessages";
-    private static final AsyncapiMqttKafkaConfig DEFAULT_MQTT_KAFKA =
-        AsyncapiMqttKafkaConfig.builder()
-            .channels()
-                .sessions(DEFAULT_SESSIONS_CHANNEL)
-                .messages(DEFAULT_MESSAGES_CHANNEL)
-                .retained(DEFAULT_RETAINED_CHANNEL)
-                .build()
-            .build();
-
     private final Function<OptionsConfig, T> mapper;
 
-    private TcpOptionsConfig tcp;
     private TlsOptionsConfig tls;
     private HttpOptionsConfig http;
     private MqttOptionsConfig mqtt;
     private KafkaOptionsConfig kafka;
     private List<AsyncapiSpecificationConfig> specs;
-    private AsyncapiMqttKafkaConfig mqttKafka = DEFAULT_MQTT_KAFKA;
 
     AsyncapiOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -68,19 +52,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     protected Class<AsyncapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<AsyncapiOptionsConfigBuilder<T>>) getClass();
-    }
-
-    public TcpOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> tcp()
-    {
-        Function<TcpOptionsConfig, AsyncapiOptionsConfigBuilder<T>> mapper = this::tcp;
-        return TcpOptionsConfig.builder(mapper.compose(TcpOptionsConfig.class::cast));
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> tcp(
-        TcpOptionsConfig tcp)
-    {
-        this.tcp = tcp;
-        return this;
     }
 
     public TlsOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> tls()
@@ -135,18 +106,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
         return this;
     }
 
-    public AsyncapiMqttKafkaConfigBuilder<AsyncapiOptionsConfigBuilder<T>> mqttKafka()
-    {
-        return new AsyncapiMqttKafkaConfigBuilder<>(this::mqttKafka);
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> mqttKafka(
-        AsyncapiMqttKafkaConfig mqttKafka)
-    {
-        this.mqttKafka = mqttKafka;
-        return this;
-    }
-
     public AsyncapiSpecificationConfigBuilder<AsyncapiOptionsConfigBuilder<T>> spec()
     {
         return AsyncapiSpecificationConfig.builder(this::spec);
@@ -166,6 +125,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     @Override
     public T build()
     {
-        return mapper.apply(new AsyncapiOptionsConfig(tcp, tls, http, mqtt, kafka, mqttKafka, specs));
+        return mapper.apply(new AsyncapiOptionsConfig(tls, http, mqtt, kafka, specs));
     }
 }

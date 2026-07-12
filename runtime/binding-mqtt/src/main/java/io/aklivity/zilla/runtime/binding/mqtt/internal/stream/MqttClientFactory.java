@@ -30,6 +30,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishF
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.RETAIN_AS_PUBLISHED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.SEND_RETAINED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_ASSIGNED_CLIENT_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_AUTHENTICATION_DATA;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_AUTHENTICATION_METHOD;
@@ -142,6 +143,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionB
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSubscribeFlushExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.WindowFW;
@@ -347,6 +349,8 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final LongSupplier supplyBudgetId;
     private final Long2ObjectHashMap<MqttBindingConfig> bindings;
     private final int mqttTypeId;
+    private final int proxyTypeId;
+    private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
     private final long publishTimeoutMillis;
     private final long connackTimeoutMillis;
@@ -382,6 +386,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.supplyTraceId = context::supplyTraceId;
         this.bindings = new Long2ObjectHashMap<>();
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
+        this.proxyTypeId = context.supplyTypeId("proxy");
         this.publishTimeoutMillis = SECONDS.toMillis(config.publishTimeout());
         this.connackTimeoutMillis = SECONDS.toMillis(config.connackTimeout());
         this.maximumPacketSize = writeBuffer.capacity();
@@ -440,7 +445,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final int kind = mqttBeginEx.kind();
 
             MqttClient client = resolveClient(routedId, resolvedId, supplyInitialId.applyAsLong(resolvedId), affinity, kind,
-                binding.guard, binding.injectCredentials(), binding.authField());
+                binding.guard, binding.injectCredentials(), binding.authField(), binding.serverHost, binding.serverPort);
             switch (kind)
             {
             case MqttBeginExFW.KIND_SESSION:
@@ -469,10 +474,13 @@ public final class MqttClientFactory implements MqttStreamFactory
         int kind,
         GuardHandler guard,
         Function<String, String> credentials,
-        MqttConnectProperty authField)
+        MqttConnectProperty authField,
+        String serverHost,
+        int serverPort)
     {
         return kind == MqttBeginExFW.KIND_SESSION ? clients.computeIfAbsent(affinity,
-            s -> new MqttClient(routedId, resolvedId, initialId, maximumPacketSize, guard, credentials, authField)) :
+            s -> new MqttClient(routedId, resolvedId, initialId, maximumPacketSize, guard, credentials, authField,
+                serverHost, serverPort)) :
             clients.get(affinity);
     }
 
@@ -1211,6 +1219,8 @@ public final class MqttClientFactory implements MqttStreamFactory
         private final GuardHandler guard;
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
+        private final String serverHost;
+        private final int serverPort;
 
         private long budgetId;
         private int state;
@@ -1277,7 +1287,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             int maximumPacketSize,
             GuardHandler guard,
             Function<String, String> credentials,
-            MqttConnectProperty authField)
+            MqttConnectProperty authField,
+            String serverHost,
+            int serverPort)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -1293,6 +1305,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             this.guard = guard;
             this.credentials = credentials;
             this.authField = authField;
+            this.serverHost = serverHost;
+            this.serverPort = serverPort;
         }
 
         private void onNetwork(
@@ -1992,8 +2006,23 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = MqttState.openingInitial(state);
 
+                Flyweight extension = EMPTY_OCTETS;
+
+                if (serverHost != null)
+                {
+                    extension = proxyBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(proxyTypeId)
+                        .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                                                   .source("0.0.0.0")
+                                                   .destination(serverHost)
+                                                   .sourcePort(0)
+                                                   .destinationPort(serverPort)))
+                        .infos(ii -> ii.item(i -> i.authority(serverHost)))
+                        .build();
+                }
+
                 network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck,
-                    initialMax, traceId, authorization, affinity, EMPTY_OCTETS);
+                    initialMax, traceId, authorization, affinity, extension);
             }
         }
 

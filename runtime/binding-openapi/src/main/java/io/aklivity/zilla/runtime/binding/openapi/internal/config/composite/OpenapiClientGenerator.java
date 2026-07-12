@@ -16,9 +16,11 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
+import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -31,7 +33,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingC
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeRouteConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
@@ -89,7 +90,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             OpenapiBindingConfig config,
             OpenapiSchemaConfig schema)
         {
-            super(config, schema.apiLabel);
+            super(config, schema.specLabel);
             this.catalogs = new ClientCatalogsHelper(schema);
             this.bindings = new ClientBindingsHelper(schema);
         }
@@ -136,18 +137,59 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             {
                 return namespace
                         .inject(this::injectHttpClient)
-                        .inject(this::injectTlsClient)
-                        .inject(this::injectTcpClient);
+                        .inject(this::injectTlsClient);
+            }
+
+            private URI resolveServer()
+            {
+                return config.options.specs.stream()
+                    .filter(s -> schema.specLabel.equals(s.label))
+                    .map(s -> s.server)
+                    .filter(server -> server != null)
+                    .findFirst()
+                    .map(URI::create)
+                    .orElse(null);
+            }
+
+            private Optional<String> resolveScheme()
+            {
+                URI server = resolveServer();
+
+                return server != null
+                    ? Optional.of(server.getScheme())
+                    : Stream.of(schema)
+                        .map(s -> s.openapi)
+                        .flatMap(v -> v.servers.stream())
+                        .findFirst()
+                        .map(s -> s.url.getScheme());
+            }
+
+            private Optional<String> resolveAuthority()
+            {
+                URI server = resolveServer();
+
+                return server != null
+                    ? Optional.of(authority(server))
+                    : Stream.of(schema)
+                        .map(s -> s.openapi)
+                        .flatMap(v -> v.servers.stream())
+                        .findFirst()
+                        .map(s -> authority(s.url));
+            }
+
+            private String authority(
+                URI uri)
+            {
+                return uri.getPort() != -1
+                    ? "%s:%d".formatted(uri.getHost(), uri.getPort())
+                    : uri.getHost();
             }
 
             private <C> NamespaceConfigBuilder<C> injectHttpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (Stream.of(schema)
-                    .map(s -> s.openapi)
-                    .flatMap(v -> v.servers.stream())
-                    .findFirst()
-                    .filter(s -> secure.contains(s.url.getScheme()))
+                if (resolveScheme()
+                    .filter(secure::contains)
                     .isPresent())
                 {
                     namespace
@@ -173,7 +215,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                                 .inject(this::injectHttpRequests)
                                 .build()
                             .inject(this::injectMetrics)
-                            .exit("tcp_client0")
+                            .exit("sys:tcp_client")
                             .build();
                 }
 
@@ -183,11 +225,8 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (Stream.of(schema)
-                    .map(s -> s.openapi)
-                    .flatMap(v -> v.servers.stream())
-                    .findFirst()
-                    .filter(s -> secure.contains(s.url.getScheme()))
+                if (resolveScheme()
+                    .filter(secure::contains)
                     .isPresent())
                 {
                     namespace
@@ -198,45 +237,20 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                             .inject(this::injectMetrics)
                             .options(config.options.tls)
                             .vault(config.qvault)
-                            .exit("tcp_client0")
+                            .exit("sys:tcp_client")
                             .build();
                 }
 
                 return namespace;
             }
 
-            private <C> NamespaceConfigBuilder<C> injectTcpClient(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                final TcpOptionsConfig tcpOptions = config.options.tcp != null
-                        ? config.options.tcp
-                        : TcpOptionsConfig.builder()
-                            .inject(o ->
-                                Stream.of(schema)
-                                    .map(s -> s.openapi)
-                                    .flatMap(v -> v.servers.stream())
-                                    .filter(s -> s.url != null)
-                                    .findFirst()
-                                    .map(s -> o
-                                        .host(s.url.getHost())
-                                        .ports(new int[] { s.url.getPort() }))
-                                    .get())
-                            .build();
-
-                return namespace
-                    .binding()
-                        .name("tcp_client0")
-                        .type("tcp")
-                        .kind(CLIENT)
-                        .inject(this::injectMetrics)
-                        .options(tcpOptions)
-                        .build();
-
-            }
-
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
+                final String prefix = resolveServerPrefix();
+
+                resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
+
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
@@ -245,7 +259,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         operation.servers.forEach(server ->
                             options
                                 .request()
-                                    .path(server.requestPath(operation.path))
+                                    .path((server.overridden ? "" : prefix) + server.requestPath(operation.path))
                                     .method(HttpRequestConfig.Method.valueOf(operation.method))
                                     .inject(request -> injectHttpResponses(request, operation))
                                     .build()

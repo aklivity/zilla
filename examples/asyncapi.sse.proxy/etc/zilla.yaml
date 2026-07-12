@@ -24,12 +24,10 @@ bindings:
     options:
       specs:
         my-asyncapi-spec:
+          server: http://${{env.SSE_SERVER_HOST}}:${{env.SSE_SERVER_PORT}}
           catalog:
             host_filesystem:
               subject: eventstore
-      tcp:
-        host: ${{env.SSE_SERVER_HOST}}
-        port: ${{env.SSE_SERVER_PORT}}
 telemetry:
   exporters:
     stdout_logs_exporter:

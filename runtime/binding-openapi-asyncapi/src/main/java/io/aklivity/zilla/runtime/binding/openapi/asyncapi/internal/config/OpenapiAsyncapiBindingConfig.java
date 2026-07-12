@@ -44,6 +44,7 @@ public final class OpenapiAsyncapiBindingConfig
     public final LongFunction<CatalogHandler> supplyCatalog;
     public final ToIntFunction<String> supplyTypeId;
     public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
+    public final LongFunction<String> supplyQName;
 
     public transient OpenapiAsyncapiCompositeConfig composite;
 
@@ -67,15 +68,16 @@ public final class OpenapiAsyncapiBindingConfig
         this.supplyCatalog = context::supplyCatalog;
         this.supplyTypeId = context::supplyTypeId;
         this.supplyBindingId = context::supplyBindingId;
+        this.supplyQName = context::supplyQName;
     }
 
     public OpenapiAsyncapiRouteConfig resolve(
         long authorization,
-        String apiId,
+        String spec,
         String operationId)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(apiId, operationId))
+            .filter(r -> r.authorized(authorization) && r.matches(spec, operationId))
             .findFirst()
             .orElse(null);
     }

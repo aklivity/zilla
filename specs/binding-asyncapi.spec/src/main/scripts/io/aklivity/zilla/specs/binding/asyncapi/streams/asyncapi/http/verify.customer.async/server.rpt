@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("createCustomer")
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
@@ -42,7 +42,7 @@ read closed
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("createCustomer")
                              .extension(http:beginEx()
                                    .typeId(zilla:id("http"))
@@ -59,7 +59,7 @@ accepted
 
 read zilla:begin.ext ${asyncapi:matchBeginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("getVerifiedCustomer")
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
@@ -76,7 +76,7 @@ read closed
 
 write zilla:begin.ext ${asyncapi:beginEx()
                              .typeId(zilla:id("asyncapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("getVerifiedCustomer")
                              .extension(http:beginEx()
                                   .typeId(zilla:id("http"))

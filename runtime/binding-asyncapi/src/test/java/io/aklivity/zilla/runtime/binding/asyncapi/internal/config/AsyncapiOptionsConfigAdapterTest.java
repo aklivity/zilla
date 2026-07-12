@@ -30,14 +30,10 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -71,11 +67,7 @@ public class AsyncapiOptionsConfigAdapterTest
                       catalog0:
                         subject: smartylighting
                         version: latest
-                    servers:
-                      - host: test.mosquitto.org:1883
-                tcp:
-                  host: localhost
-                  port: 7183
+                    server: test.mosquitto.org:1883
                 tls:
                   keys:
                     - localhost
@@ -92,11 +84,7 @@ public class AsyncapiOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         AsyncapiSpecificationConfig asyncapi = options.specs.get(0);
-        assertThat(asyncapi.servers.size(), equalTo(1));
-        AsyncapiServerConfig server = asyncapi.servers.get(0);
-        assertThat(server.host, equalTo("test.mosquitto.org:1883"));
-        assertThat(options.tcp.host, equalTo("localhost"));
-        assertThat(options.tcp.ports, equalTo(new int[] { 7183 }));
+        assertThat(asyncapi.server, equalTo("test.mosquitto.org:1883"));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
@@ -116,14 +104,8 @@ public class AsyncapiOptionsConfigAdapterTest
                     .subject("smartylighting")
                     .version("latest")
                     .build()
-                .server()
-                    .host("test.mosquitto.org:1883")
-                    .build()
+                .serverOverride("test.mosquitto.org:1883")
                 .build()
-            .tcp(TcpOptionsConfig.builder()
-                .host("localhost")
-                .ports(new int[] { 7183 })
-                .build())
             .tls(TlsOptionsConfig.builder()
                 .keys(asList("localhost"))
                 .trust(asList("serverca"))
@@ -147,15 +129,11 @@ public class AsyncapiOptionsConfigAdapterTest
             """
             specs:
               mqtt-api:
+                server: "test.mosquitto.org:1883"
                 catalog:
                   catalog0:
                     subject: smartylighting
                     version: latest
-                servers:
-                  - host: "test.mosquitto.org:1883"
-            tcp:
-              host: localhost
-              port: 7183
             tls:
               keys:
                 - localhost
@@ -171,11 +149,70 @@ public class AsyncapiOptionsConfigAdapterTest
                 mechanism: plain
                 username: username
                 password: password
-            mqtt-kafka:
-              channels:
-                sessions: mqttSessions
-                messages: mqttMessages
-                retained: mqttRetained
+            """));
+    }
+
+    @Test
+    public void shouldReadOptionsWithOverlay() throws IOException
+    {
+        String yaml =
+                """
+                specs:
+                  mqtt-api:
+                    catalog:
+                      catalog0:
+                        subject: smartylighting
+                        version: latest
+                    overlay:
+                      catalog0:
+                        subject: smartylighting-overlay
+                        version: latest
+                """;
+
+        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
+
+        AsyncapiSpecificationConfig spec = options.specs.get(0);
+        assertThat(spec.overlay, not(nullValue()));
+        assertThat(spec.overlay.name, equalTo("catalog0"));
+        assertThat(spec.overlay.subject, equalTo("smartylighting-overlay"));
+        assertThat(spec.overlay.version, equalTo("latest"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithOverlay() throws IOException
+    {
+        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
+            .inject(Function.identity())
+            .spec()
+                .label("mqtt-api")
+                .catalog()
+                    .name("catalog0")
+                    .subject("smartylighting")
+                    .version("latest")
+                    .build()
+                .overlay()
+                    .name("catalog0")
+                    .subject("smartylighting-overlay")
+                    .version("latest")
+                    .build()
+                .build()
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+            """
+            specs:
+              mqtt-api:
+                catalog:
+                  catalog0:
+                    subject: smartylighting
+                    version: latest
+                overlay:
+                  catalog0:
+                    subject: smartylighting-overlay
+                    version: latest
             """));
     }
 
@@ -190,9 +227,6 @@ public class AsyncapiOptionsConfigAdapterTest
                       catalog0:
                         subject: smartylighting
                         version: latest
-                tcp:
-                  host: localhost
-                  port: 9092
                 tls:
                   keys:
                     - localhost
@@ -213,8 +247,6 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.tcp.host, equalTo("localhost"));
-        assertThat(options.tcp.ports, equalTo(new int[] { 9092 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
@@ -230,10 +262,6 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
-            .tcp(TcpOptionsConfig.builder()
-                .host("localhost")
-                .ports(new int[] { 7080 })
-                .build())
             .tls(TlsOptionsConfig.builder()
                 .keys(asList("localhost"))
                 .trust(asList("serverca"))
@@ -248,9 +276,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(yaml, not(nullValue()));
         assertThat(yaml, equalTo(
             """
-            tcp:
-              host: localhost
-              port: 7080
             tls:
               keys:
                 - localhost
@@ -261,11 +286,6 @@ public class AsyncapiOptionsConfigAdapterTest
                 - http.example.net
               alpn:
                 - http
-            mqtt-kafka:
-              channels:
-                sessions: mqttSessions
-                messages: mqttMessages
-                retained: mqttRetained
             """));
     }
 
@@ -274,9 +294,6 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         String yaml =
                 """
-                tcp:
-                  host: localhost
-                  port: 7080
                 tls:
                   keys:
                     - localhost
@@ -292,8 +309,6 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.tcp.host, equalTo("localhost"));
-        assertThat(options.tcp.ports, equalTo(new int[] { 7080 }));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
@@ -306,10 +321,6 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
-            .tcp(TcpOptionsConfig.builder()
-                .host("localhost")
-                .ports(new int[] { 9092 })
-                .build())
             .tls(TlsOptionsConfig.builder()
                 .keys(asList("localhost"))
                 .trust(asList("serverca"))
@@ -331,9 +342,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(yaml, not(nullValue()));
         assertThat(yaml, equalTo(
             """
-            tcp:
-              host: localhost
-              port: 9092
             tls:
               keys:
                 - localhost
@@ -349,57 +357,6 @@ public class AsyncapiOptionsConfigAdapterTest
                 mechanism: plain
                 username: username
                 password: password
-            mqtt-kafka:
-              channels:
-                sessions: mqttSessions
-                messages: mqttMessages
-                retained: mqttRetained
-            """));
-    }
-
-    @Test
-    public void shouldReadOptionsMqttKafka() throws IOException
-    {
-        String yaml =
-                """
-                mqtt-kafka:
-                  channels:
-                    sessions: sessionsChannel
-                    messages: messagesChannel
-                    retained: retainedChannel
-                """;
-
-        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.mqttKafka.channels.sessions, equalTo("sessionsChannel"));
-        assertThat(options.mqttKafka.channels.messages, equalTo("messagesChannel"));
-        assertThat(options.mqttKafka.channels.retained, equalTo("retainedChannel"));
-    }
-
-    @Test
-    public void shouldWriteOptionsMqttKafka() throws IOException
-    {
-        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
-            .inject(Function.identity())
-            .mqttKafka(AsyncapiMqttKafkaConfig.builder().channels(AsyncapiChannelsConfig.builder()
-                    .sessions("sessionsChannel")
-                    .messages("messagesChannel")
-                    .retained("retainedChannel")
-                    .build())
-                .build())
-            .build();
-
-        String yaml = jsonb.toJson(options);
-
-        assertThat(yaml, not(nullValue()));
-        assertThat(yaml, equalTo(
-            """
-            mqtt-kafka:
-              channels:
-                sessions: sessionsChannel
-                messages: messagesChannel
-                retained: retainedChannel
             """));
     }
 }

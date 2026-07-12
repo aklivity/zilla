@@ -1237,7 +1237,10 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final String path = targetURI.getRawPath();
                 final String query = targetURI.getRawQuery();
-                final String authority = targetURI.getAuthority();
+                final String rawAuthority = targetURI.getAuthority();
+                final String authority = rawAuthority != null && rawAuthority.indexOf(':') == -1
+                        ? String.format("%s:%s", rawAuthority, SCHEME_PORTS.get(scheme))
+                        : rawAuthority;
 
                 final String pathWithQuery = query != null ? String.format("%s?%s", path, query) : path;
 

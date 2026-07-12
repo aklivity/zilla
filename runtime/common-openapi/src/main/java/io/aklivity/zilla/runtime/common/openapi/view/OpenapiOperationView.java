@@ -105,6 +105,15 @@ public final class OpenapiOperationView
         this.extensions = model.extensions;
     }
 
+    public long compositeId(
+        int serverIndex)
+    {
+        return OpenapiCompositeId.compositeId(
+            OpenapiCompositeId.specIndex(compositeId),
+            OpenapiCompositeId.operationId(compositeId),
+            serverIndex);
+    }
+
     public boolean hasRequestBodyOrParameters()
     {
         return hasRequestBody() || hasParameters();

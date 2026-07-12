@@ -49,10 +49,10 @@ public final class OpenapiAsyncapiRouteConfig
     }
 
     boolean matches(
-        String apiId,
+        String spec,
         String operationId)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(apiId, operationId));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operationId));
     }
 
     public boolean isBulk()

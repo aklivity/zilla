@@ -14,8 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.composite;
 
+import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+
+import jakarta.json.JsonObject;
 
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
@@ -26,6 +30,7 @@ import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
+import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiExtension;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
@@ -34,6 +39,7 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -41,6 +47,13 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public abstract class OpenapiAsyncapiCompositeGenerator
 {
+    protected final List<String> denied = new ArrayList<>();
+
+    public final Collection<String> deniedOperations()
+    {
+        return denied;
+    }
+
     public final OpenapiAsyncapiCompositeConfig generate(
         OpenapiAsyncapiBindingConfig binding)
     {
@@ -61,13 +74,12 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
+                final String materialized = materialize(binding, openapiSpec, payload);
                 final List<OpenapiServerConfig> configs =
-                    openapiSpec.servers == null || openapiSpec.servers.isEmpty()
-                        ? List.of(OpenapiServerConfig.builder().build())
-                        : openapiSpec.servers;
-                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, openapiParser.parse(payload), configs);
+                    List.of(OpenapiServerConfig.builder().build());
+                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, openapiParser.parse(materialized), configs);
 
-                openapiSchemas.add(new OpenapiSchemaConfig(label, schemaId, openapi));
+                openapiSchemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, openapiSpec.security));
             }
         }
 
@@ -83,17 +95,58 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
+                final String materialized = materialize(binding, asyncapiSpec, payload);
                 final List<AsyncapiServerConfig> configs =
-                    asyncapiSpec.servers == null || asyncapiSpec.servers.isEmpty()
-                        ? List.of(AsyncapiServerConfig.builder().build())
-                        : asyncapiSpec.servers;
-                final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, asyncapiParser.parse(payload), configs);
+                    List.of(AsyncapiServerConfig.builder().build());
+                final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, asyncapiParser.parse(materialized), configs);
 
-                asyncapiSchemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
+                asyncapiSchemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi, asyncapiSpec.security));
             }
         }
 
         return generate(binding, openapiSchemas, asyncapiSchemas);
+    }
+
+    private String materialize(
+        OpenapiAsyncapiBindingConfig binding,
+        OpenapiSpecificationConfig specification,
+        String payload)
+    {
+        String materialized = payload;
+        if (specification.overlay != null)
+        {
+            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
+            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final String overlayPayload = handler.resolve(schemaId);
+
+            final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
+            final JsonObject overlayDocument = YamlJson.createReader(new StringReader(overlayPayload)).readObject();
+            materialized = JsonOverlay.of(overlayDocument).apply(document).toString();
+        }
+
+        return materialized;
+    }
+
+    private String materialize(
+        OpenapiAsyncapiBindingConfig binding,
+        AsyncapiSpecificationConfig specification,
+        String payload)
+    {
+        String materialized = payload;
+        if (specification.overlay != null)
+        {
+            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
+            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final String overlayPayload = handler.resolve(schemaId);
+
+            final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
+            final JsonObject overlayDocument = YamlJson.createReader(new StringReader(overlayPayload)).readObject();
+            materialized = JsonOverlay.of(overlayDocument).apply(document).toString();
+        }
+
+        return materialized;
     }
 
     protected abstract OpenapiAsyncapiCompositeConfig generate(
@@ -134,11 +187,12 @@ public abstract class OpenapiAsyncapiCompositeGenerator
             NamespaceConfigBuilder<C> namespace);
 
         protected final String resolveIdentity(
-            String value)
+            String value,
+            String guardQname)
         {
-            if ("{identity}".equals(value))
+            if ("{identity}".equals(value) && guardQname != null)
             {
-                value = String.format("${guarded['%s:jwt0'].identity}", config.namespace);
+                value = String.format("${guarded['%s'].identity}", guardQname);
             }
 
             return value;

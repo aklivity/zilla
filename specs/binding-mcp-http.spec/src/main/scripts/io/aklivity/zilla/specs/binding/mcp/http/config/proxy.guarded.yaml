@@ -171,7 +171,7 @@ bindings:
           headers:
             ":method": POST
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /repos/${args.owner}/${args.repo}/pulls
           body:
             model: json
@@ -189,7 +189,7 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /search/code
           query:
             model: json
@@ -204,5 +204,5 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.orders.internal
+            ":authority": api.orders.internal:443
             ":path": /orders/${params.orderId}

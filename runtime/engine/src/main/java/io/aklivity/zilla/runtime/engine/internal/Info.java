@@ -120,7 +120,7 @@ public final class Info implements AutoCloseable
                 {
                     byte[] bytes = Files.readAllBytes(path);
                     ByteBuffer byteBuf = ByteBuffer
-                        .wrap(bytes, Long.BYTES, SIZEOF_INFO)
+                        .wrap(bytes, Long.BYTES, SIZEOF_INFO - Long.BYTES)
                         .order(nativeOrder());
 
                     Instant startTime =

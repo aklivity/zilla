@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
+import java.util.List;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -184,18 +186,18 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
 
                 if (specification != null)
                 {
-                    final String apiId = specification.label;
+                    final String specLabel = specification.label;
                     final String operationId = operation != null ? operation.id : null;
+                    final List<String> tags = operation != null ? operation.tags : null;
+                    final OpenapiServerView server = composite.resolveServer(compositeId);
+                    final String serverUrl = server != null ? server.literalUrl.toString() : null;
 
-                    final OpenapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
+                    final OpenapiRouteConfig route = binding.resolve(authorization, specLabel, operationId, tags, serverUrl);
 
                     if (route != null)
                     {
                         final long resolvedId = route.id;
-                        final long resolvedApiId = composite.resolveApiId(
-                            binding.resolveSpecLabel(route, apiId));
-                        final String resolvedOperationId =
-                            binding.resolveOperationId(route, operationId);
+                        final long resolvedSpecId = composite.resolveSpecId(specLabel);
 
                         newStream = new CompositeStream(
                             receiver,
@@ -205,8 +207,8 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                             affinity,
                             authorization,
                             resolvedId,
-                            resolvedApiId,
-                            resolvedOperationId)::onCompositeMessage;
+                            resolvedSpecId,
+                            operationId)::onCompositeMessage;
                     }
                 }
             }
@@ -236,10 +238,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long affinity,
             long authorization,
             long resolvedId,
-            long apiId,
+            long specId,
             String operationId)
         {
-            this.delegate =  new OpenapiStream(this, routedId, resolvedId, authorization, apiId, operationId);
+            this.delegate =  new OpenapiStream(this, routedId, resolvedId, authorization, specId, operationId);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -515,7 +517,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         private final String operationId;
         private final long originId;
         private final long routedId;
-        private final long apiId;
+        private final long specId;
         private final long authorization;
 
         private final long initialId;
@@ -529,13 +531,13 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long originId,
             long routedId,
             long authorization,
-            long apiId,
+            long specId,
             String operationId)
         {
             this.delegate = delegate;
             this.originId = originId;
             this.routedId = routedId;
-            this.apiId = apiId;
+            this.specId = specId;
             this.receiver = MessageConsumer.NOOP;
             this.authorization = authorization;
             this.initialId = supplyInitialId.applyAsLong(routedId);
@@ -714,7 +716,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                 final OpenapiBeginExFW openapiBeginEx = beginExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(openapiTypeId)
-                    .apiId(apiId)
+                    .specId(specId)
                     .operationId(operationId)
                     .extension(extension)
                     .build();

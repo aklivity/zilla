@@ -118,6 +118,12 @@ public final class TestVaultHandler implements VaultHandler
     }
 
     @Override
+    public KeyManagerFactory initKeys()
+    {
+        return key != null ? initKeys(List.of(key.alias)) : null;
+    }
+
+    @Override
     public KeyManagerFactory initSigners(
         List<String> aliases)
     {
@@ -132,6 +138,20 @@ public final class TestVaultHandler implements VaultHandler
         }
 
         return factory;
+    }
+
+    @Override
+    public KeyManagerFactory initSigners()
+    {
+        return signer != null ? initSigners(List.of(signer.alias)) : null;
+    }
+
+    @Override
+    public TrustManagerFactory initTrust(
+        KeyStore cacerts)
+    {
+        List<String> certAliases = trust != null ? trust.stream().map(entry -> entry.alias).toList() : null;
+        return initTrust(certAliases, cacerts);
     }
 
     @Override

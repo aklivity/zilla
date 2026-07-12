@@ -14,30 +14,52 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.config;
 
-import static java.util.Collections.emptyList;
-
 import java.util.List;
+import java.util.Map;
 
 public class OpenapiSpecificationConfig
 {
     public final String label;
-    public final List<OpenapiServerConfig> servers;
+    public final String server;
     public final List<OpenapiCatalogConfig> catalogs;
+    public final Map<String, String> security;
+    public final OpenapiCatalogConfig overlay;
 
     public OpenapiSpecificationConfig(
         String label,
-        List<OpenapiServerConfig> servers,
-        List<OpenapiCatalogConfig> catalogs)
+        String server,
+        List<OpenapiCatalogConfig> catalogs,
+        Map<String, String> security,
+        OpenapiCatalogConfig overlay)
     {
         this.label = label;
-        this.servers = servers;
+        this.server = server;
         this.catalogs = catalogs;
+        this.security = security;
+        this.overlay = overlay;
     }
 
     public OpenapiSpecificationConfig(
-        String apiLabel,
+        String label,
+        String server,
+        List<OpenapiCatalogConfig> catalogs,
+        Map<String, String> security)
+    {
+        this(label, server, catalogs, security, null);
+    }
+
+    public OpenapiSpecificationConfig(
+        String label,
+        String server,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(apiLabel, emptyList(), catalogs);
+        this(label, server, catalogs, null, null);
+    }
+
+    public OpenapiSpecificationConfig(
+        String label,
+        List<OpenapiCatalogConfig> catalogs)
+    {
+        this(label, null, catalogs, null, null);
     }
 }

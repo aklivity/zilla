@@ -91,7 +91,3 @@ bindings:
             catalog0:
               subject: eventstore
               version: latest
-      tcp:
-        host: localhost
-        port:
-          - 8080

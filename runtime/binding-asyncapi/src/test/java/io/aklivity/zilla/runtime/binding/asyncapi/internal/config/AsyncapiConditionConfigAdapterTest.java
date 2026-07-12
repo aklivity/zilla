@@ -19,12 +19,20 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 
 public class AsyncapiConditionConfigAdapterTest
 {
@@ -55,9 +63,25 @@ public class AsyncapiConditionConfigAdapterTest
     }
 
     @Test
+    public void shouldReadConditionWithTag()
+    {
+        String text =
+            "{" +
+                "\"spec\":\"test\"," +
+                "\"tag\":\"admin\"" +
+            "}";
+
+        AsyncapiConditionConfig condition = jsonb.fromJson(text, AsyncapiConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.spec, equalTo("test"));
+        assertThat(condition.tag, equalTo("admin"));
+    }
+
+    @Test
     public void shouldWriteCondition()
     {
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", "testOperationId");
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", "testOperationId", null);
 
         String text = jsonb.toJson(condition);
 
@@ -67,5 +91,177 @@ public class AsyncapiConditionConfigAdapterTest
                     "\"spec\":\"test\"," +
                     "\"operation\":\"testOperationId\"" +
                 "}"));
+    }
+
+    @Test
+    public void shouldWriteConditionWithTag()
+    {
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, "admin");
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                    "\"spec\":\"test\"," +
+                    "\"tag\":\"admin\"" +
+                "}"));
+    }
+
+    @Test
+    public void shouldMatchOperationGlob()
+    {
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", "list*", null);
+
+        assertThat(condition.matches("test", "listPets", null, null), equalTo(true));
+        assertThat(condition.matches("test", "createPets", null, null), equalTo(false));
+    }
+
+    @Test
+    public void shouldMatchTag()
+    {
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, "admin");
+
+        assertThat(condition.matches("test", "listPets", List.of("admin"), null), equalTo(true));
+        assertThat(condition.matches("test", "listPets", List.of("pets"), null), equalTo(false));
+    }
+
+    @Test
+    public void shouldReadConditionWithServers()
+    {
+        String text =
+            "{" +
+                "\"spec\":\"test\"," +
+                "\"servers\":[{\"name\":\"prod\",\"url\":\"http://localhost:9090/prod\"}]" +
+            "}";
+
+        AsyncapiConditionConfig condition = jsonb.fromJson(text, AsyncapiConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.spec, equalTo("test"));
+        assertThat(condition.servers, not(nullValue()));
+        assertThat(condition.servers.size(), equalTo(1));
+        assertThat(condition.servers.get(0).name, equalTo("prod"));
+        assertThat(condition.servers.get(0).url, equalTo("http://localhost:9090/prod"));
+    }
+
+    @Test
+    public void shouldWriteConditionWithServers()
+    {
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig("prod", "http://localhost:9090/prod")));
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                    "\"spec\":\"test\"," +
+                    "\"servers\":[{\"name\":\"prod\",\"url\":\"http://localhost:9090/prod\"}]" +
+                "}"));
+    }
+
+    @Test
+    public void shouldMatchServerByName() throws Exception
+    {
+        List<AsyncapiServerView> prodOnly = serverViews().stream()
+            .filter(s -> "prod".equals(s.name))
+            .toList();
+
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig("prod", null)));
+
+        assertThat(condition.matches("test", "listPets", null, prodOnly), equalTo(true));
+
+        AsyncapiConditionConfig other = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig("qa", null)));
+
+        assertThat(other.matches("test", "listPets", null, prodOnly), equalTo(false));
+    }
+
+    @Test
+    public void shouldMatchServerByUrl() throws Exception
+    {
+        List<AsyncapiServerView> prodOnly = serverViews().stream()
+            .filter(s -> "prod".equals(s.name))
+            .toList();
+
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "http://localhost:9090/prod")));
+
+        assertThat(condition.matches("test", "listPets", null, prodOnly), equalTo(true));
+
+        AsyncapiConditionConfig other = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "http://localhost:8080/qa")));
+
+        assertThat(other.matches("test", "listPets", null, prodOnly), equalTo(false));
+    }
+
+    @Test
+    public void shouldMatchServerByLiteralUrlRegardlessOfOverride() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 2.6.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              staging:
+                url: 'http://{env}.example.com'
+                protocol: http
+                variables:
+                  env:
+                    default: prod
+                    enum:
+                      - prod
+                      - staging
+            channels: {}
+            """);
+
+        AsyncapiServerConfig override = AsyncapiServerConfig.builder()
+            .url("http://staging.example.com")
+            .build();
+        List<AsyncapiServerView> overridden = AsyncapiView.of(model, List.of(override)).servers;
+
+        AsyncapiConditionConfig literal = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "http://prod.example.com")));
+
+        assertThat(literal.matches("test", "listPets", null, overridden), equalTo(true));
+
+        AsyncapiConditionConfig effective = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "http://staging.example.com")));
+
+        assertThat(effective.matches("test", "listPets", null, overridden), equalTo(false));
+    }
+
+    @Test
+    public void shouldMatchAnyServerWhenOmitted() throws Exception
+    {
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null);
+
+        assertThat(condition.matches("test", "listPets", null, serverViews()), equalTo(true));
+        assertThat(condition.matches("test", "listPets", null, null), equalTo(true));
+    }
+
+    private static List<AsyncapiServerView> serverViews() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 2.6.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              prod:
+                url: http://localhost:9090/prod
+                protocol: http
+              qa:
+                url: http://localhost:8080/qa
+                protocol: http
+            channels: {}
+            """);
+
+        AsyncapiView view = AsyncapiView.of(model, List.of(AsyncapiServerConfig.builder().build()));
+
+        return view.servers;
     }
 }

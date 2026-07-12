@@ -22,7 +22,7 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "GET")
                             .header(":scheme", "https")
-                            .header(":authority", "api.github.com")
+                            .header(":authority", "api.github.com:443")
                             .header(":path", "/search/code?q=addClass&per_page=5")
                             .build()}
 

@@ -49,6 +49,19 @@ public interface VaultHandler
         List<String> keyRefs);
 
     /**
+     * Initializes a {@link KeyManagerFactory} from every private key entry this vault
+     * instance is configured to expose.
+     * <p>
+     * Used when the caller has no way to itemize specific key aliases, such as a
+     * dynamically assembled binding configuration.
+     * </p>
+     *
+     * @return an initialized {@link KeyManagerFactory}, or {@code null} if this vault
+     *         instance exposes no private keys
+     */
+    KeyManagerFactory initKeys();
+
+    /**
      * Initializes a {@link KeyManagerFactory} from the named signing certificate entries
      * in the vault.
      * <p>
@@ -64,6 +77,19 @@ public interface VaultHandler
         List<String> signerRefs);
 
     /**
+     * Initializes a {@link KeyManagerFactory} from every signing certificate entry this
+     * vault instance is configured to expose.
+     * <p>
+     * Used when the caller has no way to itemize specific signer aliases, such as a
+     * dynamically assembled binding configuration.
+     * </p>
+     *
+     * @return an initialized {@link KeyManagerFactory}, or {@code null} if this vault
+     *         instance exposes no signing certificates
+     */
+    KeyManagerFactory initSigners();
+
+    /**
      * Initializes a {@link TrustManagerFactory} from the named trusted certificate entries
      * in the vault, merged with the provided system CA certificates.
      * <p>
@@ -77,5 +103,20 @@ public interface VaultHandler
      */
     TrustManagerFactory initTrust(
         List<String> certRefs,
+        KeyStore cacerts);
+
+    /**
+     * Initializes a {@link TrustManagerFactory} from every trusted certificate entry this
+     * vault instance is configured to expose, merged with the provided system CA certificates.
+     * <p>
+     * Used when the caller has no way to itemize specific trust aliases, such as a
+     * dynamically assembled binding configuration.
+     * </p>
+     *
+     * @param cacerts   the JVM default trust store to merge with, or {@code null} to use only
+     *                  the vault-provided certificates
+     * @return an initialized {@link TrustManagerFactory}
+     */
+    TrustManagerFactory initTrust(
         KeyStore cacerts);
 }

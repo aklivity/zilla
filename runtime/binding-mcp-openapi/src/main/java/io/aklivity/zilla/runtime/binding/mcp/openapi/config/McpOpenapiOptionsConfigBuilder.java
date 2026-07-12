@@ -25,6 +25,7 @@ public final class McpOpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Mc
 {
     private final Function<OptionsConfig, T> mapper;
 
+    private McpOpenapiAuthorizationConfig authorization;
     private List<McpOpenapiSpecificationConfig> specs;
     private List<McpOpenapiToolConfig> tools;
     private List<McpOpenapiResourceConfig> resources;
@@ -40,6 +41,13 @@ public final class McpOpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Mc
     protected Class<McpOpenapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<McpOpenapiOptionsConfigBuilder<T>>) getClass();
+    }
+
+    public McpOpenapiOptionsConfigBuilder<T> authorization(
+        McpOpenapiAuthorizationConfig authorization)
+    {
+        this.authorization = authorization;
+        return this;
     }
 
     public McpOpenapiSpecificationConfigBuilder<McpOpenapiOptionsConfigBuilder<T>> spec()
@@ -93,6 +101,6 @@ public final class McpOpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Mc
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiOptionsConfig(specs, tools, resources));
+        return mapper.apply(new McpOpenapiOptionsConfig(authorization, specs, tools, resources));
     }
 }

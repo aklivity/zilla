@@ -1,0 +1,72 @@
+#
+# Copyright 2021-2024 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+---
+name: test
+catalogs:
+  catalog0:
+    type: test
+    options:
+      id: 1
+      subject: petstore
+      schema: |
+        openapi: "3.0.0"
+        info:
+          version: 1.0.0
+          title: Swagger Petstore
+          license:
+            name: MIT
+        servers:
+          - url: http://localhost:8080
+        paths:
+          /pets:
+            get:
+              summary: List all pets
+              operationId: listPets
+              tags:
+                - pets
+              responses:
+                '200':
+                  description: A paged array of pets
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Pets"
+        components:
+          schemas:
+            Pets:
+              type: array
+              maxItems: 100
+              items:
+                type: object
+
+bindings:
+  composite0:
+    type: openapi
+    kind: server
+    options:
+      specs:
+        petstore:
+          catalog:
+            catalog0:
+              subject: petstore
+              version: latest
+    routes:
+      - when:
+          - spec: petstore
+        with:
+          tag: pets
+        exit: pets_backend

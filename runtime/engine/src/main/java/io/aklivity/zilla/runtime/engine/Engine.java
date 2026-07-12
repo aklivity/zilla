@@ -167,7 +167,10 @@ public final class Engine implements Collector, AutoCloseable
         IntFunction<ToIntFunction<KindConfig>> maxWorkers = maxWorkersByBindingType::get;
 
         Tuning tuning = new Tuning(config.directory(), workerCount);
-        tuning.reset();
+        if (!readonly)
+        {
+            tuning.reset();
+        }
         for (EngineAffinity affinity : affinities)
         {
             int namespaceId = labels.supplyLabelId(affinity.namespace);
@@ -177,7 +180,7 @@ public final class Engine implements Collector, AutoCloseable
         }
         this.tuning = tuning;
 
-        this.eventWriter = new EventWriter(config.directory().resolve("events"), config.eventsBufferCapacity());
+        this.eventWriter = new EventWriter(config.directory().resolve("events"), config.eventsBufferCapacity(), readonly);
 
         this.boss = new EngineBoss(config, diagnoseOnError, bindings);
 
@@ -339,7 +342,10 @@ public final class Engine implements Collector, AutoCloseable
 
         final List<Throwable> errors = new ArrayList<>();
 
-        manager.close();
+        if (!readonly)
+        {
+            manager.close();
+        }
 
         try
         {

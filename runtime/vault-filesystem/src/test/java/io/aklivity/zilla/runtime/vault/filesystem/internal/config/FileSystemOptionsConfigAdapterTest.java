@@ -17,9 +17,12 @@ package io.aklivity.zilla.runtime.vault.filesystem.internal.config;
 
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.util.List;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -80,6 +83,26 @@ public class FileSystemOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithKeysEntries()
+    {
+        String yaml =
+                """
+                keys:
+                  store: localhost.p12
+                  type: pkcs12
+                  password: generated
+                  entries:
+                    - localhost
+                """;
+
+        FileSystemOptionsConfig options = jsonb.fromJson(yaml, FileSystemOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.keys, not(nullValue()));
+        assertThat(options.keys.entries, contains("localhost"));
+    }
+
+    @Test
     public void shouldWriteOptions()
     {
         FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
@@ -113,6 +136,34 @@ public class FileSystemOptionsConfigAdapterTest
                   store: localhost.p12
                   type: pkcs12
                   password: generated
+                """));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithKeysEntries()
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .inject(identity())
+            .keys()
+                .inject(identity())
+                .store("localhost.p12")
+                .type("pkcs12")
+                .password("generated")
+                .entries(List.of("localhost"))
+                .build()
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                keys:
+                  store: localhost.p12
+                  type: pkcs12
+                  password: generated
+                  entries:
+                    - localhost
                 """));
     }
 }

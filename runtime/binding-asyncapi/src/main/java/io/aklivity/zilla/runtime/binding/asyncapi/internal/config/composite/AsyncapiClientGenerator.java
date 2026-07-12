@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
+import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +34,16 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompos
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaMessageBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBindingEx;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
@@ -96,7 +101,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             AsyncapiBindingConfig config,
             AsyncapiSchemaConfig schema)
         {
-            super(config, schema.apiLabel);
+            super(config, schema.specLabel);
             this.catalogs = new ClientCatalogsHelper(schema);
             this.bindings = new ClientBindingsHelper(schema);
         }
@@ -169,8 +174,9 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     "http", this::injectHttp,
                     "https", this::injectHttps,
                     "mqtt", this::injectMqtt,
-                    "mqtts", this::injectMqtts);
-                this.secure = List.of("kafka-secure", "https", "mqtts");
+                    "mqtts", this::injectMqtts,
+                    "mqtt+secure", this::injectMqtts);
+                this.secure = List.of("kafka-secure", "https", "mqtts", "mqtt+secure");
             }
 
             @Override
@@ -179,8 +185,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             {
                 return namespace
                         .inject(this::injectProtocols)
-                        .inject(this::injectTlsClient)
-                        .inject(this::injectTcpClient);
+                        .inject(this::injectTlsClient);
             }
 
             private <C> NamespaceConfigBuilder<C> injectProtocols(
@@ -190,6 +195,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
                     .map(s -> s.protocol)
+                    .map(this::resolveProtocol)
                     .distinct()
                     .map(protocols::get)
                     .filter(Objects::nonNull)
@@ -198,12 +204,73 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 return namespace;
             }
 
+            private String resolveProtocol(
+                String protocol)
+            {
+                String resolved = protocol;
+                if (resolveServer() != null)
+                {
+                    boolean secure = isSecure();
+                    resolved = switch (protocol)
+                    {
+                    case "kafka", "kafka-secure" -> secure ? "kafka-secure" : "kafka";
+                    case "http", "https" -> secure ? "https" : "http";
+                    case "mqtt", "mqtts", "mqtt+secure" -> secure ? "mqtts" : "mqtt";
+                    default -> protocol;
+                    };
+                }
+
+                return resolved;
+            }
+
+            private URI resolveServer()
+            {
+                return config.options.specs.stream()
+                    .filter(s -> schema.specLabel.equals(s.label))
+                    .map(s -> s.server)
+                    .filter(server -> server != null)
+                    .findFirst()
+                    .map(URI::create)
+                    .orElse(null);
+            }
+
+            private boolean isSecure()
+            {
+                URI server = resolveServer();
+
+                return server != null
+                    ? secure.stream().anyMatch(protocol -> protocol.equals(server.getScheme()))
+                    : Stream.of(schema)
+                        .map(s -> s.asyncapi)
+                        .flatMap(v -> v.servers.stream())
+                        .anyMatch(s -> secure.contains(s.protocol));
+            }
+
+            private Optional<String> resolveAuthority()
+            {
+                URI server = resolveServer();
+
+                return server != null
+                    ? Optional.of(authority(server))
+                    : Stream.of(schema)
+                        .map(s -> s.asyncapi)
+                        .flatMap(v -> v.servers.stream())
+                        .findFirst()
+                        .map(s -> "%s:%d".formatted(s.hostname, s.port));
+            }
+
+            private String authority(
+                URI uri)
+            {
+                return uri.getPort() != -1
+                    ? "%s:%d".formatted(uri.getHost(), uri.getPort())
+                    : uri.getHost();
+            }
+
             private <C> NamespaceConfigBuilder<C> injectTlsClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream()).anyMatch(s -> secure.contains(s.protocol)))
+                if (isSecure())
                 {
                     namespace
                         .binding()
@@ -213,39 +280,11 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                             .inject(this::injectMetrics)
                             .options(config.options.tls)
                             .vault(config.qvault)
-                            .exit("tcp_client0")
+                            .exit("sys:tcp_client")
                             .build();
                 }
 
                 return namespace;
-            }
-
-            private <C> NamespaceConfigBuilder<C> injectTcpClient(
-                NamespaceConfigBuilder<C> namespace)
-            {
-                final TcpOptionsConfig tcpOptions = config.options.tcp != null
-                        ? config.options.tcp
-                        : TcpOptionsConfig.builder()
-                            .inject(o ->
-                                Stream.of(schema)
-                                    .map(s -> s.asyncapi)
-                                    .flatMap(v -> v.servers.stream())
-                                    .findFirst()
-                                    .map(s -> o
-                                        .host(s.hostname)
-                                        .ports(new int[] { s.port }))
-                                    .get())
-                            .build();
-
-                return namespace
-                    .binding()
-                    .name("tcp_client0")
-                    .type("tcp")
-                    .kind(CLIENT)
-                    .inject(this::injectMetrics)
-                    .options(tcpOptions)
-                .build();
-
             }
 
             private <C> NamespaceConfigBuilder<C> injectKafka(
@@ -259,10 +298,11 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .kind(CLIENT)
                         .options(KafkaOptionsConfig::builder)
                             .inject(this::injectKafkaSaslOptions)
+                            .inject(this::injectKafkaAuthorizationOptions)
                             .inject(this::injectKafkaServerOptions)
                             .build()
                         .inject(this::injectMetrics)
-                        .exit("tcp_client0")
+                        .exit("sys:tcp_client")
                         .build();
             }
 
@@ -277,6 +317,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .kind(CLIENT)
                         .options(KafkaOptionsConfig::builder)
                             .inject(this::injectKafkaSaslOptions)
+                            .inject(this::injectKafkaAuthorizationOptions)
                             .inject(this::injectKafkaServerOptions)
                             .build()
                         .inject(this::injectMetrics)
@@ -326,7 +367,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .forEach(channel ->
                         options.topic()
                             .name(channel.address)
-                            .inject(t -> injectKafkaTopicTransforms(t, channel, topics))
+                            .inject(t -> injectKafkaTopicDefaults(t, channel, topics))
                             .inject(t -> injectKafkaTopicKey(t, channel))
                             .inject(t -> injectKafkaTopicValue(t, channel))
                             .build());
@@ -334,7 +375,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 return options;
             }
 
-            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicTransforms(
+            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicDefaults(
                 KafkaTopicConfigBuilder<C> topic,
                 AsyncapiChannelView channel,
                 List<KafkaTopicConfig> topics)
@@ -344,13 +385,25 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     Optional<KafkaTopicConfig> topicConfig = topics.stream()
                         .filter(t -> t.name.equals(channel.address))
                         .findFirst();
-                    topicConfig.ifPresent(kafkaTopicConfig -> topic
-                        .transforms()
-                        .extractKey(kafkaTopicConfig.transforms.extractKey)
-                        .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
-                        .build());
+                    topicConfig.ifPresent(kafkaTopicConfig -> injectKafkaTopicConfig(topic, kafkaTopicConfig));
                 }
                 return topic;
+            }
+
+            private <C> void injectKafkaTopicConfig(
+                KafkaTopicConfigBuilder<C> topic,
+                KafkaTopicConfig kafkaTopicConfig)
+            {
+                topic.defaultOffset(kafkaTopicConfig.defaultOffset)
+                    .deltaType(kafkaTopicConfig.deltaType);
+
+                if (kafkaTopicConfig.transforms != null)
+                {
+                    topic.transforms()
+                        .extractKey(kafkaTopicConfig.transforms.extractKey)
+                        .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
+                        .build();
+                }
             }
 
             private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicKey(
@@ -442,17 +495,46 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 return options;
             }
 
+            private <C> KafkaOptionsConfigBuilder<C> injectKafkaAuthorizationOptions(
+                KafkaOptionsConfigBuilder<C> options)
+            {
+                final KafkaAuthorizationConfig authorization = config.options != null && config.options.kafka != null
+                    ? config.options.kafka.authorization
+                    : null;
+
+                if (authorization != null)
+                {
+                    options.authorization()
+                        .name(authorization.qname)
+                        .credentials(authorization.credentials)
+                        .build();
+                }
+
+                return options;
+            }
+
             private <C> KafkaOptionsConfigBuilder<C> injectKafkaServerOptions(
                 KafkaOptionsConfigBuilder<C> options)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .forEach(s ->
-                        options.server()
-                            .host(s.hostname)
-                            .port(s.port)
-                            .build());
+                URI server = resolveServer();
+                if (server != null)
+                {
+                    options.server()
+                        .host(server.getHost())
+                        .port(server.getPort())
+                        .build();
+                }
+                else
+                {
+                    Stream.of(schema)
+                        .map(s -> s.asyncapi)
+                        .flatMap(v -> v.servers.stream())
+                        .forEach(s ->
+                            options.server()
+                                .host(s.hostname)
+                                .port(s.port)
+                                .build());
+                }
 
                 return options;
             }
@@ -466,8 +548,11 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .name("http_client0")
                         .type("http")
                         .kind(CLIENT)
+                        .options(HttpOptionsConfig::builder)
+                            .inject(this::injectHttpOptions)
+                            .build()
                         .inject(this::injectMetrics)
-                        .exit("tcp_client0")
+                        .exit("sys:tcp_client")
                         .build();
             }
 
@@ -480,9 +565,20 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .name("http_client0")
                         .type("http")
                         .kind(CLIENT)
+                        .options(HttpOptionsConfig::builder)
+                            .inject(this::injectHttpOptions)
+                            .build()
                         .inject(this::injectMetrics)
                         .exit("tls_client0")
                         .build();
+            }
+
+            private <C> HttpOptionsConfigBuilder<C> injectHttpOptions(
+                HttpOptionsConfigBuilder<C> options)
+            {
+                resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
+
+                return options;
             }
 
             private <C> NamespaceConfigBuilder<C> injectSseClient(
@@ -514,8 +610,11 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .name("mqtt_client0")
                         .type("mqtt")
                         .kind(CLIENT)
+                        .options(MqttOptionsConfig::builder)
+                            .inject(this::injectMqttOptions)
+                            .build()
                         .inject(this::injectMetrics)
-                        .exit("tcp_client0")
+                        .exit("sys:tcp_client")
                         .build();
             }
 
@@ -527,9 +626,20 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .name("mqtt_client0")
                         .type("mqtt")
                         .kind(CLIENT)
+                        .options(MqttOptionsConfig::builder)
+                            .inject(this::injectMqttOptions)
+                            .build()
                         .inject(this::injectMetrics)
                         .exit("tls_client0")
                         .build();
+            }
+
+            private <C> MqttOptionsConfigBuilder<C> injectMqttOptions(
+                MqttOptionsConfigBuilder<C> options)
+            {
+                resolveAuthority().ifPresent(authority -> options.server("mqtt://" + authority));
+
+                return options;
             }
         }
     }

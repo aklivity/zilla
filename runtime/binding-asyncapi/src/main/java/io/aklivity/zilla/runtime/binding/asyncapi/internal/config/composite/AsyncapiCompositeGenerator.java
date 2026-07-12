@@ -48,23 +48,30 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.AsyncapiSseOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka.AsyncapiMqttKafkaChannelEx;
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParserFactory;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiSchemaItem;
+import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
+import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedResolution;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaItemView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
+import io.aklivity.zilla.runtime.common.json.JsonOverlay;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
@@ -111,6 +118,7 @@ public abstract class AsyncapiCompositeGenerator
     );
 
     private final Set<String> unresolved = new LinkedHashSet<>();
+    protected final List<String> denied = new ArrayList<>();
 
     public final AsyncapiCompositeConfig generate(
         AsyncapiBindingConfig binding)
@@ -122,6 +130,8 @@ public abstract class AsyncapiCompositeGenerator
             .withOperationBinding("x-zilla-sse-kafka", AsyncapiSseKafkaOperationBindingEx.class)
             .withMessageBinding("kafka", AsyncapiKafkaMessageBindingEx.class)
             .withServerBinding("kafka", AsyncapiKafkaServerBindingEx.class)
+            .withExtension(AsyncapiExtension.of(
+                AsyncapiExtension.Scope.CHANNEL, "x-zilla-mqtt-kafka", AsyncapiMqttKafkaChannelEx.class))
             .createParser();
         final List<AsyncapiSchemaConfig> schemas = new ArrayList<>();
 
@@ -136,24 +146,54 @@ public abstract class AsyncapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
+                final String materialized = materialize(binding, specification, payload);
                 final List<AsyncapiServerConfig> configs =
-                    specification.servers == null || specification.servers.isEmpty()
-                        ? List.of(AsyncapiServerConfig.builder().build())
-                        : specification.servers;
-                final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(payload), configs);
+                    specification.server != null
+                        ? List.of(AsyncapiServerConfig.builder()
+                            .host(specification.server)
+                            .url(specification.server)
+                            .build())
+                        : List.of(AsyncapiServerConfig.builder().build());
+                final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(materialized), configs);
 
                 unresolved.addAll(asyncapi.unresolvedRefs());
 
-                schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
+                schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi, specification.security, specification.store));
             }
         }
 
         return generate(binding, schemas);
     }
 
+    private String materialize(
+        AsyncapiBindingConfig binding,
+        AsyncapiSpecificationConfig specification,
+        String payload)
+    {
+        String materialized = payload;
+        if (specification.overlay != null)
+        {
+            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
+            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final String overlayPayload = handler.resolve(schemaId);
+
+            final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
+            final JsonObject overlayDocument = YamlJson.createReader(new StringReader(overlayPayload)).readObject();
+            materialized = JsonOverlay.of(overlayDocument).apply(document).toString();
+        }
+
+        return materialized;
+    }
+
     public final Collection<String> unresolvedRefs()
     {
         return unresolved;
+    }
+
+    public final Collection<String> deniedOperations()
+    {
+        return denied;
     }
 
     protected abstract AsyncapiCompositeConfig generate(
@@ -252,11 +292,12 @@ public abstract class AsyncapiCompositeGenerator
         }
 
         protected final String resolveIdentity(
-            String value)
+            String value,
+            String guardQname)
         {
-            if ("{identity}".equals(value))
+            if ("{identity}".equals(value) && guardQname != null)
             {
-                value = String.format("${guarded['%s:jwt0'].identity}", config.namespace);
+                value = String.format("${guarded['%s'].identity}", guardQname);
             }
 
             return value;
@@ -581,6 +622,36 @@ public abstract class AsyncapiCompositeGenerator
                 }
 
                 return guarded;
+            }
+
+            protected final GuardedResolution resolveGuarded(
+                AsyncapiSchemaConfig schema,
+                AsyncapiOperationView operation)
+            {
+                return AsyncapiGuardResolver.resolve(
+                    operation.name, schema.specLabel, operation.security, schema.security,
+                    config.resolveId, config.supplyQName);
+            }
+
+            protected final String guardQname(
+                GuardedResolution resolution)
+            {
+                return resolution.guarded.isEmpty() ? null : resolution.guarded.get(0).qname;
+            }
+
+            protected final boolean allowed(
+                AsyncapiSchemaConfig schema,
+                AsyncapiOperationView operation)
+            {
+                final GuardedResolution resolution = resolveGuarded(schema, operation);
+                final boolean allowed = !resolution.denied();
+
+                if (!allowed)
+                {
+                    denied.add(resolution.reason);
+                }
+
+                return allowed;
             }
         }
     }

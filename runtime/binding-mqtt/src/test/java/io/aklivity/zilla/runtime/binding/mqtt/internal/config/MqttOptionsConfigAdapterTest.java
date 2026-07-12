@@ -67,6 +67,7 @@ public class MqttOptionsConfigAdapterTest
                   - v3.1.1
                   - v5
                 store: memory0
+                server: mqtt://mosquitto:1883
                 authorization:
                   test0:
                     credentials:
@@ -104,6 +105,7 @@ public class MqttOptionsConfigAdapterTest
         assertThat(options.versions.get(0), equalTo(MqttVersion.V3_1_1));
         assertThat(options.versions.get(1), equalTo(MqttVersion.V_5));
         assertThat(options.store, equalTo("memory0"));
+        assertThat(options.server, equalTo("mqtt://mosquitto:1883"));
     }
 
     @Test
@@ -130,7 +132,7 @@ public class MqttOptionsConfigAdapterTest
                         singletonList(new MqttPatternConfig(
                             MqttPatternConfig.MqttConnectProperty.USERNAME,
                             "Bearer {credentials}")))),
-                    topics, versions, "memory0");
+                    topics, versions, "memory0", "mqtt://mosquitto:1883");
 
         String text = jsonb.toJson(options);
 
@@ -151,6 +153,7 @@ public class MqttOptionsConfigAdapterTest
                   - v3.1.1
                   - v5
                 store: memory0
+                server: "mqtt://mosquitto:1883"
                 """));
     }
 }

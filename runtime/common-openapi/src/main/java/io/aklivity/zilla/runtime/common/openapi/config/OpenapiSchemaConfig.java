@@ -14,21 +14,34 @@
  */
 package io.aklivity.zilla.runtime.common.openapi.config;
 
+import java.util.Map;
+
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 
 public class OpenapiSchemaConfig
 {
-    public final String apiLabel;
+    public final String specLabel;
     public final int schemaId;
     public final OpenapiView openapi;
+    public final Map<String, String> security;
 
     public OpenapiSchemaConfig(
-        String apiLabel,
+        String specLabel,
+        int schemaId,
+        OpenapiView openapi,
+        Map<String, String> security)
+    {
+        this.specLabel = specLabel;
+        this.schemaId = schemaId;
+        this.openapi = openapi;
+        this.security = security;
+    }
+
+    public OpenapiSchemaConfig(
+        String specLabel,
         int schemaId,
         OpenapiView openapi)
     {
-        this.apiLabel = apiLabel;
-        this.schemaId = schemaId;
-        this.openapi = openapi;
+        this(specLabel, schemaId, openapi, null);
     }
 }
