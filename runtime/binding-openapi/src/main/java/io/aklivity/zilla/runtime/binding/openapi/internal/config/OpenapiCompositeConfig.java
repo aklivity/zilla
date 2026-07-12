@@ -45,6 +45,7 @@ public final class OpenapiCompositeConfig
     private Long2ObjectHashMap<OpenapiOperationView> operationsById;
     private Long2ObjectHashMap<OpenapiView> specificationsById;
     private Long2ObjectHashMap<OpenapiServerView> serversById;
+    private final Map<Long, Map<String, OpenapiOperationView>> operationsBySpecId;
 
     public OpenapiCompositeConfig(
         List<OpenapiSchemaConfig> schemas,
@@ -86,6 +87,9 @@ public final class OpenapiCompositeConfig
             .flatMap(o -> IntStream.range(0, o.servers.size())
                 .mapToObj(i -> Map.entry(o.compositeId(i + 1), o.servers.get(i))))
             .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (s1, s2) -> s1, Long2ObjectHashMap::new));
+
+        this.operationsBySpecId = schemas.stream()
+            .collect(toMap(s -> (long) s.schemaId, s -> s.openapi.operations, (o1, o2) -> o1));
     }
 
     private static List<Long> operationCompositeIds(
@@ -136,6 +140,15 @@ public final class OpenapiCompositeConfig
         long compositeId)
     {
         return operationsById.get(compositeId);
+    }
+
+    public OpenapiOperationView resolveOperation(
+        long specId,
+        String operationId)
+    {
+        Map<String, OpenapiOperationView> operations = operationsBySpecId.get(specId);
+
+        return operations != null ? operations.get(operationId) : null;
     }
 
     public OpenapiView resolveSpecification(

@@ -29,6 +29,7 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
 public final class OpenapiView
@@ -79,13 +80,15 @@ public final class OpenapiView
         this.resolver = resolver;
         this.extensions = model.extensions;
 
-        this.servers = model.servers != null
-            ? model.servers.stream()
-                .flatMap(s -> configs.isEmpty()
-                    ? Stream.of(new OpenapiServerView(resolver, s, null))
-                    : configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
-                .toList()
-            : null;
+        List<OpenapiServer> declaredServers = model.servers != null && !model.servers.isEmpty()
+            ? model.servers
+            : List.of(OpenapiServerView.defaultServer());
+        boolean singular = declaredServers.size() == 1;
+        this.servers = declaredServers.stream()
+            .flatMap(s -> configs.isEmpty()
+                ? Stream.of(new OpenapiServerView(resolver, s, null, singular))
+                : configs.stream().map(c -> new OpenapiServerView(resolver, s, c, singular)))
+            .toList();
 
         this.security = model.security != null
             ? model.security.stream()

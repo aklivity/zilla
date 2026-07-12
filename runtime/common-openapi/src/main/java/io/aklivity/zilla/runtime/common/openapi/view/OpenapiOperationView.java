@@ -93,12 +93,13 @@ public final class OpenapiOperationView
                 : specification.security;
 
         List<OpenapiServer> effectiveServers = model.servers != null ? model.servers : pathServers;
+        boolean singular = effectiveServers != null && effectiveServers.size() == 1;
 
         this.servers = effectiveServers != null
                 ? effectiveServers.stream()
                     .flatMap(s -> configs.isEmpty()
-                        ? Stream.of(new OpenapiServerView(resolver, s, null))
-                        : configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
+                        ? Stream.of(new OpenapiServerView(resolver, s, null, singular))
+                        : configs.stream().map(c -> new OpenapiServerView(resolver, s, c, singular)))
                     .toList()
                 : specification.servers;
 

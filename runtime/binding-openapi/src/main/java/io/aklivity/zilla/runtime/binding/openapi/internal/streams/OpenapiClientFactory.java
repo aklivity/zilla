@@ -34,12 +34,15 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -67,9 +70,11 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final OpenapiBeginExFW beginExRO = new OpenapiBeginExFW();
+    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
 
     private final OpenapiBeginExFW.Builder beginExRW = new OpenapiBeginExFW.Builder();
+    private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
 
     private final EngineContext context;
 
@@ -78,6 +83,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx httpExtBuffer;
 
     private final Long2ObjectHashMap<OpenapiBindingConfig> bindings;
     private final int openapiTypeId;
@@ -93,6 +99,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.httpExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -120,7 +127,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        OpenapiBindingConfig attached = new OpenapiBindingConfig(context, binding);
+        OpenapiBindingConfig attached = new OpenapiBindingConfig(
+            context, binding, httpBeginExRO, httpBeginExRW, httpExtBuffer, httpTypeId);
         bindings.put(binding.id, attached);
 
         OpenapiCompositeConfig composite = generator.generate(attached);
@@ -184,6 +192,11 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             {
                 final long resolvedId = compositeRouteId != -1L ? compositeRouteId : route.id;
                 final String operationId = beginEx.operationId().asString();
+                final OpenapiOperationView operation = composite.resolveOperation(specId, operationId);
+                final OpenapiServerView server = operation != null && operation.servers != null &&
+                        !operation.servers.isEmpty()
+                    ? operation.servers.get(0)
+                    : null;
 
                 newStream = new OpenapiStream(
                     receiver,
@@ -193,7 +206,9 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                     affinity,
                     authorization,
                     resolvedId,
-                    operationId)::onOpenapiMessage;
+                    operationId,
+                    binding,
+                    server)::onOpenapiMessage;
             }
 
         }
@@ -212,6 +227,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         private final long replyId;
         private final long affinity;
         private final long authorization;
+        private final OpenapiBindingConfig binding;
+        private final OpenapiServerView server;
 
         private int state;
 
@@ -223,7 +240,9 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long affinity,
             long authorization,
             long resolvedId,
-            String operationId)
+            String operationId,
+            OpenapiBindingConfig binding,
+            OpenapiServerView server)
         {
             this.http =  new HttpStream(this, routedId, resolvedId, authorization);
             this.sender = sender;
@@ -234,6 +253,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             this.affinity = affinity;
             this.authorization = authorization;
             this.operationId = operationId;
+            this.binding = binding;
+            this.server = server;
         }
 
         private void onOpenapiMessage(
@@ -286,12 +307,16 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
             final OpenapiBeginExFW openapiBeginEx = extension.get(beginExRO::tryWrap);
+            final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW
+                .wrap(httpExtBuffer, 0, httpExtBuffer.capacity())
+                .typeId(httpTypeId);
+            final HttpBeginExFW httpBeginEx = binding.resolve(openapiBeginEx, httpBeginExBuilder, server);
 
             assert acknowledge <= sequence;
 
             state = OpenapiState.openingInitial(state);
 
-            http.doHttpBegin(sequence, acknowledge, maximum, traceId, affinity, openapiBeginEx.extension());
+            http.doHttpBegin(sequence, acknowledge, maximum, traceId, affinity, httpBeginEx);
         }
 
         private void onOpenapiData(
@@ -693,7 +718,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             int maximum,
             long traceId,
             long affinity,
-            OctetsFW extension)
+            Flyweight extension)
         {
             if (!OpenapiState.initialOpening(state))
             {

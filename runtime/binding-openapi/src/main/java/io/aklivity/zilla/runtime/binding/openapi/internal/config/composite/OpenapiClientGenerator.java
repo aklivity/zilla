@@ -247,8 +247,6 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
-                final String prefix = resolveServerPrefix();
-
                 resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
 
                 Stream.of(schema)
@@ -259,7 +257,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         operation.servers.forEach(server ->
                             options
                                 .request()
-                                    .path((server.overridden ? "" : prefix) + server.requestPath(operation.path))
+                                    .path(server.requestPath(operation.path))
                                     .method(HttpRequestConfig.Method.valueOf(operation.method))
                                     .inject(request -> injectHttpResponses(request, operation))
                                     .build()

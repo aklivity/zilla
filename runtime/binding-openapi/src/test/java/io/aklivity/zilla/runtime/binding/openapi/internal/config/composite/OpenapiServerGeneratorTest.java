@@ -40,7 +40,9 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -148,6 +150,14 @@ public class OpenapiServerGeneratorTest
         lenient().when(catalog.resolve(8)).thenReturn(SECURE_SPEC);
     }
 
+    private OpenapiBindingConfig newBindingConfig(
+        BindingConfig binding)
+    {
+        return new OpenapiBindingConfig(
+            context, binding, new HttpBeginExFW(), new HttpBeginExFW.Builder(),
+            new UnsafeBufferEx(new byte[1024]), 0);
+    }
+
     private BindingConfig binding(
         Map<String, String> security)
     {
@@ -230,7 +240,7 @@ public class OpenapiServerGeneratorTest
     @Test
     public void shouldGuardMappedOperation()
     {
-        OpenapiCompositeConfig composite = generator.generate(new OpenapiBindingConfig(context, binding(
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
             Map.of("bearerAuth", "guard0"))));
 
         RouteConfig route = routeFor(composite, "/mapped");
@@ -244,7 +254,7 @@ public class OpenapiServerGeneratorTest
     @Test
     public void shouldAllowUnguardedWhenSchemeNotMapped()
     {
-        OpenapiCompositeConfig composite = generator.generate(new OpenapiBindingConfig(context, binding(
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
             Map.of("bearerAuth", "guard0"))));
 
         RouteConfig route = routeFor(composite, "/unmapped");
@@ -255,7 +265,7 @@ public class OpenapiServerGeneratorTest
     @Test
     public void shouldAllowUnguardedWhenSecurityMapAbsent()
     {
-        OpenapiCompositeConfig composite = generator.generate(new OpenapiBindingConfig(context, binding(null)));
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(null)));
 
         RouteConfig mapped = routeFor(composite, "/mapped");
         RouteConfig unmapped = routeFor(composite, "/unmapped");
@@ -268,7 +278,7 @@ public class OpenapiServerGeneratorTest
     @Test
     public void shouldNotNpeWhenHttpAuthorizationNotConfigured()
     {
-        OpenapiCompositeConfig composite = generator.generate(new OpenapiBindingConfig(context, binding(
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
             Map.of("bearerAuth", "guard0"))));
 
         assertThat(composite, notNullValue());
@@ -280,7 +290,7 @@ public class OpenapiServerGeneratorTest
         lenient().when(catalog.resolve(eq("test-overlay"), eq("latest"))).thenReturn(8);
         lenient().when(catalog.resolve(eq(8))).thenReturn(OVERLAY);
 
-        OpenapiCompositeConfig composite = generator.generate(new OpenapiBindingConfig(context, bindingWithOverlay(null)));
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(bindingWithOverlay(null)));
 
         RouteConfig route = routeFor(composite, "/added");
 
@@ -290,7 +300,7 @@ public class OpenapiServerGeneratorTest
     @Test
     public void shouldPopulateTlsAuthorityForSniRouting()
     {
-        OpenapiCompositeConfig composite = generator.generate(new OpenapiBindingConfig(context, bindingSecure()));
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(bindingSecure()));
 
         BindingConfig tlsServer = composite.namespaces.get(0).bindings.stream()
             .filter(b -> "tls_server0".equals(b.name))

@@ -40,17 +40,25 @@ public final class OpenapiServerView
 
     private final Map<String, Object> extensions;
 
+    static OpenapiServer defaultServer()
+    {
+        OpenapiServer server = new OpenapiServer();
+        server.url = "/";
+        return server;
+    }
+
     OpenapiServerView(
         OpenapiResolver resolver,
         OpenapiServer model)
     {
-        this(resolver, model, null);
+        this(resolver, model, null, true);
     }
 
     OpenapiServerView(
         OpenapiResolver resolver,
         OpenapiServer model,
-        OpenapiServerConfig config)
+        OpenapiServerConfig config,
+        boolean singular)
     {
         Map<String, OpenapiVariableView> variables = model.variables != null
                 ? model.variables.entrySet().stream()
@@ -62,13 +70,14 @@ public final class OpenapiServerView
                 ? new VariableMatcher(variables::get, model.url)
                 : null;
 
-        this.url = matcher != null
-                ? resolvePorts(URI.create(matcher.resolve(config != null ? config.url : null)))
-                : null;
+        this.overridden = matcher != null && config != null && config.url != null &&
+                (singular || matcher.matches(config.url));
+        this.url = overridden
+                ? resolvePorts(URI.create(config.url))
+                : matcher != null ? resolvePorts(URI.create(matcher.resolve(null))) : null;
         this.literalUrl = matcher != null
                 ? resolvePorts(URI.create(matcher.resolve(null)))
                 : null;
-        this.overridden = matcher != null && config != null && matcher.matches(config.url);
         this.extensions = model.extensions;
     }
 
@@ -94,6 +103,24 @@ public final class OpenapiServerView
         return serverPath != null && path != null
             ? serverPath.endsWith("/") ? serverPath.concat(path.substring(1)) : serverPath.concat(path)
             : path;
+    }
+
+    public int effectivePrefixLength()
+    {
+        return prefixLength(url);
+    }
+
+    public int canonicalPrefixLength()
+    {
+        return prefixLength(literalUrl);
+    }
+
+    private static int prefixLength(
+        URI base)
+    {
+        String path = base.getPath();
+
+        return path == null ? 0 : path.endsWith("/") ? path.length() - 1 : path.length();
     }
 
     public static final class VariableMatcher
@@ -135,7 +162,7 @@ public final class OpenapiServerView
         String scheme = url.getScheme();
         int port = url.getPort();
 
-        if (port == -1)
+        if (port == -1 && scheme != null)
         {
             String userInfo = url.getUserInfo();
             String host = url.getHost();

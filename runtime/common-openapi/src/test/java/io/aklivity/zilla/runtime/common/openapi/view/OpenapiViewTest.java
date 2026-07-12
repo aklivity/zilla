@@ -123,7 +123,7 @@ public class OpenapiViewTest
         model.servers = List.of(server);
 
         OpenapiServerConfig config = OpenapiServerConfig.builder()
-            .url("http://localhost/path")
+            .url("https://localhost/path")
             .build();
         OpenapiView view = OpenapiView.of(model, List.of(config));
         OpenapiServerView serverView = view.servers.get(0);
@@ -140,7 +140,7 @@ public class OpenapiViewTest
         model.servers = List.of(server);
 
         OpenapiServerConfig config = OpenapiServerConfig.builder()
-            .url("http://localhost/path")
+            .url("http://localhost:8080/path")
             .build();
         OpenapiView view = OpenapiView.of(model, List.of(config));
         OpenapiServerView serverView = view.servers.get(0);
@@ -157,7 +157,7 @@ public class OpenapiViewTest
         model.servers = List.of(server);
 
         OpenapiServerConfig config = OpenapiServerConfig.builder()
-            .url("http://localhost/path")
+            .url("https://localhost:9090/path")
             .build();
         OpenapiView view = OpenapiView.of(model, List.of(config));
         OpenapiServerView serverView = view.servers.get(0);
@@ -433,7 +433,7 @@ public class OpenapiViewTest
     }
 
     @Test
-    public void shouldDefaultServerUrlVariableWhenOverrideDoesNotMatchPattern() throws Exception
+    public void shouldAcceptSingleServerUrlOverrideRegardlessOfVariablePattern() throws Exception
     {
         OpenapiServerVariable variable = new OpenapiServerVariable();
         variable.values = List.of("prod", "staging");
@@ -451,7 +451,25 @@ public class OpenapiViewTest
             .build();
         OpenapiView view = OpenapiView.of(model, List.of(config));
 
-        assertEquals(URI.create("http://prod.example.com:80"), view.servers.get(0).url);
+        assertEquals(URI.create("http://dev.example.com:80"), view.servers.get(0).url);
+    }
+
+    @Test
+    public void shouldWhollyReplaceSingleServerUrlWithOverride() throws Exception
+    {
+        OpenapiServer server = new OpenapiServer();
+        server.url = "http://localhost:8080/v1";
+
+        Openapi model = new Openapi();
+        model.servers = List.of(server);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder()
+            .url("https://frontend.example.com/apis")
+            .build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
+
+        assertEquals(URI.create("https://frontend.example.com:443/apis"), view.servers.get(0).url);
+        assertEquals(URI.create("http://localhost:8080/v1"), view.servers.get(0).literalUrl);
     }
 
     @Test
@@ -496,6 +514,38 @@ public class OpenapiViewTest
 
         assertEquals(URI.create("http://staging.example.com:80"), view.servers.get(0).url);
         assertEquals(URI.create("http://prod.example.com:80"), view.servers.get(0).literalUrl);
+    }
+
+    @Test
+    public void shouldSynthesizeDefaultServerWhenSpecificationDeclaresNone() throws Exception
+    {
+        Openapi model = new Openapi();
+
+        OpenapiView view = OpenapiView.of(model, List.of(OpenapiServerConfig.builder().build()));
+
+        assertEquals(1, view.servers.size());
+        assertEquals(URI.create("/"), view.servers.get(0).url);
+        assertEquals(URI.create("/"), view.servers.get(0).literalUrl);
+    }
+
+    @Test
+    public void shouldSynthesizeDefaultServerForOperationWhenNoneDeclaredAtAnyLevel() throws Exception
+    {
+        OpenapiOperation operation = new OpenapiOperation();
+        operation.operationId = "ReadItems";
+
+        OpenapiPath path = new OpenapiPath();
+        path.get = operation;
+
+        Openapi model = new Openapi();
+        model.paths = Map.of("/items", path);
+
+        OpenapiServerConfig config = OpenapiServerConfig.builder().build();
+        OpenapiView view = OpenapiView.of(model, List.of(config));
+        OpenapiOperationView operationView = view.paths.get("/items").methods.get("GET");
+
+        assertEquals(1, operationView.servers.size());
+        assertEquals(URI.create("/"), operationView.servers.get(0).url);
     }
 
     public static final class SampleExtension
