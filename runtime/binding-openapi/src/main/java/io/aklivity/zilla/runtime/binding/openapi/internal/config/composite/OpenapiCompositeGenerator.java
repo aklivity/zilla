@@ -95,9 +95,9 @@ public abstract class OpenapiCompositeGenerator
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, specification, payload);
                 final List<OpenapiServerConfig> configs =
-                    specification.servers == null || specification.servers.isEmpty()
-                        ? List.of(OpenapiServerConfig.builder().build())
-                        : specification.servers;
+                    specification.server != null
+                        ? List.of(OpenapiServerConfig.builder().url(specification.server).build())
+                        : List.of(OpenapiServerConfig.builder().build());
                 final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized), configs);
 
                 unresolved.addAll(openapi.unresolvedRefs());

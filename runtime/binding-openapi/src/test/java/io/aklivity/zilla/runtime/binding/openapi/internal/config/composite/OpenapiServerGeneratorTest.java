@@ -160,7 +160,6 @@ public class OpenapiServerGeneratorTest
                 .spec(new OpenapiSpecificationConfig(
                     "petstore",
                     null,
-                    List.of(),
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
                     security))
                 .build())
@@ -182,7 +181,6 @@ public class OpenapiServerGeneratorTest
                 .spec(new OpenapiSpecificationConfig(
                     "petstore",
                     null,
-                    List.of(),
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
                     security,
                     new OpenapiCatalogConfig("catalog0", "test-overlay", "latest")))
@@ -204,7 +202,6 @@ public class OpenapiServerGeneratorTest
                 .spec(new OpenapiSpecificationConfig(
                     "petstore",
                     null,
-                    List.of(),
                     List.of(new OpenapiCatalogConfig("catalog0", "secure", "latest")),
                     null))
                 .build())

@@ -190,7 +190,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                     final String operationId = operation != null ? operation.id : null;
                     final List<String> tags = operation != null ? operation.tags : null;
                     final OpenapiServerView server = composite.resolveServer(compositeId);
-                    final String serverUrl = server != null ? server.url.toString() : null;
+                    final String serverUrl = server != null ? server.literalUrl.toString() : null;
 
                     final OpenapiRouteConfig route = binding.resolve(authorization, apiId, operationId, tags, serverUrl);
 

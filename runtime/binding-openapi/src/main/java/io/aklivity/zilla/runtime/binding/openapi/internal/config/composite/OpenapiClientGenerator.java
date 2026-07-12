@@ -259,7 +259,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         operation.servers.forEach(server ->
                             options
                                 .request()
-                                    .path(prefix + server.requestPath(operation.path))
+                                    .path((server.overridden ? "" : prefix) + server.requestPath(operation.path))
                                     .method(HttpRequestConfig.Method.valueOf(operation.method))
                                     .inject(request -> injectHttpResponses(request, operation))
                                     .build()

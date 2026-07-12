@@ -269,7 +269,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         operation.servers.forEach(server ->
                             options
                                 .request()
-                                    .path(prefix + server.requestPath(operation.path))
+                                    .path((server.overridden ? "" : prefix) + server.requestPath(operation.path))
                                     .method(Method.valueOf(operation.method))
                                     .inject(request -> injectHttpParams(request, operation))
                                     .inject(request -> injectHttpContent(request, operation))
@@ -385,7 +385,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                                     .exit(config.qname)
                                     .when(HttpConditionConfig::builder)
                                         .header(":path",
-                                            (prefix + operation.servers.get(i).requestPath(operation.path))
+                                            (operation.servers.get(i).overridden ? "" : prefix)
+                                                .concat(operation.servers.get(i).requestPath(operation.path))
                                                 .replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
                                         .header(":method", operation.method)
                                         .build()
