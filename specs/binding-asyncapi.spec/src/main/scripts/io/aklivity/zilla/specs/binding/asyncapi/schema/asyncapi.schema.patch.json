@@ -53,36 +53,6 @@
                                                 "title": "Server",
                                                 "type": "string"
                                             },
-                                            "servers":
-                                            {
-                                                "title": "Servers",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "url":
-                                                        {
-                                                            "title": "URL",
-                                                            "type": "string",
-                                                            "pattern": "^([a-zA-Z0-9\\.-]+)(:(\\{[a-zA-Z_]+\\}|[0-9]+))?$"
-                                                        },
-                                                        "host":
-                                                        {
-                                                            "title": "Host",
-                                                            "type": "string",
-                                                            "pattern": "^([a-zA-Z0-9\\.-]+)(:(\\{[a-zA-Z_]+\\}|[0-9]+))?$"
-                                                        },
-                                                        "pathname":
-                                                        {
-                                                            "title": "Path Name",
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            },
                                             "catalog":
                                             {
                                                 "title": "Catalog",

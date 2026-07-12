@@ -34,7 +34,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -68,8 +67,7 @@ public class AsyncapiOptionsConfigAdapterTest
                       catalog0:
                         subject: smartylighting
                         version: latest
-                    servers:
-                      - host: test.mosquitto.org:1883
+                    server: test.mosquitto.org:1883
                 tls:
                   keys:
                     - localhost
@@ -86,9 +84,7 @@ public class AsyncapiOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         AsyncapiSpecificationConfig asyncapi = options.specs.get(0);
-        assertThat(asyncapi.servers.size(), equalTo(1));
-        AsyncapiServerConfig server = asyncapi.servers.get(0);
-        assertThat(server.host, equalTo("test.mosquitto.org:1883"));
+        assertThat(asyncapi.server, equalTo("test.mosquitto.org:1883"));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
@@ -108,9 +104,7 @@ public class AsyncapiOptionsConfigAdapterTest
                     .subject("smartylighting")
                     .version("latest")
                     .build()
-                .server()
-                    .host("test.mosquitto.org:1883")
-                    .build()
+                .serverOverride("test.mosquitto.org:1883")
                 .build()
             .tls(TlsOptionsConfig.builder()
                 .keys(asList("localhost"))
@@ -135,12 +129,11 @@ public class AsyncapiOptionsConfigAdapterTest
             """
             specs:
               mqtt-api:
+                server: "test.mosquitto.org:1883"
                 catalog:
                   catalog0:
                     subject: smartylighting
                     version: latest
-                servers:
-                  - host: "test.mosquitto.org:1883"
             tls:
               keys:
                 - localhost
@@ -220,7 +213,6 @@ public class AsyncapiOptionsConfigAdapterTest
                   catalog0:
                     subject: smartylighting-overlay
                     version: latest
-                servers: []
             """));
     }
 

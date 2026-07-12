@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfig;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionServerConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiWithConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
@@ -396,6 +397,96 @@ public class AsyncapiProxyGeneratorTest
         assertThat(options.topics.sessions.asString(), equalTo("mqtt-sessions"));
         assertThat(options.topics.messages.asString(), equalTo("mqtt-messages"));
         assertThat(options.topics.retained.asString(), equalTo("mqtt-retained"));
+    }
+
+    @Test
+    public void shouldIncludeMqttKafkaRouteWhenServerNameMatches()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(PROXY)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec()
+                    .label("mqtt-id")
+                    .catalog()
+                        .name("catalog2")
+                        .subject("test")
+                        .version("latest")
+                        .build()
+                    .build()
+                .spec()
+                    .label("kafka-mqtt-id")
+                    .catalog()
+                        .name("catalog3")
+                        .subject("test")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .exit("kafka_client0")
+                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
+                    List.of(new AsyncapiConditionServerConfig("broker", null))))
+                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding));
+
+        BindingConfig mqttKafka = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mqtt_kafka_proxy0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(mqttKafka.routes, hasSize(1));
+    }
+
+    @Test
+    public void shouldExcludeMqttKafkaRouteWhenServerNameDoesNotMatch()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(PROXY)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec()
+                    .label("mqtt-id")
+                    .catalog()
+                        .name("catalog2")
+                        .subject("test")
+                        .version("latest")
+                        .build()
+                    .build()
+                .spec()
+                    .label("kafka-mqtt-id")
+                    .catalog()
+                        .name("catalog3")
+                        .subject("test")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .exit("kafka_client0")
+                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
+                    List.of(new AsyncapiConditionServerConfig("other", null))))
+                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding));
+
+        BindingConfig mqttKafka = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mqtt_kafka_proxy0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(mqttKafka.routes, empty());
     }
 
     @Test

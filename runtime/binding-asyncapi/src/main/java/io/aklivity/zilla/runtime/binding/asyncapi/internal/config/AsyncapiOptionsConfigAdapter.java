@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import java.util.Map;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -33,7 +31,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -44,10 +41,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 {
     private static final String SPECS_NAME = "specs";
     private static final String SERVER_NAME = "server";
-    private static final String SERVERS_NAME = "servers";
-    private static final String SERVER_HOST_NAME = "host";
-    private static final String SERVER_URL_NAME = "url";
-    private static final String SERVER_PATHNAME_NAME = "pathname";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String MQTT_NAME = "mqtt";
@@ -91,7 +84,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             for (AsyncapiSpecificationConfig asyncapiConfig : asyncapiOptions.specs)
             {
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
-                final JsonArrayBuilder servers = Json.createArrayBuilder();
                 final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
 
                 if (asyncapiConfig.server != null)
@@ -126,28 +118,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     overlaySubject.add(asyncapiConfig.overlay.name, overlaySchema);
                     catalogObject.add(OVERLAY_NAME, overlaySubject);
                 }
-
-                if (asyncapiConfig.servers != null)
-                {
-                    asyncapiConfig.servers.forEach(s ->
-                    {
-                        JsonObjectBuilder server = Json.createObjectBuilder();
-                        if (!s.host.isEmpty())
-                        {
-                            server.add(SERVER_HOST_NAME, s.host);
-                        }
-                        if (!s.url.isEmpty())
-                        {
-                            server.add(SERVER_URL_NAME, s.url);
-                        }
-                        if (!s.pathname.isEmpty())
-                        {
-                            server.add(SERVER_PATHNAME_NAME, s.pathname);
-                        }
-                        servers.add(server);
-                    });
-                }
-                catalogObject.add(SERVERS_NAME, servers);
 
                 if (asyncapiConfig.security != null && !asyncapiConfig.security.isEmpty())
                 {
@@ -243,33 +213,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                         }
 
                         catalogBuilder.build();
-                    }
-                }
-
-                final JsonArray servers = spec.getJsonArray(SERVERS_NAME);
-                if (servers != null)
-                {
-                    for (JsonValue server : servers)
-                    {
-                        final AsyncapiServerConfigBuilder<?> serverBuilder = specBuilder.server();
-                        final JsonObject serverObject = server.asJsonObject();
-
-                        if (serverObject.containsKey(SERVER_HOST_NAME))
-                        {
-                            serverBuilder.host(serverObject.getString(SERVER_HOST_NAME));
-                        }
-
-                        if (serverObject.containsKey(SERVER_URL_NAME))
-                        {
-                            serverBuilder.url(serverObject.getString(SERVER_URL_NAME));
-                        }
-
-                        if (serverObject.containsKey(SERVER_PATHNAME_NAME))
-                        {
-                            serverBuilder.pathname(serverObject.getString(SERVER_PATHNAME_NAME));
-                        }
-
-                        serverBuilder.build();
                     }
                 }
 

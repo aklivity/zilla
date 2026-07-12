@@ -148,9 +148,12 @@ public abstract class AsyncapiCompositeGenerator
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, specification, payload);
                 final List<AsyncapiServerConfig> configs =
-                    specification.servers == null || specification.servers.isEmpty()
-                        ? List.of(AsyncapiServerConfig.builder().build())
-                        : specification.servers;
+                    specification.server != null
+                        ? List.of(AsyncapiServerConfig.builder()
+                            .host(specification.server)
+                            .url(specification.server)
+                            .build())
+                        : List.of(AsyncapiServerConfig.builder().build());
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(materialized), configs);
 
                 unresolved.addAll(asyncapi.unresolvedRefs());
