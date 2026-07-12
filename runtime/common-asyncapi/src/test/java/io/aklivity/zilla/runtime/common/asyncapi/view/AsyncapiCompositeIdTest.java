@@ -25,7 +25,7 @@ public class AsyncapiCompositeIdTest
     {
         long compositeId = AsyncapiCompositeId.compositeId(7, 42);
 
-        assertEquals(7, AsyncapiCompositeId.apiId(compositeId));
+        assertEquals(7, AsyncapiCompositeId.specIndex(compositeId));
         assertEquals(42, AsyncapiCompositeId.operationId(compositeId));
         assertEquals(0, AsyncapiCompositeId.serverIndex(compositeId));
     }
@@ -35,17 +35,17 @@ public class AsyncapiCompositeIdTest
     {
         long compositeId = AsyncapiCompositeId.compositeId(7, 42, 3);
 
-        assertEquals(7, AsyncapiCompositeId.apiId(compositeId));
+        assertEquals(7, AsyncapiCompositeId.specIndex(compositeId));
         assertEquals(42, AsyncapiCompositeId.operationId(compositeId));
         assertEquals(3, AsyncapiCompositeId.serverIndex(compositeId));
     }
 
     @Test
-    public void shouldRoundTripAtApiIdBoundary()
+    public void shouldRoundTripAtSpecIndexBoundary()
     {
         long compositeId = AsyncapiCompositeId.compositeId(0xffff, 0, 0);
 
-        assertEquals(0xffff, AsyncapiCompositeId.apiId(compositeId));
+        assertEquals(0xffff, AsyncapiCompositeId.specIndex(compositeId));
         assertEquals(0, AsyncapiCompositeId.operationId(compositeId));
         assertEquals(0, AsyncapiCompositeId.serverIndex(compositeId));
     }
@@ -55,7 +55,7 @@ public class AsyncapiCompositeIdTest
     {
         long compositeId = AsyncapiCompositeId.compositeId(0, 0xffff_ffff, 0);
 
-        assertEquals(0, AsyncapiCompositeId.apiId(compositeId));
+        assertEquals(0, AsyncapiCompositeId.specIndex(compositeId));
         assertEquals(0xffff_ffff, AsyncapiCompositeId.operationId(compositeId));
         assertEquals(0, AsyncapiCompositeId.serverIndex(compositeId));
     }
@@ -65,7 +65,7 @@ public class AsyncapiCompositeIdTest
     {
         long compositeId = AsyncapiCompositeId.compositeId(0, 0, 0xffff);
 
-        assertEquals(0, AsyncapiCompositeId.apiId(compositeId));
+        assertEquals(0, AsyncapiCompositeId.specIndex(compositeId));
         assertEquals(0, AsyncapiCompositeId.operationId(compositeId));
         assertEquals(0xffff, AsyncapiCompositeId.serverIndex(compositeId));
     }
@@ -75,7 +75,7 @@ public class AsyncapiCompositeIdTest
     {
         long compositeId = AsyncapiCompositeId.compositeId(0xffff, 0xffff_ffff, 0xffff);
 
-        assertEquals(0xffff, AsyncapiCompositeId.apiId(compositeId));
+        assertEquals(0xffff, AsyncapiCompositeId.specIndex(compositeId));
         assertEquals(0xffff_ffff, AsyncapiCompositeId.operationId(compositeId));
         assertEquals(0xffff, AsyncapiCompositeId.serverIndex(compositeId));
     }
@@ -83,15 +83,15 @@ public class AsyncapiCompositeIdTest
     @Test
     public void shouldNotBleedBetweenFields()
     {
-        long apiOnly = AsyncapiCompositeId.compositeId(0xffff, 0, 0);
+        long specIndexOnly = AsyncapiCompositeId.compositeId(0xffff, 0, 0);
         long operationOnly = AsyncapiCompositeId.compositeId(0, 0xffff_ffff, 0);
         long serverOnly = AsyncapiCompositeId.compositeId(0, 0, 0xffff);
 
-        assertEquals(0, AsyncapiCompositeId.operationId(apiOnly));
-        assertEquals(0, AsyncapiCompositeId.serverIndex(apiOnly));
-        assertEquals(0, AsyncapiCompositeId.apiId(operationOnly));
+        assertEquals(0, AsyncapiCompositeId.operationId(specIndexOnly));
+        assertEquals(0, AsyncapiCompositeId.serverIndex(specIndexOnly));
+        assertEquals(0, AsyncapiCompositeId.specIndex(operationOnly));
         assertEquals(0, AsyncapiCompositeId.serverIndex(operationOnly));
-        assertEquals(0, AsyncapiCompositeId.apiId(serverOnly));
+        assertEquals(0, AsyncapiCompositeId.specIndex(serverOnly));
         assertEquals(0, AsyncapiCompositeId.operationId(serverOnly));
     }
 }

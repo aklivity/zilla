@@ -22,6 +22,7 @@ public final class McpOpenapiResourceConfig
 {
     public final String uri;
     public final String description;
+    public final String mimeType;
     public final ModelConfig output;
 
     public static McpOpenapiResourceConfigBuilder<McpOpenapiResourceConfig> builder()
@@ -38,10 +39,12 @@ public final class McpOpenapiResourceConfig
     McpOpenapiResourceConfig(
         String uri,
         String description,
+        String mimeType,
         ModelConfig output)
     {
         this.uri = uri;
         this.description = description;
+        this.mimeType = mimeType;
         this.output = output;
     }
 }

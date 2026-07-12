@@ -33,10 +33,13 @@ public final class AsyncapiServerView
 {
     public final String name;
     public final String url;
+    public final String literalUrl;
     public final String host;
+    public final String literalHost;
     public final String hostname;
     public final int port;
     public final String pathname;
+    public final String literalPathname;
     public final String protocol;
 
     private final Map<String, Object> bindings;
@@ -80,15 +83,29 @@ public final class AsyncapiServerView
                     .collect(toMap(v -> v.name, identity()))
                 : Map.of();
 
-        this.name = name;
-        this.url = model.url != null
+        VariableMatcher urlMatcher = model.url != null
             ? new VariableMatcher(variables::get, model.url)
-                    .resolve(config != null ? config.url : null)
+            : null;
+        VariableMatcher hostMatcher = model.host != null
+            ? new VariableMatcher(variables::get, model.host)
+            : null;
+        VariableMatcher pathnameMatcher = model.pathname != null
+            ? new VariableMatcher(variables::get, model.pathname)
             : null;
 
-        this.host = model.host != null
-            ? new VariableMatcher(variables::get, model.host)
-                    .resolve(config != null ? config.host : null)
+        this.name = name;
+        this.url = urlMatcher != null
+            ? urlMatcher.resolve(config != null ? config.url : null)
+            : null;
+        this.literalUrl = urlMatcher != null
+            ? urlMatcher.resolve(null)
+            : null;
+
+        this.host = hostMatcher != null
+            ? hostMatcher.resolve(config != null ? config.host : null)
+            : null;
+        this.literalHost = hostMatcher != null
+            ? hostMatcher.resolve(null)
             : null;
 
         String urlOrHost = url != null ? url : "tcp://%s".formatted(host);
@@ -100,9 +117,11 @@ public final class AsyncapiServerView
             ? URI.create(urlOrHost).getPort()
             : 0;
 
-        this.pathname = model.pathname != null
-            ? new VariableMatcher(variables::get, model.pathname)
-                    .resolve(config != null ? config.pathname : null)
+        this.pathname = pathnameMatcher != null
+            ? pathnameMatcher.resolve(config != null ? config.pathname : null)
+            : null;
+        this.literalPathname = pathnameMatcher != null
+            ? pathnameMatcher.resolve(null)
             : null;
 
         this.protocol = model.protocol;

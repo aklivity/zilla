@@ -16,13 +16,10 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -35,8 +32,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -48,8 +43,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String SERVER_NAME = "server";
-    private static final String SERVERS_NAME = "servers";
-    private static final String SERVER_URL_NAME = "url";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
@@ -99,7 +92,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             for (OpenapiSpecificationConfig openapiConfig : openapiOptions.specs)
             {
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
-                final JsonArrayBuilder servers = Json.createArrayBuilder();
                 final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
 
                 if (openapiConfig.server != null)
@@ -133,20 +125,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
                     overlaySubject.add(openapiConfig.overlay.name, overlaySchema);
                     catalogObject.add(OVERLAY_NAME, overlaySubject);
-                }
-
-                if (openapiConfig.servers != null && !openapiConfig.servers.isEmpty())
-                {
-                    openapiConfig.servers.forEach(s ->
-                    {
-                        JsonObjectBuilder server = Json.createObjectBuilder();
-                        if (!s.url.isEmpty())
-                        {
-                            server.add(SERVER_URL_NAME, s.url);
-                        }
-                        servers.add(server);
-                    });
-                    catalogObject.add(SERVERS_NAME, servers);
                 }
 
                 if (openapiConfig.security != null && !openapiConfig.security.isEmpty())
@@ -192,29 +170,12 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             JsonObject specs = object.getJsonObject(SPECS_NAME);
             for (Map.Entry<String, JsonValue> entry : specs.entrySet())
             {
-                final String apiLabel = entry.getKey();
+                final String specLabel = entry.getKey();
                 final JsonObject specObject = entry.getValue().asJsonObject();
-                final JsonArray serversJson = specObject.getJsonArray(SERVERS_NAME);
 
                 final String server = specObject.containsKey(SERVER_NAME)
                     ? specObject.getString(SERVER_NAME)
                     : null;
-
-                final List<OpenapiServerConfig> servers = new LinkedList<>();
-                if (serversJson != null)
-                {
-                    serversJson.forEach(s ->
-                    {
-                        JsonObject serverObject = s.asJsonObject();
-                        OpenapiServerConfigBuilder<OpenapiServerConfig> serverBuilder = OpenapiServerConfig.builder();
-                        if (serverObject.containsKey(SERVER_URL_NAME))
-                        {
-                            serverBuilder.url(serverObject.getString(SERVER_URL_NAME));
-                        }
-
-                        servers.add(serverBuilder.build());
-                    });
-                }
 
                 List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
                 if (specObject.containsKey(CATALOG_NAME))
@@ -273,7 +234,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     overlay = overlayBuilder.build();
                 }
 
-                openapiOptions.spec(new OpenapiSpecificationConfig(apiLabel, server, servers, catalogs, security, overlay));
+                openapiOptions.spec(new OpenapiSpecificationConfig(specLabel, server, catalogs, security, overlay));
             }
         }
 

@@ -168,7 +168,6 @@ public class OpenapiOptionsConfigAdapterTest
             .spec(new OpenapiSpecificationConfig(
                 "test",
                 null,
-                of(),
                 of(new OpenapiCatalogConfig("catalog0", "petstore", "latest")),
                 null,
                 new OpenapiCatalogConfig("catalog0", "petstore-overlay", "latest")))

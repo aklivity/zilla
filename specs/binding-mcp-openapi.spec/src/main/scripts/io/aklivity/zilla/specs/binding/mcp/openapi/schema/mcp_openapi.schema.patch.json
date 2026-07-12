@@ -37,6 +37,46 @@
                     {
                         "properties":
                         {
+                            "authorization":
+                            {
+                                "title": "Authorization",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[A-Za-z0-9_-]+$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "credentials":
+                                            {
+                                                "title": "Credentials",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "headers":
+                                                    {
+                                                        "title": "Headers",
+                                                        "type": "object",
+                                                        "patternProperties":
+                                                        {
+                                                            "^[A-Za-z0-9:-]+$":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "maxProperties": 1
+                            },
                             "specs":
                             {
                                 "title": "Specs",
@@ -92,6 +132,36 @@
                                                     "^[a-zA-Z0-9_\\-]+$":
                                                     {
                                                         "type": "string"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            },
+                                            "overlay":
+                                            {
+                                                "title": "Overlay",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "subject":
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            }
+                                                        },
+                                                        "required":
+                                                        [
+                                                            "subject"
+                                                        ],
+                                                        "additionalProperties": false
                                                     }
                                                 },
                                                 "additionalProperties": false
@@ -152,6 +222,11 @@
                                             "description":
                                             {
                                                 "title": "Resource Description",
+                                                "type": "string"
+                                            },
+                                            "mimeType":
+                                            {
+                                                "title": "MIME Type",
                                                 "type": "string"
                                             },
                                             "output":
@@ -220,7 +295,7 @@
                                     {
                                         "spec":
                                         {
-                                            "title": "API Id",
+                                            "title": "Spec",
                                             "type": "string"
                                         },
                                         "operation":

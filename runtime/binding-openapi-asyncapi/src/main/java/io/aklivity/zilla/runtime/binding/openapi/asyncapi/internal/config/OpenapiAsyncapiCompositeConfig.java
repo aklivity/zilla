@@ -48,7 +48,7 @@ public final class OpenapiAsyncapiCompositeConfig
         this.namespaces = namespaces;
 
         final Object2LongHashMap<String> schemaIdsByLabel = new Object2LongHashMap<>(NO_SCHEMA_ID);
-        asyncapis.forEach(s -> schemaIdsByLabel.put(s.apiLabel, s.schemaId));
+        asyncapis.forEach(s -> schemaIdsByLabel.put(s.specLabel, s.schemaId));
         this.resolveSchemaId = schemaIdsByLabel::get;
 
         this.operationsById = openapis.stream()
@@ -67,19 +67,19 @@ public final class OpenapiAsyncapiCompositeConfig
 
     public OpenapiAsyncapiCompositeRouteConfig resolve(
         long authorization,
-        long apiId,
+        long specId,
         int operationTypeId)
     {
         return routes.stream()
-                .filter(r -> r.matches(apiId, operationTypeId))
+                .filter(r -> r.matches(specId, operationTypeId))
                 .findFirst()
                 .orElse(null);
     }
 
-    public long resolveApiId(
-        String apiId)
+    public long resolveSpecId(
+        String specLabel)
     {
-        return resolveSchemaId.applyAsLong(apiId);
+        return resolveSchemaId.applyAsLong(specLabel);
     }
 
     public OpenapiOperationView resolveOperation(

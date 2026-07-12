@@ -95,9 +95,9 @@ public abstract class OpenapiCompositeGenerator
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, specification, payload);
                 final List<OpenapiServerConfig> configs =
-                    specification.servers == null || specification.servers.isEmpty()
-                        ? List.of(OpenapiServerConfig.builder().build())
-                        : specification.servers;
+                    specification.server != null
+                        ? List.of(OpenapiServerConfig.builder().url(specification.server).build())
+                        : List.of(OpenapiServerConfig.builder().build());
                 final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized), configs);
 
                 unresolved.addAll(openapi.unresolvedRefs());
@@ -236,11 +236,12 @@ public abstract class OpenapiCompositeGenerator
         }
 
         protected final String resolveIdentity(
-            String value)
+            String value,
+            String guardQname)
         {
-            if ("{identity}".equals(value))
+            if ("{identity}".equals(value) && guardQname != null)
             {
-                value = String.format("${guarded['%s:jwt0'].identity}", config.namespace);
+                value = String.format("${guarded['%s'].identity}", guardQname);
             }
 
             return value;

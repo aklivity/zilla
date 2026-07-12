@@ -17,17 +17,11 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import java.util.Map;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiChannelsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiMqttKafkaConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
@@ -37,7 +31,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -48,23 +41,16 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 {
     private static final String SPECS_NAME = "specs";
     private static final String SERVER_NAME = "server";
-    private static final String SERVERS_NAME = "servers";
-    private static final String SERVER_HOST_NAME = "host";
-    private static final String SERVER_URL_NAME = "url";
-    private static final String SERVER_PATHNAME_NAME = "pathname";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String MQTT_NAME = "mqtt";
     private static final String KAFKA_NAME = "kafka";
-    private static final String MQTT_KAFKA_NAME = "mqtt-kafka";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
-    private static final String CHANNELS_NAME = "channels";
-    private static final String SESSIONS_NAME = "sessions";
-    private static final String MESSAGES_NAME = "messages";
-    private static final String RETAINED_NAME = "retained";
+    private static final String STORE_NAME = "store";
+    private static final String OVERLAY_NAME = "overlay";
 
     private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
@@ -98,7 +84,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             for (AsyncapiSpecificationConfig asyncapiConfig : asyncapiOptions.specs)
             {
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
-                final JsonArrayBuilder servers = Json.createArrayBuilder();
                 final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
 
                 if (asyncapiConfig.server != null)
@@ -120,33 +105,30 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 }
                 catalogObject.add(CATALOG_NAME, subjectObject);
 
-                if (asyncapiConfig.servers != null)
+                if (asyncapiConfig.overlay != null)
                 {
-                    asyncapiConfig.servers.forEach(s ->
+                    final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+                    overlaySchema.add(SUBJECT_NAME, asyncapiConfig.overlay.subject);
+                    if (asyncapiConfig.overlay.version != null)
                     {
-                        JsonObjectBuilder server = Json.createObjectBuilder();
-                        if (!s.host.isEmpty())
-                        {
-                            server.add(SERVER_HOST_NAME, s.host);
-                        }
-                        if (!s.url.isEmpty())
-                        {
-                            server.add(SERVER_URL_NAME, s.url);
-                        }
-                        if (!s.pathname.isEmpty())
-                        {
-                            server.add(SERVER_PATHNAME_NAME, s.pathname);
-                        }
-                        servers.add(server);
-                    });
+                        overlaySchema.add(VERSION_NAME, asyncapiConfig.overlay.version);
+                    }
+
+                    final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+                    overlaySubject.add(asyncapiConfig.overlay.name, overlaySchema);
+                    catalogObject.add(OVERLAY_NAME, overlaySubject);
                 }
-                catalogObject.add(SERVERS_NAME, servers);
 
                 if (asyncapiConfig.security != null && !asyncapiConfig.security.isEmpty())
                 {
                     final JsonObjectBuilder security = Json.createObjectBuilder();
                     asyncapiConfig.security.forEach(security::add);
                     catalogObject.add(SECURITY_NAME, security);
+                }
+
+                if (asyncapiConfig.store != null)
+                {
+                    catalogObject.add(STORE_NAME, asyncapiConfig.store);
                 }
 
                 specs.add(asyncapiConfig.label, catalogObject);
@@ -176,37 +158,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         {
             final KafkaOptionsConfig kafka = asyncapiOptions.kafka;
             object.add(KAFKA_NAME, kafkaOptions.adaptToJson(kafka));
-        }
-
-        if (asyncapiOptions.mqttKafka != null)
-        {
-            AsyncapiMqttKafkaConfig mqttKafka = asyncapiOptions.mqttKafka;
-            JsonObjectBuilder newMqttKafka = Json.createObjectBuilder();
-            AsyncapiChannelsConfig channels = mqttKafka.channels;
-            if (channels != null)
-            {
-                JsonObjectBuilder newChannels = Json.createObjectBuilder();
-                String sessions = channels.sessions;
-                if (sessions != null)
-                {
-                    newChannels.add(SESSIONS_NAME, sessions);
-                }
-
-                String messages = channels.messages;
-                if (messages != null)
-                {
-                    newChannels.add(MESSAGES_NAME, messages);
-                }
-
-                String retained = channels.retained;
-                if (retained != null)
-                {
-                    newChannels.add(RETAINED_NAME, retained);
-                }
-                newMqttKafka.add(CHANNELS_NAME, newChannels);
-
-                object.add(MQTT_KAFKA_NAME, newMqttKafka);
-            }
         }
 
         return object.build();
@@ -265,33 +216,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     }
                 }
 
-                final JsonArray servers = spec.getJsonArray(SERVERS_NAME);
-                if (servers != null)
-                {
-                    for (JsonValue server : servers)
-                    {
-                        final AsyncapiServerConfigBuilder<?> serverBuilder = specBuilder.server();
-                        final JsonObject serverObject = server.asJsonObject();
-
-                        if (serverObject.containsKey(SERVER_HOST_NAME))
-                        {
-                            serverBuilder.host(serverObject.getString(SERVER_HOST_NAME));
-                        }
-
-                        if (serverObject.containsKey(SERVER_URL_NAME))
-                        {
-                            serverBuilder.url(serverObject.getString(SERVER_URL_NAME));
-                        }
-
-                        if (serverObject.containsKey(SERVER_PATHNAME_NAME))
-                        {
-                            serverBuilder.pathname(serverObject.getString(SERVER_PATHNAME_NAME));
-                        }
-
-                        serverBuilder.build();
-                    }
-                }
-
                 if (spec.containsKey(SECURITY_NAME))
                 {
                     final JsonObject securityObject = spec.getJsonObject(SECURITY_NAME);
@@ -299,6 +223,33 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                     {
                         specBuilder.security(scheme, securityObject.getString(scheme));
                     }
+                }
+
+                if (spec.containsKey(STORE_NAME))
+                {
+                    specBuilder.store(spec.getString(STORE_NAME));
+                }
+
+                if (spec.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = spec.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+                    final AsyncapiCatalogConfigBuilder<?> overlayBuilder = specBuilder.overlay();
+                    overlayBuilder.name(overlayEntry.getKey());
+
+                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+                    {
+                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (overlaySchemaObject.containsKey(VERSION_NAME))
+                    {
+                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+                    }
+
+                    overlayBuilder.build();
                 }
 
                 specBuilder.build();
@@ -327,35 +278,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
         {
             final JsonObject kafka = object.getJsonObject(KAFKA_NAME);
             builder.kafka(KafkaOptionsConfig.class.cast(kafkaOptions.adaptFromJson(kafka)));
-        }
-
-        if (object.containsKey(MQTT_KAFKA_NAME))
-        {
-            final AsyncapiMqttKafkaConfigBuilder<?> mqttKafkaBuilder = builder.mqttKafka();
-            final JsonObject mqttKafka = object.getJsonObject(MQTT_KAFKA_NAME);
-
-            if (mqttKafka.containsKey(CHANNELS_NAME))
-            {
-                AsyncapiChannelsConfigBuilder<?> channelsBuilder = mqttKafkaBuilder.channels();
-                JsonObject channels = mqttKafka.getJsonObject(CHANNELS_NAME);
-
-                if (channels.containsKey(SESSIONS_NAME))
-                {
-                    channelsBuilder.sessions(channels.getString(SESSIONS_NAME));
-                }
-                if (channels.containsKey(MESSAGES_NAME))
-                {
-                    channelsBuilder.messages(channels.getString(MESSAGES_NAME));
-                }
-                if (channels.containsKey(RETAINED_NAME))
-                {
-                    channelsBuilder.retained(channels.getString(RETAINED_NAME));
-                }
-
-                channelsBuilder.build();
-            }
-
-            mqttKafkaBuilder.build();
         }
 
         return builder.build();

@@ -21,11 +21,14 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -389,6 +392,98 @@ public class EngineTest
 
         assertThat(errors, empty());
         assertThat(eventCount[0], greaterThan(0));
+    }
+
+    @Test
+    public void shouldNotWriteEventWhenClosingReadonlyEngine()
+    {
+        List<Throwable> errors = new LinkedList<>();
+        EngineConfiguration config = new EngineConfiguration(properties);
+
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+            new EngineEventContext(engine).started();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
+        int[] eventCountBeforeClose = { 0 };
+        try (Engine readonlyEngine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .readonly()
+                .build())
+        {
+            readonlyEngine.start();
+            MessageReader events = readonlyEngine.supplyEventReader();
+            events.read((msgTypeId, buffer, index, length) -> eventCountBeforeClose[0]++, 10);
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
+        int[] eventCountAfterClose = { 0 };
+        try (Engine readonlyEngine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .readonly()
+                .build())
+        {
+            readonlyEngine.start();
+            MessageReader events = readonlyEngine.supplyEventReader();
+            events.read((msgTypeId, buffer, index, length) -> eventCountAfterClose[0]++, 10);
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
+        assertThat(errors, empty());
+        assertThat(eventCountAfterClose[0], equalTo(eventCountBeforeClose[0]));
+    }
+
+    @Test
+    public void shouldNotResetTuningWhenAttachingReadonlyEngine() throws Exception
+    {
+        List<Throwable> errors = new LinkedList<>();
+        EngineConfiguration config = new EngineConfiguration(properties);
+
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+
+            Path tuning = config.directory().resolve("tuning");
+            Object fileKeyBefore = Files.readAttributes(tuning, "unix:ino").get("ino");
+
+            try (Engine readonlyEngine = Engine.builder()
+                    .config(config)
+                    .errorHandler(errors::add)
+                    .readonly()
+                    .build())
+            {
+                readonlyEngine.start();
+            }
+
+            Object fileKeyAfter = Files.readAttributes(tuning, "unix:ino").get("ino");
+
+            assertThat(fileKeyAfter, equalTo(fileKeyBefore));
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+
+        assertThat(errors, empty());
     }
 
     public static final class TestEngineExt implements EngineExtSpi

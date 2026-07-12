@@ -53,36 +53,6 @@
                                                 "title": "Server",
                                                 "type": "string"
                                             },
-                                            "servers":
-                                            {
-                                                "title": "Servers",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "url":
-                                                        {
-                                                            "title": "URL",
-                                                            "type": "string",
-                                                            "pattern": "^([a-zA-Z0-9\\.-]+)(:(\\{[a-zA-Z_]+\\}|[0-9]+))?$"
-                                                        },
-                                                        "host":
-                                                        {
-                                                            "title": "Host",
-                                                            "type": "string",
-                                                            "pattern": "^([a-zA-Z0-9\\.-]+)(:(\\{[a-zA-Z_]+\\}|[0-9]+))?$"
-                                                        },
-                                                        "pathname":
-                                                        {
-                                                            "title": "Path Name",
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            },
                                             "catalog":
                                             {
                                                 "title": "Catalog",
@@ -125,6 +95,41 @@
                                                     }
                                                 },
                                                 "additionalProperties": false
+                                            },
+                                            "store":
+                                            {
+                                                "title": "Store Reference",
+                                                "type": "string"
+                                            },
+                                            "overlay":
+                                            {
+                                                "title": "Overlay",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "subject":
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            }
+                                                        },
+                                                        "required":
+                                                        [
+                                                            "subject"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         },
                                         "additionalProperties": false
@@ -158,11 +163,6 @@
                                     "authorization":
                                     {
                                         "$ref": "#/$defs/options/binding/mqtt/authorization"
-                                    },
-                                    "store":
-                                    {
-                                        "title": "Store Reference",
-                                        "type": "string"
                                     }
                                 },
                                 "additionalProperties": false
@@ -177,43 +177,13 @@
                                     {
                                         "$ref": "#/$defs/options/binding/kafka/sasl"
                                     },
+                                    "authorization":
+                                    {
+                                        "$ref": "#/$defs/options/binding/kafka/authorization"
+                                    },
                                     "topics":
                                     {
                                         "$ref": "#/$defs/options/binding/kafka/cache_server_topics"
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
-                            "mqtt-kafka":
-                            {
-                                "title": "MQTT-Kafka",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "channels":
-                                    {
-                                        "title": "Channels",
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "sessions":
-                                            {
-                                                "title": "Kafka Sessions Channel",
-                                                "type": "string"
-                                            },
-                                            "messages":
-                                            {
-                                                "title": "Kafka Messages Channel",
-                                                "type": "string"
-                                            },
-                                            "retained":
-                                            {
-                                                "title": "Kafka Retained Channel",
-                                                "type": "string"
-                                            },
-                                            "additionalProperties": false
-                                        },
-                                        "additionalProperties": false
                                     }
                                 },
                                 "additionalProperties": false

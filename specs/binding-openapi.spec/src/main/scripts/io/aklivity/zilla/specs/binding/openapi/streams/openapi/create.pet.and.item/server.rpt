@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(1)
+                             .specId(1)
                              .operationId("createPets")
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
@@ -59,7 +59,7 @@ accepted
 
 read zilla:begin.ext ${openapi:matchBeginEx()
                              .typeId(zilla:id("openapi"))
-                             .apiId(2)
+                             .specId(2)
                              .operationId("createItems")
                              .extension(http:matchBeginEx()
                                   .typeId(zilla:id("http"))
