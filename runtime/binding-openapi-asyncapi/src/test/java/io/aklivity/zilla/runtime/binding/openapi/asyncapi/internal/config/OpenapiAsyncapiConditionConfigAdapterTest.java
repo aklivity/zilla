@@ -19,6 +19,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -66,6 +68,42 @@ public class OpenapiAsyncapiConditionConfigAdapterTest
             "{" +
                     "\"spec\":\"test\"," +
                     "\"operation\":\"o-id\"" +
+                "}"));
+    }
+
+    @Test
+    public void shouldReadConditionWithTagAndServers()
+    {
+        String text =
+            "{" +
+                "\"spec\":\"test\"," +
+                "\"operation\":\"o-id\"," +
+                "\"tag\":\"pets\"," +
+                "\"servers\":[{\"url\":\"http://localhost:9090/prod\"}]" +
+            "}";
+
+        OpenapiAsyncapiConditionConfig condition = jsonb.fromJson(text, OpenapiAsyncapiConditionConfig.class);
+
+        assertThat(condition.tag, equalTo("pets"));
+        assertThat(condition.servers.size(), equalTo(1));
+        assertThat(condition.servers.get(0).url, equalTo("http://localhost:9090/prod"));
+    }
+
+    @Test
+    public void shouldWriteConditionWithTagAndServers()
+    {
+        OpenapiAsyncapiConditionConfig condition = new OpenapiAsyncapiConditionConfig("test", "o-id", "pets",
+            List.of(new OpenapiAsyncapiConditionServerConfig("http://localhost:9090/prod")));
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                    "\"spec\":\"test\"," +
+                    "\"operation\":\"o-id\"," +
+                    "\"tag\":\"pets\"," +
+                    "\"servers\":[{\"url\":\"http://localhost:9090/prod\"}]" +
                 "}"));
     }
 }

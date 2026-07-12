@@ -19,14 +19,11 @@ import static java.util.Collections.unmodifiableSet;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -37,13 +34,10 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapi
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -58,11 +52,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
     private static final String OVERLAY_NAME = "overlay";
-    private static final String SERVER_NAME = "server";
-    private static final String SERVERS_NAME = "servers";
-    private static final String SERVER_URL_NAME = "url";
-    private static final String SERVER_HOST_NAME = "host";
-    private static final String SERVER_PATHNAME_NAME = "pathname";
 
     @Override
     public Kind kind()
@@ -89,13 +78,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
         for (OpenapiSpecificationConfig openapiConfig : proxyOptions.specs.openapi)
         {
             final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
-            final JsonArrayBuilder servers = Json.createArrayBuilder();
             final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
-
-            if (openapiConfig.server != null)
-            {
-                catalogObject.add(SERVER_NAME, openapiConfig.server);
-            }
 
             for (OpenapiCatalogConfig catalog : openapiConfig.catalogs)
             {
@@ -132,20 +115,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                 catalogObject.add(OVERLAY_NAME, overlaySubject);
             }
 
-            if (openapiConfig.servers != null && !openapiConfig.servers.isEmpty())
-            {
-                openapiConfig.servers.forEach(s ->
-                {
-                    JsonObjectBuilder server = Json.createObjectBuilder();
-                    if (s.url != null && !s.url.isEmpty())
-                    {
-                        server.add(SERVER_URL_NAME, s.url);
-                    }
-                    servers.add(server);
-                });
-                catalogObject.add(SERVERS_NAME, servers);
-            }
-
             openapi.add(openapiConfig.label, catalogObject);
         }
         spec.add(OPENAPI_NAME, openapi);
@@ -154,13 +123,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
         for (AsyncapiSpecificationConfig asyncapiConfig : proxyOptions.specs.asyncapi)
         {
             final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
-            final JsonArrayBuilder servers = Json.createArrayBuilder();
             final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
-
-            if (asyncapiConfig.server != null)
-            {
-                catalogObject.add(SERVER_NAME, asyncapiConfig.server);
-            }
 
             for (AsyncapiCatalogConfig catalog : asyncapiConfig.catalogs)
             {
@@ -197,28 +160,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                 catalogObject.add(OVERLAY_NAME, overlaySubject);
             }
 
-            if (asyncapiConfig.servers != null && !asyncapiConfig.servers.isEmpty())
-            {
-                asyncapiConfig.servers.forEach(s ->
-                {
-                    JsonObjectBuilder server = Json.createObjectBuilder();
-                    if (!s.host.isEmpty())
-                    {
-                        server.add(SERVER_HOST_NAME, s.host);
-                    }
-                    if (!s.url.isEmpty())
-                    {
-                        server.add(SERVER_URL_NAME, s.url);
-                    }
-                    if (!s.pathname.isEmpty())
-                    {
-                        server.add(SERVER_PATHNAME_NAME, s.pathname);
-                    }
-                    servers.add(server);
-                });
-                catalogObject.add(SERVERS_NAME, servers);
-            }
-
             asyncapi.add(asyncapiConfig.label, catalogObject);
         }
         spec.add(ASYNCAPI_NAME, asyncapi);
@@ -244,27 +185,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
             if (specObject.containsKey(CATALOG_NAME))
             {
                 final JsonObject catalog = specObject.getJsonObject(CATALOG_NAME);
-
-                final String server = specObject.containsKey(SERVER_NAME)
-                    ? specObject.getString(SERVER_NAME)
-                    : null;
-
-                final JsonArray serversJson = specObject.getJsonArray(SERVERS_NAME);
-                final List<OpenapiServerConfig> servers = new LinkedList<>();
-                if (serversJson != null)
-                {
-                    serversJson.forEach(s ->
-                    {
-                        JsonObject serverObject = s.asJsonObject();
-                        OpenapiServerConfigBuilder<OpenapiServerConfig> serverBuilder = OpenapiServerConfig.builder();
-                        if (serverObject.containsKey(SERVER_URL_NAME))
-                        {
-                            serverBuilder.url(serverObject.getString(SERVER_URL_NAME));
-                        }
-
-                        servers.add(serverBuilder.build());
-                    });
-                }
 
                 List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
                 for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
@@ -319,7 +239,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     overlay = overlayBuilder.build();
                 }
 
-                openapis.add(new OpenapiSpecificationConfig(apiLabel, server, servers, catalogs, security, overlay));
+                openapis.add(new OpenapiSpecificationConfig(apiLabel, null, catalogs, security, overlay));
             }
         }
 
@@ -332,11 +252,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
 
             AsyncapiSpecificationConfigBuilder<AsyncapiSpecificationConfig> asyncapi = AsyncapiSpecificationConfig.builder()
                 .label(apiLabel);
-
-            if (specObject.containsKey(SERVER_NAME))
-            {
-                asyncapi.serverOverride(specObject.getString(SERVER_NAME));
-            }
 
             if (specObject.containsKey(CATALOG_NAME))
             {
@@ -392,33 +307,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     }
 
                     overlayBuilder.build();
-                }
-
-                final JsonArray serversJson = specObject.getJsonArray(SERVERS_NAME);
-                if (serversJson != null)
-                {
-                    for (JsonValue server : serversJson)
-                    {
-                        final AsyncapiServerConfigBuilder<?> serverBuilder = asyncapi.server();
-                        final JsonObject serverObject = server.asJsonObject();
-
-                        if (serverObject.containsKey(SERVER_HOST_NAME))
-                        {
-                            serverBuilder.host(serverObject.getString(SERVER_HOST_NAME));
-                        }
-
-                        if (serverObject.containsKey(SERVER_URL_NAME))
-                        {
-                            serverBuilder.url(serverObject.getString(SERVER_URL_NAME));
-                        }
-
-                        if (serverObject.containsKey(SERVER_PATHNAME_NAME))
-                        {
-                            serverBuilder.pathname(serverObject.getString(SERVER_PATHNAME_NAME));
-                        }
-
-                        serverBuilder.build();
-                    }
                 }
 
                 asyncapis.add(asyncapi.build());

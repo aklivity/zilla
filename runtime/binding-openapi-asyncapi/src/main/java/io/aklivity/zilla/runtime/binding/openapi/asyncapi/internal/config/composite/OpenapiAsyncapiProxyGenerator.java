@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.Openap
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeRouteConfig;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaFilter;
@@ -164,7 +165,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                 {
                     this.when = route.when.stream()
                             .filter(c -> mapping.when.apiLabel.equals(c.spec))
-                            .map(c -> new ProxyWhenHelper(mapping.when, c.operation))
+                            .map(c -> new ProxyWhenHelper(mapping.when, c))
                             .toList();
                     this.with = new ProxyWithHelper(mapping.with, route.with);
                     this.bulk = route.isBulk();
@@ -188,13 +189,21 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
             {
                 private final OpenapiSchemaConfig schema;
                 private final String operationId;
+                private final OpenapiAsyncapiConditionConfig condition;
 
                 private ProxyWhenHelper(
                     OpenapiSchemaConfig schema,
-                    String operationId)
+                    OpenapiAsyncapiConditionConfig condition)
                 {
                     this.schema = schema;
-                    this.operationId = operationId;
+                    this.operationId = condition.operation;
+                    this.condition = condition;
+                }
+
+                private boolean matches(
+                    OpenapiOperationView candidate)
+                {
+                    return condition.matches(condition.spec, candidate.id, candidate.tags, candidate.servers);
                 }
             }
 
@@ -306,13 +315,13 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                                         }
                                     }
 
-                                    if (kafkaOp != null)
+                                    if (kafkaOp != null && condition.matches(httpAnyOp))
                                     {
                                         injectHttpKafkaRoute(binding, condition.schema, httpAnyOp, kafkaOp);
                                     }
                                 }
                             }
-                            else
+                            else if (condition.matches(httpOp))
                             {
                                 String kafkaOpId = route.bulk
                                     ? httpOp.id

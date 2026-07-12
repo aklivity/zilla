@@ -76,9 +76,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, openapiSpec, payload);
                 final List<OpenapiServerConfig> configs =
-                    openapiSpec.servers == null || openapiSpec.servers.isEmpty()
-                        ? List.of(OpenapiServerConfig.builder().build())
-                        : openapiSpec.servers;
+                    List.of(OpenapiServerConfig.builder().build());
                 final OpenapiView openapi = OpenapiView.of(tagIndex++, label, openapiParser.parse(materialized), configs);
 
                 openapiSchemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, openapiSpec.security));
@@ -99,9 +97,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, asyncapiSpec, payload);
                 final List<AsyncapiServerConfig> configs =
-                    asyncapiSpec.servers == null || asyncapiSpec.servers.isEmpty()
-                        ? List.of(AsyncapiServerConfig.builder().build())
-                        : asyncapiSpec.servers;
+                    List.of(AsyncapiServerConfig.builder().build());
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, asyncapiParser.parse(materialized), configs);
 
                 asyncapiSchemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi, asyncapiSpec.security));

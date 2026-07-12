@@ -71,6 +71,7 @@ public class OpenapiAsyncapiProxyGeneratorTest
             "/mapped": {
               "get": {
                 "operationId": "mapped",
+                "tags": [ "pets" ],
                 "security": [ { "bearerAuth": [ "read" ] } ],
                 "x-zilla-http-kafka": { "filters": [ { "key": "{identity}" } ] },
                 "responses": { "200": { "description": "ok" } }
@@ -230,7 +231,6 @@ public class OpenapiAsyncapiProxyGeneratorTest
                 Set.of(new OpenapiSpecificationConfig(
                     "openapi-id",
                     null,
-                    List.of(),
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
                     security)),
                 Set.of(AsyncapiSpecificationConfig.builder()
@@ -258,7 +258,6 @@ public class OpenapiAsyncapiProxyGeneratorTest
                 Set.of(new OpenapiSpecificationConfig(
                     "openapi-id",
                     null,
-                    List.of(),
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
                     Map.of("bearerAuth", "guard0"),
                     new OpenapiCatalogConfig("catalog0", "test-overlay", "latest"))),
@@ -270,6 +269,34 @@ public class OpenapiAsyncapiProxyGeneratorTest
             .route()
                 .exit("asyncapi_client0")
                 .when(new OpenapiAsyncapiConditionConfig("openapi-id", null))
+                .with(new OpenapiAsyncapiWithConfig("asyncapi-id", null, null))
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
+    private BindingConfig bindingWithCondition(
+        OpenapiAsyncapiConditionConfig condition)
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("openapi-asyncapi")
+            .kind(PROXY)
+            .options(new OpenapiAsyncapiOptionsConfig(new OpenapiAsyncapiSpecConfig(
+                Set.of(new OpenapiSpecificationConfig(
+                    "openapi-id",
+                    null,
+                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
+                    Map.of("bearerAuth", "guard0"))),
+                Set.of(AsyncapiSpecificationConfig.builder()
+                    .label("asyncapi-id")
+                    .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
+                    .build()))))
+            .route()
+                .exit("asyncapi_client0")
+                .when(condition)
                 .with(new OpenapiAsyncapiWithConfig("asyncapi-id", null, null))
                 .build()
             .build();
@@ -389,5 +416,33 @@ public class OpenapiAsyncapiProxyGeneratorTest
         assertThat(route.guarded, hasSize(1));
         assertThat(route.guarded.get(0).name, equalTo("guard0"));
         assertThat(with.fetch.get().topic, equalTo("added"));
+    }
+
+    @Test
+    public void shouldIncludeHttpKafkaRouteWhenTagMatches()
+    {
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context,
+            bindingWithCondition(new OpenapiAsyncapiConditionConfig("openapi-id", null, "pets", null))));
+
+        BindingConfig httpKafka = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "http_kafka_proxy0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(httpKafka.routes, hasSize(1));
+    }
+
+    @Test
+    public void shouldExcludeHttpKafkaRouteWhenTagDoesNotMatch()
+    {
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context,
+            bindingWithCondition(new OpenapiAsyncapiConditionConfig("openapi-id", null, "other", null))));
+
+        BindingConfig httpKafka = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "http_kafka_proxy0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(httpKafka.routes, empty());
     }
 }
