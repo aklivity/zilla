@@ -295,7 +295,7 @@
                                     {
                                         "spec":
                                         {
-                                            "title": "API Id",
+                                            "title": "Spec",
                                             "type": "string"
                                         },
                                         "operation":
