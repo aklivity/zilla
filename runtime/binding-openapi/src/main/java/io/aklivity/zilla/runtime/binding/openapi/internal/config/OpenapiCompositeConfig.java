@@ -62,11 +62,11 @@ public final class OpenapiCompositeConfig
         this.namespaces = namespaces;
 
         final Long2ObjectHashMap<String> labelsBySchemaId = new Long2ObjectHashMap<>();
-        schemas.forEach(s -> labelsBySchemaId.put(s.schemaId, s.apiLabel));
+        schemas.forEach(s -> labelsBySchemaId.put(s.schemaId, s.specLabel));
         this.resolveLabel = labelsBySchemaId::get;
 
         final Object2LongHashMap<String> schemaIdsByLabel = new Object2LongHashMap<>(NO_SCHEMA_ID);
-        schemas.forEach(s -> schemaIdsByLabel.put(s.apiLabel, s.schemaId));
+        schemas.forEach(s -> schemaIdsByLabel.put(s.specLabel, s.schemaId));
         this.resolveSchemaId = schemaIdsByLabel::get;
 
         this.operationsById = schemas.stream()
@@ -111,25 +111,25 @@ public final class OpenapiCompositeConfig
 
     public OpenapiCompositeRouteConfig resolve(
         long authorization,
-        long apiId,
+        long specId,
         int operationTypeId)
     {
         return routes.stream()
-                .filter(r -> r.matches(apiId, operationTypeId))
+                .filter(r -> r.matches(specId, operationTypeId))
                 .findFirst()
                 .orElse(null);
     }
 
-    public String resolveApiId(
-        long apiId)
+    public String resolveSpecLabel(
+        long specId)
     {
-        return resolveLabel.apply(apiId);
+        return resolveLabel.apply(specId);
     }
 
-    public long resolveApiId(
-        String apiId)
+    public long resolveSpecId(
+        String specLabel)
     {
-        return resolveSchemaId.applyAsLong(apiId);
+        return resolveSchemaId.applyAsLong(specLabel);
     }
 
     public OpenapiOperationView resolveOperation(

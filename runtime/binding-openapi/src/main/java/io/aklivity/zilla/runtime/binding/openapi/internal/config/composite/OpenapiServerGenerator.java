@@ -73,7 +73,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             OpenapiBindingConfig config,
             OpenapiSchemaConfig schema)
         {
-            super(config, schema.apiLabel);
+            super(config, schema.specLabel);
             this.catalogs = new ServerCatalogsHelper(schema);
             this.bindings = new ServerBindingsHelper(schema);
         }
@@ -403,7 +403,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 OpenapiOperationView operation)
             {
                 return OpenapiGuardResolver.resolve(
-                    operation.id, schema.apiLabel, operation.security, schema.security,
+                    operation.id, schema.specLabel, operation.security, schema.security,
                     config.resolveId, config.supplyQName);
             }
 

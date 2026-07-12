@@ -54,7 +54,7 @@ public class OpenapiFunctionsTest
     {
         byte[] build = OpenapiFunctions.beginEx()
             .typeId(0x01)
-            .apiId(1L)
+            .specId(1L)
             .operationId("test")
             .extension("extension".getBytes())
             .build();
@@ -62,7 +62,7 @@ public class OpenapiFunctionsTest
         DirectBufferEx buffer = new UnsafeBufferEx(build);
 
         OpenapiBeginExFW beginEx = new OpenapiBeginExFW().wrap(buffer, 0, buffer.capacity());
-        assertEquals(1L, beginEx.apiId());
+        assertEquals(1L, beginEx.specId());
         assertEquals("test", beginEx.operationId().asString());
         assertEquals("extension".length(), beginEx.extension().sizeof());
     }
@@ -72,7 +72,7 @@ public class OpenapiFunctionsTest
     {
         BytesMatcher matcher = OpenapiFunctions.matchBeginEx()
             .typeId(0x00)
-            .apiId(1)
+            .specId(1)
             .operationId("operationId")
             .extension(b -> b.get() == 1 ? new Object() : null)
             .build();
@@ -82,7 +82,7 @@ public class OpenapiFunctionsTest
 
         new OpenapiBeginExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0x00)
-            .apiId(1)
+            .specId(1)
             .operationId("operationId")
             .extension(new OctetsFW.Builder().wrap(writeBuffer, 0, 1).set(new byte[] {1}).build())
             .build();

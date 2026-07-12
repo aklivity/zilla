@@ -170,7 +170,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             JsonObject specs = object.getJsonObject(SPECS_NAME);
             for (Map.Entry<String, JsonValue> entry : specs.entrySet())
             {
-                final String apiLabel = entry.getKey();
+                final String specLabel = entry.getKey();
                 final JsonObject specObject = entry.getValue().asJsonObject();
 
                 final String server = specObject.containsKey(SERVER_NAME)
@@ -234,7 +234,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     overlay = overlayBuilder.build();
                 }
 
-                openapiOptions.spec(new OpenapiSpecificationConfig(apiLabel, server, catalogs, security, overlay));
+                openapiOptions.spec(new OpenapiSpecificationConfig(specLabel, server, catalogs, security, overlay));
             }
         }
 

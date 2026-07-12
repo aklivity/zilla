@@ -41,7 +41,7 @@ public class OpenapiNamespaceConfig
         OpenapiSchemaConfig config,
         Openapi openapi)
     {
-        this.openapiLabels.add(config.apiLabel);
+        this.openapiLabels.add(config.specLabel);
         this.servers.addAll(servers);
         this.configs.add(config);
         this.openapis.add(openapi);
