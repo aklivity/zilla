@@ -97,15 +97,18 @@ public final class McpOpenapiCompositeGenerator
     private static final String CAPABILITY_TOOL = "tool";
     private static final String CAPABILITY_RESOURCE = "resource";
     private static final Pattern PATH_PARAM_PATTERN = Pattern.compile("\\{([^}]+)\\}");
+    private static final Pattern JSON_CONTENT_TYPE_PATTERN = Pattern.compile("^application/(?:.+\\+)?json$");
 
     private final String httpClientExit;
     private final List<String> denied;
+    private final Matcher jsonContentType;
 
     public McpOpenapiCompositeGenerator(
         String httpClientExit)
     {
         this.httpClientExit = httpClientExit;
         this.denied = new ArrayList<>();
+        this.jsonContentType = JSON_CONTENT_TYPE_PATTERN.matcher("");
     }
 
     public McpOpenapiCompositeConfig generate(
@@ -524,7 +527,12 @@ public final class McpOpenapiCompositeGenerator
             final OpenapiResponseView success = successResponse(operation);
             if (success != null && success.content != null && !success.content.isEmpty())
             {
-                resource.mimeType(success.content.values().iterator().next().name);
+                final String mimeType = success.content.values().stream()
+                    .filter(typed -> jsonContentType.reset(typed.name).matches())
+                    .findFirst()
+                    .map(typed -> typed.name)
+                    .orElseGet(() -> success.content.values().iterator().next().name);
+                resource.mimeType(mimeType);
             }
         }
 

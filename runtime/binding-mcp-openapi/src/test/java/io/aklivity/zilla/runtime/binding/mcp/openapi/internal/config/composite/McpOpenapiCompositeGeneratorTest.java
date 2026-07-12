@@ -309,6 +309,30 @@ public class McpOpenapiCompositeGeneratorTest
         }
         """;
 
+    private static final String MULTI_CONTENT_TYPE_SPEC =
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "multi-content", "version": "1.0.0" },
+          "servers": [ { "url": "https://api.multi.example" } ],
+          "paths": {
+            "/items/{id}": {
+              "get": {
+                "operationId": "items/get",
+                "parameters": [
+                  { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": {
+                    "application/xml": { "schema": { "type": "object" } },
+                    "application/json": { "schema": { "type": "object" } }
+                  } } }
+              }
+            }
+          }
+        }
+        """;
+
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
 
@@ -903,6 +927,51 @@ public class McpOpenapiCompositeGeneratorTest
                 .with(McpOpenapiWithConfig.builder()
                     .spec("openapi_github0")
                     .operation("repos/get")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpResourceConfig resource = mcpHttpOptions.resources.get(0);
+        assertThat(resource.mimeType, equalTo("application/json"));
+    }
+
+    @Test
+    public void shouldPreferJsonContentTypeOverDeclarationOrderForResourceMimeType()
+    {
+        lenient().when(catalog.resolve(eq("multi-content-api"), eq("latest"))).thenReturn(77);
+        lenient().when(catalog.resolve(eq(77))).thenReturn(MULTI_CONTENT_TYPE_SPEC);
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("multi_content")
+                    .server("https://api.multi.example")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("multi-content-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("item://{id}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("multi_content")
+                    .operation("items/get")
                     .build())
                 .build()
             .build();
