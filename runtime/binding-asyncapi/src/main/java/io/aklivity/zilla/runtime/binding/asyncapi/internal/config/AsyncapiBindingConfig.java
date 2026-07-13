@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
@@ -48,6 +49,7 @@ public final class AsyncapiBindingConfig
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_PATH = new String8FW(":path");
+    private static final String8FW HEADER_LOCATION = new String8FW("location");
 
     public final long id;
     public final String namespace;
@@ -189,6 +191,19 @@ public final class AsyncapiBindingConfig
             .collect(toList());
     }
 
+    public String resolvePathname(
+        List<AsyncapiServerView> servers)
+    {
+        return servers != null
+            ? servers.stream()
+                .filter(s -> s.protocol != null && s.protocol.startsWith("http"))
+                .map(s -> s.pathname)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse("")
+            : "";
+    }
+
     public Flyweight canonicalize(
         OctetsFW extension,
         String operationPath)
@@ -231,6 +246,20 @@ public final class AsyncapiBindingConfig
             {
                 resolved = resolveSse(extension, server, pathname);
             }
+        }
+
+        return resolved;
+    }
+
+    public Flyweight resolveLocation(
+        OctetsFW extension,
+        String pathname)
+    {
+        Flyweight resolved = extension;
+
+        if (pathname != null && !pathname.isEmpty() && typeId(extension) == httpTypeId)
+        {
+            resolved = resolveLocationHttp(extension, pathname);
         }
 
         return resolved;
@@ -311,6 +340,32 @@ public final class AsyncapiBindingConfig
             {
                 final String effectivePath = requestPath(pathname, h.value().asString());
                 builder.headersItem(nh -> nh.name(h.name()).value(effectivePath));
+            }
+            else
+            {
+                builder.headersItem(nh -> nh.name(h.name()).value(h.value()));
+            }
+        });
+
+        return builder.build();
+    }
+
+    private HttpBeginExFW resolveLocationHttp(
+        OctetsFW extension,
+        String pathname)
+    {
+        final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
+
+        final HttpBeginExFW.Builder builder = httpBeginExRW
+            .wrap(httpExtBuffer, 0, httpExtBuffer.capacity())
+            .typeId(httpTypeId);
+
+        httpBeginEx.headers().forEach(h ->
+        {
+            if (HEADER_LOCATION.equals(h.name()))
+            {
+                final String effectiveLocation = requestPath(pathname, h.value().asString());
+                builder.headersItem(nh -> nh.name(h.name()).value(effectiveLocation));
             }
             else
             {

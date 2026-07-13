@@ -58,6 +58,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
+    private final OctetsFW octetsRO = new OctetsFW();
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -214,6 +216,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                         final long resolvedId = route.id;
                         final long resolvedSpecId = composite.resolveSpecId(specLabel);
                         final String operationPath = operation != null ? operation.channel.address : null;
+                        final String pathname = binding.resolvePathname(operationServers);
 
                         newStream = new CompositeStream(
                             receiver,
@@ -226,7 +229,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                             resolvedSpecId,
                             operationId,
                             binding,
-                            operationPath)::onCompositeMessage;
+                            operationPath,
+                            pathname)::onCompositeMessage;
                     }
                 }
             }
@@ -270,7 +274,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long specId,
             String operationId,
             AsyncapiBindingConfig binding,
-            String operationPath)
+            String operationPath,
+            String pathname)
         {
             this.sender = sender;
             this.originId = originId;
@@ -280,7 +285,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             this.affinity = affinity;
             this.authorization = authorization;
             this.delegate = new AsyncapiStream(
-                this, routedId, resolvedId, authorization, specId, operationId, binding, operationPath);
+                this, routedId, resolvedId, authorization, specId, operationId, binding, operationPath, pathname);
         }
 
         private void onCompositeMessage(
@@ -580,6 +585,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         private final String operationId;
         private final AsyncapiBindingConfig binding;
         private final String operationPath;
+        private final String pathname;
 
         private long initialId;
         private long replyId;
@@ -605,7 +611,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long specId,
             String operationId,
             AsyncapiBindingConfig binding,
-            String operationPath)
+            String operationPath,
+            String pathname)
         {
             this.delegate = delegate;
             this.originId = originId;
@@ -616,6 +623,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             this.operationId = operationId;
             this.binding = binding;
             this.operationPath = operationPath;
+            this.pathname = pathname;
         }
 
         private void onAsyncapiMessage(
@@ -668,7 +676,13 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             state = AsyncapiState.openingReply(state);
 
             final AsyncapiBeginExFW asyncapiBeginEx = extension.get(beginExRO::tryWrap);
-            final OctetsFW asyncapiExtension = asyncapiBeginEx != null ? asyncapiBeginEx.extension() : EMPTY_OCTETS;
+            OctetsFW asyncapiExtension = asyncapiBeginEx != null ? asyncapiBeginEx.extension() : EMPTY_OCTETS;
+
+            final Flyweight resolved = binding.resolveLocation(asyncapiExtension, pathname);
+            if (resolved != asyncapiExtension)
+            {
+                asyncapiExtension = octetsRO.wrap(resolved.buffer(), resolved.offset(), resolved.limit());
+            }
 
             delegate.doCompositeBegin(traceId, asyncapiExtension);
         }

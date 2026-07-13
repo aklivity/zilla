@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -208,7 +207,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
                     ? selectServer(routedId, binding, specification.label)
                     : null;
                 final String pathname = specification != null
-                    ? resolvePathname(specification)
+                    ? binding.resolvePathname(specification.servers)
                     : null;
 
                 newStream = new AsyncapiStream(
@@ -250,19 +249,6 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         }
 
         return server;
-    }
-
-    private static String resolvePathname(
-        AsyncapiView specification)
-    {
-        return specification.servers != null
-            ? specification.servers.stream()
-                .filter(s -> s.protocol != null && s.protocol.startsWith("http"))
-                .map(s -> s.pathname)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse("")
-            : "";
     }
 
     private final class AsyncapiStream
