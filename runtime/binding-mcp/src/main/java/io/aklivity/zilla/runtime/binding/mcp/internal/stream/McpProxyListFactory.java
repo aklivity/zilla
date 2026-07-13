@@ -2302,12 +2302,9 @@ abstract class McpProxyListFactory implements BindingHandler
 
             if (cachedBuf == null)
             {
-                if (!cache.degraded())
-                {
-                    doServerAbort(traceId);
-                    return;
-                }
-
+                // nothing hydrated yet for this kind -- serve the current (empty) state rather than
+                // aborting; hydration keeps retrying in the background and a real result, once cached,
+                // reaches already-connected sessions via the usual list_changed notification
                 final DirectBufferEx prelude = listReplyOpenPrelude();
                 final byte[] empty = new byte[prelude.capacity() + listReplyCloseRO.capacity()];
                 prelude.getBytes(0, empty, 0, prelude.capacity());
