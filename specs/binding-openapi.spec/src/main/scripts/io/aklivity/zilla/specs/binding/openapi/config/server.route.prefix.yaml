@@ -86,7 +86,8 @@ bindings:
     options:
       specs:
         petstore:
-          server: http://localhost:8080/apis
+          servers:
+            - http://localhost:8080/apis
           catalog:
             catalog0:
               subject: petstore

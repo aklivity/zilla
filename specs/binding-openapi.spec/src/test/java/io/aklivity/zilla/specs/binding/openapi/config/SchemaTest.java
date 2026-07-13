@@ -72,7 +72,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateServerWithRouteServers()
+    public void shouldValidateServerWithMultipleServers()
     {
         JsonObject config = schema.validate("server.route.servers.yaml");
 

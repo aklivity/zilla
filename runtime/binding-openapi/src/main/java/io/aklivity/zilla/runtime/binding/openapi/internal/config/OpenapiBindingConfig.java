@@ -119,16 +119,15 @@ public final class OpenapiBindingConfig
         long authorization,
         String spec,
         String operation,
-        List<String> tags,
-        String serverUrl)
+        List<String> tags)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(spec, operation, tags, serverUrl))
+            .filter(r -> r.authorized(authorization) && r.matches(spec, operation, tags))
             .findFirst()
             .orElse(null);
     }
 
-    public URI resolveBaseURL(
+    public List<URI> resolveBaseURLs(
         String specLabel)
     {
         final OpenapiSpecificationConfig spec = options.specs.stream()
@@ -136,7 +135,9 @@ public final class OpenapiBindingConfig
             .findFirst()
             .orElseThrow();
 
-        return OpenapiServerView.resolvePorts(URI.create(spec.server));
+        return spec.servers.stream()
+            .map(server -> OpenapiServerView.resolvePorts(URI.create(server)))
+            .collect(toList());
     }
 
     public OpenapiBeginExFW resolve(
@@ -159,13 +160,12 @@ public final class OpenapiBindingConfig
         HttpBeginExFW.Builder httpBeginExBuilder,
         OpenapiServerView server,
         String operationPath,
-        String specLabel)
+        URI effective)
     {
         final HttpBeginExFW canonicalHttpBeginEx = openapiBeginEx.extension().get(httpBeginExRO::tryWrap);
 
         if (server != null)
         {
-            final URI effective = resolveBaseURL(specLabel);
             final String scheme = effective.getScheme();
             final String authority = authority(effective);
 

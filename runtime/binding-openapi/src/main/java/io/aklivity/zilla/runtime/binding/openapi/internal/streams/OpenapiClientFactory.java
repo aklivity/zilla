@@ -14,9 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.streams;
 
+import java.net.URI;
+import java.util.List;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.Object2IntHashMap;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiConfiguration;
@@ -86,6 +89,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
     private final MutableDirectBufferEx httpExtBuffer;
 
     private final Long2ObjectHashMap<OpenapiBindingConfig> bindings;
+    private final Object2IntHashMap<String> serverIndexes;
     private final int openapiTypeId;
     private final int httpTypeId;
     private final long compositeRouteId;
@@ -104,6 +108,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
+        this.serverIndexes = new Object2IntHashMap<>(-1);
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.compositeRouteId = config.compositeRouteId();
@@ -199,6 +204,9 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                     : null;
                 final String operationPath = operation != null ? operation.path : null;
                 final String specLabel = operation != null ? operation.specification.label : null;
+                final URI effective = specLabel != null
+                    ? selectServer(routedId, specLabel, binding.resolveBaseURLs(specLabel))
+                    : null;
 
                 newStream = new OpenapiStream(
                     receiver,
@@ -210,14 +218,27 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                     resolvedId,
                     operationId,
                     operationPath,
-                    specLabel,
                     binding,
-                    server)::onOpenapiMessage;
+                    server,
+                    effective)::onOpenapiMessage;
             }
 
         }
 
         return newStream;
+    }
+
+    URI selectServer(
+        long bindingId,
+        String specLabel,
+        List<URI> servers)
+    {
+        final String key = bindingId + ":" + specLabel;
+        final int previous = serverIndexes.getValue(key);
+        final int index = previous < 0 ? 0 : previous % servers.size();
+        serverIndexes.put(key, (index + 1) % servers.size());
+
+        return servers.get(index);
     }
 
     private final class OpenapiStream
@@ -226,7 +247,6 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         private final MessageConsumer sender;
         private final String operationId;
         private final String operationPath;
-        private final String specLabel;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -235,6 +255,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         private final long authorization;
         private final OpenapiBindingConfig binding;
         private final OpenapiServerView server;
+        private final URI effective;
 
         private int state;
 
@@ -248,9 +269,9 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long resolvedId,
             String operationId,
             String operationPath,
-            String specLabel,
             OpenapiBindingConfig binding,
-            OpenapiServerView server)
+            OpenapiServerView server,
+            URI effective)
         {
             this.http =  new HttpStream(this, routedId, resolvedId, authorization);
             this.sender = sender;
@@ -262,9 +283,9 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             this.authorization = authorization;
             this.operationId = operationId;
             this.operationPath = operationPath;
-            this.specLabel = specLabel;
             this.binding = binding;
             this.server = server;
+            this.effective = effective;
         }
 
         private void onOpenapiMessage(
@@ -321,7 +342,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                 .wrap(httpExtBuffer, 0, httpExtBuffer.capacity())
                 .typeId(httpTypeId);
             final HttpBeginExFW httpBeginEx = binding.resolve(
-                openapiBeginEx, httpBeginExBuilder, server, operationPath, specLabel);
+                openapiBeginEx, httpBeginExBuilder, server, operationPath, effective);
 
             assert acknowledge <= sequence;
 

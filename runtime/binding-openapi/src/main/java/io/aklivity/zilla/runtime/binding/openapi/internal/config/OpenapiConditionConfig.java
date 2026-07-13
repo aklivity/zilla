@@ -24,7 +24,6 @@ public class OpenapiConditionConfig extends ConditionConfig
     public final String spec;
     public final String operation;
     public final String tag;
-    public final List<OpenapiConditionServerConfig> servers;
 
     private final Pattern operationGlob;
 
@@ -33,19 +32,9 @@ public class OpenapiConditionConfig extends ConditionConfig
         String operation,
         String tag)
     {
-        this(spec, operation, tag, null);
-    }
-
-    public OpenapiConditionConfig(
-        String spec,
-        String operation,
-        String tag,
-        List<OpenapiConditionServerConfig> servers)
-    {
         this.spec = spec;
         this.operation = operation;
         this.tag = tag;
-        this.servers = servers;
         this.operationGlob = operation != null && operation.indexOf('*') != -1
             ? compileGlob(operation)
             : null;
@@ -54,13 +43,11 @@ public class OpenapiConditionConfig extends ConditionConfig
     public boolean matches(
         String spec,
         String operation,
-        List<String> tags,
-        String serverUrl)
+        List<String> tags)
     {
         return matchesSpec(spec) &&
             matchesOperation(operation) &&
-            matchesTag(tags) &&
-            matchesServer(serverUrl);
+            matchesTag(tags);
     }
 
     private boolean matchesSpec(
@@ -80,13 +67,6 @@ public class OpenapiConditionConfig extends ConditionConfig
         List<String> tags)
     {
         return this.tag == null || tags != null && tags.contains(this.tag);
-    }
-
-    private boolean matchesServer(
-        String serverUrl)
-    {
-        return servers == null || servers.isEmpty() ||
-            serverUrl != null && servers.stream().anyMatch(s -> serverUrl.equals(s.url));
     }
 
     private static Pattern compileGlob(

@@ -14,14 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import jakarta.json.Json;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
@@ -33,8 +28,6 @@ public class OpenapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
     private static final String TAG_NAME = "tag";
-    private static final String SERVERS_NAME = "servers";
-    private static final String SERVER_URL_NAME = "url";
 
     @Override
     public String type()
@@ -64,17 +57,6 @@ public class OpenapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
             object.add(TAG_NAME, openapiCondition.tag);
         }
 
-        if (openapiCondition.servers != null && !openapiCondition.servers.isEmpty())
-        {
-            JsonArrayBuilder servers = Json.createArrayBuilder();
-            openapiCondition.servers.forEach(server ->
-            {
-                JsonObjectBuilder serverJson = Json.createObjectBuilder();
-                serverJson.add(SERVER_URL_NAME, server.url);
-                servers.add(serverJson);
-            });
-            object.add(SERVERS_NAME, servers);
-        }
         return object.build();
     }
 
@@ -94,17 +76,6 @@ public class OpenapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
             ? object.getString(TAG_NAME)
             : null;
 
-        List<OpenapiConditionServerConfig> servers = null;
-        if (object.containsKey(SERVERS_NAME))
-        {
-            servers = new LinkedList<>();
-            for (JsonValue serverValue : object.getJsonArray(SERVERS_NAME))
-            {
-                JsonObject serverJson = serverValue.asJsonObject();
-                servers.add(new OpenapiConditionServerConfig(serverJson.getString(SERVER_URL_NAME)));
-            }
-        }
-
-        return new OpenapiConditionConfig(spec, operation, tag, servers);
+        return new OpenapiConditionConfig(spec, operation, tag);
     }
 }

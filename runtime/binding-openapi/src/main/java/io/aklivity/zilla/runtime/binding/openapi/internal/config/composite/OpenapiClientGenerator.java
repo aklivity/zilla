@@ -140,33 +140,20 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         .inject(this::injectTlsClient);
             }
 
-            private URI resolveServer()
+            private List<URI> resolveServers()
             {
-                return config.resolveBaseURL(schema.specLabel);
+                return config.resolveBaseURLs(schema.specLabel);
             }
 
-            private String resolveScheme()
+            private boolean anySecure()
             {
-                return resolveServer().getScheme();
-            }
-
-            private String resolveAuthority()
-            {
-                return authority(resolveServer());
-            }
-
-            private String authority(
-                URI uri)
-            {
-                return uri.getPort() != -1
-                    ? "%s:%d".formatted(uri.getHost(), uri.getPort())
-                    : uri.getHost();
+                return resolveServers().stream().anyMatch(server -> secure.contains(server.getScheme()));
             }
 
             private <C> NamespaceConfigBuilder<C> injectHttpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (secure.contains(resolveScheme()))
+                if (anySecure())
                 {
                     namespace
                         .binding()
@@ -201,7 +188,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (secure.contains(resolveScheme()))
+                if (anySecure())
                 {
                     namespace
                         .binding()
@@ -221,22 +208,21 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
-                options.override(":authority", resolveAuthority());
-
-                final URI server = resolveServer();
+                final List<URI> servers = resolveServers();
 
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasResponses)
                     .forEach(operation ->
-                        options
-                            .request()
-                                .path(OpenapiServerView.requestPath(server, operation.path))
-                                .method(HttpRequestConfig.Method.valueOf(operation.method))
-                                .inject(request -> injectHttpResponses(request, operation))
-                                .build()
-                            .build());
+                        servers.forEach(server ->
+                            options
+                                .request()
+                                    .path(OpenapiServerView.requestPath(server, operation.path))
+                                    .method(HttpRequestConfig.Method.valueOf(operation.method))
+                                    .inject(request -> injectHttpResponses(request, operation))
+                                    .build()
+                                .build()));
 
                 return options;
             }

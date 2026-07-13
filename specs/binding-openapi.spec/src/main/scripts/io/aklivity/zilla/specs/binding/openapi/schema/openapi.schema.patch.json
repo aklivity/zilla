@@ -64,10 +64,15 @@
                                         "type": "object",
                                         "properties":
                                         {
-                                            "server":
+                                            "servers":
                                             {
-                                                "title": "Server",
-                                                "type": "string"
+                                                "title": "Servers",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "minItems": 1
                                             },
                                             "security":
                                             {
@@ -145,7 +150,7 @@
                                         },
                                         "required":
                                         [
-                                            "server"
+                                            "servers"
                                         ],
                                         "additionalProperties": false
                                     }
@@ -186,24 +191,6 @@
                                             {
                                                 "title": "Tag",
                                                 "type": "string"
-                                            },
-                                            "servers":
-                                            {
-                                                "title": "Servers",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "url":
-                                                        {
-                                                            "title": "URL",
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
                                             }
                                         },
                                         "additionalProperties": false

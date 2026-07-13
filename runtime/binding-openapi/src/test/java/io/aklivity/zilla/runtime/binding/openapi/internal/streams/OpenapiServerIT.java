@@ -121,7 +121,7 @@ public class OpenapiServerIT
         "${composite}/create.pet.prod/client",
         "${openapi}/create.pet.prod/server"
     })
-    public void shouldCreatePetViaServersRoute() throws Exception
+    public void shouldCreatePetWithMultipleServers() throws Exception
     {
         k3po.finish();
     }

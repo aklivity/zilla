@@ -150,17 +150,11 @@ bindings:
     options:
       specs:
         petstore:
-          server: http://localhost:9090/prod
+          servers:
+            - http://localhost:9090/prod
+            - http://localhost:8080/qa
           catalog:
             catalog0:
               subject: petstore
               version: latest
-    routes:
-      - when:
-          - servers:
-              - url: http://localhost:8080/qa
-        exit: openapi_unused0
-      - when:
-          - servers:
-              - url: http://localhost:9090/prod
-        exit: openapi0
+    exit: openapi0

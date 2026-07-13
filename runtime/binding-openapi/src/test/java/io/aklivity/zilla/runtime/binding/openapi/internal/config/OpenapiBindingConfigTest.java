@@ -15,7 +15,8 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThrows;
 
 import java.net.URI;
@@ -45,7 +46,7 @@ public class OpenapiBindingConfigTest
     private EngineContext context;
 
     private OpenapiBindingConfig newBindingConfig(
-        String override)
+        List<String> overrides)
     {
         BindingConfig binding = BindingConfig.builder()
             .namespace("test")
@@ -55,7 +56,7 @@ public class OpenapiBindingConfigTest
             .options(OpenapiOptionsConfig.builder()
                 .spec(new OpenapiSpecificationConfig(
                     "petstore",
-                    override,
+                    overrides,
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
                     null))
                 .build())
@@ -71,17 +72,27 @@ public class OpenapiBindingConfigTest
     @Test
     public void shouldResolveBaseURLFromOverride()
     {
-        OpenapiBindingConfig binding = newBindingConfig("https://frontend.example.com/apis");
+        OpenapiBindingConfig binding = newBindingConfig(List.of("https://frontend.example.com/apis"));
 
-        assertEquals(URI.create("https://frontend.example.com:443/apis"), binding.resolveBaseURL("petstore"));
+        assertThat(binding.resolveBaseURLs("petstore"), contains(URI.create("https://frontend.example.com:443/apis")));
     }
 
     @Test
     public void shouldDefaultPortWhenOverrideOmitsIt()
     {
-        OpenapiBindingConfig binding = newBindingConfig("http://dev.example.com");
+        OpenapiBindingConfig binding = newBindingConfig(List.of("http://dev.example.com"));
 
-        assertEquals(URI.create("http://dev.example.com:80"), binding.resolveBaseURL("petstore"));
+        assertThat(binding.resolveBaseURLs("petstore"), contains(URI.create("http://dev.example.com:80")));
+    }
+
+    @Test
+    public void shouldResolveMultipleOverrides()
+    {
+        OpenapiBindingConfig binding = newBindingConfig(
+            List.of("http://localhost:8080", "http://localhost:9090"));
+
+        assertThat(binding.resolveBaseURLs("petstore"), contains(
+            URI.create("http://localhost:8080"), URI.create("http://localhost:9090")));
     }
 
     @Test
@@ -89,14 +100,14 @@ public class OpenapiBindingConfigTest
     {
         OpenapiBindingConfig binding = newBindingConfig(null);
 
-        assertThrows(NullPointerException.class, () -> binding.resolveBaseURL("petstore"));
+        assertThrows(NullPointerException.class, () -> binding.resolveBaseURLs("petstore"));
     }
 
     @Test
     public void shouldThrowWhenSpecLabelDoesNotMatch()
     {
-        OpenapiBindingConfig binding = newBindingConfig("https://frontend.example.com/apis");
+        OpenapiBindingConfig binding = newBindingConfig(List.of("https://frontend.example.com/apis"));
 
-        assertThrows(NoSuchElementException.class, () -> binding.resolveBaseURL("other-spec"));
+        assertThrows(NoSuchElementException.class, () -> binding.resolveBaseURLs("other-spec"));
     }
 }
