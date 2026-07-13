@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -233,5 +234,129 @@ public class AsyncapiViewTest
         AsyncapiView view = AsyncapiView.of(model);
 
         assertThat(view, is(not(nullValue())));
+    }
+
+    @Test
+    public void shouldScopeChannelToDeclaredServerSubset() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 3.0.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              production:
+                host: 'prod.example.com:9092'
+                protocol: kafka
+              staging:
+                host: 'staging.example.com:9092'
+                protocol: kafka
+            operations:
+              doSend:
+                action: send
+                channel:
+                  $ref: '#/channels/output'
+            channels:
+              output:
+                servers:
+                  - $ref: '#/servers/production'
+                messages:
+                  note:
+                    $ref: '#/components/messages/note'
+            components:
+              messages:
+                note:
+                  payload:
+                    $ref: '#/components/schemas/note.payload'
+              schemas:
+                note.payload:
+                  schema:
+                    type: string
+            """);
+
+        AsyncapiServerConfig config = AsyncapiServerConfig.builder().build();
+        AsyncapiView view = AsyncapiView.of(model, List.of(config));
+
+        AsyncapiChannelView channel = view.channels.get("output");
+        assertThat(channel.servers, hasSize(1));
+        assertThat(channel.servers.get(0).name, is("production"));
+
+        AsyncapiOperationView operation = view.operations.get("doSend");
+        assertThat(operation.servers, hasSize(1));
+        assertThat(operation.servers.get(0).name, is("production"));
+    }
+
+    @Test
+    public void shouldMakeChannelAvailableOnAllServersWhenServersAbsent() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 3.0.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              production:
+                host: 'prod.example.com:9092'
+                protocol: kafka
+              staging:
+                host: 'staging.example.com:9092'
+                protocol: kafka
+            operations:
+              doSend:
+                action: send
+                channel:
+                  $ref: '#/channels/output'
+            channels:
+              output:
+                messages:
+                  note:
+                    $ref: '#/components/messages/note'
+            components:
+              messages:
+                note:
+                  payload:
+                    $ref: '#/components/schemas/note.payload'
+              schemas:
+                note.payload:
+                  schema:
+                    type: string
+            """);
+
+        AsyncapiServerConfig config = AsyncapiServerConfig.builder().build();
+        AsyncapiView view = AsyncapiView.of(model, List.of(config));
+
+        AsyncapiChannelView channel = view.channels.get("output");
+        assertThat(channel.servers, hasSize(2));
+    }
+
+    @Test
+    public void shouldParseServerMetadataFields() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 3.0.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              production:
+                host: 'prod.example.com:9092'
+                protocol: kafka
+                protocolVersion: '3.2'
+                title: Production Kafka
+                summary: The production broker
+                description: Production Kafka broker.
+                tags:
+                  - name: 'env:production'
+            """);
+
+        AsyncapiServerConfig config = AsyncapiServerConfig.builder().build();
+        AsyncapiView view = AsyncapiView.of(model, List.of(config));
+        AsyncapiServerView server = view.servers.get(0);
+
+        assertThat(server.protocolVersion, is("3.2"));
+        assertThat(server.title, is("Production Kafka"));
+        assertThat(server.summary, is("The production broker"));
+        assertThat(server.description, is("Production Kafka broker."));
+        assertThat(server.tags, is(List.of("env:production")));
     }
 }

@@ -12,18 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.asyncapi.model;
+package io.aklivity.zilla.runtime.common.asyncapi.model.resolver;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
-public class AsyncapiChannel extends AbstractAsyncapiResolvable
+import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
+import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiServer;
+
+public final class AsyncapiServerResolver extends AbstractAsyncapiResolver<AsyncapiServer>
 {
-    public String address;
-    public LinkedHashMap<String, AsyncapiMessage> messages;
-    public LinkedHashMap<String, AsyncapiParameter> parameters;
-    public List<AsyncapiServer> servers;
-
-    public Map<String, Object> extensions;
+    public AsyncapiServerResolver(
+        Asyncapi model,
+        Set<String> unresolved)
+    {
+        super(model.servers, Pattern.compile("#/servers/(.+)"), unresolved);
+    }
 }
