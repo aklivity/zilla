@@ -7,13 +7,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>incubator</artifactId>
+    <artifactId>runtime</artifactId>
     <version>develop-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>command-logs</artifactId>
-  <name>zilla::incubator::command-logs</name>
+  <name>zilla::runtime::command-logs</name>
 
   <licenses>
     <license>

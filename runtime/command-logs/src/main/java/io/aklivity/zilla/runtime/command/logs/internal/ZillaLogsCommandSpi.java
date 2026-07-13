@@ -18,9 +18,7 @@ import com.github.rvesse.airline.builder.CliBuilder;
 
 import io.aklivity.zilla.runtime.command.ZillaCommandSpi;
 import io.aklivity.zilla.runtime.command.logs.internal.airline.ZillaLogsCommand;
-import io.aklivity.zilla.runtime.common.feature.Incubating;
 
-@Incubating
 public final class ZillaLogsCommandSpi implements ZillaCommandSpi
 {
     @Override

@@ -30,7 +30,6 @@
     <module>command-log</module>
     <module>command-dump</module>
     <module>command-tune</module>
-    <module>command-logs</module>
   </modules>
 
   <dependencyManagement>
@@ -73,11 +72,6 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-dump</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>command-logs</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

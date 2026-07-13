@@ -17,7 +17,6 @@ services:
       test: ["CMD", "sh", "-c", "/opt/zilla/zilla logs | grep -q engine.started"]
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
-      ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
     command: start -v -e
