@@ -261,8 +261,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                                     .inject(request -> injectHttpResponses(request, operation))
                                     .build()
                                 .build();
-                        });
-                    });
+                        }));
 
                 return options;
             }
