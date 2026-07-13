@@ -270,11 +270,13 @@ bindings:
     options:
       specs:
         petstore:
+          server: http://localhost:8080
           catalog:
             catalog0:
               subject: petstore
               version: latest
         itemstore:
+          server: http://localhost:8081
           catalog:
             catalog1:
               subject: itemstore
