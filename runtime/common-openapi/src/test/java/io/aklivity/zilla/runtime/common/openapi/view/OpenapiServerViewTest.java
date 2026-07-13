@@ -15,99 +15,61 @@
 package io.aklivity.zilla.runtime.common.openapi.view;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import java.net.URI;
 import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 
 public class OpenapiServerViewTest
 {
     @Test
-    public void shouldComputeZeroPrefixLengthWhenServerPathIsRoot() throws Exception
+    public void shouldMatchOwnUrl() throws Exception
     {
-        OpenapiServer server = new OpenapiServer();
-        server.url = "http://localhost:8080/";
+        OpenapiServer model = new OpenapiServer();
+        model.url = "http://localhost:9090/prod";
 
-        Openapi model = new Openapi();
-        model.servers = List.of(server);
+        Openapi spec = new Openapi();
+        spec.servers = List.of(model);
 
-        OpenapiView view = OpenapiView.of(model, List.of(OpenapiServerConfig.builder().build()));
+        OpenapiServerView server = OpenapiView.of(spec).servers.get(0);
 
-        assertEquals(0, view.servers.get(0).effectivePrefixLength());
-        assertEquals(0, view.servers.get(0).canonicalPrefixLength());
+        assertTrue(server.matches("http://localhost:9090/prod"));
+        assertFalse(server.matches("http://localhost:8080/qa"));
     }
 
     @Test
-    public void shouldComputePrefixLengthWithoutTrailingSlash() throws Exception
+    public void shouldMergeOperationPathOntoOwnUrl() throws Exception
     {
-        OpenapiServer server = new OpenapiServer();
-        server.url = "http://localhost:8080/v1";
+        OpenapiServer model = new OpenapiServer();
+        model.url = "http://localhost:8080/v1";
 
-        Openapi model = new Openapi();
-        model.servers = List.of(server);
+        Openapi spec = new Openapi();
+        spec.servers = List.of(model);
 
-        OpenapiView view = OpenapiView.of(model, List.of(OpenapiServerConfig.builder().build()));
+        OpenapiServerView server = OpenapiView.of(spec).servers.get(0);
 
-        assertEquals("/v1".length(), view.servers.get(0).effectivePrefixLength());
-        assertEquals("/v1".length(), view.servers.get(0).canonicalPrefixLength());
+        assertEquals("/v1/pets", server.requestPath("/pets"));
     }
 
     @Test
-    public void shouldComputePrefixLengthWithTrailingSlash() throws Exception
+    public void shouldMergeOperationPathOntoArbitraryBase() throws Exception
     {
-        OpenapiServer server = new OpenapiServer();
-        server.url = "http://localhost:8080/v1/";
+        String path = OpenapiServerView.requestPath(URI.create("https://frontend.example.com/apis"), "/pets");
 
-        Openapi model = new Openapi();
-        model.servers = List.of(server);
-
-        OpenapiView view = OpenapiView.of(model, List.of(OpenapiServerConfig.builder().build()));
-
-        assertEquals("/v1".length(), view.servers.get(0).effectivePrefixLength());
-        assertEquals("/v1".length(), view.servers.get(0).canonicalPrefixLength());
+        assertEquals("/apis/pets", path);
     }
 
     @Test
-    public void shouldComputeDistinctEffectiveAndCanonicalPrefixLengthsWhenOverridden() throws Exception
+    public void shouldDefaultPortsForKnownSchemes() throws Exception
     {
-        OpenapiServer server = new OpenapiServer();
-        server.url = "http://localhost:8080/v1";
-
-        Openapi model = new Openapi();
-        model.servers = List.of(server);
-
-        OpenapiServerConfig config = OpenapiServerConfig.builder()
-            .url("https://frontend.example.com/apis")
-            .build();
-        OpenapiView view = OpenapiView.of(model, List.of(config));
-
-        assertEquals("/apis".length(), view.servers.get(0).effectivePrefixLength());
-        assertEquals("/v1".length(), view.servers.get(0).canonicalPrefixLength());
-    }
-
-    @Test
-    public void shouldStripEffectivePrefixToRecoverCanonicalPath() throws Exception
-    {
-        OpenapiServer server = new OpenapiServer();
-        server.url = "http://localhost:8080/v1";
-
-        Openapi model = new Openapi();
-        model.servers = List.of(server);
-
-        OpenapiServerConfig config = OpenapiServerConfig.builder()
-            .url("https://frontend.example.com/apis")
-            .build();
-        OpenapiView view = OpenapiView.of(model, List.of(config));
-        OpenapiServerView serverView = view.servers.get(0);
-
-        String effectivePath = serverView.requestPath("/pets");
-        String recoveredCanonicalPath = effectivePath.substring(serverView.effectivePrefixLength());
-
-        assertEquals("/apis/pets", effectivePath);
-        assertEquals("/pets", recoveredCanonicalPath);
+        assertEquals(URI.create("http://localhost:80/"), OpenapiServerView.resolvePorts(URI.create("http://localhost/")));
+        assertEquals(URI.create("https://localhost:443/"), OpenapiServerView.resolvePorts(URI.create("https://localhost/")));
+        assertEquals(URI.create("http://localhost:8080/"), OpenapiServerView.resolvePorts(URI.create("http://localhost:8080/")));
     }
 }

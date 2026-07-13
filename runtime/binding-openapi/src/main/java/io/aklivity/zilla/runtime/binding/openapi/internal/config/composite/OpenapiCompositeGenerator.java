@@ -44,7 +44,6 @@ import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
@@ -93,11 +92,7 @@ public abstract class OpenapiCompositeGenerator
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, specification, payload);
-                final List<OpenapiServerConfig> configs =
-                    specification.server != null
-                        ? List.of(OpenapiServerConfig.builder().url(specification.server).build())
-                        : List.of(OpenapiServerConfig.builder().build());
-                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized), configs);
+                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized));
 
                 unresolved.addAll(openapi.unresolvedRefs());
 

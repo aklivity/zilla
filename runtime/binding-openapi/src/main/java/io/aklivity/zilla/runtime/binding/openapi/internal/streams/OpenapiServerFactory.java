@@ -194,9 +194,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                 {
                     final String specLabel = specification.label;
                     final String operationId = operation != null ? operation.id : null;
+                    final String operationPath = operation != null ? operation.path : null;
                     final List<String> tags = operation != null ? operation.tags : null;
                     final OpenapiServerView server = composite.resolveServer(compositeId);
-                    final String serverUrl = server != null ? server.literalUrl.toString() : null;
+                    final String serverUrl = server != null ? server.url.toString() : null;
 
                     final OpenapiRouteConfig route = binding.resolve(authorization, specLabel, operationId, tags, serverUrl);
 
@@ -215,6 +216,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                             resolvedId,
                             resolvedSpecId,
                             operationId,
+                            operationPath,
                             binding,
                             server)::onCompositeMessage;
                     }
@@ -248,11 +250,12 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long resolvedId,
             long specId,
             String operationId,
+            String operationPath,
             OpenapiBindingConfig binding,
             OpenapiServerView server)
         {
-            this.delegate =
-                new OpenapiStream(this, routedId, resolvedId, authorization, specId, operationId, binding, server);
+            this.delegate = new OpenapiStream(
+                this, routedId, resolvedId, authorization, specId, operationId, operationPath, binding, server);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -526,6 +529,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
     {
         private final CompositeStream delegate;
         private final String operationId;
+        private final String operationPath;
         private final long originId;
         private final long routedId;
         private final long specId;
@@ -546,6 +550,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long authorization,
             long specId,
             String operationId,
+            String operationPath,
             OpenapiBindingConfig binding,
             OpenapiServerView server)
         {
@@ -558,6 +563,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.operationId = operationId;
+            this.operationPath = operationPath;
             this.binding = binding;
             this.server = server;
         }
@@ -736,7 +742,8 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                     .typeId(openapiTypeId)
                     .specId(specId)
                     .operationId(operationId);
-                final OpenapiBeginExFW openapiBeginEx = binding.resolve(httpBeginEx, openapiBeginExBuilder, server);
+                final OpenapiBeginExFW openapiBeginEx = binding.resolve(
+                    httpBeginEx, openapiBeginExBuilder, server, operationPath);
 
                 this.receiver = newStream(this::onOpenapiMessage, originId, routedId, initialId, sequence,
                     acknowledge, maximum, traceId, authorization, affinity, openapiBeginEx);

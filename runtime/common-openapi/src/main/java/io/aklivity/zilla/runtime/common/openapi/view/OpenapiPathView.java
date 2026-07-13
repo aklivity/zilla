@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiPath;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
@@ -69,7 +68,6 @@ public final class OpenapiPathView
     OpenapiPathView(
         OpenapiView specification,
         LongSupplier supplyCompositeId,
-        List<OpenapiServerConfig> configs,
         OpenapiResolver resolver,
         String path,
         OpenapiPath model)
@@ -80,7 +78,7 @@ public final class OpenapiPathView
             .filter(e -> e.getValue().apply(model) != null)
             .collect(Collectors.toMap(Map.Entry::getKey, e ->
                 new OpenapiOperationView(specification, supplyCompositeId.getAsLong(),
-                        configs, resolver, e.getKey(), path, model.servers, e.getValue().apply(model))));
+                        resolver, e.getKey(), path, model.servers, e.getValue().apply(model))));
         this.extensions = model.extensions;
     }
 

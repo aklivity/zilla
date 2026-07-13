@@ -23,11 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import java.util.stream.Stream;
 
 import org.agrona.collections.MutableInteger;
 
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
@@ -49,30 +47,21 @@ public final class OpenapiView
     public static OpenapiView of(
         Openapi model)
     {
-        return of(model, List.of());
-    }
-
-    public static OpenapiView of(
-        Openapi model,
-        List<OpenapiServerConfig> configs)
-    {
-        return of(0, null, model, configs);
+        return of(0, null, model);
     }
 
     public static OpenapiView of(
         int id,
         String label,
-        Openapi model,
-        List<OpenapiServerConfig> configs)
+        Openapi model)
     {
-        return new OpenapiView(id, label, model, configs, new OpenapiResolver(model));
+        return new OpenapiView(id, label, model, new OpenapiResolver(model));
     }
 
     private OpenapiView(
         int id,
         String label,
         Openapi model,
-        List<OpenapiServerConfig> configs,
         OpenapiResolver resolver)
     {
         this.label = label;
@@ -83,11 +72,8 @@ public final class OpenapiView
         List<OpenapiServer> declaredServers = model.servers != null && !model.servers.isEmpty()
             ? model.servers
             : List.of(OpenapiServerView.defaultServer());
-        boolean singular = declaredServers.size() == 1;
         this.servers = declaredServers.stream()
-            .flatMap(s -> configs.isEmpty()
-                ? Stream.of(new OpenapiServerView(resolver, s, null, singular))
-                : configs.stream().map(c -> new OpenapiServerView(resolver, s, c, singular)))
+            .map(s -> new OpenapiServerView(resolver, s))
             .toList();
 
         this.security = model.security != null
@@ -106,7 +92,7 @@ public final class OpenapiView
         LongSupplier supplyCompositeId = () -> compositeId(id, opIndex.value++);
         this.paths = model.paths != null
             ? model.paths.entrySet().stream()
-                .map(e -> new OpenapiPathView(this, supplyCompositeId, configs, resolver, e.getKey(), e.getValue()))
+                .map(e -> new OpenapiPathView(this, supplyCompositeId, resolver, e.getKey(), e.getValue()))
                 .collect(toMap(c -> c.path, identity()))
             : null;
 

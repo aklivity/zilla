@@ -197,6 +197,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                         !operation.servers.isEmpty()
                     ? operation.servers.get(0)
                     : null;
+                final String operationPath = operation != null ? operation.path : null;
+                final String specLabel = operation != null ? operation.specification.label : null;
 
                 newStream = new OpenapiStream(
                     receiver,
@@ -207,6 +209,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                     authorization,
                     resolvedId,
                     operationId,
+                    operationPath,
+                    specLabel,
                     binding,
                     server)::onOpenapiMessage;
             }
@@ -221,6 +225,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         private final HttpStream http;
         private final MessageConsumer sender;
         private final String operationId;
+        private final String operationPath;
+        private final String specLabel;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -241,6 +247,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long authorization,
             long resolvedId,
             String operationId,
+            String operationPath,
+            String specLabel,
             OpenapiBindingConfig binding,
             OpenapiServerView server)
         {
@@ -253,6 +261,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             this.affinity = affinity;
             this.authorization = authorization;
             this.operationId = operationId;
+            this.operationPath = operationPath;
+            this.specLabel = specLabel;
             this.binding = binding;
             this.server = server;
         }
@@ -310,7 +320,8 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW
                 .wrap(httpExtBuffer, 0, httpExtBuffer.capacity())
                 .typeId(httpTypeId);
-            final HttpBeginExFW httpBeginEx = binding.resolve(openapiBeginEx, httpBeginExBuilder, server);
+            final HttpBeginExFW httpBeginEx = binding.resolve(
+                openapiBeginEx, httpBeginExBuilder, server, operationPath, specLabel);
 
             assert acknowledge <= sequence;
 

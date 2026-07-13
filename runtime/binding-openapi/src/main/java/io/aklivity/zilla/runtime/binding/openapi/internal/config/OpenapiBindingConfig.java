@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
@@ -127,12 +128,43 @@ public final class OpenapiBindingConfig
             .orElse(null);
     }
 
+    public String resolveServerOverride(
+        String specLabel)
+    {
+        return options.specs.stream()
+            .filter(s -> specLabel.equals(s.label))
+            .map(s -> s.server)
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+    }
+
+    public static URI resolveEffectiveUrl(
+        OpenapiServerView server,
+        String override,
+        boolean singular)
+    {
+        return override != null && (singular || server.matches(override))
+            ? OpenapiServerView.resolvePorts(URI.create(override))
+            : server.url;
+    }
+
+    public static URI resolveEffectiveUrl(
+        OpenapiServerView server,
+        String override)
+    {
+        return override != null ? OpenapiServerView.resolvePorts(URI.create(override)) : server.url;
+    }
+
     public OpenapiBeginExFW resolve(
         HttpBeginExFW httpBeginEx,
         OpenapiBeginExFW.Builder openapiBeginExBuilder,
-        OpenapiServerView server)
+        OpenapiServerView server,
+        String operationPath)
     {
-        final Flyweight extension = server != null ? canonicalize(httpBeginEx, server) : httpBeginEx;
+        final Flyweight extension = server != null
+            ? canonicalize(httpBeginEx, server, operationPath)
+            : httpBeginEx;
 
         return openapiBeginExBuilder
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
@@ -142,14 +174,19 @@ public final class OpenapiBindingConfig
     public HttpBeginExFW resolve(
         OpenapiBeginExFW openapiBeginEx,
         HttpBeginExFW.Builder httpBeginExBuilder,
-        OpenapiServerView server)
+        OpenapiServerView server,
+        String operationPath,
+        String specLabel)
     {
         final HttpBeginExFW canonicalHttpBeginEx = openapiBeginEx.extension().get(httpBeginExRO::tryWrap);
 
         if (server != null)
         {
-            final String scheme = server.url.getScheme();
-            final String authority = authority(server.url);
+            final String override = resolveServerOverride(specLabel);
+            final URI effective = resolveEffectiveUrl(server, override);
+            final String scheme = effective.getScheme();
+            final String authority = authority(effective);
+
             httpBeginExBuilder
                 .headersItem(h -> h.name(HEADER_SCHEME).value(scheme))
                 .headersItem(h -> h.name(HEADER_AUTHORITY).value(authority));
@@ -158,7 +195,8 @@ public final class OpenapiBindingConfig
             {
                 if (HEADER_PATH.equals(h.name()))
                 {
-                    final String effectivePath = server.requestPath(h.value().asString());
+                    final String effectivePath = OpenapiServerView.requestPath(effective, operationPath)
+                        .concat(query(h.value().asString()));
                     httpBeginExBuilder.headersItem(nh -> nh.name(h.name()).value(effectivePath));
                 }
                 else
@@ -178,9 +216,9 @@ public final class OpenapiBindingConfig
 
     private HttpBeginExFW canonicalize(
         HttpBeginExFW httpBeginEx,
-        OpenapiServerView server)
+        OpenapiServerView server,
+        String operationPath)
     {
-        final int prefixLength = server.effectivePrefixLength();
         final HttpBeginExFW.Builder builder = httpBeginExRW
             .wrap(httpExtBuffer, 0, httpExtBuffer.capacity())
             .typeId(httpTypeId);
@@ -191,7 +229,7 @@ public final class OpenapiBindingConfig
             {
                 if (HEADER_PATH.equals(h.name()))
                 {
-                    final String canonicalPath = h.value().asString().substring(prefixLength);
+                    final String canonicalPath = server.requestPath(operationPath).concat(query(h.value().asString()));
                     builder.headersItem(nh -> nh.name(h.name()).value(canonicalPath));
                 }
                 else
@@ -202,6 +240,14 @@ public final class OpenapiBindingConfig
         });
 
         return builder.build();
+    }
+
+    private static String query(
+        String path)
+    {
+        final int queryAt = path.indexOf('?');
+
+        return queryAt != -1 ? path.substring(queryAt) : "";
     }
 
     private static String authority(

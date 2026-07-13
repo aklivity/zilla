@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -249,19 +250,27 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             {
                 resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
 
+                final String override = config.resolveServerOverride(schema.specLabel);
+
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasResponses)
                     .forEach(operation ->
+                    {
+                        final boolean singular = operation.servers.size() == 1;
                         operation.servers.forEach(server ->
+                        {
+                            final URI effective = OpenapiBindingConfig.resolveEffectiveUrl(server, override, singular);
                             options
                                 .request()
-                                    .path(server.requestPath(operation.path))
+                                    .path(OpenapiServerView.requestPath(effective, operation.path))
                                     .method(HttpRequestConfig.Method.valueOf(operation.method))
                                     .inject(request -> injectHttpResponses(request, operation))
                                     .build()
-                                .build()));
+                                .build();
+                        });
+                    });
 
                 return options;
             }

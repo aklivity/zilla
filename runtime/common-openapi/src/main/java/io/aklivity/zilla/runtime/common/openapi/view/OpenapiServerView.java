@@ -28,17 +28,15 @@ import java.util.regex.Pattern;
 
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
 public final class OpenapiServerView
 {
     public final URI url;
-    public final URI literalUrl;
-    public final boolean overridden;
 
     private final Map<String, Object> extensions;
+    private final VariableMatcher matcher;
 
     static OpenapiServer defaultServer()
     {
@@ -51,33 +49,16 @@ public final class OpenapiServerView
         OpenapiResolver resolver,
         OpenapiServer model)
     {
-        this(resolver, model, null, true);
-    }
-
-    OpenapiServerView(
-        OpenapiResolver resolver,
-        OpenapiServer model,
-        OpenapiServerConfig config,
-        boolean singular)
-    {
         Map<String, OpenapiVariableView> variables = model.variables != null
                 ? model.variables.entrySet().stream()
                     .map(e -> new OpenapiVariableView(e.getKey(), e.getValue()))
                     .collect(toMap(v -> v.name, identity()))
                 : Map.of();
 
-        VariableMatcher matcher = model.url != null
+        this.matcher = model.url != null
                 ? new VariableMatcher(variables::get, model.url)
                 : null;
-
-        this.overridden = matcher != null && config != null && config.url != null &&
-                (singular || matcher.matches(config.url));
-        this.url = overridden
-                ? resolvePorts(URI.create(config.url))
-                : matcher != null ? resolvePorts(URI.create(matcher.resolve(null))) : null;
-        this.literalUrl = matcher != null
-                ? resolvePorts(URI.create(matcher.resolve(null)))
-                : null;
+        this.url = matcher != null ? resolvePorts(URI.create(matcher.resolve(null))) : null;
         this.extensions = model.extensions;
     }
 
@@ -94,33 +75,27 @@ public final class OpenapiServerView
         return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 
+    public boolean matches(
+        String candidate)
+    {
+        return matcher != null && matcher.matches(candidate);
+    }
 
     public String requestPath(
         String path)
     {
-        String serverPath = url.getPath();
+        return requestPath(url, path);
+    }
 
-        return serverPath != null && path != null
-            ? serverPath.endsWith("/") ? serverPath.concat(path.substring(1)) : serverPath.concat(path)
+    public static String requestPath(
+        URI base,
+        String path)
+    {
+        String basePath = base.getPath();
+
+        return basePath != null && path != null
+            ? basePath.endsWith("/") ? basePath.concat(path.substring(1)) : basePath.concat(path)
             : path;
-    }
-
-    public int effectivePrefixLength()
-    {
-        return prefixLength(url);
-    }
-
-    public int canonicalPrefixLength()
-    {
-        return prefixLength(literalUrl);
-    }
-
-    private static int prefixLength(
-        URI base)
-    {
-        String path = base.getPath();
-
-        return path == null ? 0 : path.endsWith("/") ? path.length() - 1 : path.length();
     }
 
     public static final class VariableMatcher
@@ -156,7 +131,7 @@ public final class OpenapiServerView
         }
     }
 
-    private static URI resolvePorts(
+    public static URI resolvePorts(
         URI url)
     {
         String scheme = url.getScheme();
