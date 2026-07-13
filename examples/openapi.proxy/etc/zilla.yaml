@@ -14,6 +14,8 @@ bindings:
     options:
       specs:
         my-openapi-spec:
+          servers:
+            - http://localhost:7114
           catalog:
             host_filesystem:
               subject: petstore
@@ -24,7 +26,8 @@ bindings:
     options:
       specs:
         my-openapi-spec:
-          server: http://openapi-mock:5000
+          servers:
+            - http://openapi-mock:5000
           catalog:
             host_filesystem:
               subject: petstore

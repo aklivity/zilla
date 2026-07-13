@@ -16,6 +16,7 @@ bindings:
     options:
       specs:
         mqtt_api:
+          server: mqtt://localhost:7183
           catalog:
             host_filesystem:
               subject: mqtt
@@ -26,10 +27,12 @@ bindings:
     options:
       specs:
         mqtt_api:
+          server: mqtt://localhost:7183
           catalog:
             host_filesystem:
               subject: mqtt
         kafka_api:
+          server: kafka://kafka.examples.dev:29092
           catalog:
             host_filesystem:
               subject: kafka
@@ -75,6 +78,7 @@ bindings:
     options:
       specs:
         kafka_api:
+          server: kafka://kafka.examples.dev:29092
           catalog:
             host_filesystem:
               subject: kafka
