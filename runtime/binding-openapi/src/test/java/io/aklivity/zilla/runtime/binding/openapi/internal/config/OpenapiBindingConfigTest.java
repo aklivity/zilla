@@ -16,10 +16,11 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import java.net.URI;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -84,18 +85,18 @@ public class OpenapiBindingConfigTest
     }
 
     @Test
-    public void shouldReturnNullWhenNoOverrideConfigured()
+    public void shouldThrowWhenNoOverrideConfigured()
     {
         OpenapiBindingConfig binding = newBindingConfig(null);
 
-        assertNull(binding.resolveBaseURL("petstore"));
+        assertThrows(NullPointerException.class, () -> binding.resolveBaseURL("petstore"));
     }
 
     @Test
-    public void shouldReturnNullWhenSpecLabelDoesNotMatch()
+    public void shouldThrowWhenSpecLabelDoesNotMatch()
     {
         OpenapiBindingConfig binding = newBindingConfig("https://frontend.example.com/apis");
 
-        assertNull(binding.resolveBaseURL("other-spec"));
+        assertThrows(NoSuchElementException.class, () -> binding.resolveBaseURL("other-spec"));
     }
 }

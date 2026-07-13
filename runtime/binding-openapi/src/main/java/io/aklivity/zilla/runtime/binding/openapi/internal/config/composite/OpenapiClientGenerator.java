@@ -20,7 +20,6 @@ import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -146,30 +145,14 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                 return config.resolveBaseURL(schema.specLabel);
             }
 
-            private Optional<String> resolveScheme()
+            private String resolveScheme()
             {
-                URI server = resolveServer();
-
-                return server != null
-                    ? Optional.of(server.getScheme())
-                    : Stream.of(schema)
-                        .map(s -> s.openapi)
-                        .flatMap(v -> v.servers.stream())
-                        .findFirst()
-                        .map(s -> s.url.getScheme());
+                return resolveServer().getScheme();
             }
 
-            private Optional<String> resolveAuthority()
+            private String resolveAuthority()
             {
-                URI server = resolveServer();
-
-                return server != null
-                    ? Optional.of(authority(server))
-                    : Stream.of(schema)
-                        .map(s -> s.openapi)
-                        .flatMap(v -> v.servers.stream())
-                        .findFirst()
-                        .map(s -> authority(s.url));
+                return authority(resolveServer());
             }
 
             private String authority(
@@ -183,9 +166,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectHttpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (resolveScheme()
-                    .filter(secure::contains)
-                    .isPresent())
+                if (secure.contains(resolveScheme()))
                 {
                     namespace
                         .binding()
@@ -220,9 +201,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (resolveScheme()
-                    .filter(secure::contains)
-                    .isPresent())
+                if (secure.contains(resolveScheme()))
                 {
                     namespace
                         .binding()
@@ -242,26 +221,22 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
-                resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
+                options.override(":authority", resolveAuthority());
 
-                final URI base = config.resolveBaseURL(schema.specLabel);
+                final URI server = resolveServer();
 
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasResponses)
                     .forEach(operation ->
-                        operation.servers.forEach(server ->
-                        {
-                            final URI effective = base != null ? base : server.url;
-                            options
-                                .request()
-                                    .path(OpenapiServerView.requestPath(effective, operation.path))
-                                    .method(HttpRequestConfig.Method.valueOf(operation.method))
-                                    .inject(request -> injectHttpResponses(request, operation))
-                                    .build()
-                                .build();
-                        }));
+                        options
+                            .request()
+                                .path(OpenapiServerView.requestPath(server, operation.path))
+                                .method(HttpRequestConfig.Method.valueOf(operation.method))
+                                .inject(request -> injectHttpResponses(request, operation))
+                                .build()
+                            .build());
 
                 return options;
             }

@@ -18,7 +18,6 @@ import static java.util.stream.Collectors.toList;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
@@ -31,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -131,14 +131,12 @@ public final class OpenapiBindingConfig
     public URI resolveBaseURL(
         String specLabel)
     {
-        final String override = options.specs.stream()
+        final OpenapiSpecificationConfig spec = options.specs.stream()
             .filter(s -> specLabel.equals(s.label))
-            .map(s -> s.server)
-            .filter(Objects::nonNull)
             .findFirst()
-            .orElse(null);
+            .orElseThrow();
 
-        return override != null ? OpenapiServerView.resolvePorts(URI.create(override)) : null;
+        return OpenapiServerView.resolvePorts(URI.create(spec.server));
     }
 
     public OpenapiBeginExFW resolve(
@@ -167,8 +165,7 @@ public final class OpenapiBindingConfig
 
         if (server != null)
         {
-            final URI base = resolveBaseURL(specLabel);
-            final URI effective = base != null ? base : server.url;
+            final URI effective = resolveBaseURL(specLabel);
             final String scheme = effective.getScheme();
             final String authority = authority(effective);
 

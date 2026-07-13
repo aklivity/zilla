@@ -169,7 +169,7 @@ public class OpenapiServerGeneratorTest
             .options(OpenapiOptionsConfig.builder()
                 .spec(new OpenapiSpecificationConfig(
                     "petstore",
-                    null,
+                    "http://localhost:8080",
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
                     security))
                 .build())
@@ -190,7 +190,7 @@ public class OpenapiServerGeneratorTest
             .options(OpenapiOptionsConfig.builder()
                 .spec(new OpenapiSpecificationConfig(
                     "petstore",
-                    null,
+                    "http://localhost:8080",
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
                     security,
                     new OpenapiCatalogConfig("catalog0", "test-overlay", "latest")))
@@ -211,7 +211,7 @@ public class OpenapiServerGeneratorTest
             .options(OpenapiOptionsConfig.builder()
                 .spec(new OpenapiSpecificationConfig(
                     "petstore",
-                    null,
+                    "https://api.example.com:443",
                     List.of(new OpenapiCatalogConfig("catalog0", "secure", "latest")),
                     null))
                 .build())

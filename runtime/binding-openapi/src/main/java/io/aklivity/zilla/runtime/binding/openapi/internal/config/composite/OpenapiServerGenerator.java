@@ -129,13 +129,9 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         .inject(this::injectHttpServer);
             }
 
-            private List<URI> resolveServers()
+            private URI resolveServer()
             {
-                final URI base = config.resolveBaseURL(schema.specLabel);
-
-                return base != null
-                    ? List.of(base)
-                    : schema.openapi.servers.stream().map(s -> s.url).toList();
+                return config.resolveBaseURL(schema.specLabel);
             }
 
             private <C> NamespaceConfigBuilder<C> injectTcpServer(
@@ -143,10 +139,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             {
                 final TcpOptionsConfig tcpOptions = TcpOptionsConfig.builder()
                     .host("0.0.0.0")
-                    .ports(resolveServers().stream()
-                        .mapToInt(URI::getPort)
-                        .distinct()
-                        .toArray())
+                    .ports(new int[] { resolveServer().getPort() })
                     .build();
 
                 namespace
@@ -165,23 +158,26 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectTcpRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                resolveServers().stream()
-                    .filter(u -> plain.contains(u.getScheme()))
-                    .forEach(u -> binding.route()
+                final URI server = resolveServer();
+
+                if (plain.contains(server.getScheme()))
+                {
+                    binding.route()
                         .when(TcpConditionConfig::builder)
-                            .port(u.getPort())
+                            .port(server.getPort())
                             .build()
                         .exit("http_server0")
-                        .build());
-
-                resolveServers().stream()
-                    .filter(u -> secure.contains(u.getScheme()))
-                    .forEach(u -> binding.route()
+                        .build();
+                }
+                else if (secure.contains(server.getScheme()))
+                {
+                    binding.route()
                         .when(TcpConditionConfig::builder)
-                            .port(u.getPort())
+                            .port(server.getPort())
                             .build()
                         .exit("tls_server0")
-                        .build());
+                        .build();
+                }
 
                 return binding;
             }
@@ -189,7 +185,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsServer(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (resolveServers().stream().anyMatch(u -> secure.contains(u.getScheme())))
+                if (secure.contains(resolveServer().getScheme()))
                 {
                     namespace.binding()
                         .name("tls_server0")
@@ -207,15 +203,18 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectTlsRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                resolveServers().stream()
-                    .filter(u -> secure.contains(u.getScheme()))
-                    .forEach(u -> binding.route()
+                final URI server = resolveServer();
+
+                if (secure.contains(server.getScheme()))
+                {
+                    binding.route()
                         .when(TlsConditionConfig::builder)
-                            .port(u.getPort())
-                            .authority(u.getHost())
+                            .port(server.getPort())
+                            .authority(server.getHost())
                             .build()
                         .exit("http_server0")
-                        .build());
+                        .build();
+                }
 
                 return binding;
             }
@@ -259,24 +258,20 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
-                final URI base = config.resolveBaseURL(schema.specLabel);
+                final URI server = resolveServer();
 
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasRequestBodyOrParameters)
                     .forEach(operation ->
-                        operation.servers.forEach(server ->
-                        {
-                            final URI effective = base != null ? base : server.url;
-                            options
-                                .request()
-                                    .path(OpenapiServerView.requestPath(effective, operation.path))
-                                    .method(Method.valueOf(operation.method))
-                                    .inject(request -> injectHttpParams(request, operation))
-                                    .inject(request -> injectHttpContent(request, operation))
-                                .build();
-                        }));
+                        options
+                            .request()
+                                .path(OpenapiServerView.requestPath(server, operation.path))
+                                .method(Method.valueOf(operation.method))
+                                .inject(request -> injectHttpParams(request, operation))
+                                .inject(request -> injectHttpContent(request, operation))
+                            .build());
 
                 return options;
             }
@@ -373,7 +368,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectHttpRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                final URI base = config.resolveBaseURL(schema.specLabel);
+                final URI effective = resolveServer();
 
                 Stream.of(schema)
                     .map(s -> s.openapi)
@@ -384,7 +379,6 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         IntStream.range(0, operation.servers.size())
                             .forEach(i ->
                             {
-                                final URI effective = base != null ? base : operation.servers.get(i).url;
                                 binding
                                     .route()
                                     .exit(config.qname)
