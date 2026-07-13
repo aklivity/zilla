@@ -91,6 +91,17 @@ public class CacheFetchIT
 
     @Test
     @Configuration("cache.yaml")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${app}/partition.leader.unknown/client",
+        "${app}/partition.leader.unknown/server"})
+    public void shouldServeClientFetchThatRacesAheadOfLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/compacted.message.with.message/client",
         "${app}/compact.message.with.message/server"})
