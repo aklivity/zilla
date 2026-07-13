@@ -17,8 +17,10 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.compo
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -47,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.Openap
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiWithConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -95,6 +98,20 @@ public class OpenapiAsyncapiProxyGeneratorTest
                 },
                 "responses": { "200": { "description": "ok" } }
               }
+            },
+            "/kafka-guarded": {
+              "get": {
+                "operationId": "kafkaGuarded",
+                "x-zilla-http-kafka": { "filters": [ { "key": "{identity}" } ] },
+                "responses": { "200": { "description": "ok" } }
+              }
+            },
+            "/kafka-mixed": {
+              "get": {
+                "operationId": "kafkaMixed",
+                "x-zilla-http-kafka": { "filters": [ { "key": "{identity}" } ] },
+                "responses": { "200": { "description": "ok" } }
+              }
             }
           }
         }
@@ -109,7 +126,9 @@ public class OpenapiAsyncapiProxyGeneratorTest
           "channels": {
             "mapped": { "address": "mapped", "messages": { "pet": { "$ref": "#/components/messages/pet" } } },
             "unmapped": { "address": "unmapped", "messages": { "pet": { "$ref": "#/components/messages/pet" } } },
-            "produceMapped": { "address": "produceMapped", "messages": { "pet": { "$ref": "#/components/messages/pet" } } }
+            "produceMapped": { "address": "produceMapped", "messages": { "pet": { "$ref": "#/components/messages/pet" } } },
+            "kafkaGuarded": { "address": "kafkaGuarded", "messages": { "pet": { "$ref": "#/components/messages/pet" } } },
+            "kafkaMixed": { "address": "kafkaMixed", "messages": { "pet": { "$ref": "#/components/messages/pet" } } }
           },
           "operations": {
             "mapped": {
@@ -120,16 +139,36 @@ public class OpenapiAsyncapiProxyGeneratorTest
             "unmapped": {
               "action": "receive",
               "channel": { "$ref": "#/channels/unmapped" },
-              "messages": [ { "$ref": "#/channels/unmapped/messages/pet" } ]
+              "messages": [ { "$ref": "#/channels/unmapped/messages/pet" } ],
+              "security": [ { "$ref": "#/components/securitySchemes/kafkaAuth" } ]
             },
             "produceMapped": {
               "action": "send",
               "channel": { "$ref": "#/channels/produceMapped" },
               "messages": [ { "$ref": "#/channels/produceMapped/messages/pet" } ]
+            },
+            "kafkaGuarded": {
+              "action": "receive",
+              "channel": { "$ref": "#/channels/kafkaGuarded" },
+              "messages": [ { "$ref": "#/channels/kafkaGuarded/messages/pet" } ],
+              "security": [ { "$ref": "#/components/securitySchemes/kafkaAuth" } ]
+            },
+            "kafkaMixed": {
+              "action": "receive",
+              "channel": { "$ref": "#/channels/kafkaMixed" },
+              "messages": [ { "$ref": "#/channels/kafkaMixed/messages/pet" } ],
+              "security": [
+                { "$ref": "#/components/securitySchemes/kafkaAuth" },
+                { "$ref": "#/components/securitySchemes/kafkaAuthAlt" }
+              ]
             }
           },
           "components": {
-            "messages": { "pet": { "payload": { "type": "object" } } }
+            "messages": { "pet": { "payload": { "type": "object" } } },
+            "securitySchemes": {
+              "kafkaAuth": { "type": "http", "scheme": "bearer" },
+              "kafkaAuthAlt": { "type": "http", "scheme": "bearer" }
+            }
           }
         }
         """;
@@ -202,6 +241,7 @@ public class OpenapiAsyncapiProxyGeneratorTest
     case "catalog0" -> 1L;
     case "catalog1" -> 5L;
     case "guard0" -> 2L;
+    case "guard1" -> 4L;
     default -> 3L;
     };
 
@@ -213,6 +253,7 @@ public class OpenapiAsyncapiProxyGeneratorTest
         lenient().when(context.supplyTypeId(any())).thenReturn(9);
         lenient().when(context.supplyBindingId(any(), any())).thenReturn(42L);
         lenient().when(context.supplyQName(eq(2L))).thenReturn("guard0");
+        lenient().when(context.supplyQName(eq(4L))).thenReturn("guard1");
         lenient().when(openapiCatalog.resolve(eq("test"), eq("latest"))).thenReturn(7);
         lenient().when(openapiCatalog.resolve(anyInt())).thenReturn(OPENAPI_SPEC);
         lenient().when(asyncapiCatalog.resolve(eq("test"), eq("latest"))).thenReturn(8);
@@ -222,6 +263,22 @@ public class OpenapiAsyncapiProxyGeneratorTest
     private BindingConfig binding(
         Map<String, String> security)
     {
+        return binding(security, null);
+    }
+
+    private BindingConfig binding(
+        Map<String, String> openapiSecurity,
+        Map<String, String> asyncapiSecurity)
+    {
+        AsyncapiSpecificationConfigBuilder<AsyncapiSpecificationConfig> asyncapi = AsyncapiSpecificationConfig.builder()
+            .label("asyncapi-id")
+            .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"));
+
+        if (asyncapiSecurity != null)
+        {
+            asyncapiSecurity.forEach(asyncapi::security);
+        }
+
         BindingConfig binding = BindingConfig.builder()
             .namespace("test")
             .name("composite0")
@@ -232,11 +289,8 @@ public class OpenapiAsyncapiProxyGeneratorTest
                     "openapi-id",
                     null,
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
-                    security)),
-                Set.of(AsyncapiSpecificationConfig.builder()
-                    .label("asyncapi-id")
-                    .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
-                    .build()))))
+                    openapiSecurity)),
+                Set.of(asyncapi.build()))))
             .route()
                 .exit("asyncapi_client0")
                 .when(new OpenapiAsyncapiConditionConfig("openapi-id", null))
@@ -444,5 +498,45 @@ public class OpenapiAsyncapiProxyGeneratorTest
             .orElseThrow();
 
         assertThat(httpKafka.routes, empty());
+    }
+
+    @Test
+    public void shouldGuardUsingAsyncapiSecurityWhenOpenapiOperationDeclaresNone()
+    {
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context,
+            binding(null, Map.of("kafkaAuth", "guard0"))));
+
+        RouteConfig route = routeFor(composite, "/kafka-guarded");
+
+        assertThat(route.guarded, hasSize(1));
+        assertThat(route.guarded.get(0).name, equalTo("guard0"));
+    }
+
+    @Test
+    public void shouldNotFallBackToAsyncapiSecurityWhenOpenapiOperationDeclaresSecurity()
+    {
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context,
+            binding(Map.of("bearerAuth", "guard0"), Map.of("kafkaAuth", "guard0"))));
+
+        RouteConfig route = routeFor(composite, "/unmapped");
+
+        assertThat(route.guarded, empty());
+    }
+
+    @Test
+    public void shouldDenyWhenAsyncapiOperationRequiresMultipleDistinctGuards()
+    {
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context,
+            binding(null, Map.of("kafkaAuth", "guard0", "kafkaAuthAlt", "guard1"))));
+
+        BindingConfig httpKafka = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "http_kafka_proxy0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(httpKafka.routes.stream()
+            .anyMatch(r -> r.when.stream().anyMatch(c -> "/kafka-mixed".equals(((HttpKafkaConditionConfig) c).path))),
+            equalTo(false));
+        assertThat(generator.deniedOperations(), hasItem(containsString("multiple distinct guards")));
     }
 }
