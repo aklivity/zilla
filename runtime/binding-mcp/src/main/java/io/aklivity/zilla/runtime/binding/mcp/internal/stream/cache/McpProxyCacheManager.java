@@ -37,7 +37,6 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     private final Signaler signaler;
     private final long[] hydrateBackoffMs;
     private final long[] hydrateRetryIds;
-    private final int[] hydrateAttempts;
     private final Closeable[] watchHandles;
 
     private McpProxyCacheHandler handler;
@@ -57,7 +56,6 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         this.signaler = signaler;
         this.hydrateBackoffMs = new long[KIND_SLOTS];
         this.hydrateRetryIds = new long[KIND_SLOTS];
-        this.hydrateAttempts = new int[KIND_SLOTS];
         this.watchHandles = new Closeable[KIND_SLOTS];
         Arrays.fill(this.hydrateRetryIds, NO_CANCEL_ID);
         this.refreshId = NO_CANCEL_ID;
@@ -124,7 +122,6 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         Arrays.fill(hydrateBackoffMs, 0L);
-        Arrays.fill(hydrateAttempts, 0);
         sessionBackoffMs = 0L;
         scheduleLifecycleRenew();
         for (int kind : cache.caches().keySet())
@@ -152,7 +149,6 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         hydrateBackoffMs[kind] = 0L;
-        hydrateAttempts[kind] = 0;
         cancelRefresh();
         handler.hydrate(kind);
     }
@@ -253,15 +249,14 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
     }
 
+    // retries forever, backoff capped at leaseTtl -- a route that never recovers just keeps retrying at
+    // that steady-state interval rather than permanently giving up; McpProxyCache.markAttempted (called
+    // from McpProxyCacheHydrater after this cycle's failure) already lets checkReady()/register() unblock
+    // a new session's initialize without needing hydration to ever succeed or stop trying
     private void scheduleHydrateRetry(
         int kind)
     {
         cancelHydrateRetry(kind);
-        if (++hydrateAttempts[kind] >= cache.hydrateAttemptsMax)
-        {
-            cache.markDegraded(kind);
-            return;
-        }
         long delay = hydrateBackoffMs[kind];
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         hydrateBackoffMs[kind] = delay;
