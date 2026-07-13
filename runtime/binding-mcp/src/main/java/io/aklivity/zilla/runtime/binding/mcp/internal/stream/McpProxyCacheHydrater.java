@@ -421,6 +421,7 @@ public final class McpProxyCacheHydrater
             boolean failed)
         {
             handler.cache.cacheOf(kind).release(k -> {});
+            handler.cache.markAttempted(kind);
             if (failed && !handler.stopped)
             {
                 handler.listener.onError(kind);

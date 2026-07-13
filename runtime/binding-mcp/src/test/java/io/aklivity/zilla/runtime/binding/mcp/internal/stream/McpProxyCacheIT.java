@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_ATTEMPTS_MAX_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_FILTER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
@@ -334,19 +333,6 @@ public class McpProxyCacheIT
     }
 
     @Test
-    @Configuration("proxy.cache.yaml")
-    @Specification({
-        "${app}/cache.serve.tools.list.degraded/server",
-        "${app}/cache.serve.tools.list.degraded/client" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
-    @Configure(name = MCP_HYDRATE_ATTEMPTS_MAX_NAME, value = "1")
-    public void shouldServeToolsListWhenDegraded() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
         "${app}/cache.refresh.tools/server" })
@@ -423,6 +409,20 @@ public class McpProxyCacheIT
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldRetryAfterToolsRefreshError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // five consecutive hydrate failures exceeds the old, now-removed hydrate.attempts.max default of
+    // 5 -- with that cap in place, the fifth failure would give up and never open the sixth, successful
+    // attempt scripted here; hydration must keep retrying (backoff capped at lease.ttl) indefinitely
+    @Test
+    @Configuration("proxy.cache.yaml")
+    @Specification({
+        "${app}/cache.hydrate.tools.retry.exceeds.max/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldRetryHydrateBeyondOldAttemptsMax() throws Exception
     {
         k3po.finish();
     }
