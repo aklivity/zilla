@@ -22,7 +22,6 @@ import static java.util.stream.Collectors.toMap;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
@@ -274,6 +273,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasRequestBodyOrParameters)
+                    .filter(config::included)
                     .forEach(operation ->
                         servers.forEach(server ->
                             options
@@ -386,24 +386,23 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .flatMap(v -> v.operations.values().stream())
                     .filter(o -> o.servers != null)
                     .filter(this::allowed)
+                    .filter(config::included)
                     .forEach(operation ->
-                        IntStream.range(0, operation.servers.size())
-                            .forEach(i ->
-                                servers.forEach(server ->
-                                    binding
-                                        .route()
-                                        .exit(config.qname)
-                                        .when(HttpConditionConfig::builder)
-                                            .header(":path",
-                                                OpenapiServerView.requestPath(server, operation.path)
-                                                    .replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
-                                            .header(":method", operation.method)
-                                            .build()
-                                        .with(HttpWithConfig::builder)
-                                            .compositeId(operation.compositeId(i + 1))
-                                            .build()
-                                        .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                                        .build())));
+                        servers.forEach(server ->
+                            binding
+                                .route()
+                                .exit(config.qname)
+                                .when(HttpConditionConfig::builder)
+                                    .header(":path",
+                                        OpenapiServerView.requestPath(server, operation.path)
+                                            .replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
+                                    .header(":method", operation.method)
+                                    .build()
+                                .with(HttpWithConfig::builder)
+                                    .compositeId(operation.compositeId)
+                                    .build()
+                                .inject(route -> injectHttpServerRouteGuarded(route, operation))
+                                .build()));
 
                 return binding;
             }

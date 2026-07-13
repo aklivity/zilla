@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
@@ -52,5 +53,11 @@ public final class OpenapiRouteConfig
         List<String> tags)
     {
         return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operation, tags));
+    }
+
+    boolean includes(
+        OpenapiOperationView operation)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesServers(operation.servers));
     }
 }

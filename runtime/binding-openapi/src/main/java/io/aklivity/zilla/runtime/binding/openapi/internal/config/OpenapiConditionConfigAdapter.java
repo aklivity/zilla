@@ -14,9 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
@@ -28,6 +32,8 @@ public class OpenapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
     private static final String TAG_NAME = "tag";
+    private static final String SERVERS_NAME = "servers";
+    private static final String URL_NAME = "url";
 
     @Override
     public String type()
@@ -57,6 +63,14 @@ public class OpenapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
             object.add(TAG_NAME, openapiCondition.tag);
         }
 
+        if (openapiCondition.servers != null)
+        {
+            JsonArrayBuilder servers = Json.createArrayBuilder();
+            openapiCondition.servers.forEach(server ->
+                servers.add(Json.createObjectBuilder().add(URL_NAME, server.url)));
+            object.add(SERVERS_NAME, servers);
+        }
+
         return object.build();
     }
 
@@ -76,6 +90,13 @@ public class OpenapiConditionConfigAdapter implements ConditionConfigAdapterSpi,
             ? object.getString(TAG_NAME)
             : null;
 
-        return new OpenapiConditionConfig(spec, operation, tag);
+        List<OpenapiConditionServerConfig> servers = object.containsKey(SERVERS_NAME)
+            ? object.getJsonArray(SERVERS_NAME).stream()
+                .map(JsonValue::asJsonObject)
+                .map(server -> new OpenapiConditionServerConfig(server.getString(URL_NAME)))
+                .toList()
+            : null;
+
+        return new OpenapiConditionConfig(spec, operation, tag, servers);
     }
 }

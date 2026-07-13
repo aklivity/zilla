@@ -40,6 +40,8 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditionConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditionServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -48,6 +50,8 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfi
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -92,6 +96,33 @@ public class OpenapiServerGeneratorTest
               "get": {
                 "operationId": "unmapped",
                 "security": [ { "oauthScheme": [ "read" ] } ],
+                "responses": { "200": { "description": "ok" } }
+              }
+            }
+          }
+        }
+        """;
+
+    private static final String MULTI_SERVER_SPEC =
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": [
+            { "url": "http://localhost:9090/prod" },
+            { "url": "http://localhost:8080/qa" }
+          ],
+          "paths": {
+            "/pets": {
+              "get": {
+                "operationId": "listPets",
+                "responses": { "200": { "description": "ok" } }
+              }
+            },
+            "/orders": {
+              "get": {
+                "operationId": "listOrders",
+                "servers": [ { "url": "http://localhost:8080/qa" } ],
                 "responses": { "200": { "description": "ok" } }
               }
             }
@@ -146,8 +177,10 @@ public class OpenapiServerGeneratorTest
         lenient().when(context.supplyQName(eq(2L))).thenReturn("guard0");
         lenient().when(catalog.resolve(eq("test"), eq("latest"))).thenReturn(7);
         lenient().when(catalog.resolve(eq("secure"), eq("latest"))).thenReturn(8);
+        lenient().when(catalog.resolve(eq("multi"), eq("latest"))).thenReturn(9);
         lenient().when(catalog.resolve(7)).thenReturn(SPEC);
         lenient().when(catalog.resolve(8)).thenReturn(SECURE_SPEC);
+        lenient().when(catalog.resolve(9)).thenReturn(MULTI_SERVER_SPEC);
     }
 
     private OpenapiBindingConfig newBindingConfig(
@@ -219,6 +252,55 @@ public class OpenapiServerGeneratorTest
             .build();
         binding.resolveId = resolveId;
         return binding;
+    }
+
+    private BindingConfig bindingMultiServers(
+        ConditionConfig when)
+    {
+        BindingConfigBuilder<BindingConfig> builder = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("openapi")
+            .kind(SERVER)
+            .options(OpenapiOptionsConfig.builder()
+                .spec(new OpenapiSpecificationConfig(
+                    "petstore",
+                    List.of("http://localhost:8080"),
+                    List.of(new OpenapiCatalogConfig("catalog0", "multi", "latest")),
+                    null))
+                .build());
+
+        if (when != null)
+        {
+            builder
+                .route()
+                    .exit("openapi0")
+                    .when(when)
+                    .build();
+        }
+        else
+        {
+            builder.exit("openapi0");
+        }
+
+        BindingConfig binding = builder.build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
+    private List<RouteConfig> routesFor(
+        OpenapiCompositeConfig composite,
+        String path)
+    {
+        BindingConfig httpServer = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "http_server0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        return httpServer.routes.stream()
+            .filter(r -> r.when.stream()
+                .anyMatch(c -> path.equals(((HttpConditionConfig) c).headers.get(":path"))))
+            .toList();
     }
 
     private RouteConfig routeFor(
@@ -310,5 +392,39 @@ public class OpenapiServerGeneratorTest
         TlsConditionConfig when = (TlsConditionConfig) tlsServer.routes.get(0).when.get(0);
 
         assertThat(when.authority, equalTo("api.example.com"));
+    }
+
+    @Test
+    public void shouldGenerateSingleRoutePerOperationRegardlessOfCanonicalServerCount()
+    {
+        BindingConfig binding = bindingMultiServers(null);
+
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding));
+
+        assertThat(routesFor(composite, "/pets"), hasSize(1));
+    }
+
+    @Test
+    public void shouldIncludeOperationWhenServersMatchWhenClause()
+    {
+        ConditionConfig when = new OpenapiConditionConfig(null, null, null,
+            List.of(new OpenapiConditionServerConfig("http://localhost:9090/prod")));
+        BindingConfig binding = bindingMultiServers(when);
+
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding));
+
+        assertThat(routesFor(composite, "/pets"), hasSize(1));
+    }
+
+    @Test
+    public void shouldExcludeOperationViaWhenServers()
+    {
+        ConditionConfig when = new OpenapiConditionConfig(null, null, null,
+            List.of(new OpenapiConditionServerConfig("http://localhost:9090/prod")));
+        BindingConfig binding = bindingMultiServers(when);
+
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding));
+
+        assertThat(routesFor(composite, "/orders"), empty());
     }
 }

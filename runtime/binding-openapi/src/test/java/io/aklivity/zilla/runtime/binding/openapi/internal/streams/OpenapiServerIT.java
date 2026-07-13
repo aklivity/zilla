@@ -127,6 +127,17 @@ public class OpenapiServerIT
     }
 
     @Test
+    @Configuration("server.route.servers.yaml")
+    @Specification({
+        "${composite}/create.pet.qa/client",
+        "${openapi}/create.pet.qa/server"
+    })
+    public void shouldCreatePetWithMultipleServersViaSecondServer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.route.prefix.yaml")
     @Specification({
         "${composite}/create.pet.prefixed/client",

@@ -42,7 +42,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -196,7 +195,6 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                     final String operationId = operation != null ? operation.id : null;
                     final String operationPath = operation != null ? operation.path : null;
                     final List<String> tags = operation != null ? operation.tags : null;
-                    final OpenapiServerView server = composite.resolveServer(compositeId);
 
                     final OpenapiRouteConfig route = binding.resolve(authorization, specLabel, operationId, tags);
 
@@ -216,8 +214,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                             resolvedSpecId,
                             operationId,
                             operationPath,
-                            binding,
-                            server)::onCompositeMessage;
+                            binding)::onCompositeMessage;
                     }
                 }
             }
@@ -250,11 +247,10 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long specId,
             String operationId,
             String operationPath,
-            OpenapiBindingConfig binding,
-            OpenapiServerView server)
+            OpenapiBindingConfig binding)
         {
             this.delegate = new OpenapiStream(
-                this, routedId, resolvedId, authorization, specId, operationId, operationPath, binding, server);
+                this, routedId, resolvedId, authorization, specId, operationId, operationPath, binding);
             this.sender = sender;
             this.originId = originId;
             this.routedId = routedId;
@@ -534,7 +530,6 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
         private final long specId;
         private final long authorization;
         private final OpenapiBindingConfig binding;
-        private final OpenapiServerView server;
 
         private final long initialId;
         private final long replyId;
@@ -550,8 +545,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long specId,
             String operationId,
             String operationPath,
-            OpenapiBindingConfig binding,
-            OpenapiServerView server)
+            OpenapiBindingConfig binding)
         {
             this.delegate = delegate;
             this.originId = originId;
@@ -564,7 +558,6 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             this.operationId = operationId;
             this.operationPath = operationPath;
             this.binding = binding;
-            this.server = server;
         }
 
         private void onOpenapiMessage(
@@ -742,7 +735,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
                     .specId(specId)
                     .operationId(operationId);
                 final OpenapiBeginExFW openapiBeginEx = binding.resolve(
-                    httpBeginEx, openapiBeginExBuilder, server, operationPath);
+                    httpBeginEx, openapiBeginExBuilder, operationPath);
 
                 this.receiver = newStream(this::onOpenapiMessage, originId, routedId, initialId, sequence,
                     acknowledge, maximum, traceId, authorization, affinity, openapiBeginEx);

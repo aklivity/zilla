@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -118,5 +119,37 @@ public class OpenapiConditionConfigAdapterTest
 
         assertThat(condition.matches("test", "listPets", List.of("admin")), equalTo(true));
         assertThat(condition.matches("test", "listPets", List.of("pets")), equalTo(false));
+    }
+
+    @Test
+    public void shouldReadConditionWithServers()
+    {
+        String text =
+            "{" +
+                "\"spec\":\"test\"," +
+                "\"servers\":[{\"url\":\"http://localhost:9090/prod\"}]" +
+            "}";
+
+        OpenapiConditionConfig condition = jsonb.fromJson(text, OpenapiConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.spec, equalTo("test"));
+        assertThat(condition.servers, hasSize(1));
+    }
+
+    @Test
+    public void shouldWriteConditionWithServers()
+    {
+        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, null,
+            List.of(new OpenapiConditionServerConfig("http://localhost:9090/prod")));
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                    "\"spec\":\"test\"," +
+                    "\"servers\":[{\"url\":\"http://localhost:9090/prod\"}]" +
+                "}"));
     }
 }

@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBegin
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.OpenapiBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -127,6 +128,12 @@ public final class OpenapiBindingConfig
             .orElse(null);
     }
 
+    public boolean included(
+        OpenapiOperationView operation)
+    {
+        return routes.isEmpty() || routes.stream().anyMatch(r -> r.includes(operation));
+    }
+
     public List<URI> resolveBaseURLs(
         String specLabel)
     {
@@ -143,11 +150,10 @@ public final class OpenapiBindingConfig
     public OpenapiBeginExFW resolve(
         HttpBeginExFW httpBeginEx,
         OpenapiBeginExFW.Builder openapiBeginExBuilder,
-        OpenapiServerView server,
         String operationPath)
     {
-        final Flyweight extension = server != null
-            ? canonicalize(httpBeginEx, server, operationPath)
+        final Flyweight extension = operationPath != null
+            ? canonicalize(httpBeginEx, operationPath)
             : httpBeginEx;
 
         return openapiBeginExBuilder
@@ -158,16 +164,14 @@ public final class OpenapiBindingConfig
     public HttpBeginExFW resolve(
         OpenapiBeginExFW openapiBeginEx,
         HttpBeginExFW.Builder httpBeginExBuilder,
-        OpenapiServerView server,
-        String operationPath,
-        URI effective)
+        URI server)
     {
         final HttpBeginExFW canonicalHttpBeginEx = openapiBeginEx.extension().get(httpBeginExRO::tryWrap);
 
         if (server != null)
         {
-            final String scheme = effective.getScheme();
-            final String authority = authority(effective);
+            final String scheme = server.getScheme();
+            final String authority = authority(server);
 
             httpBeginExBuilder
                 .headersItem(h -> h.name(HEADER_SCHEME).value(scheme))
@@ -177,8 +181,7 @@ public final class OpenapiBindingConfig
             {
                 if (HEADER_PATH.equals(h.name()))
                 {
-                    final String effectivePath = OpenapiServerView.requestPath(effective, operationPath)
-                        .concat(query(h.value().asString()));
+                    final String effectivePath = OpenapiServerView.requestPath(server, h.value().asString());
                     httpBeginExBuilder.headersItem(nh -> nh.name(h.name()).value(effectivePath));
                 }
                 else
@@ -198,7 +201,6 @@ public final class OpenapiBindingConfig
 
     private HttpBeginExFW canonicalize(
         HttpBeginExFW httpBeginEx,
-        OpenapiServerView server,
         String operationPath)
     {
         final HttpBeginExFW.Builder builder = httpBeginExRW
@@ -211,7 +213,7 @@ public final class OpenapiBindingConfig
             {
                 if (HEADER_PATH.equals(h.name()))
                 {
-                    final String canonicalPath = server.requestPath(operationPath).concat(query(h.value().asString()));
+                    final String canonicalPath = operationPath.concat(query(h.value().asString()));
                     builder.headersItem(nh -> nh.name(h.name()).value(canonicalPath));
                 }
                 else

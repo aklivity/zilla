@@ -191,6 +191,24 @@
                                             {
                                                 "title": "Tag",
                                                 "type": "string"
+                                            },
+                                            "servers":
+                                            {
+                                                "title": "Servers",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "url":
+                                                        {
+                                                            "title": "URL",
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
                                             }
                                         },
                                         "additionalProperties": false

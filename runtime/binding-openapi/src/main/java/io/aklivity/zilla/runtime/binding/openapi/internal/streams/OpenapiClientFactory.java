@@ -45,7 +45,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -198,11 +197,6 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                 final long resolvedId = compositeRouteId != -1L ? compositeRouteId : route.id;
                 final String operationId = beginEx.operationId().asString();
                 final OpenapiOperationView operation = composite.resolveOperation(specId, operationId);
-                final OpenapiServerView server = operation != null && operation.servers != null &&
-                        !operation.servers.isEmpty()
-                    ? operation.servers.get(0)
-                    : null;
-                final String operationPath = operation != null ? operation.path : null;
                 final String specLabel = operation != null ? operation.specification.label : null;
                 final URI effective = specLabel != null
                     ? selectServer(routedId, specLabel, binding.resolveBaseURLs(specLabel))
@@ -217,9 +211,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                     authorization,
                     resolvedId,
                     operationId,
-                    operationPath,
                     binding,
-                    server,
                     effective)::onOpenapiMessage;
             }
 
@@ -246,7 +238,6 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         private final HttpStream http;
         private final MessageConsumer sender;
         private final String operationId;
-        private final String operationPath;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -254,7 +245,6 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         private final long affinity;
         private final long authorization;
         private final OpenapiBindingConfig binding;
-        private final OpenapiServerView server;
         private final URI effective;
 
         private int state;
@@ -268,9 +258,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long authorization,
             long resolvedId,
             String operationId,
-            String operationPath,
             OpenapiBindingConfig binding,
-            OpenapiServerView server,
             URI effective)
         {
             this.http =  new HttpStream(this, routedId, resolvedId, authorization);
@@ -282,9 +270,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             this.affinity = affinity;
             this.authorization = authorization;
             this.operationId = operationId;
-            this.operationPath = operationPath;
             this.binding = binding;
-            this.server = server;
             this.effective = effective;
         }
 
@@ -342,7 +328,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                 .wrap(httpExtBuffer, 0, httpExtBuffer.capacity())
                 .typeId(httpTypeId);
             final HttpBeginExFW httpBeginEx = binding.resolve(
-                openapiBeginEx, httpBeginExBuilder, server, operationPath, effective);
+                openapiBeginEx, httpBeginExBuilder, effective);
 
             assert acknowledge <= sequence;
 
