@@ -395,7 +395,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                                     .exit(config.qname)
                                     .when(HttpKafkaConditionConfig::builder)
                                         .method(httpOp.method)
-                                        .path(httpServer.requestPath(httpOp.path))
+                                        .path(httpOp.path)
                                         .build()
                                     .inject(r -> injectHttpKafkaRouteWith(
                                         r, httpServer, httpOp, kafkaOp, guardQname(resolution)))
