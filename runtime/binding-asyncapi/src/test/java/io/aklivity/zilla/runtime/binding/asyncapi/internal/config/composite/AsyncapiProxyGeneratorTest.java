@@ -174,6 +174,35 @@ public class AsyncapiProxyGeneratorTest
         }
         """;
 
+    private static final String MQTT_SPEC_SCOPED_SERVER =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": {
+            "broker": { "host": "localhost:1883", "protocol": "mqtt" },
+            "otherBroker": { "host": "localhost:1884", "protocol": "mqtt" }
+          },
+          "channels": {
+            "sensors": {
+              "servers": [ { "$ref": "#/servers/broker" } ],
+              "address": "sensors",
+              "messages": { "event": { "$ref": "#/components/messages/event" } }
+            }
+          },
+          "operations": {
+            "sendEvents": {
+              "action": "send",
+              "channel": { "$ref": "#/channels/sensors" },
+              "messages": [ { "$ref": "#/channels/sensors/messages/event" } ]
+            }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
     private static final String MQTT_KAFKA_SPEC_MISSING_RETAINED =
         """
         {
@@ -248,6 +277,8 @@ public class AsyncapiProxyGeneratorTest
         lenient().when(mqttKafkaCatalog.resolve(anyInt())).thenReturn(MQTT_KAFKA_SPEC);
         lenient().when(mqttKafkaCatalog.resolve(eq("missing-retained"), eq("latest"))).thenReturn(13);
         lenient().when(mqttKafkaCatalog.resolve(eq(13))).thenReturn(MQTT_KAFKA_SPEC_MISSING_RETAINED);
+        lenient().when(mqttCatalog.resolve(eq("scoped-server"), eq("latest"))).thenReturn(14);
+        lenient().when(mqttCatalog.resolve(eq(14))).thenReturn(MQTT_SPEC_SCOPED_SERVER);
     }
 
     private BindingConfig binding(
@@ -474,6 +505,51 @@ public class AsyncapiProxyGeneratorTest
                 .exit("kafka_client0")
                 .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
                     List.of(new AsyncapiConditionServerConfig("other", null))))
+                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding));
+
+        BindingConfig mqttKafka = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mqtt_kafka_proxy0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(mqttKafka.routes, empty());
+    }
+
+    @Test
+    public void shouldExcludeMqttKafkaRouteWhenOperationNotScopedToRouteServer()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(PROXY)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec()
+                    .label("mqtt-id")
+                    .catalog()
+                        .name("catalog2")
+                        .subject("scoped-server")
+                        .version("latest")
+                        .build()
+                    .build()
+                .spec()
+                    .label("kafka-mqtt-id")
+                    .catalog()
+                        .name("catalog3")
+                        .subject("test")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .exit("kafka_client0")
+                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
+                    List.of(new AsyncapiConditionServerConfig("otherBroker", null))))
                 .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
                 .build()
             .build();

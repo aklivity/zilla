@@ -182,7 +182,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                     final String specLabel = specification.label;
                     final String operationId = operation != null ? operation.name : null;
                     final List<String> tags = operation != null ? operation.tags : null;
-                    final List<AsyncapiServerView> operationServers = specification.servers;
+                    final List<AsyncapiServerView> operationServers = operation != null
+                        ? operation.servers
+                        : specification.servers;
 
                     final AsyncapiRouteConfig route = binding.resolve(
                         authorization, specLabel, operationId, tags, operationServers);
