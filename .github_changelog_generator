@@ -1,3 +1,5 @@
 user=aklivity
 project=zilla
 enhancement-labels=enhancement,story
+include-tags-regex=^(0\.\d+\.\d+|1\.0\.\d+|1\.1\.\d+|1\.2\.[0-4]|[2-9]\d*\.\d+\.\d+)$
+release-branch=develop
