@@ -176,6 +176,19 @@ public final class AsyncapiBindingConfig
                 .orElse(null);
     }
 
+    public List<URI> resolveServers(
+        String specLabel)
+    {
+        return options.specs.stream()
+            .filter(s -> specLabel.equals(s.label))
+            .findFirst()
+            .map(s -> s.servers)
+            .orElse(List.of())
+            .stream()
+            .map(URI::create)
+            .collect(toList());
+    }
+
     public Flyweight canonicalize(
         OctetsFW extension,
         String operationPath)

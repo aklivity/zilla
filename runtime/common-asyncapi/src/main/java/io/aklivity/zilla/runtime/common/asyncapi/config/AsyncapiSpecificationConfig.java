@@ -21,7 +21,7 @@ import java.util.function.Function;
 public class AsyncapiSpecificationConfig
 {
     public final String label;
-    public final String server;
+    public final List<String> servers;
     public final List<AsyncapiCatalogConfig> catalogs;
     public final Map<String, String> security;
     public final String store;
@@ -40,14 +40,14 @@ public class AsyncapiSpecificationConfig
 
     AsyncapiSpecificationConfig(
         String label,
-        String server,
+        List<String> servers,
         List<AsyncapiCatalogConfig> catalogs,
         Map<String, String> security,
         String store,
         AsyncapiCatalogConfig overlay)
     {
         this.label = label;
-        this.server = server;
+        this.servers = servers;
         this.catalogs = catalogs;
         this.security = security;
         this.store = store;

@@ -159,13 +159,15 @@ bindings:
     options:
       specs:
         sse_api:
-          server: http://localhost:8080
+          servers:
+            - http://localhost:8080
           catalog:
             catalog0:
               subject: eventstore
               version: latest
         kafka_api:
-          server: kafka://localhost:9092
+          servers:
+            - kafka://localhost:9092
           catalog:
             catalog1:
               subject: eventstore

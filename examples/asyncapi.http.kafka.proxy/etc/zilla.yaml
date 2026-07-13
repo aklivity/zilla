@@ -16,7 +16,8 @@ bindings:
     options:
       specs:
         http_api:
-          server: http://localhost:7114
+          servers:
+            - http://localhost:7114
           catalog:
             host_filesystem:
               subject: http
@@ -27,12 +28,14 @@ bindings:
     options:
       specs:
         http_api:
-          server: http://localhost:7114
+          servers:
+            - http://localhost:7114
           catalog:
             host_filesystem:
               subject: http
         kafka_api:
-          server: kafka://kafka.examples.dev:29092
+          servers:
+            - kafka://kafka.examples.dev:29092
           catalog:
             host_filesystem:
               subject: kafka
@@ -55,7 +58,8 @@ bindings:
     options:
       specs:
         kafka_api:
-          server: kafka://kafka.examples.dev:29092
+          servers:
+            - kafka://kafka.examples.dev:29092
           catalog:
             host_filesystem:
               subject: kafka

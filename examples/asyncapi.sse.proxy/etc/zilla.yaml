@@ -14,7 +14,8 @@ bindings:
     options:
       specs:
         my-asyncapi-spec:
-          server: http://localhost:7114
+          servers:
+            - http://localhost:7114
           catalog:
             host_filesystem:
               subject: eventstore
@@ -25,7 +26,8 @@ bindings:
     options:
       specs:
         my-asyncapi-spec:
-          server: http://${{env.SSE_SERVER_HOST}}:${{env.SSE_SERVER_PORT}}
+          servers:
+            - http://${{env.SSE_SERVER_HOST}}:${{env.SSE_SERVER_PORT}}
           catalog:
             host_filesystem:
               subject: eventstore

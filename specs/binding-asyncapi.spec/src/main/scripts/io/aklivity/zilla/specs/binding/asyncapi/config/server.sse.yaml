@@ -87,7 +87,8 @@ bindings:
     options:
       specs:
         sse_api:
-          server: 'localhost:8080'
+          servers:
+            - 'localhost:8080'
           catalog:
             catalog0:
               subject: eventstore

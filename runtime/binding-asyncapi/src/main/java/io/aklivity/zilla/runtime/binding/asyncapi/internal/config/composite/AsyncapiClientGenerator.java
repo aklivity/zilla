@@ -220,11 +220,8 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
 
             private URI resolveServer()
             {
-                return config.options.specs.stream()
-                    .filter(s -> schema.specLabel.equals(s.label))
-                    .map(s -> s.server)
+                return config.resolveServers(schema.specLabel).stream()
                     .findFirst()
-                    .map(URI::create)
                     .orElseThrow();
             }
 

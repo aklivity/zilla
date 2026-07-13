@@ -15,10 +15,12 @@
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.stream;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.Object2IntHashMap;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiConfiguration;
@@ -95,6 +97,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
     private final MutableDirectBufferEx sseExtBuffer;
 
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
+    private final Object2IntHashMap<String> serverIndexes;
     private final int asyncapiTypeId;
     private final int httpTypeId;
     private final int sseTypeId;
@@ -115,6 +118,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         this.httpExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.sseExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bindings = new Long2ObjectHashMap<>();
+        this.serverIndexes = new Object2IntHashMap<>(-1);
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.sseTypeId = context.supplyTypeId(SSE_TYPE_NAME);
@@ -201,7 +205,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
                 final String operationId = beginEx.operationId().asString();
                 final AsyncapiView specification = composite.resolveSpecificationBySchemaId(specId);
                 final URI server = specification != null
-                    ? resolveServer(binding, specification.label)
+                    ? selectServer(routedId, binding, specification.label)
                     : null;
                 final String pathname = specification != null
                     ? resolvePathname(specification)
@@ -227,16 +231,25 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         return newStream;
     }
 
-    private static URI resolveServer(
+    private URI selectServer(
+        long bindingId,
         AsyncapiBindingConfig binding,
         String specLabel)
     {
-        return binding.options.specs.stream()
-            .filter(s -> specLabel.equals(s.label))
-            .map(s -> s.server)
-            .findFirst()
-            .map(URI::create)
-            .orElse(null);
+        final List<URI> servers = binding.resolveServers(specLabel);
+
+        URI server = null;
+        if (!servers.isEmpty())
+        {
+            final String key = bindingId + ":" + specLabel;
+            final int previous = serverIndexes.getValue(key);
+            final int index = previous < 0 ? 0 : previous % servers.size();
+            serverIndexes.put(key, (index + 1) % servers.size());
+
+            server = servers.get(index);
+        }
+
+        return server;
     }
 
     private static String resolvePathname(

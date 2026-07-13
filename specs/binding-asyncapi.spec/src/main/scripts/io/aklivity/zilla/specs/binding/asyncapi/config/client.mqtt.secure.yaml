@@ -86,7 +86,8 @@ bindings:
     options:
       specs:
         mqtt_api:
-          server: mqtts://localhost:7183
+          servers:
+            - mqtts://localhost:7183
           catalog:
             catalog0:
               subject: smartylighting
