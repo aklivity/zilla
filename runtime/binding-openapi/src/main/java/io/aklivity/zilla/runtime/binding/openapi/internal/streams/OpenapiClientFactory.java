@@ -228,7 +228,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         return newStream;
     }
 
-    URI selectServer(
+    private URI selectServer(
         long bindingId,
         String specLabel,
         List<URI> servers)
