@@ -18,6 +18,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiChannel;
@@ -29,6 +30,7 @@ public final class AsyncapiChannelView
     public final String address;
     public final List<AsyncapiMessageView> messages;
     public final List<AsyncapiParameterView> parameters;
+    public final List<AsyncapiServerView> servers;
 
     private final Map<String, Object> extensions;
 
@@ -57,17 +59,20 @@ public final class AsyncapiChannelView
 
     AsyncapiChannelView(
         AsyncapiResolver resolver,
+        List<AsyncapiServerView> specServers,
         AsyncapiChannel model)
     {
-        this(resolver, resolver.channels.resolveRef(model.ref), model);
+        this(resolver, specServers, resolver.channels.resolveRef(model.ref), model);
     }
 
     AsyncapiChannelView(
         AsyncapiResolver resolver,
+        List<AsyncapiServerView> specServers,
         String name,
         AsyncapiChannel model)
     {
         final AsyncapiChannel resolved = resolver.channels.resolve(model);
+        final List<AsyncapiServerView> allServers = specServers != null ? specServers : List.of();
 
         this.name = requireNonNull(name);
         this.address = resolved.address;
@@ -81,6 +86,17 @@ public final class AsyncapiChannelView
                 .map(e -> new AsyncapiParameterView(this, resolver, e.getKey(), e.getValue()))
                 .toList()
             : null;
+        if (resolved.servers != null)
+        {
+            resolved.servers.forEach(resolver.servers::resolve);
+        }
+        this.servers = resolved.servers != null && !resolved.servers.isEmpty()
+            ? resolved.servers.stream()
+                .map(s -> resolver.servers.resolveRef(s.ref))
+                .filter(Objects::nonNull)
+                .flatMap(n -> allServers.stream().filter(s -> n.equals(s.name)))
+                .toList()
+            : allServers;
         this.extensions = resolved.extensions;
     }
 }

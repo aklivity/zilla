@@ -127,7 +127,7 @@ public final class AsyncapiView
 
         this.channels = asyncapi.channels != null
             ? asyncapi.channels.entrySet().stream()
-                .map(e -> new AsyncapiChannelView(resolver, e.getKey(), e.getValue()))
+                .map(e -> new AsyncapiChannelView(resolver, this.servers, e.getKey(), e.getValue()))
                 .collect(toMap(c -> c.name, identity()))
             : null;
 

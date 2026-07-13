@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -40,7 +41,12 @@ public final class AsyncapiServerView
     public final int port;
     public final String pathname;
     public final String literalPathname;
+    public final String title;
+    public final String summary;
+    public final String description;
     public final String protocol;
+    public final String protocolVersion;
+    public final List<String> tags;
 
     private final Map<String, Object> bindings;
     private final Map<String, Object> extensions;
@@ -124,7 +130,16 @@ public final class AsyncapiServerView
             ? pathnameMatcher.resolve(null)
             : null;
 
+        this.title = model.title;
+        this.summary = model.summary;
+        this.description = model.description;
         this.protocol = model.protocol;
+        this.protocolVersion = model.protocolVersion;
+        this.tags = model.tags != null
+            ? model.tags.stream()
+                .map(tag -> tag.name)
+                .toList()
+            : null;
         this.bindings = model.bindings;
         this.extensions = model.extensions;
     }
