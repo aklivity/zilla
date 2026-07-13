@@ -36,7 +36,9 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -51,6 +53,9 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 {
+    private static final String HTTP_TYPE_NAME = "http";
+    private static final String SSE_TYPE_NAME = "sse";
+
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -74,6 +79,11 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
 
     private final AsyncapiBeginExFW.Builder beginExRW = new AsyncapiBeginExFW.Builder();
 
+    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
+    private final SseBeginExFW sseBeginExRO = new SseBeginExFW();
+    private final SseBeginExFW.Builder sseBeginExRW = new SseBeginExFW.Builder();
+
     private final EngineContext context;
 
     private final BindingHandler streamFactory;
@@ -81,9 +91,13 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx httpExtBuffer;
+    private final MutableDirectBufferEx sseExtBuffer;
 
     private final Long2ObjectHashMap<AsyncapiBindingConfig> bindings;
     private final int asyncapiTypeId;
+    private final int httpTypeId;
+    private final int sseTypeId;
 
     private final AsyncapiCompositeGenerator generator;
     private final AsyncapiEventContext event;
@@ -95,10 +109,14 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.httpExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.sseExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
+        this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
+        this.sseTypeId = context.supplyTypeId(SSE_TYPE_NAME);
         this.bindings = new Long2ObjectHashMap<>();
         this.generator = new AsyncapiServerGenerator();
         this.event = new AsyncapiEventContext(context);
@@ -114,7 +132,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        AsyncapiBindingConfig attached = new AsyncapiBindingConfig(context, binding);
+        AsyncapiBindingConfig attached = new AsyncapiBindingConfig(context, binding,
+            extensionRO, httpBeginExRO, httpBeginExRW, httpExtBuffer, httpTypeId,
+            sseBeginExRO, sseBeginExRW, sseExtBuffer, sseTypeId);
         bindings.put(binding.id, attached);
 
         AsyncapiCompositeConfig composite = generator.generate(attached);
@@ -193,6 +213,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                     {
                         final long resolvedId = route.id;
                         final long resolvedSpecId = composite.resolveSpecId(specLabel);
+                        final String operationPath = operation != null ? operation.channel.address : null;
 
                         newStream = new CompositeStream(
                             receiver,
@@ -203,7 +224,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                             authorization,
                             resolvedId,
                             resolvedSpecId,
-                            operationId)::onCompositeMessage;
+                            operationId,
+                            binding,
+                            operationPath)::onCompositeMessage;
                     }
                 }
             }
@@ -245,7 +268,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long authorization,
             long resolvedId,
             long specId,
-            String operationId)
+            String operationId,
+            AsyncapiBindingConfig binding,
+            String operationPath)
         {
             this.sender = sender;
             this.originId = originId;
@@ -254,7 +279,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.delegate = new AsyncapiStream(this, routedId, resolvedId, authorization, specId, operationId);
+            this.delegate = new AsyncapiStream(
+                this, routedId, resolvedId, authorization, specId, operationId, binding, operationPath);
         }
 
         private void onCompositeMessage(
@@ -552,6 +578,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         private final long authorization;
         private final long specId;
         private final String operationId;
+        private final AsyncapiBindingConfig binding;
+        private final String operationPath;
 
         private long initialId;
         private long replyId;
@@ -575,7 +603,9 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             long routedId,
             long authorization,
             long specId,
-            String operationId)
+            String operationId,
+            AsyncapiBindingConfig binding,
+            String operationPath)
         {
             this.delegate = delegate;
             this.originId = originId;
@@ -584,6 +614,8 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             this.authorization = authorization;
             this.specId = specId;
             this.operationId = operationId;
+            this.binding = binding;
+            this.operationPath = operationPath;
         }
 
         private void onAsyncapiMessage(
@@ -797,12 +829,13 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             {
                 assert state == 0;
 
+                final Flyweight canonical = binding.canonicalize(extension, operationPath);
                 final AsyncapiBeginExFW asyncapiBeginEx = beginExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(asyncapiTypeId)
                     .specId(specId)
                     .operationId(operationId)
-                    .extension(extension)
+                    .extension(canonical.buffer(), canonical.offset(), canonical.sizeof())
                     .build();
 
                 this.initialSeq = delegate.initialSeq;

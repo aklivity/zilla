@@ -305,18 +305,32 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .filter(op -> op.hasBinding("http"))
                     .filter(AsyncapiOperationView::hasMessagesOrParameters)
                     .forEach(operation ->
-                    {
-                        options
-                            .request()
-                                .path(operation.channel.address)
-                                .method(Method.valueOf(
-                                    operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method))
-                                .inject(request -> injectHttpContent(request, operation))
-                                .inject(request -> injectHttpPathParams(request, operation))
-                            .build();
-                    });
+                        resolvePathnames(operation).forEach(pathname ->
+                            options
+                                .request()
+                                    .path(pathname + operation.channel.address)
+                                    .method(Method.valueOf(
+                                        operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method))
+                                    .inject(request -> injectHttpContent(request, operation))
+                                    .inject(request -> injectHttpPathParams(request, operation))
+                                .build()));
 
                 return options;
+            }
+
+            private List<String> resolvePathnames(
+                AsyncapiOperationView operation)
+            {
+                List<String> pathnames = operation.servers != null
+                    ? operation.servers.stream()
+                        .filter(server -> server.protocol != null && server.protocol.startsWith("http"))
+                        .map(server -> server.pathname)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList()
+                    : List.of();
+
+                return !pathnames.isEmpty() ? pathnames : List.of("");
             }
 
             private <C> HttpRequestConfigBuilder<C> injectHttpContent(
@@ -402,34 +416,36 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .flatMap(v -> v.operations.values().stream())
                     .forEach(operation ->
                     {
-                        final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
+                        final String address = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
                         if (operation.hasBinding("http") && allowed(operation))
                         {
-                            binding
-                                .route()
-                                .exit(config.qname)
-                                .when(HttpConditionConfig::builder)
-                                    .header(":path", path)
-                                    .header(":method",
-                                        operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method)
-                                    .build()
-                                .with(HttpWithConfig::builder)
-                                    .compositeId(operation.compositeId)
-                                    .build()
-                                .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                                .build();
+                            resolvePathnames(operation).forEach(pathname ->
+                                binding
+                                    .route()
+                                    .exit(config.qname)
+                                    .when(HttpConditionConfig::builder)
+                                        .header(":path", pathname + address)
+                                        .header(":method",
+                                            operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method)
+                                        .build()
+                                    .with(HttpWithConfig::builder)
+                                        .compositeId(operation.compositeId)
+                                        .build()
+                                    .inject(route -> injectHttpServerRouteGuarded(route, operation))
+                                    .build());
                         }
                         else if (operation.hasBinding("x-zilla-sse"))
                         {
-                            binding
-                                .route()
-                                .exit("sse_server0")
-                                .when(HttpConditionConfig::builder)
-                                    .header(":path", path)
-                                    .header(":method", "GET")
-                                    .build()
-                                .build();
+                            resolvePathnames(operation).forEach(pathname ->
+                                binding
+                                    .route()
+                                    .exit("sse_server0")
+                                    .when(HttpConditionConfig::builder)
+                                        .header(":path", pathname + address)
+                                        .header(":method", "GET")
+                                        .build()
+                                    .build());
                         }
                     });
 
@@ -500,11 +516,14 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .filter(AsyncapiOperationView::hasMessagesOrParameters)
                     .forEach(operation ->
                     {
-                        options
-                            .request()
-                                .path(operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
-                                .inject(request -> injectSseContent(request, operation))
-                            .build();
+                        final String address = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
+
+                        resolvePathnames(operation).forEach(pathname ->
+                            options
+                                .request()
+                                    .path(pathname + address)
+                                    .inject(request -> injectSseContent(request, operation))
+                                .build());
                     });
 
                 return options;
@@ -539,18 +558,19 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .filter(op -> op.hasBinding("x-zilla-sse"))
                     .forEach(operation ->
                     {
-                        final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
+                        final String address = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
-                        binding
-                            .route()
-                            .exit(config.qname)
-                            .when(SseConditionConfig::builder)
-                                .path(path)
-                                .build()
-                            .with(SseWithConfig::builder)
-                                .compositeId(operation.compositeId)
-                                .build()
-                            .build();
+                        resolvePathnames(operation).forEach(pathname ->
+                            binding
+                                .route()
+                                .exit(config.qname)
+                                .when(SseConditionConfig::builder)
+                                    .path(pathname + address)
+                                    .build()
+                                .with(SseWithConfig::builder)
+                                    .compositeId(operation.compositeId)
+                                    .build()
+                                .build());
                     });
 
                 return binding;
