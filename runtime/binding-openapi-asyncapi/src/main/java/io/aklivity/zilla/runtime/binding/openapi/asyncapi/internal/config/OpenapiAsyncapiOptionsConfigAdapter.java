@@ -139,13 +139,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
             }
             catalogObject.add(CATALOG_NAME, subjectObject);
 
-            if (asyncapiConfig.security != null && !asyncapiConfig.security.isEmpty())
-            {
-                final JsonObjectBuilder security = Json.createObjectBuilder();
-                asyncapiConfig.security.forEach(security::add);
-                catalogObject.add(SECURITY_NAME, security);
-            }
-
             if (asyncapiConfig.overlay != null)
             {
                 final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
@@ -276,15 +269,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements OptionsConfigA
                     }
 
                     catalog.build();
-                }
-
-                if (specObject.containsKey(SECURITY_NAME))
-                {
-                    final JsonObject securityObject = specObject.getJsonObject(SECURITY_NAME);
-                    for (String scheme : securityObject.keySet())
-                    {
-                        asyncapi.security(scheme, securityObject.getString(scheme));
-                    }
                 }
 
                 if (specObject.containsKey(OVERLAY_NAME))

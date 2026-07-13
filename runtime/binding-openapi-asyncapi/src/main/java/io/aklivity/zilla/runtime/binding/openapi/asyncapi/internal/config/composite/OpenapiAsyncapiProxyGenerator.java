@@ -44,7 +44,6 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.Openap
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaFilter;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationEx;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiReplyView;
@@ -385,9 +384,9 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     OpenapiOperationView httpOp,
                     AsyncapiOperationView kafkaOp)
                 {
-                    if (allowed(schema, httpOp, kafkaOp))
+                    if (allowed(schema, httpOp))
                     {
-                        final GuardedResolution resolution = resolveGuarded(schema, httpOp, kafkaOp);
+                        final GuardedResolution resolution = resolveGuarded(schema, httpOp);
 
                         for (OpenapiServerView httpServer : httpOp.servers)
                         {
@@ -626,34 +625,11 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
 
                 private GuardedResolution resolveGuarded(
                     OpenapiSchemaConfig schema,
-                    OpenapiOperationView operation,
-                    AsyncapiOperationView kafkaOperation)
+                    OpenapiOperationView operation)
                 {
-                    GuardedResolution resolution = OpenapiGuardResolver.resolve(
+                    return OpenapiGuardResolver.resolve(
                         operation.id, schema.specLabel, operation.security, schema.security,
                         config.resolveId, config.supplyQName);
-
-                    if (operation.security == null && kafkaOperation != null)
-                    {
-                        resolution = resolveKafkaGuarded(kafkaOperation);
-                    }
-
-                    return resolution;
-                }
-
-                private GuardedResolution resolveKafkaGuarded(
-                    AsyncapiOperationView kafkaOperation)
-                {
-                    io.aklivity.zilla.runtime.common.asyncapi.security.GuardedResolution resolution =
-                        AsyncapiGuardResolver.resolve(
-                            kafkaOperation.name, mapping.with.specLabel, kafkaOperation.security, mapping.with.security,
-                            config.resolveId, config.supplyQName);
-
-                    return resolution.denied()
-                        ? GuardedResolution.denied(resolution.reason)
-                        : GuardedResolution.allowed(resolution.guarded.stream()
-                            .map(ref -> new GuardedRef(ref.qname, ref.roles))
-                            .toList());
                 }
 
                 private String guardQname(
@@ -664,10 +640,9 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
 
                 private boolean allowed(
                     OpenapiSchemaConfig schema,
-                    OpenapiOperationView operation,
-                    AsyncapiOperationView kafkaOperation)
+                    OpenapiOperationView operation)
                 {
-                    final GuardedResolution resolution = resolveGuarded(schema, operation, kafkaOperation);
+                    final GuardedResolution resolution = resolveGuarded(schema, operation);
                     final boolean allowed = !resolution.denied();
 
                     if (!allowed)
