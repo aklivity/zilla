@@ -149,6 +149,17 @@ public class OpenapiServerIT
     }
 
     @Test
+    @Configuration("server.route.prefix.yaml")
+    @Specification({
+        "${composite}/create.pet.prefixed.location/client",
+        "${openapi}/create.pet.prefixed.location/server"
+    })
+    public void shouldCreatePetWithServerLocationPrefix() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${composite}/create.pet.invalid/client",

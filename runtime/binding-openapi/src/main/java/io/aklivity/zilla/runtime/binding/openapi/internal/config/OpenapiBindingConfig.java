@@ -26,6 +26,7 @@ import java.util.function.ToLongFunction;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.OpenapiBeginExFW;
@@ -45,6 +46,7 @@ public final class OpenapiBindingConfig
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_PATH = new String8FW(":path");
+    private static final String8FW HEADER_LOCATION = new String8FW("location");
 
     public final long id;
     public final String namespace;
@@ -145,6 +147,67 @@ public final class OpenapiBindingConfig
         return spec.servers.stream()
             .map(server -> OpenapiServerView.resolvePorts(URI.create(server)))
             .collect(toList());
+    }
+
+    public URI resolveServer(
+        HttpBeginExFW httpBeginEx,
+        String specLabel)
+    {
+        final String scheme = header(httpBeginEx, HEADER_SCHEME);
+        final String authority = header(httpBeginEx, HEADER_AUTHORITY);
+        final String path = header(httpBeginEx, HEADER_PATH);
+
+        URI server = null;
+        if (scheme != null && authority != null && path != null)
+        {
+            server = resolveBaseURLs(specLabel).stream()
+                .filter(s -> scheme.equals(s.getScheme()))
+                .filter(s -> authority.equals(authority(s)))
+                .filter(s -> path.startsWith(s.getPath()))
+                .findFirst()
+                .orElse(null);
+        }
+
+        return server;
+    }
+
+    public HttpBeginExFW resolveLocation(
+        HttpBeginExFW httpBeginEx,
+        URI server)
+    {
+        HttpBeginExFW resolved = httpBeginEx;
+
+        if (server != null && header(httpBeginEx, HEADER_LOCATION) != null)
+        {
+            final HttpBeginExFW.Builder builder = httpBeginExRW
+                .wrap(httpExtBuffer, 0, httpExtBuffer.capacity())
+                .typeId(httpTypeId);
+
+            httpBeginEx.headers().forEach(h ->
+            {
+                if (HEADER_LOCATION.equals(h.name()))
+                {
+                    final String effectiveLocation = OpenapiServerView.requestPath(server, h.value().asString());
+                    builder.headersItem(nh -> nh.name(h.name()).value(effectiveLocation));
+                }
+                else
+                {
+                    builder.headersItem(nh -> nh.name(h.name()).value(h.value()));
+                }
+            });
+
+            resolved = builder.build();
+        }
+
+        return resolved;
+    }
+
+    private static String header(
+        HttpBeginExFW httpBeginEx,
+        String8FW name)
+    {
+        final HttpHeaderFW header = httpBeginEx.headers().matchFirst(h -> name.equals(h.name()));
+        return header != null ? header.value().asString() : null;
     }
 
     public OpenapiBeginExFW resolve(
