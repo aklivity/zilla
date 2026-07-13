@@ -128,4 +128,15 @@ public class AsyncapiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.mqtt.overlay.yaml")
+    @Specification({
+        "${composite}/mqtt/publish.overlay.channel/client",
+        "${asyncapi}/mqtt/publish.overlay.channel/server"
+    })
+    public void shouldPublishToChannelAddedByOverlay() throws Exception
+    {
+        k3po.finish();
+    }
 }

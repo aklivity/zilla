@@ -55,6 +55,41 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
+/**
+ * Kept as a unit test rather than converted to a k3po IT (AsyncapiProxyIT). Two distinct blockers apply:
+ *
+ * <p>{@code shouldReportClearErrorWhenMqttKafkaChannelRoleMissing} asserts a specific exception message
+ * thrown synchronously during binding {@code attach()}; no k3po/EngineRule mechanism in this repo exposes
+ * an attach-time exception's message text to a test (the closest pattern, {@code EngineRule.exceptions},
+ * only matches on test method name).
+ *
+ * <p>The {@code servers[]}-scoping tests ({@code shouldIncludeMqttKafkaRouteWhenServerNameMatches},
+ * {@code shouldExcludeMqttKafkaRouteWhenServerNameDoesNotMatch},
+ * {@code shouldExcludeMqttKafkaRouteWhenOperationNotScopedToRouteServer}) exercise the
+ * {@code AsyncapiConditionConfig.matches}/{@code matchesServers} servers-scoping condition, which only
+ * takes effect on the runtime dispatch path reached when an internal composite sub-binding (e.g.
+ * {@code mqtt_server0}) forwards into {@code asyncapi_proxy0} via a {@code compositeId}-keyed lookup
+ * (see {@code AsyncapiProxyFactory.newStream}, the {@code composite.hasBindingId(originId)} branch).
+ * Every existing {@code AsyncapiProxyIT} scenario instead connects directly to
+ * {@code zilla://streams/asyncapi_proxy0} using {@code asyncapi:beginEx().specId().operationId()}, which
+ * resolves through the coarser {@code AsyncapiCompositeConfig.resolve(specId, operationTypeId)} path — a
+ * dispatcher keyed only by spec-pair and operation type, entirely independent of {@code servers[]}
+ * scoping. Proving the scoping fix via k3po IT would require faking an internal-composite-origin
+ * connection (no established pattern exists for {@code kind: proxy}, unlike the
+ * {@code option zilla:ephemeral "test:composite0/<label>:ephemeral"} idiom already used for
+ * {@code kind: server} in {@code AsyncapiServerIT}) — new test infrastructure disproportionate to a
+ * condition already covered exhaustively by {@code AsyncapiConditionConfigAdapterTest}.
+ *
+ * <p>The SSE-Kafka guard/security tests ({@code shouldGuardMappedOperation},
+ * {@code shouldResolveIdentityUsingMappedGuard}, {@code shouldLeaveIdentityUnresolvedWhenSchemeNotMapped},
+ * {@code shouldAllowUnguardedWhenSecurityMapAbsent}) assert on generated route structure
+ * ({@code guarded}, the JUEL identity template) rather than on a stream-level behavior with no cheaper
+ * proxy; proving them via IT would require standing up a new guarded SSE-Kafka fixture (no existing
+ * fixture in this proxy family configures a guard at all) and verifying the resolved identity surfaces in
+ * the downstream Kafka message headers, which the resolve mechanism itself already gets full coverage of
+ * via {@code AsyncapiConditionConfigAdapterTest}. Kept here as unit tests rather than committing to new
+ * fixture infrastructure this pass.
+ */
 public class AsyncapiProxyGeneratorTest
 {
     private static final String SSE_SPEC =

@@ -16,17 +16,11 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 
-import java.util.List;
-import java.util.function.ToLongFunction;
-
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -36,57 +30,25 @@ import org.mockito.junit.MockitoRule;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 
+/**
+ * {@code shouldUseConfiguredStore}, {@code shouldDefaultToInMemoryStoreWhenNotConfigured}, and
+ * {@code shouldApplyOverlayBeforeGeneratingRoutes} have been replaced by k3po ITs in
+ * {@code AsyncapiServerIT} ({@code shouldPublishAndSubscribe}, {@code shouldPublishAndSubscribeWithStore},
+ * {@code shouldPublishToChannelAddedByOverlay}). This test is kept as a unit test because proving TLS SNI
+ * authority routing via IT would require a genuine terminating-TLS k3po handshake (a fresh PKCS12 trust
+ * store and the {@code tls:} k3po transport, unused elsewhere in this spec module) for a single
+ * field-population assertion whose underlying SNI-matching mechanics are already exhaustively covered by
+ * binding-tls's own test suite.
+ */
 public class AsyncapiServerGeneratorTest
 {
-    private static final String SPEC =
-        """
-        {
-          "asyncapi": "3.0.0",
-          "info": { "title": "test", "version": "1.0.0" },
-          "servers": { "plain": { "host": "localhost:1883", "protocol": "mqtt" } },
-          "channels": {
-            "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
-          },
-          "operations": {
-            "send": { "action": "send", "channel": { "$ref": "#/channels/sensors" } },
-            "receive": { "action": "receive", "channel": { "$ref": "#/channels/sensors" } }
-          },
-          "components": {
-            "messages": { "event": { "payload": { "type": "object" } } }
-          }
-        }
-        """;
-
-    private static final String OVERLAY =
-        """
-        {
-          "overlay": "1.0.0",
-          "info": { "title": "test-overlay", "version": "1.0.0" },
-          "actions": [
-            {
-              "target": "$.channels",
-              "update": {
-                "added": {
-                  "address": "added",
-                  "messages": { "event": { "$ref": "#/components/messages/event" } }
-                }
-              }
-            }
-          ]
-        }
-        """;
-
     private static final String SECURE_SPEC =
         """
         {
@@ -116,80 +78,14 @@ public class AsyncapiServerGeneratorTest
 
     private final AsyncapiServerGenerator generator = new AsyncapiServerGenerator();
 
-    private final ToLongFunction<String> resolveId = name -> switch (name)
-    {
-    case "catalog0" -> 1L;
-    case "cluster0" -> 2L;
-    default -> 3L;
-    };
-
-    @Before
-    public void initMocks()
+    @Test
+    public void shouldPopulateTlsAuthorityForSniRouting()
     {
         lenient().when(context.supplyCatalog(eq(1L))).thenReturn(catalog);
         lenient().when(context.supplyBindingId(any(), any())).thenReturn(42L);
-        lenient().when(context.supplyQName(eq(2L))).thenReturn("cluster0");
-        lenient().when(catalog.resolve(eq("test"), eq("latest"))).thenReturn(7);
         lenient().when(catalog.resolve(eq("secure"), eq("latest"))).thenReturn(8);
-        lenient().when(catalog.resolve(7)).thenReturn(SPEC);
         lenient().when(catalog.resolve(8)).thenReturn(SECURE_SPEC);
-    }
 
-    private BindingConfig binding(
-        String store)
-    {
-        BindingConfig binding = BindingConfig.builder()
-            .namespace("test")
-            .name("composite0")
-            .type("asyncapi")
-            .kind(SERVER)
-            .options(AsyncapiOptionsConfig.builder()
-                .spec(specWithStore(store))
-                .build())
-            .exit("asyncapi0")
-            .build();
-        binding.resolveId = resolveId;
-        return binding;
-    }
-
-    private AsyncapiSpecificationConfig specWithStore(
-        String store)
-    {
-        AsyncapiSpecificationConfigBuilder<AsyncapiSpecificationConfig> spec =
-            AsyncapiSpecificationConfig.builder()
-                .label("mqtt_api")
-                .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"));
-
-        if (store != null)
-        {
-            spec.store(store);
-        }
-
-        return spec.build();
-    }
-
-    private BindingConfig bindingWithOverlay()
-    {
-        BindingConfig binding = BindingConfig.builder()
-            .namespace("test")
-            .name("composite0")
-            .type("asyncapi")
-            .kind(SERVER)
-            .options(AsyncapiOptionsConfig.builder()
-                .spec(AsyncapiSpecificationConfig.builder()
-                    .label("mqtt_api")
-                    .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"))
-                    .overlay(new AsyncapiCatalogConfig("catalog0", "test-overlay", "latest"))
-                    .build())
-                .build())
-            .exit("asyncapi0")
-            .build();
-        binding.resolveId = resolveId;
-        return binding;
-    }
-
-    private BindingConfig bindingSecure()
-    {
         BindingConfig binding = BindingConfig.builder()
             .namespace("test")
             .name("composite0")
@@ -203,72 +99,13 @@ public class AsyncapiServerGeneratorTest
                 .build())
             .exit("asyncapi0")
             .build();
-        binding.resolveId = resolveId;
-        return binding;
-    }
+        binding.resolveId = name -> switch (name)
+        {
+        case "catalog0" -> 1L;
+        default -> 3L;
+        };
 
-    private BindingConfig mqttServerFor(
-        AsyncapiCompositeConfig composite)
-    {
-        return composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mqtt_server0".equals(b.name))
-            .findFirst()
-            .orElseThrow();
-    }
-
-    @Test
-    public void shouldUseConfiguredStore()
-    {
-        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding("cluster0")));
-
-        BindingConfig mqttServer = mqttServerFor(composite);
-        MqttOptionsConfig options = (MqttOptionsConfig) mqttServer.options;
-
-        assertThat(options.store, equalTo("cluster0"));
-
-        NamespaceConfig namespace = composite.namespaces.get(0);
-        List<StoreConfig> autoStores = namespace.stores.stream()
-            .filter(s -> "mqtt_store0".equals(s.name))
-            .toList();
-        assertThat(autoStores, empty());
-    }
-
-    @Test
-    public void shouldDefaultToInMemoryStoreWhenNotConfigured()
-    {
-        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding(null)));
-
-        BindingConfig mqttServer = mqttServerFor(composite);
-        MqttOptionsConfig options = (MqttOptionsConfig) mqttServer.options;
-
-        assertThat(options.store, equalTo("mqtt_store0"));
-
-        NamespaceConfig namespace = composite.namespaces.get(0);
-        List<StoreConfig> autoStores = namespace.stores.stream()
-            .filter(s -> "mqtt_store0".equals(s.name))
-            .toList();
-        assertThat(autoStores, hasSize(1));
-        assertThat(autoStores.get(0).type, equalTo("memory"));
-    }
-
-    @Test
-    public void shouldApplyOverlayBeforeGeneratingRoutes()
-    {
-        lenient().when(catalog.resolve(eq("test-overlay"), eq("latest"))).thenReturn(8);
-        lenient().when(catalog.resolve(eq(8))).thenReturn(OVERLAY);
-
-        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, bindingWithOverlay()));
-
-        BindingConfig mqttServer = mqttServerFor(composite);
-        MqttOptionsConfig options = (MqttOptionsConfig) mqttServer.options;
-
-        assertThat(options.topics.stream().anyMatch(t -> "added".equals(t.name)), equalTo(true));
-    }
-
-    @Test
-    public void shouldPopulateTlsAuthorityForSniRouting()
-    {
-        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, bindingSecure()));
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding));
 
         BindingConfig tlsServer = composite.namespaces.get(0).bindings.stream()
             .filter(b -> "tls_server0".equals(b.name))

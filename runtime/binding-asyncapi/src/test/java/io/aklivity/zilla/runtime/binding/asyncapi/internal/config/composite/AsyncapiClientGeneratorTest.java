@@ -52,6 +52,19 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
+/**
+ * Kept as a unit test rather than converted to a k3po IT (AsyncapiClientIT). All 6 tests here assert on
+ * {@code kafka_client0}/{@code kafka_cache_client0} config wiring (SASL authorization, topic
+ * offset/delta defaults, TLS-vs-TCP exit selection, host/port parsed from {@code serverOverride}) that
+ * only takes effect on the generated client's real outbound TCP/TLS connection to a Kafka broker.
+ * {@code AsyncapiClientIT}'s existing scenario ({@code shouldProduceMessage}) connects the composite-side
+ * script directly to the internal merged-Kafka entry point via
+ * {@code option zilla:ephemeral "test:composite0/kafka_api"}, bypassing {@code kafka_client0}'s entire
+ * exit chain (no real TCP/TLS handshake, no SASL negotiation, no host/port resolution ever happens) —
+ * intentionally, since simulating genuine Kafka SASL handshake bytes and a real TLS-terminating listener
+ * has no established pattern anywhere in this spec module and is a materially larger, more fragile
+ * undertaking than proving generation-time config correctness directly here.
+ */
 public class AsyncapiClientGeneratorTest
 {
     private static final String SPEC =
