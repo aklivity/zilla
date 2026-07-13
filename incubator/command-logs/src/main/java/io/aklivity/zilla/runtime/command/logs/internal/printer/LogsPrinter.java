@@ -20,6 +20,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public final class LogsPrinter
 {
@@ -27,36 +28,73 @@ public final class LogsPrinter
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
     private final List<LogRecord> records;
-    private final String grep;
+    private final Pattern filter;
 
     public LogsPrinter(
         List<LogRecord> records,
-        String grep)
+        String filter)
     {
         this.records = records;
-        this.grep = grep;
+        this.filter = filter != null ? compileGlob(filter) : null;
     }
 
     public boolean print(
-        PrintStream out,
-        String waitFor)
+        PrintStream out)
     {
         boolean matched = false;
         for (LogRecord record : records)
         {
-            if (grep == null || record.eventName().contains(grep))
+            if (filter == null || filter.matcher(record.eventName()).matches())
             {
                 out.format(FORMAT, record.qualifiedName(), asDateTime(record.timestamp()), record.traceId(),
                     record.eventName(), record.message());
-            }
 
-            if (waitFor != null && record.eventName().equals(waitFor))
-            {
-                matched = true;
+                if (filter != null)
+                {
+                    matched = true;
+                }
             }
         }
 
         return matched;
+    }
+
+    private static Pattern compileGlob(
+        String glob)
+    {
+        StringBuilder regex = new StringBuilder("^");
+        for (int i = 0; i < glob.length(); i++)
+        {
+            char c = glob.charAt(i);
+            switch (c)
+            {
+            case '*':
+                regex.append(".*");
+                break;
+            case '?':
+                regex.append('.');
+                break;
+            case '.':
+            case '\\':
+            case '+':
+            case '(':
+            case ')':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
+            case '^':
+            case '$':
+            case '|':
+                regex.append('\\').append(c);
+                break;
+            default:
+                regex.append(c);
+                break;
+            }
+        }
+        regex.append('$');
+        return Pattern.compile(regex.toString());
     }
 
     private static String asDateTime(

@@ -33,7 +33,7 @@ public class LogsPrinterTest
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
     @Test
-    public void shouldPrintAllRecordsWhenNoGrep() throws Exception
+    public void shouldPrintAllRecordsWhenNoFilter() throws Exception
     {
         // GIVEN
         LogRecord started = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Engine Started.");
@@ -47,7 +47,7 @@ public class LogsPrinterTest
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        boolean matched = printer.print(out, null);
+        boolean matched = printer.print(out);
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(expectedOutput));
@@ -55,7 +55,7 @@ public class LogsPrinterTest
     }
 
     @Test
-    public void shouldFilterRecordsByGrep() throws Exception
+    public void shouldFilterRecordsByExactPattern() throws Exception
     {
         // GIVEN
         LogRecord started = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Engine Started.");
@@ -63,47 +63,71 @@ public class LogsPrinterTest
         String expectedOutput =
             String.format("engine:events [%s] [000000000000002a] engine.started Engine Started.%n", asDateTime(1000L));
 
-        LogsPrinter printer = new LogsPrinter(List.of(started, stopped), "started");
+        LogsPrinter printer = new LogsPrinter(List.of(started, stopped), "engine.started");
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        boolean matched = printer.print(out, null);
+        boolean matched = printer.print(out);
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(expectedOutput));
-        assertThat(matched, is(false));
-    }
-
-    @Test
-    public void shouldMatchWaitForEvent() throws Exception
-    {
-        // GIVEN
-        LogRecord started = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Engine Started.");
-        LogsPrinter printer = new LogsPrinter(List.of(started), null);
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        PrintStream out = new PrintStream(os);
-
-        // WHEN
-        boolean matched = printer.print(out, "engine.started");
-
-        // THEN
         assertThat(matched, is(true));
     }
 
     @Test
-    public void shouldNotMatchWaitForEventWhenAbsent() throws Exception
+    public void shouldFilterRecordsByWildcardPattern() throws Exception
     {
         // GIVEN
         LogRecord started = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Engine Started.");
-        LogsPrinter printer = new LogsPrinter(List.of(started), null);
+        LogRecord stopped = new LogRecord(2000L, 0x2aL, "engine:events", "engine.stopped", "Engine Stopped.");
+        String expectedOutput =
+            String.format("engine:events [%s] [000000000000002a] engine.started Engine Started.%n", asDateTime(1000L)) +
+            String.format("engine:events [%s] [000000000000002a] engine.stopped Engine Stopped.%n", asDateTime(2000L));
+
+        LogsPrinter printer = new LogsPrinter(List.of(started, stopped), "engine.*");
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        boolean matched = printer.print(out, "engine.stopped");
+        boolean matched = printer.print(out);
 
         // THEN
+        assertThat(os.toString("UTF8"), equalTo(expectedOutput));
+        assertThat(matched, is(true));
+    }
+
+    @Test
+    public void shouldNotMatchPatternWhenAbsent() throws Exception
+    {
+        // GIVEN
+        LogRecord started = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Engine Started.");
+        LogsPrinter printer = new LogsPrinter(List.of(started), "engine.stopped");
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(os);
+
+        // WHEN
+        boolean matched = printer.print(out);
+
+        // THEN
+        assertThat(os.toString("UTF8"), equalTo(""));
+        assertThat(matched, is(false));
+    }
+
+    @Test
+    public void shouldTreatDotAsLiteralNotAnyCharacter() throws Exception
+    {
+        // GIVEN
+        LogRecord decoy = new LogRecord(1000L, 0x2aL, "engine:events", "enginexstarted", "Decoy.");
+        LogsPrinter printer = new LogsPrinter(List.of(decoy), "engine.started");
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(os);
+
+        // WHEN
+        boolean matched = printer.print(out);
+
+        // THEN
+        assertThat(os.toString("UTF8"), equalTo(""));
         assertThat(matched, is(false));
     }
 
@@ -111,12 +135,12 @@ public class LogsPrinterTest
     public void shouldPrintNothingWhenEmpty() throws Exception
     {
         // GIVEN
-        LogsPrinter printer = new LogsPrinter(List.of(), null);
+        LogsPrinter printer = new LogsPrinter(List.of(), "engine.started");
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        boolean matched = printer.print(out, "engine.started");
+        boolean matched = printer.print(out);
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(""));

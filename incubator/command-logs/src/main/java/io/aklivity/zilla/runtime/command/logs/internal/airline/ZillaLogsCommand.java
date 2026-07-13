@@ -47,18 +47,13 @@ public final class ZillaLogsCommand extends ZillaCommand
     private static final int EVENT_COUNT_LIMIT = 8192;
     private static final long POLL_INTERVAL_MILLIS = 500L;
 
-    @Option(name = {"--grep"},
-        description = "Only show events whose type name contains this text")
-    public String grep;
+    @Option(name = {"--filter"},
+        description = "Only show events whose type name matches this glob pattern (supports * and ?)")
+    public String filter;
 
-    @Option(name = {"--wait-for"},
-        description = "Wait for an event whose type name equals this text, then exit")
-    public String waitFor;
-
-    @Option(name = {"--timeout"},
-        description = "Maximum seconds to wait when using --wait-for; defaults to a single check, " +
-            "suitable for a Docker HEALTHCHECK where retries are driven externally")
-    public int timeout;
+    @Option(name = {"-f", "--follow"},
+        description = "Keep printing new events as they arrive after printing the current log")
+    public boolean follow;
 
     @Option(name = {"-p", "--properties"},
         description = "Path to properties",
@@ -98,25 +93,24 @@ public final class ZillaLogsCommand extends ZillaCommand
                 engine::supplyQName, engine::supplyLocalName);
 
             boolean matched = false;
-            long deadline = System.currentTimeMillis() + timeout * 1000L;
             boolean polling = true;
             while (polling)
             {
                 List<LogRecord> records = reader.read(EVENT_COUNT_LIMIT);
 
-                LogsPrinter printer = new LogsPrinter(records, grep);
-                matched = printer.print(System.out, waitFor) || matched;
+                LogsPrinter printer = new LogsPrinter(records, filter);
+                matched = printer.print(System.out) || matched;
 
-                polling = waitFor != null && !matched && System.currentTimeMillis() < deadline;
+                polling = follow;
                 if (polling)
                 {
                     sleep(POLL_INTERVAL_MILLIS);
                 }
             }
 
-            if (waitFor != null && !matched)
+            if (filter != null && !follow && !matched)
             {
-                throw new IllegalStateException(String.format("Timed out waiting for event: %s", waitFor));
+                throw new IllegalStateException(String.format("No events matched filter: %s", filter));
             }
         }
         catch (Throwable ex)
