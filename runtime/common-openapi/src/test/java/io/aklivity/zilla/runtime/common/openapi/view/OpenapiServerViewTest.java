@@ -15,8 +15,6 @@
 package io.aklivity.zilla.runtime.common.openapi.view;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.List;
@@ -28,21 +26,6 @@ import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 
 public class OpenapiServerViewTest
 {
-    @Test
-    public void shouldMatchOwnUrl() throws Exception
-    {
-        OpenapiServer model = new OpenapiServer();
-        model.url = "http://localhost:9090/prod";
-
-        Openapi spec = new Openapi();
-        spec.servers = List.of(model);
-
-        OpenapiServerView server = OpenapiView.of(spec).servers.get(0);
-
-        assertTrue(server.matches("http://localhost:9090/prod"));
-        assertFalse(server.matches("http://localhost:8080/qa"));
-    }
-
     @Test
     public void shouldMergeOperationPathOntoOwnUrl() throws Exception
     {

@@ -128,36 +128,17 @@ public final class OpenapiBindingConfig
             .orElse(null);
     }
 
-    public URI resolveServer(
-        OpenapiServerView server,
-        String specLabel,
-        boolean singular)
-    {
-        final String override = resolveServerOverride(specLabel);
-
-        return override != null && (singular || server.matches(override))
-            ? OpenapiServerView.resolvePorts(URI.create(override))
-            : server.url;
-    }
-
-    public URI resolveServer(
-        OpenapiServerView server,
+    public URI resolveBaseURL(
         String specLabel)
     {
-        final String override = resolveServerOverride(specLabel);
-
-        return override != null ? OpenapiServerView.resolvePorts(URI.create(override)) : server.url;
-    }
-
-    private String resolveServerOverride(
-        String specLabel)
-    {
-        return options.specs.stream()
+        final String override = options.specs.stream()
             .filter(s -> specLabel.equals(s.label))
             .map(s -> s.server)
             .filter(Objects::nonNull)
             .findFirst()
             .orElse(null);
+
+        return override != null ? OpenapiServerView.resolvePorts(URI.create(override)) : null;
     }
 
     public OpenapiBeginExFW resolve(
@@ -186,7 +167,8 @@ public final class OpenapiBindingConfig
 
         if (server != null)
         {
-            final URI effective = resolveServer(server, specLabel);
+            final URI base = resolveBaseURL(specLabel);
+            final URI effective = base != null ? base : server.url;
             final String scheme = effective.getScheme();
             final String authority = authority(effective);
 

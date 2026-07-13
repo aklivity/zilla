@@ -36,7 +36,6 @@ public final class OpenapiServerView
     public final URI url;
 
     private final Map<String, Object> extensions;
-    private final VariableMatcher matcher;
 
     static OpenapiServer defaultServer()
     {
@@ -55,7 +54,7 @@ public final class OpenapiServerView
                     .collect(toMap(v -> v.name, identity()))
                 : Map.of();
 
-        this.matcher = model.url != null
+        VariableMatcher matcher = model.url != null
                 ? new VariableMatcher(variables::get, model.url)
                 : null;
         this.url = matcher != null ? resolvePorts(URI.create(matcher.resolve(null))) : null;
@@ -73,12 +72,6 @@ public final class OpenapiServerView
         Class<T> type)
     {
         return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
-    }
-
-    public boolean matches(
-        String candidate)
-    {
-        return matcher != null && matcher.matches(candidate);
     }
 
     public String requestPath(

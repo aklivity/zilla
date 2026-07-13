@@ -150,6 +150,7 @@ bindings:
     options:
       specs:
         petstore:
+          server: http://localhost:9090/prod
           catalog:
             catalog0:
               subject: petstore

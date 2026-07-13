@@ -143,13 +143,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
 
             private URI resolveServer()
             {
-                return config.options.specs.stream()
-                    .filter(s -> schema.specLabel.equals(s.label))
-                    .map(s -> s.server)
-                    .filter(server -> server != null)
-                    .findFirst()
-                    .map(URI::create)
-                    .orElse(null);
+                return config.resolveBaseURL(schema.specLabel);
             }
 
             private Optional<String> resolveScheme()
@@ -250,16 +244,16 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             {
                 resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
 
+                final URI base = config.resolveBaseURL(schema.specLabel);
+
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasResponses)
                     .forEach(operation ->
-                    {
-                        final boolean singular = operation.servers.size() == 1;
                         operation.servers.forEach(server ->
                         {
-                            final URI effective = config.resolveServer(server, schema.specLabel, singular);
+                            final URI effective = base != null ? base : server.url;
                             options
                                 .request()
                                     .path(OpenapiServerView.requestPath(effective, operation.path))
