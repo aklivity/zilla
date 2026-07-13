@@ -204,11 +204,13 @@ bindings:
     options:
       specs:
         http_api:
+          server: http://localhost:8080
           catalog:
             catalog0:
               subject: petstore
               version: latest
         kafka_api:
+          server: kafka-secure://localhost:9092
           catalog:
             catalog1:
               subject: petstore

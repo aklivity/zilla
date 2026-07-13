@@ -132,6 +132,10 @@
                                                 "additionalProperties": false
                                             }
                                         },
+                                        "required":
+                                        [
+                                            "server"
+                                        ],
                                         "additionalProperties": false
                                     }
                                 },

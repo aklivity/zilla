@@ -145,11 +145,13 @@ bindings:
     options:
       specs:
         mqtt_api:
+          server: mqtt://localhost:1883
           catalog:
             catalog0:
               subject: smartylighting
               version: latest
         kafka_api:
+          server: kafka://localhost:9092
           catalog:
             catalog1:
               subject: sensor

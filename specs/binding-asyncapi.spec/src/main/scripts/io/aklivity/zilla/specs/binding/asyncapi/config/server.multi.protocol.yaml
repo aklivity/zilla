@@ -198,6 +198,7 @@ bindings:
               subject: smartylighting
               version: latest
         http_api:
+          server: 'localhost:8080'
           catalog:
             catalog1:
               subject: petstore
