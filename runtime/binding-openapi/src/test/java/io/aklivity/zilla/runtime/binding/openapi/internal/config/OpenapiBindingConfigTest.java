@@ -14,35 +14,84 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static org.junit.Assert.assertEquals;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.Openapi;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServerVariable;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public class OpenapiBindingConfigTest
 {
-    @Test
-    public void shouldWhollyReplaceSingleServerUrlWithOverride()
+    @Rule
+    public MockitoRule rule = MockitoJUnit.rule();
+
+    @Mock
+    private EngineContext context;
+
+    private OpenapiBindingConfig newBindingConfig(
+        String override)
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("openapi")
+            .kind(SERVER)
+            .options(OpenapiOptionsConfig.builder()
+                .spec(new OpenapiSpecificationConfig(
+                    "petstore",
+                    override,
+                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
+                    null))
+                .build())
+            .exit("openapi0")
+            .build();
+        binding.resolveId = name -> 1L;
+
+        return new OpenapiBindingConfig(
+            context, binding, new HttpBeginExFW(), new HttpBeginExFW.Builder(),
+            new UnsafeBufferEx(new byte[1024]), 0);
+    }
+
+    private static OpenapiServerView server(
+        String url)
     {
         OpenapiServer model = new OpenapiServer();
-        model.url = "http://localhost:8080/v1";
+        model.url = url;
 
         Openapi spec = new Openapi();
         spec.servers = List.of(model);
 
-        OpenapiServerView server = OpenapiView.of(spec).servers.get(0);
+        return OpenapiView.of(spec).servers.get(0);
+    }
+
+    @Test
+    public void shouldWhollyReplaceSingleServerUrlWithOverride()
+    {
+        OpenapiServerView server = server("http://localhost:8080/v1");
+        OpenapiBindingConfig binding = newBindingConfig("https://frontend.example.com/apis");
 
         assertEquals(URI.create("https://frontend.example.com:443/apis"),
-            OpenapiBindingConfig.resolveEffectiveUrl(server, "https://frontend.example.com/apis", true));
+            binding.resolveServer(server, "petstore", true));
     }
 
     @Test
@@ -60,9 +109,9 @@ public class OpenapiBindingConfigTest
         spec.servers = List.of(model);
 
         OpenapiServerView server = OpenapiView.of(spec).servers.get(0);
+        OpenapiBindingConfig binding = newBindingConfig("http://dev.example.com");
 
-        assertEquals(URI.create("http://dev.example.com:80"),
-            OpenapiBindingConfig.resolveEffectiveUrl(server, "http://dev.example.com", true));
+        assertEquals(URI.create("http://dev.example.com:80"), binding.resolveServer(server, "petstore", true));
     }
 
     @Test
@@ -82,23 +131,28 @@ public class OpenapiBindingConfigTest
         OpenapiServerView qa = view.servers.get(1);
 
         final String override = "http://localhost:9090/prod";
+        OpenapiBindingConfig binding = newBindingConfig(override);
 
-        assertEquals(URI.create(override), OpenapiBindingConfig.resolveEffectiveUrl(prod, override, false));
-        assertEquals(qa.url, OpenapiBindingConfig.resolveEffectiveUrl(qa, override, false));
+        assertEquals(URI.create(override), binding.resolveServer(prod, "petstore", false));
+        assertEquals(qa.url, binding.resolveServer(qa, "petstore", false));
     }
 
     @Test
     public void shouldReturnCanonicalUrlWhenNoOverride()
     {
-        OpenapiServer model = new OpenapiServer();
-        model.url = "http://localhost:8080/v1";
+        OpenapiServerView server = server("http://localhost:8080/v1");
+        OpenapiBindingConfig binding = newBindingConfig(null);
 
-        Openapi spec = new Openapi();
-        spec.servers = List.of(model);
+        assertEquals(server.url, binding.resolveServer(server, "petstore", true));
+        assertEquals(server.url, binding.resolveServer(server, "petstore"));
+    }
 
-        OpenapiServerView server = OpenapiView.of(spec).servers.get(0);
+    @Test
+    public void shouldReturnCanonicalUrlWhenSpecLabelDoesNotMatch()
+    {
+        OpenapiServerView server = server("http://localhost:8080/v1");
+        OpenapiBindingConfig binding = newBindingConfig("https://frontend.example.com/apis");
 
-        assertEquals(server.url, OpenapiBindingConfig.resolveEffectiveUrl(server, null));
-        assertEquals(server.url, OpenapiBindingConfig.resolveEffectiveUrl(server, null, true));
+        assertEquals(server.url, binding.resolveServer(server, "other-spec", true));
     }
 }

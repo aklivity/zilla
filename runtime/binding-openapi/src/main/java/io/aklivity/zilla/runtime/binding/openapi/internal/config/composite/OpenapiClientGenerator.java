@@ -250,8 +250,6 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             {
                 resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
 
-                final String override = config.resolveServerOverride(schema.specLabel);
-
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
@@ -261,7 +259,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         final boolean singular = operation.servers.size() == 1;
                         operation.servers.forEach(server ->
                         {
-                            final URI effective = OpenapiBindingConfig.resolveEffectiveUrl(server, override, singular);
+                            final URI effective = config.resolveServer(server, schema.specLabel, singular);
                             options
                                 .request()
                                     .path(OpenapiServerView.requestPath(effective, operation.path))

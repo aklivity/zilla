@@ -128,7 +128,28 @@ public final class OpenapiBindingConfig
             .orElse(null);
     }
 
-    public String resolveServerOverride(
+    public URI resolveServer(
+        OpenapiServerView server,
+        String specLabel,
+        boolean singular)
+    {
+        final String override = resolveServerOverride(specLabel);
+
+        return override != null && (singular || server.matches(override))
+            ? OpenapiServerView.resolvePorts(URI.create(override))
+            : server.url;
+    }
+
+    public URI resolveServer(
+        OpenapiServerView server,
+        String specLabel)
+    {
+        final String override = resolveServerOverride(specLabel);
+
+        return override != null ? OpenapiServerView.resolvePorts(URI.create(override)) : server.url;
+    }
+
+    private String resolveServerOverride(
         String specLabel)
     {
         return options.specs.stream()
@@ -137,23 +158,6 @@ public final class OpenapiBindingConfig
             .filter(Objects::nonNull)
             .findFirst()
             .orElse(null);
-    }
-
-    public static URI resolveEffectiveUrl(
-        OpenapiServerView server,
-        String override,
-        boolean singular)
-    {
-        return override != null && (singular || server.matches(override))
-            ? OpenapiServerView.resolvePorts(URI.create(override))
-            : server.url;
-    }
-
-    public static URI resolveEffectiveUrl(
-        OpenapiServerView server,
-        String override)
-    {
-        return override != null ? OpenapiServerView.resolvePorts(URI.create(override)) : server.url;
     }
 
     public OpenapiBeginExFW resolve(
@@ -182,8 +186,7 @@ public final class OpenapiBindingConfig
 
         if (server != null)
         {
-            final String override = resolveServerOverride(specLabel);
-            final URI effective = resolveEffectiveUrl(server, override);
+            final URI effective = resolveServer(server, specLabel);
             final String scheme = effective.getScheme();
             final String authority = authority(effective);
 

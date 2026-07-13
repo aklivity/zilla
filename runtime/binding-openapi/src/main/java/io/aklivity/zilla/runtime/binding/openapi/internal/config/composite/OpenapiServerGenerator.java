@@ -261,8 +261,6 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
-                final String override = config.resolveServerOverride(schema.specLabel);
-
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
@@ -272,7 +270,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         final boolean singular = operation.servers.size() == 1;
                         operation.servers.forEach(server ->
                         {
-                            final URI effective = OpenapiBindingConfig.resolveEffectiveUrl(server, override, singular);
+                            final URI effective = config.resolveServer(server, schema.specLabel, singular);
                             options
                                 .request()
                                     .path(OpenapiServerView.requestPath(effective, operation.path))
@@ -378,8 +376,6 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectHttpRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                final String override = config.resolveServerOverride(schema.specLabel);
-
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
@@ -391,8 +387,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         IntStream.range(0, operation.servers.size())
                             .forEach(i ->
                             {
-                                final URI effective = OpenapiBindingConfig.resolveEffectiveUrl(
-                                    operation.servers.get(i), override, singular);
+                                final URI effective = config.resolveServer(
+                                    operation.servers.get(i), schema.specLabel, singular);
                                 binding
                                     .route()
                                     .exit(config.qname)
