@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -42,13 +43,14 @@ public class AsyncapiReplyView
 
     AsyncapiReplyView(
         AsyncapiResolver resolver,
+        List<AsyncapiServerView> specServers,
         AsyncapiReply model)
     {
         this.address = model.address != null
                 ? model.address.location
                 : null;
         this.channel = model.channel != null
-            ? new AsyncapiChannelView(resolver, model.channel)
+            ? new AsyncapiChannelView(resolver, specServers, model.channel)
             : null;
         this.extensions = model.extensions;
     }

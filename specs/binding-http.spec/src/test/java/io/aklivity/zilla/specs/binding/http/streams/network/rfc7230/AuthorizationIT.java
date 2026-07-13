@@ -206,4 +206,44 @@ public class AuthorizationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/inject.credentials.header/client",
+        "${net}/inject.credentials.header/server",
+    })
+    public void shouldInjectCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/inject.credentials.header.basic/client",
+        "${net}/inject.credentials.header.basic/server",
+    })
+    public void shouldInjectCredentialsHeaderWithBasicAuth() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/inject.credentials.cookie/client",
+        "${net}/inject.credentials.cookie/server",
+    })
+    public void shouldInjectCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/inject.credentials.query/client",
+        "${net}/inject.credentials.query/server",
+    })
+    public void shouldInjectCredentialsQuery() throws Exception
+    {
+        k3po.finish();
+    }
 }

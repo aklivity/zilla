@@ -33,6 +33,7 @@ public final class AsyncapiOperationView
     public final List<AsyncapiMessageView> messages;
     public final List<AsyncapiSecuritySchemeView> security;
     public final List<String> tags;
+    public final List<AsyncapiServerView> servers;
 
     private final Map<String, Object> bindings;
     private final Map<String, Object> extensions;
@@ -84,11 +85,11 @@ public final class AsyncapiOperationView
         this.bindings = resolved.bindings;
         this.extensions = resolved.extensions;
         this.channel = resolved.channel != null
-                ? new AsyncapiChannelView(resolver, resolved.channel)
+                ? new AsyncapiChannelView(resolver, specification.servers, resolved.channel)
                 : null;
         this.action = resolved.action;
         this.reply = resolved.reply != null
-                ? new AsyncapiReplyView(resolver, resolved.reply)
+                ? new AsyncapiReplyView(resolver, specification.servers, resolved.reply)
                 : null;
         this.messages = resolved.messages != null
             ? resolved.messages.stream()
@@ -105,5 +106,6 @@ public final class AsyncapiOperationView
                     .map(tag -> tag.name)
                     .toList()
                 : null;
+        this.servers = channel != null ? channel.servers : specification.servers;
     }
 }

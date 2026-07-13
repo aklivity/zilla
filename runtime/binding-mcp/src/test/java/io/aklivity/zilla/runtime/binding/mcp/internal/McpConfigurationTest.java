@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MC
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_CLIENT_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_ELICITATION_ID;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_ELICIT_CORRELATION_ID;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_HYDRATE_ATTEMPTS_MAX;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_HYDRATE_FILTER;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_INACTIVITY_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_KEEPALIVE_TOLERANCE;
@@ -51,7 +50,6 @@ public class McpConfigurationTest
     public static final String MCP_INACTIVITY_TIMEOUT_NAME = "zilla.binding.mcp.inactivity.timeout";
     public static final String MCP_SESSION_ID_ATTEMPTS_NAME = "zilla.binding.mcp.session.id.attempts";
     public static final String MCP_KEEPALIVE_TOLERANCE_NAME = "zilla.binding.mcp.keepalive.tolerance";
-    public static final String MCP_HYDRATE_ATTEMPTS_MAX_NAME = "zilla.binding.mcp.hydrate.attempts.max";
     public static final String MCP_SSE_KEEPALIVE_INTERVAL_NAME = "zilla.binding.mcp.sse.keepalive.interval";
     public static final String MCP_ALT_SVC_ENABLED_NAME = "zilla.binding.mcp.alt.svc.enabled";
     public static final String MCP_ALT_SVC_MAX_AGE_NAME = "zilla.binding.mcp.alt.svc.max.age";
@@ -74,7 +72,6 @@ public class McpConfigurationTest
         assertEquals(MCP_INACTIVITY_TIMEOUT.name(), MCP_INACTIVITY_TIMEOUT_NAME);
         assertEquals(MCP_SESSION_ID_ATTEMPTS.name(), MCP_SESSION_ID_ATTEMPTS_NAME);
         assertEquals(MCP_KEEPALIVE_TOLERANCE.name(), MCP_KEEPALIVE_TOLERANCE_NAME);
-        assertEquals(MCP_HYDRATE_ATTEMPTS_MAX.name(), MCP_HYDRATE_ATTEMPTS_MAX_NAME);
         assertEquals(MCP_SSE_KEEPALIVE_INTERVAL.name(), MCP_SSE_KEEPALIVE_INTERVAL_NAME);
         assertEquals(MCP_ALT_SVC_ENABLED.name(), MCP_ALT_SVC_ENABLED_NAME);
         assertEquals(MCP_ALT_SVC_MAX_AGE.name(), MCP_ALT_SVC_MAX_AGE_NAME);
