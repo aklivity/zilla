@@ -47,9 +47,9 @@ public final class ZillaLogsCommand extends ZillaCommand
     private static final int EVENT_COUNT_LIMIT = 8192;
     private static final long POLL_INTERVAL_MILLIS = 500L;
 
-    @Option(name = {"--filter"},
-        description = "Only show events whose type name matches this glob pattern (supports * and ?)")
-    public String filter;
+    @Option(name = {"--format"},
+        description = "Output format: text (default) or json")
+    public String format;
 
     @Option(name = {"-f", "--follow"},
         description = "Keep printing new events as they arrive after printing the current log")
@@ -92,14 +92,13 @@ public final class ZillaLogsCommand extends ZillaCommand
             LogsReader reader = new LogsReader(engine.supplyEventReader(), engine.supplyEventFormatter()::format,
                 engine::supplyQName, engine::supplyLocalName);
 
-            boolean matched = false;
+            boolean json = parseFormat(format);
             boolean polling = true;
             while (polling)
             {
                 List<LogRecord> records = reader.read(EVENT_COUNT_LIMIT);
 
-                LogsPrinter printer = new LogsPrinter(records, filter);
-                matched = printer.print(System.out) || matched;
+                new LogsPrinter(records, json).print(System.out);
 
                 polling = follow;
                 if (polling)
@@ -107,17 +106,31 @@ public final class ZillaLogsCommand extends ZillaCommand
                     sleep(POLL_INTERVAL_MILLIS);
                 }
             }
-
-            if (filter != null && !follow && !matched)
-            {
-                throw new IllegalStateException(String.format("No events matched filter: %s", filter));
-            }
         }
         catch (Throwable ex)
         {
             ex.printStackTrace();
             rethrowUnchecked(ex);
         }
+    }
+
+    private static boolean parseFormat(
+        String format)
+    {
+        boolean json;
+        if (format == null || "text".equals(format))
+        {
+            json = false;
+        }
+        else if ("json".equals(format))
+        {
+            json = true;
+        }
+        else
+        {
+            throw new IllegalArgumentException(String.format("Unknown format: %s", format));
+        }
+        return json;
     }
 
     private static void sleep(

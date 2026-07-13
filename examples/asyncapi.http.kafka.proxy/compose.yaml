@@ -14,7 +14,7 @@ services:
       timeout: 15s
       retries: 8
       start_period: 45s
-      test: ["CMD", "/opt/zilla/zilla", "logs", "--filter", "engine.started"]
+      test: ["CMD", "sh", "-c", "/opt/zilla/zilla logs | grep -q engine.started"]
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
       ZILLA_INCUBATOR_ENABLED: "true"

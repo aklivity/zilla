@@ -20,81 +20,62 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.regex.Pattern;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 
 public final class LogsPrinter
 {
-    private static final String FORMAT = "%s [%s] [%016x] %s %s%n";
+    private static final String TEXT_FORMAT = "%s [%s] [%016x] %s %s%n";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
     private final List<LogRecord> records;
-    private final Pattern filter;
+    private final boolean json;
 
     public LogsPrinter(
         List<LogRecord> records,
-        String filter)
+        boolean json)
     {
         this.records = records;
-        this.filter = filter != null ? compileGlob(filter) : null;
+        this.json = json;
     }
 
-    public boolean print(
+    public void print(
         PrintStream out)
     {
-        boolean matched = false;
         for (LogRecord record : records)
         {
-            if (filter == null || filter.matcher(record.eventName()).matches())
+            if (json)
             {
-                out.format(FORMAT, record.qualifiedName(), asDateTime(record.timestamp()), record.traceId(),
-                    record.eventName(), record.message());
-
-                if (filter != null)
-                {
-                    matched = true;
-                }
+                printJson(out, record);
+            }
+            else
+            {
+                printText(out, record);
             }
         }
-
-        return matched;
     }
 
-    private static Pattern compileGlob(
-        String glob)
+    private static void printText(
+        PrintStream out,
+        LogRecord record)
     {
-        StringBuilder regex = new StringBuilder("^");
-        for (int i = 0; i < glob.length(); i++)
-        {
-            char c = glob.charAt(i);
-            switch (c)
-            {
-            case '*':
-                regex.append(".*");
-                break;
-            case '?':
-                regex.append('.');
-                break;
-            case '.':
-            case '\\':
-            case '+':
-            case '(':
-            case ')':
-            case '[':
-            case ']':
-            case '{':
-            case '}':
-            case '^':
-            case '$':
-            case '|':
-                regex.append('\\').append(c);
-                break;
-            default:
-                regex.append(c);
-                break;
-            }
-        }
-        regex.append('$');
-        return Pattern.compile(regex.toString());
+        out.format(TEXT_FORMAT, record.qualifiedName(), asDateTime(record.timestamp()), record.traceId(),
+            record.eventName(), record.message());
+    }
+
+    private static void printJson(
+        PrintStream out,
+        LogRecord record)
+    {
+        JsonObject json = Json.createObjectBuilder()
+            .add("namespace", record.qualifiedName())
+            .add("timestamp", record.timestamp())
+            .add("traceId", String.format("%016x", record.traceId()))
+            .add("event", record.eventName())
+            .add("message", record.message())
+            .build();
+        out.println(json.toString());
     }
 
     private static String asDateTime(

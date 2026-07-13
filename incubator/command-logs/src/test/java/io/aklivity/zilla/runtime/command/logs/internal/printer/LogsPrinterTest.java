@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.command.logs.internal.printer;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayOutputStream;
@@ -33,7 +32,7 @@ public class LogsPrinterTest
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
     @Test
-    public void shouldPrintAllRecordsWhenNoFilter() throws Exception
+    public void shouldPrintTextFormatByDefault() throws Exception
     {
         // GIVEN
         LogRecord started = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Engine Started.");
@@ -42,109 +41,83 @@ public class LogsPrinterTest
             String.format("engine:events [%s] [000000000000002a] engine.started Engine Started.%n", asDateTime(1000L)) +
             String.format("engine:events [%s] [000000000000002a] engine.stopped Engine Stopped.%n", asDateTime(2000L));
 
-        LogsPrinter printer = new LogsPrinter(List.of(started, stopped), null);
+        LogsPrinter printer = new LogsPrinter(List.of(started, stopped), false);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        boolean matched = printer.print(out);
+        printer.print(out);
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(expectedOutput));
-        assertThat(matched, is(false));
     }
 
     @Test
-    public void shouldFilterRecordsByExactPattern() throws Exception
+    public void shouldPrintJsonFormatWhenRequested() throws Exception
     {
         // GIVEN
         LogRecord started = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Engine Started.");
-        LogRecord stopped = new LogRecord(2000L, 0x2aL, "engine:events", "engine.stopped", "Engine Stopped.");
-        String expectedOutput =
-            String.format("engine:events [%s] [000000000000002a] engine.started Engine Started.%n", asDateTime(1000L));
+        String expectedOutput = "{\"namespace\":\"engine:events\",\"timestamp\":1000,\"traceId\":\"000000000000002a\"," +
+            "\"event\":\"engine.started\",\"message\":\"Engine Started.\"}" + System.lineSeparator();
 
-        LogsPrinter printer = new LogsPrinter(List.of(started, stopped), "engine.started");
+        LogsPrinter printer = new LogsPrinter(List.of(started), true);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        boolean matched = printer.print(out);
+        printer.print(out);
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(expectedOutput));
-        assertThat(matched, is(true));
     }
 
     @Test
-    public void shouldFilterRecordsByWildcardPattern() throws Exception
+    public void shouldEscapeSpecialCharactersInJsonMessage() throws Exception
     {
         // GIVEN
-        LogRecord started = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Engine Started.");
-        LogRecord stopped = new LogRecord(2000L, 0x2aL, "engine:events", "engine.stopped", "Engine Stopped.");
-        String expectedOutput =
-            String.format("engine:events [%s] [000000000000002a] engine.started Engine Started.%n", asDateTime(1000L)) +
-            String.format("engine:events [%s] [000000000000002a] engine.stopped Engine Stopped.%n", asDateTime(2000L));
+        LogRecord withQuotes = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Said \"hello\".");
+        String expectedOutput = "{\"namespace\":\"engine:events\",\"timestamp\":1000,\"traceId\":\"000000000000002a\"," +
+            "\"event\":\"engine.started\",\"message\":\"Said \\\"hello\\\".\"}" + System.lineSeparator();
 
-        LogsPrinter printer = new LogsPrinter(List.of(started, stopped), "engine.*");
+        LogsPrinter printer = new LogsPrinter(List.of(withQuotes), true);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        boolean matched = printer.print(out);
+        printer.print(out);
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(expectedOutput));
-        assertThat(matched, is(true));
     }
 
     @Test
-    public void shouldNotMatchPatternWhenAbsent() throws Exception
+    public void shouldPrintNothingWhenEmptyAndText() throws Exception
     {
         // GIVEN
-        LogRecord started = new LogRecord(1000L, 0x2aL, "engine:events", "engine.started", "Engine Started.");
-        LogsPrinter printer = new LogsPrinter(List.of(started), "engine.stopped");
+        LogsPrinter printer = new LogsPrinter(List.of(), false);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        boolean matched = printer.print(out);
+        printer.print(out);
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(""));
-        assertThat(matched, is(false));
     }
 
     @Test
-    public void shouldTreatDotAsLiteralNotAnyCharacter() throws Exception
+    public void shouldPrintNothingWhenEmptyAndJson() throws Exception
     {
         // GIVEN
-        LogRecord decoy = new LogRecord(1000L, 0x2aL, "engine:events", "enginexstarted", "Decoy.");
-        LogsPrinter printer = new LogsPrinter(List.of(decoy), "engine.started");
+        LogsPrinter printer = new LogsPrinter(List.of(), true);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        boolean matched = printer.print(out);
+        printer.print(out);
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(""));
-        assertThat(matched, is(false));
-    }
-
-    @Test
-    public void shouldPrintNothingWhenEmpty() throws Exception
-    {
-        // GIVEN
-        LogsPrinter printer = new LogsPrinter(List.of(), "engine.started");
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        PrintStream out = new PrintStream(os);
-
-        // WHEN
-        boolean matched = printer.print(out);
-
-        // THEN
-        assertThat(os.toString("UTF8"), equalTo(""));
-        assertThat(matched, is(false));
     }
 
     private static String asDateTime(
