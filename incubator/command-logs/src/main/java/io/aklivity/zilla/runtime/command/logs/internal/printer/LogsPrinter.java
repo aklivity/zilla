@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import jakarta.json.Json;
-import jakarta.json.JsonObject;
+import jakarta.json.stream.JsonGenerator;
 
 public final class LogsPrinter
 {
@@ -68,14 +68,16 @@ public final class LogsPrinter
         PrintStream out,
         LogRecord record)
     {
-        JsonObject json = Json.createObjectBuilder()
-            .add("namespace", record.qualifiedName())
-            .add("timestamp", record.timestamp())
-            .add("traceId", String.format("%016x", record.traceId()))
-            .add("event", record.eventName())
-            .add("message", record.message())
-            .build();
-        out.println(json.toString());
+        JsonGenerator generator = Json.createGenerator(out);
+        generator.writeStartObject()
+            .write("namespace", record.qualifiedName())
+            .write("timestamp", record.timestamp())
+            .write("traceId", String.format("%016x", record.traceId()))
+            .write("event", record.eventName())
+            .write("message", record.message())
+            .writeEnd();
+        generator.flush();
+        out.println();
     }
 
     private static String asDateTime(
