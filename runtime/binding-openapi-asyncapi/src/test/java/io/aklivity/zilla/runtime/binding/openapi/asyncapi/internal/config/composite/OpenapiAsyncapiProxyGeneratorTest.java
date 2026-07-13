@@ -445,4 +445,38 @@ public class OpenapiAsyncapiProxyGeneratorTest
 
         assertThat(httpKafka.routes, empty());
     }
+
+    @Test
+    public void shouldIgnoreAsyncapiSideSecurity()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("openapi-asyncapi")
+            .kind(PROXY)
+            .options(new OpenapiAsyncapiOptionsConfig(new OpenapiAsyncapiSpecConfig(
+                Set.of(new OpenapiSpecificationConfig(
+                    "openapi-id",
+                    null,
+                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
+                    null)),
+                Set.of(AsyncapiSpecificationConfig.builder()
+                    .label("asyncapi-id")
+                    .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
+                    .security("kafkaAuth", "guard0")
+                    .build()))))
+            .route()
+                .exit("asyncapi_client0")
+                .when(new OpenapiAsyncapiConditionConfig("openapi-id", null))
+                .with(new OpenapiAsyncapiWithConfig("asyncapi-id", null, null))
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context, binding));
+
+        RouteConfig route = routeFor(composite, "/mapped");
+
+        assertThat(route.guarded, empty());
+    }
 }
