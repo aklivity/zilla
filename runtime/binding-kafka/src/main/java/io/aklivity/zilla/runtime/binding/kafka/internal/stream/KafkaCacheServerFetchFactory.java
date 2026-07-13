@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheC
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_AUTHORITATIVE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_CONTROL;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheRoute.LEADER_UNKNOWN;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_STABLE_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
@@ -207,7 +208,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
-        final long affinity = begin.affinity();
         final long authorization = begin.authorization();
 
         assert (initialId & 0x0000_0000_0000_0001L) != 0L;
@@ -235,6 +235,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long resolvedId = resolved.id;
             final KafkaCacheRoute cacheRoute = supplyCacheRoute.apply(resolvedId);
             final long partitionKey = cacheRoute.topicPartitionKey(topicName, partitionId);
+            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
+            final int leaderId = leadersByPartitionId.get(partitionId);
 
             KafkaCacheServerFetchFanout fanout = cacheRoute.serverFetchFanoutsByTopicPartition.get(partitionKey);
             if (fanout == null)
@@ -248,14 +250,11 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaTopicType topicType = binding.resolveTopicType(topicName);
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
-                        affinity, partition, routeDeltaType, defaultOffset, topicType);
+                        leaderId, leadersByPartitionId, partition, routeDeltaType, defaultOffset, topicType);
 
                 cacheRoute.serverFetchFanoutsByTopicPartition.put(partitionKey, newFanout);
                 fanout = newFanout;
             }
-
-            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
-            final int leaderId = leadersByPartitionId.get(partitionId);
 
             newStream = new KafkaCacheServerFetchStream(
                     fanout,
@@ -480,6 +479,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final long originId;
         private final long routedId;
         private final long authorization;
+        private final Int2IntHashMap leadersByPartitionId;
         private final KafkaCachePartition partition;
         private final KafkaDeltaType deltaType;
         private final KafkaOffsetType defaultOffset;
@@ -521,6 +521,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             long routedId,
             long authorization,
             long leaderId,
+            Int2IntHashMap leadersByPartitionId,
             KafkaCachePartition partition,
             KafkaDeltaType deltaType,
             KafkaOffsetType defaultOffset,
@@ -529,6 +530,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
+            this.leadersByPartitionId = leadersByPartitionId;
             this.partition = partition;
             this.deltaType = deltaType;
             this.defaultOffset = defaultOffset;
@@ -546,7 +548,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             long traceId,
             KafkaCacheServerFetchStream member)
         {
-            if (member.leaderId != leaderId)
+            if (member.leaderId != leaderId && member.leaderId != LEADER_UNKNOWN)
             {
                 doServerFanoutInitialAbortIfNecessary(traceId);
                 doServerFanoutReplyResetIfNecessary(traceId);
@@ -602,7 +604,42 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             if (!KafkaState.initialOpening(state))
             {
-                doServerFanoutInitialBegin(traceId);
+                if (leaderId == LEADER_UNKNOWN)
+                {
+                    leaderId = leadersByPartitionId.get(partition.id());
+                }
+
+                if (leaderId != LEADER_UNKNOWN)
+                {
+                    doServerFanoutInitialBegin(traceId);
+                }
+                else
+                {
+                    doServerFanoutDiscoverLeaderIfNecessary(traceId);
+                }
+            }
+        }
+
+        private void doServerFanoutDiscoverLeaderIfNecessary(
+            long traceId)
+        {
+            if (reconnectDelay != 0 && !members.isEmpty())
+            {
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[0x%016x] %s FETCH leader unknown, retry in %ds\n",
+                        initialId, partition, reconnectDelay);
+                }
+
+                if (reconnectAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(reconnectAt);
+                }
+
+                this.reconnectAt = signaler.signalAt(
+                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    SIGNAL_RECONNECT,
+                    this::onServerFanoutSignal);
             }
         }
 
@@ -1382,7 +1419,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long traceId = begin.traceId();
             final long affinity = begin.affinity();
 
-            if (affinity != leaderId)
+            if (affinity != leaderId && leaderId != LEADER_UNKNOWN)
             {
                 cleanupServer(traceId, ERROR_NOT_LEADER_FOR_PARTITION);
             }

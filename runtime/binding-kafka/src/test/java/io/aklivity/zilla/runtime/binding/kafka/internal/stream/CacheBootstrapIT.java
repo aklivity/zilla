@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_INDEX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -32,6 +33,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class CacheBootstrapIT
 {
@@ -96,6 +98,32 @@ public class CacheBootstrapIT
         "${app}/unmerged.group.fetch.message.value/server"})
     public void shouldReceiveGroupMessageValue() throws Exception
     {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.bootstrap.yaml")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${app}/unmerged.fetch.reconnect.after.describe.error/server"})
+    public void shouldReconnectBootstrapAfterDescribeError() throws Exception
+    {
+        Thread.sleep(500);
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_MESSAGE");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.bootstrap.yaml")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${app}/unmerged.fetch.reconnect.after.fetch.error/server"})
+    public void shouldReconnectBootstrapAfterFetchError() throws Exception
+    {
+        Thread.sleep(500);
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_MESSAGE");
         k3po.finish();
     }
 }
