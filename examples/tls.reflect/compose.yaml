@@ -9,7 +9,7 @@ services:
     healthcheck:
       interval: 5s
       timeout: 3s
-      retries: 9
+      retries: 15
       start_period: 15s
       test: ["CMD", "sh", "-c", "zilla logs | grep -q engine.started"]
     environment:
