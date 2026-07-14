@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
@@ -198,40 +197,31 @@ public class AsyncapiConditionConfigAdapterTest
     }
 
     @Test
-    public void shouldMatchServerByLiteralUrlRegardlessOfOverride() throws Exception
+    public void shouldMatchServerByUrlForAsyncapi3HostProtocolStyleServer() throws Exception
     {
         Asyncapi model = new AsyncapiParser().parse("""
-            asyncapi: 2.6.0
+            asyncapi: 3.0.0
             info:
               title: Test API
               version: 0.1.0
             servers:
-              staging:
-                url: 'http://{env}.example.com'
-                protocol: http
-                variables:
-                  env:
-                    default: prod
-                    enum:
-                      - prod
-                      - staging
+              production:
+                host: broker.example.com:9092
+                protocol: kafka
             channels: {}
             """);
 
-        AsyncapiServerConfig override = AsyncapiServerConfig.builder()
-            .url("http://staging.example.com")
-            .build();
-        List<AsyncapiServerView> overridden = AsyncapiView.of(model, List.of(override)).servers;
+        List<AsyncapiServerView> servers = AsyncapiView.of(model).servers;
 
-        AsyncapiConditionConfig literal = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig(null, "http://prod.example.com")));
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "kafka://broker.example.com:9092")));
 
-        assertThat(literal.matches("test", "listPets", null, overridden), equalTo(true));
+        assertThat(condition.matches("test", "listPets", null, servers), equalTo(true));
 
-        AsyncapiConditionConfig effective = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig(null, "http://staging.example.com")));
+        AsyncapiConditionConfig other = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "kafka://other.example.com:9092")));
 
-        assertThat(effective.matches("test", "listPets", null, overridden), equalTo(false));
+        assertThat(other.matches("test", "listPets", null, servers), equalTo(false));
     }
 
     @Test
@@ -260,7 +250,7 @@ public class AsyncapiConditionConfigAdapterTest
             channels: {}
             """);
 
-        AsyncapiView view = AsyncapiView.of(model, List.of(AsyncapiServerConfig.builder().build()));
+        AsyncapiView view = AsyncapiView.of(model);
 
         return view.servers;
     }

@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerP
 
 public final class KafkaCacheRoute
 {
+    public static final int LEADER_UNKNOWN = Integer.MIN_VALUE;
+
     public final long resolvedId;
     public final Int2ObjectHashMap<KafkaCacheClientDescribeFanout> clientDescribeFanoutsByTopic;
     public final Int2ObjectHashMap<KafkaCacheServerDescribeFanout> serverDescribeFanoutsByTopic;
@@ -63,7 +65,7 @@ public final class KafkaCacheRoute
     public Int2IntHashMap supplyLeadersByPartitionId(
         String topic)
     {
-        return leadersByPartitionId.computeIfAbsent(topicKey(topic), k -> new Int2IntHashMap(Integer.MIN_VALUE));
+        return leadersByPartitionId.computeIfAbsent(topicKey(topic), k -> new Int2IntHashMap(LEADER_UNKNOWN));
     }
 
 

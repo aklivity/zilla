@@ -72,7 +72,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateServerWithRouteServers()
+    public void shouldValidateServerWithMultipleServers()
     {
         JsonObject config = schema.validate("server.route.servers.yaml");
 
@@ -107,6 +107,14 @@ public class SchemaTest
     public void shouldValidateClientWithServerOverride()
     {
         JsonObject config = schema.validate("client.server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithMultipleServers()
+    {
+        JsonObject config = schema.validate("client.multiple.servers.yaml");
 
         assertThat(config, not(nullValue()));
     }

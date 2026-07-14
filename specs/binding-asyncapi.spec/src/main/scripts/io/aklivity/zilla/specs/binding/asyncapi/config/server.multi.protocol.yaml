@@ -192,12 +192,15 @@ bindings:
     options:
       specs:
         mqtt_api:
-          server: 'development.dev.example.com:1883'
+          servers:
+            - 'mqtt://development.dev.example.com:1883'
           catalog:
             catalog0:
               subject: smartylighting
               version: latest
         http_api:
+          servers:
+            - 'http://localhost:8080'
           catalog:
             catalog1:
               subject: petstore

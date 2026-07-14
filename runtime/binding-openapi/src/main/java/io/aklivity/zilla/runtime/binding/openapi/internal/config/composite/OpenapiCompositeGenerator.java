@@ -18,7 +18,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -45,7 +44,6 @@ import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
@@ -94,11 +92,7 @@ public abstract class OpenapiCompositeGenerator
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, specification, payload);
-                final List<OpenapiServerConfig> configs =
-                    specification.server != null
-                        ? List.of(OpenapiServerConfig.builder().url(specification.server).build())
-                        : List.of(OpenapiServerConfig.builder().build());
-                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized), configs);
+                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized));
 
                 unresolved.addAll(openapi.unresolvedRefs());
 
@@ -453,18 +447,6 @@ public abstract class OpenapiCompositeGenerator
 
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
-
-            protected final String resolveServerPrefix()
-            {
-                return config.options.specs.stream()
-                    .filter(s -> name.equals(s.label))
-                    .map(s -> s.server)
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .map(server -> URI.create(server).getPath())
-                    .filter(Objects::nonNull)
-                    .orElse("");
-            }
 
             protected final void injectPayloadModel(
                 Consumer<ModelConfig> injector,

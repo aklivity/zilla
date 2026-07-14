@@ -12,31 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.openapi.config;
+package io.aklivity.zilla.runtime.common.asyncapi.model.resolver;
 
-import java.util.function.Function;
+import java.util.Set;
+import java.util.regex.Pattern;
 
-public class OpenapiServerConfigBuilder<T>
+import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
+import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiServer;
+
+public final class AsyncapiServerResolver extends AbstractAsyncapiResolver<AsyncapiServer>
 {
-    private final Function<OpenapiServerConfig, T> mapper;
-
-    private String url;
-    OpenapiServerConfigBuilder(
-        Function<OpenapiServerConfig, T> mapper)
+    public AsyncapiServerResolver(
+        Asyncapi model,
+        Set<String> unresolved)
     {
-        this.mapper = mapper;
-    }
-
-    public OpenapiServerConfigBuilder<T> url(
-        String url)
-    {
-        this.url = url;
-        return this;
-    }
-
-    public T build()
-    {
-        return mapper.apply(
-            new OpenapiServerConfig(url));
+        super(model.servers, Pattern.compile("#/servers/(.+)"), unresolved);
     }
 }

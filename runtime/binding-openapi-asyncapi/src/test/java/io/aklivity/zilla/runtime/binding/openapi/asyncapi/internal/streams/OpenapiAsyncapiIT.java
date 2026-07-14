@@ -33,7 +33,8 @@ public class OpenapiAsyncapiIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("openapi", "io/aklivity/zilla/specs/binding/openapi/asyncapi/streams/openapi")
-        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/openapi/asyncapi/streams/asyncapi");
+        .addScriptRoot("asyncapi", "io/aklivity/zilla/specs/binding/openapi/asyncapi/streams/asyncapi")
+        .addScriptRoot("composite", "io/aklivity/zilla/specs/binding/openapi/asyncapi/streams/composite");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -88,6 +89,17 @@ public class OpenapiAsyncapiIT
         "${openapi}/list.pets.forbidden/client"
     })
     public void shouldRejectListPetsWhenUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.prefixed.yaml")
+    @Specification({
+        "${composite}/create.pet.prefixed/client",
+        "${asyncapi}/create.pet/server"
+    })
+    public void shouldCreatePetWithServerPathPrefix() throws Exception
     {
         k3po.finish();
     }

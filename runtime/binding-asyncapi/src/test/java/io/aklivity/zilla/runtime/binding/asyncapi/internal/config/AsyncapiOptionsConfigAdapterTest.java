@@ -67,7 +67,8 @@ public class AsyncapiOptionsConfigAdapterTest
                       catalog0:
                         subject: smartylighting
                         version: latest
-                    server: test.mosquitto.org:1883
+                    servers:
+                      - test.mosquitto.org:1883
                 tls:
                   keys:
                     - localhost
@@ -84,7 +85,7 @@ public class AsyncapiOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         AsyncapiSpecificationConfig asyncapi = options.specs.get(0);
-        assertThat(asyncapi.server, equalTo("test.mosquitto.org:1883"));
+        assertThat(asyncapi.servers, equalTo(asList("test.mosquitto.org:1883")));
         assertThat(options.tls.keys, equalTo(asList("localhost")));
         assertThat(options.tls.trust, equalTo(asList("serverca")));
         assertThat(options.tls.trustcacerts, equalTo(true));
@@ -129,7 +130,8 @@ public class AsyncapiOptionsConfigAdapterTest
             """
             specs:
               mqtt-api:
-                server: "test.mosquitto.org:1883"
+                servers:
+                  - "test.mosquitto.org:1883"
                 catalog:
                   catalog0:
                     subject: smartylighting

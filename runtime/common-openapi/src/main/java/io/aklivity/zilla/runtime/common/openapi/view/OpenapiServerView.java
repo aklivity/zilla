@@ -28,29 +28,25 @@ import java.util.regex.Pattern;
 
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
 
 public final class OpenapiServerView
 {
     public final URI url;
-    public final URI literalUrl;
-    public final boolean overridden;
 
     private final Map<String, Object> extensions;
 
-    OpenapiServerView(
-        OpenapiResolver resolver,
-        OpenapiServer model)
+    static OpenapiServer defaultServer()
     {
-        this(resolver, model, null);
+        OpenapiServer server = new OpenapiServer();
+        server.url = "/";
+        return server;
     }
 
     OpenapiServerView(
         OpenapiResolver resolver,
-        OpenapiServer model,
-        OpenapiServerConfig config)
+        OpenapiServer model)
     {
         Map<String, OpenapiVariableView> variables = model.variables != null
                 ? model.variables.entrySet().stream()
@@ -61,14 +57,7 @@ public final class OpenapiServerView
         VariableMatcher matcher = model.url != null
                 ? new VariableMatcher(variables::get, model.url)
                 : null;
-
-        this.url = matcher != null
-                ? resolvePorts(URI.create(matcher.resolve(config != null ? config.url : null)))
-                : null;
-        this.literalUrl = matcher != null
-                ? resolvePorts(URI.create(matcher.resolve(null)))
-                : null;
-        this.overridden = matcher != null && config != null && matcher.matches(config.url);
+        this.url = matcher != null ? resolvePorts(URI.create(matcher.resolve(null))) : null;
         this.extensions = model.extensions;
     }
 
@@ -85,14 +74,20 @@ public final class OpenapiServerView
         return Optional.ofNullable(extensions != null ? type.cast(extensions.get(name)) : null);
     }
 
-
     public String requestPath(
         String path)
     {
-        String serverPath = url.getPath();
+        return requestPath(url, path);
+    }
 
-        return serverPath != null && path != null
-            ? serverPath.endsWith("/") ? serverPath.concat(path.substring(1)) : serverPath.concat(path)
+    public static String requestPath(
+        URI base,
+        String path)
+    {
+        String basePath = base.getPath();
+
+        return basePath != null && path != null
+            ? basePath.endsWith("/") ? basePath.concat(path.substring(1)) : basePath.concat(path)
             : path;
     }
 
@@ -129,13 +124,13 @@ public final class OpenapiServerView
         }
     }
 
-    private static URI resolvePorts(
+    public static URI resolvePorts(
         URI url)
     {
         String scheme = url.getScheme();
         int port = url.getPort();
 
-        if (port == -1)
+        if (port == -1 && scheme != null)
         {
             String userInfo = url.getUserInfo();
             String host = url.getHost();

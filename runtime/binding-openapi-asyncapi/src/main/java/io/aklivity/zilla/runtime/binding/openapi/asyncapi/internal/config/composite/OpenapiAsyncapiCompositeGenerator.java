@@ -27,7 +27,6 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensi
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.common.json.JsonOverlay;
@@ -36,7 +35,6 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiExtension;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParserFactory;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -75,9 +73,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, openapiSpec, payload);
-                final List<OpenapiServerConfig> configs =
-                    List.of(OpenapiServerConfig.builder().build());
-                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, openapiParser.parse(materialized), configs);
+                final OpenapiView openapi = OpenapiView.of(tagIndex++, label, openapiParser.parse(materialized));
 
                 openapiSchemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, openapiSpec.security));
             }
@@ -96,9 +92,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, asyncapiSpec, payload);
-                final List<AsyncapiServerConfig> configs =
-                    List.of(AsyncapiServerConfig.builder().build());
-                final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, asyncapiParser.parse(materialized), configs);
+                final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, asyncapiParser.parse(materialized));
 
                 asyncapiSchemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi, asyncapiSpec.security));
             }

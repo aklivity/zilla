@@ -175,7 +175,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                     final String specLabel = operation.specification.label;
                     final String operationId = operation.name;
                     final AsyncapiRouteConfig route = binding.resolve(
-                        authorization, specLabel, operationId, operation.tags, operation.specification.servers);
+                        authorization, specLabel, operationId, operation.tags, operation.servers);
 
                     if (route != null)
                     {

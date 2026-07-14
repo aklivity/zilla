@@ -55,6 +55,41 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
+/**
+ * Kept as a unit test rather than converted to a k3po IT (AsyncapiProxyIT). Two distinct blockers apply:
+ *
+ * <p>{@code shouldReportClearErrorWhenMqttKafkaChannelRoleMissing} asserts a specific exception message
+ * thrown synchronously during binding {@code attach()}; no k3po/EngineRule mechanism in this repo exposes
+ * an attach-time exception's message text to a test (the closest pattern, {@code EngineRule.exceptions},
+ * only matches on test method name).
+ *
+ * <p>The {@code servers[]}-scoping tests ({@code shouldIncludeMqttKafkaRouteWhenServerNameMatches},
+ * {@code shouldExcludeMqttKafkaRouteWhenServerNameDoesNotMatch},
+ * {@code shouldExcludeMqttKafkaRouteWhenOperationNotScopedToRouteServer}) exercise the
+ * {@code AsyncapiConditionConfig.matches}/{@code matchesServers} servers-scoping condition, which only
+ * takes effect on the runtime dispatch path reached when an internal composite sub-binding (e.g.
+ * {@code mqtt_server0}) forwards into {@code asyncapi_proxy0} via a {@code compositeId}-keyed lookup
+ * (see {@code AsyncapiProxyFactory.newStream}, the {@code composite.hasBindingId(originId)} branch).
+ * Every existing {@code AsyncapiProxyIT} scenario instead connects directly to
+ * {@code zilla://streams/asyncapi_proxy0} using {@code asyncapi:beginEx().specId().operationId()}, which
+ * resolves through the coarser {@code AsyncapiCompositeConfig.resolve(specId, operationTypeId)} path — a
+ * dispatcher keyed only by spec-pair and operation type, entirely independent of {@code servers[]}
+ * scoping. Proving the scoping fix via k3po IT would require faking an internal-composite-origin
+ * connection (no established pattern exists for {@code kind: proxy}, unlike the
+ * {@code option zilla:ephemeral "test:composite0/<label>:ephemeral"} idiom already used for
+ * {@code kind: server} in {@code AsyncapiServerIT}) — new test infrastructure disproportionate to a
+ * condition already covered exhaustively by {@code AsyncapiConditionConfigAdapterTest}.
+ *
+ * <p>The SSE-Kafka guard/security tests ({@code shouldGuardMappedOperation},
+ * {@code shouldResolveIdentityUsingMappedGuard}, {@code shouldLeaveIdentityUnresolvedWhenSchemeNotMapped},
+ * {@code shouldAllowUnguardedWhenSecurityMapAbsent}) assert on generated route structure
+ * ({@code guarded}, the JUEL identity template) rather than on a stream-level behavior with no cheaper
+ * proxy; proving them via IT would require standing up a new guarded SSE-Kafka fixture (no existing
+ * fixture in this proxy family configures a guard at all) and verifying the resolved identity surfaces in
+ * the downstream Kafka message headers, which the resolve mechanism itself already gets full coverage of
+ * via {@code AsyncapiConditionConfigAdapterTest}. Kept here as unit tests rather than committing to new
+ * fixture infrastructure this pass.
+ */
 public class AsyncapiProxyGeneratorTest
 {
     private static final String SSE_SPEC =
@@ -174,6 +209,35 @@ public class AsyncapiProxyGeneratorTest
         }
         """;
 
+    private static final String MQTT_SPEC_SCOPED_SERVER =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": {
+            "broker": { "host": "localhost:1883", "protocol": "mqtt" },
+            "otherBroker": { "host": "localhost:1884", "protocol": "mqtt" }
+          },
+          "channels": {
+            "sensors": {
+              "servers": [ { "$ref": "#/servers/broker" } ],
+              "address": "sensors",
+              "messages": { "event": { "$ref": "#/components/messages/event" } }
+            }
+          },
+          "operations": {
+            "sendEvents": {
+              "action": "send",
+              "channel": { "$ref": "#/channels/sensors" },
+              "messages": [ { "$ref": "#/channels/sensors/messages/event" } ]
+            }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
     private static final String MQTT_KAFKA_SPEC_MISSING_RETAINED =
         """
         {
@@ -248,6 +312,8 @@ public class AsyncapiProxyGeneratorTest
         lenient().when(mqttKafkaCatalog.resolve(anyInt())).thenReturn(MQTT_KAFKA_SPEC);
         lenient().when(mqttKafkaCatalog.resolve(eq("missing-retained"), eq("latest"))).thenReturn(13);
         lenient().when(mqttKafkaCatalog.resolve(eq(13))).thenReturn(MQTT_KAFKA_SPEC_MISSING_RETAINED);
+        lenient().when(mqttCatalog.resolve(eq("scoped-server"), eq("latest"))).thenReturn(14);
+        lenient().when(mqttCatalog.resolve(eq(14))).thenReturn(MQTT_SPEC_SCOPED_SERVER);
     }
 
     private BindingConfig binding(
@@ -474,6 +540,51 @@ public class AsyncapiProxyGeneratorTest
                 .exit("kafka_client0")
                 .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
                     List.of(new AsyncapiConditionServerConfig("other", null))))
+                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding));
+
+        BindingConfig mqttKafka = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mqtt_kafka_proxy0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(mqttKafka.routes, empty());
+    }
+
+    @Test
+    public void shouldExcludeMqttKafkaRouteWhenOperationNotScopedToRouteServer()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(PROXY)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec()
+                    .label("mqtt-id")
+                    .catalog()
+                        .name("catalog2")
+                        .subject("scoped-server")
+                        .version("latest")
+                        .build()
+                    .build()
+                .spec()
+                    .label("kafka-mqtt-id")
+                    .catalog()
+                        .name("catalog3")
+                        .subject("test")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .exit("kafka_client0")
+                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
+                    List.of(new AsyncapiConditionServerConfig("otherBroker", null))))
                 .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
                 .build()
             .build();

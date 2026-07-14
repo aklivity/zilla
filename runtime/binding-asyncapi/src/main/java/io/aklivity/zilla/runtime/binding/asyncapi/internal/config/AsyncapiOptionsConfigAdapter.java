@@ -17,8 +17,10 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import java.util.Map;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -40,7 +42,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
-    private static final String SERVER_NAME = "server";
+    private static final String SERVERS_NAME = "servers";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String MQTT_NAME = "mqtt";
@@ -86,9 +88,11 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
                 final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
 
-                if (asyncapiConfig.server != null)
+                if (asyncapiConfig.servers != null && !asyncapiConfig.servers.isEmpty())
                 {
-                    catalogObject.add(SERVER_NAME, asyncapiConfig.server);
+                    final JsonArrayBuilder servers = Json.createArrayBuilder();
+                    asyncapiConfig.servers.forEach(servers::add);
+                    catalogObject.add(SERVERS_NAME, servers);
                 }
 
                 for (AsyncapiCatalogConfig catalog : asyncapiConfig.catalogs)
@@ -184,9 +188,12 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 
                 final JsonObject spec = entry.getValue().asJsonObject();
 
-                if (spec.containsKey(SERVER_NAME))
+                if (spec.containsKey(SERVERS_NAME))
                 {
-                    specBuilder.serverOverride(spec.getString(SERVER_NAME));
+                    for (JsonValue serverValue : spec.getJsonArray(SERVERS_NAME))
+                    {
+                        specBuilder.serverOverride(((JsonString) serverValue).getString());
+                    }
                 }
 
                 if (spec.containsKey(CATALOG_NAME))

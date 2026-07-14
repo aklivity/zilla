@@ -20,8 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -42,7 +44,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String SPECS_NAME = "specs";
     private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
-    private static final String SERVER_NAME = "server";
+    private static final String SERVERS_NAME = "servers";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
@@ -94,9 +96,11 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
                 final JsonObjectBuilder subjectObject = Json.createObjectBuilder();
 
-                if (openapiConfig.server != null)
+                if (openapiConfig.servers != null && !openapiConfig.servers.isEmpty())
                 {
-                    catalogObject.add(SERVER_NAME, openapiConfig.server);
+                    final JsonArrayBuilder servers = Json.createArrayBuilder();
+                    openapiConfig.servers.forEach(servers::add);
+                    catalogObject.add(SERVERS_NAME, servers);
                 }
 
                 for (OpenapiCatalogConfig catalog : openapiConfig.catalogs)
@@ -173,9 +177,15 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                 final String specLabel = entry.getKey();
                 final JsonObject specObject = entry.getValue().asJsonObject();
 
-                final String server = specObject.containsKey(SERVER_NAME)
-                    ? specObject.getString(SERVER_NAME)
-                    : null;
+                List<String> servers = null;
+                if (specObject.containsKey(SERVERS_NAME))
+                {
+                    servers = new ArrayList<>();
+                    for (JsonValue serverValue : specObject.getJsonArray(SERVERS_NAME))
+                    {
+                        servers.add(((JsonString) serverValue).getString());
+                    }
+                }
 
                 List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
                 if (specObject.containsKey(CATALOG_NAME))
@@ -234,7 +244,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
                     overlay = overlayBuilder.build();
                 }
 
-                openapiOptions.spec(new OpenapiSpecificationConfig(specLabel, server, catalogs, security, overlay));
+                openapiOptions.spec(new OpenapiSpecificationConfig(specLabel, servers, catalogs, security, overlay));
             }
         }
 

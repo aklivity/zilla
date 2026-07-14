@@ -20,7 +20,6 @@ import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
@@ -38,6 +37,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
@@ -140,57 +140,20 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                         .inject(this::injectTlsClient);
             }
 
-            private URI resolveServer()
+            private List<URI> resolveServers()
             {
-                return config.options.specs.stream()
-                    .filter(s -> schema.specLabel.equals(s.label))
-                    .map(s -> s.server)
-                    .filter(server -> server != null)
-                    .findFirst()
-                    .map(URI::create)
-                    .orElse(null);
+                return config.resolveBaseURLs(schema.specLabel);
             }
 
-            private Optional<String> resolveScheme()
+            private boolean anySecure()
             {
-                URI server = resolveServer();
-
-                return server != null
-                    ? Optional.of(server.getScheme())
-                    : Stream.of(schema)
-                        .map(s -> s.openapi)
-                        .flatMap(v -> v.servers.stream())
-                        .findFirst()
-                        .map(s -> s.url.getScheme());
-            }
-
-            private Optional<String> resolveAuthority()
-            {
-                URI server = resolveServer();
-
-                return server != null
-                    ? Optional.of(authority(server))
-                    : Stream.of(schema)
-                        .map(s -> s.openapi)
-                        .flatMap(v -> v.servers.stream())
-                        .findFirst()
-                        .map(s -> authority(s.url));
-            }
-
-            private String authority(
-                URI uri)
-            {
-                return uri.getPort() != -1
-                    ? "%s:%d".formatted(uri.getHost(), uri.getPort())
-                    : uri.getHost();
+                return resolveServers().stream().anyMatch(server -> secure.contains(server.getScheme()));
             }
 
             private <C> NamespaceConfigBuilder<C> injectHttpClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (resolveScheme()
-                    .filter(secure::contains)
-                    .isPresent())
+                if (anySecure())
                 {
                     namespace
                         .binding()
@@ -225,9 +188,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsClient(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (resolveScheme()
-                    .filter(secure::contains)
-                    .isPresent())
+                if (anySecure())
                 {
                     namespace
                         .binding()
@@ -247,19 +208,17 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
                 HttpOptionsConfigBuilder<C> options)
             {
-                final String prefix = resolveServerPrefix();
-
-                resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
+                final List<URI> servers = resolveServers();
 
                 Stream.of(schema)
                     .map(s -> s.openapi)
                     .flatMap(v -> v.operations.values().stream())
                     .filter(OpenapiOperationView::hasResponses)
                     .forEach(operation ->
-                        operation.servers.forEach(server ->
+                        servers.forEach(server ->
                             options
                                 .request()
-                                    .path((server.overridden ? "" : prefix) + server.requestPath(operation.path))
+                                    .path(OpenapiServerView.requestPath(server, operation.path))
                                     .method(HttpRequestConfig.Method.valueOf(operation.method))
                                     .inject(request -> injectHttpResponses(request, operation))
                                     .build()

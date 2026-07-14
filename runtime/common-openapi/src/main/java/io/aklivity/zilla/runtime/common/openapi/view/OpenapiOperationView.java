@@ -20,9 +20,7 @@ import static java.util.stream.Collectors.toMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiServerConfig;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiServer;
 import io.aklivity.zilla.runtime.common.openapi.model.resolver.OpenapiResolver;
@@ -51,7 +49,6 @@ public final class OpenapiOperationView
     OpenapiOperationView(
         OpenapiView specification,
         long compositeId,
-        List<OpenapiServerConfig> configs,
         OpenapiResolver resolver,
         String method,
         String path,
@@ -96,22 +93,11 @@ public final class OpenapiOperationView
 
         this.servers = effectiveServers != null
                 ? effectiveServers.stream()
-                    .flatMap(s -> configs.isEmpty()
-                        ? Stream.of(new OpenapiServerView(resolver, s, null))
-                        : configs.stream().map(c -> new OpenapiServerView(resolver, s, c)))
+                    .map(s -> new OpenapiServerView(resolver, s))
                     .toList()
                 : specification.servers;
 
         this.extensions = model.extensions;
-    }
-
-    public long compositeId(
-        int serverIndex)
-    {
-        return OpenapiCompositeId.compositeId(
-            OpenapiCompositeId.specIndex(compositeId),
-            OpenapiCompositeId.operationId(compositeId),
-            serverIndex);
     }
 
     public boolean hasRequestBodyOrParameters()

@@ -113,7 +113,8 @@ bindings:
     options:
       specs:
         http_api:
-          server: https://localhost:7080
+          servers:
+            - https://localhost:7080
           catalog:
             catalog0:
               subject: petstore

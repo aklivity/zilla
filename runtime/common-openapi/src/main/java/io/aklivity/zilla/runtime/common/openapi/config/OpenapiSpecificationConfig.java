@@ -20,20 +20,20 @@ import java.util.Map;
 public class OpenapiSpecificationConfig
 {
     public final String label;
-    public final String server;
+    public final List<String> servers;
     public final List<OpenapiCatalogConfig> catalogs;
     public final Map<String, String> security;
     public final OpenapiCatalogConfig overlay;
 
     public OpenapiSpecificationConfig(
         String label,
-        String server,
+        List<String> servers,
         List<OpenapiCatalogConfig> catalogs,
         Map<String, String> security,
         OpenapiCatalogConfig overlay)
     {
         this.label = label;
-        this.server = server;
+        this.servers = servers;
         this.catalogs = catalogs;
         this.security = security;
         this.overlay = overlay;
@@ -41,19 +41,19 @@ public class OpenapiSpecificationConfig
 
     public OpenapiSpecificationConfig(
         String label,
-        String server,
+        List<String> servers,
         List<OpenapiCatalogConfig> catalogs,
         Map<String, String> security)
     {
-        this(label, server, catalogs, security, null);
+        this(label, servers, catalogs, security, null);
     }
 
     public OpenapiSpecificationConfig(
         String label,
-        String server,
+        List<String> servers,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(label, server, catalogs, null, null);
+        this(label, servers, catalogs, null, null);
     }
 
     public OpenapiSpecificationConfig(

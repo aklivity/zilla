@@ -47,4 +47,14 @@ public class CompositeHttpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/create.pet.pathname/client",
+        "${http}/create.pet.pathname/server"
+    })
+    public void shouldCreatePetWithServerPathname() throws Exception
+    {
+        k3po.finish();
+    }
 }

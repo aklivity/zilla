@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.asyncapi.view;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -24,7 +25,6 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
 
 public class AsyncapiViewTest
@@ -94,62 +94,9 @@ public class AsyncapiViewTest
                     type: string
             """);
 
-        AsyncapiServerConfig server = AsyncapiServerConfig.builder()
-            .host("localhost:7143")
-            .build();
-        AsyncapiView view = AsyncapiView.of(model, List.of(server));
+        AsyncapiView view = AsyncapiView.of(model);
 
         assertThat(view, is(not(nullValue())));
-    }
-
-    @Test
-    public void shouldKeepLiteralHostAtSpecDefaultRegardlessOfOverride() throws Exception
-    {
-        Asyncapi model = new AsyncapiParser().parse("""
-            asyncapi: 3.0.0
-            info:
-              title: Test API
-              version: 0.1.0
-            servers:
-              staging:
-                host: 'localhost:{port}'
-                protocol: mqtt
-                variables:
-                  port:
-                    description: Secure connection (TLS) is available through port 8883.
-                    default: '7183'
-                    enum:
-                      - '7183'
-                      - '7143'
-            operations:
-              doSend:
-                action: send
-                channel:
-                  $ref: '#/channels/output'
-            channels:
-              output:
-                messages:
-                  note:
-                    $ref: '#/components/messages/note'
-            components:
-              messages:
-                note:
-                  payload:
-                    $ref: '#/components/schemas/note.payload'
-              schemas:
-                note.payload:
-                  schema:
-                    type: string
-            """);
-
-        AsyncapiServerConfig server = AsyncapiServerConfig.builder()
-            .host("localhost:7143")
-            .build();
-        AsyncapiView view = AsyncapiView.of(model, List.of(server));
-        AsyncapiServerView serverView = view.servers.get(0);
-
-        assertThat(serverView.host, is("localhost:7143"));
-        assertThat(serverView.literalHost, is("localhost:7183"));
     }
 
     @Test
@@ -233,5 +180,126 @@ public class AsyncapiViewTest
         AsyncapiView view = AsyncapiView.of(model);
 
         assertThat(view, is(not(nullValue())));
+    }
+
+    @Test
+    public void shouldScopeChannelToDeclaredServerSubset() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 3.0.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              production:
+                host: 'prod.example.com:9092'
+                protocol: kafka
+              staging:
+                host: 'staging.example.com:9092'
+                protocol: kafka
+            operations:
+              doSend:
+                action: send
+                channel:
+                  $ref: '#/channels/output'
+            channels:
+              output:
+                servers:
+                  - $ref: '#/servers/production'
+                messages:
+                  note:
+                    $ref: '#/components/messages/note'
+            components:
+              messages:
+                note:
+                  payload:
+                    $ref: '#/components/schemas/note.payload'
+              schemas:
+                note.payload:
+                  schema:
+                    type: string
+            """);
+
+        AsyncapiView view = AsyncapiView.of(model);
+
+        AsyncapiChannelView channel = view.channels.get("output");
+        assertThat(channel.servers, hasSize(1));
+        assertThat(channel.servers.get(0).name, is("production"));
+
+        AsyncapiOperationView operation = view.operations.get("doSend");
+        assertThat(operation.servers, hasSize(1));
+        assertThat(operation.servers.get(0).name, is("production"));
+    }
+
+    @Test
+    public void shouldMakeChannelAvailableOnAllServersWhenServersAbsent() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 3.0.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              production:
+                host: 'prod.example.com:9092'
+                protocol: kafka
+              staging:
+                host: 'staging.example.com:9092'
+                protocol: kafka
+            operations:
+              doSend:
+                action: send
+                channel:
+                  $ref: '#/channels/output'
+            channels:
+              output:
+                messages:
+                  note:
+                    $ref: '#/components/messages/note'
+            components:
+              messages:
+                note:
+                  payload:
+                    $ref: '#/components/schemas/note.payload'
+              schemas:
+                note.payload:
+                  schema:
+                    type: string
+            """);
+
+        AsyncapiView view = AsyncapiView.of(model);
+
+        AsyncapiChannelView channel = view.channels.get("output");
+        assertThat(channel.servers, hasSize(2));
+    }
+
+    @Test
+    public void shouldParseServerMetadataFields() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 3.0.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              production:
+                host: 'prod.example.com:9092'
+                protocol: kafka
+                protocolVersion: '3.2'
+                title: Production Kafka
+                summary: The production broker
+                description: Production Kafka broker.
+                tags:
+                  - name: 'env:production'
+            """);
+
+        AsyncapiView view = AsyncapiView.of(model);
+        AsyncapiServerView server = view.servers.get(0);
+
+        assertThat(server.protocolVersion, is("3.2"));
+        assertThat(server.title, is("Production Kafka"));
+        assertThat(server.summary, is("The production broker"));
+        assertThat(server.description, is("Production Kafka broker."));
+        assertThat(server.tags, is(List.of("env:production")));
     }
 }
