@@ -95,6 +95,7 @@ public class AsyncapiServerGeneratorTest
                 .spec(AsyncapiSpecificationConfig.builder()
                     .label("mqtt_api")
                     .catalog(new AsyncapiCatalogConfig("catalog0", "secure", "latest"))
+                    .serverOverride("mqtts://broker.example.com:8883")
                     .build())
                 .build())
             .exit("asyncapi0")

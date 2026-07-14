@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -136,15 +137,18 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         .inject(this::injectProtocols);
             }
 
+            private List<URI> resolveServers()
+            {
+                return config.resolveServers(schema.specLabel);
+            }
+
             private <C> NamespaceConfigBuilder<C> injectTcpServer(
                 NamespaceConfigBuilder<C> namespace)
             {
                 final TcpOptionsConfig tcpOptions = TcpOptionsConfig.builder()
                     .host("0.0.0.0")
-                    .ports(Stream.of(schema)
-                        .map(s -> s.asyncapi)
-                        .flatMap(v -> v.servers.stream())
-                        .mapToInt(s -> s.port)
+                    .ports(resolveServers().stream()
+                        .mapToInt(URI::getPort)
                         .distinct()
                         .toArray())
                     .build();
@@ -165,24 +169,20 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectTcpRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .filter(s -> plain.contains(s.protocol))
+                resolveServers().stream()
+                    .filter(s -> plain.contains(s.getScheme()))
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
-                            .port(s.port)
+                            .port(s.getPort())
                             .build()
-                        .exit(String.format("%s_server0", s.protocol))
+                        .exit(String.format("%s_server0", s.getScheme()))
                         .build());
 
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .filter(s -> secure.contains(s.protocol))
+                resolveServers().stream()
+                    .filter(s -> secure.contains(s.getScheme()))
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
-                            .port(s.port)
+                            .port(s.getPort())
                             .build()
                         .exit("tls_server0")
                         .build());
@@ -193,10 +193,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsServer(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .anyMatch(s -> secure.contains(s.protocol)))
+                if (resolveServers().stream()
+                    .anyMatch(s -> secure.contains(s.getScheme())))
                 {
                     namespace.binding()
                         .name("tls_server0")
@@ -214,16 +212,14 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectTlsRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .filter(s -> secure.contains(s.protocol))
+                resolveServers().stream()
+                    .filter(s -> secure.contains(s.getScheme()))
                     .forEach(s -> binding.route()
                         .when(TlsConditionConfig::builder)
-                            .port(s.port)
-                            .authority(s.hostname)
+                            .port(s.getPort())
+                            .authority(s.getHost())
                             .build()
-                        .exit(String.format("%s_server0", plainBySecure.get(s.protocol)))
+                        .exit(String.format("%s_server0", plainBySecure.get(s.getScheme())))
                         .build());
 
                 return binding;
@@ -232,10 +228,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectProtocols(
                 NamespaceConfigBuilder<C> namespace)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .map(s -> s.protocol)
+                resolveServers().stream()
+                    .map(URI::getScheme)
                     .distinct()
                     .map(protocols::get)
                     .filter(Objects::nonNull)
@@ -552,8 +546,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
-                    .filter(v -> v.servers.stream()
-                        .anyMatch(s -> s.protocol.startsWith("http")))
+                    .filter(v -> resolveServers().stream()
+                        .anyMatch(s -> s.getScheme().startsWith("http")))
                     .flatMap(v -> v.operations.values().stream())
                     .filter(op -> op.hasBinding("x-zilla-sse"))
                     .forEach(operation ->
