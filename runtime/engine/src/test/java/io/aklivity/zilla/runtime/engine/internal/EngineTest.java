@@ -30,6 +30,7 @@ import static org.junit.Assert.assertTrue;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -535,6 +536,34 @@ public class EngineTest
         }
 
         assertThat(errors, empty());
+    }
+
+    @Test
+    public void shouldNotMarkReadyUntilBindingsAttached() throws Exception
+    {
+        List<Throwable> errors = new LinkedList<>();
+        EngineConfiguration config = new EngineConfiguration(properties);
+        Instant beforeConstruct = Instant.now();
+
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            assertThat(Ready.initialized(config.directory(), beforeConstruct), equalTo(false));
+
+            engine.start();
+
+            assertThat(Ready.initialized(config.directory(), beforeConstruct), equalTo(true));
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
     }
 
     public static final class TestEngineExt implements EngineExtSpi

@@ -284,11 +284,6 @@ public final class Engine implements Collector, AutoCloseable
         this.diagnostics = diagnostics;
         this.initialized = new AtomicBoolean(false);
         this.closed = new AtomicBoolean(false);
-
-        if (!readonly)
-        {
-            Ready.markReady(config.directory());
-        }
     }
 
     public <T> T binding(
@@ -329,6 +324,7 @@ public final class Engine implements Collector, AutoCloseable
         if (!readonly)
         {
             manager.start();
+            Ready.markReady(config.directory());
         }
     }
 
