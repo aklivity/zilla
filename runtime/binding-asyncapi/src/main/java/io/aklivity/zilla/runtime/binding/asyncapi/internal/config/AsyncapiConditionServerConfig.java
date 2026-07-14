@@ -33,6 +33,6 @@ public final class AsyncapiConditionServerConfig
         AsyncapiServerView server)
     {
         return (name == null || name.equals(server.name)) &&
-            (url == null || url.equals(server.literalUrl));
+            (url == null || url.equals(server.url));
     }
 }

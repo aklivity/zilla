@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
@@ -198,43 +197,6 @@ public class AsyncapiConditionConfigAdapterTest
     }
 
     @Test
-    public void shouldMatchServerByLiteralUrlRegardlessOfOverride() throws Exception
-    {
-        Asyncapi model = new AsyncapiParser().parse("""
-            asyncapi: 2.6.0
-            info:
-              title: Test API
-              version: 0.1.0
-            servers:
-              staging:
-                url: 'http://{env}.example.com'
-                protocol: http
-                variables:
-                  env:
-                    default: prod
-                    enum:
-                      - prod
-                      - staging
-            channels: {}
-            """);
-
-        AsyncapiServerConfig override = AsyncapiServerConfig.builder()
-            .url("http://staging.example.com")
-            .build();
-        List<AsyncapiServerView> overridden = AsyncapiView.of(model, List.of(override)).servers;
-
-        AsyncapiConditionConfig literal = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig(null, "http://prod.example.com")));
-
-        assertThat(literal.matches("test", "listPets", null, overridden), equalTo(true));
-
-        AsyncapiConditionConfig effective = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig(null, "http://staging.example.com")));
-
-        assertThat(effective.matches("test", "listPets", null, overridden), equalTo(false));
-    }
-
-    @Test
     public void shouldMatchAnyServerWhenOmitted() throws Exception
     {
         AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null);
@@ -260,7 +222,7 @@ public class AsyncapiConditionConfigAdapterTest
             channels: {}
             """);
 
-        AsyncapiView view = AsyncapiView.of(model, List.of(AsyncapiServerConfig.builder().build()));
+        AsyncapiView view = AsyncapiView.of(model);
 
         return view.servers;
     }
