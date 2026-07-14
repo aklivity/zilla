@@ -24,6 +24,7 @@ import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -143,7 +144,16 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.catalogId = catalog.id;
         this.cachedSchemas = catalog.cache.schemas;
         this.cachedSchemaIds = catalog.cache.schemaIds;
-        this.authorization = options.authorization;
+        if (options.username != null && options.password != null)
+        {
+            String base64Creds =
+                    Base64.getEncoder().encodeToString((options.username + ":" + options.password).getBytes());
+            this.authorization = "Basic " + base64Creds;
+        }
+        else
+        {
+            this.authorization = options.authorization;
+        }
     }
 
     @Override

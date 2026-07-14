@@ -22,3 +22,7 @@ catalogs:
       url: http://localhost:8081
       context: default
       max-age: 30
+      credentials:
+        basic:
+          username: user1
+          password: password1

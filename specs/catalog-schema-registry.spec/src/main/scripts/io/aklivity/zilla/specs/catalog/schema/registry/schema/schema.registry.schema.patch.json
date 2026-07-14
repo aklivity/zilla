@@ -98,23 +98,44 @@
                 {
                     "title": "Credentials",
                     "type": "object",
-                    "properties":
-                    {
-                        "headers":
+                    "oneOf": [
                         {
-                            "title": "Headers",
-                            "type": "object",
-                            "properties":
-                            {
-                                "authorization":
-                                {
-                                    "type": "string"
+                            "properties": {
+                                "headers": {
+                                    "title": "Headers",
+                                    "type": "object",
+                                    "properties": {
+                                        "authorization": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false
                                 }
                             },
+                            "required": ["headers"],
+                            "additionalProperties": false
+                        },
+                        {
+                            "properties": {
+                                "basic": {
+                                    "title": "Basic Auth",
+                                    "type": "object",
+                                    "properties": {
+                                        "username": {
+                                            "type": "string"
+                                        },
+                                        "password": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": ["username", "password"],
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required": ["basic"],
                             "additionalProperties": false
                         }
-                    },
-                    "additionalProperties": false
+                    ]
                 }
             },
             "additionalProperties": false,

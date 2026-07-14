@@ -28,15 +28,19 @@ public abstract class AbstractSchemaRegistryOptionsConfig extends OptionsConfig
     public final List<String> trust;
     public final boolean trustcacerts;
     public final String authorization;
+    public final String username;
+    public final String password;
 
     protected AbstractSchemaRegistryOptionsConfig(
-        String url,
-        String context,
-        Duration maxAge,
-        List<String> keys,
-        List<String> trust,
-        boolean trustcacerts,
-        String authorization)
+            String url,
+            String context,
+            Duration maxAge,
+            List<String> keys,
+            List<String> trust,
+            boolean trustcacerts,
+            String authorization,
+            String username,
+            String password)
     {
         this.url = url;
         this.context = context;
@@ -45,5 +49,7 @@ public abstract class AbstractSchemaRegistryOptionsConfig extends OptionsConfig
         this.trust = trust;
         this.trustcacerts = trustcacerts;
         this.authorization = authorization;
+        this.username = username;
+        this.password = password;
     }
 }
