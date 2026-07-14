@@ -36,7 +36,6 @@ public final class AsyncapiServerView
     public final String title;
     public final String summary;
     public final String description;
-    public final String protocol;
     public final String protocolVersion;
     public final List<String> tags;
 
@@ -112,7 +111,6 @@ public final class AsyncapiServerView
         this.title = model.title;
         this.summary = model.summary;
         this.description = model.description;
-        this.protocol = model.protocol;
         this.protocolVersion = model.protocolVersion;
         this.tags = model.tags != null
             ? model.tags.stream()

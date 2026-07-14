@@ -18,9 +18,11 @@ import static io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiCompositeId
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -65,7 +67,12 @@ public final class AsyncapiView
     public boolean hasProtocol(
         Predicate<String> protocol)
     {
-        return servers.stream().map(s -> s.protocol).anyMatch(protocol);
+        return servers.stream()
+            .map(s -> s.url)
+            .filter(Objects::nonNull)
+            .map(URI::getScheme)
+            .filter(Objects::nonNull)
+            .anyMatch(protocol);
     }
 
     public boolean hasOperationBindingsHttp()

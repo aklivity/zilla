@@ -317,8 +317,9 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             {
                 List<String> pathnames = operation.servers != null
                     ? operation.servers.stream()
-                        .filter(server -> server.protocol != null && server.protocol.startsWith("http"))
-                        .filter(server -> server.url != null)
+                        .filter(server -> server.url != null &&
+                            server.url.getScheme() != null &&
+                            server.url.getScheme().startsWith("http"))
                         .map(server -> server.url.getPath())
                         .distinct()
                         .toList()

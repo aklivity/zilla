@@ -195,8 +195,7 @@ public final class AsyncapiBindingConfig
     {
         return servers != null
             ? servers.stream()
-                .filter(s -> s.protocol != null && s.protocol.startsWith("http"))
-                .filter(s -> s.url != null)
+                .filter(s -> s.url != null && s.url.getScheme() != null && s.url.getScheme().startsWith("http"))
                 .map(s -> s.url.getPath())
                 .findFirst()
                 .orElse("")
