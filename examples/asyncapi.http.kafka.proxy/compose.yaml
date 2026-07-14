@@ -14,7 +14,7 @@ services:
       timeout: 15s
       retries: 10
       start_period: 45s
-      test: ["CMD", "sh", "-c", "/opt/zilla/zilla logs | grep -q engine.started"]
+      test: ["CMD", "sh", "-c", "zilla logs | grep -q engine.started"]
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
     volumes:

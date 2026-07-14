@@ -11,7 +11,7 @@ services:
       timeout: 3s
       retries: 5
       start_period: 15s
-      test: ["CMD", "sh", "-c", "/opt/zilla/zilla logs | grep -q engine.started"]
+      test: ["CMD", "sh", "-c", "zilla logs | grep -q engine.started"]
     environment:
       SSE_SERVER_HOST: sse-server
       SSE_SERVER_PORT: 8001
