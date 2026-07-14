@@ -18,7 +18,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.List;
 import java.util.Optional;
 
 import jakarta.json.bind.annotation.JsonbProperty;
@@ -192,7 +191,7 @@ public class AsyncapiParserTest
             .createParser();
 
         Asyncapi model = parser.parse(SPEC);
-        AsyncapiView view = AsyncapiView.of(model, List.of(AsyncapiServerConfig.builder().build()));
+        AsyncapiView view = AsyncapiView.of(model);
         AsyncapiServerView server = view.servers.get(0);
 
         assertTrue(server.hasBinding("x-zilla-sample"));
@@ -262,7 +261,7 @@ public class AsyncapiParserTest
             .createParser();
 
         Asyncapi model = parser.parse(EXT_SPEC);
-        AsyncapiView view = AsyncapiView.of(model, List.of(AsyncapiServerConfig.builder().build()));
+        AsyncapiView view = AsyncapiView.of(model);
         AsyncapiServerView server = view.servers.get(0);
 
         assertTrue(server.hasExtension("x-zilla-sample"));

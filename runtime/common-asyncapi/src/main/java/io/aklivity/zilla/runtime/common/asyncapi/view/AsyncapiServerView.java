@@ -26,7 +26,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
@@ -34,13 +33,10 @@ public final class AsyncapiServerView
 {
     public final String name;
     public final String url;
-    public final String literalUrl;
     public final String host;
-    public final String literalHost;
     public final String hostname;
     public final int port;
     public final String pathname;
-    public final String literalPathname;
     public final String title;
     public final String summary;
     public final String description;
@@ -80,8 +76,7 @@ public final class AsyncapiServerView
     AsyncapiServerView(
         AsyncapiResolver resolver,
         String name,
-        AsyncapiServer model,
-        AsyncapiServerConfig config)
+        AsyncapiServer model)
     {
         Map<String, AsyncapiServerVariableView> variables = model.variables != null
                 ? model.variables.entrySet().stream()
@@ -101,16 +96,10 @@ public final class AsyncapiServerView
 
         this.name = name;
         this.url = urlMatcher != null
-            ? urlMatcher.resolve(config != null ? config.url : null)
-            : null;
-        this.literalUrl = urlMatcher != null
             ? urlMatcher.resolve(null)
             : null;
 
         this.host = hostMatcher != null
-            ? hostMatcher.resolve(config != null ? config.host : null)
-            : null;
-        this.literalHost = hostMatcher != null
             ? hostMatcher.resolve(null)
             : null;
 
@@ -124,9 +113,6 @@ public final class AsyncapiServerView
             : 0;
 
         this.pathname = pathnameMatcher != null
-            ? pathnameMatcher.resolve(config != null ? config.pathname : null)
-            : null;
-        this.literalPathname = pathnameMatcher != null
             ? pathnameMatcher.resolve(null)
             : null;
 

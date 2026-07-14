@@ -27,7 +27,6 @@ import java.util.function.Predicate;
 
 import org.agrona.collections.MutableInteger;
 
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiMultiFormatSchema;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
@@ -88,30 +87,21 @@ public final class AsyncapiView
     public static AsyncapiView of(
         Asyncapi model)
     {
-        return of(model, List.of());
-    }
-
-    public static AsyncapiView of(
-        Asyncapi model,
-        List<AsyncapiServerConfig> configs)
-    {
-        return of(0, null, model, configs);
+        return of(0, null, model);
     }
 
     public static AsyncapiView of(
         int index,
         String label,
-        Asyncapi model,
-        List<AsyncapiServerConfig> configs)
+        Asyncapi model)
     {
-        return new AsyncapiView(index, label, model, configs);
+        return new AsyncapiView(index, label, model);
     }
 
     private AsyncapiView(
         int id,
         String label,
-        Asyncapi asyncapi,
-        List<AsyncapiServerConfig> configs)
+        Asyncapi asyncapi)
     {
         this.label = label;
         this.compositeId = compositeId(id, 0);
@@ -121,7 +111,7 @@ public final class AsyncapiView
 
         this.servers = asyncapi.servers != null
             ? asyncapi.servers.entrySet().stream()
-                .flatMap(e -> configs.stream().map(c -> new AsyncapiServerView(resolver, e.getKey(), e.getValue(), c)))
+                .map(e -> new AsyncapiServerView(resolver, e.getKey(), e.getValue()))
                 .toList()
             : null;
 
