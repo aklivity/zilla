@@ -28,7 +28,6 @@ import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.ExtendedSSLSession;
@@ -75,6 +74,7 @@ public final class TlsBindingConfig
 
     private boolean clientHttpsIdentification;
     private boolean clientServerNameIndication;
+    private TlsMutualConfig mutualDefault;
 
     public TlsBindingConfig(
         BindingConfig binding)
@@ -98,9 +98,18 @@ public final class TlsBindingConfig
         KeyManagerFactory keys = nothingConfigured
             ? newKeysWildcard(vault)
             : newKeys(config, vault, options.keys, options.signers);
+
+        boolean trustcacerts = kind == KindConfig.CLIENT && Boolean.TRUE.equals(options.trustcacerts);
         TrustManagerFactory trust = nothingConfigured
-            ? newTrustWildcard(config, vault, options.trustcacerts && kind == KindConfig.CLIENT)
-            : newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
+            ? newTrustWildcard(config, vault, trustcacerts)
+            : newTrust(config, vault, options.trust, trustcacerts);
+
+        if (trust == null && kind == KindConfig.CLIENT && !trustcacerts)
+        {
+            trust = newTrustCacertsOnly(config);
+        }
+
+        this.mutualDefault = trust != null ? TlsMutualConfig.REQUIRED : TlsMutualConfig.NONE;
 
         try
         {
@@ -304,7 +313,7 @@ public final class TlsBindingConfig
             engine = context.createSSLEngine();
             engine.setUseClientMode(false);
 
-            TlsMutualConfig mutual = Optional.ofNullable(options != null ? options.mutual : null).orElse(TlsMutualConfig.NONE);
+            TlsMutualConfig mutual = options.mutual != null ? options.mutual : mutualDefault;
 
             switch (mutual)
             {
@@ -481,11 +490,9 @@ public final class TlsBindingConfig
             {
                 trust = vault.initTrust(trustNames, cacerts);
             }
-            else if (cacerts != null)
+            else
             {
-                TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                factory.init(cacerts);
-                trust = factory;
+                trust = newTrustFromCacerts(cacerts);
             }
         }
         catch (Exception ex)
@@ -536,16 +543,46 @@ public final class TlsBindingConfig
             {
                 trust = vault.initTrust(cacerts);
             }
-            else if (cacerts != null)
+            else
             {
-                TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                factory.init(cacerts);
-                trust = factory;
+                trust = newTrustFromCacerts(cacerts);
             }
         }
         catch (Exception ex)
         {
             LangUtil.rethrowUnchecked(ex);
+        }
+
+        return trust;
+    }
+
+    private TrustManagerFactory newTrustCacertsOnly(
+        TlsConfiguration config)
+    {
+        TrustManagerFactory trust = null;
+
+        try
+        {
+            trust = newTrustFromCacerts(Trusted.cacerts(config));
+        }
+        catch (Exception ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return trust;
+    }
+
+    private TrustManagerFactory newTrustFromCacerts(
+        KeyStore cacerts)
+        throws Exception
+    {
+        TrustManagerFactory trust = null;
+
+        if (cacerts != null)
+        {
+            trust = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trust.init(cacerts);
         }
 
         return trust;

@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.config;
 
-import static io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig.REQUIRED;
-
 import java.util.List;
 import java.util.function.Function;
 
@@ -108,8 +106,6 @@ public final class TlsOptionsConfigBuilder<T> extends ConfigBuilder<T, TlsOption
     @Override
     public T build()
     {
-        final TlsMutualConfig mutual = this.mutual == null && this.trust != null ? REQUIRED : this.mutual;
-        final boolean trustcacerts = this.trustcacerts == null ? this.trust == null : this.trustcacerts;
         return mapper.apply(new TlsOptionsConfig(version, keys, trust, sni, alpn, mutual, signers, trustcacerts));
     }
 }
