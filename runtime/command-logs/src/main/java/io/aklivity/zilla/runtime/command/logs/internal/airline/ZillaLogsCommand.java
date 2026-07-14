@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.command.logs.internal.printer.LogsReader;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.EngineNotInitializedException;
 
 @Command(name = "logs", description = "Show engine event logs")
 public final class ZillaLogsCommand extends ZillaCommand
@@ -106,6 +107,11 @@ public final class ZillaLogsCommand extends ZillaCommand
                     sleep(POLL_INTERVAL_MILLIS);
                 }
             }
+        }
+        catch (EngineNotInitializedException ex)
+        {
+            System.out.println(ex.getMessage());
+            throw ex;
         }
         catch (Throwable ex)
         {

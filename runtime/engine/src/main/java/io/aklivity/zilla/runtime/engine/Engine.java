@@ -68,6 +68,7 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
+import io.aklivity.zilla.runtime.engine.internal.Ready;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.event.io.EventReader;
@@ -149,6 +150,11 @@ public final class Engine implements Collector, AutoCloseable
             .readonly(readonly)
             .build();
         int workerCount = info.workers();
+
+        if (readonly && !Ready.initialized(config.directory(), info.startTime()))
+        {
+            throw new EngineNotInitializedException(String.format("Engine not yet initialized: %s", config.directory()));
+        }
 
         LabelManager labels = new LabelManager(config.directory());
         Int2ObjectHashMap<ToIntFunction<KindConfig>> maxWorkersByBindingType = new Int2ObjectHashMap<>();
@@ -278,6 +284,11 @@ public final class Engine implements Collector, AutoCloseable
         this.diagnostics = diagnostics;
         this.initialized = new AtomicBoolean(false);
         this.closed = new AtomicBoolean(false);
+
+        if (!readonly)
+        {
+            Ready.markReady(config.directory());
+        }
     }
 
     public <T> T binding(
