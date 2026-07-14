@@ -10,10 +10,10 @@ services:
     ports:
       - 7114:7114
     healthcheck:
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 15s
+      interval: 10s
+      timeout: 15s
+      retries: 10
+      start_period: 45s
       test: ["CMD", "sh", "-c", "/opt/zilla/zilla logs | grep -q engine.started"]
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
