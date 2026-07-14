@@ -136,7 +136,7 @@ public final class McpOpenapiCompositeGenerator
                     final int schemaId = handler.resolve(catalog.subject, catalog.version);
                     final String payload = handler.resolve(schemaId);
                     final String materialized = materialize(binding, specification, payload);
-                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized), List.of());
+                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized));
                     specsByLabel.put(label, openapi);
                 }
             }

@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-public final class OpenapiConditionServerConfig
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
+
+public class OpenapiConditionServerConfig
 {
     public final String url;
 
@@ -22,5 +24,11 @@ public final class OpenapiConditionServerConfig
         String url)
     {
         this.url = url;
+    }
+
+    boolean matches(
+        OpenapiServerView server)
+    {
+        return url == null || url.equals(server.url.toString());
     }
 }

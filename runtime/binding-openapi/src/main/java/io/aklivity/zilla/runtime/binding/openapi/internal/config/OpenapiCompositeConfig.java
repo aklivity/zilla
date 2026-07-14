@@ -17,19 +17,16 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.stream.Collectors.toMap;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
-import java.util.stream.IntStream;
 
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2LongHashMap;
 
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
@@ -44,7 +41,7 @@ public final class OpenapiCompositeConfig
 
     private Long2ObjectHashMap<OpenapiOperationView> operationsById;
     private Long2ObjectHashMap<OpenapiView> specificationsById;
-    private Long2ObjectHashMap<OpenapiServerView> serversById;
+    private final Map<Long, Map<String, OpenapiOperationView>> operationsBySpecId;
 
     public OpenapiCompositeConfig(
         List<OpenapiSchemaConfig> schemas,
@@ -72,33 +69,14 @@ public final class OpenapiCompositeConfig
         this.operationsById = schemas.stream()
             .map(s -> s.openapi)
             .flatMap(v -> v.operations.values().stream())
-            .flatMap(o -> operationCompositeIds(o).stream().map(id -> Map.entry(id, o)))
-            .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, Long2ObjectHashMap::new));
+            .collect(toMap(o -> o.compositeId, o -> o, (o1, o2) -> o1, Long2ObjectHashMap::new));
 
         this.specificationsById = schemas.stream()
             .map(s -> s.openapi)
             .collect(toMap(v -> v.compositeId, v -> v, (v1, v2) -> v1, Long2ObjectHashMap::new));
 
-        this.serversById = schemas.stream()
-            .map(s -> s.openapi)
-            .flatMap(v -> v.operations.values().stream())
-            .filter(o -> o.servers != null)
-            .flatMap(o -> IntStream.range(0, o.servers.size())
-                .mapToObj(i -> Map.entry(o.compositeId(i + 1), o.servers.get(i))))
-            .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (s1, s2) -> s1, Long2ObjectHashMap::new));
-    }
-
-    private static List<Long> operationCompositeIds(
-        OpenapiOperationView operation)
-    {
-        final List<Long> ids = new ArrayList<>();
-        ids.add(operation.compositeId);
-        if (operation.servers != null)
-        {
-            IntStream.range(0, operation.servers.size())
-                .forEach(i -> ids.add(operation.compositeId(i + 1)));
-        }
-        return ids;
+        this.operationsBySpecId = schemas.stream()
+            .collect(toMap(s -> (long) s.schemaId, s -> s.openapi.operations, (o1, o2) -> o1));
     }
 
     public boolean hasBindingId(
@@ -138,15 +116,18 @@ public final class OpenapiCompositeConfig
         return operationsById.get(compositeId);
     }
 
+    public OpenapiOperationView resolveOperation(
+        long specId,
+        String operationId)
+    {
+        Map<String, OpenapiOperationView> operations = operationsBySpecId.get(specId);
+
+        return operations != null ? operations.get(operationId) : null;
+    }
+
     public OpenapiView resolveSpecification(
         long compositeId)
     {
         return specificationsById.get(compositeId);
-    }
-
-    public OpenapiServerView resolveServer(
-        long compositeId)
-    {
-        return serversById.get(compositeId);
     }
 }

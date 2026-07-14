@@ -20,7 +20,7 @@ connect "zilla://streams/composite0"
          option zilla:ephemeral "test:composite0/mqtt_api:ephemeral"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                            .compositeId(core:decodeLong("0x0001_0000_0000_0000"))
+                            .compositeId(core:decodeLong("0x0000_0001_0000_0000"))
                             .typeId(zilla:id("mqtt"))
                             .session()
                               .clientId("client")
@@ -47,7 +47,7 @@ connect await RECEIVED_SESSION_STATE
          option zilla:ephemeral "test:composite0/mqtt_api:ephemeral"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                            .compositeId(core:decodeLong("0x0001_0000_0002_0000"))
+                            .compositeId(core:decodeLong("0x0000_0001_0000_0002"))
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .clientId("client")
@@ -80,7 +80,7 @@ connect await RECEIVED_SESSION_STATE
          option zilla:ephemeral "test:composite0/mqtt_api:ephemeral"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                            .compositeId(core:decodeLong("0x0001_0000_0001_0000"))
+                            .compositeId(core:decodeLong("0x0000_0001_0000_0001"))
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
                                 .clientId("client")

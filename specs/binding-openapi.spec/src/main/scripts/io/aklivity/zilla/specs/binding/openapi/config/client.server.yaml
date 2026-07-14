@@ -60,7 +60,8 @@ bindings:
     options:
       specs:
         petstore:
-          server: http://backend.internal:9090
+          servers:
+            - http://backend.internal:9090
           catalog:
             catalog0:
               subject: petstore

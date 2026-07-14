@@ -14,6 +14,8 @@ bindings:
     options:
       specs:
         my-asyncapi-spec:
+          servers:
+            - mqtt://localhost:7183
           catalog:
             host_filesystem:
               subject: smartylighting
@@ -24,7 +26,8 @@ bindings:
     options:
       specs:
         my-asyncapi-spec:
-          server: mqtt://${{env.MOSQUITTO_BROKER_HOST}}:${{env.MOSQUITTO_BROKER_PORT}}
+          servers:
+            - mqtt://${{env.MOSQUITTO_BROKER_HOST}}:${{env.MOSQUITTO_BROKER_PORT}}
           catalog:
             host_filesystem:
               subject: smartylighting

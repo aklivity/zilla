@@ -46,4 +46,14 @@ public class AsyncapiHttpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${asyncapi}/http/create.pet.pathname/client",
+        "${asyncapi}/http/create.pet.pathname/server"
+    })
+    public void shouldCreatePetWithServerPathname() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class OpenapiConditionConfig extends ConditionConfig
@@ -54,13 +55,19 @@ public class OpenapiConditionConfig extends ConditionConfig
     public boolean matches(
         String spec,
         String operation,
-        List<String> tags,
-        String serverUrl)
+        List<String> tags)
     {
         return matchesSpec(spec) &&
             matchesOperation(operation) &&
-            matchesTag(tags) &&
-            matchesServer(serverUrl);
+            matchesTag(tags);
+    }
+
+    boolean matchesServers(
+        List<OpenapiServerView> operationServers)
+    {
+        return servers == null ||
+            servers.stream().anyMatch(s -> operationServers != null &&
+                operationServers.stream().anyMatch(s::matches));
     }
 
     private boolean matchesSpec(
@@ -80,13 +87,6 @@ public class OpenapiConditionConfig extends ConditionConfig
         List<String> tags)
     {
         return this.tag == null || tags != null && tags.contains(this.tag);
-    }
-
-    private boolean matchesServer(
-        String serverUrl)
-    {
-        return servers == null || servers.isEmpty() ||
-            serverUrl != null && servers.stream().anyMatch(s -> serverUrl.equals(s.url));
     }
 
     private static Pattern compileGlob(

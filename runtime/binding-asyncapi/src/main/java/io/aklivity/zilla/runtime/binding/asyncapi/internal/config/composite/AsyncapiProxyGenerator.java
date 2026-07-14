@@ -252,7 +252,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                 private boolean matches(
                     AsyncapiOperationView candidate)
                 {
-                    return condition.matches(condition.spec, candidate.name, candidate.tags, candidate.specification.servers);
+                    return condition.matches(condition.spec, candidate.name, candidate.tags, candidate.servers);
                 }
             }
 

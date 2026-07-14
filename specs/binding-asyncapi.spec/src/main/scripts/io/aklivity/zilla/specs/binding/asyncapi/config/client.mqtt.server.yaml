@@ -83,7 +83,8 @@ bindings:
     options:
       specs:
         mqtt_api:
-          server: mqtt://broker.internal:1883
+          servers:
+            - mqtt://broker.internal:1883
           catalog:
             catalog0:
               subject: smartylighting

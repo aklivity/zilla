@@ -1887,7 +1887,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
 
-            replySeq = sequence;
+            replySeq = sequence + reserved;
 
             assert replyAck <= replySeq;
 
@@ -1943,6 +1943,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             assert replyAck <= replySeq;
 
             producer.doKafkaWindow(traceId);
+            correlater.doKafkaWindow(traceId);
         }
 
         @Override
@@ -2666,7 +2667,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long authorization)
         {
             state = HttpKafkaState.closingInitial(state);
-            doKafkaEndAck(traceId, authorization);
+            doKafkaEndAck(authorization, traceId);
         }
 
         private void doKafkaAbort(
@@ -3356,6 +3357,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long authorization,
             long affinity)
         {
+            initialSeq = delegate.initialSeq;
+            initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
             state = HttpKafkaState.openingInitial(state);
 
@@ -3542,7 +3545,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
 
-            replySeq = sequence;
+            replySeq = sequence + reserved;
 
             assert replyAck <= replySeq;
 
@@ -3603,15 +3606,15 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             final long authorization = reset.authorization();
 
             assert acknowledge <= sequence;
-            assert acknowledge >= delegate.initialAck;
+            assert acknowledge >= initialAck;
 
-            delegate.initialAck = acknowledge;
+            initialAck = acknowledge;
             state = HttpKafkaState.closeInitial(state);
 
             signaler.cancel(cancelWait);
             cancelWait = NO_CANCEL_ID;
 
-            assert delegate.initialAck <= delegate.initialSeq;
+            assert initialAck <= initialSeq;
 
             delegate.onKafkaReset(traceId, authorization);
 

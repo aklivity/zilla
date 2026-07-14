@@ -391,7 +391,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
@@ -532,6 +532,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
+            final long authorization = window.authorization();
             final long traceId = window.traceId();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
@@ -547,11 +548,11 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             replyBud = budgetId;
             replyPad = padding;
             replyCap = capabilities;
-            state = OpenapiAsyncapiState.closingReply(state);
+            state = OpenapiAsyncapiState.openReply(state);
 
             assert replyAck <= replySeq;
 
-            delegate.doCompositeWindow(traceId, acknowledge, budgetId, padding);
+            delegate.doCompositeWindow(traceId, authorization, budgetId, padding);
         }
 
         private void cleanup(
@@ -1148,7 +1149,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             initialMax = delegate.initialMax;
 
             doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, padding + replyPad);
+                traceId, authorization, budgetId, padding);
         }
 
         private void doCompositeBegin(
@@ -1187,7 +1188,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             OctetsFW extension)
         {
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, initialBud, reserved, extension);
+                traceId, authorization, 0L, reserved, extension);
         }
 
         private void doCompositeEnd(

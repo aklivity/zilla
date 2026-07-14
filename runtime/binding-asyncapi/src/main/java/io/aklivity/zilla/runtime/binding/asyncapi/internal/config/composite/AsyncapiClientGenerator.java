@@ -194,7 +194,10 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.servers.stream())
-                    .map(s -> s.protocol)
+                    .map(s -> s.url)
+                    .filter(Objects::nonNull)
+                    .map(URI::getScheme)
+                    .filter(Objects::nonNull)
                     .map(this::resolveProtocol)
                     .distinct()
                     .map(protocols::get)
@@ -207,56 +210,32 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private String resolveProtocol(
                 String protocol)
             {
-                String resolved = protocol;
-                if (resolveServer() != null)
-                {
-                    boolean secure = isSecure();
-                    resolved = switch (protocol)
-                    {
-                    case "kafka", "kafka-secure" -> secure ? "kafka-secure" : "kafka";
-                    case "http", "https" -> secure ? "https" : "http";
-                    case "mqtt", "mqtts", "mqtt+secure" -> secure ? "mqtts" : "mqtt";
-                    default -> protocol;
-                    };
-                }
+                boolean secure = isSecure();
 
-                return resolved;
+                return switch (protocol)
+                {
+                case "kafka", "kafka-secure" -> secure ? "kafka-secure" : "kafka";
+                case "http", "https" -> secure ? "https" : "http";
+                case "mqtt", "mqtts", "mqtt+secure" -> secure ? "mqtts" : "mqtt";
+                default -> protocol;
+                };
             }
 
             private URI resolveServer()
             {
-                return config.options.specs.stream()
-                    .filter(s -> schema.specLabel.equals(s.label))
-                    .map(s -> s.server)
-                    .filter(server -> server != null)
+                return config.resolveServers(schema.specLabel).stream()
                     .findFirst()
-                    .map(URI::create)
-                    .orElse(null);
+                    .orElseThrow();
             }
 
             private boolean isSecure()
             {
-                URI server = resolveServer();
-
-                return server != null
-                    ? secure.stream().anyMatch(protocol -> protocol.equals(server.getScheme()))
-                    : Stream.of(schema)
-                        .map(s -> s.asyncapi)
-                        .flatMap(v -> v.servers.stream())
-                        .anyMatch(s -> secure.contains(s.protocol));
+                return secure.stream().anyMatch(protocol -> protocol.equals(resolveServer().getScheme()));
             }
 
-            private Optional<String> resolveAuthority()
+            private String resolveAuthority()
             {
-                URI server = resolveServer();
-
-                return server != null
-                    ? Optional.of(authority(server))
-                    : Stream.of(schema)
-                        .map(s -> s.asyncapi)
-                        .flatMap(v -> v.servers.stream())
-                        .findFirst()
-                        .map(s -> "%s:%d".formatted(s.hostname, s.port));
+                return authority(resolveServer());
             }
 
             private String authority(
@@ -517,24 +496,11 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                 KafkaOptionsConfigBuilder<C> options)
             {
                 URI server = resolveServer();
-                if (server != null)
-                {
-                    options.server()
-                        .host(server.getHost())
-                        .port(server.getPort())
-                        .build();
-                }
-                else
-                {
-                    Stream.of(schema)
-                        .map(s -> s.asyncapi)
-                        .flatMap(v -> v.servers.stream())
-                        .forEach(s ->
-                            options.server()
-                                .host(s.hostname)
-                                .port(s.port)
-                                .build());
-                }
+
+                options.server()
+                    .host(server.getHost())
+                    .port(server.getPort())
+                    .build();
 
                 return options;
             }
@@ -576,7 +542,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> HttpOptionsConfigBuilder<C> injectHttpOptions(
                 HttpOptionsConfigBuilder<C> options)
             {
-                resolveAuthority().ifPresent(authority -> options.override(":authority", authority));
+                options.override(":authority", resolveAuthority());
 
                 return options;
             }
@@ -637,7 +603,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> MqttOptionsConfigBuilder<C> injectMqttOptions(
                 MqttOptionsConfigBuilder<C> options)
             {
-                resolveAuthority().ifPresent(authority -> options.server("mqtt://" + authority));
+                options.server("mqtt://" + resolveAuthority());
 
                 return options;
             }

@@ -29,6 +29,6 @@ public final class OpenapiAsyncapiConditionServerConfig
     boolean matches(
         OpenapiServerView server)
     {
-        return url == null || url.equals(server.literalUrl.toString());
+        return url == null || url.equals(server.url.toString());
     }
 }

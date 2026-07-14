@@ -48,10 +48,15 @@
                                         "type": "object",
                                         "properties":
                                         {
-                                            "server":
+                                            "servers":
                                             {
-                                                "title": "Server",
-                                                "type": "string"
+                                                "title": "Servers",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "minItems": 1
                                             },
                                             "catalog":
                                             {
@@ -132,6 +137,10 @@
                                                 "additionalProperties": false
                                             }
                                         },
+                                        "required":
+                                        [
+                                            "servers"
+                                        ],
                                         "additionalProperties": false
                                     }
                                 },

@@ -59,7 +59,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParserFactory;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
@@ -147,14 +146,7 @@ public abstract class AsyncapiCompositeGenerator
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, specification, payload);
-                final List<AsyncapiServerConfig> configs =
-                    specification.server != null
-                        ? List.of(AsyncapiServerConfig.builder()
-                            .host(specification.server)
-                            .url(specification.server)
-                            .build())
-                        : List.of(AsyncapiServerConfig.builder().build());
-                final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(materialized), configs);
+                final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(materialized));
 
                 unresolved.addAll(asyncapi.unresolvedRefs());
 

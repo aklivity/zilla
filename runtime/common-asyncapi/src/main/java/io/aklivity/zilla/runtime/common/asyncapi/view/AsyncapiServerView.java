@@ -26,25 +26,16 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiServerView
 {
     public final String name;
-    public final String url;
-    public final String literalUrl;
-    public final String host;
-    public final String literalHost;
-    public final String hostname;
-    public final int port;
-    public final String pathname;
-    public final String literalPathname;
+    public final URI url;
     public final String title;
     public final String summary;
     public final String description;
-    public final String protocol;
     public final String protocolVersion;
     public final List<String> tags;
 
@@ -80,8 +71,7 @@ public final class AsyncapiServerView
     AsyncapiServerView(
         AsyncapiResolver resolver,
         String name,
-        AsyncapiServer model,
-        AsyncapiServerConfig config)
+        AsyncapiServer model)
     {
         Map<String, AsyncapiServerVariableView> variables = model.variables != null
                 ? model.variables.entrySet().stream()
@@ -99,41 +89,28 @@ public final class AsyncapiServerView
             ? new VariableMatcher(variables::get, model.pathname)
             : null;
 
-        this.name = name;
-        this.url = urlMatcher != null
-            ? urlMatcher.resolve(config != null ? config.url : null)
-            : null;
-        this.literalUrl = urlMatcher != null
+        String resolvedUrl = urlMatcher != null
             ? urlMatcher.resolve(null)
             : null;
-
-        this.host = hostMatcher != null
-            ? hostMatcher.resolve(config != null ? config.host : null)
-            : null;
-        this.literalHost = hostMatcher != null
+        String resolvedHost = hostMatcher != null
             ? hostMatcher.resolve(null)
             : null;
-
-        String urlOrHost = url != null ? url : "tcp://%s".formatted(host);
-        this.hostname = urlOrHost != null
-            ? URI.create(urlOrHost).getHost()
-            : null;
-
-        this.port = urlOrHost != null
-            ? URI.create(urlOrHost).getPort()
-            : 0;
-
-        this.pathname = pathnameMatcher != null
-            ? pathnameMatcher.resolve(config != null ? config.pathname : null)
-            : null;
-        this.literalPathname = pathnameMatcher != null
+        String resolvedPathname = pathnameMatcher != null
             ? pathnameMatcher.resolve(null)
             : null;
+
+        String pathnameOrEmpty = Optional.ofNullable(resolvedPathname).orElse("");
+
+        this.name = name;
+        this.url = resolvedUrl != null
+            ? URI.create(resolvedUrl)
+            : resolvedHost != null
+                ? URI.create("%s://%s%s".formatted(model.protocol, resolvedHost, pathnameOrEmpty))
+                : null;
 
         this.title = model.title;
         this.summary = model.summary;
         this.description = model.description;
-        this.protocol = model.protocol;
         this.protocolVersion = model.protocolVersion;
         this.tags = model.tags != null
             ? model.tags.stream()

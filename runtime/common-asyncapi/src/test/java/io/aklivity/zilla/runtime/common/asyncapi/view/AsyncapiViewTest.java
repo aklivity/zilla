@@ -25,7 +25,6 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
 
 public class AsyncapiViewTest
@@ -95,62 +94,9 @@ public class AsyncapiViewTest
                     type: string
             """);
 
-        AsyncapiServerConfig server = AsyncapiServerConfig.builder()
-            .host("localhost:7143")
-            .build();
-        AsyncapiView view = AsyncapiView.of(model, List.of(server));
+        AsyncapiView view = AsyncapiView.of(model);
 
         assertThat(view, is(not(nullValue())));
-    }
-
-    @Test
-    public void shouldKeepLiteralHostAtSpecDefaultRegardlessOfOverride() throws Exception
-    {
-        Asyncapi model = new AsyncapiParser().parse("""
-            asyncapi: 3.0.0
-            info:
-              title: Test API
-              version: 0.1.0
-            servers:
-              staging:
-                host: 'localhost:{port}'
-                protocol: mqtt
-                variables:
-                  port:
-                    description: Secure connection (TLS) is available through port 8883.
-                    default: '7183'
-                    enum:
-                      - '7183'
-                      - '7143'
-            operations:
-              doSend:
-                action: send
-                channel:
-                  $ref: '#/channels/output'
-            channels:
-              output:
-                messages:
-                  note:
-                    $ref: '#/components/messages/note'
-            components:
-              messages:
-                note:
-                  payload:
-                    $ref: '#/components/schemas/note.payload'
-              schemas:
-                note.payload:
-                  schema:
-                    type: string
-            """);
-
-        AsyncapiServerConfig server = AsyncapiServerConfig.builder()
-            .host("localhost:7143")
-            .build();
-        AsyncapiView view = AsyncapiView.of(model, List.of(server));
-        AsyncapiServerView serverView = view.servers.get(0);
-
-        assertThat(serverView.host, is("localhost:7143"));
-        assertThat(serverView.literalHost, is("localhost:7183"));
     }
 
     @Test
@@ -274,8 +220,7 @@ public class AsyncapiViewTest
                     type: string
             """);
 
-        AsyncapiServerConfig config = AsyncapiServerConfig.builder().build();
-        AsyncapiView view = AsyncapiView.of(model, List.of(config));
+        AsyncapiView view = AsyncapiView.of(model);
 
         AsyncapiChannelView channel = view.channels.get("output");
         assertThat(channel.servers, hasSize(1));
@@ -322,8 +267,7 @@ public class AsyncapiViewTest
                     type: string
             """);
 
-        AsyncapiServerConfig config = AsyncapiServerConfig.builder().build();
-        AsyncapiView view = AsyncapiView.of(model, List.of(config));
+        AsyncapiView view = AsyncapiView.of(model);
 
         AsyncapiChannelView channel = view.channels.get("output");
         assertThat(channel.servers, hasSize(2));
@@ -349,8 +293,7 @@ public class AsyncapiViewTest
                   - name: 'env:production'
             """);
 
-        AsyncapiServerConfig config = AsyncapiServerConfig.builder().build();
-        AsyncapiView view = AsyncapiView.of(model, List.of(config));
+        AsyncapiView view = AsyncapiView.of(model);
         AsyncapiServerView server = view.servers.get(0);
 
         assertThat(server.protocolVersion, is("3.2"));
