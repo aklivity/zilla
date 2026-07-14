@@ -13,7 +13,7 @@ services:
       timeout: 3s
       retries: 15
       start_period: 15s
-      test: ["CMD", "sh", "-c", "zilla logs | grep -q engine.started"]
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
     environment:
       ZILLA_INCUBATOR_ENABLED: "true"
       # JAVA_OPTIONS: "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=*:4444"
