@@ -228,7 +228,7 @@ public final class AsyncapiBindingConfig
     public Flyweight resolve(
         OctetsFW extension,
         URI server,
-        String pathname)
+        String serverPath)
     {
         Flyweight resolved = extension;
 
@@ -238,11 +238,11 @@ public final class AsyncapiBindingConfig
 
             if (typeId == httpTypeId)
             {
-                resolved = resolveHttp(extension, server, pathname);
+                resolved = resolveHttp(extension, server, serverPath);
             }
             else if (typeId == sseTypeId)
             {
-                resolved = resolveSse(extension, server, pathname);
+                resolved = resolveSse(extension, server, serverPath);
             }
         }
 
@@ -251,13 +251,13 @@ public final class AsyncapiBindingConfig
 
     public Flyweight resolveLocation(
         OctetsFW extension,
-        String pathname)
+        String serverPath)
     {
         Flyweight resolved = extension;
 
-        if (pathname != null && !pathname.isEmpty() && typeId(extension) == httpTypeId)
+        if (serverPath != null && !serverPath.isEmpty() && typeId(extension) == httpTypeId)
         {
-            resolved = resolveLocationHttp(extension, pathname);
+            resolved = resolveLocationHttp(extension, serverPath);
         }
 
         return resolved;
@@ -319,7 +319,7 @@ public final class AsyncapiBindingConfig
     private HttpBeginExFW resolveHttp(
         OctetsFW extension,
         URI server,
-        String pathname)
+        String serverPath)
     {
         final HttpBeginExFW canonicalHttpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
@@ -336,7 +336,7 @@ public final class AsyncapiBindingConfig
         {
             if (HEADER_PATH.equals(h.name()))
             {
-                final String effectivePath = requestPath(pathname, h.value().asString());
+                final String effectivePath = requestPath(serverPath, h.value().asString());
                 builder.headersItem(nh -> nh.name(h.name()).value(effectivePath));
             }
             else
@@ -350,7 +350,7 @@ public final class AsyncapiBindingConfig
 
     private HttpBeginExFW resolveLocationHttp(
         OctetsFW extension,
-        String pathname)
+        String serverPath)
     {
         final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
@@ -362,7 +362,7 @@ public final class AsyncapiBindingConfig
         {
             if (HEADER_LOCATION.equals(h.name()))
             {
-                final String effectiveLocation = requestPath(pathname, h.value().asString());
+                final String effectiveLocation = requestPath(serverPath, h.value().asString());
                 builder.headersItem(nh -> nh.name(h.name()).value(effectiveLocation));
             }
             else
@@ -377,7 +377,7 @@ public final class AsyncapiBindingConfig
     private SseBeginExFW resolveSse(
         OctetsFW extension,
         URI server,
-        String pathname)
+        String serverPath)
     {
         final SseBeginExFW canonicalSseBeginEx = extension.get(sseBeginExRO::tryWrap);
 
@@ -386,17 +386,17 @@ public final class AsyncapiBindingConfig
             .typeId(sseTypeId)
             .scheme(server.getScheme())
             .authority(authority(server))
-            .path(requestPath(pathname, canonicalSseBeginEx.path().asString()))
+            .path(requestPath(serverPath, canonicalSseBeginEx.path().asString()))
             .lastId(canonicalSseBeginEx.lastId())
             .build();
     }
 
     private static String requestPath(
-        String pathname,
+        String serverPath,
         String path)
     {
-        return pathname != null && !pathname.isEmpty()
-            ? pathname.endsWith("/") ? pathname.concat(path.substring(1)) : pathname.concat(path)
+        return serverPath != null && !serverPath.isEmpty()
+            ? serverPath.endsWith("/") ? serverPath.concat(path.substring(1)) : serverPath.concat(path)
             : path;
     }
 

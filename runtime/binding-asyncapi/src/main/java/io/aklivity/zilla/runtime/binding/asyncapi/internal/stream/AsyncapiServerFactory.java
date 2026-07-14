@@ -216,7 +216,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                         final long resolvedId = route.id;
                         final long resolvedSpecId = composite.resolveSpecId(specLabel);
                         final String operationPath = operation != null ? operation.channel.address : null;
-                        final String pathname = binding.resolvePath(operationServers);
+                        final String serverPath = binding.resolvePath(operationServers);
 
                         newStream = new CompositeStream(
                             receiver,
@@ -230,7 +230,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                             operationId,
                             binding,
                             operationPath,
-                            pathname)::onCompositeMessage;
+                            serverPath)::onCompositeMessage;
                     }
                 }
             }
@@ -275,7 +275,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             String operationId,
             AsyncapiBindingConfig binding,
             String operationPath,
-            String pathname)
+            String serverPath)
         {
             this.sender = sender;
             this.originId = originId;
@@ -285,7 +285,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             this.affinity = affinity;
             this.authorization = authorization;
             this.delegate = new AsyncapiStream(
-                this, routedId, resolvedId, authorization, specId, operationId, binding, operationPath, pathname);
+                this, routedId, resolvedId, authorization, specId, operationId, binding, operationPath, serverPath);
         }
 
         private void onCompositeMessage(
@@ -585,7 +585,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         private final String operationId;
         private final AsyncapiBindingConfig binding;
         private final String operationPath;
-        private final String pathname;
+        private final String serverPath;
 
         private long initialId;
         private long replyId;
@@ -612,7 +612,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             String operationId,
             AsyncapiBindingConfig binding,
             String operationPath,
-            String pathname)
+            String serverPath)
         {
             this.delegate = delegate;
             this.originId = originId;
@@ -623,7 +623,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             this.operationId = operationId;
             this.binding = binding;
             this.operationPath = operationPath;
-            this.pathname = pathname;
+            this.serverPath = serverPath;
         }
 
         private void onAsyncapiMessage(
@@ -678,7 +678,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
             final AsyncapiBeginExFW asyncapiBeginEx = extension.get(beginExRO::tryWrap);
             OctetsFW asyncapiExtension = asyncapiBeginEx != null ? asyncapiBeginEx.extension() : EMPTY_OCTETS;
 
-            final Flyweight resolved = binding.resolveLocation(asyncapiExtension, pathname);
+            final Flyweight resolved = binding.resolveLocation(asyncapiExtension, serverPath);
             if (resolved != asyncapiExtension)
             {
                 asyncapiExtension = octetsRO.wrap(resolved.buffer(), resolved.offset(), resolved.limit());

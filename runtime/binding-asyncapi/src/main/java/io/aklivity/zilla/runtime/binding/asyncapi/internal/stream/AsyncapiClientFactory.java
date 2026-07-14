@@ -206,7 +206,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
                 final URI server = specification != null
                     ? selectServer(routedId, binding, specification.label)
                     : null;
-                final String pathname = specification != null
+                final String serverPath = specification != null
                     ? binding.resolvePath(specification.servers)
                     : null;
 
@@ -222,7 +222,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
                     operationId,
                     binding,
                     server,
-                    pathname)::onAsyncapiMessage;
+                    serverPath)::onAsyncapiMessage;
             }
 
         }
@@ -259,7 +259,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         private final String operationId;
         private final AsyncapiBindingConfig binding;
         private final URI server;
-        private final String pathname;
+        private final String serverPath;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -294,7 +294,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             String operationId,
             AsyncapiBindingConfig binding,
             URI server,
-            String pathname)
+            String serverPath)
         {
             this.composite =  new CompositeStream(this, routedId, resolvedId, authorization);
             this.sender = sender;
@@ -308,7 +308,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             this.operationId = operationId;
             this.binding = binding;
             this.server = server;
-            this.pathname = pathname;
+            this.serverPath = serverPath;
         }
 
         private void onAsyncapiMessage(
@@ -373,7 +373,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert initialAck <= initialSeq;
 
-            final Flyweight resolved = binding.resolve(asyncapiBeginEx.extension(), server, pathname);
+            final Flyweight resolved = binding.resolve(asyncapiBeginEx.extension(), server, serverPath);
             final OctetsFW resolvedExtension = octetsRO.wrap(resolved.buffer(), resolved.offset(), resolved.limit());
 
             composite.doCompositeBegin(traceId, resolvedExtension);
