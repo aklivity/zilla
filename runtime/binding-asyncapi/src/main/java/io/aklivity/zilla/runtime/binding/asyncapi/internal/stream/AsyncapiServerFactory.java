@@ -216,7 +216,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                         final long resolvedId = route.id;
                         final long resolvedSpecId = composite.resolveSpecId(specLabel);
                         final String operationPath = operation != null ? operation.channel.address : null;
-                        final String pathname = binding.resolvePathname(operationServers);
+                        final String pathname = binding.resolvePath(operationServers);
 
                         newStream = new CompositeStream(
                             receiver,

@@ -299,7 +299,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .filter(op -> op.hasBinding("http"))
                     .filter(AsyncapiOperationView::hasMessagesOrParameters)
                     .forEach(operation ->
-                        resolvePathnames(operation).forEach(pathname ->
+                        resolvePaths(operation).forEach(pathname ->
                             options
                                 .request()
                                     .path(pathname + operation.channel.address)
@@ -312,10 +312,10 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return options;
             }
 
-            private List<String> resolvePathnames(
+            private List<String> resolvePaths(
                 AsyncapiOperationView operation)
             {
-                List<String> pathnames = operation.servers != null
+                List<String> paths = operation.servers != null
                     ? operation.servers.stream()
                         .filter(server -> server.url != null &&
                             server.url.getScheme() != null &&
@@ -325,7 +325,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         .toList()
                     : List.of();
 
-                return !pathnames.isEmpty() ? pathnames : List.of("");
+                return !paths.isEmpty() ? paths : List.of("");
             }
 
             private <C> HttpRequestConfigBuilder<C> injectHttpContent(
@@ -415,7 +415,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 
                         if (operation.hasBinding("http") && allowed(operation))
                         {
-                            resolvePathnames(operation).forEach(pathname ->
+                            resolvePaths(operation).forEach(pathname ->
                                 binding
                                     .route()
                                     .exit(config.qname)
@@ -432,7 +432,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         }
                         else if (operation.hasBinding("x-zilla-sse"))
                         {
-                            resolvePathnames(operation).forEach(pathname ->
+                            resolvePaths(operation).forEach(pathname ->
                                 binding
                                     .route()
                                     .exit("sse_server0")
@@ -513,7 +513,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     {
                         final String address = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
-                        resolvePathnames(operation).forEach(pathname ->
+                        resolvePaths(operation).forEach(pathname ->
                             options
                                 .request()
                                     .path(pathname + address)
@@ -555,7 +555,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     {
                         final String address = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
-                        resolvePathnames(operation).forEach(pathname ->
+                        resolvePaths(operation).forEach(pathname ->
                             binding
                                 .route()
                                 .exit(config.qname)

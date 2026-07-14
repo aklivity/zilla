@@ -190,7 +190,7 @@ public final class AsyncapiBindingConfig
             .collect(toList());
     }
 
-    public String resolvePathname(
+    public String resolvePath(
         List<AsyncapiServerView> servers)
     {
         return servers != null

@@ -207,7 +207,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
                     ? selectServer(routedId, binding, specification.label)
                     : null;
                 final String pathname = specification != null
-                    ? binding.resolvePathname(specification.servers)
+                    ? binding.resolvePath(specification.servers)
                     : null;
 
                 newStream = new AsyncapiStream(
