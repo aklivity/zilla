@@ -30,6 +30,7 @@ RUN ./zpmw clean --keep-image
 FROM alpine:3.24.1
 
 ENV ZILLA_VERSION ${project.version}
+ENV PATH="/opt/zilla:${PATH}"
 
 COPY --from=build /.zpm /opt/zilla/.zpm
 COPY --from=build /zilla /opt/zilla/zilla
