@@ -18,7 +18,6 @@ import static java.util.stream.Collectors.toList;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
@@ -197,8 +196,8 @@ public final class AsyncapiBindingConfig
         return servers != null
             ? servers.stream()
                 .filter(s -> s.protocol != null && s.protocol.startsWith("http"))
-                .map(s -> s.pathname)
-                .filter(Objects::nonNull)
+                .filter(s -> s.url != null)
+                .map(s -> s.url.getPath())
                 .findFirst()
                 .orElse("")
             : "";

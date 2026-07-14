@@ -33,7 +33,6 @@ public final class AsyncapiServerView
 {
     public final String name;
     public final URI url;
-    public final String pathname;
     public final String title;
     public final String summary;
     public final String description;
@@ -109,8 +108,6 @@ public final class AsyncapiServerView
             : resolvedHost != null
                 ? URI.create("%s://%s%s".formatted(model.protocol, resolvedHost, pathnameOrEmpty))
                 : null;
-
-        this.pathname = resolvedPathname;
 
         this.title = model.title;
         this.summary = model.summary;
