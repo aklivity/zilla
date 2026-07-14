@@ -47,7 +47,7 @@ write zilla:begin.ext ${openapi:beginEx()
                                    .typeId(zilla:id("http"))
                                    .header(":status", "202")
                                    .header("content-length", "0")
-                                   .header("Location", "/v1/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-29854217b0ba4ea8370d777b2f0f187a")
+                                   .header("Location", "/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-966ecfabf0fe9086ce63f615b87a6bed")
                                   .build())
                              .build()}
 write flush
@@ -65,7 +65,7 @@ read zilla:begin.ext ${openapi:matchBeginEx()
                                   .header(":method", "GET")
                                   .header(":scheme", "http")
                                   .header(":authority", "localhost:8080")
-                                  .header(":path", "/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-29854217b0ba4ea8370d777b2f0f187a")
+                                  .header(":path", "/customer;cid=3f96592e-c8f1-4167-8c46-85f2aabb70a5-966ecfabf0fe9086ce63f615b87a6bed")
                                   .header("prefer", "respond-async")
                                   .build())
                              .build()}

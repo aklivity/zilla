@@ -546,7 +546,7 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                             {
                                 content.headers.forEach((k, v) ->
                                 {
-                                    String location = httpServer.requestPath(v.schema.format);
+                                    String location = v.schema.format;
                                     location = location.replaceAll(CORRELATION_ID, "\\${correlationId}");
                                     location = location.replaceAll(PARAMETERS, "\\${params.$1}");
                                     produce.async(HttpKafkaWithProduceAsyncHeaderConfig.builder()

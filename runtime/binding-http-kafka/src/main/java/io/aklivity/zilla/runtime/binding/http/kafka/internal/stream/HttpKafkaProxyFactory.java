@@ -1887,7 +1887,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
 
-            replySeq = sequence;
+            replySeq = sequence + reserved;
 
             assert replyAck <= replySeq;
 
@@ -1943,6 +1943,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             assert replyAck <= replySeq;
 
             producer.doKafkaWindow(traceId);
+            correlater.doKafkaWindow(traceId);
         }
 
         @Override
@@ -2666,7 +2667,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long authorization)
         {
             state = HttpKafkaState.closingInitial(state);
-            doKafkaEndAck(traceId, authorization);
+            doKafkaEndAck(authorization, traceId);
         }
 
         private void doKafkaAbort(
@@ -3544,7 +3545,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
 
-            replySeq = sequence;
+            replySeq = sequence + reserved;
 
             assert replyAck <= replySeq;
 
