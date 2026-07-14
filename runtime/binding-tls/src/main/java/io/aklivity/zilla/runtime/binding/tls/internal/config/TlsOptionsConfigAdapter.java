@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig.REQUIRED;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -86,8 +85,7 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(TRUST_NAME, trust);
         }
 
-        if (tlsOptions.trust != null && tlsOptions.trustcacerts ||
-            tlsOptions.trust == null && !tlsOptions.trustcacerts)
+        if (tlsOptions.trustcacerts != null)
         {
             object.add(TRUSTCACERTS_NAME, tlsOptions.trustcacerts);
         }
@@ -106,8 +104,7 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(ALPN_NAME, alpn);
         }
 
-        if (tlsOptions.mutual != null &&
-            (tlsOptions.trust == null || tlsOptions.mutual != REQUIRED))
+        if (tlsOptions.mutual != null)
         {
             String mutual = tlsOptions.mutual.name().toLowerCase();
             object.add(MUTUAL_NAME, mutual);
