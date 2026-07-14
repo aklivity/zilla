@@ -197,6 +197,34 @@ public class AsyncapiConditionConfigAdapterTest
     }
 
     @Test
+    public void shouldMatchServerByUrlForAsyncapi3HostProtocolStyleServer() throws Exception
+    {
+        Asyncapi model = new AsyncapiParser().parse("""
+            asyncapi: 3.0.0
+            info:
+              title: Test API
+              version: 0.1.0
+            servers:
+              production:
+                host: broker.example.com:9092
+                protocol: kafka
+            channels: {}
+            """);
+
+        List<AsyncapiServerView> servers = AsyncapiView.of(model).servers;
+
+        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "kafka://broker.example.com:9092")));
+
+        assertThat(condition.matches("test", "listPets", null, servers), equalTo(true));
+
+        AsyncapiConditionConfig other = new AsyncapiConditionConfig("test", null, null,
+            List.of(new AsyncapiConditionServerConfig(null, "kafka://other.example.com:9092")));
+
+        assertThat(other.matches("test", "listPets", null, servers), equalTo(false));
+    }
+
+    @Test
     public void shouldMatchAnyServerWhenOmitted() throws Exception
     {
         AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null);

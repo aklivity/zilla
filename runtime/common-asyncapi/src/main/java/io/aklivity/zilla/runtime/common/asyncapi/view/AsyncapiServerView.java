@@ -32,10 +32,7 @@ import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver
 public final class AsyncapiServerView
 {
     public final String name;
-    public final String url;
-    public final String host;
-    public final String hostname;
-    public final int port;
+    public final URI url;
     public final String pathname;
     public final String title;
     public final String summary;
@@ -94,27 +91,26 @@ public final class AsyncapiServerView
             ? new VariableMatcher(variables::get, model.pathname)
             : null;
 
-        this.name = name;
-        this.url = urlMatcher != null
+        String resolvedUrl = urlMatcher != null
             ? urlMatcher.resolve(null)
             : null;
-
-        this.host = hostMatcher != null
+        String resolvedHost = hostMatcher != null
             ? hostMatcher.resolve(null)
             : null;
-
-        String urlOrHost = url != null ? url : "tcp://%s".formatted(host);
-        this.hostname = urlOrHost != null
-            ? URI.create(urlOrHost).getHost()
-            : null;
-
-        this.port = urlOrHost != null
-            ? URI.create(urlOrHost).getPort()
-            : 0;
-
-        this.pathname = pathnameMatcher != null
+        String resolvedPathname = pathnameMatcher != null
             ? pathnameMatcher.resolve(null)
             : null;
+
+        String pathnameOrEmpty = Optional.ofNullable(resolvedPathname).orElse("");
+
+        this.name = name;
+        this.url = resolvedUrl != null
+            ? URI.create(resolvedUrl)
+            : resolvedHost != null
+                ? URI.create("%s://%s%s".formatted(model.protocol, resolvedHost, pathnameOrEmpty))
+                : null;
+
+        this.pathname = resolvedPathname;
 
         this.title = model.title;
         this.summary = model.summary;
