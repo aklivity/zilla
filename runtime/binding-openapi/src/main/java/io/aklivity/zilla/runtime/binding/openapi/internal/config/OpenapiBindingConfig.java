@@ -23,7 +23,6 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
@@ -102,20 +101,6 @@ public final class OpenapiBindingConfig
         this.httpBeginExRW = httpBeginExRW;
         this.httpExtBuffer = httpExtBuffer;
         this.httpTypeId = httpTypeId;
-
-        // TODO: move to engine
-        if (options != null)
-        {
-            if (options.http != null)
-            {
-                final HttpAuthorizationConfig authorization = options.http.authorization;
-                if (authorization != null)
-                {
-                    final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
-                    authorization.qname = context.supplyQName(namespacedId);
-                }
-            }
-        }
     }
 
     public OpenapiRouteConfig resolve(

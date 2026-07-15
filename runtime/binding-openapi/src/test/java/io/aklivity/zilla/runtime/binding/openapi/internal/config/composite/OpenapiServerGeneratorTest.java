@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -36,7 +37,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
@@ -319,6 +322,17 @@ public class OpenapiServerGeneratorTest
             .orElseThrow();
     }
 
+    private HttpOptionsConfig httpServerOptions(
+        OpenapiCompositeConfig composite)
+    {
+        BindingConfig httpServer = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "http_server0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        return (HttpOptionsConfig) httpServer.options;
+    }
+
     @Test
     public void shouldGuardMappedOperation()
     {
@@ -364,6 +378,38 @@ public class OpenapiServerGeneratorTest
             Map.of("bearerAuth", "guard0"))));
 
         assertThat(composite, notNullValue());
+    }
+
+    @Test
+    public void shouldSynthesizeHttpAuthorizationFromBearerScheme()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("bearerAuth", "guard0"))));
+
+        HttpAuthorizationConfig authorization = httpServerOptions(composite).authorization;
+
+        assertThat(authorization, notNullValue());
+        assertThat(authorization.name, equalTo("guard0"));
+        assertThat(authorization.credentials.headers, hasSize(1));
+        assertThat(authorization.credentials.headers.get(0).name, equalTo("authorization"));
+        assertThat(authorization.credentials.headers.get(0).pattern, equalTo("Bearer {credentials}"));
+    }
+
+    @Test
+    public void shouldNotSynthesizeHttpAuthorizationWhenSecurityMapAbsent()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(null)));
+
+        assertThat(httpServerOptions(composite).authorization, nullValue());
+    }
+
+    @Test
+    public void shouldNotSynthesizeHttpAuthorizationForUnsupportedSchemeType()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("oauthScheme", "guard0"))));
+
+        assertThat(httpServerOptions(composite).authorization, nullValue());
     }
 
     @Test

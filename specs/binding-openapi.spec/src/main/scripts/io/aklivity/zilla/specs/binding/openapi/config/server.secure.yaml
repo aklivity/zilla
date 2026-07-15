@@ -164,14 +164,4 @@ bindings:
           - localhost
         alpn:
           - protocol2
-      http:
-        authorization:
-          test0:
-            credentials:
-              cookies:
-                access_token: "{credentials}"
-              headers:
-                authorization: Bearer {credentials}
-              query:
-                access_token: "{credentials}"
     exit: openapi0

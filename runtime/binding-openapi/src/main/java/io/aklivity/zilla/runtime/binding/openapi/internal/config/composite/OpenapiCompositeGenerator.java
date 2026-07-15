@@ -36,6 +36,7 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -51,6 +52,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiRequestBodyView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -500,6 +502,38 @@ public abstract class OpenapiCompositeGenerator
                 }
 
                 return guarded;
+            }
+
+            protected final <C> HttpOptionsConfigBuilder<C> injectHttpAuthorization(
+                HttpOptionsConfigBuilder<C> options,
+                OpenapiSchemaConfig schema)
+            {
+                final Map<String, String> security = schema.security;
+                final Map.Entry<String, String> secured = security != null && !security.isEmpty()
+                    ? security.entrySet().iterator().next()
+                    : null;
+                final OpenapiSecuritySchemeView scheme = secured != null && schema.openapi.components != null
+                    ? schema.openapi.components.securitySchemes.get(secured.getKey())
+                    : null;
+
+                if (scheme != null && "http".equals(scheme.type) && "bearer".equals(scheme.scheme))
+                {
+                    final long guardId = config.resolveId.applyAsLong(secured.getValue());
+                    final String qname = config.supplyQName.apply(guardId);
+
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .header()
+                                    .name("authorization")
+                                    .pattern("Bearer {credentials}")
+                                    .build()
+                                .build()
+                            .build();
+                }
+
+                return options;
             }
 
             protected final ModelConfig resolveModelBySchema(

@@ -240,28 +240,12 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                             .access()
                                 .policy(CROSS_ORIGIN)
                                 .build()
-                            .inject(this::injectHttpAuthorization)
+                            .inject(options -> injectHttpAuthorization(options, schema))
                             .inject(this::injectHttpRequests)
                             .build()
                         .inject(this::injectHttpRoutes)
                         .inject(this::injectMetrics)
                         .build();
-            }
-
-            private <C> HttpOptionsConfigBuilder<C> injectHttpAuthorization(
-                HttpOptionsConfigBuilder<C> options)
-            {
-                final HttpOptionsConfig httpOptions = config.options.http;
-                if (httpOptions != null &&
-                    httpOptions.authorization != null)
-                {
-                    options.authorization()
-                        .name(httpOptions.authorization.qname)
-                        .credentials(httpOptions.authorization.credentials)
-                        .build();
-                }
-
-                return options;
             }
 
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(

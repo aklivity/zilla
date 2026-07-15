@@ -66,21 +66,13 @@ public class OpenapiOptionsConfigAdapterTest
                   catalog0:
                     subject: petstore
                     version: latest
+                security:
+                  bearerAuth: test0
             tls:
               keys:
                 - localhost
               alpn:
                 - localhost
-            http:
-              authorization:
-                test0:
-                  credentials:
-                    cookies:
-                      access_token: "{credentials}"
-                    headers:
-                      authorization: "Bearer {credentials}"
-                    query:
-                      access_token: "{credentials}"
             """;
 
         OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);

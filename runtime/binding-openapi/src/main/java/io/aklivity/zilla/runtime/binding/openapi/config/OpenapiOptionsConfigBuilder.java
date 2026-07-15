@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -29,7 +28,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
     private final Function<OptionsConfig, T> mapper;
 
     private TlsOptionsConfig tls;
-    private HttpOptionsConfig http;
     private List<OpenapiSpecificationConfig> specs;
 
     OpenapiOptionsConfigBuilder(
@@ -52,13 +50,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
         return this;
     }
 
-    public OpenapiOptionsConfigBuilder<T> http(
-        HttpOptionsConfig http)
-    {
-        this.http = http;
-        return this;
-    }
-
     public OpenapiOptionsConfigBuilder<T> spec(
         OpenapiSpecificationConfig spec)
     {
@@ -73,6 +64,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
     @Override
     public T build()
     {
-        return mapper.apply(new OpenapiOptionsConfig(tls, http, specs));
+        return mapper.apply(new OpenapiOptionsConfig(tls, specs));
     }
 }

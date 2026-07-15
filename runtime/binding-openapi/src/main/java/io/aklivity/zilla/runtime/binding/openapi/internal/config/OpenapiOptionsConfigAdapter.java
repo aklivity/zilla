@@ -27,7 +27,6 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
@@ -43,7 +42,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
 {
     private static final String SPECS_NAME = "specs";
     private static final String TLS_NAME = "tls";
-    private static final String HTTP_NAME = "http";
     private static final String SERVERS_NAME = "servers";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
@@ -52,7 +50,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     private static final String OVERLAY_NAME = "overlay";
 
     private OptionsConfigAdapter tlsOptions;
-    private OptionsConfigAdapter httpOptions;
 
     @Override
     public Kind kind()
@@ -80,12 +77,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         {
             final TlsOptionsConfig tls = ((OpenapiOptionsConfig) options).tls;
             object.add(TLS_NAME, tlsOptions.adaptToJson(tls));
-        }
-
-        HttpOptionsConfig http = openapiOptions.http;
-        if (http != null)
-        {
-            object.add(HTTP_NAME, httpOptions.adaptToJson(http));
         }
 
         if (openapiOptions.specs != null)
@@ -159,14 +150,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
             final JsonObject tls = object.getJsonObject(TLS_NAME);
             final TlsOptionsConfig tlsOptions = (TlsOptionsConfig) this.tlsOptions.adaptFromJson(tls);
             openapiOptions.tls(tlsOptions);
-        }
-
-        if (object.containsKey(HTTP_NAME))
-        {
-            JsonObject http = object.getJsonObject(HTTP_NAME);
-
-            final HttpOptionsConfig httpOptions = (HttpOptionsConfig) this.httpOptions.adaptFromJson(http);
-            openapiOptions.http(httpOptions);
         }
 
         if (object.containsKey(SPECS_NAME))
@@ -257,8 +240,6 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         {
             tlsOptions = new OptionsConfigAdapter(Kind.BINDING);
             tlsOptions.adaptType("tls");
-            httpOptions = new OptionsConfigAdapter(Kind.BINDING);
-            httpOptions.adaptType("http");
         }
     }
 }
