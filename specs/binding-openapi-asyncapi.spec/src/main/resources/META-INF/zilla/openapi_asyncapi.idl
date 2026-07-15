@@ -18,7 +18,13 @@ scope openapi_asyncapi
     {
         enum OpenapiAsyncapiEventType (uint8)
         {
-            OPERATION_DENIED (1)
+            UNRESOLVED_REF (1),
+            OPERATION_DENIED (2)
+        }
+
+        struct OpenapiAsyncapiUnresolvedRefEx extends core::stream::Extension
+        {
+            string16 ref;
         }
 
         struct OpenapiAsyncapiOperationDeniedEx extends core::stream::Extension
@@ -28,6 +34,7 @@ scope openapi_asyncapi
 
         union OpenapiAsyncapiEventEx switch (OpenapiAsyncapiEventType)
         {
+            case UNRESOLVED_REF: OpenapiAsyncapiUnresolvedRefEx unresolvedRef;
             case OPERATION_DENIED: OpenapiAsyncapiOperationDeniedEx operationDenied;
         }
     }

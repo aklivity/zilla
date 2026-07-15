@@ -18,6 +18,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.String1
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.OpenapiAsyncapiEventExFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.OpenapiAsyncapiOperationDeniedExFW;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.OpenapiAsyncapiUnresolvedRefExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
@@ -43,6 +44,12 @@ public final class OpenapiAsyncapiEventFormatter implements EventFormatterSpi
         String result = null;
         switch (extension.kind())
         {
+        case UNRESOLVED_REF:
+        {
+            OpenapiAsyncapiUnresolvedRefExFW ex = extension.unresolvedRef();
+            result = String.format("Unresolved reference (%s).", asString(ex.ref()));
+            break;
+        }
         case OPERATION_DENIED:
         {
             OpenapiAsyncapiOperationDeniedExFW ex = extension.operationDenied();

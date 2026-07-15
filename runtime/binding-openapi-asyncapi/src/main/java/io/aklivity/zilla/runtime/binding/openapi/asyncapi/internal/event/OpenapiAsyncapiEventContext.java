@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.event;
 
 import static io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.OpenapiAsyncapiEventType.OPERATION_DENIED;
+import static io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.OpenapiAsyncapiEventType.UNRESOLVED_REF;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -36,6 +37,7 @@ public class OpenapiAsyncapiEventContext
     private final EventFW.Builder eventRW = new EventFW.Builder();
     private final OpenapiAsyncapiEventExFW.Builder openapiAsyncapiEventExRW = new OpenapiAsyncapiEventExFW.Builder();
     private final int openapiAsyncapiTypeId;
+    private final int unresolvedRef;
     private final int operationDenied;
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -44,9 +46,32 @@ public class OpenapiAsyncapiEventContext
         EngineContext context)
     {
         this.openapiAsyncapiTypeId = context.supplyTypeId(OpenapiAsyncapiBinding.NAME);
+        this.unresolvedRef = context.supplyEventId("binding.openapi.asyncapi.unresolved.ref");
         this.operationDenied = context.supplyEventId("binding.openapi.asyncapi.operation.denied");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
+    }
+
+    public void unresolvedRef(
+        long bindingId,
+        String ref)
+    {
+        OpenapiAsyncapiEventExFW extension = openapiAsyncapiEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .unresolvedRef(e -> e
+                .typeId(UNRESOLVED_REF.value())
+                .ref(ref)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(unresolvedRef)
+            .timestamp(clock.millis())
+            .traceId(0L)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(openapiAsyncapiTypeId, event.buffer(), event.offset(), event.limit());
     }
 
     public void operationDenied(

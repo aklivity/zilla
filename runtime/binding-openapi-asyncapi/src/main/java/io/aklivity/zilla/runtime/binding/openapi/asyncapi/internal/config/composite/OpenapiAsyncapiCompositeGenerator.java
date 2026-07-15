@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.compo
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.json.JsonObject;
 
@@ -45,7 +47,13 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public abstract class OpenapiAsyncapiCompositeGenerator
 {
+    private final Set<String> unresolved = new LinkedHashSet<>();
     protected final List<String> denied = new ArrayList<>();
+
+    public final Collection<String> unresolvedRefs()
+    {
+        return unresolved;
+    }
 
     public final Collection<String> deniedOperations()
     {
@@ -75,6 +83,8 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final String materialized = materialize(binding, openapiSpec, payload);
                 final OpenapiView openapi = OpenapiView.of(tagIndex++, label, openapiParser.parse(materialized));
 
+                unresolved.addAll(openapi.unresolvedRefs());
+
                 openapiSchemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, openapiSpec.security));
             }
         }
@@ -93,6 +103,8 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final String payload = handler.resolve(schemaId);
                 final String materialized = materialize(binding, asyncapiSpec, payload);
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, asyncapiParser.parse(materialized));
+
+                unresolved.addAll(asyncapi.unresolvedRefs());
 
                 asyncapiSchemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
             }

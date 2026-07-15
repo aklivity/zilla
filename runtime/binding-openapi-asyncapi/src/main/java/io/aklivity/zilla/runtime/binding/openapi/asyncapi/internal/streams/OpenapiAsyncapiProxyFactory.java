@@ -122,6 +122,10 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         bindings.put(binding.id, attached);
 
         OpenapiAsyncapiCompositeConfig composite = generator.generate(attached);
+        for (String ref : generator.unresolvedRefs())
+        {
+            event.unresolvedRef(binding.id, ref);
+        }
         for (String reason : generator.deniedOperations())
         {
             event.operationDenied(binding.id, reason);
