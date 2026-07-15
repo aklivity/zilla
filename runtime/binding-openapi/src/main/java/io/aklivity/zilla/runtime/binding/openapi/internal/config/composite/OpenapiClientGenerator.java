@@ -198,7 +198,6 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                             .type("tls")
                             .kind(CLIENT)
                             .inject(this::injectMetrics)
-                            .options(config.options.tls)
                             .vault(config.qvault)
                             .exit("sys:tcp_client")
                             .build();

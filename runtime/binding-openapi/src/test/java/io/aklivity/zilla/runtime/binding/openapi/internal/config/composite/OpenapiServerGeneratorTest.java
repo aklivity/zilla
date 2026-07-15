@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditio
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditionServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
@@ -484,6 +485,21 @@ public class OpenapiServerGeneratorTest
         TlsConditionConfig when = (TlsConditionConfig) tlsServer.routes.get(0).when.get(0);
 
         assertThat(when.authority, equalTo("api.example.com"));
+    }
+
+    @Test
+    public void shouldComputeTlsAlpnFromHttpVersions()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(bindingSecure()));
+
+        BindingConfig tlsServer = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "tls_server0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        TlsOptionsConfig options = (TlsOptionsConfig) tlsServer.options;
+
+        assertThat(options.alpn, contains("h2", "http/1.1"));
     }
 
     @Test

@@ -73,6 +73,23 @@ public class OpenapiClientGeneratorTest
         }
         """;
 
+    private static final String SECURE_SPEC =
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": [ { "url": "https://api.example.com:443" } ],
+          "paths": {
+            "/mapped": {
+              "get": {
+                "operationId": "mapped",
+                "responses": { "200": { "description": "ok" } }
+              }
+            }
+          }
+        }
+        """;
+
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
 
@@ -98,7 +115,9 @@ public class OpenapiClientGeneratorTest
         lenient().when(context.supplyBindingId(any(), any())).thenReturn(42L);
         lenient().when(context.supplyQName(eq(2L))).thenReturn("guard0");
         lenient().when(catalog.resolve(eq("test"), eq("latest"))).thenReturn(7);
+        lenient().when(catalog.resolve(eq("secure"), eq("latest"))).thenReturn(8);
         lenient().when(catalog.resolve(7)).thenReturn(SPEC);
+        lenient().when(catalog.resolve(8)).thenReturn(SECURE_SPEC);
     }
 
     private OpenapiBindingConfig newBindingConfig(
@@ -123,6 +142,25 @@ public class OpenapiClientGeneratorTest
                     List.of("http://localhost:8080"),
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
                     security))
+                .build())
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
+    private BindingConfig bindingSecure()
+    {
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("openapi")
+            .kind(CLIENT)
+            .options(OpenapiOptionsConfig.builder()
+                .spec(new OpenapiSpecificationConfig(
+                    "petstore",
+                    List.of("https://api.example.com:443"),
+                    List.of(new OpenapiCatalogConfig("catalog0", "secure", "latest")),
+                    null))
                 .build())
             .build();
         binding.resolveId = resolveId;
@@ -176,5 +214,18 @@ public class OpenapiClientGeneratorTest
         assertThat(authorization.credentials.headers, hasSize(1));
         assertThat(authorization.credentials.headers.get(0).name, equalTo("X-Api-Key"));
         assertThat(authorization.credentials.headers.get(0).pattern, equalTo("{credentials}"));
+    }
+
+    @Test
+    public void shouldGenerateTlsClientWithoutExplicitOptions()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(bindingSecure()));
+
+        BindingConfig tlsClient = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "tls_client0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(tlsClient.options, nullValue());
     }
 }

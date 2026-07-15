@@ -159,9 +159,4 @@ bindings:
             catalog0:
               subject: petstore
               version: latest
-      tls:
-        keys:
-          - localhost
-        alpn:
-          - protocol2
     exit: openapi0

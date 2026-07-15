@@ -17,13 +17,11 @@ package io.aklivity.zilla.runtime.binding.openapi.config;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class OpenapiOptionsConfig extends OptionsConfig
 {
-    public final TlsOptionsConfig tls;
     public final List<OpenapiSpecificationConfig> specs;
 
     public static OpenapiOptionsConfigBuilder<OpenapiOptionsConfig> builder()
@@ -38,10 +36,8 @@ public final class OpenapiOptionsConfig extends OptionsConfig
     }
 
     OpenapiOptionsConfig(
-        TlsOptionsConfig tls,
         List<OpenapiSpecificationConfig> specs)
     {
-        this.tls = tls;
         this.specs = specs;
     }
 }

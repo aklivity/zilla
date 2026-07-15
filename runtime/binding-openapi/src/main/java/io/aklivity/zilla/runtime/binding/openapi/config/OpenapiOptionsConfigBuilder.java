@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -27,7 +26,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private TlsOptionsConfig tls;
     private List<OpenapiSpecificationConfig> specs;
 
     OpenapiOptionsConfigBuilder(
@@ -41,13 +39,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
     protected Class<OpenapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<OpenapiOptionsConfigBuilder<T>>) getClass();
-    }
-
-    public OpenapiOptionsConfigBuilder<T> tls(
-        TlsOptionsConfig tls)
-    {
-        this.tls = tls;
-        return this;
     }
 
     public OpenapiOptionsConfigBuilder<T> spec(
@@ -64,6 +55,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
     @Override
     public T build()
     {
-        return mapper.apply(new OpenapiOptionsConfig(tls, specs));
+        return mapper.apply(new OpenapiOptionsConfig(specs));
     }
 }

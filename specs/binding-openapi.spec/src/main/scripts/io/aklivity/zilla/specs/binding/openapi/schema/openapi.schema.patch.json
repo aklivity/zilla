@@ -36,10 +36,6 @@
                     {
                         "properties":
                         {
-                            "tls":
-                            {
-                                "$ref": "#/$defs/options/binding/tls"
-                            },
                             "specs":
                             {
                                 "title": "Specs",

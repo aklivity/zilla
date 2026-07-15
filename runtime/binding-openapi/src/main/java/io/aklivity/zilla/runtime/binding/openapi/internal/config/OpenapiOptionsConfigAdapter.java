@@ -30,26 +30,21 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
-    private static final String TLS_NAME = "tls";
     private static final String SERVERS_NAME = "servers";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
     private static final String OVERLAY_NAME = "overlay";
-
-    private OptionsConfigAdapter tlsOptions;
 
     @Override
     public Kind kind()
@@ -67,17 +62,9 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        ensureNestedOptions();
-
         OpenapiOptionsConfig openapiOptions = (OpenapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
-
-        if (openapiOptions.tls != null)
-        {
-            final TlsOptionsConfig tls = ((OpenapiOptionsConfig) options).tls;
-            object.add(TLS_NAME, tlsOptions.adaptToJson(tls));
-        }
 
         if (openapiOptions.specs != null)
         {
@@ -141,16 +128,7 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        ensureNestedOptions();
-
         OpenapiOptionsConfigBuilder<OpenapiOptionsConfig> openapiOptions = OpenapiOptionsConfig.builder();
-
-        if (object.containsKey(TLS_NAME))
-        {
-            final JsonObject tls = object.getJsonObject(TLS_NAME);
-            final TlsOptionsConfig tlsOptions = (TlsOptionsConfig) this.tlsOptions.adaptFromJson(tls);
-            openapiOptions.tls(tlsOptions);
-        }
 
         if (object.containsKey(SPECS_NAME))
         {
@@ -232,14 +210,5 @@ public final class OpenapiOptionsConfigAdapter implements OptionsConfigAdapterSp
         }
 
         return openapiOptions.build();
-    }
-
-    private void ensureNestedOptions()
-    {
-        if (tlsOptions == null)
-        {
-            tlsOptions = new OptionsConfigAdapter(Kind.BINDING);
-            tlsOptions.adaptType("tls");
-        }
     }
 }
