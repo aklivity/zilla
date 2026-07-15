@@ -17,9 +17,15 @@ package io.aklivity.zilla.manager.internal.commands.install;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.io.FileMatchers.anExistingFile;
 
 import java.io.File;
+import java.lang.module.ModuleDescriptor;
+import java.lang.module.ModuleFinder;
+import java.lang.module.ModuleReference;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.junit.Test;
 
@@ -54,5 +60,33 @@ public class ZpmInstallTest
         assertThat(new File("target/zpm/cache/io/aklivity/zilla/binding-tcp/0.9.5/binding-tcp-0.9.5.jar"), anExistingFile());
         assertThat(new File("target/zpm/cache/io/aklivity/zilla/binding-tls/0.9.5/binding-tls-0.9.5.jar"), anExistingFile());
         assertThat(new File("target/zpm/cache/org/agrona/agrona/1.6.0/agrona-1.6.0.jar"), anExistingFile());
+    }
+
+    @Test
+    public void shouldPreserveUsesClauseWhenMergingModuleIntoDelegate()
+    {
+        String[] args =
+        {
+            "install",
+            "--config-directory", "src/conf/install-delegate-uses",
+            "--lock-directory", "target/test-locks/install-delegate-uses",
+            "--output-directory", "target/zpm-delegate-uses",
+            "--launcher-directory", "target",
+            "--exclude-remote-repositories",
+            "--silent"
+        };
+
+        Cli<Runnable> parser = new Cli<>(ZpmCli.class);
+        Runnable install = parser.parse(args);
+
+        install.run();
+
+        Path delegateJar = Paths.get("target/zpm-delegate-uses/modules/io.aklivity.zilla.manager.delegate.jar");
+        assertThat(delegateJar.toFile(), anExistingFile());
+
+        ModuleReference reference = ModuleFinder.of(delegateJar).findAll().iterator().next();
+        ModuleDescriptor descriptor = reference.descriptor();
+
+        assertThat(descriptor.uses(), hasItem("com.example.fixture.uses.FixtureService"));
     }
 }

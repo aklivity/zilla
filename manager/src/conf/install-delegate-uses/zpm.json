@@ -1,0 +1,11 @@
+{
+  "repositories":
+  [
+    "file:src/conf/install-delegate-uses/repo/"
+  ],
+
+  "dependencies":
+  [
+    "com.example.fixture:automatic-module:1.0.0"
+  ]
+}

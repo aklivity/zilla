@@ -611,6 +611,19 @@ public final class ZpmInstall extends ZpmCommand
             uses.add(String.format("uses %s;", service));
         }
 
+        Set<String> mergedUses = new LinkedHashSet<>(uses);
+        for (Path path : delegate.paths)
+        {
+            ModuleFinder.of(path).findAll().stream()
+                .map(ModuleReference::descriptor)
+                .filter(descriptor -> !descriptor.isAutomatic())
+                .flatMap(descriptor -> descriptor.uses().stream())
+                .map(service -> String.format("uses %s;", service))
+                .forEach(mergedUses::add);
+        }
+        uses.clear();
+        uses.addAll(mergedUses);
+
         if (!uses.isEmpty())
         {
             Files.writeString(generatedModuleInfo,
