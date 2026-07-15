@@ -58,7 +58,8 @@ public class OpenapiClientGeneratorTest
           "servers": [ { "url": "http://localhost:8080" } ],
           "components": { "securitySchemes": {
             "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "jwt" },
-            "oauthScheme": { "type": "oauth2", "flows": {} }
+            "oauthScheme": { "type": "oauth2", "flows": {} },
+            "apiKeyHeaderAuth": { "type": "apiKey", "in": "header", "name": "X-Api-Key" }
           } },
           "paths": {
             "/mapped": {
@@ -160,5 +161,20 @@ public class OpenapiClientGeneratorTest
         OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(null)));
 
         assertThat(httpClientOptions(composite).authorization, nullValue());
+    }
+
+    @Test
+    public void shouldSynthesizeHttpAuthorizationFromApiKeyHeaderScheme()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("apiKeyHeaderAuth", "guard0"))));
+
+        HttpAuthorizationConfig authorization = httpClientOptions(composite).authorization;
+
+        assertThat(authorization, notNullValue());
+        assertThat(authorization.name, equalTo("guard0"));
+        assertThat(authorization.credentials.headers, hasSize(1));
+        assertThat(authorization.credentials.headers.get(0).name, equalTo("X-Api-Key"));
+        assertThat(authorization.credentials.headers.get(0).pattern, equalTo("{credentials}"));
     }
 }

@@ -516,24 +516,92 @@ public abstract class OpenapiCompositeGenerator
                     ? schema.openapi.components.securitySchemes.get(secured.getKey())
                     : null;
 
-                if (scheme != null && "http".equals(scheme.type) && "bearer".equals(scheme.scheme))
+                if (scheme != null)
                 {
                     final long guardId = config.resolveId.applyAsLong(secured.getValue());
                     final String qname = config.supplyQName.apply(guardId);
 
+                    if ("http".equals(scheme.type) && "bearer".equals(scheme.scheme))
+                    {
+                        injectBearerAuthorization(options, qname);
+                    }
+                    else if ("apiKey".equals(scheme.type) && scheme.parameterName != null && isCredentialLocation(scheme.in))
+                    {
+                        injectApiKeyAuthorization(options, qname, scheme);
+                    }
+                }
+
+                return options;
+            }
+
+            private <C> void injectBearerAuthorization(
+                HttpOptionsConfigBuilder<C> options,
+                String qname)
+            {
+                options
+                    .authorization()
+                        .name(qname)
+                        .credentials()
+                            .header()
+                                .name("authorization")
+                                .pattern("Bearer {credentials}")
+                                .build()
+                            .build()
+                        .build();
+            }
+
+            private <C> void injectApiKeyAuthorization(
+                HttpOptionsConfigBuilder<C> options,
+                String qname,
+                OpenapiSecuritySchemeView scheme)
+            {
+                switch (scheme.in)
+                {
+                case "header":
                     options
                         .authorization()
                             .name(qname)
                             .credentials()
                                 .header()
-                                    .name("authorization")
-                                    .pattern("Bearer {credentials}")
+                                    .name(scheme.parameterName)
+                                    .pattern("{credentials}")
                                     .build()
                                 .build()
                             .build();
+                    break;
+                case "query":
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .parameter()
+                                    .name(scheme.parameterName)
+                                    .pattern("{credentials}")
+                                    .build()
+                                .build()
+                            .build();
+                    break;
+                case "cookie":
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .cookie()
+                                    .name(scheme.parameterName)
+                                    .pattern("{credentials}")
+                                    .build()
+                                .build()
+                            .build();
+                    break;
+                default:
+                    break;
                 }
+            }
 
-                return options;
+            private boolean isCredentialLocation(
+                String in)
+            {
+                return "header".equals(in) || "query".equals(in) || "cookie".equals(in);
             }
 
             protected final ModelConfig resolveModelBySchema(

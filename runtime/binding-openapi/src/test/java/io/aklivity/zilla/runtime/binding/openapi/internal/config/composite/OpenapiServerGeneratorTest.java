@@ -85,7 +85,10 @@ public class OpenapiServerGeneratorTest
           "servers": [ { "url": "http://localhost:8080" } ],
           "components": { "securitySchemes": {
             "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "jwt" },
-            "oauthScheme": { "type": "oauth2", "flows": {} }
+            "oauthScheme": { "type": "oauth2", "flows": {} },
+            "apiKeyHeaderAuth": { "type": "apiKey", "in": "header", "name": "X-Api-Key" },
+            "apiKeyQueryAuth": { "type": "apiKey", "in": "query", "name": "api_key" },
+            "apiKeyCookieAuth": { "type": "apiKey", "in": "cookie", "name": "api_key" }
           } },
           "paths": {
             "/mapped": {
@@ -410,6 +413,49 @@ public class OpenapiServerGeneratorTest
             Map.of("oauthScheme", "guard0"))));
 
         assertThat(httpServerOptions(composite).authorization, nullValue());
+    }
+
+    @Test
+    public void shouldSynthesizeHttpAuthorizationFromApiKeyHeaderScheme()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("apiKeyHeaderAuth", "guard0"))));
+
+        HttpAuthorizationConfig authorization = httpServerOptions(composite).authorization;
+
+        assertThat(authorization, notNullValue());
+        assertThat(authorization.name, equalTo("guard0"));
+        assertThat(authorization.credentials.headers, hasSize(1));
+        assertThat(authorization.credentials.headers.get(0).name, equalTo("X-Api-Key"));
+        assertThat(authorization.credentials.headers.get(0).pattern, equalTo("{credentials}"));
+    }
+
+    @Test
+    public void shouldSynthesizeHttpAuthorizationFromApiKeyQueryScheme()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("apiKeyQueryAuth", "guard0"))));
+
+        HttpAuthorizationConfig authorization = httpServerOptions(composite).authorization;
+
+        assertThat(authorization, notNullValue());
+        assertThat(authorization.credentials.parameters, hasSize(1));
+        assertThat(authorization.credentials.parameters.get(0).name, equalTo("api_key"));
+        assertThat(authorization.credentials.parameters.get(0).pattern, equalTo("{credentials}"));
+    }
+
+    @Test
+    public void shouldSynthesizeHttpAuthorizationFromApiKeyCookieScheme()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("apiKeyCookieAuth", "guard0"))));
+
+        HttpAuthorizationConfig authorization = httpServerOptions(composite).authorization;
+
+        assertThat(authorization, notNullValue());
+        assertThat(authorization.credentials.cookies, hasSize(1));
+        assertThat(authorization.credentials.cookies.get(0).name, equalTo("api_key"));
+        assertThat(authorization.credentials.cookies.get(0).pattern, equalTo("{credentials}"));
     }
 
     @Test
