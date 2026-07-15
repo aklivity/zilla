@@ -223,14 +223,6 @@ bindings:
             catalog0:
               subject: smartylighting
               version: latest
-      tls:
-        trust:
-          - serverca
-        trustcacerts: true
-        sni:
-          - kafka.example.net
-        alpn:
-          - kafka
       kafka:
         sasl:
           mechanism: plain

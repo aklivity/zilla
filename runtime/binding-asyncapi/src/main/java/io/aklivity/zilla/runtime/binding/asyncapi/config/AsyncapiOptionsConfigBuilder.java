@@ -24,8 +24,6 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -35,7 +33,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private TlsOptionsConfig tls;
     private HttpOptionsConfig http;
     private MqttOptionsConfig mqtt;
     private KafkaOptionsConfig kafka;
@@ -52,19 +49,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     protected Class<AsyncapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<AsyncapiOptionsConfigBuilder<T>>) getClass();
-    }
-
-    public TlsOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> tls()
-    {
-        Function<TlsOptionsConfig, AsyncapiOptionsConfigBuilder<T>> mapper = this::tls;
-        return TlsOptionsConfig.builder(mapper.compose(TlsOptionsConfig.class::cast));
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> tls(
-        TlsOptionsConfig tls)
-    {
-        this.tls = tls;
-        return this;
     }
 
     public HttpOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> http()
@@ -125,6 +109,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     @Override
     public T build()
     {
-        return mapper.apply(new AsyncapiOptionsConfig(tls, http, mqtt, kafka, specs));
+        return mapper.apply(new AsyncapiOptionsConfig(http, mqtt, kafka, specs));
     }
 }

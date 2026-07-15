@@ -30,7 +30,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
@@ -43,7 +42,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 {
     private static final String SPECS_NAME = "specs";
     private static final String SERVERS_NAME = "servers";
-    private static final String TLS_NAME = "tls";
     private static final String HTTP_NAME = "http";
     private static final String MQTT_NAME = "mqtt";
     private static final String KAFKA_NAME = "kafka";
@@ -54,7 +52,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String STORE_NAME = "store";
     private static final String OVERLAY_NAME = "overlay";
 
-    private OptionsConfigAdapter tlsOptions;
     private OptionsConfigAdapter httpOptions;
     private OptionsConfigAdapter mqttOptions;
     private OptionsConfigAdapter kafkaOptions;
@@ -138,12 +135,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 specs.add(asyncapiConfig.label, catalogObject);
             }
             object.add(SPECS_NAME, specs);
-        }
-
-        if (asyncapiOptions.tls != null)
-        {
-            final TlsOptionsConfig tls = asyncapiOptions.tls;
-            object.add(TLS_NAME, tlsOptions.adaptToJson(tls));
         }
 
         if (asyncapiOptions.http != null)
@@ -263,12 +254,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             }
         }
 
-        if (object.containsKey(TLS_NAME))
-        {
-            final JsonObject tls = object.getJsonObject(TLS_NAME);
-            builder.tls(TlsOptionsConfig.class.cast(tlsOptions.adaptFromJson(tls)));
-        }
-
         if (object.containsKey(HTTP_NAME))
         {
             final JsonObject http = object.getJsonObject(HTTP_NAME);
@@ -292,10 +277,8 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 
     private void ensureNestedOptions()
     {
-        if (tlsOptions == null)
+        if (httpOptions == null)
         {
-            tlsOptions = new OptionsConfigAdapter(Kind.BINDING);
-            tlsOptions.adaptType("tls");
             httpOptions = new OptionsConfigAdapter(Kind.BINDING);
             httpOptions.adaptType("http");
             mqttOptions = new OptionsConfigAdapter(Kind.BINDING);

@@ -33,7 +33,6 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -69,16 +68,6 @@ public class AsyncapiOptionsConfigAdapterTest
                         version: latest
                     servers:
                       - test.mosquitto.org:1883
-                tls:
-                  keys:
-                    - localhost
-                  trust:
-                    - serverca
-                  trustcacerts: true
-                  sni:
-                    - mqtt.example.net
-                  alpn:
-                    - mqtt
                 """;
 
         AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
@@ -86,11 +75,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         AsyncapiSpecificationConfig asyncapi = options.specs.get(0);
         assertThat(asyncapi.servers, equalTo(asList("test.mosquitto.org:1883")));
-        assertThat(options.tls.keys, equalTo(asList("localhost")));
-        assertThat(options.tls.trust, equalTo(asList("serverca")));
-        assertThat(options.tls.trustcacerts, equalTo(true));
-        assertThat(options.tls.sni, equalTo(asList("mqtt.example.net")));
-        assertThat(options.tls.alpn, equalTo(asList("mqtt")));
     }
 
     @Test
@@ -107,13 +91,6 @@ public class AsyncapiOptionsConfigAdapterTest
                     .build()
                 .serverOverride("test.mosquitto.org:1883")
                 .build()
-            .tls(TlsOptionsConfig.builder()
-                .keys(asList("localhost"))
-                .trust(asList("serverca"))
-                .sni(asList("mqtt.example.net"))
-                .alpn(asList("mqtt"))
-                .trustcacerts(true)
-                .build())
             .kafka(KafkaOptionsConfig.builder()
                 .sasl(KafkaSaslConfig.builder()
                     .mechanism("plain")
@@ -136,16 +113,6 @@ public class AsyncapiOptionsConfigAdapterTest
                   catalog0:
                     subject: smartylighting
                     version: latest
-            tls:
-              keys:
-                - localhost
-              trust:
-                - serverca
-              trustcacerts: true
-              sni:
-                - mqtt.example.net
-              alpn:
-                - mqtt
             kafka:
               sasl:
                 mechanism: plain
@@ -229,16 +196,6 @@ public class AsyncapiOptionsConfigAdapterTest
                       catalog0:
                         subject: smartylighting
                         version: latest
-                tls:
-                  keys:
-                    - localhost
-                  trust:
-                    - serverca
-                  trustcacerts: true
-                  sni:
-                    - kafka.example.net
-                  alpn:
-                    - kafka
                 kafka:
                   sasl:
                     mechanism: plain
@@ -249,73 +206,9 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.tls.keys, equalTo(asList("localhost")));
-        assertThat(options.tls.trust, equalTo(asList("serverca")));
-        assertThat(options.tls.trustcacerts, equalTo(true));
-        assertThat(options.tls.sni, equalTo(asList("kafka.example.net")));
-        assertThat(options.tls.alpn, equalTo(asList("kafka")));
         assertThat(options.kafka.sasl.mechanism, equalTo("plain"));
         assertThat(options.kafka.sasl.username, equalTo("username"));
         assertThat(options.kafka.sasl.password, equalTo("password"));
-    }
-
-    @Test
-    public void shouldWriteOptionsHttp() throws IOException
-    {
-        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
-            .inject(Function.identity())
-            .tls(TlsOptionsConfig.builder()
-                .keys(asList("localhost"))
-                .trust(asList("serverca"))
-                .sni(asList("http.example.net"))
-                .alpn(asList("http"))
-                .trustcacerts(true)
-                .build())
-            .build();
-
-        String yaml = jsonb.toJson(options);
-
-        assertThat(yaml, not(nullValue()));
-        assertThat(yaml, equalTo(
-            """
-            tls:
-              keys:
-                - localhost
-              trust:
-                - serverca
-              trustcacerts: true
-              sni:
-                - http.example.net
-              alpn:
-                - http
-            """));
-    }
-
-    @Test
-    public void shouldReadOptionsHttp() throws IOException
-    {
-        String yaml =
-                """
-                tls:
-                  keys:
-                    - localhost
-                  trust:
-                    - serverca
-                  trustcacerts: true
-                  sni:
-                    - http.example.net
-                  alpn:
-                    - http
-                """;
-
-        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.tls.keys, equalTo(asList("localhost")));
-        assertThat(options.tls.trust, equalTo(asList("serverca")));
-        assertThat(options.tls.trustcacerts, equalTo(true));
-        assertThat(options.tls.sni, equalTo(asList("http.example.net")));
-        assertThat(options.tls.alpn, equalTo(asList("http")));
     }
 
     @Test
@@ -323,13 +216,6 @@ public class AsyncapiOptionsConfigAdapterTest
     {
         AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
             .inject(Function.identity())
-            .tls(TlsOptionsConfig.builder()
-                .keys(asList("localhost"))
-                .trust(asList("serverca"))
-                .sni(asList("kafka.example.net"))
-                .alpn(asList("kafka"))
-                .trustcacerts(true)
-                .build())
             .kafka(KafkaOptionsConfig.builder()
                 .sasl(KafkaSaslConfig.builder()
                     .mechanism("plain")
@@ -344,16 +230,6 @@ public class AsyncapiOptionsConfigAdapterTest
         assertThat(yaml, not(nullValue()));
         assertThat(yaml, equalTo(
             """
-            tls:
-              keys:
-                - localhost
-              trust:
-                - serverca
-              trustcacerts: true
-              sni:
-                - kafka.example.net
-              alpn:
-                - kafka
             kafka:
               sasl:
                 mechanism: plain

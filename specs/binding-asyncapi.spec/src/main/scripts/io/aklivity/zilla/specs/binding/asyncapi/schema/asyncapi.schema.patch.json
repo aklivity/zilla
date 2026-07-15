@@ -146,10 +146,6 @@
                                 },
                                 "additionalProperties": false
                             },
-                            "tls":
-                            {
-                                "$ref": "#/$defs/options/binding/tls"
-                            },
                             "http":
                             {
                                 "title": "Http",

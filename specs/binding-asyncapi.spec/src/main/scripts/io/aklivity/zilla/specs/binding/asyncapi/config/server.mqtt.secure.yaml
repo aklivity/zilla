@@ -105,11 +105,4 @@ bindings:
             credentials:
               connect:
                 username: Bearer {credentials}
-      tls:
-        keys:
-          - localhost
-        sni:
-          - mqtt.example.net
-        alpn:
-          - mqtt
     exit: asyncapi0

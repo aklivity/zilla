@@ -312,6 +312,7 @@ public class AsyncapiClientGeneratorTest
 
         assertThat(tlsClient.isPresent(), equalTo(true));
         assertThat(kafkaClient.routes.get(0).exit, equalTo("tls_client0"));
+        assertThat(tlsClient.get().options, nullValue());
     }
 
     @Test

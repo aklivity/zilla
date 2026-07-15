@@ -16,7 +16,9 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -31,6 +33,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -49,12 +52,30 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
  */
 public class AsyncapiServerGeneratorTest
 {
-    private static final String SECURE_SPEC =
+    private static final String SECURE_MQTT_SPEC =
         """
         {
           "asyncapi": "3.0.0",
           "info": { "title": "test", "version": "1.0.0" },
           "servers": { "secure": { "host": "broker.example.com:8883", "protocol": "mqtts" } },
+          "channels": {
+            "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/sensors" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } }
+          }
+        }
+        """;
+
+    private static final String SECURE_HTTP_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "secure": { "host": "api.example.com:443", "protocol": "https" } },
           "channels": {
             "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
           },
@@ -78,13 +99,14 @@ public class AsyncapiServerGeneratorTest
 
     private final AsyncapiServerGenerator generator = new AsyncapiServerGenerator();
 
-    @Test
-    public void shouldPopulateTlsAuthorityForSniRouting()
+    private AsyncapiCompositeConfig generateSecure(
+        String specJson,
+        String serverOverride)
     {
         lenient().when(context.supplyCatalog(eq(1L))).thenReturn(catalog);
         lenient().when(context.supplyBindingId(any(), any())).thenReturn(42L);
         lenient().when(catalog.resolve(eq("secure"), eq("latest"))).thenReturn(8);
-        lenient().when(catalog.resolve(8)).thenReturn(SECURE_SPEC);
+        lenient().when(catalog.resolve(8)).thenReturn(specJson);
 
         BindingConfig binding = BindingConfig.builder()
             .namespace("test")
@@ -93,9 +115,9 @@ public class AsyncapiServerGeneratorTest
             .kind(SERVER)
             .options(AsyncapiOptionsConfig.builder()
                 .spec(AsyncapiSpecificationConfig.builder()
-                    .label("mqtt_api")
+                    .label("api")
                     .catalog(new AsyncapiCatalogConfig("catalog0", "secure", "latest"))
-                    .serverOverride("mqtts://broker.example.com:8883")
+                    .serverOverride(serverOverride)
                     .build())
                 .build())
             .exit("asyncapi0")
@@ -106,15 +128,46 @@ public class AsyncapiServerGeneratorTest
         default -> 3L;
         };
 
-        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding));
+        return generator.generate(new AsyncapiBindingConfig(context, binding));
+    }
 
-        BindingConfig tlsServer = composite.namespaces.get(0).bindings.stream()
+    private BindingConfig tlsServerOf(
+        AsyncapiCompositeConfig composite)
+    {
+        return composite.namespaces.get(0).bindings.stream()
             .filter(b -> "tls_server0".equals(b.name))
             .findFirst()
             .orElseThrow();
+    }
 
+    @Test
+    public void shouldPopulateTlsAuthorityForSniRouting()
+    {
+        AsyncapiCompositeConfig composite = generateSecure(SECURE_MQTT_SPEC, "mqtts://broker.example.com:8883");
+
+        BindingConfig tlsServer = tlsServerOf(composite);
         TlsConditionConfig when = (TlsConditionConfig) tlsServer.routes.get(0).when.get(0);
 
         assertThat(when.authority, equalTo("broker.example.com"));
+    }
+
+    @Test
+    public void shouldNotSetTlsAlpnForMqttOnlySpec()
+    {
+        AsyncapiCompositeConfig composite = generateSecure(SECURE_MQTT_SPEC, "mqtts://broker.example.com:8883");
+
+        TlsOptionsConfig options = (TlsOptionsConfig) tlsServerOf(composite).options;
+
+        assertThat(options.alpn, nullValue());
+    }
+
+    @Test
+    public void shouldComputeTlsAlpnForHttpsSpec()
+    {
+        AsyncapiCompositeConfig composite = generateSecure(SECURE_HTTP_SPEC, "https://api.example.com:443");
+
+        TlsOptionsConfig options = (TlsOptionsConfig) tlsServerOf(composite).options;
+
+        assertThat(options.alpn, contains("h2", "http/1.1"));
     }
 }
