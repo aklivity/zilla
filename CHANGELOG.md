@@ -21,6 +21,8 @@
 - fix\(binding-kafka\): don't reject cache fetch when partition leader isn't known yet \(backport \#2129\) [\#2147](https://github.com/aklivity/zilla/pull/2147) ([jfallows](https://github.com/jfallows))
 - feat\(command-logs\): backport zilla logs command for engine event readiness checks to support/1.x [\#2160](https://github.com/aklivity/zilla/pull/2160) ([jfallows](https://github.com/jfallows))
 - fix\(manager\): preserve uses clauses from real modules merged into the zpm delegate \(\#2162\) [\#2164](https://github.com/aklivity/zilla/pull/2164) ([jfallows](https://github.com/jfallows))
+- ci\(release\): trial aklivity/gitflow-changelog on support/1.x's release flow [\#2167](https://github.com/aklivity/zilla/pull/2167) ([jfallows](https://github.com/jfallows))
+- ci\(release\): pin gitflow-changelog to v0, not the WIP branch [\#2169](https://github.com/aklivity/zilla/pull/2169) ([jfallows](https://github.com/jfallows))
 
 ## [1.2.6](https://github.com/aklivity/zilla/tree/1.2.6) (2026-07-09)
 
