@@ -240,6 +240,8 @@
 - fix\(binding-asyncapi,binding-openapi,binding-openapi-asyncapi\): close remaining options.\* abstraction leaks, add diagnostic events [\#2161](https://github.com/aklivity/zilla/pull/2161) ([jfallows](https://github.com/jfallows))
 - fix\(manager\): preserve uses clauses from real modules merged into the zpm delegate [\#2162](https://github.com/aklivity/zilla/pull/2162) ([jfallows](https://github.com/jfallows))
 - ci\(release\): trial aklivity/gitflow-changelog on develop's release flow [\#2165](https://github.com/aklivity/zilla/pull/2165) ([jfallows](https://github.com/jfallows))
+- ci\(release\): drive changelog tag-pattern from .gitflow-changelog.yml [\#2166](https://github.com/aklivity/zilla/pull/2166) ([jfallows](https://github.com/jfallows))
+- ci\(release\): pin gitflow-changelog to v0, not the WIP branch [\#2168](https://github.com/aklivity/zilla/pull/2168) ([jfallows](https://github.com/jfallows))
 
 ## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
 
