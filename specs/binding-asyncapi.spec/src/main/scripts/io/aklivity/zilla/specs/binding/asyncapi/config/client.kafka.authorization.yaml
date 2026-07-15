@@ -226,18 +226,5 @@ bindings:
             catalog0:
               subject: smartylighting
               version: latest
-      tls:
-        trust:
-          - serverca
-        trustcacerts: true
-        sni:
-          - kafka.example.net
-        alpn:
-          - kafka
-      kafka:
-        authorization:
-          guard0:
-            credentials:
-              mechanism: plain
-              username: username
-              password: password
+          security:
+            saslScram: guard0

@@ -92,11 +92,3 @@ bindings:
             catalog0:
               subject: smartylighting
               version: latest
-      tls:
-        trust:
-          - serverca
-        trustcacerts: true
-        sni:
-          - mqtt.example.net
-        alpn:
-          - mqtt

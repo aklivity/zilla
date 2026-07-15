@@ -145,57 +145,6 @@
                                     }
                                 },
                                 "additionalProperties": false
-                            },
-                            "tls":
-                            {
-                                "$ref": "#/$defs/options/binding/tls"
-                            },
-                            "http":
-                            {
-                                "title": "Http",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "authorization":
-                                    {
-                                        "$ref": "#/$defs/options/binding/http/authorization"
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
-                            "mqtt":
-                            {
-                                "title": "MQTT",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "authorization":
-                                    {
-                                        "$ref": "#/$defs/options/binding/mqtt/authorization"
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
-                            "kafka":
-                            {
-                                "title": "Kafka",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "sasl":
-                                    {
-                                        "$ref": "#/$defs/options/binding/kafka/sasl"
-                                    },
-                                    "authorization":
-                                    {
-                                        "$ref": "#/$defs/options/binding/kafka/authorization"
-                                    },
-                                    "topics":
-                                    {
-                                        "$ref": "#/$defs/options/binding/kafka/cache_server_topics"
-                                    }
-                                },
-                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false

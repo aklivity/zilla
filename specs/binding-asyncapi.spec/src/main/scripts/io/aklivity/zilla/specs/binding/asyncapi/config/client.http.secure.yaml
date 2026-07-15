@@ -119,11 +119,3 @@ bindings:
             catalog0:
               subject: petstore
               version: latest
-      tls:
-        trust:
-          - serverca
-        trustcacerts: true
-        sni:
-          - http.example.net
-        alpn:
-          - h2

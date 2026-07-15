@@ -24,11 +24,13 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -40,6 +42,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
+import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
@@ -356,6 +359,55 @@ public class EngineTest
     }
 
     @Test
+    public void shouldSupplyQName()
+    {
+        List<Throwable> errors = new LinkedList<>();
+        EngineConfiguration config = new EngineConfiguration(properties);
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+            long namespacedId = engine.supplyNamespacedId("namespace1", "binding1");
+            String qname = engine.supplyQName(namespacedId);
+            assertThat(qname, equalTo("namespace1:binding1"));
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+    }
+
+    @Test
+    public void shouldSupplyEventFormatter()
+    {
+        List<Throwable> errors = new LinkedList<>();
+        EngineConfiguration config = new EngineConfiguration(properties);
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+            EventFormatter formatter = engine.supplyEventFormatter();
+            assertThat(formatter, notNullValue());
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+    }
+
+    @Test
     public void shouldPreserveEventsWhenAttachingReadonlyEngine()
     {
         List<Throwable> errors = new LinkedList<>();
@@ -484,6 +536,34 @@ public class EngineTest
         }
 
         assertThat(errors, empty());
+    }
+
+    @Test
+    public void shouldNotMarkReadyUntilBindingsAttached() throws Exception
+    {
+        List<Throwable> errors = new LinkedList<>();
+        EngineConfiguration config = new EngineConfiguration(properties);
+        Instant beforeConstruct = Instant.now();
+
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            assertThat(Ready.initialized(config.directory(), beforeConstruct), equalTo(false));
+
+            engine.start();
+
+            assertThat(Ready.initialized(config.directory(), beforeConstruct), equalTo(true));
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
     }
 
     public static final class TestEngineExt implements EngineExtSpi

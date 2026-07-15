@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiComposit
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedResolution;
@@ -53,6 +54,8 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
 {
+    private static final List<String> TLS_ALPN_PROTOCOLS = List.of("h2", "http/1.1");
+
     @Override
     protected OpenapiCompositeConfig generate(
         OpenapiBindingConfig binding,
@@ -203,7 +206,9 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         .type("tls")
                         .kind(SERVER)
                         .vault(config.qvault)
-                        .options(config.options.tls)
+                        .options(TlsOptionsConfig::builder)
+                            .alpn(TLS_ALPN_PROTOCOLS)
+                            .build()
                         .inject(this::injectTlsRoutes)
                         .build();
                 }
@@ -240,28 +245,12 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                             .access()
                                 .policy(CROSS_ORIGIN)
                                 .build()
-                            .inject(this::injectHttpAuthorization)
+                            .inject(options -> injectHttpAuthorization(options, schema))
                             .inject(this::injectHttpRequests)
                             .build()
                         .inject(this::injectHttpRoutes)
                         .inject(this::injectMetrics)
                         .build();
-            }
-
-            private <C> HttpOptionsConfigBuilder<C> injectHttpAuthorization(
-                HttpOptionsConfigBuilder<C> options)
-            {
-                final HttpOptionsConfig httpOptions = config.options.http;
-                if (httpOptions != null &&
-                    httpOptions.authorization != null)
-                {
-                    options.authorization()
-                        .name(httpOptions.authorization.qname)
-                        .credentials(httpOptions.authorization.credentials)
-                        .build();
-                }
-
-                return options;
             }
 
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(

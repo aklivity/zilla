@@ -9,9 +9,9 @@ services:
     healthcheck:
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 15
       start_period: 15s
-      test: ["CMD", "bash", "-c", "echo -n '' > /dev/tcp/127.0.0.1/23456"]
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
     environment:
       KEYSTORE_PASSWORD: generated
       ZILLA_INCUBATOR_ENABLED: "true"

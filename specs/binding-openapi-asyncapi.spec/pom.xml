@@ -96,7 +96,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core http openapi</scopeNames>
+          <scopeNames>core http openapi openapi_asyncapi</scopeNames>
           <packageName>io.aklivity.zilla.specs.binding.openapi.asyncapi.internal.types</packageName>
         </configuration>
         <executions>

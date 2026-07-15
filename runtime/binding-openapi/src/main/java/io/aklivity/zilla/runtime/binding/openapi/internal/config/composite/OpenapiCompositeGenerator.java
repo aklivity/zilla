@@ -36,6 +36,7 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
@@ -51,6 +52,7 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiRequestBodyView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -95,12 +97,54 @@ public abstract class OpenapiCompositeGenerator
                 final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized));
 
                 unresolved.addAll(openapi.unresolvedRefs());
+                validateSecurity(label, specification.security, openapi);
 
                 schemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, specification.security));
             }
         }
 
         return generate(binding, schemas);
+    }
+
+    private void validateSecurity(
+        String label,
+        Map<String, String> security,
+        OpenapiView openapi)
+    {
+        final Map<String, OpenapiSecuritySchemeView> schemes = openapi.components != null
+            ? openapi.components.securitySchemes
+            : null;
+
+        if (security != null)
+        {
+            for (String name : security.keySet())
+            {
+                final OpenapiSecuritySchemeView scheme = schemes != null ? schemes.get(name) : null;
+                if (scheme == null)
+                {
+                    denied.add("security scheme \"%s\" in spec \"%s\" is not defined in components.securitySchemes"
+                        .formatted(name, label));
+                }
+                else if (!isSupportedSecurityScheme(scheme))
+                {
+                    denied.add("security scheme \"%s\" in spec \"%s\" has unsupported type \"%s\" for guard-based authorization"
+                        .formatted(name, label, scheme.type));
+                }
+            }
+        }
+    }
+
+    private static boolean isSupportedSecurityScheme(
+        OpenapiSecuritySchemeView scheme)
+    {
+        return "http".equals(scheme.type) && "bearer".equals(scheme.scheme) ||
+            "apiKey".equals(scheme.type) && scheme.parameterName != null && isCredentialLocation(scheme.in);
+    }
+
+    private static boolean isCredentialLocation(
+        String in)
+    {
+        return "header".equals(in) || "query".equals(in) || "cookie".equals(in);
     }
 
     private String materialize(
@@ -500,6 +544,100 @@ public abstract class OpenapiCompositeGenerator
                 }
 
                 return guarded;
+            }
+
+            protected final <C> HttpOptionsConfigBuilder<C> injectHttpAuthorization(
+                HttpOptionsConfigBuilder<C> options,
+                OpenapiSchemaConfig schema)
+            {
+                final Map<String, String> security = schema.security;
+                final Map.Entry<String, String> secured = security != null && !security.isEmpty()
+                    ? security.entrySet().iterator().next()
+                    : null;
+                final OpenapiSecuritySchemeView scheme = secured != null && schema.openapi.components != null
+                    ? schema.openapi.components.securitySchemes.get(secured.getKey())
+                    : null;
+
+                if (scheme != null)
+                {
+                    final long guardId = config.resolveId.applyAsLong(secured.getValue());
+                    final String qname = config.supplyQName.apply(guardId);
+
+                    if ("http".equals(scheme.type) && "bearer".equals(scheme.scheme))
+                    {
+                        injectBearerAuthorization(options, qname);
+                    }
+                    else if ("apiKey".equals(scheme.type) && scheme.parameterName != null && isCredentialLocation(scheme.in))
+                    {
+                        injectApiKeyAuthorization(options, qname, scheme);
+                    }
+                }
+
+                return options;
+            }
+
+            private <C> void injectBearerAuthorization(
+                HttpOptionsConfigBuilder<C> options,
+                String qname)
+            {
+                options
+                    .authorization()
+                        .name(qname)
+                        .credentials()
+                            .header()
+                                .name("authorization")
+                                .pattern("Bearer {credentials}")
+                                .build()
+                            .build()
+                        .build();
+            }
+
+            private <C> void injectApiKeyAuthorization(
+                HttpOptionsConfigBuilder<C> options,
+                String qname,
+                OpenapiSecuritySchemeView scheme)
+            {
+                switch (scheme.in)
+                {
+                case "header":
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .header()
+                                    .name(scheme.parameterName)
+                                    .pattern("{credentials}")
+                                    .build()
+                                .build()
+                            .build();
+                    break;
+                case "query":
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .parameter()
+                                    .name(scheme.parameterName)
+                                    .pattern("{credentials}")
+                                    .build()
+                                .build()
+                            .build();
+                    break;
+                case "cookie":
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .cookie()
+                                    .name(scheme.parameterName)
+                                    .pattern("{credentials}")
+                                    .build()
+                                .build()
+                            .build();
+                    break;
+                default:
+                    break;
+                }
             }
 
             protected final ModelConfig resolveModelBySchema(

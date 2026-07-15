@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
+import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -67,6 +68,7 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
+import io.aklivity.zilla.runtime.engine.internal.Ready;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.event.io.EventReader;
@@ -148,6 +150,11 @@ public final class Engine implements Collector, AutoCloseable
             .readonly(readonly)
             .build();
         int workerCount = info.workers();
+
+        if (readonly && !Ready.initialized(config.directory(), info.startTime()))
+        {
+            throw new EngineNotInitializedException(String.format("Engine not yet initialized: %s", config.directory()));
+        }
 
         LabelManager labels = new LabelManager(config.directory());
         Int2ObjectHashMap<ToIntFunction<KindConfig>> maxWorkersByBindingType = new Int2ObjectHashMap<>();
@@ -317,6 +324,7 @@ public final class Engine implements Collector, AutoCloseable
         if (!readonly)
         {
             manager.start();
+            Ready.markReady(config.directory());
         }
     }
 
@@ -610,11 +618,24 @@ public final class Engine implements Collector, AutoCloseable
         return worker.supplyLocalName(namespacedId);
     }
 
+    public String supplyQName(
+        long namespacedId)
+    {
+        EngineWorker worker = workers.get(0);
+        return worker.supplyQName(namespacedId);
+    }
+
     public int supplyLabelId(
         String label)
     {
         EngineWorker worker = workers.get(0);
         return worker.supplyTypeId(label);
+    }
+
+    public EventFormatter supplyEventFormatter()
+    {
+        EngineWorker worker = workers.get(0);
+        return worker.supplyEventFormatter();
     }
 
     public long supplyNamespacedId(
