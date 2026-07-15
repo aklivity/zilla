@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
@@ -40,6 +41,7 @@ public final class OpenapiCompositeConfig
 
     private Long2ObjectHashMap<OpenapiOperationView> operationsById;
     private Long2ObjectHashMap<OpenapiView> specificationsById;
+    private final Map<Long, Map<String, OpenapiOperationView>> operationsBySpecId;
 
     public OpenapiCompositeConfig(
         List<OpenapiSchemaConfig> schemas,
@@ -57,11 +59,11 @@ public final class OpenapiCompositeConfig
         this.namespaces = namespaces;
 
         final Long2ObjectHashMap<String> labelsBySchemaId = new Long2ObjectHashMap<>();
-        schemas.forEach(s -> labelsBySchemaId.put(s.schemaId, s.apiLabel));
+        schemas.forEach(s -> labelsBySchemaId.put(s.schemaId, s.specLabel));
         this.resolveLabel = labelsBySchemaId::get;
 
         final Object2LongHashMap<String> schemaIdsByLabel = new Object2LongHashMap<>(NO_SCHEMA_ID);
-        schemas.forEach(s -> schemaIdsByLabel.put(s.apiLabel, s.schemaId));
+        schemas.forEach(s -> schemaIdsByLabel.put(s.specLabel, s.schemaId));
         this.resolveSchemaId = schemaIdsByLabel::get;
 
         this.operationsById = schemas.stream()
@@ -72,6 +74,9 @@ public final class OpenapiCompositeConfig
         this.specificationsById = schemas.stream()
             .map(s -> s.openapi)
             .collect(toMap(v -> v.compositeId, v -> v, (v1, v2) -> v1, Long2ObjectHashMap::new));
+
+        this.operationsBySpecId = schemas.stream()
+            .collect(toMap(s -> (long) s.schemaId, s -> s.openapi.operations, (o1, o2) -> o1));
     }
 
     public boolean hasBindingId(
@@ -84,31 +89,40 @@ public final class OpenapiCompositeConfig
 
     public OpenapiCompositeRouteConfig resolve(
         long authorization,
-        long apiId,
+        long specId,
         int operationTypeId)
     {
         return routes.stream()
-                .filter(r -> r.matches(apiId, operationTypeId))
+                .filter(r -> r.matches(specId, operationTypeId))
                 .findFirst()
                 .orElse(null);
     }
 
-    public String resolveApiId(
-        long apiId)
+    public String resolveSpecLabel(
+        long specId)
     {
-        return resolveLabel.apply(apiId);
+        return resolveLabel.apply(specId);
     }
 
-    public long resolveApiId(
-        String apiId)
+    public long resolveSpecId(
+        String specLabel)
     {
-        return resolveSchemaId.applyAsLong(apiId);
+        return resolveSchemaId.applyAsLong(specLabel);
     }
 
     public OpenapiOperationView resolveOperation(
         long compositeId)
     {
         return operationsById.get(compositeId);
+    }
+
+    public OpenapiOperationView resolveOperation(
+        long specId,
+        String operationId)
+    {
+        Map<String, OpenapiOperationView> operations = operationsBySpecId.get(specId);
+
+        return operations != null ? operations.get(operationId) : null;
     }
 
     public OpenapiView resolveSpecification(

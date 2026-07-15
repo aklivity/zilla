@@ -61,6 +61,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateMqttClientWithServerOverride()
+    {
+        JsonObject config = schema.validate("client.mqtt.server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateMqttServer()
     {
         JsonObject config = schema.validate("server.mqtt.yaml");
@@ -125,9 +133,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateKafkaClientSasl()
+    public void shouldValidateKafkaClientAuthorization()
     {
-        JsonObject config = schema.validate("client.kafka.sasl.yaml");
+        JsonObject config = schema.validate("client.kafka.authorization.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -157,8 +165,14 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectAsyncapiProxyWithTagAndOperation()
+    public void shouldRejectAsyncapiProxyWithTag()
     {
-        schema.validate("proxy.tag.and.operation.invalid.yaml");
+        schema.validate("proxy.with.tag.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAsyncapiProxyMissingWith()
+    {
+        schema.validate("proxy.missing.with.invalid.yaml");
     }
 }

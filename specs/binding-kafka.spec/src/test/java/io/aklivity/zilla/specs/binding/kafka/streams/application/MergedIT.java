@@ -510,6 +510,24 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/unmerged.fetch.reconnect.after.describe.error/client",
+        "${app}/unmerged.fetch.reconnect.after.describe.error/server"})
+    public void shouldReconnectUnmergedFetchAfterDescribeError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.fetch.reconnect.after.fetch.error/client",
+        "${app}/unmerged.fetch.reconnect.after.fetch.error/server"})
+    public void shouldReconnectUnmergedFetchAfterFetchError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/unmerged.fetch.partition.offsets.latest/client",
         "${app}/unmerged.fetch.partition.offsets.latest/server"})
     public void shouldFetchUnmergedPartitionOffsetsLatest() throws Exception

@@ -18,7 +18,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.List;
 import java.util.Optional;
 
 import jakarta.json.bind.annotation.JsonbProperty;
@@ -192,7 +191,7 @@ public class AsyncapiParserTest
             .createParser();
 
         Asyncapi model = parser.parse(SPEC);
-        AsyncapiView view = AsyncapiView.of(model, List.of(AsyncapiServerConfig.builder().build()));
+        AsyncapiView view = AsyncapiView.of(model);
         AsyncapiServerView server = view.servers.get(0);
 
         assertTrue(server.hasBinding("x-zilla-sample"));
@@ -262,7 +261,7 @@ public class AsyncapiParserTest
             .createParser();
 
         Asyncapi model = parser.parse(EXT_SPEC);
-        AsyncapiView view = AsyncapiView.of(model, List.of(AsyncapiServerConfig.builder().build()));
+        AsyncapiView view = AsyncapiView.of(model);
         AsyncapiServerView server = view.servers.get(0);
 
         assertTrue(server.hasExtension("x-zilla-sample"));
@@ -293,10 +292,7 @@ public class AsyncapiParserTest
 
         Asyncapi model = parser.parse(EXT_SPEC);
         AsyncapiView view = AsyncapiView.of(model);
-        AsyncapiSecuritySchemeView scheme = view.components.securitySchemes.stream()
-            .filter(s -> "sampleAuth".equals(s.name))
-            .findFirst()
-            .orElseThrow();
+        AsyncapiSecuritySchemeView scheme = view.components.securitySchemes.get("sampleAuth");
 
         assertTrue(scheme.hasExtension("x-zilla-sample"));
         assertEquals("scheme-value", scheme.extension("x-zilla-sample", SampleExtension.class).get().key);
@@ -342,10 +338,7 @@ public class AsyncapiParserTest
 
         Asyncapi model = parser.parse(spec);
         AsyncapiView view = AsyncapiView.of(model);
-        AsyncapiSecuritySchemeView scheme = view.components.securitySchemes.stream()
-            .filter(s -> "googleJwt".equals(s.name))
-            .findFirst()
-            .orElseThrow();
+        AsyncapiSecuritySchemeView scheme = view.components.securitySchemes.get("googleJwt");
 
         assertTrue(scheme.hasExtension("x-google-*"));
         Optional<GoogleJwtExtension> extension = scheme.extension("x-google-*", GoogleJwtExtension.class);
@@ -364,10 +357,7 @@ public class AsyncapiParserTest
 
         Asyncapi model = parser.parse(EXT_SPEC);
         AsyncapiView view = AsyncapiView.of(model);
-        AsyncapiSecuritySchemeView scheme = view.components.securitySchemes.stream()
-            .filter(s -> "sampleAuth".equals(s.name))
-            .findFirst()
-            .orElseThrow();
+        AsyncapiSecuritySchemeView scheme = view.components.securitySchemes.get("sampleAuth");
 
         assertFalse(scheme.hasExtension("x-google-*"));
         assertEquals(Optional.empty(), scheme.extension("x-google-*", GoogleJwtExtension.class));

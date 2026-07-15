@@ -18,16 +18,17 @@ import static io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiCompositeId
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import org.agrona.collections.MutableInteger;
 
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiMultiFormatSchema;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
@@ -66,7 +67,12 @@ public final class AsyncapiView
     public boolean hasProtocol(
         Predicate<String> protocol)
     {
-        return servers.stream().map(s -> s.protocol).anyMatch(protocol);
+        return servers.stream()
+            .map(s -> s.url)
+            .filter(Objects::nonNull)
+            .map(URI::getScheme)
+            .filter(Objects::nonNull)
+            .anyMatch(protocol);
     }
 
     public boolean hasOperationBindingsHttp()
@@ -88,30 +94,21 @@ public final class AsyncapiView
     public static AsyncapiView of(
         Asyncapi model)
     {
-        return of(model, List.of());
-    }
-
-    public static AsyncapiView of(
-        Asyncapi model,
-        List<AsyncapiServerConfig> configs)
-    {
-        return of(0, null, model, configs);
+        return of(0, null, model);
     }
 
     public static AsyncapiView of(
         int index,
         String label,
-        Asyncapi model,
-        List<AsyncapiServerConfig> configs)
+        Asyncapi model)
     {
-        return new AsyncapiView(index, label, model, configs);
+        return new AsyncapiView(index, label, model);
     }
 
     private AsyncapiView(
         int id,
         String label,
-        Asyncapi asyncapi,
-        List<AsyncapiServerConfig> configs)
+        Asyncapi asyncapi)
     {
         this.label = label;
         this.compositeId = compositeId(id, 0);
@@ -121,13 +118,13 @@ public final class AsyncapiView
 
         this.servers = asyncapi.servers != null
             ? asyncapi.servers.entrySet().stream()
-                .flatMap(e -> configs.stream().map(c -> new AsyncapiServerView(resolver, e.getKey(), e.getValue(), c)))
+                .map(e -> new AsyncapiServerView(resolver, e.getKey(), e.getValue()))
                 .toList()
             : null;
 
         this.channels = asyncapi.channels != null
             ? asyncapi.channels.entrySet().stream()
-                .map(e -> new AsyncapiChannelView(resolver, e.getKey(), e.getValue()))
+                .map(e -> new AsyncapiChannelView(resolver, this.servers, e.getKey(), e.getValue()))
                 .collect(toMap(c -> c.name, identity()))
             : null;
 

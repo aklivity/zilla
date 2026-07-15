@@ -18,9 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -29,10 +26,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private List<String> servers;
-    private TcpOptionsConfig tcp;
-    private TlsOptionsConfig tls;
-    private HttpOptionsConfig http;
     private List<OpenapiSpecificationConfig> specs;
 
     OpenapiOptionsConfigBuilder(
@@ -46,39 +39,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
     protected Class<OpenapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<OpenapiOptionsConfigBuilder<T>>) getClass();
-    }
-
-    public OpenapiOptionsConfigBuilder<T> server(
-        String server)
-    {
-        if (servers == null)
-        {
-            this.servers = new ArrayList<>();
-        }
-        servers.add(server);
-
-        return this;
-    }
-
-    public OpenapiOptionsConfigBuilder<T> tcp(
-        TcpOptionsConfig tcp)
-    {
-        this.tcp = tcp;
-        return this;
-    }
-
-    public OpenapiOptionsConfigBuilder<T> tls(
-        TlsOptionsConfig tls)
-    {
-        this.tls = tls;
-        return this;
-    }
-
-    public OpenapiOptionsConfigBuilder<T> http(
-        HttpOptionsConfig http)
-    {
-        this.http = http;
-        return this;
     }
 
     public OpenapiOptionsConfigBuilder<T> spec(
@@ -95,6 +55,6 @@ public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Opena
     @Override
     public T build()
     {
-        return mapper.apply(new OpenapiOptionsConfig(servers, tcp, tls, http, specs));
+        return mapper.apply(new OpenapiOptionsConfig(specs));
     }
 }

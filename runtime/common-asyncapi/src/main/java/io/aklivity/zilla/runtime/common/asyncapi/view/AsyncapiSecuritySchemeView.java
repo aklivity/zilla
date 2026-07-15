@@ -25,6 +25,10 @@ public final class AsyncapiSecuritySchemeView
 {
     public final String name;
     public final String type;
+    public final String in;
+    public final String scheme;
+    public final String bearerFormat;
+    public final String parameterName;
     public final List<String> scopes;
 
     private final Map<String, Object> extensions;
@@ -58,6 +62,10 @@ public final class AsyncapiSecuritySchemeView
 
         this.name = name;
         this.type = resolved.type;
+        this.in = resolved.in;
+        this.scheme = resolved.scheme;
+        this.bearerFormat = resolved.bearerFormat;
+        this.parameterName = resolved.name;
         this.scopes = resolved.scopes;
         this.extensions = resolved.extensions;
     }

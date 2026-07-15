@@ -71,6 +71,8 @@ bindings:
     options:
       specs:
         petstore:
+          servers:
+            - http://localhost:8080
           catalog:
             catalog0:
               subject: petstore
@@ -78,6 +80,5 @@ bindings:
     routes:
       - when:
           - spec: petstore
-        with:
-          tag: pets
+            tag: pets
         exit: pets_backend

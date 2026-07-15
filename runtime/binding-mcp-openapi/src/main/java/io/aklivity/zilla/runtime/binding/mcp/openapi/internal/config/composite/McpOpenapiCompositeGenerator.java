@@ -43,6 +43,7 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
@@ -50,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfig;
@@ -64,15 +66,19 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiC
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiRouteConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
+import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
+import io.aklivity.zilla.runtime.common.openapi.security.GuardedResolution;
+import io.aklivity.zilla.runtime.common.openapi.security.OpenapiGuardResolver;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiParameterView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecurityRequirementView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
@@ -91,15 +97,18 @@ public final class McpOpenapiCompositeGenerator
     private static final String CAPABILITY_TOOL = "tool";
     private static final String CAPABILITY_RESOURCE = "resource";
     private static final Pattern PATH_PARAM_PATTERN = Pattern.compile("\\{([^}]+)\\}");
+    private static final Pattern JSON_CONTENT_TYPE_PATTERN = Pattern.compile("^application/(?:.+\\+)?json$");
 
     private final String httpClientExit;
     private final List<String> denied;
+    private final Matcher jsonContentType;
 
     public McpOpenapiCompositeGenerator(
         String httpClientExit)
     {
         this.httpClientExit = httpClientExit;
         this.denied = new ArrayList<>();
+        this.jsonContentType = JSON_CONTENT_TYPE_PATTERN.matcher("");
     }
 
     public McpOpenapiCompositeConfig generate(
@@ -126,7 +135,8 @@ public final class McpOpenapiCompositeGenerator
                     final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                     final int schemaId = handler.resolve(catalog.subject, catalog.version);
                     final String payload = handler.resolve(schemaId);
-                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(payload), List.of());
+                    final String materialized = materialize(binding, specification, payload);
+                    final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized));
                     specsByLabel.put(label, openapi);
                 }
             }
@@ -186,9 +196,12 @@ public final class McpOpenapiCompositeGenerator
                     ? tool
                     : McpOpenapiToolNamer.defaultName(operation, usedNames);
 
-                final GuardedResolution resolution = guardedRefs(binding, openapi, operation, securityByLabel.get(with.spec));
+                final GuardedResolution resolution = OpenapiGuardResolver.resolve(
+                    operation.id, with.spec, operation.security, securityByLabel.get(with.spec),
+                    binding.resolveId, binding.supplyQName);
                 if (resolution.denied())
                 {
+                    denied.add(resolution.reason);
                     continue;
                 }
 
@@ -220,6 +233,27 @@ public final class McpOpenapiCompositeGenerator
     public List<String> deniedOperations()
     {
         return denied;
+    }
+
+    private String materialize(
+        McpOpenapiBindingConfig binding,
+        McpOpenapiSpecificationConfig specification,
+        String payload)
+    {
+        String materialized = payload;
+        if (specification.overlay != null)
+        {
+            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
+            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final String overlayPayload = handler.resolve(schemaId);
+
+            final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
+            final JsonObject overlayDocument = YamlJson.createReader(new StringReader(overlayPayload)).readObject();
+            materialized = JsonOverlay.of(overlayDocument).apply(document).toString();
+        }
+
+        return materialized;
     }
 
     private McpOpenapiToolConfig toolConfig(
@@ -275,7 +309,9 @@ public final class McpOpenapiCompositeGenerator
             binding.options.resources.stream()
                 .filter(r -> uri.equals(r.uri))
                 .findFirst()
-                .ifPresent(override -> resource.description(override.description).output(override.output));
+                .ifPresent(override -> resource.description(override.description)
+                    .mimeType(override.mimeType)
+                    .output(override.output));
         }
 
         return resource;
@@ -411,21 +447,33 @@ public final class McpOpenapiCompositeGenerator
                 final ModelConfig output = entry.resource.output != null
                     ? qualifyModel(binding, entry.resource.output)
                     : jsonModel("%s-output".formatted(name));
-                final boolean template = entry.operation.path != null && entry.operation.path.indexOf('{') >= 0;
+                final String uri = resourceUri(entry.operation);
+                final boolean template = uri.indexOf('{') >= 0;
                 resources.add(McpHttpResourceConfig.builder()
                     .name(entry.resource.uri)
-                    .uri(resourceUri(entry.operation))
+                    .uri(uri)
                     .template(template)
                     .description(entry.resource.description)
                     .output(output)
-                    .inject(r -> injectMimeType(r, entry.operation))
+                    .inject(r -> injectMimeType(r, entry.resource, entry.operation))
                     .build());
             }
         }
 
-        return new McpHttpOptionsConfig(null,
+        return new McpHttpOptionsConfig(mcpHttpAuthorization(binding),
             tools.isEmpty() ? null : tools,
             resources.isEmpty() ? null : resources);
+    }
+
+    private McpHttpAuthorizationConfig mcpHttpAuthorization(
+        McpOpenapiBindingConfig binding)
+    {
+        final McpOpenapiAuthorizationConfig authorization =
+            binding.options != null ? binding.options.authorization : null;
+
+        return authorization != null
+            ? new McpHttpAuthorizationConfig(authorization.qname, authorization.headers)
+            : null;
     }
 
     private <C> BindingConfigBuilder<C> injectRoutes(
@@ -467,12 +515,25 @@ public final class McpOpenapiCompositeGenerator
 
     private <C> McpHttpResourceConfigBuilder<C> injectMimeType(
         McpHttpResourceConfigBuilder<C> resource,
+        McpOpenapiResourceConfig configured,
         OpenapiOperationView operation)
     {
-        final OpenapiResponseView success = successResponse(operation);
-        if (success != null && success.content != null && !success.content.isEmpty())
+        if (configured.mimeType != null)
         {
-            resource.mimeType(success.content.values().iterator().next().name);
+            resource.mimeType(configured.mimeType);
+        }
+        else
+        {
+            final OpenapiResponseView success = successResponse(operation);
+            if (success != null && success.content != null && !success.content.isEmpty())
+            {
+                final String mimeType = success.content.values().stream()
+                    .filter(typed -> jsonContentType.reset(typed.name).matches())
+                    .findFirst()
+                    .map(typed -> typed.name)
+                    .orElseGet(() -> success.content.values().iterator().next().name);
+                resource.mimeType(mimeType);
+            }
         }
 
         return resource;
@@ -567,45 +628,6 @@ public final class McpOpenapiCompositeGenerator
         return Pattern.compile(regex.toString());
     }
 
-    private GuardedResolution guardedRefs(
-        McpOpenapiBindingConfig binding,
-        OpenapiView openapi,
-        OpenapiOperationView operation,
-        Map<String, String> securityMap)
-    {
-        final List<List<OpenapiSecurityRequirementView>> security = operation.security != null
-            ? operation.security
-            : openapi.security;
-
-        GuardedResolution result = GuardedResolution.allowed(List.of());
-
-        if (security != null && !security.isEmpty())
-        {
-            if (security.size() > 1)
-            {
-                result = GuardedResolution.denied(
-                    "mcp_openapi operation \"%s\" declares %d alternative security requirements; "
-                        .formatted(operation.id, security.size()) +
-                    "OpenAPI OR-alternative security is not supported because a route can reference only one guard");
-            }
-            else
-            {
-                final List<OpenapiSecurityRequirementView> alternative = security.get(0);
-                if (!alternative.isEmpty())
-                {
-                    result = resolveAlternative(binding, openapi, operation, securityMap, alternative);
-                }
-            }
-        }
-
-        if (result.denied())
-        {
-            denied.add(result.reason);
-        }
-
-        return result;
-    }
-
     private static List<GuardedRef> combineGuarded(
         McpOpenapiBindingConfig binding,
         McpOpenapiRouteConfig route,
@@ -632,62 +654,6 @@ public final class McpOpenapiCompositeGenerator
         }
 
         return combined;
-    }
-
-    private static GuardedResolution resolveAlternative(
-        McpOpenapiBindingConfig binding,
-        OpenapiView openapi,
-        OpenapiOperationView operation,
-        Map<String, String> securityMap,
-        List<OpenapiSecurityRequirementView> alternative)
-    {
-        final List<GuardedRef> refs = new ArrayList<>();
-        String reason = null;
-
-        for (OpenapiSecurityRequirementView requirement : alternative)
-        {
-            final String guard = securityMap != null ? securityMap.get(requirement.name) : null;
-            if (guard == null)
-            {
-                reason =
-                    "mcp_openapi operation \"%s\" requires security scheme \"%s\" but options.specs[\"%s\"].security "
-                        .formatted(operation.id, requirement.name, openapi.label) +
-                    "has no guard configured for it";
-                break;
-            }
-
-            final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guard));
-            final List<String> roles = requirement.scopes != null ? requirement.scopes : List.of();
-            refs.add(new GuardedRef(qname, roles));
-        }
-
-        if (reason == null)
-        {
-            final List<String> qnames = refs.stream().map(r -> r.qname).distinct().toList();
-            if (qnames.size() > 1)
-            {
-                reason =
-                    "mcp_openapi operation \"%s\" requires multiple distinct guards (%s) simultaneously, "
-                        .formatted(operation.id, String.join(", ", qnames)) +
-                    "which is not supported because Zilla guards cannot be combined with AND semantics";
-            }
-        }
-
-        GuardedResolution result;
-        if (reason != null)
-        {
-            result = GuardedResolution.denied(reason);
-        }
-        else
-        {
-            final List<String> roles = refs.stream()
-                .flatMap(r -> r.roles.stream())
-                .distinct()
-                .toList();
-            result = GuardedResolution.allowed(List.of(new GuardedRef(refs.get(0).qname, roles)));
-        }
-
-        return result;
     }
 
     private McpHttpWithConfig withConfig(
@@ -747,7 +713,11 @@ public final class McpOpenapiCompositeGenerator
             ? operation.servers.get(0)
             : null;
 
-        final String authority = server != null && server.url != null ? server.url.getHost() : null;
+        final String authority = server != null && server.url != null
+            ? server.url.getPort() != -1
+                ? "%s:%d".formatted(server.url.getHost(), server.url.getPort())
+                : server.url.getHost()
+            : null;
         final String scheme = server != null && server.url != null ? server.url.getScheme() : "https";
         final String base = server != null && server.url != null && server.url.getPath() != null
             ? server.url.getPath()
@@ -760,12 +730,24 @@ public final class McpOpenapiCompositeGenerator
         String server)
     {
         final URI uri = URI.create(server);
-        final String authority = uri.getPort() != -1
-            ? "%s:%d".formatted(uri.getHost(), uri.getPort())
+        final int port = uri.getPort() != -1 ? uri.getPort() : defaultPort(uri.getScheme());
+        final String authority = port != -1
+            ? "%s:%d".formatted(uri.getHost(), port)
             : uri.getHost();
         final String base = uri.getPath() != null ? uri.getPath() : "";
 
         return new ResolvedServer(uri.getScheme(), authority, base);
+    }
+
+    private static int defaultPort(
+        String scheme)
+    {
+        return switch (scheme)
+        {
+        case "http" -> 80;
+        case "https" -> 443;
+        default -> -1;
+        };
     }
 
     private static String lowerPathParams(
@@ -1177,51 +1159,6 @@ public final class McpOpenapiCompositeGenerator
         private String subjectName()
         {
             return tool != null ? tool.name : resource.uri;
-        }
-    }
-
-    private static final class GuardedRef
-    {
-        private final String qname;
-        private final List<String> roles;
-
-        private GuardedRef(
-            String qname,
-            List<String> roles)
-        {
-            this.qname = qname;
-            this.roles = roles;
-        }
-    }
-
-    private static final class GuardedResolution
-    {
-        private final List<GuardedRef> guarded;
-        private final String reason;
-
-        private GuardedResolution(
-            List<GuardedRef> guarded,
-            String reason)
-        {
-            this.guarded = guarded;
-            this.reason = reason;
-        }
-
-        private static GuardedResolution allowed(
-            List<GuardedRef> guarded)
-        {
-            return new GuardedResolution(guarded, null);
-        }
-
-        private static GuardedResolution denied(
-            String reason)
-        {
-            return new GuardedResolution(null, reason);
-        }
-
-        private boolean denied()
-        {
-            return reason != null;
         }
     }
 

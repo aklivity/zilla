@@ -86,19 +86,9 @@ bindings:
     options:
       specs:
         mqtt_api:
+          servers:
+            - mqtts://localhost:7183
           catalog:
             catalog0:
               subject: smartylighting
               version: latest
-      tcp:
-        host: localhost
-        port:
-          - 7183
-      tls:
-        trust:
-          - serverca
-        trustcacerts: true
-        sni:
-          - mqtt.example.net
-        alpn:
-          - mqtt

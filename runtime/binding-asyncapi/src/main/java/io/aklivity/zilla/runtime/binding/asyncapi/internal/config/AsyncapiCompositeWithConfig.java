@@ -16,14 +16,14 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 public class AsyncapiCompositeWithConfig
 {
-    public final long apiId;
+    public final long specId;
     public final String operationId;
 
     public AsyncapiCompositeWithConfig(
-        long apiId,
+        long specId,
         String operationId)
     {
-        this.apiId = apiId;
+        this.specId = specId;
         this.operationId = operationId;
     }
 }

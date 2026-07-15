@@ -83,11 +83,9 @@ bindings:
     options:
       specs:
         mqtt_api:
+          servers:
+            - mqtt://localhost:7183
           catalog:
             catalog0:
               subject: smartylighting
               version: latest
-      tcp:
-        host: localhost
-        port:
-          - 7183

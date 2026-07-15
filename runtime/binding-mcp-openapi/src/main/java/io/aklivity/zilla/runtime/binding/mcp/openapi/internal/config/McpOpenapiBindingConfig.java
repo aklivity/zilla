@@ -22,6 +22,7 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -64,5 +65,15 @@ public final class McpOpenapiBindingConfig
         this.supplyCatalog = context::supplyCatalog;
         this.supplyTypeId = context::supplyTypeId;
         this.supplyQName = context::supplyQName;
+
+        if (options != null)
+        {
+            final McpOpenapiAuthorizationConfig authorization = options.authorization;
+            if (authorization != null)
+            {
+                final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
+                authorization.qname = context.supplyQName(namespacedId);
+            }
+        }
     }
 }

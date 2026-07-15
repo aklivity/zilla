@@ -105,4 +105,15 @@ public class AsyncapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.http.pathname.yaml")
+    @Specification({
+        "${asyncapi}/http/create.pet.pathname/client",
+        "${composite}/http/create.pet.pathname/server"
+    })
+    public void shouldCreatePetWithServerPathname() throws Exception
+    {
+        k3po.finish();
+    }
 }

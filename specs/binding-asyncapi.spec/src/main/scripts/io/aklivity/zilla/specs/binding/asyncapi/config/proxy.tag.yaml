@@ -51,6 +51,8 @@ catalogs:
               action: send
               channel:
                 $ref: '#/channels/sensors'
+              tags:
+                - name: sensors
 
           components:
             parameters:
@@ -105,12 +107,18 @@ catalogs:
           mqttSessions:
             description: This channel contains MQTT sessions.
             address: mqtt-sessions
+            x-zilla-mqtt-kafka:
+              role: sessions
           mqttMessages:
             description: This channel contains MQTT messages.
             address: mqtt-messages
+            x-zilla-mqtt-kafka:
+              role: messages
           mqttRetained:
             description: This channel contains MQTT retained messages.
             address: mqtt-retained
+            x-zilla-mqtt-kafka:
+              role: retained
 
         components:
           messages:
@@ -132,25 +140,24 @@ bindings:
     options:
       specs:
         mqtt_api:
+          servers:
+            - mqtt://localhost:1883
           catalog:
             catalog0:
               subject: smartylighting
               version: latest
         kafka_api:
+          servers:
+            - kafka://localhost:9092
           catalog:
             catalog1:
               subject: sensor
               version: latest
-      mqtt-kafka:
-        channels:
-          sessions: mqttSessions
-          retained: mqttRetained
-          messages: mqttMessages
     routes:
       - when:
           - spec: mqtt_api
-            operation: sendEvents
+            tag: sensors
         exit: asyncapi_kafka0
         with:
           spec: kafka_api
-          tag: sensors
+          operation: toSensorData

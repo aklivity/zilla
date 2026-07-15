@@ -31,6 +31,7 @@ public final class AsyncapiResolver
     public final AsyncapiMessageTraitResolver messageTraits;
     public final AsyncapiServerVariableResolver serverVariables;
     public final AsyncapiCorrelationIdResolver correlationIds;
+    public final AsyncapiServerResolver servers;
 
     private final Set<String> unresolved;
 
@@ -47,6 +48,7 @@ public final class AsyncapiResolver
         this.messageTraits = new AsyncapiMessageTraitResolver(model, unresolved);
         this.serverVariables = new AsyncapiServerVariableResolver(model, unresolved);
         this.correlationIds = new AsyncapiCorrelationIdResolver(model, unresolved);
+        this.servers = new AsyncapiServerResolver(model, unresolved);
     }
 
     public Collection<String> unresolvedRefs()

@@ -56,10 +56,10 @@ public final class OpenapiFunctions
             return this;
         }
 
-        public OpenapiBeginExBuilder apiId(
-            long apiId)
+        public OpenapiBeginExBuilder specId(
+            long specId)
         {
-            beginExRW.apiId(apiId);
+            beginExRW.specId(specId);
             return this;
         }
 
@@ -93,7 +93,7 @@ public final class OpenapiFunctions
         private final OpenapiBeginExFW beginExRO = new OpenapiBeginExFW();
 
         private Integer typeId;
-        private Long apiId;
+        private Long specId;
         private String operationId;
         private BytesMatcher extension;
 
@@ -111,10 +111,10 @@ public final class OpenapiFunctions
             return this;
         }
 
-        public OpenapiBeginExMatcherBuilder apiId(
-            long apiId)
+        public OpenapiBeginExMatcherBuilder specId(
+            long specId)
         {
-            this.apiId = apiId;
+            this.specId = specId;
             return this;
         }
 
@@ -143,7 +143,7 @@ public final class OpenapiFunctions
 
             if (beginEx != null &&
                 matchTypeId(beginEx) &&
-                matchApiId(beginEx) &&
+                matchSpecId(beginEx) &&
                 matchOperationId(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof() - beginEx.extension().sizeof());
@@ -162,10 +162,10 @@ public final class OpenapiFunctions
             return typeId == beginEx.typeId();
         }
 
-        private boolean matchApiId(
+        private boolean matchSpecId(
             OpenapiBeginExFW beginEx)
         {
-            return apiId == null || apiId == beginEx.apiId();
+            return specId == null || specId == beginEx.specId();
         }
 
         private boolean matchOperationId(

@@ -19,25 +19,25 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiServer;
 import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver;
 
 public final class AsyncapiServerView
 {
     public final String name;
-    public final String url;
-    public final String host;
-    public final String hostname;
-    public final int port;
-    public final String pathname;
-    public final String protocol;
+    public final URI url;
+    public final String title;
+    public final String summary;
+    public final String description;
+    public final String protocolVersion;
+    public final List<String> tags;
 
     private final Map<String, Object> bindings;
     private final Map<String, Object> extensions;
@@ -71,8 +71,7 @@ public final class AsyncapiServerView
     AsyncapiServerView(
         AsyncapiResolver resolver,
         String name,
-        AsyncapiServer model,
-        AsyncapiServerConfig config)
+        AsyncapiServer model)
     {
         Map<String, AsyncapiServerVariableView> variables = model.variables != null
                 ? model.variables.entrySet().stream()
@@ -80,32 +79,44 @@ public final class AsyncapiServerView
                     .collect(toMap(v -> v.name, identity()))
                 : Map.of();
 
-        this.name = name;
-        this.url = model.url != null
+        VariableMatcher urlMatcher = model.url != null
             ? new VariableMatcher(variables::get, model.url)
-                    .resolve(config != null ? config.url : null)
             : null;
-
-        this.host = model.host != null
+        VariableMatcher hostMatcher = model.host != null
             ? new VariableMatcher(variables::get, model.host)
-                    .resolve(config != null ? config.host : null)
             : null;
-
-        String urlOrHost = url != null ? url : "tcp://%s".formatted(host);
-        this.hostname = urlOrHost != null
-            ? URI.create(urlOrHost).getHost()
-            : null;
-
-        this.port = urlOrHost != null
-            ? URI.create(urlOrHost).getPort()
-            : 0;
-
-        this.pathname = model.pathname != null
+        VariableMatcher pathnameMatcher = model.pathname != null
             ? new VariableMatcher(variables::get, model.pathname)
-                    .resolve(config != null ? config.pathname : null)
             : null;
 
-        this.protocol = model.protocol;
+        String resolvedUrl = urlMatcher != null
+            ? urlMatcher.resolve(null)
+            : null;
+        String resolvedHost = hostMatcher != null
+            ? hostMatcher.resolve(null)
+            : null;
+        String resolvedPathname = pathnameMatcher != null
+            ? pathnameMatcher.resolve(null)
+            : null;
+
+        String pathnameOrEmpty = Optional.ofNullable(resolvedPathname).orElse("");
+
+        this.name = name;
+        this.url = resolvedUrl != null
+            ? URI.create(resolvedUrl)
+            : resolvedHost != null
+                ? URI.create("%s://%s%s".formatted(model.protocol, resolvedHost, pathnameOrEmpty))
+                : null;
+
+        this.title = model.title;
+        this.summary = model.summary;
+        this.description = model.description;
+        this.protocolVersion = model.protocolVersion;
+        this.tags = model.tags != null
+            ? model.tags.stream()
+                .map(tag -> tag.name)
+                .toList()
+            : null;
         this.bindings = model.bindings;
         this.extensions = model.extensions;
     }

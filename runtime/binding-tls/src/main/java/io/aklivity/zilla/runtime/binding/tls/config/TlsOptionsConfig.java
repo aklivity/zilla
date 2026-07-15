@@ -29,7 +29,7 @@ public final class TlsOptionsConfig extends OptionsConfig
     public final List<String> alpn;
     public final TlsMutualConfig mutual;
     public final List<String> signers;
-    public final boolean trustcacerts;
+    public final Boolean trustcacerts;
 
     public static TlsOptionsConfigBuilder<TlsOptionsConfig> builder()
     {
@@ -50,7 +50,7 @@ public final class TlsOptionsConfig extends OptionsConfig
         List<String> alpn,
         TlsMutualConfig mutual,
         List<String> signers,
-        boolean trustcacerts)
+        Boolean trustcacerts)
     {
         this.version = version;
         this.keys = keys;

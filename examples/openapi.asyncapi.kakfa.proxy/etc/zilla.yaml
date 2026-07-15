@@ -16,6 +16,8 @@ bindings:
     options:
       specs:
         my-openapi-spec:
+          servers:
+            - http://localhost:7114
           catalog:
             host_filesystem:
               subject: http
@@ -47,6 +49,8 @@ bindings:
     options:
       specs:
         my-asyncapi-spec:
+          servers:
+            - kafka://kafka.examples.dev:29092
           catalog:
             host_filesystem:
               subject: kafka

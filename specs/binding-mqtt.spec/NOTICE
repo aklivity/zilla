@@ -17,6 +17,7 @@ This project includes:
   zilla::runtime::common-agrona under The Apache Software License, Version 2.0
   zilla::runtime::common-json under Aklivity Community License Agreement
   zilla::runtime::common-yaml under Aklivity Community License Agreement
+  zilla::specs::binding-proxy.spec under The Apache Software License, Version 2.0
   zilla::specs::engine.spec under The Apache Software License, Version 2.0
 
 

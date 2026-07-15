@@ -23,7 +23,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
+import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfig;
@@ -38,8 +40,12 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String CREDENTIALS_NAME = "credentials";
+    private static final String HEADERS_NAME = "headers";
     private static final String SPECS_NAME = "specs";
     private static final String SECURITY_NAME = "security";
+    private static final String OVERLAY_NAME = "overlay";
     private static final String SERVER_NAME = "server";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
@@ -50,6 +56,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
     private static final String SUMMARY_NAME = "summary";
     private static final String INPUT_NAME = "input";
     private static final String OUTPUT_NAME = "output";
+    private static final String MIME_TYPE_NAME = "mimeType";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -72,6 +79,23 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
         McpOpenapiOptionsConfig mcpOpenapiOptions = (McpOpenapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        McpOpenapiAuthorizationConfig authorization = mcpOpenapiOptions.authorization;
+        if (authorization != null)
+        {
+            JsonObjectBuilder headers = Json.createObjectBuilder();
+            if (authorization.headers != null)
+            {
+                authorization.headers.forEach(headers::add);
+            }
+            JsonObjectBuilder credentials = Json.createObjectBuilder();
+            credentials.add(HEADERS_NAME, headers);
+            JsonObjectBuilder guard = Json.createObjectBuilder();
+            guard.add(CREDENTIALS_NAME, credentials);
+            JsonObjectBuilder authorizations = Json.createObjectBuilder();
+            authorizations.add(authorization.name, guard);
+            object.add(AUTHORIZATION_NAME, authorizations);
+        }
 
         if (mcpOpenapiOptions.specs != null)
         {
@@ -102,6 +126,20 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     final JsonObjectBuilder security = Json.createObjectBuilder();
                     spec.security.forEach(security::add);
                     specObject.add(SECURITY_NAME, security);
+                }
+
+                if (spec.overlay != null)
+                {
+                    final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+                    overlaySchema.add(SUBJECT_NAME, spec.overlay.subject);
+                    if (spec.overlay.version != null)
+                    {
+                        overlaySchema.add(VERSION_NAME, spec.overlay.version);
+                    }
+
+                    final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+                    overlaySubject.add(spec.overlay.name, overlaySchema);
+                    specObject.add(OVERLAY_NAME, overlaySubject);
                 }
 
                 specs.add(spec.label, specObject);
@@ -148,6 +186,10 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 {
                     resourceObject.add(DESCRIPTION_NAME, resource.description);
                 }
+                if (resource.mimeType != null)
+                {
+                    resourceObject.add(MIME_TYPE_NAME, resource.mimeType);
+                }
                 if (resource.output != null)
                 {
                     model.adaptType(resource.output.model);
@@ -166,6 +208,29 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
         JsonObject object)
     {
         McpOpenapiOptionsConfigBuilder<McpOpenapiOptionsConfig> mcpOpenapiOptions = McpOpenapiOptionsConfig.builder();
+
+        if (object.containsKey(AUTHORIZATION_NAME))
+        {
+            JsonObject authorizations = object.getJsonObject(AUTHORIZATION_NAME);
+            for (String name : authorizations.keySet())
+            {
+                Map<String, String> headers = new LinkedHashMap<>();
+                JsonObject guard = authorizations.getJsonObject(name);
+                if (guard.containsKey(CREDENTIALS_NAME))
+                {
+                    JsonObject credentials = guard.getJsonObject(CREDENTIALS_NAME);
+                    if (credentials.containsKey(HEADERS_NAME))
+                    {
+                        JsonObject headersObject = credentials.getJsonObject(HEADERS_NAME);
+                        for (String header : headersObject.keySet())
+                        {
+                            headers.put(header, headersObject.getString(header));
+                        }
+                    }
+                }
+                mcpOpenapiOptions.authorization(new McpOpenapiAuthorizationConfig(name, headers));
+            }
+        }
 
         if (object.containsKey(SPECS_NAME))
         {
@@ -215,6 +280,28 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     spec.security(security);
                 }
 
+                if (specObject.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+                    final McpOpenapiCatalogConfigBuilder<?> overlayBuilder = spec.overlay();
+                    overlayBuilder.name(overlayEntry.getKey());
+
+                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+                    {
+                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+                    }
+
+                    if (overlaySchemaObject.containsKey(VERSION_NAME))
+                    {
+                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+                    }
+
+                    overlayBuilder.build();
+                }
+
                 spec.build();
             }
         }
@@ -259,6 +346,10 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                     ? resourceObject.getString(DESCRIPTION_NAME)
                     : null;
 
+                String mimeType = resourceObject.containsKey(MIME_TYPE_NAME)
+                    ? resourceObject.getString(MIME_TYPE_NAME)
+                    : null;
+
                 ModelConfig output = resourceObject.containsKey(OUTPUT_NAME)
                     ? model.adaptFromJson(resourceObject.get(OUTPUT_NAME))
                     : null;
@@ -266,6 +357,7 @@ public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapte
                 mcpOpenapiOptions.resource()
                     .uri(uri)
                     .description(description)
+                    .mimeType(mimeType)
                     .output(output)
                     .build();
             }

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,13 +45,16 @@ import io.aklivity.zilla.runtime.binding.sse.config.SseWithConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
+import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedRef;
+import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedResolution;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiParameterView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
-import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
@@ -61,6 +65,8 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 {
+    private static final List<String> HTTP_ALPN_PROTOCOLS = List.of("h2", "http/1.1");
+
     @Override
     protected AsyncapiCompositeConfig generate(
         AsyncapiBindingConfig binding,
@@ -85,7 +91,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             AsyncapiBindingConfig config,
             AsyncapiSchemaConfig schema)
         {
-            super(config, schema.apiLabel);
+            super(config, schema.specLabel);
             this.catalogs = new CatalogsHelper(schema);
             this.bindings = new ServerBindingsHelper(schema);
         }
@@ -134,20 +140,21 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         .inject(this::injectProtocols);
             }
 
+            private List<URI> resolveServers()
+            {
+                return config.resolveServers(schema.specLabel);
+            }
+
             private <C> NamespaceConfigBuilder<C> injectTcpServer(
                 NamespaceConfigBuilder<C> namespace)
             {
-                final TcpOptionsConfig tcpOptions = config.options.tcp != null
-                    ? config.options.tcp
-                    : TcpOptionsConfig.builder()
-                        .host("0.0.0.0")
-                        .ports(Stream.of(schema)
-                            .map(s -> s.asyncapi)
-                            .flatMap(v -> v.servers.stream())
-                            .mapToInt(s -> s.port)
-                            .distinct()
-                            .toArray())
-                        .build();
+                final TcpOptionsConfig tcpOptions = TcpOptionsConfig.builder()
+                    .host("0.0.0.0")
+                    .ports(resolveServers().stream()
+                        .mapToInt(URI::getPort)
+                        .distinct()
+                        .toArray())
+                    .build();
 
                 namespace
                     .binding()
@@ -165,24 +172,20 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C>BindingConfigBuilder<C> injectTcpRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .filter(s -> plain.contains(s.protocol))
+                resolveServers().stream()
+                    .filter(s -> plain.contains(s.getScheme()))
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
-                            .port(s.port)
+                            .port(s.getPort())
                             .build()
-                        .exit(String.format("%s_server0", s.protocol))
+                        .exit(String.format("%s_server0", s.getScheme()))
                         .build());
 
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .filter(s -> secure.contains(s.protocol))
+                resolveServers().stream()
+                    .filter(s -> secure.contains(s.getScheme()))
                     .forEach(s -> binding.route()
                         .when(TcpConditionConfig::builder)
-                            .port(s.port)
+                            .port(s.getPort())
                             .build()
                         .exit("tls_server0")
                         .build());
@@ -193,17 +196,17 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectTlsServer(
                 NamespaceConfigBuilder<C> namespace)
             {
-                if (Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .anyMatch(s -> secure.contains(s.protocol)))
+                if (resolveServers().stream()
+                    .anyMatch(s -> secure.contains(s.getScheme())))
                 {
                     namespace.binding()
                         .name("tls_server0")
                         .type("tls")
                         .kind(SERVER)
                         .vault(config.qvault)
-                        .options(config.options.tls)
+                        .options(TlsOptionsConfig::builder)
+                            .alpn(resolveTlsAlpn())
+                            .build()
                         .inject(this::injectTlsRoutes)
                         .build();
                 }
@@ -211,18 +214,24 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return namespace;
             }
 
+            private List<String> resolveTlsAlpn()
+            {
+                return resolveServers().stream().anyMatch(s -> "https".equals(s.getScheme()))
+                    ? HTTP_ALPN_PROTOCOLS
+                    : null;
+            }
+
             private <C>BindingConfigBuilder<C> injectTlsRoutes(
                 BindingConfigBuilder<C> binding)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .filter(s -> secure.contains(s.protocol))
+                resolveServers().stream()
+                    .filter(s -> secure.contains(s.getScheme()))
                     .forEach(s -> binding.route()
                         .when(TlsConditionConfig::builder)
-                            .port(s.port)
+                            .port(s.getPort())
+                            .authority(s.getHost())
                             .build()
-                        .exit(String.format("%s_server0", plainBySecure.get(s.protocol)))
+                        .exit(String.format("%s_server0", plainBySecure.get(s.getScheme())))
                         .build());
 
                 return binding;
@@ -231,10 +240,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectProtocols(
                 NamespaceConfigBuilder<C> namespace)
             {
-                Stream.of(schema)
-                    .map(s -> s.asyncapi)
-                    .flatMap(v -> v.servers.stream())
-                    .map(s -> s.protocol)
+                resolveServers().stream()
+                    .map(URI::getScheme)
                     .distinct()
                     .map(protocols::get)
                     .filter(Objects::nonNull)
@@ -271,28 +278,12 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                             .access()
                                 .policy(CROSS_ORIGIN)
                                 .build()
-                            .inject(this::injectHttpAuthorization)
+                            .inject(options -> injectHttpAuthorization(options, schema))
                             .inject(this::injectHttpRequests)
                             .build()
                         .inject(this::injectHttpRoutes)
                         .inject(this::injectMetrics)
                         .build();
-            }
-
-            private <C> HttpOptionsConfigBuilder<C> injectHttpAuthorization(
-                HttpOptionsConfigBuilder<C> options)
-            {
-                final HttpOptionsConfig httpOptions = config.options.http;
-                if (httpOptions != null &&
-                    httpOptions.authorization != null)
-                {
-                    options.authorization()
-                        .name(httpOptions.authorization.qname)
-                        .credentials(httpOptions.authorization.credentials)
-                        .build();
-                }
-
-                return options;
             }
 
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
@@ -304,18 +295,33 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .filter(op -> op.hasBinding("http"))
                     .filter(AsyncapiOperationView::hasMessagesOrParameters)
                     .forEach(operation ->
-                    {
-                        options
-                            .request()
-                                .path(operation.channel.address)
-                                .method(Method.valueOf(
-                                    operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method))
-                                .inject(request -> injectHttpContent(request, operation))
-                                .inject(request -> injectHttpPathParams(request, operation))
-                            .build();
-                    });
+                        resolvePaths(operation).forEach(path ->
+                            options
+                                .request()
+                                    .path(path + operation.channel.address)
+                                    .method(Method.valueOf(
+                                        operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method))
+                                    .inject(request -> injectHttpContent(request, operation))
+                                    .inject(request -> injectHttpPathParams(request, operation))
+                                .build()));
 
                 return options;
+            }
+
+            private List<String> resolvePaths(
+                AsyncapiOperationView operation)
+            {
+                List<String> paths = operation.servers != null
+                    ? operation.servers.stream()
+                        .filter(server -> server.url != null &&
+                            server.url.getScheme() != null &&
+                            server.url.getScheme().startsWith("http"))
+                        .map(server -> server.url.getPath())
+                        .distinct()
+                        .toList()
+                    : List.of();
+
+                return !paths.isEmpty() ? paths : List.of("");
             }
 
             private <C> HttpRequestConfigBuilder<C> injectHttpContent(
@@ -401,57 +407,77 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .flatMap(v -> v.operations.values().stream())
                     .forEach(operation ->
                     {
-                        final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
+                        final String address = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
-                        if (operation.hasBinding("http"))
+                        if (operation.hasBinding("http") && allowed(operation))
                         {
-                            binding
-                                .route()
-                                .exit(config.qname)
-                                .when(HttpConditionConfig::builder)
-                                    .header(":path", path)
-                                    .header(":method",
-                                        operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method)
-                                    .build()
-                                .with(HttpWithConfig::builder)
-                                    .compositeId(operation.compositeId)
-                                    .build()
-                                .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                                .build();
+                            resolvePaths(operation).forEach(path ->
+                                binding
+                                    .route()
+                                    .exit(config.qname)
+                                    .when(HttpConditionConfig::builder)
+                                        .header(":path", path + address)
+                                        .header(":method",
+                                            operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method)
+                                        .build()
+                                    .with(HttpWithConfig::builder)
+                                        .compositeId(operation.compositeId)
+                                        .build()
+                                    .inject(route -> injectHttpServerRouteGuarded(route, operation))
+                                    .build());
                         }
                         else if (operation.hasBinding("x-zilla-sse"))
                         {
-                            binding
-                                .route()
-                                .exit("sse_server0")
-                                .when(HttpConditionConfig::builder)
-                                    .header(":path", path)
-                                    .header(":method", "GET")
-                                    .build()
-                                .build();
+                            resolvePaths(operation).forEach(path ->
+                                binding
+                                    .route()
+                                    .exit("sse_server0")
+                                    .when(HttpConditionConfig::builder)
+                                        .header(":path", path + address)
+                                        .header(":method", "GET")
+                                        .build()
+                                    .build());
                         }
                     });
 
                 return binding;
             }
 
+            private GuardedResolution resolveGuarded(
+                AsyncapiOperationView operation)
+            {
+                return AsyncapiGuardResolver.resolve(
+                    operation.name, schema.specLabel, operation.security, schema.security,
+                    config.resolveId, config.supplyQName);
+            }
+
+            private boolean allowed(
+                AsyncapiOperationView operation)
+            {
+                final GuardedResolution resolution = resolveGuarded(operation);
+                final boolean allowed = !resolution.denied();
+
+                if (!allowed)
+                {
+                    denied.add(resolution.reason);
+                }
+
+                return allowed;
+            }
+
             private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
                 RouteConfigBuilder<C> route,
                 AsyncapiOperationView operation)
             {
-                if (operation.security != null && !operation.security.isEmpty())
+                for (GuardedRef ref : resolveGuarded(operation).guarded)
                 {
-                    final AsyncapiSecuritySchemeView securityScheme = operation.security.get(0);
-                    if (config.options.http.authorization != null &&
-                        "oauth2".equals(securityScheme.type))
-                    {
-                        route
-                            .guarded()
-                                .name(config.options.http.authorization.qname)
-                                .roles(securityScheme.scopes)
-                                .build();
-                    }
+                    route
+                        .guarded()
+                            .name(ref.qname)
+                            .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
+                            .build();
                 }
+
                 return route;
             }
 
@@ -481,11 +507,14 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .filter(AsyncapiOperationView::hasMessagesOrParameters)
                     .forEach(operation ->
                     {
-                        options
-                            .request()
-                                .path(operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
-                                .inject(request -> injectSseContent(request, operation))
-                            .build();
+                        final String address = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
+
+                        resolvePaths(operation).forEach(path ->
+                            options
+                                .request()
+                                    .path(path + address)
+                                    .inject(request -> injectSseContent(request, operation))
+                                .build());
                     });
 
                 return options;
@@ -514,24 +543,25 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
-                    .filter(v -> v.servers.stream()
-                        .anyMatch(s -> s.protocol.startsWith("http")))
+                    .filter(v -> resolveServers().stream()
+                        .anyMatch(s -> s.getScheme().startsWith("http")))
                     .flatMap(v -> v.operations.values().stream())
                     .filter(op -> op.hasBinding("x-zilla-sse"))
                     .forEach(operation ->
                     {
-                        final String path = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
+                        final String address = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "*");
 
-                        binding
-                            .route()
-                            .exit(config.qname)
-                            .when(SseConditionConfig::builder)
-                                .path(path)
-                                .build()
-                            .with(SseWithConfig::builder)
-                                .compositeId(operation.compositeId)
-                                .build()
-                            .build();
+                        resolvePaths(operation).forEach(path ->
+                            binding
+                                .route()
+                                .exit(config.qname)
+                                .when(SseConditionConfig::builder)
+                                    .path(path + address)
+                                    .build()
+                                .with(SseWithConfig::builder)
+                                    .compositeId(operation.compositeId)
+                                    .build()
+                                .build());
                     });
 
                 return binding;
@@ -540,9 +570,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectMqtt(
                 NamespaceConfigBuilder<C> namespace)
             {
-                final MqttOptionsConfig mqttOptions = config.options.mqtt;
-                final String store = mqttOptions != null && mqttOptions.store != null
-                    ? config.supplyQName.apply(config.resolveId.applyAsLong(mqttOptions.store))
+                final String store = schema.store != null
+                    ? config.supplyQName.apply(config.resolveId.applyAsLong(schema.store))
                     : "mqtt_store0";
 
                 return namespace
@@ -553,7 +582,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                             .kind(SERVER)
                             .options(MqttOptionsConfig::builder)
                                 .store(store)
-                                .inject(this::injectMqttAuthorization)
+                                .inject(options -> injectMqttAuthorization(options, schema))
                                 .inject(this::injectMqttTopicsOptions)
                                 .build()
                             .inject(this::injectMqttRoutes)
@@ -564,8 +593,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
             private <C> NamespaceConfigBuilder<C> injectMqttStore(
                 NamespaceConfigBuilder<C> namespace)
             {
-                final MqttOptionsConfig mqttOptions = config.options.mqtt;
-                if (mqttOptions == null || mqttOptions.store == null)
+                if (schema.store == null)
                 {
                     namespace.store()
                         .name("mqtt_store0")
@@ -574,22 +602,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 }
 
                 return namespace;
-            }
-
-            private <C> MqttOptionsConfigBuilder<C> injectMqttAuthorization(
-                MqttOptionsConfigBuilder<C> options)
-            {
-                final MqttOptionsConfig mqttOptions = config.options.mqtt;
-                if (mqttOptions != null &&
-                    mqttOptions.authorization != null)
-                {
-                    options.authorization()
-                        .name(mqttOptions.authorization.qname)
-                        .credentials(mqttOptions.authorization.credentials)
-                        .build();
-                }
-
-                return options;
             }
 
             private <C> MqttOptionsConfigBuilder<C> injectMqttTopicsOptions(
@@ -700,7 +712,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                                 .build()
                             .build()
                         .with(MqttWithConfig::builder)
-                            .compositeId(schema.asyncapi.compositeId)
+                            .compositeId(operation.compositeId)
                             .build()
                         .build();
                 }

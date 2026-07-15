@@ -119,6 +119,10 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         {
             event.unresolvedRef(binding.id, ref);
         }
+        for (String reason : generator.deniedOperations())
+        {
+            event.operationDenied(binding.id, reason);
+        }
         assert composite != null;
         // TODO: schedule generate retry if null
 
@@ -172,17 +176,18 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
 
                 if (operation != null)
                 {
-                    final String apiId = operation.specification.label;
+                    final String specLabel = operation.specification.label;
                     final String operationId = operation.name;
-                    final AsyncapiRouteConfig route = binding.resolve(authorization, apiId, operationId);
+                    final AsyncapiRouteConfig route = binding.resolve(
+                        authorization, specLabel, operationId, operation.tags, operation.servers);
 
                     if (route != null)
                     {
                         final long resolvedId = route.id;
-                        final long resolvedApiId = composite.resolveApiId(route.with.spec);
-                        final String resolvedOperationId = route.isBulk()
-                            ? operationId
-                            : route.with.operation;
+                        final long resolvedSpecId = composite.resolveSpecId(route.with.spec);
+                        final String resolvedOperationId = route.with.operation != null
+                            ? route.with.operation
+                            : operationId;
 
                         newStream = new CompositeClientStream(
                             receiver,
@@ -192,7 +197,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                             authorization,
                             affinity,
                             resolvedId,
-                            resolvedApiId,
+                            resolvedSpecId,
                             resolvedOperationId)::onCompositeClientMessage;
                     }
                 }
@@ -201,7 +206,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                     // JRF: can we remove this? current used by will stream which arrives proactively, so no compositeId
                     Optional<AsyncapiRouteConfig> routeRef = binding.routes.stream().findFirst();
                     final long resolvedId = routeRef.map(r -> r.id).orElse(0L);
-                    final long resolvedApiId = routeRef.map(r -> composite.resolveApiId(r.with.spec)).orElse(0L);
+                    final long resolvedSpecId = routeRef.map(r -> composite.resolveSpecId(r.with.spec)).orElse(0L);
                     final String resolvedOperationId = routeRef.map(r -> r.with.operation).orElse(null);
 
                     newStream = new CompositeClientStream(
@@ -212,19 +217,19 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                         authorization,
                         affinity,
                         resolvedId,
-                        resolvedApiId,
+                        resolvedSpecId,
                         resolvedOperationId)::onCompositeClientMessage;
                 }
             }
             else
             {
                 final AsyncapiBeginExFW beginEx = extension.get(beginExRO::tryWrap);
-                final long apiId = beginEx.apiId();
+                final long specId = beginEx.specId();
                 final String operationId = beginEx.operationId().asString();
                 final ExtensionFW extensionEx = beginEx.extension().get(extensionRO::tryWrap);
                 final int operationTypeId = extensionEx.typeId();
 
-                final AsyncapiCompositeRouteConfig route = composite.resolve(authorization, apiId, operationTypeId);
+                final AsyncapiCompositeRouteConfig route = composite.resolve(authorization, specId, operationTypeId);
 
                 if (route != null)
                 {
@@ -238,7 +243,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                         authorization,
                         affinity,
                         resolvedId,
-                        apiId,
+                        specId,
                         operationId)::onAsyncapiServerMessage;
                 }
             }
@@ -257,7 +262,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         private final long replyId;
         private final long authorization;
         private final long affinity;
-        private final long apiId;
+        private final long specId;
         private final String operationId;
 
         private int state;
@@ -281,7 +286,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             long authorization,
             long affinity,
             long resolvedId,
-            long apiId,
+            long specId,
             String operationId)
         {
             this.sender = sender;
@@ -291,7 +296,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.affinity = affinity;
-            this.apiId = apiId;
+            this.specId = specId;
             this.operationId = operationId;
             this.delegate = new CompositeServerStream(this, routedId, resolvedId, authorization, affinity);
         }
@@ -473,7 +478,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             final AsyncapiBeginExFW beginEx = beginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(asyncapiTypeId)
-                .apiId(apiId)
+                .specId(specId)
                 .operationId(operationId)
                 .extension(extension)
                 .build();
@@ -940,7 +945,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             long authorization,
             long affinity,
             long resolvedId,
-            long apiId,
+            long specId,
             String operationId)
         {
             this.sender = sender;
@@ -950,7 +955,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
-            this.delegate = new AsyncapiClientStream(this, routedId, resolvedId, authorization, apiId, operationId);
+            this.delegate = new AsyncapiClientStream(this, routedId, resolvedId, authorization, specId, operationId);
         }
 
         private void onCompositeClientMessage(
@@ -1244,7 +1249,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
         private final long routedId;
         private final long authorization;
         private final CompositeClientStream delegate;
-        private final long apiId;
+        private final long specId;
         private final String operationId;
 
         private long initialId;
@@ -1267,7 +1272,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             long originId,
             long routedId,
             long authorization,
-            long apiId,
+            long specId,
             String operationId)
         {
             this.delegate = delegate;
@@ -1276,7 +1281,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
-            this.apiId = apiId;
+            this.specId = specId;
             this.operationId = operationId;
         }
 
@@ -1496,7 +1501,7 @@ public final class AsyncapiProxyFactory implements AsyncapiStreamFactory
                 final AsyncapiBeginExFW beginEx = beginExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(asyncapiTypeId)
-                    .apiId(apiId)
+                    .specId(specId)
                     .operationId(operationId)
                     .extension(extension)
                     .build();

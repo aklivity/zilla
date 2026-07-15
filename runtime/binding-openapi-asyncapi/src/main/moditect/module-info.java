@@ -15,6 +15,8 @@
 module io.aklivity.zilla.runtime.binding.openapi.asyncapi
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.runtime.common.json;
+    requires io.aklivity.zilla.runtime.common.yaml;
     requires io.aklivity.zilla.runtime.common.openapi;
     requires io.aklivity.zilla.runtime.common.asyncapi;
     requires io.aklivity.zilla.runtime.binding.asyncapi;
@@ -36,4 +38,7 @@ module io.aklivity.zilla.runtime.binding.openapi.asyncapi
 
     provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiWithConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.event.OpenapiAsyncapiEventFormatterFactory;
 }

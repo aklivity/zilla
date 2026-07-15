@@ -54,29 +54,9 @@
                                                 "type": "array",
                                                 "items":
                                                 {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "url":
-                                                        {
-                                                            "title": "URL",
-                                                            "type": "string",
-                                                            "pattern": "^([a-zA-Z0-9\\.-]+)(:(\\{[a-zA-Z_]+\\}|[0-9]+))?$"
-                                                        },
-                                                        "host":
-                                                        {
-                                                            "title": "Host",
-                                                            "type": "string",
-                                                            "pattern": "^([a-zA-Z0-9\\.-]+)(:(\\{[a-zA-Z_]+\\}|[0-9]+))?$"
-                                                        },
-                                                        "pathname":
-                                                        {
-                                                            "title": "Path Name",
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
+                                                    "type": "string"
+                                                },
+                                                "minItems": 1
                                             },
                                             "catalog":
                                             {
@@ -107,98 +87,60 @@
                                                     },
                                                     "additionalProperties": false
                                                 }
+                                            },
+                                            "security":
+                                            {
+                                                "title": "Security",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z0-9_\\-]+$":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            },
+                                            "store":
+                                            {
+                                                "title": "Store Reference",
+                                                "type": "string"
+                                            },
+                                            "overlay":
+                                            {
+                                                "title": "Overlay",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "subject":
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            }
+                                                        },
+                                                        "required":
+                                                        [
+                                                            "subject"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         },
-                                        "additionalProperties": false
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
-                            "tcp":
-                            {
-                                "$ref": "#/$defs/options/binding/tcp"
-                            },
-                            "tls":
-                            {
-                                "$ref": "#/$defs/options/binding/tls"
-                            },
-                            "http":
-                            {
-                                "title": "Http",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "authorization":
-                                    {
-                                        "$ref": "#/$defs/options/binding/http/authorization"
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
-                            "mqtt":
-                            {
-                                "title": "MQTT",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "authorization":
-                                    {
-                                        "$ref": "#/$defs/options/binding/mqtt/authorization"
-                                    },
-                                    "store":
-                                    {
-                                        "title": "Store Reference",
-                                        "type": "string"
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
-                            "kafka":
-                            {
-                                "title": "Kafka",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "sasl":
-                                    {
-                                        "$ref": "#/$defs/options/binding/kafka/sasl"
-                                    },
-                                    "topics":
-                                    {
-                                        "$ref": "#/$defs/options/binding/kafka/cache_server_topics"
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
-                            "mqtt-kafka":
-                            {
-                                "title": "MQTT-Kafka",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "channels":
-                                    {
-                                        "title": "Channels",
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "sessions":
-                                            {
-                                                "title": "Kafka Sessions Channel",
-                                                "type": "string"
-                                            },
-                                            "messages":
-                                            {
-                                                "title": "Kafka Messages Channel",
-                                                "type": "string"
-                                            },
-                                            "retained":
-                                            {
-                                                "title": "Kafka Retained Channel",
-                                                "type": "string"
-                                            },
-                                            "additionalProperties": false
-                                        },
+                                        "required":
+                                        [
+                                            "servers"
+                                        ],
                                         "additionalProperties": false
                                     }
                                 },
@@ -206,67 +148,6 @@
                             }
                         },
                         "additionalProperties": false
-                    },
-                    "routes":
-                    {
-                        "title": "Routes",
-                        "type": "array",
-                        "items":
-                        {
-                            "type": "object",
-                            "properties":
-                            {
-                                "when":
-                                {
-                                    "title": "When",
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "properties":
-                                        {
-                                            "spec":
-                                            {
-                                                "title": "Spec",
-                                                "type": "string"
-                                            },
-                                            "operation":
-                                            {
-                                                "title": "Operation",
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                },
-                                "with":
-                                {
-                                    "properties":
-                                    {
-                                        "spec":
-                                        {
-                                            "title": "Spec",
-                                            "type": "string"
-                                        },
-                                        "operation":
-                                        {
-                                            "title": "Operation Id or glob pattern",
-                                            "type": "string"
-                                        },
-                                        "tag":
-                                        {
-                                            "title": "Tag",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "additionalProperties": false,
-                                    "not":
-                                    {
-                                        "required": [ "tag", "operation" ]
-                                    }
-                                }
-                            }
-                        }
                     }
                 },
                 "oneOf":
@@ -277,6 +158,70 @@
                             "kind":
                             {
                                 "const": "server"
+                            },
+                            "routes":
+                            {
+                                "title": "Routes",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "when":
+                                        {
+                                            "title": "When",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "properties":
+                                                {
+                                                    "spec":
+                                                    {
+                                                        "title": "Spec",
+                                                        "type": "string"
+                                                    },
+                                                    "operation":
+                                                    {
+                                                        "title": "Operation Id or glob pattern",
+                                                        "type": "string"
+                                                    },
+                                                    "tag":
+                                                    {
+                                                        "title": "Tag",
+                                                        "type": "string"
+                                                    },
+                                                    "servers":
+                                                    {
+                                                        "title": "Servers",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "name":
+                                                                {
+                                                                    "title": "Name",
+                                                                    "type": "string"
+                                                                },
+                                                                "url":
+                                                                {
+                                                                    "title": "URL",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "with": false
+                                    }
+                                }
                             }
                         },
                         "anyOf":
@@ -311,6 +256,94 @@
                             "kind":
                             {
                                 "const": "proxy"
+                            },
+                            "routes":
+                            {
+                                "title": "Routes",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "when":
+                                        {
+                                            "title": "When",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "properties":
+                                                {
+                                                    "spec":
+                                                    {
+                                                        "title": "Spec",
+                                                        "type": "string"
+                                                    },
+                                                    "operation":
+                                                    {
+                                                        "title": "Operation Id or glob pattern",
+                                                        "type": "string"
+                                                    },
+                                                    "tag":
+                                                    {
+                                                        "title": "Tag",
+                                                        "type": "string"
+                                                    },
+                                                    "servers":
+                                                    {
+                                                        "title": "Servers",
+                                                        "type": "array",
+                                                        "items":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "name":
+                                                                {
+                                                                    "title": "Name",
+                                                                    "type": "string"
+                                                                },
+                                                                "url":
+                                                                {
+                                                                    "title": "URL",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "with":
+                                        {
+                                            "properties":
+                                            {
+                                                "spec":
+                                                {
+                                                    "title": "Spec",
+                                                    "type": "string"
+                                                },
+                                                "operation":
+                                                {
+                                                    "title": "Operation",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "spec"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "with"
+                                    ]
+                                }
                             }
                         },
                         "anyOf":
@@ -346,16 +379,7 @@
                             {
                                 "const": "client"
                             },
-                            "routes":
-                            {
-                                "items":
-                                {
-                                    "properties":
-                                    {
-                                        "exit": false
-                                    }
-                                }
-                            },
+                            "routes": false,
                             "exit": false
                         }
                     }

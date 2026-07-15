@@ -14,38 +14,78 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
+import java.util.List;
+
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class OpenapiAsyncapiConditionConfig extends ConditionConfig
 {
     public final String spec;
     public final String operation;
+    public final String tag;
+    public final List<OpenapiAsyncapiConditionServerConfig> servers;
 
     public OpenapiAsyncapiConditionConfig(
         String spec,
         String operation)
     {
+        this(spec, operation, null, null);
+    }
+
+    public OpenapiAsyncapiConditionConfig(
+        String spec,
+        String operation,
+        String tag,
+        List<OpenapiAsyncapiConditionServerConfig> servers)
+    {
         this.spec = spec;
         this.operation = operation;
+        this.tag = tag;
+        this.servers = servers;
     }
 
     public boolean matches(
-        String apiId,
+        String spec,
         String operationId)
     {
-        return matchesSpec(apiId) &&
-            matchesOperation(operationId);
+        return matches(spec, operationId, null, null);
+    }
+
+    public boolean matches(
+        String spec,
+        String operationId,
+        List<String> tags,
+        List<OpenapiServerView> operationServers)
+    {
+        return matchesSpec(spec) &&
+            matchesOperation(operationId) &&
+            matchesTag(tags) &&
+            matchesServers(operationServers);
     }
 
     private boolean matchesSpec(
-        String apiId)
+        String spec)
     {
-        return this.spec == null || this.spec.equals(apiId);
+        return this.spec == null || this.spec.equals(spec);
     }
 
     private boolean matchesOperation(
         String operationId)
     {
         return this.operation == null || this.operation.equals(operationId);
+    }
+
+    private boolean matchesTag(
+        List<String> tags)
+    {
+        return this.tag == null || tags != null && tags.contains(this.tag);
+    }
+
+    private boolean matchesServers(
+        List<OpenapiServerView> operationServers)
+    {
+        return servers == null || servers.isEmpty() ||
+            operationServers != null && servers.stream().anyMatch(s -> operationServers.stream().anyMatch(s::matches));
     }
 }

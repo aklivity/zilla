@@ -217,11 +217,9 @@ bindings:
     options:
       specs:
         kafka_api:
+          servers:
+            - kafka://localhost:9092
           catalog:
             catalog0:
               subject: smartylighting
               version: latest
-      tcp:
-        host: localhost
-        port:
-          - 9092

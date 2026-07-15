@@ -91,7 +91,6 @@ public final class McpProxyCache
     public final Duration leaseTtl;
     public final Duration renewTtl;
     public final Duration leaseRetry;
-    public final int hydrateAttemptsMax;
     public final Duration cacheTtl;
 
     public String sessionId;
@@ -134,7 +133,6 @@ public final class McpProxyCache
         this.leaseTtl = config.leaseTtl();
         this.renewTtl = this.leaseTtl.dividedBy(3);
         this.leaseRetry = config.leaseRetry();
-        this.hydrateAttemptsMax = config.hydrateAttemptsMax();
         this.cacheTtl = cache.ttl;
         this.awaiters = new ArrayList<>();
         this.caches = new Int2ObjectHashMap<>();
@@ -280,13 +278,16 @@ public final class McpProxyCache
         populated = false;
     }
 
-    public void markDegraded(
+    // records that a kind's hydration cycle has completed at least once, success or failure -- this is
+    // what lets checkReady()/register() unblock a brand-new session's initialize promptly even when every
+    // route for this kind keeps failing, without ever needing to give up retrying in the background
+    public void markAttempted(
         int kind)
     {
         final McpListCache cache = caches.get(kind);
-        if (cache != null && !cache.populated)
+        if (cache != null && !cache.attempted)
         {
-            cache.degraded = true;
+            cache.attempted = true;
             checkReady();
         }
     }
@@ -334,16 +335,11 @@ public final class McpProxyCache
         private String lockToken;
 
         boolean populated;
-        boolean degraded;
+        boolean attempted;
 
         boolean settled()
         {
-            return populated || degraded;
-        }
-
-        public boolean degraded()
-        {
-            return degraded;
+            return populated || attempted;
         }
 
         public Map<CharSequence, List<String>> scopesByName()
@@ -614,10 +610,6 @@ public final class McpProxyCache
                 changed = false;
             }
             populated = value != null;
-            if (populated)
-            {
-                degraded = false;
-            }
             checkReady();
             onSettled.accept(kind, changed, value);
         }
@@ -626,7 +618,6 @@ public final class McpProxyCache
             String key)
         {
             populated = true;
-            degraded = false;
             checkReady();
         }
 

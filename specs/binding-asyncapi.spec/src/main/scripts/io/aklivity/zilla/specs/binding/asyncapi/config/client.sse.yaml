@@ -87,11 +87,9 @@ bindings:
     options:
       specs:
         sse_api:
+          servers:
+            - http://localhost:8080
           catalog:
             catalog0:
               subject: eventstore
               version: latest
-      tcp:
-        host: localhost
-        port:
-          - 8080

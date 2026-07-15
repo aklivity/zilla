@@ -14,6 +14,7 @@
  */
 module io.aklivity.zilla.runtime.binding.openapi
 {
+    requires io.aklivity.zilla.runtime.common.json;
     requires transitive io.aklivity.zilla.runtime.common.openapi;
     requires io.aklivity.zilla.runtime.common.yaml;
 
@@ -37,9 +38,6 @@ module io.aklivity.zilla.runtime.binding.openapi
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiWithConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.event.OpenapiEventFormatterFactory;

@@ -181,6 +181,38 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateHttp11ClientAuthorizationCredentials()
+    {
+        JsonObject config = schema.validate("v1.1/client.authorization.credentials.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp11ClientAuthorizationCredentialsCookies()
+    {
+        JsonObject config = schema.validate("v1.1/client.authorization.credentials.cookies.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp11ClientAuthorizationCredentialsQuery()
+    {
+        JsonObject config = schema.validate("v1.1/client.authorization.credentials.query.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp11ClientAuthorizationCredentialsWithBasicAuth()
+    {
+        JsonObject config = schema.validate("v1.1/client.authorization.credentials.basic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateHttp2Client()
     {
         JsonObject config = schema.validate("v2/client.yaml");
@@ -320,6 +352,14 @@ public class SchemaTest
     public void shouldValidateHttp2ServerAuthorizationCredentialsWithBasicAuth()
     {
         JsonObject config = schema.validate("v2/server.authorization.credentials.basic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ClientAuthorizationCredentials()
+    {
+        JsonObject config = schema.validate("v2/client.authorization.credentials.yaml");
 
         assertThat(config, not(nullValue()));
     }

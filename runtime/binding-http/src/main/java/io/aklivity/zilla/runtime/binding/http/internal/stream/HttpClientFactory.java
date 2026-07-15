@@ -119,6 +119,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class HttpClientFactory implements HttpStreamFactory
 {
@@ -182,6 +183,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String8FW HEADER_USER_AGENT = new String8FW("user-agent");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
+    private static final String8FW HEADER_COOKIE = new String8FW("cookie");
     private static final String8FW HEADER_HTTP2_SETTINGS = new String8FW("HTTP2-Settings");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
@@ -2973,7 +2975,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
             headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
-            headersMap.putAll(overrides);
+            mergeOverrides(headersMap, overrides);
 
             headersMap.put(HEADER_UPGRADE, UPGRADE_H2C);
             headersMap.put(HEADER_CONNECTION, CONNECTION_UPGRADE_HTTP2_SETTINGS);
@@ -2991,7 +2993,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             headersMap.clear();
             headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
-            headersMap.putAll(overrides);
+            mergeOverrides(headersMap, overrides);
             doEncodeHttp11Headers(traceId, authorization, budgetId, headersMap);
         }
 
@@ -4797,7 +4799,87 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 client.exchange = this;
             }
-            client.encoder.doEncodeRequestHeaders(client, this, traceId, authorization, 0, headers, overrides);
+
+            final Map<String8FW, String16FW> requestOverrides = resolveOverrides(authorization, headers);
+            client.encoder.doEncodeRequestHeaders(client, this, traceId, authorization, 0, headers, requestOverrides);
+        }
+
+        private Map<String8FW, String16FW> resolveOverrides(
+            long authorization,
+            Array32FW<HttpHeaderFW> headers)
+        {
+            Map<String8FW, String16FW> resolved = overrides;
+
+            final GuardHandler guard = binding.guard;
+            if (guard != null && (authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                final String credential = guard.credentials(authorization);
+
+                if (credential != null)
+                {
+                    Map<String8FW, String16FW> merged = null;
+
+                    final String injectedHeader = binding.inject.apply(credential);
+                    if (injectedHeader != null)
+                    {
+                        merged = new LinkedHashMap<>(overrides);
+                        merged.put(binding.injectHeader, new String16FW(injectedHeader));
+                    }
+
+                    final String injectedCookie = binding.injectCookie.apply(credential);
+                    if (injectedCookie != null)
+                    {
+                        final String existingCookie = resolveHeaderValue(overrides, headers, HEADER_COOKIE);
+                        final String cookie = existingCookie != null
+                            ? existingCookie + "; " + injectedCookie
+                            : injectedCookie;
+                        merged = merged != null ? merged : new LinkedHashMap<>(overrides);
+                        merged.put(HEADER_COOKIE, new String16FW(cookie));
+                    }
+
+                    final String injectedQuery = binding.injectQuery.apply(credential);
+                    if (injectedQuery != null)
+                    {
+                        final String existingPath = resolveHeaderValue(overrides, headers, HEADER_PATH);
+                        if (existingPath != null)
+                        {
+                            final String path = existingPath +
+                                (existingPath.indexOf('?') != -1 ? '&' : '?') + injectedQuery;
+                            merged = merged != null ? merged : new LinkedHashMap<>(overrides);
+                            merged.put(HEADER_PATH, new String16FW(path));
+                        }
+                    }
+
+                    if (merged != null)
+                    {
+                        resolved = merged;
+                    }
+                }
+            }
+
+            return resolved;
+        }
+
+        private String resolveHeaderValue(
+            Map<String8FW, String16FW> overrides,
+            Array32FW<HttpHeaderFW> headers,
+            String8FW name)
+        {
+            final String16FW override = overrides.get(name);
+            String value = null;
+            if (override != null)
+            {
+                value = override.asString();
+            }
+            else
+            {
+                final HttpHeaderFW header = headers.matchFirst(h -> name.equals(h.name()));
+                if (header != null)
+                {
+                    value = header.value().asString();
+                }
+            }
+            return value;
         }
 
         private void onRequestFlush(
@@ -5385,7 +5467,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
             headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
-            headersMap.putAll(overrides);
+            mergeOverrides(headersMap, overrides);
 
             final String16FW authority = headersMap.get(HEADER_AUTHORITY);
             if (authority != null)
@@ -5799,5 +5881,26 @@ public final class HttpClientFactory implements HttpStreamFactory
         String16FW value)
     {
         return new String16FW().wrap(value.buffer(), value.offset(), value.limit());
+    }
+
+    private static void mergeOverrides(
+        Map<String8FW, String16FW> headersMap,
+        Map<String8FW, String16FW> overrides)
+    {
+        overrides.forEach((name, value) ->
+        {
+            if (!headersMap.containsKey(name))
+            {
+                headersMap.keySet().removeIf(existing -> equalsIgnoreCase(existing, name));
+            }
+            headersMap.put(name, value);
+        });
+    }
+
+    private static boolean equalsIgnoreCase(
+        String8FW nameA,
+        String8FW nameB)
+    {
+        return nameA.asString().equalsIgnoreCase(nameB.asString());
     }
 }

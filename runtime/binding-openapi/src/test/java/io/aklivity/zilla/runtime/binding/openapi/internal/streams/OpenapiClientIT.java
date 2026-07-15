@@ -81,4 +81,15 @@ public class OpenapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.multiple.servers.yaml")
+    @Specification({
+        "${openapi}/create.pet.round.robin/client",
+        "${composite}/create.pet.round.robin/server"
+    })
+    public void shouldRoundRobinAcrossServers() throws Exception
+    {
+        k3po.finish();
+    }
 }

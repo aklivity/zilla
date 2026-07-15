@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
@@ -52,6 +53,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
 public final class HttpBindingConfig
@@ -59,6 +61,7 @@ public final class HttpBindingConfig
     private static final Pattern BASIC_FORMAT_PATTERN =
         Pattern.compile("^\\s*Basic\\s+(?<format>(:?[^\\\\{]*\\{[^}]+}[^\\\\{]*)+)$");
     private static final Function<Function<String, String>, String> DEFAULT_CREDENTIALS = f -> null;
+    private static final Function<String, String> DEFAULT_INJECT = credentials -> null;
     private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
     private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL =
         HttpAccessControlConfig.builder().policy(SAME_ORIGIN).build();
@@ -75,6 +78,11 @@ public final class HttpBindingConfig
     public final List<HttpRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
     public final Function<Function<String, String>, String> credentials;
+    public final GuardHandler guard;
+    public final Function<String, String> inject;
+    public final String8FW injectHeader;
+    public final Function<String, String> injectCookie;
+    public final Function<String, String> injectQuery;
     public final List<HttpRequestType> requests;
 
     public HttpBindingConfig(
@@ -90,8 +98,13 @@ public final class HttpBindingConfig
             new HttpRouteConfig(context, route, options != null ? options.overrides : null))
             .collect(toList());
         this.resolveId = binding.resolveId;
-        this.credentials = options != null && options.authorization != null ?
-                asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
+        final HttpAuthorizationConfig authorization = options != null ? options.authorization : null;
+        this.credentials = authorization != null ? asAccessor(authorization.credentials) : DEFAULT_CREDENTIALS;
+        this.guard = authorization != null ? resolveGuard(context, binding, authorization.name) : null;
+        this.inject = authorization != null ? asInjector(authorization.credentials) : DEFAULT_INJECT;
+        this.injectHeader = authorization != null ? asInjectHeader(authorization.credentials) : null;
+        this.injectCookie = authorization != null ? asInjectCookie(authorization.credentials) : DEFAULT_INJECT;
+        this.injectQuery = authorization != null ? asInjectQuery(authorization.credentials) : DEFAULT_INJECT;
         this.requests = createRequestTypes(context::supplyModel, modelBuffer);
     }
 
@@ -118,6 +131,75 @@ public final class HttpBindingConfig
     public Function<Function<String, String>, String> credentials()
     {
         return credentials;
+    }
+
+    private GuardHandler resolveGuard(
+        EngineContext context,
+        BindingConfig binding,
+        String guardName)
+    {
+        long guardId = binding.resolveId.applyAsLong(guardName);
+        return context.supplyGuard(guardId);
+    }
+
+    private String8FW asInjectHeader(
+        HttpCredentialsConfig credentials)
+    {
+        List<HttpPatternConfig> headers = credentials.headers;
+        return headers != null && !headers.isEmpty() ? new String8FW(headers.get(0).name) : null;
+    }
+
+    private Function<String, String> asInjector(
+        HttpCredentialsConfig credentials)
+    {
+        Function<String, String> injector = DEFAULT_INJECT;
+        List<HttpPatternConfig> headers = credentials.headers;
+
+        if (headers != null && !headers.isEmpty())
+        {
+            String pattern = headers.get(0).pattern;
+            Matcher formatMatch = BASIC_FORMAT_PATTERN.matcher(pattern);
+
+            injector = !pattern.contains("{credentials}") && formatMatch.matches()
+                ? value -> value != null ? "Basic " + Base64.getEncoder().encodeToString(value.getBytes(UTF_8)) : null
+                : value -> value != null ? pattern.replace("{credentials}", value) : null;
+        }
+
+        return injector;
+    }
+
+    private Function<String, String> asInjectCookie(
+        HttpCredentialsConfig credentials)
+    {
+        Function<String, String> injector = DEFAULT_INJECT;
+        List<HttpPatternConfig> cookies = credentials.cookies;
+
+        if (cookies != null && !cookies.isEmpty())
+        {
+            HttpPatternConfig config = cookies.get(0);
+            String prefix = config.name + "=";
+            String pattern = config.pattern;
+            injector = value -> value != null ? prefix + pattern.replace("{credentials}", value) : null;
+        }
+
+        return injector;
+    }
+
+    private Function<String, String> asInjectQuery(
+        HttpCredentialsConfig credentials)
+    {
+        Function<String, String> injector = DEFAULT_INJECT;
+        List<HttpPatternConfig> parameters = credentials.parameters;
+
+        if (parameters != null && !parameters.isEmpty())
+        {
+            HttpPatternConfig config = parameters.get(0);
+            String prefix = config.name + "=";
+            String pattern = config.pattern;
+            injector = value -> value != null ? prefix + pattern.replace("{credentials}", value) : null;
+        }
+
+        return injector;
     }
 
     private Function<Function<String, String>, String> asAccessor(

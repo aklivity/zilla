@@ -57,7 +57,7 @@ bindings:
           headers:
             ":method": POST
             ":scheme": https
-            ":authority": api.github.com
+            ":authority": api.github.com:443
             ":path": /repos/acme/widget/pulls
       - when:
           - resource: settings
@@ -66,5 +66,5 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.example.internal
+            ":authority": api.example.internal:443
             ":path": /settings

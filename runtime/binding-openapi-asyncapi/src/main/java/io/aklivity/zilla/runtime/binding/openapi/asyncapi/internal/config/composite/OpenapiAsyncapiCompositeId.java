@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.compo
 
 public final class OpenapiAsyncapiCompositeId
 {
-    public static int apiId(
+    public static int specIndex(
         long compositeId)
     {
         return (int)(compositeId >> Integer.SIZE) & 0xffff_ffff;
@@ -29,10 +29,10 @@ public final class OpenapiAsyncapiCompositeId
     }
 
     public static long compositeId(
-        final int apiId,
+        final int specIndex,
         final int operationId)
     {
-        return (long) apiId << Integer.SIZE |
+        return (long) specIndex << Integer.SIZE |
                (long) operationId << 0;
     }
 

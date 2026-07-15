@@ -24,6 +24,7 @@ public final class McpOpenapiSpecificationConfig
     public final String server;
     public final List<McpOpenapiCatalogConfig> catalogs;
     public final Map<String, String> security;
+    public final McpOpenapiCatalogConfig overlay;
 
     public static McpOpenapiSpecificationConfigBuilder<McpOpenapiSpecificationConfig> builder()
     {
@@ -40,11 +41,13 @@ public final class McpOpenapiSpecificationConfig
         String label,
         String server,
         List<McpOpenapiCatalogConfig> catalogs,
-        Map<String, String> security)
+        Map<String, String> security,
+        McpOpenapiCatalogConfig overlay)
     {
         this.label = label;
         this.server = server;
         this.catalogs = catalogs;
         this.security = security;
+        this.overlay = overlay;
     }
 }

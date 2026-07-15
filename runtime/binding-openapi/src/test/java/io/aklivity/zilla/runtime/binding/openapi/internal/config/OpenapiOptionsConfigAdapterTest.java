@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static java.util.List.of;
-import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -31,8 +30,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -67,21 +64,8 @@ public class OpenapiOptionsConfigAdapterTest
                   catalog0:
                     subject: petstore
                     version: latest
-            tls:
-              keys:
-                - localhost
-              alpn:
-                - localhost
-            http:
-              authorization:
-                test0:
-                  credentials:
-                    cookies:
-                      access_token: "{credentials}"
-                    headers:
-                      authorization: "Bearer {credentials}"
-                    query:
-                      access_token: "{credentials}"
+                security:
+                  bearerAuth: test0
             """;
 
         OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
@@ -90,16 +74,36 @@ public class OpenapiOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithOverlay()
+    {
+        String text =
+            """
+            specs:
+              petstore:
+                catalog:
+                  catalog0:
+                    subject: petstore
+                    version: latest
+                overlay:
+                  catalog0:
+                    subject: petstore-overlay
+                    version: latest
+            """;
+
+        OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
+
+        OpenapiSpecificationConfig spec = options.specs.get(0);
+        assertThat(spec.overlay, not(nullValue()));
+        assertEquals("catalog0", spec.overlay.name);
+        assertEquals("petstore-overlay", spec.overlay.subject);
+        assertEquals("latest", spec.overlay.version);
+    }
+
+    @Test
     public void shouldWriteOptions()
     {
         String expected =
             """
-            tcp:
-              host: localhost
-              port: 8080
-            tls:
-              sni:
-                - example.net
             specs:
               test:
                 catalog:
@@ -108,22 +112,41 @@ public class OpenapiOptionsConfigAdapterTest
                     version: latest
             """;
 
-        TcpOptionsConfig tcp = TcpOptionsConfig.builder()
-            .inject(identity())
-            .host("localhost")
-            .ports(new int[] { 8080 })
-            .build();
-
-        TlsOptionsConfig tls = TlsOptionsConfig.builder()
-            .inject(identity())
-            .sni(of("example.net"))
-            .build();
-
         OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
-            .tcp(tcp)
-            .tls(tls)
             .spec(new OpenapiSpecificationConfig("test",
                 of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertEquals(expected, text);
+    }
+
+    @Test
+    public void shouldWriteOptionsWithOverlay()
+    {
+        String expected =
+            """
+            specs:
+              test:
+                catalog:
+                  catalog0:
+                    subject: petstore
+                    version: latest
+                overlay:
+                  catalog0:
+                    subject: petstore-overlay
+                    version: latest
+            """;
+
+        OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
+            .spec(new OpenapiSpecificationConfig(
+                "test",
+                null,
+                of(new OpenapiCatalogConfig("catalog0", "petstore", "latest")),
+                null,
+                new OpenapiCatalogConfig("catalog0", "petstore-overlay", "latest")))
             .build();
 
         String text = jsonb.toJson(options);

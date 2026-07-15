@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.config;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class AsyncapiSpecificationConfigBuilder<T>
@@ -23,8 +25,11 @@ public class AsyncapiSpecificationConfigBuilder<T>
     private final Function<AsyncapiSpecificationConfig, T> mapper;
 
     private String label;
-    private List<AsyncapiServerConfig> servers;
+    private List<String> servers;
     private List<AsyncapiCatalogConfig> catalogs;
+    private Map<String, String> security;
+    private String store;
+    private AsyncapiCatalogConfig overlay;
 
     public AsyncapiSpecificationConfigBuilder<T> label(
         String label)
@@ -33,13 +38,8 @@ public class AsyncapiSpecificationConfigBuilder<T>
         return this;
     }
 
-    public AsyncapiServerConfigBuilder<AsyncapiSpecificationConfigBuilder<T>> server()
-    {
-        return new AsyncapiServerConfigBuilder<>(this::server);
-    }
-
-    public AsyncapiSpecificationConfigBuilder<T> server(
-        AsyncapiServerConfig server)
+    public AsyncapiSpecificationConfigBuilder<T> serverOverride(
+        String server)
     {
         if (servers == null)
         {
@@ -67,10 +67,42 @@ public class AsyncapiSpecificationConfigBuilder<T>
         return this;
     }
 
+    public AsyncapiSpecificationConfigBuilder<T> security(
+        String scheme,
+        String guard)
+    {
+        if (security == null)
+        {
+            security = new LinkedHashMap<>();
+        }
+
+        security.put(scheme, guard);
+        return this;
+    }
+
+    public AsyncapiSpecificationConfigBuilder<T> store(
+        String store)
+    {
+        this.store = store;
+        return this;
+    }
+
+    public AsyncapiCatalogConfigBuilder<AsyncapiSpecificationConfigBuilder<T>> overlay()
+    {
+        return new AsyncapiCatalogConfigBuilder<>(this::overlay);
+    }
+
+    public AsyncapiSpecificationConfigBuilder<T> overlay(
+        AsyncapiCatalogConfig overlay)
+    {
+        this.overlay = overlay;
+        return this;
+    }
+
     public T build()
     {
         return mapper.apply(
-            new AsyncapiSpecificationConfig(label, servers, catalogs));
+            new AsyncapiSpecificationConfig(label, servers, catalogs, security, store, overlay));
     }
 
     AsyncapiSpecificationConfigBuilder(

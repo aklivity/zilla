@@ -64,7 +64,7 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.example.internal
+            ":authority": api.example.internal:443
             ":path": /items/${args.id}
       - when:
           - resource: item
@@ -73,5 +73,5 @@ bindings:
           headers:
             ":method": GET
             ":scheme": https
-            ":authority": api.example.internal
+            ":authority": api.example.internal:443
             ":path": /items/${params.itemId}

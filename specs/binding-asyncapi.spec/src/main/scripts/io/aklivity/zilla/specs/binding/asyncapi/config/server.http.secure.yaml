@@ -114,20 +114,10 @@ bindings:
     options:
       specs:
         http_api:
+          servers:
+            - 'http://localhost:8080'
           catalog:
             catalog0:
               subject: petstore
               version: latest
-      tcp:
-        host: localhost
-        port:
-          - 8080
-      tls:
-        keys:
-          - localhost
-        sni:
-          - localhost
-        alpn:
-          - http/1.1
-          - h2
     exit: asyncapi0

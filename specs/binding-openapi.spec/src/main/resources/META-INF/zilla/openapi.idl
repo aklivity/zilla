@@ -20,7 +20,7 @@ scope openapi
     {
         struct OpenapiBeginEx extends core::stream::Extension
         {
-            int64 apiId = 0;
+            int64 specId = 0;
             string16 operationId = null;
             octets extension;
         }
@@ -30,7 +30,8 @@ scope openapi
     {
         enum OpenapiEventType (uint8)
         {
-            UNRESOLVED_REF (1)
+            UNRESOLVED_REF (1),
+            OPERATION_DENIED (2)
         }
 
         struct OpenapiUnresolvedRefEx extends core::stream::Extension
@@ -38,9 +39,15 @@ scope openapi
             string16 ref;
         }
 
+        struct OpenapiOperationDeniedEx extends core::stream::Extension
+        {
+            string16 detail;
+        }
+
         union OpenapiEventEx switch (OpenapiEventType)
         {
             case UNRESOLVED_REF: OpenapiUnresolvedRefEx unresolvedRef;
+            case OPERATION_DENIED: OpenapiOperationDeniedEx operationDenied;
         }
     }
 }

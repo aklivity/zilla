@@ -14,21 +14,25 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
-import static io.aklivity.zilla.runtime.common.openapi.view.OpenapiCompositeId.compositeId;
-import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.stream.Collectors.toList;
 
+import java.net.URI;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
-import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.OpenapiBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
+import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -38,6 +42,11 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class OpenapiBindingConfig
 {
+    private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
+    private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
+    private static final String8FW HEADER_PATH = new String8FW(":path");
+    private static final String8FW HEADER_LOCATION = new String8FW("location");
+
     public final long id;
     public final String namespace;
     public final String qname;
@@ -51,12 +60,22 @@ public final class OpenapiBindingConfig
     public final LongFunction<CatalogHandler> supplyCatalog;
     public final ToIntFunction<String> supplyTypeId;
     public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
+    public final LongFunction<String> supplyQName;
 
     public transient OpenapiCompositeConfig composite;
 
+    private final HttpBeginExFW httpBeginExRO;
+    private final HttpBeginExFW.Builder httpBeginExRW;
+    private final MutableDirectBufferEx httpExtBuffer;
+    private final int httpTypeId;
+
     public OpenapiBindingConfig(
         EngineContext context,
-        BindingConfig binding)
+        BindingConfig binding,
+        HttpBeginExFW httpBeginExRO,
+        HttpBeginExFW.Builder httpBeginExRW,
+        MutableDirectBufferEx httpExtBuffer,
+        int httpTypeId)
     {
         this.id = binding.id;
         this.namespace = binding.namespace;
@@ -76,120 +95,198 @@ public final class OpenapiBindingConfig
         this.supplyBindingId = context::supplyBindingId;
         this.supplyCatalog = context::supplyCatalog;
         this.supplyTypeId = context::supplyTypeId;
+        this.supplyQName = context::supplyQName;
 
-        // TODO: move to engine
-        if (options != null)
-        {
-            if (options.http != null)
-            {
-                final HttpAuthorizationConfig authorization = options.http.authorization;
-                if (authorization != null)
-                {
-                    final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
-                    authorization.qname = context.supplyQName(namespacedId);
-                }
-            }
-        }
+        this.httpBeginExRO = httpBeginExRO;
+        this.httpBeginExRW = httpBeginExRW;
+        this.httpExtBuffer = httpExtBuffer;
+        this.httpTypeId = httpTypeId;
     }
 
     public OpenapiRouteConfig resolve(
         long authorization,
-        String apiId,
-        String operationId)
+        String spec,
+        String operation,
+        List<String> tags)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(apiId, operationId))
-            .filter(r -> !r.isBulk() || matchesBulkTarget(r, apiId, operationId))
+            .filter(r -> r.authorized(authorization) && r.matches(spec, operation, tags))
             .findFirst()
             .orElse(null);
     }
 
-    public String resolveSpecLabel(
-        OpenapiRouteConfig route,
-        String apiId)
+    public boolean included(
+        OpenapiOperationView operation)
     {
-        return route.with != null && route.with.spec != null
-            ? route.with.spec
-            : apiId;
+        return routes.isEmpty() || routes.stream().anyMatch(r -> r.includes(operation));
     }
 
-    public String resolveOperationId(
-        OpenapiRouteConfig route,
-        String operationId)
+    public List<URI> resolveBaseURLs(
+        String specLabel)
     {
-        return route.with != null && !route.isBulk()
-            ? route.with.operation
-            : operationId;
+        final OpenapiSpecificationConfig spec = options.specs.stream()
+            .filter(s -> specLabel.equals(s.label))
+            .findFirst()
+            .orElseThrow();
+
+        return spec.servers.stream()
+            .map(server -> OpenapiServerView.resolvePorts(URI.create(server)))
+            .collect(toList());
     }
 
-    private boolean matchesBulkTarget(
-        OpenapiRouteConfig route,
-        String apiId,
-        String operationId)
+    public URI resolveServer(
+        HttpBeginExFW httpBeginEx,
+        String specLabel)
     {
-        boolean matches = false;
-        OpenapiView specification = resolveSpecification(resolveSpecLabel(route, apiId));
+        final String scheme = header(httpBeginEx, HEADER_SCHEME);
+        final String authority = header(httpBeginEx, HEADER_AUTHORITY);
+        final String path = header(httpBeginEx, HEADER_PATH);
 
-        if (specification != null && specification.operations != null)
+        URI server = null;
+        if (scheme != null && authority != null && path != null)
         {
-            OpenapiOperationView candidate = specification.operations.get(operationId);
-            matches = candidate != null && matchesBulk(candidate, route.with);
+            server = resolveBaseURLs(specLabel).stream()
+                .filter(s -> scheme.equals(s.getScheme()))
+                .filter(s -> authority.equals(authority(s)))
+                .filter(s -> path.startsWith(s.getPath()))
+                .findFirst()
+                .orElse(null);
         }
 
-        return matches;
+        return server;
     }
 
-    private OpenapiView resolveSpecification(
-        String label)
+    public HttpBeginExFW resolveLocation(
+        HttpBeginExFW httpBeginEx,
+        URI server)
     {
-        OpenapiView specification = null;
-        long apiId = composite.resolveApiId(label);
+        HttpBeginExFW resolved = httpBeginEx;
 
-        if (apiId != NO_SCHEMA_ID)
+        if (server != null && header(httpBeginEx, HEADER_LOCATION) != null)
         {
-            specification = composite.resolveSpecification(compositeId((int) apiId, 0));
-        }
+            final HttpBeginExFW.Builder builder = httpBeginExRW
+                .wrap(httpExtBuffer, 0, httpExtBuffer.capacity())
+                .typeId(httpTypeId);
 
-        return specification;
-    }
-
-    private static boolean matchesBulk(
-        OpenapiOperationView operation,
-        OpenapiWithConfig with)
-    {
-        boolean matches = true;
-
-        if (with.tag != null)
-        {
-            matches = operation.tags != null && operation.tags.contains(with.tag);
-        }
-        else if (with.operation != null)
-        {
-            matches = compileGlob(with.operation).matcher(operation.id).matches();
-        }
-
-        return matches;
-    }
-
-    private static Pattern compileGlob(
-        String glob)
-    {
-        StringBuilder regex = new StringBuilder();
-        String[] literals = glob.split("\\*", -1);
-
-        for (int index = 0; index < literals.length; index++)
-        {
-            if (index > 0)
+            httpBeginEx.headers().forEach(h ->
             {
-                regex.append(".*");
-            }
+                if (HEADER_LOCATION.equals(h.name()))
+                {
+                    final String effectiveLocation = OpenapiServerView.requestPath(server, h.value().asString());
+                    builder.headersItem(nh -> nh.name(h.name()).value(effectiveLocation));
+                }
+                else
+                {
+                    builder.headersItem(nh -> nh.name(h.name()).value(h.value()));
+                }
+            });
 
-            if (!literals[index].isEmpty())
-            {
-                regex.append(Pattern.quote(literals[index]));
-            }
+            resolved = builder.build();
         }
 
-        return Pattern.compile(regex.toString());
+        return resolved;
+    }
+
+    private static String header(
+        HttpBeginExFW httpBeginEx,
+        String8FW name)
+    {
+        final HttpHeaderFW header = httpBeginEx.headers().matchFirst(h -> name.equals(h.name()));
+        return header != null ? header.value().asString() : null;
+    }
+
+    public OpenapiBeginExFW resolve(
+        HttpBeginExFW httpBeginEx,
+        OpenapiBeginExFW.Builder openapiBeginExBuilder,
+        String operationPath)
+    {
+        final Flyweight extension = operationPath != null
+            ? canonicalize(httpBeginEx, operationPath)
+            : httpBeginEx;
+
+        return openapiBeginExBuilder
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+    }
+
+    public HttpBeginExFW resolve(
+        OpenapiBeginExFW openapiBeginEx,
+        HttpBeginExFW.Builder httpBeginExBuilder,
+        URI server)
+    {
+        final HttpBeginExFW canonicalHttpBeginEx = openapiBeginEx.extension().get(httpBeginExRO::tryWrap);
+
+        if (server != null)
+        {
+            final String scheme = server.getScheme();
+            final String authority = authority(server);
+
+            httpBeginExBuilder
+                .headersItem(h -> h.name(HEADER_SCHEME).value(scheme))
+                .headersItem(h -> h.name(HEADER_AUTHORITY).value(authority));
+
+            canonicalHttpBeginEx.headers().forEach(h ->
+            {
+                if (HEADER_PATH.equals(h.name()))
+                {
+                    final String effectivePath = OpenapiServerView.requestPath(server, h.value().asString());
+                    httpBeginExBuilder.headersItem(nh -> nh.name(h.name()).value(effectivePath));
+                }
+                else
+                {
+                    httpBeginExBuilder.headersItem(nh -> nh.name(h.name()).value(h.value()));
+                }
+            });
+        }
+        else
+        {
+            canonicalHttpBeginEx.headers().forEach(h ->
+                httpBeginExBuilder.headersItem(nh -> nh.name(h.name()).value(h.value())));
+        }
+
+        return httpBeginExBuilder.build();
+    }
+
+    private HttpBeginExFW canonicalize(
+        HttpBeginExFW httpBeginEx,
+        String operationPath)
+    {
+        final HttpBeginExFW.Builder builder = httpBeginExRW
+            .wrap(httpExtBuffer, 0, httpExtBuffer.capacity())
+            .typeId(httpTypeId);
+
+        httpBeginEx.headers().forEach(h ->
+        {
+            if (!HEADER_SCHEME.equals(h.name()) && !HEADER_AUTHORITY.equals(h.name()))
+            {
+                if (HEADER_PATH.equals(h.name()))
+                {
+                    final String canonicalPath = operationPath.concat(query(h.value().asString()));
+                    builder.headersItem(nh -> nh.name(h.name()).value(canonicalPath));
+                }
+                else
+                {
+                    builder.headersItem(nh -> nh.name(h.name()).value(h.value()));
+                }
+            }
+        });
+
+        return builder.build();
+    }
+
+    private static String query(
+        String path)
+    {
+        final int queryAt = path.indexOf('?');
+
+        return queryAt != -1 ? path.substring(queryAt) : "";
+    }
+
+    private static String authority(
+        URI url)
+    {
+        return url.getPort() != -1
+            ? "%s:%d".formatted(url.getHost(), url.getPort())
+            : url.getHost();
     }
 }

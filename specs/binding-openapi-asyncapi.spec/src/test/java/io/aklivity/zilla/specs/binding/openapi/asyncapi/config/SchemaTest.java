@@ -33,6 +33,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/binding/openapi/asyncapi/" +
             "schema/openapi.asyncapi.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/asyncapi/config");
 
 
@@ -64,5 +65,13 @@ public class SchemaTest
     public void shouldRejectProxyWithTagAndOperation()
     {
         schema.validate("proxy.tag.and.operation.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateProxyWithSecurity()
+    {
+        JsonObject config = schema.validate("proxy.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
     }
 }

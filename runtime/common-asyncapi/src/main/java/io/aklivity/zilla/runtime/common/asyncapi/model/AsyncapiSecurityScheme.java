@@ -23,6 +23,7 @@ public class AsyncapiSecurityScheme extends AbstractAsyncapiResolvable
     public String name;
     public String in;
     public String scheme;
+    public String bearerFormat;
     public Object flows;
     public String openIdConnectUrl;
     public List<String> scopes;
