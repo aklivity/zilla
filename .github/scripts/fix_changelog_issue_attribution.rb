@@ -13,21 +13,22 @@
 #
 # This script fixes that: for every issue bullet in the CHANGELOG, it finds
 # the issue's real closing commit (via the GitHub REST timeline API), then
-# either reuses that commit's already-correct PR attribution (if the PR
-# appears elsewhere in the file) or independently verifies ancestry via git.
+# determines the earliest tag that commit is actually an ancestor of (via
+# `git tag --contains`) - the same ancestry standard PRs are already held to.
 # Issues with no closing commit (closed as stale/wontfix/duplicate, i.e. no
 # code shipped) are dropped rather than left implying a resolution that
-# never happened.
+# never happened. Issues whose lookup fails after retries are left exactly
+# where they were, so a flaky network never silently misfiles or drops one.
 #
 # Usage:
 #   ruby fix_changelog_issue_attribution.rb <path-to-CHANGELOG.md> <owner> <repo> [git-repo-path] [branch-ref]
 #
 # Env:
-#   GITHUB_TOKEN                       - required for live API calls
-#   CHANGELOG_FIX_MOCK_CLOSING_PRS     - optional path to a JSON file
-#                                        {"issue_number": pr_number_or_null, ...}
-#                                        used instead of live API calls, for
-#                                        offline testing/validation.
+#   GITHUB_TOKEN                     - required for live API calls
+#   CHANGELOG_FIX_MOCK_CLOSING_SHAS  - optional path to a JSON file
+#                                      {"issue_number": commit_sha_or_null, ...}
+#                                      used instead of live API calls, for
+#                                      offline testing/validation.
 
 require 'json'
 require 'net/http'
@@ -40,6 +41,11 @@ REPO = ARGV[2] or abort 'repo required'
 GIT_REPO_PATH = ARGV[3] || Dir.pwd
 BRANCH_REF = ARGV[4] || 'HEAD'
 
+OPEN_TIMEOUT = 10
+READ_TIMEOUT = 20
+MAX_ATTEMPTS = 4
+RETRY_BACKOFF = [2, 5, 10].freeze # seconds, one entry per retry after the first attempt
+
 SUBSECTION_ORDER = [
   '**Implemented enhancements:**',
   '**Fixed bugs:**',
@@ -51,7 +57,7 @@ ISSUE_OR_PR_BULLET = %r{^-\s.*\[\\#(\d+)\]\(https://github\.com/#{Regexp.escape(
 
 def git(*args)
   out, status = Open3.capture2('git', '-C', GIT_REPO_PATH, *args)
-  [out, status.success?]
+  [out.force_encoding('UTF-8').scrub, status.success?]
 end
 
 def is_ancestor?(sha, ref)
@@ -59,21 +65,11 @@ def is_ancestor?(sha, ref)
   ok
 end
 
-def pr_sha_map
-  @pr_sha_map ||= begin
-    out, _ = git('log', '--all', '--format=%H %s')
-    out = out.force_encoding('UTF-8').scrub
-    map = {}
-    out.each_line do |line|
-      sha, subj = line.chomp.split(' ', 2)
-      next unless subj
-
-      subj.scan(/\(#(\d+)\)/).each do |(n)|
-        map[n.to_i] ||= sha
-      end
-    end
-    map
-  end
+# All tags (by name) whose history contains this commit - one git call,
+# rather than one `merge-base --is-ancestor` call per candidate tag.
+def tags_containing(sha)
+  out, _ = git('tag', '--contains', sha)
+  out.each_line.map(&:strip).reject(&:empty?).to_set
 end
 
 # ---------------------------------------------------------------------------
@@ -124,35 +120,72 @@ def bullet_number_and_kind(line)
 end
 
 # ---------------------------------------------------------------------------
-# Fetch each issue's closing PR number, live or via mock fixture.
+# Fetch each issue's closing commit sha, live or via mock fixture.
 # ---------------------------------------------------------------------------
-def fetch_closing_pr_live(issue_number)
+require 'set'
+
+class ClosingCommitFetchError < StandardError; end
+
+# Reused across all requests - avoids a fresh TCP+TLS handshake per issue,
+# which is both slow and a bigger surface for transient timeouts.
+def http_session
+  @http_session ||= begin
+    http = Net::HTTP.new('api.github.com', 443)
+    http.use_ssl = true
+    http.open_timeout = OPEN_TIMEOUT
+    http.read_timeout = READ_TIMEOUT
+    http.start
+    http
+  end
+end
+
+def fetch_closing_commit_live(issue_number)
   token = ENV.fetch('GITHUB_TOKEN')
-  uri = URI("https://api.github.com/repos/#{OWNER}/#{REPO}/issues/#{issue_number}/timeline?per_page=100")
+  path = "/repos/#{OWNER}/#{REPO}/issues/#{issue_number}/timeline?per_page=100"
   closing_commit = nil
   loop do
-    req = Net::HTTP::Get.new(uri)
+    req = Net::HTTP::Get.new(path)
     req['Authorization'] = "Bearer #{token}"
     req['Accept'] = 'application/vnd.github+json'
     req['X-GitHub-Api-Version'] = '2022-11-28'
-    res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
-    raise "GitHub API error #{res.code} for issue ##{issue_number}: #{res.body}" unless res.code.to_i == 200
+    res = http_session.request(req)
+    raise ClosingCommitFetchError, "GitHub API #{res.code} for issue ##{issue_number}: #{res.body[0, 200]}" unless res.code.to_i == 200
 
     events = JSON.parse(res.body)
     events.each do |ev|
       closing_commit = ev['commit_id'] if ev['event'] == 'closed' && ev['commit_id']
     end
     link = res['Link']
-    next_url = link&.split(',')&.map(&:strip)&.find { |p| p.end_with?('rel="next"') }&.match(/<([^>]+)>/)&.captures&.first
-    break unless next_url
+    next_path = link&.split(',')&.map(&:strip)&.find { |p| p.end_with?('rel="next"') }&.match(/<https:\/\/api\.github\.com([^>]+)>/)&.captures&.first
+    break unless next_path
 
-    uri = URI(next_url)
+    path = next_path
   end
   closing_commit
+rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ETIMEDOUT, Errno::ECONNRESET, SocketError, OpenSSL::SSL::SSLError => e
+  @http_session = nil # force a fresh connection on the next attempt
+  raise ClosingCommitFetchError, "#{e.class}: #{e.message}"
 end
 
-def load_mock_closing_prs
-  path = ENV.fetch('CHANGELOG_FIX_MOCK_CLOSING_PRS')
+def fetch_closing_commit_with_retries(issue_number)
+  attempt = 0
+  begin
+    attempt += 1
+    fetch_closing_commit_live(issue_number)
+  rescue ClosingCommitFetchError => e
+    if attempt < MAX_ATTEMPTS
+      delay = RETRY_BACKOFF[attempt - 1] || RETRY_BACKOFF.last
+      warn "    retry #{attempt}/#{MAX_ATTEMPTS - 1} for ##{issue_number} after #{e.message} (waiting #{delay}s)"
+      sleep delay
+      retry
+    end
+    warn "    giving up on ##{issue_number} after #{MAX_ATTEMPTS} attempts: #{e.message}"
+    :fetch_failed
+  end
+end
+
+def load_mock_closing_shas
+  path = ENV.fetch('CHANGELOG_FIX_MOCK_CLOSING_SHAS')
   JSON.parse(File.read(path))
 end
 
@@ -161,24 +194,18 @@ end
 # ---------------------------------------------------------------------------
 preamble, sections = parse_changelog(CHANGELOG_PATH)
 
-mock_closing_prs = ENV['CHANGELOG_FIX_MOCK_CLOSING_PRS'] ? load_mock_closing_prs : nil
+mock_closing_shas = ENV['CHANGELOG_FIX_MOCK_CLOSING_SHAS'] ? load_mock_closing_shas : nil
 
 # tag order, oldest -> newest, real-release sections only (Unreleased has no date)
 ordered_tags = sections.reverse.reject { |s| s[:tag] == 'Unreleased' }.map { |s| s[:tag] }
+tag_index = ordered_tags.each_with_index.to_h
 
-# Build PR -> tag map from the file's own (trusted) Merged pull requests bullets,
-# and collect all issue bullets that need re-attribution.
-pr_tag = {}
-issue_bullets = [] # [{tag:, kind_header:, number:, line:}]
+issue_bullets = [] # [{tag:, header:, number:, line:}]
 sections_body = {}
 
 sections.each do |s|
   subs = split_body(s[:body])
   sections_body[s[:tag]] = subs
-  subs['**Merged pull requests:**'].each do |line|
-    num, kind = bullet_number_and_kind(line)
-    pr_tag[num] = s[:tag] if kind == 'pull'
-  end
   ['**Implemented enhancements:**', '**Fixed bugs:**', '**Closed issues:**'].each do |header|
     subs[header].each do |line|
       num, kind = bullet_number_and_kind(line)
@@ -189,9 +216,10 @@ sections.each do |s|
   end
 end
 
-warn "Parsed #{sections.length} sections, #{pr_tag.size} PR references, #{issue_bullets.size} issue bullets to re-check."
+total = issue_bullets.size
+warn "Parsed #{sections.length} sections, #{total} issue bullets to re-check."
 
-corrections = { moved: [], dropped_no_fix: [], dropped_not_on_branch: [], unchanged: [] }
+corrections = { moved: [], dropped_no_fix: [], dropped_not_on_branch: [], unchanged: [], skipped_error: [] }
 
 # Remove all issue bullets from their current homes; we'll reinsert them below.
 sections_body.each_value do |subs|
@@ -203,42 +231,47 @@ end
 unreleased_subs = sections_body['Unreleased'] || SUBSECTION_ORDER.each_with_object({}) { |h, acc| acc[h] = [] }
 had_unreleased = sections.any? { |s| s[:tag] == 'Unreleased' }
 
-issue_bullets.each do |b|
-  closing_pr = mock_closing_prs ? mock_closing_prs[b[:number].to_s] : fetch_closing_pr_live(b[:number])
+issue_bullets.each_with_index do |b, i|
+  warn "[#{i + 1}/#{total}] ##{b[:number]} (currently under #{b[:tag]})" if ((i + 1) % 5).zero? || (i + 1) == total
 
-  if closing_pr.nil?
+  closing_sha =
+    if mock_closing_shas
+      mock_closing_shas[b[:number].to_s]
+    else
+      fetch_closing_commit_with_retries(b[:number])
+    end
+
+  if closing_sha == :fetch_failed
+    corrections[:skipped_error] << b
+    target_subs = b[:tag] == 'Unreleased' ? unreleased_subs : sections_body[b[:tag]]
+    target_subs[b[:header]] << b[:line]
+    next
+  end
+
+  if closing_sha.nil?
     corrections[:dropped_no_fix] << b
     next
   end
 
+  containing = tags_containing(closing_sha) & ordered_tags.to_set
   correct_tag =
-    if pr_tag.key?(closing_pr.to_i)
-      pr_tag[closing_pr.to_i]
-    else
-      # closing PR isn't in this branch's file at all - verify independently
-      sha = pr_sha_map[closing_pr.to_i]
-      if sha.nil?
-        nil
-      elsif (found = ordered_tags.find { |t| is_ancestor?(sha, "refs/tags/#{t}") })
-        found
-      elsif is_ancestor?(sha, BRANCH_REF)
-        'Unreleased'
-      end
+    if containing.any?
+      containing.min_by { |t| tag_index[t] }
+    elsif is_ancestor?(closing_sha, BRANCH_REF)
+      'Unreleased'
     end
 
   if correct_tag.nil?
-    corrections[:dropped_not_on_branch] << b.merge(closing_pr: closing_pr)
+    corrections[:dropped_not_on_branch] << b.merge(closing_sha: closing_sha)
     next
   end
 
+  target_subs = correct_tag == 'Unreleased' ? unreleased_subs : sections_body[correct_tag]
+  target_subs[b[:header]] << b[:line]
   if correct_tag == b[:tag]
     corrections[:unchanged] << b
-    target_subs = correct_tag == 'Unreleased' ? unreleased_subs : sections_body[correct_tag]
-    target_subs[b[:header]] << b[:line]
   else
-    corrections[:moved] << b.merge(correct_tag: correct_tag, closing_pr: closing_pr)
-    target_subs = correct_tag == 'Unreleased' ? unreleased_subs : sections_body[correct_tag]
-    target_subs[b[:header]] << b[:line]
+    corrections[:moved] << b.merge(correct_tag: correct_tag, closing_sha: closing_sha)
   end
 end
 
@@ -295,9 +328,11 @@ File.write(CHANGELOG_PATH, output)
 
 warn "\n=== Corrections summary ==="
 warn "Moved to correct tag: #{corrections[:moved].size}"
-corrections[:moved].each { |c| warn "  ##{c[:number]} #{c[:tag]} -> #{c[:correct_tag]} (via ##{c[:closing_pr]})" }
+corrections[:moved].each { |c| warn "  ##{c[:number]} #{c[:tag]} -> #{c[:correct_tag]} (via #{c[:closing_sha][0, 8]})" }
 warn "Dropped (no closing commit - stale/wontfix/duplicate): #{corrections[:dropped_no_fix].size}"
 corrections[:dropped_no_fix].each { |c| warn "  ##{c[:number]} (was under #{c[:tag]})" }
-warn "Dropped (closing PR not on this branch at all): #{corrections[:dropped_not_on_branch].size}"
-corrections[:dropped_not_on_branch].each { |c| warn "  ##{c[:number]} (was under #{c[:tag]}, closing PR ##{c[:closing_pr]})" }
+warn "Dropped (closing commit not on this branch at all): #{corrections[:dropped_not_on_branch].size}"
+corrections[:dropped_not_on_branch].each { |c| warn "  ##{c[:number]} (was under #{c[:tag]}, closing commit #{c[:closing_sha][0, 8]})" }
+warn "Left unchanged after lookup failure (network error - not dropped, not moved): #{corrections[:skipped_error].size}"
+corrections[:skipped_error].each { |c| warn "  ##{c[:number]} (still under #{c[:tag]})" }
 warn "Already correct: #{corrections[:unchanged].size}"
