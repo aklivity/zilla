@@ -27,9 +27,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
@@ -42,8 +40,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 {
     private static final String SPECS_NAME = "specs";
     private static final String SERVERS_NAME = "servers";
-    private static final String HTTP_NAME = "http";
-    private static final String MQTT_NAME = "mqtt";
     private static final String KAFKA_NAME = "kafka";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
@@ -52,8 +48,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     private static final String STORE_NAME = "store";
     private static final String OVERLAY_NAME = "overlay";
 
-    private OptionsConfigAdapter httpOptions;
-    private OptionsConfigAdapter mqttOptions;
     private OptionsConfigAdapter kafkaOptions;
 
     public Kind kind()
@@ -135,18 +129,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
                 specs.add(asyncapiConfig.label, catalogObject);
             }
             object.add(SPECS_NAME, specs);
-        }
-
-        if (asyncapiOptions.http != null)
-        {
-            final HttpOptionsConfig http = asyncapiOptions.http;
-            object.add(HTTP_NAME, httpOptions.adaptToJson(http));
-        }
-
-        if (asyncapiOptions.mqtt != null)
-        {
-            final MqttOptionsConfig mqtt = asyncapiOptions.mqtt;
-            object.add(MQTT_NAME, mqttOptions.adaptToJson(mqtt));
         }
 
         if (asyncapiOptions.kafka != null)
@@ -254,18 +236,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             }
         }
 
-        if (object.containsKey(HTTP_NAME))
-        {
-            final JsonObject http = object.getJsonObject(HTTP_NAME);
-            builder.http(HttpOptionsConfig.class.cast(httpOptions.adaptFromJson(http)));
-        }
-
-        if (object.containsKey(MQTT_NAME))
-        {
-            final JsonObject mqtt = object.getJsonObject(MQTT_NAME);
-            builder.mqtt(MqttOptionsConfig.class.cast(mqttOptions.adaptFromJson(mqtt)));
-        }
-
         if (object.containsKey(KAFKA_NAME))
         {
             final JsonObject kafka = object.getJsonObject(KAFKA_NAME);
@@ -277,12 +247,8 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
 
     private void ensureNestedOptions()
     {
-        if (httpOptions == null)
+        if (kafkaOptions == null)
         {
-            httpOptions = new OptionsConfigAdapter(Kind.BINDING);
-            httpOptions.adaptType("http");
-            mqttOptions = new OptionsConfigAdapter(Kind.BINDING);
-            mqttOptions.adaptType("mqtt");
             kafkaOptions = new OptionsConfigAdapter(Kind.BINDING);
             kafkaOptions.adaptType("kafka");
         }

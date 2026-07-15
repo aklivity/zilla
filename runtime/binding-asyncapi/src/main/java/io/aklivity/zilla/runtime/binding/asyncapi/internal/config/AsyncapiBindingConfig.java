@@ -30,9 +30,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.SseBeginExFW;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttAuthorizationConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
@@ -132,26 +130,6 @@ public final class AsyncapiBindingConfig
         // TODO: move to engine
         if (options != null)
         {
-            if (options.http != null)
-            {
-                final HttpAuthorizationConfig authorization = options.http.authorization;
-                if (authorization != null)
-                {
-                    final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
-                    authorization.qname = context.supplyQName(namespacedId);
-                }
-            }
-
-            if (options.mqtt != null)
-            {
-                final MqttAuthorizationConfig authorization = options.mqtt.authorization;
-                if (authorization != null)
-                {
-                    final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
-                    authorization.qname = context.supplyQName(namespacedId);
-                }
-            }
-
             if (options.kafka != null)
             {
                 final KafkaAuthorizationConfig authorization = options.kafka.authorization;

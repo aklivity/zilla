@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -49,6 +50,10 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.AsyncapiSseOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka.AsyncapiMqttKafkaChannelEx;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
@@ -67,6 +72,7 @@ import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaItemView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
+import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.common.json.JsonOverlay;
@@ -614,6 +620,195 @@ public abstract class AsyncapiCompositeGenerator
                 }
 
                 return guarded;
+            }
+
+            protected final <C> HttpOptionsConfigBuilder<C> injectHttpAuthorization(
+                HttpOptionsConfigBuilder<C> options,
+                AsyncapiSchemaConfig schema)
+            {
+                final Map.Entry<String, AsyncapiSecuritySchemeView> secured =
+                    resolveSecurityScheme(schema, this::isHttpCredentialScheme);
+
+                if (secured != null)
+                {
+                    final AsyncapiSecuritySchemeView scheme = secured.getValue();
+                    final long guardId = config.resolveId.applyAsLong(schema.security.get(secured.getKey()));
+                    final String qname = config.supplyQName.apply(guardId);
+
+                    if ("http".equals(scheme.type) && "bearer".equals(scheme.scheme))
+                    {
+                        injectBearerAuthorization(options, qname);
+                    }
+                    else if ("httpApiKey".equals(scheme.type))
+                    {
+                        injectApiKeyAuthorization(options, qname, scheme);
+                    }
+                }
+
+                return options;
+            }
+
+            private <C> void injectBearerAuthorization(
+                HttpOptionsConfigBuilder<C> options,
+                String qname)
+            {
+                options
+                    .authorization()
+                        .name(qname)
+                        .credentials()
+                            .header()
+                                .name("authorization")
+                                .pattern("Bearer {credentials}")
+                                .build()
+                            .build()
+                        .build();
+            }
+
+            private <C> void injectApiKeyAuthorization(
+                HttpOptionsConfigBuilder<C> options,
+                String qname,
+                AsyncapiSecuritySchemeView scheme)
+            {
+                switch (scheme.in)
+                {
+                case "header":
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .header()
+                                    .name(scheme.parameterName)
+                                    .pattern("{credentials}")
+                                    .build()
+                                .build()
+                            .build();
+                    break;
+                case "query":
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .parameter()
+                                    .name(scheme.parameterName)
+                                    .pattern("{credentials}")
+                                    .build()
+                                .build()
+                            .build();
+                    break;
+                case "cookie":
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .cookie()
+                                    .name(scheme.parameterName)
+                                    .pattern("{credentials}")
+                                    .build()
+                                .build()
+                            .build();
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            private boolean isHttpCredentialScheme(
+                AsyncapiSecuritySchemeView scheme)
+            {
+                return "http".equals(scheme.type) && "bearer".equals(scheme.scheme) ||
+                    "httpApiKey".equals(scheme.type) && scheme.parameterName != null && isHttpCredentialLocation(scheme.in);
+            }
+
+            private boolean isHttpCredentialLocation(
+                String in)
+            {
+                return "header".equals(in) || "query".equals(in) || "cookie".equals(in);
+            }
+
+            protected final <C> MqttOptionsConfigBuilder<C> injectMqttAuthorization(
+                MqttOptionsConfigBuilder<C> options,
+                AsyncapiSchemaConfig schema)
+            {
+                final List<Map.Entry<String, AsyncapiSecuritySchemeView>> secured =
+                    resolveSecuritySchemes(schema, this::isMqttCredentialScheme);
+
+                if (!secured.isEmpty())
+                {
+                    final long guardId = config.resolveId.applyAsLong(schema.security.get(secured.get(0).getKey()));
+                    final String qname = config.supplyQName.apply(guardId);
+
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .inject(credentials -> injectMqttConnectPatterns(credentials, secured))
+                                .build()
+                            .build();
+                }
+
+                return options;
+            }
+
+            private <C> MqttCredentialsConfigBuilder<C> injectMqttConnectPatterns(
+                MqttCredentialsConfigBuilder<C> credentials,
+                List<Map.Entry<String, AsyncapiSecuritySchemeView>> secured)
+            {
+                for (Map.Entry<String, AsyncapiSecuritySchemeView> entry : secured)
+                {
+                    credentials
+                        .connect()
+                            .property(toMqttConnectProperty(entry.getValue().in))
+                            .pattern("{credentials}")
+                            .build();
+                }
+
+                return credentials;
+            }
+
+            private MqttConnectProperty toMqttConnectProperty(
+                String in)
+            {
+                return "user".equals(in) ? MqttConnectProperty.USERNAME
+                    : "password".equals(in) ? MqttConnectProperty.PASSWORD
+                    : null;
+            }
+
+            private boolean isMqttCredentialScheme(
+                AsyncapiSecuritySchemeView scheme)
+            {
+                return "apiKey".equals(scheme.type) && ("user".equals(scheme.in) || "password".equals(scheme.in));
+            }
+
+            private Map.Entry<String, AsyncapiSecuritySchemeView> resolveSecurityScheme(
+                AsyncapiSchemaConfig schema,
+                Predicate<AsyncapiSecuritySchemeView> filter)
+            {
+                return resolveSecuritySchemes(schema, filter).stream().findFirst().orElse(null);
+            }
+
+            private List<Map.Entry<String, AsyncapiSecuritySchemeView>> resolveSecuritySchemes(
+                AsyncapiSchemaConfig schema,
+                Predicate<AsyncapiSecuritySchemeView> filter)
+            {
+                final Map<String, String> security = schema.security;
+                final List<AsyncapiSecuritySchemeView> schemes = schema.asyncapi.components != null
+                    ? schema.asyncapi.components.securitySchemes
+                    : null;
+
+                final List<Map.Entry<String, AsyncapiSecuritySchemeView>> resolved = new ArrayList<>();
+                if (security != null && schemes != null)
+                {
+                    for (String name : security.keySet())
+                    {
+                        schemes.stream()
+                            .filter(s -> name.equals(s.name))
+                            .filter(filter)
+                            .findFirst()
+                            .ifPresent(s -> resolved.add(Map.entry(name, s)));
+                    }
+                }
+
+                return resolved;
             }
 
             protected final GuardedResolution resolveGuarded(

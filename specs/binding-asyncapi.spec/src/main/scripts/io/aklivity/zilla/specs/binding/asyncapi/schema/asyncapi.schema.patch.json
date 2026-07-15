@@ -146,32 +146,6 @@
                                 },
                                 "additionalProperties": false
                             },
-                            "http":
-                            {
-                                "title": "Http",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "authorization":
-                                    {
-                                        "$ref": "#/$defs/options/binding/http/authorization"
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
-                            "mqtt":
-                            {
-                                "title": "MQTT",
-                                "type": "object",
-                                "properties":
-                                {
-                                    "authorization":
-                                    {
-                                        "$ref": "#/$defs/options/binding/mqtt/authorization"
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
                             "kafka":
                             {
                                 "title": "Kafka",

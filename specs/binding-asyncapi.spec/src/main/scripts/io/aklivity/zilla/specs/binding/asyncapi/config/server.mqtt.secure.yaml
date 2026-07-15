@@ -33,6 +33,8 @@ catalogs:
           plain:
             host: localhost:1883
             protocol: mqtt
+            security:
+              - $ref: '#/components/securitySchemes/mqttAuth'
         defaultContentType: application/json
 
         channels:
@@ -58,6 +60,10 @@ catalogs:
               $ref: '#/channels/sensors'
 
         components:
+          securitySchemes:
+            mqttAuth:
+              type: apiKey
+              in: user
           parameters:
             sensorId:
               description: Sensor ID
@@ -99,10 +105,6 @@ bindings:
             catalog0:
               subject: smartylighting
               version: latest
-      mqtt:
-        authorization:
-          test0:
-            credentials:
-              connect:
-                username: Bearer {credentials}
+          security:
+            mqttAuth: test0
     exit: asyncapi0

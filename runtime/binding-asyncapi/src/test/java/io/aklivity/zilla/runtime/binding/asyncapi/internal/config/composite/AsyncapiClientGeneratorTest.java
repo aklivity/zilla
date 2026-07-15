@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.ToLongFunction;
 
@@ -40,14 +41,18 @@ import org.mockito.junit.MockitoRule;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslCredentialsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -290,6 +295,31 @@ public class AsyncapiClientGeneratorTest
         return binding;
     }
 
+    private BindingConfig bindingWithServerOverrideAndSecurity(
+        String server,
+        Map<String, String> security)
+    {
+        AsyncapiSpecificationConfigBuilder<AsyncapiSpecificationConfig> specBuilder = AsyncapiSpecificationConfig.builder();
+        specBuilder
+            .label("kafka_api")
+            .serverOverride(server)
+            .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"));
+        security.forEach(specBuilder::security);
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(CLIENT)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec(specBuilder.build())
+                .build())
+            .exit("asyncapi0")
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
     private Optional<BindingConfig> bindingByName(
         AsyncapiCompositeConfig composite,
         String name)
@@ -345,5 +375,77 @@ public class AsyncapiClientGeneratorTest
         assertThat(hosts, equalTo(List.of("broker.example.com")));
         assertThat(options.servers.get(0).port, equalTo(9093));
         assertThat(generator.deniedOperations(), empty());
+    }
+
+    private static final String HTTP_BEARER_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "api": { "host": "api.example.com:8080", "protocol": "http" } },
+          "channels": {
+            "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/sensors" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } },
+            "securitySchemes": { "bearerAuth": { "type": "http", "scheme": "bearer" } }
+          }
+        }
+        """;
+
+    private static final String MQTT_USER_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "broker": { "host": "broker.example.com:1883", "protocol": "mqtt" } },
+          "channels": {
+            "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/sensors" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } },
+            "securitySchemes": { "mqttUser": { "type": "apiKey", "in": "user" } }
+          }
+        }
+        """;
+
+    @Test
+    public void shouldSynthesizeHttpClientAuthorizationFromBearerScheme()
+    {
+        lenient().when(catalog.resolve(anyInt())).thenReturn(HTTP_BEARER_SPEC);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context,
+            bindingWithServerOverrideAndSecurity("http://api.example.com:8080", Map.of("bearerAuth", "kafkaGuard0"))));
+
+        HttpOptionsConfig options = (HttpOptionsConfig) bindingByName(composite, "http_client0").orElseThrow().options;
+
+        assertThat(options.authorization, notNullValue());
+        assertThat(options.authorization.name, equalTo("test:kafkaGuard0"));
+        assertThat(options.authorization.credentials.headers, hasSize(1));
+        assertThat(options.authorization.credentials.headers.get(0).name, equalTo("authorization"));
+        assertThat(options.authorization.credentials.headers.get(0).pattern, equalTo("Bearer {credentials}"));
+    }
+
+    @Test
+    public void shouldSynthesizeMqttClientAuthorizationFromUserScheme()
+    {
+        lenient().when(catalog.resolve(anyInt())).thenReturn(MQTT_USER_SPEC);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context,
+            bindingWithServerOverrideAndSecurity("mqtt://broker.example.com:1883", Map.of("mqttUser", "kafkaGuard0"))));
+
+        MqttOptionsConfig options = (MqttOptionsConfig) bindingByName(composite, "mqtt_client0").orElseThrow().options;
+
+        assertThat(options.authorization, notNullValue());
+        assertThat(options.authorization.name, equalTo("test:kafkaGuard0"));
+        assertThat(options.authorization.credentials.connect, hasSize(1));
+        assertThat(options.authorization.credentials.connect.get(0).property, equalTo(MqttConnectProperty.USERNAME));
+        assertThat(options.authorization.credentials.connect.get(0).pattern, equalTo("{credentials}"));
     }
 }
