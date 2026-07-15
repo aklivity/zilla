@@ -36,11 +36,8 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.AsyncapiKafkaServerBindingEx;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
@@ -275,8 +272,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .type("kafka")
                         .kind(CLIENT)
                         .options(KafkaOptionsConfig::builder)
-                            .inject(this::injectKafkaSaslOptions)
-                            .inject(this::injectKafkaAuthorizationOptions)
+                            .inject(options -> injectKafkaAuthorization(options, schema))
                             .inject(this::injectKafkaServerOptions)
                             .build()
                         .inject(this::injectMetrics)
@@ -294,8 +290,7 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                         .type("kafka")
                         .kind(CLIENT)
                         .options(KafkaOptionsConfig::builder)
-                            .inject(this::injectKafkaSaslOptions)
-                            .inject(this::injectKafkaAuthorizationOptions)
+                            .inject(options -> injectKafkaAuthorization(options, schema))
                             .inject(this::injectKafkaServerOptions)
                             .build()
                         .inject(this::injectMetrics)
@@ -333,10 +328,6 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
             private <C> KafkaOptionsConfigBuilder<C> injectKafkaTopicOptions(
                 KafkaOptionsConfigBuilder<C> options)
             {
-                List<KafkaTopicConfig> topics = config.options.kafka != null
-                    ? config.options.kafka.topics
-                    : null;
-
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
                     .flatMap(v -> v.channels.values().stream())
@@ -345,43 +336,11 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .forEach(channel ->
                         options.topic()
                             .name(channel.address)
-                            .inject(t -> injectKafkaTopicDefaults(t, channel, topics))
                             .inject(t -> injectKafkaTopicKey(t, channel))
                             .inject(t -> injectKafkaTopicValue(t, channel))
                             .build());
 
                 return options;
-            }
-
-            private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicDefaults(
-                KafkaTopicConfigBuilder<C> topic,
-                AsyncapiChannelView channel,
-                List<KafkaTopicConfig> topics)
-            {
-                if (topics != null)
-                {
-                    Optional<KafkaTopicConfig> topicConfig = topics.stream()
-                        .filter(t -> t.name.equals(channel.address))
-                        .findFirst();
-                    topicConfig.ifPresent(kafkaTopicConfig -> injectKafkaTopicConfig(topic, kafkaTopicConfig));
-                }
-                return topic;
-            }
-
-            private <C> void injectKafkaTopicConfig(
-                KafkaTopicConfigBuilder<C> topic,
-                KafkaTopicConfig kafkaTopicConfig)
-            {
-                topic.defaultOffset(kafkaTopicConfig.defaultOffset)
-                    .deltaType(kafkaTopicConfig.deltaType);
-
-                if (kafkaTopicConfig.transforms != null)
-                {
-                    topic.transforms()
-                        .extractKey(kafkaTopicConfig.transforms.extractKey)
-                        .extractHeaders(kafkaTopicConfig.transforms.extractHeaders)
-                        .build();
-                }
             }
 
             private <C> KafkaTopicConfigBuilder<C> injectKafkaTopicKey(
@@ -450,43 +409,6 @@ public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
                     .map(c -> c.address)
                     .distinct()
                     .forEach(options::bootstrap);
-
-                return options;
-            }
-
-            private <C> KafkaOptionsConfigBuilder<C> injectKafkaSaslOptions(
-                KafkaOptionsConfigBuilder<C> options)
-            {
-                KafkaSaslConfig sasl = config.options != null && config.options.kafka != null
-                    ? config.options.kafka.sasl
-                    : null;
-
-                if (sasl != null)
-                {
-                    options.sasl()
-                        .mechanism(sasl.mechanism)
-                        .username(sasl.username)
-                        .password(sasl.password)
-                        .build();
-                }
-
-                return options;
-            }
-
-            private <C> KafkaOptionsConfigBuilder<C> injectKafkaAuthorizationOptions(
-                KafkaOptionsConfigBuilder<C> options)
-            {
-                final KafkaAuthorizationConfig authorization = config.options != null && config.options.kafka != null
-                    ? config.options.kafka.authorization
-                    : null;
-
-                if (authorization != null)
-                {
-                    options.authorization()
-                        .name(authorization.qname)
-                        .credentials(authorization.credentials)
-                        .build();
-                }
 
                 return options;
             }

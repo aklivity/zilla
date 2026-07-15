@@ -18,8 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -29,7 +27,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private KafkaOptionsConfig kafka;
     private List<AsyncapiSpecificationConfig> specs;
 
     AsyncapiOptionsConfigBuilder(
@@ -43,19 +40,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     protected Class<AsyncapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<AsyncapiOptionsConfigBuilder<T>>) getClass();
-    }
-
-    public KafkaOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> kafka()
-    {
-        Function<KafkaOptionsConfig, AsyncapiOptionsConfigBuilder<T>> mapper = this::kafka;
-        return KafkaOptionsConfig.builder(mapper.compose(KafkaOptionsConfig.class::cast));
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> kafka(
-        KafkaOptionsConfig kafka)
-    {
-        this.kafka = kafka;
-        return this;
     }
 
     public AsyncapiSpecificationConfigBuilder<AsyncapiOptionsConfigBuilder<T>> spec()
@@ -77,6 +61,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     @Override
     public T build()
     {
-        return mapper.apply(new AsyncapiOptionsConfig(kafka, specs));
+        return mapper.apply(new AsyncapiOptionsConfig(specs));
     }
 }

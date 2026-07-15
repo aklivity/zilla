@@ -30,7 +30,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.stream.SseBeginExFW;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
@@ -126,20 +125,6 @@ public final class AsyncapiBindingConfig
         this.sseBeginExRW = sseBeginExRW;
         this.sseExtBuffer = sseExtBuffer;
         this.sseTypeId = sseTypeId;
-
-        // TODO: move to engine
-        if (options != null)
-        {
-            if (options.kafka != null)
-            {
-                final KafkaAuthorizationConfig authorization = options.kafka.authorization;
-                if (authorization != null)
-                {
-                    final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
-                    authorization.qname = context.supplyQName(namespacedId);
-                }
-            }
-        }
     }
 
     public AsyncapiRouteConfig resolve(

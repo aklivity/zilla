@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.As
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka.AsyncapiMqttKafkaChannelEx;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
@@ -515,6 +516,11 @@ public abstract class AsyncapiCompositeGenerator
         {
             private static final Pattern MODEL_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?(json|avro|protobuf)$");
 
+            private static final Map<String, String> KAFKA_SASL_MECHANISMS = Map.of(
+                "plain", "plain",
+                "scramSha256", "scram-sha-256",
+                "scramSha512", "scram-sha-512");
+
             protected static final String REGEX_ADDRESS_PARAMETER = "\\{[^}]+\\}";
 
             private final Matcher modelContentType = MODEL_CONTENT_TYPE.matcher("");
@@ -777,6 +783,39 @@ public abstract class AsyncapiCompositeGenerator
                 AsyncapiSecuritySchemeView scheme)
             {
                 return "apiKey".equals(scheme.type) && ("user".equals(scheme.in) || "password".equals(scheme.in));
+            }
+
+            protected final <C> KafkaOptionsConfigBuilder<C> injectKafkaAuthorization(
+                KafkaOptionsConfigBuilder<C> options,
+                AsyncapiSchemaConfig schema)
+            {
+                final Map.Entry<String, AsyncapiSecuritySchemeView> secured =
+                    resolveSecurityScheme(schema, this::isKafkaSaslScheme);
+
+                if (secured != null)
+                {
+                    final String mechanism = KAFKA_SASL_MECHANISMS.get(secured.getValue().type);
+                    final long guardId = config.resolveId.applyAsLong(schema.security.get(secured.getKey()));
+                    final String qname = config.supplyQName.apply(guardId);
+
+                    options
+                        .authorization()
+                            .name(qname)
+                            .credentials()
+                                .mechanism(mechanism)
+                                .username("{identity}")
+                                .password("{credentials}")
+                                .build()
+                            .build();
+                }
+
+                return options;
+            }
+
+            private boolean isKafkaSaslScheme(
+                AsyncapiSecuritySchemeView scheme)
+            {
+                return KAFKA_SASL_MECHANISMS.containsKey(scheme.type);
             }
 
             private Map.Entry<String, AsyncapiSecuritySchemeView> resolveSecurityScheme(

@@ -17,13 +17,11 @@ package io.aklivity.zilla.runtime.binding.asyncapi.config;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class AsyncapiOptionsConfig extends OptionsConfig
 {
-    public final KafkaOptionsConfig kafka;
     public final List<AsyncapiSpecificationConfig> specs;
 
     public static AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> builder()
@@ -38,10 +36,8 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
     }
 
     AsyncapiOptionsConfig(
-        KafkaOptionsConfig kafka,
         List<AsyncapiSpecificationConfig> specs)
     {
-        this.kafka = kafka;
         this.specs = specs;
     }
 }

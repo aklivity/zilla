@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
@@ -25,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Rule;
@@ -326,10 +328,10 @@ public class AsyncapiServerGeneratorTest
         assertThat(authorization, notNullValue());
         assertThat(authorization.name, equalTo("guard0"));
         assertThat(authorization.credentials.connect, hasSize(2));
-        assertThat(authorization.credentials.connect.get(0).property, equalTo(MqttConnectProperty.USERNAME));
-        assertThat(authorization.credentials.connect.get(0).pattern, equalTo("{credentials}"));
-        assertThat(authorization.credentials.connect.get(1).property, equalTo(MqttConnectProperty.PASSWORD));
-        assertThat(authorization.credentials.connect.get(1).pattern, equalTo("{credentials}"));
+        assertThat(authorization.credentials.connect.stream().map(p -> p.property).toList(),
+            containsInAnyOrder(MqttConnectProperty.USERNAME, MqttConnectProperty.PASSWORD));
+        assertThat(authorization.credentials.connect.stream().map(p -> p.pattern).distinct().toList(),
+            equalTo(List.of("{credentials}")));
     }
 
     @Test

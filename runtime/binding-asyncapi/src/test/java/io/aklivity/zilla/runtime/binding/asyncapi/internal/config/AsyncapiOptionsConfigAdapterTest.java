@@ -31,8 +31,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
@@ -91,13 +89,6 @@ public class AsyncapiOptionsConfigAdapterTest
                     .build()
                 .serverOverride("test.mosquitto.org:1883")
                 .build()
-            .kafka(KafkaOptionsConfig.builder()
-                .sasl(KafkaSaslConfig.builder()
-                    .mechanism("plain")
-                    .username("username")
-                    .password("password")
-                    .build())
-                .build())
             .build();
 
         String yaml = jsonb.toJson(options);
@@ -113,11 +104,6 @@ public class AsyncapiOptionsConfigAdapterTest
                   catalog0:
                     subject: smartylighting
                     version: latest
-            kafka:
-              sasl:
-                mechanism: plain
-                username: username
-                password: password
             """));
     }
 
@@ -185,56 +171,4 @@ public class AsyncapiOptionsConfigAdapterTest
             """));
     }
 
-    @Test
-    public void shouldReadOptionsKafka() throws IOException
-    {
-        String yaml =
-                """
-                specs:
-                  kafka_api:
-                    catalog:
-                      catalog0:
-                        subject: smartylighting
-                        version: latest
-                kafka:
-                  sasl:
-                    mechanism: plain
-                    username: username
-                    password: password
-                """;
-
-        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.kafka.sasl.mechanism, equalTo("plain"));
-        assertThat(options.kafka.sasl.username, equalTo("username"));
-        assertThat(options.kafka.sasl.password, equalTo("password"));
-    }
-
-    @Test
-    public void shouldWriteOptionsKafka() throws IOException
-    {
-        AsyncapiOptionsConfig options = AsyncapiOptionsConfig.builder()
-            .inject(Function.identity())
-            .kafka(KafkaOptionsConfig.builder()
-                .sasl(KafkaSaslConfig.builder()
-                    .mechanism("plain")
-                    .username("username")
-                    .password("password")
-                    .build())
-                .build())
-            .build();
-
-        String yaml = jsonb.toJson(options);
-
-        assertThat(yaml, not(nullValue()));
-        assertThat(yaml, equalTo(
-            """
-            kafka:
-              sasl:
-                mechanism: plain
-                username: username
-                password: password
-            """));
-    }
 }
