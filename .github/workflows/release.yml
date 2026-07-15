@@ -125,7 +125,6 @@ jobs:
       uses: aklivity/gitflow-changelog@claude/gitflow-changelog-impl-b2b3tl
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        tag-pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
 
     - name: Warn if CHANGELOG generation failed on release branch
       if: steps.changelog.outcome == 'failure'
@@ -386,7 +385,6 @@ jobs:
       uses: aklivity/gitflow-changelog@claude/gitflow-changelog-impl-b2b3tl
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        tag-pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
 
     - name: Warn if CHANGELOG generation failed on base branch
       if: steps.changelog.outcome == 'failure'
