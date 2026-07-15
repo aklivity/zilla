@@ -123,6 +123,11 @@ public abstract class AsyncapiCompositeGenerator
                 .build())
     );
 
+    private static final Map<String, String> KAFKA_SASL_MECHANISMS = Map.of(
+        "plain", "plain",
+        "scramSha256", "scram-sha-256",
+        "scramSha512", "scram-sha-512");
+
     private final Set<String> unresolved = new LinkedHashSet<>();
     protected final List<String> denied = new ArrayList<>();
 
@@ -156,12 +161,72 @@ public abstract class AsyncapiCompositeGenerator
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(materialized));
 
                 unresolved.addAll(asyncapi.unresolvedRefs());
+                validateSecurity(label, specification.security, asyncapi);
 
                 schemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi, specification.security, specification.store));
             }
         }
 
         return generate(binding, schemas);
+    }
+
+    private void validateSecurity(
+        String label,
+        Map<String, String> security,
+        AsyncapiView asyncapi)
+    {
+        final Map<String, AsyncapiSecuritySchemeView> schemes = asyncapi.components != null
+            ? asyncapi.components.securitySchemes
+            : null;
+
+        if (security != null)
+        {
+            for (String name : security.keySet())
+            {
+                final AsyncapiSecuritySchemeView scheme = schemes != null ? schemes.get(name) : null;
+                if (scheme == null)
+                {
+                    denied.add("security scheme \"%s\" in spec \"%s\" is not defined in components.securitySchemes"
+                        .formatted(name, label));
+                }
+                else if (!isSupportedSecurityScheme(scheme))
+                {
+                    denied.add("security scheme \"%s\" in spec \"%s\" has unsupported type \"%s\" for guard-based authorization"
+                        .formatted(name, label, scheme.type));
+                }
+            }
+        }
+    }
+
+    private static boolean isSupportedSecurityScheme(
+        AsyncapiSecuritySchemeView scheme)
+    {
+        return isHttpCredentialScheme(scheme) || isMqttCredentialScheme(scheme) || isKafkaSaslScheme(scheme);
+    }
+
+    private static boolean isHttpCredentialScheme(
+        AsyncapiSecuritySchemeView scheme)
+    {
+        return "http".equals(scheme.type) && "bearer".equals(scheme.scheme) ||
+            "httpApiKey".equals(scheme.type) && scheme.parameterName != null && isHttpCredentialLocation(scheme.in);
+    }
+
+    private static boolean isHttpCredentialLocation(
+        String in)
+    {
+        return "header".equals(in) || "query".equals(in) || "cookie".equals(in);
+    }
+
+    private static boolean isMqttCredentialScheme(
+        AsyncapiSecuritySchemeView scheme)
+    {
+        return "apiKey".equals(scheme.type) && ("user".equals(scheme.in) || "password".equals(scheme.in));
+    }
+
+    private static boolean isKafkaSaslScheme(
+        AsyncapiSecuritySchemeView scheme)
+    {
+        return KAFKA_SASL_MECHANISMS.containsKey(scheme.type);
     }
 
     private String materialize(
@@ -516,11 +581,6 @@ public abstract class AsyncapiCompositeGenerator
         {
             private static final Pattern MODEL_CONTENT_TYPE = Pattern.compile("^application/(?:.+\\+)?(json|avro|protobuf)$");
 
-            private static final Map<String, String> KAFKA_SASL_MECHANISMS = Map.of(
-                "plain", "plain",
-                "scramSha256", "scram-sha-256",
-                "scramSha512", "scram-sha-512");
-
             protected static final String REGEX_ADDRESS_PARAMETER = "\\{[^}]+\\}";
 
             private final Matcher modelContentType = MODEL_CONTENT_TYPE.matcher("");
@@ -633,7 +693,7 @@ public abstract class AsyncapiCompositeGenerator
                 AsyncapiSchemaConfig schema)
             {
                 final Map.Entry<String, AsyncapiSecuritySchemeView> secured =
-                    resolveSecurityScheme(schema, this::isHttpCredentialScheme);
+                    resolveSecurityScheme(schema, AsyncapiCompositeGenerator::isHttpCredentialScheme);
 
                 if (secured != null)
                 {
@@ -718,25 +778,12 @@ public abstract class AsyncapiCompositeGenerator
                 }
             }
 
-            private boolean isHttpCredentialScheme(
-                AsyncapiSecuritySchemeView scheme)
-            {
-                return "http".equals(scheme.type) && "bearer".equals(scheme.scheme) ||
-                    "httpApiKey".equals(scheme.type) && scheme.parameterName != null && isHttpCredentialLocation(scheme.in);
-            }
-
-            private boolean isHttpCredentialLocation(
-                String in)
-            {
-                return "header".equals(in) || "query".equals(in) || "cookie".equals(in);
-            }
-
             protected final <C> MqttOptionsConfigBuilder<C> injectMqttAuthorization(
                 MqttOptionsConfigBuilder<C> options,
                 AsyncapiSchemaConfig schema)
             {
                 final List<Map.Entry<String, AsyncapiSecuritySchemeView>> secured =
-                    resolveSecuritySchemes(schema, this::isMqttCredentialScheme);
+                    resolveSecuritySchemes(schema, AsyncapiCompositeGenerator::isMqttCredentialScheme);
 
                 if (!secured.isEmpty())
                 {
@@ -779,18 +826,12 @@ public abstract class AsyncapiCompositeGenerator
                     : null;
             }
 
-            private boolean isMqttCredentialScheme(
-                AsyncapiSecuritySchemeView scheme)
-            {
-                return "apiKey".equals(scheme.type) && ("user".equals(scheme.in) || "password".equals(scheme.in));
-            }
-
             protected final <C> KafkaOptionsConfigBuilder<C> injectKafkaAuthorization(
                 KafkaOptionsConfigBuilder<C> options,
                 AsyncapiSchemaConfig schema)
             {
                 final Map.Entry<String, AsyncapiSecuritySchemeView> secured =
-                    resolveSecurityScheme(schema, this::isKafkaSaslScheme);
+                    resolveSecurityScheme(schema, AsyncapiCompositeGenerator::isKafkaSaslScheme);
 
                 if (secured != null)
                 {
@@ -810,12 +851,6 @@ public abstract class AsyncapiCompositeGenerator
                 }
 
                 return options;
-            }
-
-            private boolean isKafkaSaslScheme(
-                AsyncapiSecuritySchemeView scheme)
-            {
-                return KAFKA_SASL_MECHANISMS.containsKey(scheme.type);
             }
 
             private Map.Entry<String, AsyncapiSecuritySchemeView> resolveSecurityScheme(

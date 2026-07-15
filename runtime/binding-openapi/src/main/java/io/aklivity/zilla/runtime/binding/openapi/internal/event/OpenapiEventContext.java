@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.event;
 
+import static io.aklivity.zilla.runtime.binding.openapi.internal.types.event.OpenapiEventType.OPERATION_DENIED;
 import static io.aklivity.zilla.runtime.binding.openapi.internal.types.event.OpenapiEventType.UNRESOLVED_REF;
 
 import java.nio.ByteBuffer;
@@ -37,6 +38,7 @@ public class OpenapiEventContext
     private final OpenapiEventExFW.Builder openapiEventExRW = new OpenapiEventExFW.Builder();
     private final int openapiTypeId;
     private final int unresolvedRef;
+    private final int operationDenied;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -45,6 +47,7 @@ public class OpenapiEventContext
     {
         this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
         this.unresolvedRef = context.supplyEventId("binding.openapi.unresolved.ref");
+        this.operationDenied = context.supplyEventId("binding.openapi.operation.denied");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -63,6 +66,28 @@ public class OpenapiEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(unresolvedRef)
+            .timestamp(clock.millis())
+            .traceId(0L)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(openapiTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void operationDenied(
+        long bindingId,
+        String detail)
+    {
+        OpenapiEventExFW extension = openapiEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .operationDenied(e -> e
+                .typeId(OPERATION_DENIED.value())
+                .detail(detail)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(operationDenied)
             .timestamp(clock.millis())
             .traceId(0L)
             .namespacedId(bindingId)

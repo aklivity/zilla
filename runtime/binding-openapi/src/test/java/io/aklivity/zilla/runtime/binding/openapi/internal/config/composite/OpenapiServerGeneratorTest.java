@@ -417,6 +417,24 @@ public class OpenapiServerGeneratorTest
     }
 
     @Test
+    public void shouldDenyUnsupportedSecuritySchemeType()
+    {
+        generator.generate(newBindingConfig(binding(
+            Map.of("oauthScheme", "guard0"))));
+
+        assertThat(generator.deniedOperations(), hasSize(1));
+    }
+
+    @Test
+    public void shouldDenyUnresolvableSecurityScheme()
+    {
+        generator.generate(newBindingConfig(binding(
+            Map.of("missingScheme", "guard0"))));
+
+        assertThat(generator.deniedOperations(), hasSize(1));
+    }
+
+    @Test
     public void shouldSynthesizeHttpAuthorizationFromApiKeyHeaderScheme()
     {
         OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(

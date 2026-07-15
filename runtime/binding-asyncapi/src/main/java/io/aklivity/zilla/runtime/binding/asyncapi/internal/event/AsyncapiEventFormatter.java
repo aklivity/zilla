@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.event;
 
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiEventExFW;
+import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiOperationDeniedExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiUnresolvedRefExFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -47,6 +48,12 @@ public final class AsyncapiEventFormatter implements EventFormatterSpi
         {
             AsyncapiUnresolvedRefExFW ex = extension.unresolvedRef();
             result = String.format("Unresolved reference (%s).", asString(ex.ref()));
+            break;
+        }
+        case OPERATION_DENIED:
+        {
+            AsyncapiOperationDeniedExFW ex = extension.operationDenied();
+            result = String.format("Operation denied (%s).", asString(ex.detail()));
             break;
         }
         }

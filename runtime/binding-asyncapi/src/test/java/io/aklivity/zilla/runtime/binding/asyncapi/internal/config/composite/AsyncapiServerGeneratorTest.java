@@ -140,6 +140,25 @@ public class AsyncapiServerGeneratorTest
         }
         """;
 
+    private static final String UNSUPPORTED_SCHEME_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "secure": { "host": "api.example.com:8080", "protocol": "http" } },
+          "channels": {
+            "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/sensors" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } },
+            "securitySchemes": { "gssapiAuth": { "type": "gssapi" } }
+          }
+        }
+        """;
+
     private static final String MQTT_USER_PASSWORD_SPEC =
         """
         {
@@ -340,5 +359,21 @@ public class AsyncapiServerGeneratorTest
         AsyncapiCompositeConfig composite = generateSecure(MQTT_USER_PASSWORD_SPEC, "mqtts://broker.example.com:8883");
 
         assertThat(((MqttOptionsConfig) mqttServerOf(composite).options).authorization, nullValue());
+    }
+
+    @Test
+    public void shouldDenyUnsupportedSecuritySchemeType()
+    {
+        generateSecure(UNSUPPORTED_SCHEME_SPEC, "http://api.example.com:8080", Map.of("gssapiAuth", "guard0"));
+
+        assertThat(generator.deniedOperations(), hasSize(1));
+    }
+
+    @Test
+    public void shouldDenyUnresolvableSecurityScheme()
+    {
+        generateSecure(HTTP_BEARER_SPEC, "http://api.example.com:8080", Map.of("missingScheme", "guard0"));
+
+        assertThat(generator.deniedOperations(), hasSize(1));
     }
 }

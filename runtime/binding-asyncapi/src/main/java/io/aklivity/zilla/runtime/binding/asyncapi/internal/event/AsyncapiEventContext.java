@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.event;
 
+import static io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiEventType.OPERATION_DENIED;
 import static io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiEventType.UNRESOLVED_REF;
 
 import java.nio.ByteBuffer;
@@ -37,6 +38,7 @@ public class AsyncapiEventContext
     private final AsyncapiEventExFW.Builder asyncapiEventExRW = new AsyncapiEventExFW.Builder();
     private final int asyncapiTypeId;
     private final int unresolvedRef;
+    private final int operationDenied;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -45,6 +47,7 @@ public class AsyncapiEventContext
     {
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
         this.unresolvedRef = context.supplyEventId("binding.asyncapi.unresolved.ref");
+        this.operationDenied = context.supplyEventId("binding.asyncapi.operation.denied");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -63,6 +66,28 @@ public class AsyncapiEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(unresolvedRef)
+            .timestamp(clock.millis())
+            .traceId(0L)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(asyncapiTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void operationDenied(
+        long bindingId,
+        String detail)
+    {
+        AsyncapiEventExFW extension = asyncapiEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .operationDenied(e -> e
+                .typeId(OPERATION_DENIED.value())
+                .detail(detail)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(operationDenied)
             .timestamp(clock.millis())
             .traceId(0L)
             .namespacedId(bindingId)

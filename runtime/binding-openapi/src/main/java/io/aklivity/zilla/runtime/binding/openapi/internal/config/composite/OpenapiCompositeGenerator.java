@@ -97,12 +97,54 @@ public abstract class OpenapiCompositeGenerator
                 final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized));
 
                 unresolved.addAll(openapi.unresolvedRefs());
+                validateSecurity(label, specification.security, openapi);
 
                 schemas.add(new OpenapiSchemaConfig(label, schemaId, openapi, specification.security));
             }
         }
 
         return generate(binding, schemas);
+    }
+
+    private void validateSecurity(
+        String label,
+        Map<String, String> security,
+        OpenapiView openapi)
+    {
+        final Map<String, OpenapiSecuritySchemeView> schemes = openapi.components != null
+            ? openapi.components.securitySchemes
+            : null;
+
+        if (security != null)
+        {
+            for (String name : security.keySet())
+            {
+                final OpenapiSecuritySchemeView scheme = schemes != null ? schemes.get(name) : null;
+                if (scheme == null)
+                {
+                    denied.add("security scheme \"%s\" in spec \"%s\" is not defined in components.securitySchemes"
+                        .formatted(name, label));
+                }
+                else if (!isSupportedSecurityScheme(scheme))
+                {
+                    denied.add("security scheme \"%s\" in spec \"%s\" has unsupported type \"%s\" for guard-based authorization"
+                        .formatted(name, label, scheme.type));
+                }
+            }
+        }
+    }
+
+    private static boolean isSupportedSecurityScheme(
+        OpenapiSecuritySchemeView scheme)
+    {
+        return "http".equals(scheme.type) && "bearer".equals(scheme.scheme) ||
+            "apiKey".equals(scheme.type) && scheme.parameterName != null && isCredentialLocation(scheme.in);
+    }
+
+    private static boolean isCredentialLocation(
+        String in)
+    {
+        return "header".equals(in) || "query".equals(in) || "cookie".equals(in);
     }
 
     private String materialize(
@@ -596,12 +638,6 @@ public abstract class OpenapiCompositeGenerator
                 default:
                     break;
                 }
-            }
-
-            private boolean isCredentialLocation(
-                String in)
-            {
-                return "header".equals(in) || "query".equals(in) || "cookie".equals(in);
             }
 
             protected final ModelConfig resolveModelBySchema(
