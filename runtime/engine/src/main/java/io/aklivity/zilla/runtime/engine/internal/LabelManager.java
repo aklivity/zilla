@@ -38,6 +38,8 @@ import org.agrona.LangUtil;
 
 public final class LabelManager
 {
+    private static final String UNKNOWN_LABEL = "unknown";
+
     private final List<String> labels;
     private final Map<String, Integer> labelIds;
     private final Path labelsPath;
@@ -69,7 +71,7 @@ public final class LabelManager
             checkSnapshot();
         }
 
-        return labels.get(labelId - 1);
+        return labelId >= 1 && labelId <= labels.size() ? labels.get(labelId - 1) : UNKNOWN_LABEL;
     }
 
     private int nextLabelId(
