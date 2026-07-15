@@ -38,4 +38,7 @@ module io.aklivity.zilla.runtime.binding.openapi.asyncapi
 
     provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiWithConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.event.OpenapiAsyncapiEventFormatterFactory;
 }

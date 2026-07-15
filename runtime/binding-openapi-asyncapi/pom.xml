@@ -146,7 +146,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core http kafka asyncapi openapi</scopeNames>
+          <scopeNames>core http kafka asyncapi openapi openapi_asyncapi</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types</packageName>
         </configuration>
         <executions>

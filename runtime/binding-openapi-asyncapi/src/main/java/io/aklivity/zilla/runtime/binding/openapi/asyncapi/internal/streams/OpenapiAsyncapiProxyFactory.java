@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.Openap
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.composite.OpenapiAsyncapiCompositeGenerator;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.composite.OpenapiAsyncapiProxyGenerator;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.event.OpenapiAsyncapiEventContext;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.AbortFW;
@@ -86,6 +87,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
     private final Long2ObjectHashMap<OpenapiAsyncapiBindingConfig> bindings;
     private final OpenapiAsyncapiCompositeGenerator generator;
+    private final OpenapiAsyncapiEventContext event;
     private final int openapiTypeId;
     private final int asyncapiTypeId;
 
@@ -94,6 +96,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         EngineContext context)
     {
         this.generator = new OpenapiAsyncapiProxyGenerator();
+        this.event = new OpenapiAsyncapiEventContext(context);
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.context = context;
@@ -119,6 +122,10 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         bindings.put(binding.id, attached);
 
         OpenapiAsyncapiCompositeConfig composite = generator.generate(attached);
+        for (String reason : generator.deniedOperations())
+        {
+            event.operationDenied(binding.id, reason);
+        }
         assert composite != null;
         // TODO: schedule generate retry if null
 

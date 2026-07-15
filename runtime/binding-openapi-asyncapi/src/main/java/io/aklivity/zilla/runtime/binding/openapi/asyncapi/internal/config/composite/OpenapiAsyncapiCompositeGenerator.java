@@ -94,7 +94,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final String materialized = materialize(binding, asyncapiSpec, payload);
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, asyncapiParser.parse(materialized));
 
-                asyncapiSchemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi, asyncapiSpec.security));
+                asyncapiSchemas.add(new AsyncapiSchemaConfig(label, schemaId, asyncapi));
             }
         }
 
