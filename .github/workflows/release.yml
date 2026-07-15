@@ -117,12 +117,12 @@ jobs:
       uses: actions/cache@v5
       with:
         path: .gitflow-changelog-cache.json
-        key: gitflow-changelog-dev-${{ github.repository }}
+        key: gitflow-changelog-v0-${{ github.repository }}
 
     - name: Generate CHANGELOG on release branch
       id: changelog
       continue-on-error: true
-      uses: aklivity/gitflow-changelog@claude/gitflow-changelog-impl-b2b3tl
+      uses: aklivity/gitflow-changelog@v0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -377,12 +377,12 @@ jobs:
       uses: actions/cache@v5
       with:
         path: .gitflow-changelog-cache.json
-        key: gitflow-changelog-dev-${{ github.repository }}
+        key: gitflow-changelog-v0-${{ github.repository }}
 
     - name: Generate CHANGELOG on base branch
       id: changelog
       continue-on-error: true
-      uses: aklivity/gitflow-changelog@claude/gitflow-changelog-impl-b2b3tl
+      uses: aklivity/gitflow-changelog@v0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
