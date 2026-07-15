@@ -1,0 +1,19 @@
+{
+  "repositories":
+  [
+    "https://maven.packages.aklivity.io/",
+    "https://repo1.maven.org/maven2/"
+  ],
+
+  "imports":
+  [
+    "io.aklivity.zilla:runtime:${project.version}"
+  ],
+
+  "dependencies":
+  [
+    "io.aklivity.zilla:engine",
+    "org.bitbucket.b_c:jose4j:0.9.6",
+    "org.slf4j:slf4j-api:2.0.17"
+  ]
+}
