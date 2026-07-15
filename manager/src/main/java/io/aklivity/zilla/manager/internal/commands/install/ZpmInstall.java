@@ -620,11 +620,6 @@ public final class ZpmInstall extends ZpmCommand
         providesMatcher.appendTail(cleanedModuleInfo);
         moduleInfoContents = cleanedModuleInfo.toString();
 
-        // preserve `uses` declarations already authored by any real (non-automatic) module folded into
-        // this delegate -- jdeps only derives `uses` here from provides/services pairs it can resolve
-        // within this module, so a merged module's own ServiceLoader consumption of a service this
-        // delegate does not itself provide (for example slf4j-api's `uses org.slf4j.spi.SLF4JServiceProvider`,
-        // satisfied by a separate, non-merged provider module) would otherwise be silently dropped
         Set<String> mergedUses = new LinkedHashSet<>(uses);
         for (Path path : delegate.paths)
         {
