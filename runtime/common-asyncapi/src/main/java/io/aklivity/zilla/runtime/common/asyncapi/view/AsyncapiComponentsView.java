@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.common.asyncapi.model.resolver.AsyncapiResolver
 
 public final class AsyncapiComponentsView
 {
-    public final List<AsyncapiSecuritySchemeView> securitySchemes;
+    public final Map<String, AsyncapiSecuritySchemeView> securitySchemes;
     public final List<AsyncapiMessageView> messages;
     public final Map<String, AsyncapiSchemaItemView> schemas;
     public final List<AsyncapiCorrelationIdView> correlationIds;
@@ -52,8 +52,9 @@ public final class AsyncapiComponentsView
     {
         this.securitySchemes = model.securitySchemes != null
                 ? model.securitySchemes.entrySet().stream()
-                    .map(e -> new AsyncapiSecuritySchemeView(resolver, e.getKey(), e.getValue()))
-                    .toList()
+                    .collect(Collectors.toMap(
+                        e -> e.getKey(),
+                        e -> new AsyncapiSecuritySchemeView(resolver, e.getKey(), e.getValue())))
                 : null;
 
         this.messages = model.messages != null

@@ -830,7 +830,7 @@ public abstract class AsyncapiCompositeGenerator
                 Predicate<AsyncapiSecuritySchemeView> filter)
             {
                 final Map<String, String> security = schema.security;
-                final List<AsyncapiSecuritySchemeView> schemes = schema.asyncapi.components != null
+                final Map<String, AsyncapiSecuritySchemeView> schemes = schema.asyncapi.components != null
                     ? schema.asyncapi.components.securitySchemes
                     : null;
 
@@ -839,11 +839,11 @@ public abstract class AsyncapiCompositeGenerator
                 {
                     for (String name : security.keySet())
                     {
-                        schemes.stream()
-                            .filter(s -> name.equals(s.name))
-                            .filter(filter)
-                            .findFirst()
-                            .ifPresent(s -> resolved.add(Map.entry(name, s)));
+                        final AsyncapiSecuritySchemeView scheme = schemes.get(name);
+                        if (scheme != null && filter.test(scheme))
+                        {
+                            resolved.add(Map.entry(name, scheme));
+                        }
                     }
                 }
 
