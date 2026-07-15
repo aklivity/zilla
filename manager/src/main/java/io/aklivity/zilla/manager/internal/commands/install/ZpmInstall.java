@@ -620,6 +620,19 @@ public final class ZpmInstall extends ZpmCommand
         providesMatcher.appendTail(cleanedModuleInfo);
         moduleInfoContents = cleanedModuleInfo.toString();
 
+        Set<String> mergedUses = new LinkedHashSet<>(uses);
+        for (Path path : delegate.paths)
+        {
+            ModuleFinder.of(path).findAll().stream()
+                .map(ModuleReference::descriptor)
+                .filter(descriptor -> !descriptor.isAutomatic())
+                .flatMap(descriptor -> descriptor.uses().stream())
+                .map(service -> String.format("    uses %s;", service))
+                .forEach(mergedUses::add);
+        }
+        uses.clear();
+        uses.addAll(mergedUses);
+
         if (!uses.isEmpty())
         {
             int lastBraceIndex = moduleInfoContents.lastIndexOf('}');

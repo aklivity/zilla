@@ -19,10 +19,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.io.FileMatchers.anExistingFile;
 
 import java.io.File;
 import java.io.InputStream;
+import java.lang.module.ModuleDescriptor;
+import java.lang.module.ModuleFinder;
+import java.lang.module.ModuleReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -150,5 +154,35 @@ public class ZpmInstallTest
         listModules.waitFor();
 
         assertThat(modules, containsString("jdk.incubator.vector"));
+    }
+
+    @Test
+    public void shouldPreserveUsesClauseWhenMergingModuleIntoDelegate() throws Exception
+    {
+        Path configDir = Paths.get(getClass().getResource("/conf/install-delegate-uses/zpm.json").toURI()).getParent();
+
+        String[] args =
+        {
+            "install",
+            "--config-directory", configDir.toString(),
+            "--lock-directory", "target/test-locks/install-delegate-uses",
+            "--output-directory", "target/zpm-delegate-uses",
+            "--launcher-directory", "target",
+            "--exclude-remote-repositories",
+            "--silent"
+        };
+
+        Cli<Runnable> parser = new Cli<>(ZpmCli.class);
+        Runnable install = parser.parse(args);
+
+        install.run();
+
+        Path delegateJar = Paths.get("target/zpm-delegate-uses/modules/io.aklivity.zilla.manager.delegate.jar");
+        assertThat(delegateJar.toFile(), anExistingFile());
+
+        ModuleReference reference = ModuleFinder.of(delegateJar).findAll().iterator().next();
+        ModuleDescriptor descriptor = reference.descriptor();
+
+        assertThat(descriptor.uses(), hasItem("org.slf4j.spi.SLF4JServiceProvider"));
     }
 }
