@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -36,7 +37,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
@@ -44,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditio
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditionServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
@@ -82,7 +86,10 @@ public class OpenapiServerGeneratorTest
           "servers": [ { "url": "http://localhost:8080" } ],
           "components": { "securitySchemes": {
             "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "jwt" },
-            "oauthScheme": { "type": "oauth2", "flows": {} }
+            "oauthScheme": { "type": "oauth2", "flows": {} },
+            "apiKeyHeaderAuth": { "type": "apiKey", "in": "header", "name": "X-Api-Key" },
+            "apiKeyQueryAuth": { "type": "apiKey", "in": "query", "name": "api_key" },
+            "apiKeyCookieAuth": { "type": "apiKey", "in": "cookie", "name": "api_key" }
           } },
           "paths": {
             "/mapped": {
@@ -319,6 +326,17 @@ public class OpenapiServerGeneratorTest
             .orElseThrow();
     }
 
+    private HttpOptionsConfig httpServerOptions(
+        OpenapiCompositeConfig composite)
+    {
+        BindingConfig httpServer = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "http_server0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        return (HttpOptionsConfig) httpServer.options;
+    }
+
     @Test
     public void shouldGuardMappedOperation()
     {
@@ -367,6 +385,99 @@ public class OpenapiServerGeneratorTest
     }
 
     @Test
+    public void shouldSynthesizeHttpAuthorizationFromBearerScheme()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("bearerAuth", "guard0"))));
+
+        HttpAuthorizationConfig authorization = httpServerOptions(composite).authorization;
+
+        assertThat(authorization, notNullValue());
+        assertThat(authorization.name, equalTo("guard0"));
+        assertThat(authorization.credentials.headers, hasSize(1));
+        assertThat(authorization.credentials.headers.get(0).name, equalTo("authorization"));
+        assertThat(authorization.credentials.headers.get(0).pattern, equalTo("Bearer {credentials}"));
+    }
+
+    @Test
+    public void shouldNotSynthesizeHttpAuthorizationWhenSecurityMapAbsent()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(null)));
+
+        assertThat(httpServerOptions(composite).authorization, nullValue());
+    }
+
+    @Test
+    public void shouldNotSynthesizeHttpAuthorizationForUnsupportedSchemeType()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("oauthScheme", "guard0"))));
+
+        assertThat(httpServerOptions(composite).authorization, nullValue());
+    }
+
+    @Test
+    public void shouldDenyUnsupportedSecuritySchemeType()
+    {
+        generator.generate(newBindingConfig(binding(
+            Map.of("oauthScheme", "guard0"))));
+
+        assertThat(generator.deniedOperations(), hasSize(1));
+    }
+
+    @Test
+    public void shouldDenyUnresolvableSecurityScheme()
+    {
+        generator.generate(newBindingConfig(binding(
+            Map.of("missingScheme", "guard0"))));
+
+        assertThat(generator.deniedOperations(), hasSize(1));
+    }
+
+    @Test
+    public void shouldSynthesizeHttpAuthorizationFromApiKeyHeaderScheme()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("apiKeyHeaderAuth", "guard0"))));
+
+        HttpAuthorizationConfig authorization = httpServerOptions(composite).authorization;
+
+        assertThat(authorization, notNullValue());
+        assertThat(authorization.name, equalTo("guard0"));
+        assertThat(authorization.credentials.headers, hasSize(1));
+        assertThat(authorization.credentials.headers.get(0).name, equalTo("X-Api-Key"));
+        assertThat(authorization.credentials.headers.get(0).pattern, equalTo("{credentials}"));
+    }
+
+    @Test
+    public void shouldSynthesizeHttpAuthorizationFromApiKeyQueryScheme()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("apiKeyQueryAuth", "guard0"))));
+
+        HttpAuthorizationConfig authorization = httpServerOptions(composite).authorization;
+
+        assertThat(authorization, notNullValue());
+        assertThat(authorization.credentials.parameters, hasSize(1));
+        assertThat(authorization.credentials.parameters.get(0).name, equalTo("api_key"));
+        assertThat(authorization.credentials.parameters.get(0).pattern, equalTo("{credentials}"));
+    }
+
+    @Test
+    public void shouldSynthesizeHttpAuthorizationFromApiKeyCookieScheme()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding(
+            Map.of("apiKeyCookieAuth", "guard0"))));
+
+        HttpAuthorizationConfig authorization = httpServerOptions(composite).authorization;
+
+        assertThat(authorization, notNullValue());
+        assertThat(authorization.credentials.cookies, hasSize(1));
+        assertThat(authorization.credentials.cookies.get(0).name, equalTo("api_key"));
+        assertThat(authorization.credentials.cookies.get(0).pattern, equalTo("{credentials}"));
+    }
+
+    @Test
     public void shouldApplyOverlayBeforeGeneratingRoutes()
     {
         lenient().when(catalog.resolve(eq("test-overlay"), eq("latest"))).thenReturn(8);
@@ -392,6 +503,21 @@ public class OpenapiServerGeneratorTest
         TlsConditionConfig when = (TlsConditionConfig) tlsServer.routes.get(0).when.get(0);
 
         assertThat(when.authority, equalTo("api.example.com"));
+    }
+
+    @Test
+    public void shouldComputeTlsAlpnFromHttpVersions()
+    {
+        OpenapiCompositeConfig composite = generator.generate(newBindingConfig(bindingSecure()));
+
+        BindingConfig tlsServer = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "tls_server0".equals(b.name))
+            .findFirst()
+            .orElseThrow();
+
+        TlsOptionsConfig options = (TlsOptionsConfig) tlsServer.options;
+
+        assertThat(options.alpn, contains("h2", "http/1.1"));
     }
 
     @Test

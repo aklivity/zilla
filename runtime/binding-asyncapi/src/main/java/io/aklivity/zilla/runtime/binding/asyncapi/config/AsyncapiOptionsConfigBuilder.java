@@ -18,14 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
@@ -35,10 +27,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private TlsOptionsConfig tls;
-    private HttpOptionsConfig http;
-    private MqttOptionsConfig mqtt;
-    private KafkaOptionsConfig kafka;
     private List<AsyncapiSpecificationConfig> specs;
 
     AsyncapiOptionsConfigBuilder(
@@ -52,58 +40,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     protected Class<AsyncapiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<AsyncapiOptionsConfigBuilder<T>>) getClass();
-    }
-
-    public TlsOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> tls()
-    {
-        Function<TlsOptionsConfig, AsyncapiOptionsConfigBuilder<T>> mapper = this::tls;
-        return TlsOptionsConfig.builder(mapper.compose(TlsOptionsConfig.class::cast));
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> tls(
-        TlsOptionsConfig tls)
-    {
-        this.tls = tls;
-        return this;
-    }
-
-    public HttpOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> http()
-    {
-        Function<HttpOptionsConfig, AsyncapiOptionsConfigBuilder<T>> mapper = this::http;
-        return HttpOptionsConfig.builder(mapper.compose(HttpOptionsConfig.class::cast));
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> http(
-        HttpOptionsConfig http)
-    {
-        this.http = http;
-        return this;
-    }
-
-    public MqttOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> mqtt()
-    {
-        Function<MqttOptionsConfig, AsyncapiOptionsConfigBuilder<T>> mapper = this::mqtt;
-        return MqttOptionsConfig.builder(mapper.compose(MqttOptionsConfig.class::cast));
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> mqtt(
-        MqttOptionsConfig mqtt)
-    {
-        this.mqtt = mqtt;
-        return this;
-    }
-
-    public KafkaOptionsConfigBuilder<AsyncapiOptionsConfigBuilder<T>> kafka()
-    {
-        Function<KafkaOptionsConfig, AsyncapiOptionsConfigBuilder<T>> mapper = this::kafka;
-        return KafkaOptionsConfig.builder(mapper.compose(KafkaOptionsConfig.class::cast));
-    }
-
-    public AsyncapiOptionsConfigBuilder<T> kafka(
-        KafkaOptionsConfig kafka)
-    {
-        this.kafka = kafka;
-        return this;
     }
 
     public AsyncapiSpecificationConfigBuilder<AsyncapiOptionsConfigBuilder<T>> spec()
@@ -125,6 +61,6 @@ public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, Asyn
     @Override
     public T build()
     {
-        return mapper.apply(new AsyncapiOptionsConfig(tls, http, mqtt, kafka, specs));
+        return mapper.apply(new AsyncapiOptionsConfig(specs));
     }
 }

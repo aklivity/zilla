@@ -27,37 +27,23 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
     private static final String SERVERS_NAME = "servers";
-    private static final String TLS_NAME = "tls";
-    private static final String HTTP_NAME = "http";
-    private static final String MQTT_NAME = "mqtt";
-    private static final String KAFKA_NAME = "kafka";
     private static final String CATALOG_NAME = "catalog";
     private static final String SUBJECT_NAME = "subject";
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
     private static final String STORE_NAME = "store";
     private static final String OVERLAY_NAME = "overlay";
-
-    private OptionsConfigAdapter tlsOptions;
-    private OptionsConfigAdapter httpOptions;
-    private OptionsConfigAdapter mqttOptions;
-    private OptionsConfigAdapter kafkaOptions;
 
     public Kind kind()
     {
@@ -74,8 +60,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        ensureNestedOptions();
-
         AsyncapiOptionsConfig asyncapiOptions = (AsyncapiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
@@ -140,30 +124,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             object.add(SPECS_NAME, specs);
         }
 
-        if (asyncapiOptions.tls != null)
-        {
-            final TlsOptionsConfig tls = asyncapiOptions.tls;
-            object.add(TLS_NAME, tlsOptions.adaptToJson(tls));
-        }
-
-        if (asyncapiOptions.http != null)
-        {
-            final HttpOptionsConfig http = asyncapiOptions.http;
-            object.add(HTTP_NAME, httpOptions.adaptToJson(http));
-        }
-
-        if (asyncapiOptions.mqtt != null)
-        {
-            final MqttOptionsConfig mqtt = asyncapiOptions.mqtt;
-            object.add(MQTT_NAME, mqttOptions.adaptToJson(mqtt));
-        }
-
-        if (asyncapiOptions.kafka != null)
-        {
-            final KafkaOptionsConfig kafka = asyncapiOptions.kafka;
-            object.add(KAFKA_NAME, kafkaOptions.adaptToJson(kafka));
-        }
-
         return object.build();
     }
 
@@ -171,8 +131,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        ensureNestedOptions();
-
         final AsyncapiOptionsConfigBuilder<AsyncapiOptionsConfig> builder = AsyncapiOptionsConfig.builder();
 
         if (object.containsKey(SPECS_NAME))
@@ -263,45 +221,6 @@ public final class AsyncapiOptionsConfigAdapter implements OptionsConfigAdapterS
             }
         }
 
-        if (object.containsKey(TLS_NAME))
-        {
-            final JsonObject tls = object.getJsonObject(TLS_NAME);
-            builder.tls(TlsOptionsConfig.class.cast(tlsOptions.adaptFromJson(tls)));
-        }
-
-        if (object.containsKey(HTTP_NAME))
-        {
-            final JsonObject http = object.getJsonObject(HTTP_NAME);
-            builder.http(HttpOptionsConfig.class.cast(httpOptions.adaptFromJson(http)));
-        }
-
-        if (object.containsKey(MQTT_NAME))
-        {
-            final JsonObject mqtt = object.getJsonObject(MQTT_NAME);
-            builder.mqtt(MqttOptionsConfig.class.cast(mqttOptions.adaptFromJson(mqtt)));
-        }
-
-        if (object.containsKey(KAFKA_NAME))
-        {
-            final JsonObject kafka = object.getJsonObject(KAFKA_NAME);
-            builder.kafka(KafkaOptionsConfig.class.cast(kafkaOptions.adaptFromJson(kafka)));
-        }
-
         return builder.build();
-    }
-
-    private void ensureNestedOptions()
-    {
-        if (tlsOptions == null)
-        {
-            tlsOptions = new OptionsConfigAdapter(Kind.BINDING);
-            tlsOptions.adaptType("tls");
-            httpOptions = new OptionsConfigAdapter(Kind.BINDING);
-            httpOptions.adaptType("http");
-            mqttOptions = new OptionsConfigAdapter(Kind.BINDING);
-            mqttOptions.adaptType("mqtt");
-            kafkaOptions = new OptionsConfigAdapter(Kind.BINDING);
-            kafkaOptions.adaptType("kafka");
-        }
     }
 }

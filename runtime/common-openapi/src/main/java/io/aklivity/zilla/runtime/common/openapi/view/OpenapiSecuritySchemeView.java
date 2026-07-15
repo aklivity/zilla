@@ -32,6 +32,7 @@ public final class OpenapiSecuritySchemeView
     public final String in;
     public final String scheme;
     public final String bearerFormat;
+    public final String parameterName;
     public final String openidConnectUrl;
     public final OpenapiOAuthFlowsView flows;
     public final List<String> scopes;
@@ -57,6 +58,7 @@ public final class OpenapiSecuritySchemeView
         this.in = resolved.in;
         this.scheme = resolved.scheme;
         this.bearerFormat = resolved.bearerFormat;
+        this.parameterName = resolved.name;
         this.openidConnectUrl = resolved.openidConnectUrl;
         this.flows = resolved.flows != null ? new OpenapiOAuthFlowsView(resolved.flows) : null;
         this.scopes = this.flows != null ? resolveScopes(this.flows) : List.of();

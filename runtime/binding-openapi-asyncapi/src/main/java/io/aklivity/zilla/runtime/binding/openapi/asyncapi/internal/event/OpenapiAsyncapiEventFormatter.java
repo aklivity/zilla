@@ -12,23 +12,23 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.asyncapi.internal.event;
+package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.event;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiEventExFW;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiOperationDeniedExFW;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.AsyncapiUnresolvedRefExFW;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.OpenapiAsyncapiEventExFW;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.OpenapiAsyncapiOperationDeniedExFW;
+import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.event.OpenapiAsyncapiUnresolvedRefExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 
-public final class AsyncapiEventFormatter implements EventFormatterSpi
+public final class OpenapiAsyncapiEventFormatter implements EventFormatterSpi
 {
     private final EventFW eventRO = new EventFW();
-    private final AsyncapiEventExFW asyncapiEventExRO = new AsyncapiEventExFW();
+    private final OpenapiAsyncapiEventExFW openapiAsyncapiEventExRO = new OpenapiAsyncapiEventExFW();
 
-    AsyncapiEventFormatter(
+    OpenapiAsyncapiEventFormatter(
         Configuration config)
     {
     }
@@ -39,20 +39,20 @@ public final class AsyncapiEventFormatter implements EventFormatterSpi
         int length)
     {
         final EventFW event = eventRO.wrap(buffer, index, index + length);
-        final AsyncapiEventExFW extension = asyncapiEventExRO
+        final OpenapiAsyncapiEventExFW extension = openapiAsyncapiEventExRO
             .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
         String result = null;
         switch (extension.kind())
         {
         case UNRESOLVED_REF:
         {
-            AsyncapiUnresolvedRefExFW ex = extension.unresolvedRef();
+            OpenapiAsyncapiUnresolvedRefExFW ex = extension.unresolvedRef();
             result = String.format("Unresolved reference (%s).", asString(ex.ref()));
             break;
         }
         case OPERATION_DENIED:
         {
-            AsyncapiOperationDeniedExFW ex = extension.operationDenied();
+            OpenapiAsyncapiOperationDeniedExFW ex = extension.operationDenied();
             result = String.format("Operation denied (%s).", asString(ex.detail()));
             break;
         }

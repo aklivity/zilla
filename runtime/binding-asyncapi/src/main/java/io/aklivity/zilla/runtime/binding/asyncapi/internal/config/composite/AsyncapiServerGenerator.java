@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.binding.sse.config.SseWithConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
 import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
+import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
 import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedRef;
@@ -64,6 +65,8 @@ import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 {
+    private static final List<String> HTTP_ALPN_PROTOCOLS = List.of("h2", "http/1.1");
+
     @Override
     protected AsyncapiCompositeConfig generate(
         AsyncapiBindingConfig binding,
@@ -201,12 +204,21 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         .type("tls")
                         .kind(SERVER)
                         .vault(config.qvault)
-                        .options(config.options.tls)
+                        .options(TlsOptionsConfig::builder)
+                            .alpn(resolveTlsAlpn())
+                            .build()
                         .inject(this::injectTlsRoutes)
                         .build();
                 }
 
                 return namespace;
+            }
+
+            private List<String> resolveTlsAlpn()
+            {
+                return resolveServers().stream().anyMatch(s -> "https".equals(s.getScheme()))
+                    ? HTTP_ALPN_PROTOCOLS
+                    : null;
             }
 
             private <C>BindingConfigBuilder<C> injectTlsRoutes(
@@ -266,28 +278,12 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                             .access()
                                 .policy(CROSS_ORIGIN)
                                 .build()
-                            .inject(this::injectHttpAuthorization)
+                            .inject(options -> injectHttpAuthorization(options, schema))
                             .inject(this::injectHttpRequests)
                             .build()
                         .inject(this::injectHttpRoutes)
                         .inject(this::injectMetrics)
                         .build();
-            }
-
-            private <C> HttpOptionsConfigBuilder<C> injectHttpAuthorization(
-                HttpOptionsConfigBuilder<C> options)
-            {
-                final HttpOptionsConfig httpOptions = config.options.http;
-                if (httpOptions != null &&
-                    httpOptions.authorization != null)
-                {
-                    options.authorization()
-                        .name(httpOptions.authorization.qname)
-                        .credentials(httpOptions.authorization.credentials)
-                        .build();
-                }
-
-                return options;
             }
 
             private <C> HttpOptionsConfigBuilder<C> injectHttpRequests(
@@ -586,7 +582,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                             .kind(SERVER)
                             .options(MqttOptionsConfig::builder)
                                 .store(store)
-                                .inject(this::injectMqttAuthorization)
+                                .inject(options -> injectMqttAuthorization(options, schema))
                                 .inject(this::injectMqttTopicsOptions)
                                 .build()
                             .inject(this::injectMqttRoutes)
@@ -606,22 +602,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 }
 
                 return namespace;
-            }
-
-            private <C> MqttOptionsConfigBuilder<C> injectMqttAuthorization(
-                MqttOptionsConfigBuilder<C> options)
-            {
-                final MqttOptionsConfig mqttOptions = config.options.mqtt;
-                if (mqttOptions != null &&
-                    mqttOptions.authorization != null)
-                {
-                    options.authorization()
-                        .name(mqttOptions.authorization.qname)
-                        .credentials(mqttOptions.authorization.credentials)
-                        .build();
-                }
-
-                return options;
             }
 
             private <C> MqttOptionsConfigBuilder<C> injectMqttTopicsOptions(

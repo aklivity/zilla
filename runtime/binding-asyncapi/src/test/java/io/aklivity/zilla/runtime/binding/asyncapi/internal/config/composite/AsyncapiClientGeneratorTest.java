@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.ToLongFunction;
 
@@ -40,27 +41,25 @@ import org.mockito.junit.MockitoRule;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaAuthorizationConfig;
+import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 /**
- * Kept as a unit test rather than converted to a k3po IT (AsyncapiClientIT). All 6 tests here assert on
- * {@code kafka_client0}/{@code kafka_cache_client0} config wiring (SASL authorization, topic
- * offset/delta defaults, TLS-vs-TCP exit selection, host/port parsed from {@code serverOverride}) that
- * only takes effect on the generated client's real outbound TCP/TLS connection to a Kafka broker.
- * {@code AsyncapiClientIT}'s existing scenario ({@code shouldProduceMessage}) connects the composite-side
- * script directly to the internal merged-Kafka entry point via
- * {@code option zilla:ephemeral "test:composite0/kafka_api"}, bypassing {@code kafka_client0}'s entire
- * exit chain (no real TCP/TLS handshake, no SASL negotiation, no host/port resolution ever happens) —
+ * Kept as a unit test rather than converted to a k3po IT (AsyncapiClientIT). The kafka/http/mqtt tests here
+ * assert on generated client config wiring (synthesized SASL/HTTP/MQTT authorization, TLS-vs-TCP exit
+ * selection, host/port parsed from {@code serverOverride}) that only takes effect on the generated client's
+ * real outbound TCP/TLS connection or SASL handshake. {@code AsyncapiClientIT}'s existing scenario
+ * ({@code shouldProduceMessage}) connects the composite-side script directly to the internal merged-Kafka
+ * entry point via {@code option zilla:ephemeral "test:composite0/kafka_api"}, bypassing {@code kafka_client0}'s
+ * entire exit chain (no real TCP/TLS handshake, no SASL negotiation, no host/port resolution ever happens) —
  * intentionally, since simulating genuine Kafka SASL handshake bytes and a real TLS-terminating listener
  * has no established pattern anywhere in this spec module and is a materially larger, more fragile
  * undertaking than proving generation-time config correctness directly here.
@@ -114,30 +113,6 @@ public class AsyncapiClientGeneratorTest
         lenient().when(catalog.resolve(anyInt())).thenReturn(SPEC);
     }
 
-    private BindingConfig binding(
-        KafkaAuthorizationConfig authorization)
-    {
-        BindingConfig binding = BindingConfig.builder()
-            .namespace("test")
-            .name("composite0")
-            .type("asyncapi")
-            .kind(CLIENT)
-            .options(AsyncapiOptionsConfig.builder()
-                .spec(AsyncapiSpecificationConfig.builder()
-                    .label("kafka_api")
-                    .serverOverride("kafka://localhost:9092")
-                    .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"))
-                    .build())
-                .kafka(KafkaOptionsConfig.builder()
-                    .authorization(authorization)
-                    .build())
-                .build())
-            .exit("asyncapi0")
-            .build();
-        binding.resolveId = resolveId;
-        return binding;
-    }
-
     private KafkaOptionsConfig kafkaClientOptions(
         AsyncapiCompositeConfig composite)
     {
@@ -147,90 +122,6 @@ public class AsyncapiClientGeneratorTest
             .orElseThrow();
 
         return (KafkaOptionsConfig) kafkaClient.options;
-    }
-
-    private KafkaOptionsConfig kafkaCacheClientOptions(
-        AsyncapiCompositeConfig composite)
-    {
-        BindingConfig kafkaCacheClient = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "kafka_cache_client0".equals(b.name))
-            .findFirst()
-            .orElseThrow();
-
-        return (KafkaOptionsConfig) kafkaCacheClient.options;
-    }
-
-    private BindingConfig bindingWithTopicDefaults()
-    {
-        BindingConfig binding = BindingConfig.builder()
-            .namespace("test")
-            .name("composite0")
-            .type("asyncapi")
-            .kind(CLIENT)
-            .options(AsyncapiOptionsConfig.builder()
-                .spec(AsyncapiSpecificationConfig.builder()
-                    .label("kafka_api")
-                    .serverOverride("kafka://localhost:9092")
-                    .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"))
-                    .build())
-                .kafka(KafkaOptionsConfig.builder()
-                    .topic()
-                        .name("events")
-                        .defaultOffset(KafkaOffsetType.HISTORICAL)
-                        .deltaType(KafkaDeltaType.JSON_PATCH)
-                        .build()
-                    .build())
-                .build())
-            .exit("asyncapi0")
-            .build();
-        binding.resolveId = resolveId;
-        return binding;
-    }
-
-    @Test
-    public void shouldWireKafkaAuthorizationFromOptions()
-    {
-        KafkaAuthorizationConfig authorization = KafkaAuthorizationConfig.builder()
-            .name("kafkaGuard0")
-            .credentials(KafkaSaslCredentialsConfig.builder()
-                .mechanism("plain")
-                .username("alice")
-                .password("secret")
-                .build())
-            .build();
-
-        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding(authorization)));
-
-        KafkaOptionsConfig options = kafkaClientOptions(composite);
-
-        assertThat(options.authorization, notNullValue());
-        assertThat(options.authorization.name, equalTo("test:kafkaGuard0"));
-        assertThat(options.authorization.credentials.username, equalTo("alice"));
-    }
-
-    @Test
-    public void shouldNotNpeWhenKafkaAuthorizationNotConfigured()
-    {
-        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, binding(null)));
-
-        KafkaOptionsConfig options = kafkaClientOptions(composite);
-
-        assertThat(options.authorization, nullValue());
-    }
-
-    @Test
-    public void shouldWireKafkaTopicDefaultOffsetAndDeltaTypeFromOptions()
-    {
-        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context, bindingWithTopicDefaults()));
-
-        KafkaOptionsConfig options = kafkaCacheClientOptions(composite);
-        KafkaTopicConfig topic = options.topics.stream()
-            .filter(t -> "events".equals(t.name))
-            .findFirst()
-            .orElseThrow();
-
-        assertThat(topic.defaultOffset, equalTo(KafkaOffsetType.HISTORICAL));
-        assertThat(topic.deltaType, equalTo(KafkaDeltaType.JSON_PATCH));
     }
 
     private static final String PLAIN_KAFKA_SPEC =
@@ -290,6 +181,31 @@ public class AsyncapiClientGeneratorTest
         return binding;
     }
 
+    private BindingConfig bindingWithServerOverrideAndSecurity(
+        String server,
+        Map<String, String> security)
+    {
+        AsyncapiSpecificationConfigBuilder<AsyncapiSpecificationConfig> specBuilder = AsyncapiSpecificationConfig.builder();
+        specBuilder
+            .label("kafka_api")
+            .serverOverride(server)
+            .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"));
+        security.forEach(specBuilder::security);
+
+        BindingConfig binding = BindingConfig.builder()
+            .namespace("test")
+            .name("composite0")
+            .type("asyncapi")
+            .kind(CLIENT)
+            .options(AsyncapiOptionsConfig.builder()
+                .spec(specBuilder.build())
+                .build())
+            .exit("asyncapi0")
+            .build();
+        binding.resolveId = resolveId;
+        return binding;
+    }
+
     private Optional<BindingConfig> bindingByName(
         AsyncapiCompositeConfig composite,
         String name)
@@ -312,6 +228,7 @@ public class AsyncapiClientGeneratorTest
 
         assertThat(tlsClient.isPresent(), equalTo(true));
         assertThat(kafkaClient.routes.get(0).exit, equalTo("tls_client0"));
+        assertThat(tlsClient.get().options, nullValue());
     }
 
     @Test
@@ -344,5 +261,126 @@ public class AsyncapiClientGeneratorTest
         assertThat(hosts, equalTo(List.of("broker.example.com")));
         assertThat(options.servers.get(0).port, equalTo(9093));
         assertThat(generator.deniedOperations(), empty());
+    }
+
+    private static final String HTTP_BEARER_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "api": { "host": "api.example.com:8080", "protocol": "http" } },
+          "channels": {
+            "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/sensors" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } },
+            "securitySchemes": { "bearerAuth": { "type": "http", "scheme": "bearer" } }
+          }
+        }
+        """;
+
+    private static final String KAFKA_SCRAM_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "broker": { "host": "localhost:9092", "protocol": "kafka-secure" } },
+          "channels": {
+            "events": { "address": "events", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/events" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } },
+            "securitySchemes": { "saslScram": { "type": "scramSha256" } }
+          }
+        }
+        """;
+
+    private static final String MQTT_USER_SPEC =
+        """
+        {
+          "asyncapi": "3.0.0",
+          "info": { "title": "test", "version": "1.0.0" },
+          "servers": { "broker": { "host": "broker.example.com:1883", "protocol": "mqtt" } },
+          "channels": {
+            "sensors": { "address": "sensors", "messages": { "event": { "$ref": "#/components/messages/event" } } }
+          },
+          "operations": {
+            "send": { "action": "send", "channel": { "$ref": "#/channels/sensors" } }
+          },
+          "components": {
+            "messages": { "event": { "payload": { "type": "object" } } },
+            "securitySchemes": { "mqttUser": { "type": "apiKey", "in": "user" } }
+          }
+        }
+        """;
+
+    @Test
+    public void shouldSynthesizeHttpClientAuthorizationFromBearerScheme()
+    {
+        lenient().when(catalog.resolve(anyInt())).thenReturn(HTTP_BEARER_SPEC);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context,
+            bindingWithServerOverrideAndSecurity("http://api.example.com:8080", Map.of("bearerAuth", "kafkaGuard0"))));
+
+        HttpOptionsConfig options = (HttpOptionsConfig) bindingByName(composite, "http_client0").orElseThrow().options;
+
+        assertThat(options.authorization, notNullValue());
+        assertThat(options.authorization.name, equalTo("test:kafkaGuard0"));
+        assertThat(options.authorization.credentials.headers, hasSize(1));
+        assertThat(options.authorization.credentials.headers.get(0).name, equalTo("authorization"));
+        assertThat(options.authorization.credentials.headers.get(0).pattern, equalTo("Bearer {credentials}"));
+    }
+
+    @Test
+    public void shouldSynthesizeKafkaAuthorizationFromScramScheme()
+    {
+        lenient().when(catalog.resolve(anyInt())).thenReturn(KAFKA_SCRAM_SPEC);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context,
+            bindingWithServerOverrideAndSecurity("kafka-secure://localhost:9092", Map.of("saslScram", "kafkaGuard0"))));
+
+        KafkaOptionsConfig options = kafkaClientOptions(composite);
+
+        assertThat(options.authorization, notNullValue());
+        assertThat(options.authorization.name, equalTo("test:kafkaGuard0"));
+        assertThat(options.authorization.credentials.mechanism, equalTo("scram-sha-256"));
+        assertThat(options.authorization.credentials.username, equalTo("{identity}"));
+        assertThat(options.authorization.credentials.password, equalTo("{credentials}"));
+    }
+
+    @Test
+    public void shouldNotSynthesizeKafkaAuthorizationWhenSecurityMapAbsent()
+    {
+        lenient().when(catalog.resolve(anyInt())).thenReturn(KAFKA_SCRAM_SPEC);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context,
+            bindingWithServerOverride("kafka-secure://localhost:9092")));
+
+        KafkaOptionsConfig options = kafkaClientOptions(composite);
+
+        assertThat(options.authorization, nullValue());
+    }
+
+    @Test
+    public void shouldSynthesizeMqttClientAuthorizationFromUserScheme()
+    {
+        lenient().when(catalog.resolve(anyInt())).thenReturn(MQTT_USER_SPEC);
+
+        AsyncapiCompositeConfig composite = generator.generate(new AsyncapiBindingConfig(context,
+            bindingWithServerOverrideAndSecurity("mqtt://broker.example.com:1883", Map.of("mqttUser", "kafkaGuard0"))));
+
+        MqttOptionsConfig options = (MqttOptionsConfig) bindingByName(composite, "mqtt_client0").orElseThrow().options;
+
+        assertThat(options.authorization, notNullValue());
+        assertThat(options.authorization.name, equalTo("test:kafkaGuard0"));
+        assertThat(options.authorization.credentials.connect, hasSize(1));
+        assertThat(options.authorization.credentials.connect.get(0).property, equalTo(MqttConnectProperty.USERNAME));
+        assertThat(options.authorization.credentials.connect.get(0).pattern, equalTo("{credentials}"));
     }
 }

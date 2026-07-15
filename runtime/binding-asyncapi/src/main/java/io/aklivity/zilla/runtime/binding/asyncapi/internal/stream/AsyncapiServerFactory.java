@@ -144,6 +144,10 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
         {
             event.unresolvedRef(binding.id, ref);
         }
+        for (String reason : generator.deniedOperations())
+        {
+            event.operationDenied(binding.id, reason);
+        }
 
         assert composite != null;
         // TODO: schedule generate retry if null

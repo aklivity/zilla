@@ -120,12 +120,4 @@ bindings:
             catalog0:
               subject: petstore
               version: latest
-      tls:
-        keys:
-          - localhost
-        sni:
-          - localhost
-        alpn:
-          - http/1.1
-          - h2
     exit: asyncapi0

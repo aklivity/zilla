@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 
 import static java.util.List.of;
-import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -31,7 +30,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -66,21 +64,8 @@ public class OpenapiOptionsConfigAdapterTest
                   catalog0:
                     subject: petstore
                     version: latest
-            tls:
-              keys:
-                - localhost
-              alpn:
-                - localhost
-            http:
-              authorization:
-                test0:
-                  credentials:
-                    cookies:
-                      access_token: "{credentials}"
-                    headers:
-                      authorization: "Bearer {credentials}"
-                    query:
-                      access_token: "{credentials}"
+                security:
+                  bearerAuth: test0
             """;
 
         OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
@@ -119,9 +104,6 @@ public class OpenapiOptionsConfigAdapterTest
     {
         String expected =
             """
-            tls:
-              sni:
-                - example.net
             specs:
               test:
                 catalog:
@@ -130,13 +112,7 @@ public class OpenapiOptionsConfigAdapterTest
                     version: latest
             """;
 
-        TlsOptionsConfig tls = TlsOptionsConfig.builder()
-            .inject(identity())
-            .sni(of("example.net"))
-            .build();
-
         OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
-            .tls(tls)
             .spec(new OpenapiSpecificationConfig("test",
                 of(new OpenapiCatalogConfig("catalog0", "petstore", "latest"))))
             .build();

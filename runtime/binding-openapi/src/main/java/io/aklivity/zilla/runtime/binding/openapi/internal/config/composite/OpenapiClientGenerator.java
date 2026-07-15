@@ -161,6 +161,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                             .type("http")
                             .kind(CLIENT)
                             .options(HttpOptionsConfig::builder)
+                                .inject(options -> injectHttpAuthorization(options, schema))
                                 .inject(this::injectHttpRequests)
                                 .build()
                             .inject(this::injectMetrics)
@@ -175,6 +176,7 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                             .type("http")
                             .kind(CLIENT)
                             .options(HttpOptionsConfig::builder)
+                                .inject(options -> injectHttpAuthorization(options, schema))
                                 .inject(this::injectHttpRequests)
                                 .build()
                             .inject(this::injectMetrics)
@@ -196,7 +198,6 @@ public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
                             .type("tls")
                             .kind(CLIENT)
                             .inject(this::injectMetrics)
-                            .options(config.options.tls)
                             .vault(config.qvault)
                             .exit("sys:tcp_client")
                             .build();
