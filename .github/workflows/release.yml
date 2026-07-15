@@ -140,6 +140,19 @@ jobs:
       if: steps.changelog-1.outcome == 'failure' && steps.changelog-2.outcome == 'failure' && steps.changelog-3.outcome == 'failure'
       run: echo "::warning::CHANGELOG generation failed after 3 attempts; release/${{ inputs.version }} will carry the previous CHANGELOG.md unchanged."
 
+    - name: Fix CHANGELOG issue attribution on release branch
+      id: fix-changelog-issues-release
+      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        REPO="${{ github.repository }}"
+        ruby .github/scripts/fix_changelog_issue_attribution.rb CHANGELOG.md "${REPO%%/*}" "${REPO##*/}" . HEAD
+
+    - name: Warn if CHANGELOG issue-attribution fix failed on release branch
+      if: steps.fix-changelog-issues-release.outcome == 'failure'
+      run: echo "::warning::CHANGELOG issue-attribution correction failed on release/${{ inputs.version }}; issue listings may misattribute issues closed by fixes that haven't shipped on this line yet (github_changelog_generator buckets issues by close date, not by ancestry)."
+
     - name: Commit POM versions and CHANGELOG on release branch
       run: git commit -a -m "Prepare release ${{ inputs.version }}"
 
@@ -409,6 +422,19 @@ jobs:
     - name: Warn if CHANGELOG generation failed on base branch
       if: steps.changelog-1.outcome == 'failure' && steps.changelog-2.outcome == 'failure' && steps.changelog-3.outcome == 'failure'
       run: echo "::warning::CHANGELOG generation failed after 3 attempts; ${{ github.ref_name }} was not updated. The release itself (tag, merge) already completed successfully — rerun CHANGELOG generation manually or it will catch up next release."
+
+    - name: Fix CHANGELOG issue attribution on base branch
+      id: fix-changelog-issues-base
+      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        REPO="${{ github.repository }}"
+        ruby .github/scripts/fix_changelog_issue_attribution.rb CHANGELOG.md "${REPO%%/*}" "${REPO##*/}" . HEAD
+
+    - name: Warn if CHANGELOG issue-attribution fix failed on base branch
+      if: steps.fix-changelog-issues-base.outcome == 'failure'
+      run: echo "::warning::CHANGELOG issue-attribution correction failed on ${{ github.ref_name }}; issue listings may misattribute issues closed by fixes that haven't shipped on this line yet (github_changelog_generator buckets issues by close date, not by ancestry)."
 
     - name: Commit and push CHANGELOG on base branch (if needed)
       run: |
