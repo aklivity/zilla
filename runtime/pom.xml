@@ -48,6 +48,7 @@
     <module>common</module>
     <module>common-json</module>
     <module>command</module>
+    <module>command-logs</module>
     <module>command-metrics</module>
     <module>command-start</module>
     <module>command-stop</module>
@@ -224,6 +225,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>command-logs</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
