@@ -18,7 +18,7 @@
   <properties>
     <jacoco.coverage.ratio>0.61</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
-    <maven.version>3.9.6</maven.version>
+    <maven.version>3.9.16</maven.version>
     <maven.resolver.version>2.0.3</maven.resolver.version>
   </properties>
 
