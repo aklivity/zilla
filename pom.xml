@@ -455,7 +455,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>3.0.0-M4</version>
+          <version>3.6.0-M1</version>
           <configuration>
             <argLine>@{jacoco.java.option} -Xshare:off -Djdk.attach.allowAttachSelf=true -XX:+StartAttachListener --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
           </configuration>
