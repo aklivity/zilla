@@ -35,6 +35,8 @@ updates:
       versions: [ "62" ]
     - dependency-name: "org.slf4j:slf4j-*"
       versions: [ "2.x" ]
+    - dependency-name: "org.eclipse:yasson"
+      versions: [ "3.x" ]
   schedule:
     interval: daily
 - package-ecosystem: docker
