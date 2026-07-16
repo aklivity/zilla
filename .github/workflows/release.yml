@@ -117,7 +117,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: .gitflow-changelog-cache.json
-        key: gitflow-changelog-v0-${{ github.repository }}
+        key: gitflow-changelog-v2-${{ github.repository }}
 
     - name: Generate CHANGELOG on release branch
       id: changelog
@@ -377,7 +377,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: .gitflow-changelog-cache.json
-        key: gitflow-changelog-v0-${{ github.repository }}
+        key: gitflow-changelog-v2-${{ github.repository }}
 
     - name: Generate CHANGELOG on base branch
       id: changelog
