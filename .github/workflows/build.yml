@@ -30,7 +30,7 @@ jobs:
         distribution: temurin
         java-version: ${{ matrix.java }}
     - name: Cache Maven packages
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ~/.m2/repository
@@ -38,7 +38,7 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Cache ZPM test artifacts
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: manager/target/zpm/cache
         key: zpm-${{ runner.os }}-${{ hashFiles('manager/src/conf/install/zpm.json') }}
@@ -55,7 +55,7 @@ jobs:
         sudo systemctl restart docker
         timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
     - name: Restore base image cache
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@v6
       with:
         path: ~/docker-base-cache/base-images.tar
         key: docker-base-${{ runner.os }}-${{ github.run_id }}
@@ -84,7 +84,7 @@ jobs:
         fi
     - name: Save base image cache
       if: always()
-      uses: actions/cache/save@v5
+      uses: actions/cache/save@v6
       with:
         path: ~/docker-base-cache/base-images.tar
         key: docker-base-${{ runner.os }}-${{ github.run_id }}
@@ -162,7 +162,7 @@ jobs:
 
       - name: Restore shared example image cache
         id: cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/docker-images-cache/images.tar
           key: example-images-${{ runner.os }}-${{ hashFiles('examples/**/compose.yaml') }}
@@ -233,7 +233,7 @@ jobs:
           docker load -i ~/docker-cache/docker.tar
 
       - name: Restore shared example image cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/docker-images-cache/images.tar
           key: example-images-${{ runner.os }}-${{ hashFiles('examples/**/compose.yaml') }}

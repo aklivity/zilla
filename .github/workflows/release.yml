@@ -48,7 +48,7 @@ jobs:
         fi
 
     - name: Cache Homebrew
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: /home/linuxbrew/.linuxbrew
         key: ${{ runner.os }}-homebrew
@@ -114,7 +114,7 @@ jobs:
         ./mvnw org.codehaus.mojo:versions-maven-plugin:2.18.0:set -DgenerateBackupPoms=false -DnewVersion=${{ inputs.version }}
 
     - name: Cache gitflow-changelog events
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: .gitflow-changelog-cache.json
         key: gitflow-changelog-v3-${{ github.repository }}-${{ github.run_id }}
@@ -195,7 +195,7 @@ jobs:
           > .maven-cache-key
 
     - name: Cache Maven packages
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('.maven-cache-key') }}
@@ -309,7 +309,7 @@ jobs:
 
     steps:
     - name: Cache Homebrew
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: /home/linuxbrew/.linuxbrew
         key: ${{ runner.os }}-homebrew
@@ -376,7 +376,7 @@ jobs:
         git checkout ${{ github.ref_name }}
 
     - name: Cache gitflow-changelog events
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: .gitflow-changelog-cache.json
         key: gitflow-changelog-v3-${{ github.repository }}-${{ github.run_id }}
