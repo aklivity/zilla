@@ -111,7 +111,7 @@ jobs:
 
     - name: Update POM versions on release branch
       run: |
-        ./mvnw versions:set -DgenerateBackupPoms=false -DnewVersion=${{ inputs.version }}
+        ./mvnw org.codehaus.mojo:versions-maven-plugin:2.18.0:set -DgenerateBackupPoms=false -DnewVersion=${{ inputs.version }}
 
     - name: Cache gitflow-changelog events
       uses: actions/cache@v5
