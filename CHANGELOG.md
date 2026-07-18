@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [1.3.0](https://github.com/aklivity/zilla/tree/1.3.0) (2026-07-18)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.6...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.2.6...1.3.0)
 
 **Merged pull requests:**
 
