@@ -1,0 +1,23 @@
+hash-overrides:
+  # PRs #174, #187, #197, #198, #199, #205, #208, #210, #216, #219 (and
+  # issues #171, #184, #185, #186 that some of them closed) were all merged
+  # into the long-lived feature/grpc-kafka branch, not directly into
+  # develop. That branch was later squash-merged into develop via #225
+  # ("grpc-kafka feature baseline"), permanently flattening each one's own
+  # commit into this single commit — the equivalent for all of them. This
+  # commit is common history to both develop and support/1.x.
+  54ab5fa6ace003e9a559f83d4a94ef847a733bbd: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #174, issue #171
+  7a9cc9b5932775ef2a76df83b1755b9c89e1a419: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #187, issue #184
+  9349b4b8121ddd13f80a57b518965c017180618b: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #197
+  9360f8054d992bfdd5c30304922fe0521c52fa18: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #198, issue #185
+  cfa64bd8bb0433873a28a68ef901da1ad72cb289: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #199
+  3e7a7804b6c694b16d088cc1669dbeb2a3782b2a: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #205, issue #186
+  e1134aa5bb8e625c26b9a5c0db4b9a4e94e725ca: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #208
+  7f7cfaeb5055ff27d7a1b2eed89e54bbe3445c5b: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #210
+  36dfc387eb7a93c4b4ceb68789dcfe38724d160d: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #216
+  0f8d320b2d8261bfa5bbe4f811387f8acc4a2956: eb43dc7e4b78b1095f56767c004cd443a423bbd0 # pr #219
+  # PR #1604 (and issue #1605 it closed) was merged into the long-lived
+  # feature/support-catalog-handler-validate branch, later squash-merged
+  # into develop via #1606 ("Support catalog handler validate"). Also
+  # common history to both develop and support/1.x.
+  02b290f9b21259807eae8c10377503862f60ebba: c2310a5b9a7a0c3bfec62be12ebe90bf1bf9228d # pr #1604, issue #1605
