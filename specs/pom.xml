@@ -59,7 +59,7 @@
     <module>model-core.spec</module>
     <module>model-json.spec</module>
     <module>model-protobuf.spec</module>
-    <module>guard-identity.spec</module>
+    <module>guard-inline.spec</module>
     <module>guard-jwt.spec</module>
     <module>store-memory.spec</module>
     <module>vault-filesystem.spec</module>
@@ -169,7 +169,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>guard-identity.spec</artifactId>
+        <artifactId>guard-inline.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
