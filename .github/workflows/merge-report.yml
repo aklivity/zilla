@@ -1,0 +1,35 @@
+name: Merge Report
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  merge-report:
+    name: Merge Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Fetch every branch
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*'
+
+      - name: Cache gitflow-changelog events
+        uses: actions/cache@v6
+        with:
+          path: .gitflow-changelog-cache.json
+          key: gitflow-changelog-v3-${{ github.repository }}-${{ github.run_id }}
+          restore-keys: |
+            gitflow-changelog-v3-${{ github.repository }}-
+
+      - name: Merge report
+        uses: aklivity/gitflow-changelog/merge-report@v0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
