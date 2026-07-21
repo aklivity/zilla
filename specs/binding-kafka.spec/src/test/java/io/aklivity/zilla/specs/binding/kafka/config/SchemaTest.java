@@ -109,12 +109,16 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
-    @Test
-    public void shouldValidateClientWhenTopic()
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWhenTopic()
     {
-        JsonObject config = schema.validate("client.when.topic.yaml");
+        schema.validate("client.when.topic.yaml");
+    }
 
-        assertThat(config, not(nullValue()));
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWhenTopics()
+    {
+        schema.validate("client.when.topics.yaml");
     }
 
     @Test
