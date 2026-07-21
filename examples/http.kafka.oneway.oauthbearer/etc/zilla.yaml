@@ -2,7 +2,7 @@
 name: example
 guards:
   authn_kafka:
-    type: identity
+    type: inline
     options:
       credentials: ${{env.KAFKA_SASL_TOKEN}}
 bindings:
