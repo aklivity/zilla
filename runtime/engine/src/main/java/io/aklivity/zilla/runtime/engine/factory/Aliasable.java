@@ -20,9 +20,9 @@ import java.util.Set;
 /**
  * Mixin interface for plugin types that can be referenced under alternative type names.
  * <p>
- * Implemented by {@link Catalog} and {@link Vault} to allow a single plugin implementation
- * to respond to multiple {@code type} names in {@code zilla.yaml}. For example, a schema
- * registry catalog might register aliases for both {@code "apicurio"} and {@code "confluent"}
+ * Implemented by {@link Catalog}, {@link Vault} and {@link Guard} to allow a single plugin
+ * implementation to respond to multiple {@code type} names in {@code zilla.yaml}. For example, a
+ * schema registry catalog might register aliases for both {@code "apicurio"} and {@code "confluent"}
  * if they share the same wire protocol.
  * </p>
  * <p>
@@ -32,6 +32,7 @@ import java.util.Set;
  *
  * @see Catalog
  * @see Vault
+ * @see Guard
  */
 public interface Aliasable
 {

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal;
+package io.aklivity.zilla.runtime.guard.inline.internal;
 
 import java.util.function.LongSupplier;
 
@@ -21,15 +21,15 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
-import io.aklivity.zilla.runtime.guard.identity.internal.config.IdentityOptionsConfig;
+import io.aklivity.zilla.runtime.guard.inline.internal.config.InlineOptionsConfig;
 
-public class IdentityGuardContext implements GuardContext
+public class InlineGuardContext implements GuardContext
 {
-    private final Long2ObjectHashMap<IdentityGuardHandler> handlersById;
+    private final Long2ObjectHashMap<InlineGuardHandler> handlersById;
     private final LongSupplier supplyAuthorizedId;
     private final EngineContext context;
 
-    IdentityGuardContext(
+    InlineGuardContext(
         EngineContext context)
     {
         this.handlersById = new Long2ObjectHashMap<>();
@@ -38,13 +38,13 @@ public class IdentityGuardContext implements GuardContext
     }
 
     @Override
-    public IdentityGuardHandler attach(
+    public InlineGuardHandler attach(
         GuardConfig guard)
     {
-        IdentityOptionsConfig options = guard.options instanceof IdentityOptionsConfig
-            ? (IdentityOptionsConfig) guard.options
+        InlineOptionsConfig options = guard.options instanceof InlineOptionsConfig
+            ? (InlineOptionsConfig) guard.options
             : null;
-        IdentityGuardHandler handler = new IdentityGuardHandler(supplyAuthorizedId, options);
+        InlineGuardHandler handler = new InlineGuardHandler(supplyAuthorizedId, options);
         handlersById.put(guard.id, handler);
         return handler;
     }
@@ -56,7 +56,7 @@ public class IdentityGuardContext implements GuardContext
         handlersById.remove(guard.id);
     }
 
-    IdentityGuardHandler handler(
+    InlineGuardHandler handler(
         long guardId)
     {
         return handlersById.get(guardId);

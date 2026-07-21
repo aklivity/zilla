@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal;
+package io.aklivity.zilla.runtime.guard.inline.internal;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,7 +32,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class IdentityIT
+public class InlineIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
@@ -43,7 +43,7 @@ public class IdentityIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
-        .configurationRoot("io/aklivity/zilla/specs/guard/identity/config")
+        .configurationRoot("io/aklivity/zilla/specs/guard/inline/config")
         .external("app0")
         .clean();
 
@@ -63,7 +63,7 @@ public class IdentityIT
     @Test
     public void shouldVerifyIdentityAndRolesWhenAllowAccess() throws Exception
     {
-        IdentityGuardHandler guard = new IdentityGuardHandler(new MutableLong(1L)::getAndIncrement, null);
+        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, null);
 
         String token = "authorization-token";
         long sessionId = guard.reauthorize(0L, 0L, 101L, token);

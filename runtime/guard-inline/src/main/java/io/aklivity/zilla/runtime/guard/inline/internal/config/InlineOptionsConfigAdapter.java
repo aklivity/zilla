@@ -12,7 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal.config;
+package io.aklivity.zilla.runtime.guard.inline.internal.config;
+
+import java.util.Set;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -21,9 +23,9 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.guard.identity.internal.IdentityGuard;
+import io.aklivity.zilla.runtime.guard.inline.internal.InlineGuard;
 
-public final class IdentityOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public final class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String IDENTITY_NAME = "identity";
     private static final String CREDENTIALS_NAME = "credentials";
@@ -31,7 +33,13 @@ public final class IdentityOptionsConfigAdapter implements OptionsConfigAdapterS
     @Override
     public String type()
     {
-        return IdentityGuard.NAME;
+        return InlineGuard.NAME;
+    }
+
+    @Override
+    public Set<String> aliases()
+    {
+        return InlineGuard.ALIASES;
     }
 
     @Override
@@ -44,18 +52,18 @@ public final class IdentityOptionsConfigAdapter implements OptionsConfigAdapterS
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        IdentityOptionsConfig identityOptions = (IdentityOptionsConfig) options;
+        InlineOptionsConfig inlineOptions = (InlineOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (identityOptions.identity != null)
+        if (inlineOptions.identity != null)
         {
-            object.add(IDENTITY_NAME, identityOptions.identity);
+            object.add(IDENTITY_NAME, inlineOptions.identity);
         }
 
-        if (identityOptions.credentials != null)
+        if (inlineOptions.credentials != null)
         {
-            object.add(CREDENTIALS_NAME, identityOptions.credentials);
+            object.add(CREDENTIALS_NAME, inlineOptions.credentials);
         }
 
         return object.build();
@@ -73,6 +81,6 @@ public final class IdentityOptionsConfigAdapter implements OptionsConfigAdapterS
             ? object.getString(CREDENTIALS_NAME)
             : null;
 
-        return new IdentityOptionsConfig(identity, credentials);
+        return new InlineOptionsConfig(identity, credentials);
     }
 }

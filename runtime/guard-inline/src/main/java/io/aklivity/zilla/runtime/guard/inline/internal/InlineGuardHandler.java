@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal;
+package io.aklivity.zilla.runtime.guard.inline.internal;
 
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -23,19 +23,19 @@ import java.util.function.LongSupplier;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.guard.identity.internal.config.IdentityOptionsConfig;
+import io.aklivity.zilla.runtime.guard.inline.internal.config.InlineOptionsConfig;
 
-public class IdentityGuardHandler implements GuardHandler
+public class InlineGuardHandler implements GuardHandler
 {
-    private final Long2ObjectHashMap<IdentitySession> sessionsById;
+    private final Long2ObjectHashMap<InlineSession> sessionsById;
     private final LongSupplier supplyAuthorizedId;
-    private final Long2ObjectHashMap<IdentitySessionStore> sessionStoresByContextId;
+    private final Long2ObjectHashMap<InlineSessionStore> sessionStoresByContextId;
     private final String identity;
     private final String credentials;
 
-    public IdentityGuardHandler(
+    public InlineGuardHandler(
         LongSupplier supplyAuthorizedId,
-        IdentityOptionsConfig options)
+        InlineOptionsConfig options)
     {
         this.supplyAuthorizedId = supplyAuthorizedId;
         this.sessionsById = new Long2ObjectHashMap<>();
@@ -51,12 +51,12 @@ public class IdentityGuardHandler implements GuardHandler
         long contextId,
         String credentials)
     {
-        IdentitySessionStore sessionStore = supplySessionStore(contextId);
-        IdentitySession session = sessionStore.supplySession(credentials);
+        InlineSessionStore sessionStore = supplySessionStore(contextId);
+        InlineSession session = sessionStore.supplySession(credentials);
         session.traceId = traceId;
         session.bindingId = bindingId;
 
-        IdentitySession previous = sessionsById.put(session.authorized, session);
+        InlineSession previous = sessionsById.put(session.authorized, session);
 
         assert previous != session && session.refs == 0 || previous == session && session.refs > 0;
         session.refs++;
@@ -67,7 +67,7 @@ public class IdentityGuardHandler implements GuardHandler
     public void deauthorize(
         long sessionId)
     {
-        IdentitySession session = sessionsById.get(sessionId);
+        InlineSession session = sessionsById.get(sessionId);
         if (session != null)
         {
             session.refs--;
@@ -84,7 +84,7 @@ public class IdentityGuardHandler implements GuardHandler
     public String identity(
         long sessionId)
     {
-        IdentitySession session = sessionsById.get(sessionId);
+        InlineSession session = sessionsById.get(sessionId);
         return session != null ? session.identity : identity;
     }
 
@@ -100,7 +100,7 @@ public class IdentityGuardHandler implements GuardHandler
     public String credentials(
         long sessionId)
     {
-        IdentitySession session = sessionsById.get(sessionId);
+        InlineSession session = sessionsById.get(sessionId);
         return session != null ? session.identity : credentials;
     }
 
@@ -126,10 +126,10 @@ public class IdentityGuardHandler implements GuardHandler
         return false;
     }
 
-    private IdentitySessionStore supplySessionStore(
+    private InlineSessionStore supplySessionStore(
         long contextId)
     {
-        return sessionStoresByContextId.computeIfAbsent(contextId, IdentitySessionStore::new);
+        return sessionStoresByContextId.computeIfAbsent(contextId, InlineSessionStore::new);
     }
 
     boolean verify(
@@ -146,23 +146,23 @@ public class IdentityGuardHandler implements GuardHandler
         return verify(sessionId) && (roles == null || roles.isEmpty());
     }
 
-    private final class IdentitySessionStore
+    private final class InlineSessionStore
     {
         private final long contextId;
-        private final Map<String, IdentitySession> sessionsByIdentity;
+        private final Map<String, InlineSession> sessionsByIdentity;
 
-        private IdentitySessionStore(
+        private InlineSessionStore(
             long contextId)
         {
             this.contextId = contextId;
             this.sessionsByIdentity = new IdentityHashMap<>();
         }
 
-        private IdentitySession supplySession(
+        private InlineSession supplySession(
             String identity)
         {
             String identityKey = identity != null ? identity.intern() : null;
-            IdentitySession session = sessionsByIdentity.get(identityKey);
+            InlineSession session = sessionsByIdentity.get(identityKey);
 
             if (identityKey == null || session != null)
             {
@@ -176,20 +176,20 @@ public class IdentityGuardHandler implements GuardHandler
             return session;
         }
 
-        private IdentitySession newSharedSession(
+        private InlineSession newSharedSession(
             String identity)
         {
-            return new IdentitySession(supplyAuthorizedId.getAsLong(), identity, this::onUnshared);
+            return new InlineSession(supplyAuthorizedId.getAsLong(), identity, this::onUnshared);
         }
 
-        private IdentitySession newSession(
+        private InlineSession newSession(
             String identity)
         {
-            return new IdentitySession(supplyAuthorizedId.getAsLong(), identity);
+            return new InlineSession(supplyAuthorizedId.getAsLong(), identity);
         }
 
         private void onUnshared(
-            IdentitySession session)
+            InlineSession session)
         {
             sessionsByIdentity.remove(session.identity);
             if (sessionsByIdentity.isEmpty())
@@ -199,28 +199,28 @@ public class IdentityGuardHandler implements GuardHandler
         }
     }
 
-    private final class IdentitySession
+    private final class InlineSession
     {
         private final long authorized;
         private final String identity;
-        private final Consumer<IdentitySession> unshare;
+        private final Consumer<InlineSession> unshare;
 
         private long traceId;
         private long bindingId;
 
         private int refs;
 
-        private IdentitySession(
+        private InlineSession(
             long authorized,
             String identity)
         {
             this(authorized, identity, null);
         }
 
-        private IdentitySession(
+        private InlineSession(
             long authorized,
             String identity,
-            Consumer<IdentitySession> unshare)
+            Consumer<InlineSession> unshare)
         {
             this.authorized = authorized;
             this.identity = identity;

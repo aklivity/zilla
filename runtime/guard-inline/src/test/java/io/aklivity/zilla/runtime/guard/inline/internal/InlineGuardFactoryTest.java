@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal;
+package io.aklivity.zilla.runtime.guard.inline.internal;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.net.URL;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -29,7 +30,7 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 
-public class IdentityGuardFactoryTest
+public class InlineGuardFactoryTest
 {
     @Test
     public void shouldLoadAndCreate()
@@ -39,12 +40,13 @@ public class IdentityGuardFactoryTest
         GuardFactory factory = GuardFactory.instantiate();
 
         // WHEN
-        Guard guard = factory.create("identity", config);
+        Guard guard = factory.create("inline", config);
         GuardContext context = guard.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(guard, instanceOf(IdentityGuard.class));
-        assertThat(guard.name(), equalTo("identity"));
+        assertThat(guard, instanceOf(InlineGuard.class));
+        assertThat(guard.name(), equalTo("inline"));
+        assertThat(guard.aliases(), equalTo(Set.of("identity")));
         assertThat(guard.type(), instanceOf(URL.class));
         assertThat(context, instanceOf(GuardContext.class));
     }

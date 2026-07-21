@@ -12,21 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal;
+package io.aklivity.zilla.runtime.guard.inline.internal;
 
-import static io.aklivity.zilla.runtime.guard.identity.internal.IdentityGuard.NAME;
+import static io.aklivity.zilla.runtime.guard.inline.internal.InlineGuard.NAME;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
 
-public class IdentityGuardFactorySpi implements GuardFactorySpi
+public class InlineGuardFactorySpi implements GuardFactorySpi
 {
     @Override
     public Guard create(
         Configuration config)
     {
-        return new IdentityGuard(config);
+        return new InlineGuard(config);
     }
 
     @Override

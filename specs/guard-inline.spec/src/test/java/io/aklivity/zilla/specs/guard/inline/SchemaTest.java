@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.specs.guard.identity;
+package io.aklivity.zilla.specs.guard.inline;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
@@ -29,9 +29,9 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/guard/identity/schema/identity.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/guard/inline/schema/inline.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json")
-        .configurationRoot("io/aklivity/zilla/specs/guard/identity/config");
+        .configurationRoot("io/aklivity/zilla/specs/guard/inline/config");
 
     @Test
     public void shouldValidateGuard()

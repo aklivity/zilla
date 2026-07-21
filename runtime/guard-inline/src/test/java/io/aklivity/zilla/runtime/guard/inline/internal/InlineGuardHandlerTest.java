@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal;
+package io.aklivity.zilla.runtime.guard.inline.internal;
 
 import static java.util.Collections.emptyList;
 import static java.util.List.of;
@@ -21,12 +21,12 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-public class IdentityGuardHandlerTest
+public class InlineGuardHandlerTest
 {
     @Test
     public void shouldVerifyRolesForSession()
     {
-        IdentityGuardHandler handler = new IdentityGuardHandler(() -> 1L, null);
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, null);
 
         long sessionId = handler.reauthorize(0L, 0L, 0L, "user");
 

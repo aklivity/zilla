@@ -12,15 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.guard.identity
+module io.aklivity.zilla.runtime.guard.inline
 {
     requires io.aklivity.zilla.runtime.engine;
     requires jakarta.json;
     requires jakarta.json.bind;
 
     provides io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi
-        with io.aklivity.zilla.runtime.guard.identity.internal.IdentityGuardFactorySpi;
+        with io.aklivity.zilla.runtime.guard.inline.internal.InlineGuardFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.guard.identity.internal.config.IdentityOptionsConfigAdapter;
+        with io.aklivity.zilla.runtime.guard.inline.internal.config.InlineOptionsConfigAdapter;
 }

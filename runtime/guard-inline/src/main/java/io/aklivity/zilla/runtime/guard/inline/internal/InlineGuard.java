@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal;
+package io.aklivity.zilla.runtime.guard.inline.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 
@@ -20,6 +20,7 @@ import java.lang.invoke.VarHandle;
 import java.net.URL;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.LongFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
@@ -31,17 +32,18 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
-public class IdentityGuard implements Guard
+public class InlineGuard implements Guard
 {
-    public static final String NAME = "identity";
+    public static final String NAME = "inline";
+    public static final Set<String> ALIASES = Set.of("identity");
 
-    private final IdentityGuardContext[] contexts;
+    private final InlineGuardContext[] contexts;
 
-    IdentityGuard(
+    InlineGuard(
         Configuration config)
     {
 
-        this.contexts = new IdentityGuardContext[ENGINE_WORKERS.get(config)];
+        this.contexts = new InlineGuardContext[ENGINE_WORKERS.get(config)];
     }
 
     @Override
@@ -51,16 +53,22 @@ public class IdentityGuard implements Guard
     }
 
     @Override
-    public URL type()
+    public Set<String> aliases()
     {
-        return getClass().getResource("schema/identity.schema.patch.json");
+        return ALIASES;
     }
 
     @Override
-    public IdentityGuardContext supply(
+    public URL type()
+    {
+        return getClass().getResource("schema/inline.schema.patch.json");
+    }
+
+    @Override
+    public InlineGuardContext supply(
         EngineContext context)
     {
-        IdentityGuardContext guard = new IdentityGuardContext(context);
+        InlineGuardContext guard = new InlineGuardContext(context);
         contexts[context.index()] = guard;
         return guard;
     }
@@ -112,8 +120,8 @@ public class IdentityGuard implements Guard
         {
             VarHandle.fullFence();
         }
-        final IdentityGuardContext context = contexts[sessionIndex];
-        final IdentityGuardHandler handler = context != null ? context.handler(guardId) : null;
+        final InlineGuardContext context = contexts[sessionIndex];
+        final InlineGuardHandler handler = context != null ? context.handler(guardId) : null;
         return handler != null ? handler.identity(sessionId) : null;
     }
 
@@ -127,8 +135,8 @@ public class IdentityGuard implements Guard
         {
             VarHandle.fullFence();
         }
-        final IdentityGuardContext context = contexts[sessionIndex];
-        final IdentityGuardHandler handler = context != null ? context.handler(guardId) : null;
+        final InlineGuardContext context = contexts[sessionIndex];
+        final InlineGuardHandler handler = context != null ? context.handler(guardId) : null;
         return handler != null && handler.verify(sessionId);
     }
 }

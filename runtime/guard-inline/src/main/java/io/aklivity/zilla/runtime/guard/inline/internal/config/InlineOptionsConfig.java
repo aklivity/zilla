@@ -12,16 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal.config;
+package io.aklivity.zilla.runtime.guard.inline.internal.config;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public final class IdentityOptionsConfig extends OptionsConfig
+public final class InlineOptionsConfig extends OptionsConfig
 {
     public final String identity;
     public final String credentials;
 
-    public IdentityOptionsConfig(
+    public InlineOptionsConfig(
         String identity,
         String credentials)
     {

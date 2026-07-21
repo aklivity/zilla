@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal;
+package io.aklivity.zilla.runtime.guard.inline.internal;
 
 import static java.util.function.Function.identity;
 import static org.junit.Assert.assertFalse;
@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
-public class IdentityGuardTest
+public class InlineGuardTest
 {
     @Test
     public void shouldNotVerifyMissingContext() throws Exception
@@ -47,7 +47,7 @@ public class IdentityGuardTest
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
-        Guard guard = factory.create("identity", config);
+        Guard guard = factory.create("inline", config);
 
         LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(s -> 0, guarded);
 
@@ -68,7 +68,7 @@ public class IdentityGuardTest
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
-        Guard guard = factory.create("identity", config);
+        Guard guard = factory.create("inline", config);
 
         guard.supply(engine);
 
@@ -91,14 +91,14 @@ public class IdentityGuardTest
 
         Configuration config = new Configuration();
         GuardFactory factory = GuardFactory.instantiate();
-        Guard guard = factory.create("identity", config);
+        Guard guard = factory.create("inline", config);
 
         GuardContext context = guard.supply(engine);
         context.attach(GuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")
-            .type("identity")
+            .type("inline")
             .build());
 
         LongObjectPredicate<UnaryOperator<String>> verifier = guard.verifier(s -> 0, guarded);

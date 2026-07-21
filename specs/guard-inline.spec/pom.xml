@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>guard-identity.spec</artifactId>
-  <name>zilla::specs::guard-identity.spec</name>
+  <artifactId>guard-inline.spec</artifactId>
+  <name>zilla::specs::guard-inline.spec</name>
 
   <licenses>
     <license>
@@ -67,7 +67,7 @@
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core</scopeNames>
-          <packageName>io.aklivity.zilla.specs.guard.identity.internal.types</packageName>
+          <packageName>io.aklivity.zilla.specs.guard.inline.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -102,7 +102,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/specs/guard/identity/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/specs/guard/inline/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

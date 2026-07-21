@@ -2,6 +2,11 @@
     {
         "op": "add",
         "path": "/$defs/guard/properties/type/enum/-",
+        "value": "inline"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/guard/properties/type/enum/-",
         "value": "identity"
     },
     {
@@ -15,7 +20,7 @@
                 {
                     "type":
                     {
-                        "const": "identity"
+                        "enum": [ "inline", "identity" ]
                     }
                 }
             },
@@ -25,7 +30,7 @@
                 {
                     "type":
                     {
-                        "const": "identity"
+                        "enum": [ "inline", "identity" ]
                     },
                     "kind": false,
                     "options":

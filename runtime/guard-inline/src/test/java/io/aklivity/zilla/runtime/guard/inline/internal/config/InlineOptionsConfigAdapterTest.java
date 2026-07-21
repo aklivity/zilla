@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.identity.internal.config;
+package io.aklivity.zilla.runtime.guard.inline.internal.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
-public class IdentityOptionsConfigAdapterTest
+public class InlineOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -36,7 +36,7 @@ public class IdentityOptionsConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new IdentityOptionsConfigAdapter());
+            .withAdapters(new InlineOptionsConfigAdapter());
         jsonb = JsonbBuilder.newBuilder()
             .withProvider(YamlJson.provider())
             .withConfig(config)
@@ -48,7 +48,7 @@ public class IdentityOptionsConfigAdapterTest
     {
         String yaml = "credentials: token";
 
-        IdentityOptionsConfig options = jsonb.fromJson(yaml, IdentityOptionsConfig.class);
+        InlineOptionsConfig options = jsonb.fromJson(yaml, InlineOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.credentials, equalTo("token"));
@@ -59,7 +59,7 @@ public class IdentityOptionsConfigAdapterTest
     {
         String yaml = "identity: alice";
 
-        IdentityOptionsConfig options = jsonb.fromJson(yaml, IdentityOptionsConfig.class);
+        InlineOptionsConfig options = jsonb.fromJson(yaml, InlineOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.identity, equalTo("alice"));
@@ -68,7 +68,7 @@ public class IdentityOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithCredentials()
     {
-        IdentityOptionsConfig options = new IdentityOptionsConfig(null, "token");
+        InlineOptionsConfig options = new InlineOptionsConfig(null, "token");
 
         String yaml = jsonb.toJson(options);
 
@@ -79,7 +79,7 @@ public class IdentityOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithIdentity()
     {
-        IdentityOptionsConfig options = new IdentityOptionsConfig("alice", null);
+        InlineOptionsConfig options = new InlineOptionsConfig("alice", null);
 
         String yaml = jsonb.toJson(options);
 
@@ -90,7 +90,7 @@ public class IdentityOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithNullFields()
     {
-        IdentityOptionsConfig options = new IdentityOptionsConfig(null, null);
+        InlineOptionsConfig options = new InlineOptionsConfig(null, null);
 
         String yaml = jsonb.toJson(options);
 
