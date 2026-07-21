@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Aklivity Inc.
+ * Copyright 2021-2026 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -59,7 +59,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 public final class HttpBindingConfig
 {
     private static final Pattern BASIC_FORMAT_PATTERN =
-        Pattern.compile("^\\s*Basic\\s+(?<format>(:?[^\\\\{]*\\{[^}]+}[^\\\\{]*)+)$");
+        Pattern.compile("^\\s*Basic\\s+(?<format>[^\\\\{]*+(?:\\{[^}]++}[^\\\\{]*+)++)$");
     private static final Function<Function<String, String>, String> DEFAULT_CREDENTIALS = f -> null;
     private static final Function<String, String> DEFAULT_INJECT = credentials -> null;
     private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));

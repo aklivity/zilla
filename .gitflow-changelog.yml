@@ -1,1 +1,10 @@
 tag-pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+exclude-paths:
+  - '.github/**'
+  - '**/.github/**'
+  - 'CHANGELOG.md'
+  - '.gitflow-changelog*.yml'
+exclude-message-patterns:
+  - '^Prepare release '
+  - '^Update CHANGELOG\.md$'
+  - '^build\(deps(-dev)?\): [Bb]ump '

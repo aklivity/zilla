@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>2.0.0-alpha-35</version>
+    <version>2.0.0-alpha-36</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -309,7 +309,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>guard-identity</artifactId>
+      <artifactId>guard-inline</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
