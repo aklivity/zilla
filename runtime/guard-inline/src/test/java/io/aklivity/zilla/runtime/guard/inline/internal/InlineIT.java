@@ -31,6 +31,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.guard.inline.internal.config.InlineOptionsConfig;
 
 public class InlineIT
 {
@@ -73,6 +74,21 @@ public class InlineIT
         assertThat(guard.expiresAt(sessionId), equalTo(Long.MAX_VALUE));
         assertThat(guard.expiringAt(sessionId), equalTo(Long.MAX_VALUE));
         assertThat(guard.credentials(sessionId), equalTo(token));
+
+        guard.deauthorize(sessionId);
+    }
+
+    @Test
+    public void shouldSplitIdentityAndCredentialsWhenFormatConfigured() throws Exception
+    {
+        InlineOptionsConfig options = new InlineOptionsConfig(null, null, "{identity}:{credentials}");
+        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, options);
+
+        long sessionId = guard.reauthorize(0L, 0L, 101L, "alice:secret");
+
+        assertThat(sessionId, not(equalTo(0L)));
+        assertThat(guard.identity(sessionId), equalTo("alice"));
+        assertThat(guard.credentials(sessionId), equalTo("secret"));
 
         guard.deauthorize(sessionId);
     }
