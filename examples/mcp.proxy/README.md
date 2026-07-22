@@ -10,20 +10,20 @@ synthesized `zilla__search_tools` keyword-search tool instead of crowding out
 every `tools/list` response.
 
 ```text
-                                     ┌─────────────────────────────────────────────────────────────────────── Zilla ───────────────────────────────────────────────────────────────────────┐
-                                     │ tcp(7114) → http → mcp(server, jwt) → mcp(proxy, guarded routes)                                                                                    │
-client ── Authorization: Bearer ───►│                                                                                                                                                      │
-                                     │             ┌──────────────────────┬──┴──────────────────┬────────────────────┬─────────────────────────┬───────────────────────────┐               │
-                                     │             ▼                      ▼                     ▼                    ▼                         ▼                           ▼               │
-                                     │    mcp(client)          mcp(client)              mcp_http(proxy)     mcp_openapi(client)   mcp_schema_registry(client)   mcp_kafka(client)          │
-                                     │    everything           urlelicit                github toolkit      petstore toolkit      schemaregistry toolkit        kafka toolkit              │
-                                     │    http →               http →                   http(client) →      http(client) →        http(client) →                kafka_cache_client →       │
-                                     │    tcp                  tcp                      tcp                 tcp                   tcp                           kafka_client → tcp         │
-                                     └─────────────┼──────────────────────┼─────────────────────┼────────────────────┼─────────────────────────┼───────────────────────────┼───────────────┘
-                                                   ▼                      ▼                     ▼                    ▼                         ▼                           ▼
-                                          everything:3001      urlelicit:3003           ghapi:4001          petstore:4002         karapace-registry:8081        kafka.examples.dev:9092
-                                          (reference server)   (url-mode elicitation)   (mock GitHub API)   (mock REST API,       (real Karapace                (real, single-node
-                                                                                                            OpenAPI-described)    schema registry)              KRaft Kafka broker)
+                                     ┌────────────────────────────────────────────────────────────────── Zilla ───────────────────────────────────────────────────────────────────┐
+                                     │ tcp(7114) → http → mcp(server, jwt) → mcp(proxy, guarded routes)                                                                           │
+client ── Authorization: Bearer ───►│                                                                                                                                            │
+                                     │             ┬                     ┬                    ┬                   ┬                        ┬                          ┬           │
+                                     │             ▼                     ▼                    ▼                   ▼                        ▼                          ▼           │
+                                     │    mcp(client)         mcp(client)             mcp_http(proxy)    mcp_openapi(client)  mcp_schema_registry(client)  mcp_kafka(client)      │
+                                     │    everything          urlelicit               github toolkit     petstore toolkit     kafka_sr toolkit             kafka toolkit          │
+                                     │    http →              http →                  http(client) →     http(client) →       http(client) →               kafka_cache_client →   │
+                                     │    tcp                 tcp                     tcp                tcp                  tcp                          kafka_client → tcp     │
+                                     └─────────────┼─────────────────────┼────────────────────┼───────────────────┼────────────────────────┼──────────────────────────┼───────────┘
+                                                   ▼                     ▼                    ▼                   ▼                        ▼                          ▼
+                                          everything:3001     urlelicit:3003          ghapi:4001         petstore:4002        karapace-registry:8081       kafka.examples.dev:9092
+                                          (reference server)  (url-mode elicitation)  (mock GitHub API)  (mock REST API,      (real Karapace               (real, single-node
+                                                                                                         OpenAPI-described)   schema registry)             KRaft Kafka broker)
 ```
 
 This one configuration exercises all seven `mcp*` binding kinds:
@@ -35,7 +35,7 @@ This one configuration exercises all seven `mcp*` binding kinds:
 | `mcp` | `client` | Talks to an upstream server that is itself MCP (`everything`, `urlelicit`); `urlelicit` also forwards the caller's own JWT upstream |
 | `mcp_http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp_openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
-| `mcp_schema_registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp_openapi` (`schemaregistry` toolkit) |
+| `mcp_schema_registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp_openapi` (`kafka_sr` toolkit) |
 | `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
@@ -53,8 +53,8 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp_http(proxy)` route for `create_pr` | a second, tool-specific `routes[].guarded`, layered under the `mcp_http` binding's base guarded route | `github:tools` **and** `github:pr:write` |
 | `mcp(proxy)` route for `petstore` toolkit | `routes[].guarded` on the toolkit route | `petstore:tools` |
 | `mcp_openapi(client)` operation `create_pet` | the OpenAPI document's own `security` requirement, mapped to `authn_jwt` via `options.specs.petstore.security` | `petstore:tools` **and** `pets:write` |
-| `mcp(proxy)` route for `schemaregistry` toolkit | `routes[].guarded` on the toolkit route | `schemaregistry:tools` |
-| `mcp_schema_registry(client)` route for `register_schema` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `schemaregistry:tools` **and** `schemaregistry:write` |
+| `mcp(proxy)` route for `kafka_sr` toolkit | `routes[].guarded` on the toolkit route | `kafka_sr:tools` |
+| `mcp_schema_registry(client)` route for `register_schema` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka_sr:tools` **and** `kafka_sr:write` |
 | `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
 
 `list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
@@ -68,8 +68,8 @@ instead of an explicit `guarded:` route.
 `register_schema` route demonstrates the same layering the other way around,
 via an explicit `routes[].guarded` directly on the `mcp_schema_registry`
 binding itself: `list_subjects`, `describe_subject`, `get_schema`, and every
-other read-only tool need only the toolkit-level `schemaregistry:tools`
-scope, while `register_schema` additionally requires `schemaregistry:write`.
+other read-only tool need only the toolkit-level `kafka_sr:tools`
+scope, while `register_schema` additionally requires `kafka_sr:write`.
 
 The `everything` toolkit has no `guarded:` route at all, so it is reachable by
 any session that can complete `initialize` -- including one with no token.
@@ -129,7 +129,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --aud "https://api.example.com" \
     --exp=+1d \
     --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write schemaregistry:tools schemaregistry:write kafka:tools" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools" \
     --secret @/private.pem | tr -d '\r\n')
 ```
 
@@ -145,15 +145,15 @@ name per line -- pass a token (or none) as `JWT_TOKEN`:
 docker compose run --rm tools-list-client
 
 # Toolkit-level scopes only, no operation-level scopes: petstore__list_pets
-# and schemaregistry__list_subjects appear (neither requires an extra scope
+# and kafka_sr__list_subjects appear (neither requires an extra scope
 # beyond toolkit access) but petstore__create_pet, github__create_pr, and
-# schemaregistry__register_schema do not -- toolkit access alone is not tool
+# kafka_sr__register_schema do not -- toolkit access alone is not tool
 # access
 export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=github:tools petstore:tools schemaregistry:tools" \
+    --payload "scope=github:tools petstore:tools kafka_sr:tools" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 
@@ -162,7 +162,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write schemaregistry:tools schemaregistry:write kafka:tools" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 ```
@@ -172,8 +172,8 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 `options.cache.tools.eager` on `north_mcp_proxy` keeps only a fixed set of
 frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `github__create_pr`, `petstore__list_pets`, `petstore__search_pets`,
-`petstore__create_pet`, `schemaregistry__list_subjects`, and
-`schemaregistry__register_schema` -- eagerly listed in `tools/list`. Every other tool is
+`petstore__create_pet`, `kafka_sr__list_subjects`, and
+`kafka_sr__register_schema` -- eagerly listed in `tools/list`. Every other tool is
 "cold": because `options.cache.tools.search` also configures a `toolkit`
 (`zilla` here), cold tools are omitted from `tools/list` entirely rather than
 crowding it out, and three fixed-purpose tools are advertised instead --
@@ -198,8 +198,8 @@ github__create_pr
 petstore__list_pets
 petstore__search_pets
 petstore__create_pet
-schemaregistry__list_subjects
-schemaregistry__register_schema
+kafka_sr__list_subjects
+kafka_sr__register_schema
 zilla__search_tools
 zilla__describe_tool
 zilla__execute_tool
@@ -386,7 +386,7 @@ id Karapace actually assigned, via `${result.id}` in its configured
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=schemaregistry__register_schema \
+    -e CALL_TOOL=kafka_sr__register_schema \
     -e CALL_ARGS='{"subject":"orders-value","schemaType":"AVRO","schema":"{\"type\":\"record\",\"name\":\"Order\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"}]}"}' \
     tools-list-client
 # Registered schema with id 1
@@ -397,11 +397,11 @@ state in Karapace, not just an echoed request:
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=schemaregistry__list_subjects tools-list-client
+    -e CALL_TOOL=kafka_sr__list_subjects tools-list-client
 # ["orders-value"]
 
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=schemaregistry__describe_subject \
+    -e CALL_TOOL=kafka_sr__describe_subject \
     -e CALL_ARGS='{"subject":"orders-value"}' \
     tools-list-client
 # [1]
@@ -412,7 +412,7 @@ result fields at once (`${result.id}`, `${result.version}`):
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=schemaregistry__get_schema \
+    -e CALL_TOOL=kafka_sr__get_schema \
     -e CALL_ARGS='{"subject":"orders-value","version":"latest"}' \
     tools-list-client
 # Retrieved schema id 1, version 1
@@ -425,19 +425,19 @@ over with a default:
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=schemaregistry__set_compatibility \
+    -e CALL_TOOL=kafka_sr__set_compatibility \
     -e CALL_ARGS='{"subject":"orders-value","compatibility":"FULL"}' \
     tools-list-client
 # Compatibility level set to FULL
 
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=schemaregistry__get_compatibility \
+    -e CALL_TOOL=kafka_sr__get_compatibility \
     -e CALL_ARGS='{"subject":"orders-value"}' \
     tools-list-client
 # Compatibility level is FULL
 
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=schemaregistry__check_compatibility \
+    -e CALL_TOOL=kafka_sr__check_compatibility \
     -e CALL_ARGS='{"subject":"orders-value","version":"1","schemaType":"AVRO","schema":"{\"type\":\"record\",\"name\":\"Order\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"}]}"}' \
     tools-list-client
 # Compatibility check result: true
