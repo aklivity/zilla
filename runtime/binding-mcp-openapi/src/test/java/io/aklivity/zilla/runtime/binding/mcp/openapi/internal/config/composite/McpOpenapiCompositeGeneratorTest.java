@@ -55,6 +55,7 @@ import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
@@ -67,7 +68,6 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiB
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class McpOpenapiCompositeGeneratorTest

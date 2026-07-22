@@ -89,6 +89,10 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-core.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-core</artifactId>
     </dependency>
     <dependency>

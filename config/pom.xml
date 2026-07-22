@@ -33,6 +33,7 @@
     <module>exporter-stdout.conf</module>
     <module>guard-inline.conf</module>
     <module>guard-jwt.conf</module>
+    <module>model-core.conf</module>
     <module>vault-filesystem.conf</module>
   </modules>
 </project>

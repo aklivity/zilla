@@ -31,10 +31,10 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class McpOpenapiOptionsConfigAdapterTest
 {

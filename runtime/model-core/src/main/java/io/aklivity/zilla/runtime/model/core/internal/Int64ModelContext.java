@@ -16,10 +16,10 @@ package io.aklivity.zilla.runtime.model.core.internal;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
+import io.aklivity.zilla.config.model.core.Int64ModelConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 
 public class Int64ModelContext implements ModelContext
 {

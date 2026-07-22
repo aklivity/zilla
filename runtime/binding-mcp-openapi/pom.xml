@@ -83,6 +83,11 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-core.conf</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-core</artifactId>
     </dependency>
     <dependency>

@@ -17,6 +17,7 @@ This project includes:
   zilla::config::binding-tls.conf under The Apache Software License, Version 2.0
   zilla::config::catalog-inline.conf under Aklivity Community License Agreement
   zilla::config::engine.conf under The Apache Software License, Version 2.0
+  zilla::config::model-core.conf under Aklivity Community License Agreement
   zilla::runtime::binding-http under The Apache Software License, Version 2.0
   zilla::runtime::common-agrona under The Apache Software License, Version 2.0
   zilla::runtime::common-feature under The Apache Software License, Version 2.0

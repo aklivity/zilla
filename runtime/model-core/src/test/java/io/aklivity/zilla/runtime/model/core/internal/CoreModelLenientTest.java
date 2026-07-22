@@ -25,6 +25,8 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
+import io.aklivity.zilla.config.model.core.Int32ModelConfig;
+import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -34,8 +36,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class CoreModelLenientTest
 {

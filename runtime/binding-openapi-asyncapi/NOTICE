@@ -23,6 +23,7 @@ This project includes:
   zilla::config::catalog-karapace.conf under Aklivity Community License Agreement
   zilla::config::catalog-schema-registry.conf under Aklivity Community License Agreement
   zilla::config::engine.conf under The Apache Software License, Version 2.0
+  zilla::config::model-core.conf under Aklivity Community License Agreement
   zilla::runtime::binding-asyncapi under Aklivity Community License Agreement
   zilla::runtime::binding-http under The Apache Software License, Version 2.0
   zilla::runtime::binding-http-kafka under Aklivity Community License Agreement
