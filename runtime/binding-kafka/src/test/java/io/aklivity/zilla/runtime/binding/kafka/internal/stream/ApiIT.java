@@ -33,7 +33,8 @@ public class ApiIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api")
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3");
+        .addScriptRoot("netCreateTopics", "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3")
+        .addScriptRoot("netDeleteTopics", "io/aklivity/zilla/specs/binding/kafka/streams/network/delete.topics.v3");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -51,8 +52,18 @@ public class ApiIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/create.topics.v3/client",
-        "${net}/create.topics/server"})
+        "${netCreateTopics}/create.topics/server"})
     public void shouldCreateTopicsV3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/delete.topics.v3/client",
+        "${netDeleteTopics}/delete.topics/server"})
+    public void shouldDeleteTopicsV3() throws Exception
     {
         k3po.finish();
     }
