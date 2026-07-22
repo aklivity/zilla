@@ -183,6 +183,10 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-avro.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-avro</artifactId>
       <scope>provided</scope>
     </dependency>

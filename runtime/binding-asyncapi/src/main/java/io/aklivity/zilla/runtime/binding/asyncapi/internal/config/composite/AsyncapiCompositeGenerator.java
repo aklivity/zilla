@@ -53,6 +53,7 @@ import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.config.model.core.BooleanModelConfig;
 import io.aklivity.zilla.config.model.core.DoubleModelConfig;
 import io.aklivity.zilla.config.model.core.FloatModelConfig;
@@ -91,7 +92,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public abstract class AsyncapiCompositeGenerator

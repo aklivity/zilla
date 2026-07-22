@@ -12,17 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.model.avro
+module io.aklivity.zilla.config.model.avro
 {
-    requires io.aklivity.zilla.runtime.engine;
-    requires io.aklivity.zilla.runtime.common.avro;
-    requires io.aklivity.zilla.runtime.common.json;
+    requires jakarta.json;
+    requires jakarta.json.bind;
+    requires org.agrona;
+    requires io.aklivity.zilla.config.engine;
 
-    requires io.aklivity.zilla.config.model.avro;
+    exports io.aklivity.zilla.config.model.avro;
 
-    provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
-        with io.aklivity.zilla.runtime.model.avro.internal.AvroModelFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.model.avro.internal.AvroModelEventFormatterFactory;
+    provides io.aklivity.zilla.config.engine.ModelConfigAdapterSpi
+        with io.aklivity.zilla.config.model.avro.internal.AvroModelConfigAdapter;
 }

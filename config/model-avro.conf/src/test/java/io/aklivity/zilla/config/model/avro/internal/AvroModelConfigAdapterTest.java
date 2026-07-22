@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.avro.internal.config;
+package io.aklivity.zilla.config.model.avro.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
-import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
+import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 
 public class AvroModelConfigAdapterTest
 {

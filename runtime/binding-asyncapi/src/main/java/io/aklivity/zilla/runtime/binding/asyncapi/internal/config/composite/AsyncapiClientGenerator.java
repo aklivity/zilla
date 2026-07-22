@@ -34,6 +34,7 @@ import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
@@ -50,7 +51,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMultiFormatSchemaView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public final class AsyncapiClientGenerator extends AsyncapiCompositeGenerator
 {
