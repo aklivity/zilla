@@ -32,10 +32,6 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-
 public final class HttpAccessControlConfig
 {
     private static final Pattern ORIGIN_PATTERN = Pattern.compile("(?<scheme>https?)://(?<authority>[^/]+)");
@@ -43,25 +39,6 @@ public final class HttpAccessControlConfig
 
     private static final ThreadLocal<Matcher> ORIGIN_MATCHER = withInitial(() -> ORIGIN_PATTERN.matcher(""));
     static final ThreadLocal<Matcher> HEADERS_MATCHER = withInitial(() -> HEADERS_PATTERN.matcher(""));
-
-    private static final ThreadLocal<HttpHeaderFW.Builder> HEADER_BUILDER = ThreadLocal.withInitial(HttpHeaderFW.Builder::new);
-
-    private static final String8FW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN = new String8FW("access-control-allow-origin");
-    private static final String8FW HEADER_ACCESS_CONTROL_MAX_AGE = new String8FW("access-control-max-age");
-
-    private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD =
-            new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
-                .name("access-control-allow-origin")
-                .value("*")
-                .build();
-
-    private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS_TRUE =
-            new HttpHeaderFW.Builder()
-                .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
-                .name("access-control-allow-credentials")
-                .value("true")
-                .build();
 
     private static final Set<String> EXPOSED_RESPONSE_HEADERS;
 
@@ -108,42 +85,6 @@ public final class HttpAccessControlConfig
         Map<String, String> headers)
     {
         return policy == SAME_ORIGIN || isSameOrigin(headers) ? SAME_ORIGIN : policy;
-    }
-
-    public HttpHeaderFW allowOriginHeader(
-        HttpPolicyConfig policy,
-        String origin)
-    {
-        HttpHeaderFW allowOrigin = null;
-
-        if (policy == CROSS_ORIGIN)
-        {
-            allowOrigin = origin != null && allowOriginExplicit()
-                ? HEADER_BUILDER.get()
-                        .wrap(new UnsafeBufferEx(new byte[256]), 0, 256)
-                        .name(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN)
-                        .value(origin)
-                        .build()
-                : HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD;
-        }
-
-        return allowOrigin;
-    }
-
-    public HttpHeaderFW allowCredentialsHeader()
-    {
-        return allowCredentialsExplicit() ? HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS_TRUE : null;
-    }
-
-    public HttpHeaderFW maxAgeHeader()
-    {
-        return maxAge != null
-                ? HEADER_BUILDER.get()
-                        .wrap(new UnsafeBufferEx(new byte[256]), 0, 256)
-                        .name(HEADER_ACCESS_CONTROL_MAX_AGE)
-                        .value(Long.toString(maxAge.toSeconds()))
-                        .build()
-                : null;
     }
 
     public boolean allowPreflight(

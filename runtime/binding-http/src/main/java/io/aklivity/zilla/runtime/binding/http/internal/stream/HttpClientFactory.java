@@ -454,7 +454,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final long resolvedId = route.id;
             final Map<String8FW, String16FW> overrides =
-                binding.options != null && binding.options.overrides != null ? binding.options.overrides : EMPTY_OVERRIDES;
+                binding.overrides != null ? binding.overrides : EMPTY_OVERRIDES;
 
             // TODO: store client pools on HttpBindingConfig ?
             final HttpClientPool clientPool =

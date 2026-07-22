@@ -25,15 +25,13 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 
 public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
     private SortedSet<HttpVersion>  versions;
-    private Map<String8FW, String16FW>  overrides;
+    private Map<String, String>  overrides;
     private HttpAccessControlConfig access;
     private HttpAuthorizationConfig authorization;
     private List<HttpRequestConfig> requests;
@@ -63,8 +61,8 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     }
 
     public HttpOptionsConfigBuilder<T> override(
-        String8FW name,
-        String16FW value)
+        String name,
+        String value)
     {
         if (overrides == null)
         {
@@ -72,13 +70,6 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
         }
         overrides.put(name, value);
         return this;
-    }
-
-    public HttpOptionsConfigBuilder<T> override(
-        String name,
-        String value)
-    {
-        return override(new String8FW(name), new String16FW(value));
     }
 
     public HttpOptionsConfigBuilder<T> requests(

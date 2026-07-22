@@ -40,8 +40,6 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
@@ -128,7 +126,7 @@ public class HttpOptionsConfigAdapterTest
         assertThat(options.authorization.credentials.headers.get(0), not(nullValue()));
         assertThat(options.authorization.credentials.parameters, nullValue());
         assertThat(options.authorization.credentials.cookies, nullValue());
-        assertThat(options.overrides, equalTo(singletonMap(new String8FW(":authority"), new String16FW("example.com:443"))));
+        assertThat(options.overrides, equalTo(singletonMap(":authority", "example.com:443")));
         HttpRequestConfig request = options.requests.get(0);
         assertThat(request.path, equalTo("/hello"));
         assertThat(request.method, equalTo(HttpRequestConfig.Method.GET));
@@ -194,7 +192,7 @@ public class HttpOptionsConfigAdapterTest
             .inject(identity())
             .version(HttpVersion.HTTP_1_1)
             .version(HttpVersion.HTTP_2)
-            .override(new String8FW(":authority"), new String16FW("example.com:443"))
+            .override(":authority", "example.com:443")
             .access()
                 .inject(identity())
                 .policy(CROSS_ORIGIN)

@@ -46,8 +46,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 
 public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -227,7 +225,7 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             !httpOptions.overrides.isEmpty())
         {
             JsonObjectBuilder entries = Json.createObjectBuilder();
-            httpOptions.overrides.forEach((k, v) -> entries.add(k.asString(), v.asString()));
+            httpOptions.overrides.forEach(entries::add);
 
             object.add(OVERRIDES_NAME, entries);
         }
@@ -383,7 +381,7 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         {
             object.getJsonObject(OVERRIDES_NAME)
                 .forEach((k, v) ->
-                    httpOptions.override(new String8FW(k), new String16FW(JsonString.class.cast(v).getString())));
+                    httpOptions.override(k, JsonString.class.cast(v).getString()));
         }
 
         if (object.containsKey(REQUESTS_NAME))

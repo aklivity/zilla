@@ -27,13 +27,11 @@ import java.util.stream.Stream;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 
 public final class HttpOptionsConfig extends OptionsConfig
 {
     public final SortedSet<HttpVersion>  versions;
-    public final Map<String8FW, String16FW>  overrides;
+    public final Map<String, String>  overrides;
     public final HttpAccessControlConfig access;
     public final HttpAuthorizationConfig authorization;
     public final List<HttpRequestConfig> requests;
@@ -51,7 +49,7 @@ public final class HttpOptionsConfig extends OptionsConfig
 
     HttpOptionsConfig(
         SortedSet<HttpVersion>  versions,
-        Map<String8FW, String16FW> overrides,
+        Map<String, String> overrides,
         HttpAccessControlConfig access,
         HttpAuthorizationConfig authorization,
         List<HttpRequestConfig> requests)
