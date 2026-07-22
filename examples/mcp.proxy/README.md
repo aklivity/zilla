@@ -364,9 +364,9 @@ is created by the one-shot `kafka-init` service, though
 `KAFKA_AUTO_CREATE_TOPICS_ENABLE` would create it anyway on first produce).
 
 Both routes below restrict their tool to exactly the `orders` topic --
-`tool` and `topic` together in one `when` form an allow-list, not just a
-dispatch by tool name; a `produce`/`consume` call naming any other topic has
-no matching route and is rejected.
+`tool` and `topics` together in one `when` form an allow-list (exact names or
+`*`-glob patterns), not just a dispatch by tool name; a `produce`/`consume`
+call naming any other topic has no matching route and is rejected.
 
 Produce a record with the full-scope `$JWT_TOKEN` from above:
 

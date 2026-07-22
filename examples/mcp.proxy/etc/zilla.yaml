@@ -573,16 +573,17 @@ bindings:
     options:
       servers:
         - kafka.examples.dev:29092
-    # tool + topic together restrict each route to exactly one topic -- an
-    # allow-list, not just a tool-name dispatch; a produce/consume call
-    # naming any other topic has no matching route and is rejected
+    # tool + topics together restrict each route to an allow-list of topics
+    # (exact names or *-glob patterns), not just a tool-name dispatch; a
+    # produce/consume call naming any other topic has no matching route
+    # and is rejected
     routes:
       - when:
           - tool: produce
-            topic: orders
+            topics: [orders]
       - when:
           - tool: consume
-            topic: orders
+            topics: [orders]
 telemetry:
   metrics:
     - mcp.initialize
