@@ -13,13 +13,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.runtime.binding.sse
+module io.aklivity.zilla.config.binding.sse
 {
-    requires io.aklivity.zilla.config.binding.sse;
-    requires io.aklivity.zilla.runtime.engine;
+    requires jakarta.json;
+    requires jakarta.json.bind;
+    requires org.agrona;
+    requires io.aklivity.zilla.config.engine;
 
-    exports io.aklivity.zilla.runtime.binding.sse.config;
+    exports io.aklivity.zilla.config.binding.sse;
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.sse.internal.SseBindingFactorySpi;
+    provides io.aklivity.zilla.config.engine.BindingInfo
+        with io.aklivity.zilla.config.binding.sse.SseBindingInfo;
 }

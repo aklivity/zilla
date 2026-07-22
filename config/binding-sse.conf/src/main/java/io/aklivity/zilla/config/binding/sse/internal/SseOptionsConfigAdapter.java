@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.internal.config;
+package io.aklivity.zilla.config.binding.sse.internal;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,14 +24,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.sse.SseOptionsConfig;
+import io.aklivity.zilla.config.binding.sse.SseOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.sse.SseRequestConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
-import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.sse.config.SseRequestConfig;
-import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
 
-public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public final class SseOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String RETRY_NAME = "retry";
     private static final String REQUESTS_NAME = "requests";
@@ -39,18 +37,6 @@ public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
 
     private final SseRequestConfigAdapter ssePath = new SseRequestConfigAdapter();
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.BINDING;
-    }
-
-    @Override
-    public String type()
-    {
-        return SseBinding.NAME;
-    }
 
     @Override
     public JsonObject adaptToJson(

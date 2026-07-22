@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.sse.internal.config.SseOptionsConfigAdapter.RETRY_DEFAULT;
+import static io.aklivity.zilla.config.binding.sse.internal.SseOptionsConfigAdapter.RETRY_DEFAULT;
 import static java.util.stream.Collectors.toList;
 
 import java.util.HashMap;
@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.config.binding.sse.SseOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
 
 public final class SseBindingConfig
 {

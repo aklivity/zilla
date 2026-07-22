@@ -13,10 +13,12 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.internal.config;
+package io.aklivity.zilla.config.binding.sse.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -27,8 +29,10 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
+import io.aklivity.zilla.config.binding.sse.SseOptionsConfig;
+import io.aklivity.zilla.config.binding.sse.SseRequestConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class SseOptionsConfigAdapterTest
 {
@@ -70,6 +74,53 @@ public class SseOptionsConfigAdapterTest
         assertThat(text, equalTo(
                 """
                 retry: 3000
+                """));
+    }
+
+    @Test
+    public void shouldReadOptionsWithRequests()
+    {
+        String text =
+                """
+                retry: 3000
+                requests:
+                  - path: /events
+                    content: test
+                """;
+
+        SseOptionsConfig options = jsonb.fromJson(text, SseOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.requests, not(nullValue()));
+        assertThat(options.requests, hasSize(1));
+        SseRequestConfig request = options.requests.get(0);
+        assertThat(request.path, equalTo("/events"));
+        assertThat(request.content, instanceOf(TestModelConfig.class));
+        assertThat(request.content.model, equalTo("test"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithRequests()
+    {
+        SseOptionsConfig options = SseOptionsConfig.builder()
+            .retry(3000)
+            .request()
+                .path("/events")
+                .content(TestModelConfig.builder()
+                    .length(0)
+                    .build())
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+                """
+                retry: 3000
+                requests:
+                  - path: /events
+                    content: test
                 """));
     }
 }

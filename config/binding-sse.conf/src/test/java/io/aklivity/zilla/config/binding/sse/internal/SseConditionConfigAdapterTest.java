@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.internal.config;
+package io.aklivity.zilla.config.binding.sse.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -27,7 +27,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
+import io.aklivity.zilla.config.binding.sse.SseConditionConfig;
 
 public class SseConditionConfigAdapterTest
 {

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.internal.config;
+package io.aklivity.zilla.config.binding.sse.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -21,9 +21,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.sse.SsePathConfigBuilder;
+import io.aklivity.zilla.config.binding.sse.SseRequestConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
-import io.aklivity.zilla.runtime.binding.sse.config.SsePathConfigBuilder;
-import io.aklivity.zilla.runtime.binding.sse.config.SseRequestConfig;
 
 public class SseRequestConfigAdapter implements JsonbAdapter<SseRequestConfig, JsonObject>
 {
