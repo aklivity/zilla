@@ -19,15 +19,13 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 
 public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopicConfigBuilder<T>>
 {
     private final Function<KafkaTopicConfig, T> mapper;
     private String name;
-    private KafkaOffsetType defaultOffset;
-    private KafkaDeltaType deltaType;
+    private String defaultOffset;
+    private String deltaType;
     private KafkaTopicTransformsConfig transforms;
     private ModelConfig key;
     private ModelConfig value;
@@ -53,14 +51,14 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
     }
 
     public KafkaTopicConfigBuilder<T> defaultOffset(
-        KafkaOffsetType defaultOffset)
+        String defaultOffset)
     {
         this.defaultOffset = defaultOffset;
         return this;
     }
 
     public KafkaTopicConfigBuilder<T> deltaType(
-        KafkaDeltaType deltaType)
+        String deltaType)
     {
         this.deltaType = deltaType;
         return this;

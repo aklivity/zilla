@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType.JSON_PATCH;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -73,7 +71,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
         assertThat(options.topics, equalTo(singletonList(KafkaTopicConfig.builder()
-            .name("test").defaultOffset(LIVE).deltaType(JSON_PATCH).build())));
+            .name("test").defaultOffset("live").deltaType("json_patch").build())));
         assertThat(options.sasl.mechanism, equalTo("plain"));
         assertThat(options.sasl.username, equalTo("username"));
         assertThat(options.sasl.password, equalTo("password"));
@@ -86,8 +84,8 @@ public class KafkaOptionsConfigAdapterTest
             .bootstrap("test")
             .topic()
                 .name("test")
-                .defaultOffset(LIVE)
-                .deltaType(JSON_PATCH)
+                .defaultOffset("live")
+                .deltaType("json_patch")
                 .value(TestModelConfig.builder().build())
                 .build()
             .server()
@@ -144,7 +142,7 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
         assertThat(options.topics, equalTo(singletonList(
-            KafkaTopicConfig.builder().name("test").defaultOffset(LIVE).deltaType(JSON_PATCH).build())));
+            KafkaTopicConfig.builder().name("test").defaultOffset("live").deltaType("json_patch").build())));
         assertThat(options.sasl.mechanism, equalTo("scram-sha-256"));
         assertThat(options.sasl.username, equalTo("username"));
         assertThat(options.sasl.password, equalTo("password"));
@@ -157,8 +155,8 @@ public class KafkaOptionsConfigAdapterTest
             .bootstrap("test")
             .topic()
                 .name("test")
-                .defaultOffset(LIVE)
-                .deltaType(JSON_PATCH)
+                .defaultOffset("live")
+                .deltaType("json_patch")
                 .build()
             .server()
                 .host("localhost")
@@ -198,8 +196,8 @@ public class KafkaOptionsConfigAdapterTest
             .bootstrap("test")
             .topic()
                 .name("test")
-                .defaultOffset(LIVE)
-                .deltaType(JSON_PATCH)
+                .defaultOffset("live")
+                .deltaType("json_patch")
                 .value(TestModelConfig.builder().length(0).build())
                 .build()
             .server()

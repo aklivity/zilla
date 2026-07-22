@@ -128,14 +128,18 @@ public final class KafkaBindingConfig
         KafkaDeltaType deltaType)
     {
         KafkaTopicConfig config = topic(topic);
-        return config != null && config.deltaType != null ? config.deltaType : deltaType;
+        return config != null && config.deltaType != null
+            ? KafkaDeltaType.valueOf(config.deltaType.toUpperCase())
+            : deltaType;
     }
 
     public KafkaOffsetType supplyDefaultOffset(
         String topic)
     {
         KafkaTopicConfig config = topic(topic);
-        return config != null && config.defaultOffset != null ? config.defaultOffset : HISTORICAL;
+        return config != null && config.defaultOffset != null
+            ? KafkaOffsetType.valueOf(config.defaultOffset.toUpperCase())
+            : HISTORICAL;
     }
 
     public KafkaTopicType resolveTopicType(

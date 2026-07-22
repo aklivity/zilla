@@ -26,8 +26,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 
 public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicConfig, JsonObject>
 {
@@ -54,11 +52,11 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
         }
         if (topic.defaultOffset != null)
         {
-            object.add(DEFAULT_OFFSET_NAME, topic.defaultOffset.toString().toLowerCase());
+            object.add(DEFAULT_OFFSET_NAME, topic.defaultOffset);
         }
         if (topic.deltaType != null)
         {
-            object.add(DELTA_TYPE_NAME, topic.deltaType.toString().toLowerCase());
+            object.add(DELTA_TYPE_NAME, topic.deltaType);
         }
 
         if (topic.key != null)
@@ -94,11 +92,11 @@ public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicCon
         topicBuilder.name(name);
 
         topicBuilder.defaultOffset(object.containsKey(DEFAULT_OFFSET_NAME)
-                ? KafkaOffsetType.valueOf(object.getString(DEFAULT_OFFSET_NAME).toUpperCase())
+                ? object.getString(DEFAULT_OFFSET_NAME)
                 : null);
 
         topicBuilder.deltaType(object.containsKey(DELTA_TYPE_NAME)
-                ? KafkaDeltaType.valueOf(object.getString(DELTA_TYPE_NAME).toUpperCase())
+                ? object.getString(DELTA_TYPE_NAME)
                 : null);
 
         JsonObject key = object.containsKey(EVENT_KEY)
