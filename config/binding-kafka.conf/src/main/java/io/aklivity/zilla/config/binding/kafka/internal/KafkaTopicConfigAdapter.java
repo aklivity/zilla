@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.config.binding.kafka.internal;
 
 import static jakarta.json.JsonValue.ValueType.OBJECT;
 
@@ -23,9 +23,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 
 public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicConfig, JsonObject>
 {

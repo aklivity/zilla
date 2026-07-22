@@ -22,17 +22,10 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 
-public final class KafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public final class KafkaConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String TOPIC_NAME = "topic";
-
-    @Override
-    public String type()
-    {
-        return "kafka";
-    }
 
     @Override
     public JsonObject adaptToJson(

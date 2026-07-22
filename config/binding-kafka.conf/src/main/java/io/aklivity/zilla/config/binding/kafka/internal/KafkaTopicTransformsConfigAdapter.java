@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.config.binding.kafka.internal;
 
 import java.util.Map;
 
@@ -24,9 +24,9 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicHeaderConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfigBuilder;
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicHeaderConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicTransformsConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicTransformsConfigBuilder;
 
 public final class KafkaTopicTransformsConfigAdapter implements JsonbAdapter<KafkaTopicTransformsConfig, JsonObject>
 {

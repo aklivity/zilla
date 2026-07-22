@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.config.binding.kafka.internal;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,13 +26,11 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 
-public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public final class KafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
     private static final String BOOTSTRAP_NAME = "bootstrap";
@@ -48,18 +46,6 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
 
     private final KafkaTopicConfigAdapter topic = new KafkaTopicConfigAdapter();
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.BINDING;
-    }
-
-    @Override
-    public String type()
-    {
-        return KafkaBinding.NAME;
-    }
 
     @Override
     public JsonObject adaptToJson(

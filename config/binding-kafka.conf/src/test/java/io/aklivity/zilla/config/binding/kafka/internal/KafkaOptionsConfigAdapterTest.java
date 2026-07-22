@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.config.binding.kafka.internal;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,8 +29,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 

@@ -21,7 +21,7 @@ import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
 
 public final class KafkaClientRoute
 {

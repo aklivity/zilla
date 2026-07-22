@@ -23,8 +23,8 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntObjectToObjectFunction;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.binding.kafka.KafkaSaslConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.budget.KafkaMergedBudgetAccountant;
