@@ -65,9 +65,9 @@ public class MqttKafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.topics, not(nullValue()));
-        assertThat(options.topics.sessions.asString(), equalTo("sessions"));
-        assertThat(options.topics.messages.asString(), equalTo("messages"));
-        assertThat(options.topics.retained.asString(), equalTo("retained"));
+        assertThat(options.topics.sessions, equalTo("sessions"));
+        assertThat(options.topics.messages, equalTo("messages"));
+        assertThat(options.topics.retained, equalTo("retained"));
         assertThat(options.clients, not(nullValue()));
         assertThat(options.clients.size(), equalTo(2));
         assertThat(options.clients.get(0), equalTo("/clients/{identity}/#"));
@@ -116,9 +116,9 @@ public class MqttKafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.topics, not(nullValue()));
-        assertThat(options.topics.sessions.asString(), equalTo("sessions"));
-        assertThat(options.topics.messages.asString(), equalTo("messages"));
-        assertThat(options.topics.retained.asString(), equalTo("retained"));
+        assertThat(options.topics.sessions, equalTo("sessions"));
+        assertThat(options.topics.messages, equalTo("messages"));
+        assertThat(options.topics.retained, equalTo("retained"));
     }
 
     @Test

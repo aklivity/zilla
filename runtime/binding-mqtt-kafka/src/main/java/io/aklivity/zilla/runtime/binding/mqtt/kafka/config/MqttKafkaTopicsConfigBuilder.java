@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
 public class MqttKafkaTopicsConfigBuilder<T> extends ConfigBuilder<T, MqttKafkaTopicsConfigBuilder<T>>
 {
@@ -66,7 +65,6 @@ public class MqttKafkaTopicsConfigBuilder<T> extends ConfigBuilder<T, MqttKafkaT
     @Override
     public T build()
     {
-        return mapper.apply(
-            new MqttKafkaTopicsConfig(new String16FW(sessions), new String16FW(messages), new String16FW(retained)));
+        return mapper.apply(new MqttKafkaTopicsConfig(sessions, messages, retained));
     }
 }

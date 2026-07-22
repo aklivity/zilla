@@ -47,6 +47,11 @@ public class MqttKafkaBindingConfig
 
     public MqttKafkaSessionFactory.KafkaSignalStream willProxy;
 
+    private final MqttQoS publishQosMax;
+    private final String16FW messagesTopic;
+    private final String16FW sessionsTopic;
+    private final String16FW retainedTopic;
+
     public MqttKafkaBindingConfig(
         BindingConfig binding)
     {
@@ -61,6 +66,10 @@ public class MqttKafkaBindingConfig
                 options.clients != null &&
                 options.clients.stream().anyMatch(r::matchesClient))
             .toList();
+        this.publishQosMax = MqttQoS.valueOf(options.publish.qosMax.toUpperCase());
+        this.messagesTopic = new String16FW(options.topics.messages);
+        this.sessionsTopic = new String16FW(options.topics.sessions);
+        this.retainedTopic = new String16FW(options.topics.retained);
     }
 
     public MqttKafkaRouteConfig resolve(
@@ -95,22 +104,22 @@ public class MqttKafkaBindingConfig
     public MqttQoS publishQosMax()
     {
         return routes.stream().noneMatch(r -> r.with != null && r.with.containsParams()) ?
-            options.publish.qosMax : AT_LEAST_ONCE;
+            publishQosMax : AT_LEAST_ONCE;
     }
 
     public String16FW messagesTopic()
     {
-        return options.topics.messages;
+        return messagesTopic;
     }
 
     public String16FW sessionsTopic()
     {
-        return options.topics.sessions;
+        return sessionsTopic;
     }
 
     public String16FW retainedTopic()
     {
-        return options.topics.retained;
+        return retainedTopic;
     }
 
     public List<MqttKafkaRouteConfig> bootstrapRoutes()

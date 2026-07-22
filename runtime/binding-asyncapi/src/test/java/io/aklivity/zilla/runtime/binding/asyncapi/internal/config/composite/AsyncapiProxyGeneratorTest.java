@@ -460,9 +460,9 @@ public class AsyncapiProxyGeneratorTest
             .orElseThrow();
         MqttKafkaOptionsConfig options = (MqttKafkaOptionsConfig) mqttKafka.options;
 
-        assertThat(options.topics.sessions.asString(), equalTo("mqtt-sessions"));
-        assertThat(options.topics.messages.asString(), equalTo("mqtt-messages"));
-        assertThat(options.topics.retained.asString(), equalTo("mqtt-retained"));
+        assertThat(options.topics.sessions, equalTo("mqtt-sessions"));
+        assertThat(options.topics.messages, equalTo("mqtt-messages"));
+        assertThat(options.topics.retained, equalTo("mqtt-retained"));
     }
 
     @Test

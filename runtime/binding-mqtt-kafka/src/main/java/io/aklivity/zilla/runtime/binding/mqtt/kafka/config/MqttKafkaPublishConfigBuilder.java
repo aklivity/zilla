@@ -17,13 +17,12 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 
 public class MqttKafkaPublishConfigBuilder<T> extends ConfigBuilder<T, MqttKafkaPublishConfigBuilder<T>>
 {
     private final Function<MqttKafkaPublishConfig, T> mapper;
 
-    private MqttQoS qosMax;
+    private String qosMax;
 
     MqttKafkaPublishConfigBuilder(
         Function<MqttKafkaPublishConfig, T> mapper)
@@ -42,7 +41,7 @@ public class MqttKafkaPublishConfigBuilder<T> extends ConfigBuilder<T, MqttKafka
     public MqttKafkaPublishConfigBuilder<T> qosMax(
         String qosMax)
     {
-        this.qosMax = MqttQoS.valueOf(qosMax.toUpperCase());
+        this.qosMax = qosMax;
         return this;
     }
 

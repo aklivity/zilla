@@ -16,13 +16,11 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
-
 public class MqttKafkaTopicsConfig
 {
-    public final String16FW sessions;
-    public final String16FW messages;
-    public final String16FW retained;
+    public final String sessions;
+    public final String messages;
+    public final String retained;
 
     public static MqttKafkaTopicsConfigBuilder<MqttKafkaTopicsConfig> builder()
     {
@@ -36,9 +34,9 @@ public class MqttKafkaTopicsConfig
     }
 
     MqttKafkaTopicsConfig(
-        String16FW sessions,
-        String16FW messages,
-        String16FW retained)
+        String sessions,
+        String messages,
+        String retained)
     {
         this.sessions = sessions;
         this.messages = messages;

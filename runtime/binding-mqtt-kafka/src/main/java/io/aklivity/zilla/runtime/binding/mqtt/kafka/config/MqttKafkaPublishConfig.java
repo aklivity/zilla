@@ -16,11 +16,9 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
-
 public class MqttKafkaPublishConfig
 {
-    public final MqttQoS qosMax;
+    public final String qosMax;
 
     public static MqttKafkaPublishConfigBuilder<MqttKafkaPublishConfig> builder()
     {
@@ -34,7 +32,7 @@ public class MqttKafkaPublishConfig
     }
 
     MqttKafkaPublishConfig(
-        MqttQoS qosMax)
+        String qosMax)
     {
         this.qosMax = qosMax;
     }

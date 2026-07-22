@@ -29,7 +29,7 @@ public class MqttKafkaWithResolver
 
     private final Matcher paramsMatcher;
     private final MqttKafkaWithConfig with;
-    private final MqttKafkaOptionsConfig options;
+    private final String16FW messagesTopic;
 
     private Function<MatchResult, String> replacer = r -> null;
 
@@ -39,7 +39,7 @@ public class MqttKafkaWithResolver
     {
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
         this.with = with;
-        this.options = options;
+        this.messagesTopic = new String16FW(options.topics.messages);
     }
 
     public void onConditionMatched(
@@ -70,6 +70,6 @@ public class MqttKafkaWithResolver
 
             topic = result.toString();
         }
-        return topic == null ? options.topics.messages : new String16FW(topic);
+        return topic == null ? messagesTopic : new String16FW(topic);
     }
 }

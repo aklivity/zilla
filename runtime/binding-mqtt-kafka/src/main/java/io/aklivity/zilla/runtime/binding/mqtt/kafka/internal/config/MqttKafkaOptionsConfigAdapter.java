@@ -32,7 +32,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaPublishConfi
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaTopicsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
 public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -43,6 +42,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String RETAINED_NAME = "retained";
     private static final String PUBLISH_NAME = "publish";
     private static final String QOS_MAX_NAME = "qosMax";
+    private static final String QOS_MAX_DEFAULT = MqttQoS.EXACTLY_ONCE.name().toLowerCase();
 
     @Override
     public Kind kind()
@@ -70,22 +70,22 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (topics != null)
         {
             JsonObjectBuilder newTopics = Json.createObjectBuilder();
-            String16FW sessions = topics.sessions;
+            String sessions = topics.sessions;
             if (sessions != null)
             {
-                newTopics.add(SESSIONS_NAME, sessions.asString());
+                newTopics.add(SESSIONS_NAME, sessions);
             }
 
-            String16FW messages = topics.messages;
+            String messages = topics.messages;
             if (messages != null)
             {
-                newTopics.add(MESSAGES_NAME, messages.asString());
+                newTopics.add(MESSAGES_NAME, messages);
             }
 
-            String16FW retained = topics.retained;
+            String retained = topics.retained;
             if (retained != null)
             {
-                newTopics.add(RETAINED_NAME, retained.asString());
+                newTopics.add(RETAINED_NAME, retained);
             }
 
             object.add(TOPICS_NAME, newTopics);
@@ -133,7 +133,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         else
         {
             options.publish(MqttKafkaPublishConfig.builder()
-                .qosMax(MqttQoS.EXACTLY_ONCE.name()).build());
+                .qosMax(QOS_MAX_DEFAULT).build());
         }
 
         return options.build();
