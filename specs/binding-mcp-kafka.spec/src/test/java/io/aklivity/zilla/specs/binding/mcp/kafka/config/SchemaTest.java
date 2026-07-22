@@ -81,6 +81,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyProduceTopicGlob()
+    {
+        JsonObject config = schema.validate("proxy.produce.topic.glob.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateClientTopics()
     {
         JsonObject config = schema.validate("client.topics.yaml");

@@ -70,10 +70,14 @@
                                                 "title": "Resource URI",
                                                 "type": "string"
                                             },
-                                            "topic":
+                                            "topics":
                                             {
-                                                "title": "Topic Name",
-                                                "type": "string"
+                                                "title": "Topic Names",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                }
                                             }
                                         },
                                         "additionalProperties": false
@@ -205,10 +209,14 @@
                                                 "title": "Resource URI",
                                                 "type": "string"
                                             },
-                                            "topic":
+                                            "topics":
                                             {
-                                                "title": "Topic Name",
-                                                "type": "string"
+                                                "title": "Topic Names",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "string"
+                                                }
                                             }
                                         },
                                         "additionalProperties": false

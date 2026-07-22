@@ -14,9 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaConditionConfig;
@@ -28,7 +34,7 @@ public final class McpKafkaConditionConfigAdapter implements ConditionConfigAdap
 {
     private static final String TOOL_NAME = "tool";
     private static final String RESOURCE_NAME = "resource";
-    private static final String TOPIC_NAME = "topic";
+    private static final String TOPICS_NAME = "topics";
 
     @Override
     public String type()
@@ -54,9 +60,11 @@ public final class McpKafkaConditionConfigAdapter implements ConditionConfigAdap
             object.add(RESOURCE_NAME, mcpKafkaCondition.resource);
         }
 
-        if (mcpKafkaCondition.topic != null)
+        if (mcpKafkaCondition.topics != null)
         {
-            object.add(TOPIC_NAME, mcpKafkaCondition.topic);
+            JsonArrayBuilder topics = Json.createArrayBuilder();
+            mcpKafkaCondition.topics.forEach(topics::add);
+            object.add(TOPICS_NAME, topics);
         }
 
         return object.build();
@@ -74,10 +82,13 @@ public final class McpKafkaConditionConfigAdapter implements ConditionConfigAdap
             ? object.getString(RESOURCE_NAME)
             : null;
 
-        String topic = object.containsKey(TOPIC_NAME)
-            ? object.getString(TOPIC_NAME)
+        List<String> topics = object.containsKey(TOPICS_NAME)
+            ? object.getJsonArray(TOPICS_NAME).stream()
+                .map(JsonString.class::cast)
+                .map(JsonString::getString)
+                .collect(toList())
             : null;
 
-        return new McpKafkaConditionConfig(tool, resource, topic);
+        return new McpKafkaConditionConfig(tool, resource, topics);
     }
 }

@@ -18,15 +18,9 @@ name: test
 bindings:
   mcp0:
     type: mcp_kafka
-    kind: client
-    options:
-      servers:
-        - localhost:9092
-      topics:
-        - name: orders
-          value:
-            model: test
+    kind: proxy
     routes:
-      - when:
+      - exit: kafka0
+        when:
           - tool: produce
-            topics: [orders]
+            topics: ["orders*"]

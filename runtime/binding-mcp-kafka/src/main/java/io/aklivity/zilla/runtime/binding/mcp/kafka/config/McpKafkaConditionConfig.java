@@ -14,21 +14,23 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.config;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class McpKafkaConditionConfig extends ConditionConfig
 {
     public final String tool;
     public final String resource;
-    public final String topic;
+    public final List<String> topics;
 
     public McpKafkaConditionConfig(
         String tool,
         String resource,
-        String topic)
+        List<String> topics)
     {
         this.tool = tool;
         this.resource = resource;
-        this.topic = topic;
+        this.topics = topics;
     }
 }

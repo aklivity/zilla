@@ -137,6 +137,15 @@ public class McpIT
 
     @Test
     @Specification({
+        "${mcp}/produce.topic.glob/client",
+        "${mcp}/produce.topic.glob/server"})
+    public void shouldProduceWhenTopicMatchesGlob() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/produce.abort/client",
         "${mcp}/produce.abort/server"})
     public void shouldAbortMidProduce() throws Exception

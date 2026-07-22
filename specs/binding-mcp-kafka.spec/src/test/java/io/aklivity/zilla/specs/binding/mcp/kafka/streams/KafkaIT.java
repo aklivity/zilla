@@ -107,4 +107,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/produce.topic.glob/client",
+        "${kafka}/produce.topic.glob/server"})
+    public void shouldProduceWhenTopicMatchesGlob() throws Exception
+    {
+        k3po.finish();
+    }
 }

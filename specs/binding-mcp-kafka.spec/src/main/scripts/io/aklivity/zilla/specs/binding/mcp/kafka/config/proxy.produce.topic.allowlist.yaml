@@ -23,6 +23,4 @@ bindings:
       - exit: kafka0
         when:
           - tool: produce
-            topic: orders
-          - tool: produce
-            topic: shipments
+            topics: [orders, shipments]

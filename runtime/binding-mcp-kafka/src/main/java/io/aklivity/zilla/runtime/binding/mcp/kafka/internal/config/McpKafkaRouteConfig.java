@@ -28,7 +28,7 @@ public final class McpKafkaRouteConfig
 {
     public long id;
 
-    private final List<McpKafkaConditionConfig> when;
+    private final List<McpKafkaConditionMatcher> when;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public McpKafkaRouteConfig(
@@ -37,6 +37,7 @@ public final class McpKafkaRouteConfig
         this.id = route.id;
         this.when = route.when.stream()
             .map(McpKafkaConditionConfig.class::cast)
+            .map(McpKafkaConditionMatcher::new)
             .collect(toList());
         this.authorized = route.authorized;
     }
@@ -51,20 +52,6 @@ public final class McpKafkaRouteConfig
         String tool,
         String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(w -> matchesTool(w, tool) && matchesTopic(w, topic));
-    }
-
-    private boolean matchesTool(
-        McpKafkaConditionConfig condition,
-        String tool)
-    {
-        return condition.tool == null || condition.tool.equals(tool);
-    }
-
-    private boolean matchesTopic(
-        McpKafkaConditionConfig condition,
-        String topic)
-    {
-        return topic == null || condition.topic == null || condition.topic.equals(topic);
+        return when.isEmpty() || when.stream().anyMatch(w -> w.matchesTool(tool) && w.matchesTopic(topic));
     }
 }

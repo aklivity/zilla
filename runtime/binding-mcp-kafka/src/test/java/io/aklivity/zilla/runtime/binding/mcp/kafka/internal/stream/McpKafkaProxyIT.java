@@ -150,6 +150,16 @@ public class McpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.produce.topic.glob.yaml")
+    @Specification({
+        "${mcp}/produce.topic.glob/client",
+        "${kafka}/produce.topic.glob/server"})
+    public void shouldProduceWhenTopicMatchesGlob() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.produce.guarded.yaml")
     @Specification({
         "${mcp}/reject.not.authorized/client"})
