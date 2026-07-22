@@ -740,11 +740,11 @@ public class McpKafkaProxyFactoryTest
     }
 
     @Test
-    public void shouldRouteOtherToolsWithoutBufferingArguments() throws Exception
+    public void shouldRouteUnrecognizedToolWithoutBufferingArguments() throws Exception
     {
-        factory.attach(newBinding("list_topics"));
+        factory.attach(newBinding("unsupported_tool"));
 
-        final MessageConsumer stream = beginToolsCall("list_topics", -1, 0L);
+        final MessageConsumer stream = beginToolsCall("unsupported_tool", -1, 0L);
 
         assertNotNull(stream);
         assertEquals(1, countOf(kafkaSent, BeginFW.TYPE_ID));

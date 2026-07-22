@@ -44,7 +44,6 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaAr
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaConsumeResult;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaKeyFW;
-import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaResourceType;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.BeginFW;
@@ -83,35 +82,11 @@ public class McpKafkaProxyFactory implements BindingHandler
 
     private static final String TOOL_PRODUCE = "produce";
     private static final String TOOL_CONSUME = "consume";
-    private static final String TOOL_LIST_TOPICS = "list_topics";
-    private static final String TOOL_DESCRIBE_TOPIC = "describe_topic";
-    private static final String TOOL_CREATE_TOPIC = "create_topic";
-    private static final String TOOL_DELETE_TOPIC = "delete_topic";
-    private static final String TOOL_LIST_CONSUMER_GROUPS = "list_consumer_groups";
-    private static final String TOOL_DESCRIBE_CONSUMER_GROUP = "describe_consumer_group";
-    private static final String TOOL_RESET_OFFSETS = "reset_offsets";
-    private static final String TOOL_LIST_BROKERS = "list_brokers";
-    private static final String TOOL_DESCRIBE_CLUSTER = "describe_cluster";
-    private static final String TOOL_CLUSTER_OVERVIEW = "cluster_overview";
-    private static final String TOOL_DESCRIBE_CONFIGS = "describe_configs";
-    private static final String TOOL_ALTER_CONFIGS = "alter_configs";
 
     private static final String[] TOOL_NAMES =
     {
         TOOL_PRODUCE,
-        TOOL_CONSUME,
-        TOOL_LIST_TOPICS,
-        TOOL_DESCRIBE_TOPIC,
-        TOOL_CREATE_TOPIC,
-        TOOL_DELETE_TOPIC,
-        TOOL_LIST_CONSUMER_GROUPS,
-        TOOL_DESCRIBE_CONSUMER_GROUP,
-        TOOL_RESET_OFFSETS,
-        TOOL_LIST_BROKERS,
-        TOOL_DESCRIBE_CLUSTER,
-        TOOL_CLUSTER_OVERVIEW,
-        TOOL_DESCRIBE_CONFIGS,
-        TOOL_ALTER_CONFIGS
+        TOOL_CONSUME
     };
 
     private static final int CAPABILITIES_TOOLS = 1;
@@ -700,53 +675,6 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .partitionsItem(p -> p
                     .partitionId(args != null ? args.partitionId : -1)
                     .partitionOffset(args != null ? args.partitionOffset : -2L)));
-            break;
-        case TOOL_LIST_TOPICS:
-        case TOOL_DESCRIBE_TOPIC:
-            builder.meta(m -> m.topic(resource));
-            break;
-        case TOOL_CREATE_TOPIC:
-            builder.request(r -> r.createTopics(ct -> ct
-                .topicsItem(t -> t
-                    .name(resource)
-                    .partitionCount(1)
-                    .replicas((short) 1))
-                .timeout(0)
-                .validateOnly(0)));
-            break;
-        case TOOL_DELETE_TOPIC:
-            builder.request(r -> r.deleteTopics(dt -> dt
-                .namesItem(n -> n.set(resource, UTF_8))
-                .timeout(0)));
-            break;
-        case TOOL_LIST_CONSUMER_GROUPS:
-            builder.request(r -> r.listGroups(lg ->
-            {
-            }));
-            break;
-        case TOOL_DESCRIBE_CONSUMER_GROUP:
-            builder.request(r -> r.describeGroups(dg -> dg
-                .groupIdsItem(g -> g.set(resource, UTF_8))
-                .includeAuthorizedOperations(0)));
-            break;
-        case TOOL_RESET_OFFSETS:
-            builder.request(r -> r.alterConsumerGroupOffsets(aco -> aco
-                .groupId(resource)));
-            break;
-        case TOOL_LIST_BROKERS:
-        case TOOL_DESCRIBE_CLUSTER:
-        case TOOL_CLUSTER_OVERVIEW:
-            builder.request(r -> r.describeCluster(dc -> dc.includeAuthorizedOperations(0)));
-            break;
-        case TOOL_DESCRIBE_CONFIGS:
-            builder.describe(d -> d.name(resource));
-            break;
-        case TOOL_ALTER_CONFIGS:
-            builder.request(r -> r.alterConfigs(ac -> ac
-                .resourcesItem(res -> res
-                    .type(t -> t.set(KafkaResourceType.TOPIC))
-                    .name(resource))
-                .validateOnly(0)));
             break;
         default:
             builder.merged(m -> m
