@@ -123,8 +123,8 @@ public class McpKafkaProxyIT
     @Test
     @Configuration("proxy.produce.yaml")
     @Specification({
-        "${mcp}/produce.args.multiframe/client",
-        "${kafka}/produce.args.multiframe/server"})
+        "${mcp}/produce.args.fragmented/client",
+        "${kafka}/produce.args.fragmented/server"})
     public void shouldProduceWithArgsSpanningMultipleDataFrames() throws Exception
     {
         k3po.finish();

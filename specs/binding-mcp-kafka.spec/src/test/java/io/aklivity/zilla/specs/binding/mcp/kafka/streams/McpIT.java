@@ -101,8 +101,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.args.multiframe/client",
-        "${mcp}/produce.args.multiframe/server"})
+        "${mcp}/produce.args.fragmented/client",
+        "${mcp}/produce.args.fragmented/server"})
     public void shouldProduceWithArgsSpanningMultipleDataFrames() throws Exception
     {
         k3po.finish();
@@ -110,8 +110,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/consume.result.multiframe/client",
-        "${mcp}/consume.result.multiframe/server"})
+        "${mcp}/consume.result.fragmented/client",
+        "${mcp}/consume.result.fragmented/server"})
     public void shouldChunkConsumeResultAcrossEncodeSlotBoundary() throws Exception
     {
         k3po.finish();

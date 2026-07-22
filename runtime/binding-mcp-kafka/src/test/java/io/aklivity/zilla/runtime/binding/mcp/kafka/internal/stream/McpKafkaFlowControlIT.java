@@ -54,8 +54,8 @@ public class McpKafkaFlowControlIT
     @Test
     @Configuration("proxy.consume.yaml")
     @Specification({
-        "${mcp}/consume.result.multiframe/client",
-        "${kafka}/consume.result.multiframe/server"})
+        "${mcp}/consume.result.fragmented/client",
+        "${kafka}/consume.result.fragmented/server"})
     public void shouldChunkConsumeResultAcrossEncodeSlotBoundary() throws Exception
     {
         k3po.finish();
