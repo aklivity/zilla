@@ -117,7 +117,11 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaMergedFactory clientMergedFactory = new KafkaMergedFactory(
                 config, context, bindings::get, accountant.creditor());
 
+        final KafkaClientApiFactory clientApiFactory = new KafkaClientApiFactory(
+            config, context, bindings::get, accountant::supplyDebitor, signaler, context.streamFactory());
+
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
+        factories.put(KafkaBeginExFW.KIND_API_REQUEST, clientApiFactory);
         factories.put(KafkaBeginExFW.KIND_REQUEST, clientRequestFactory);
         factories.put(KafkaBeginExFW.KIND_META, clientMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, clientDescribeFactory);
