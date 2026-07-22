@@ -103,7 +103,7 @@ public class McpIT
     @Specification({
         "${mcp}/produce.args.fragmented/client",
         "${mcp}/produce.args.fragmented/server"})
-    public void shouldProduceWithArgsSpanningMultipleDataFrames() throws Exception
+    public void shouldProduceArgsFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -112,7 +112,7 @@ public class McpIT
     @Specification({
         "${mcp}/consume.result.fragmented/client",
         "${mcp}/consume.result.fragmented/server"})
-    public void shouldChunkConsumeResultAcrossEncodeSlotBoundary() throws Exception
+    public void shouldConsumeResultFragmented() throws Exception
     {
         k3po.finish();
     }

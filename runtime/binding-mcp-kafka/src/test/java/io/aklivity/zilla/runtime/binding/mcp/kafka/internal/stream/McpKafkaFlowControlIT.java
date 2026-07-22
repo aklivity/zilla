@@ -56,7 +56,7 @@ public class McpKafkaFlowControlIT
     @Specification({
         "${mcp}/consume.result.fragmented/client",
         "${kafka}/consume.result.fragmented/server"})
-    public void shouldChunkConsumeResultAcrossEncodeSlotBoundary() throws Exception
+    public void shouldConsumeResultFragmented() throws Exception
     {
         k3po.finish();
     }

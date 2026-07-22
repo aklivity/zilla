@@ -94,7 +94,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/produce.args.fragmented/client",
         "${kafka}/produce.args.fragmented/server"})
-    public void shouldProduceWithArgsSpanningMultipleDataFrames() throws Exception
+    public void shouldProduceArgsFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -103,7 +103,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/consume.result.fragmented/client",
         "${kafka}/consume.result.fragmented/server"})
-    public void shouldChunkConsumeResultAcrossEncodeSlotBoundary() throws Exception
+    public void shouldConsumeResultFragmented() throws Exception
     {
         k3po.finish();
     }

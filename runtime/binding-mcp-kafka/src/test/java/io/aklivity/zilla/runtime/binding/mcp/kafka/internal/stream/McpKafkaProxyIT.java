@@ -125,7 +125,7 @@ public class McpKafkaProxyIT
     @Specification({
         "${mcp}/produce.args.fragmented/client",
         "${kafka}/produce.args.fragmented/server"})
-    public void shouldProduceWithArgsSpanningMultipleDataFrames() throws Exception
+    public void shouldProduceArgsFragmented() throws Exception
     {
         k3po.finish();
     }
