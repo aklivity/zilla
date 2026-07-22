@@ -24,27 +24,14 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.config.catalog.apicurio.ApicurioOptionsConfig;
 import io.aklivity.zilla.config.catalog.apicurio.ApicurioOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
-public class ApicurioOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public class ApicurioOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String URL = "url";
     private static final String GROUP_ID = "group-id";
     private static final String USE_ID = "use-id";
     private static final String ID_ENCODING = "id-encoding";
     private static final String MAX_AGE_NAME = "max-age";
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.CATALOG;
-    }
-
-    @Override
-    public String type()
-    {
-        return "apicurio";
-    }
 
     @Override
     public JsonObject adaptToJson(

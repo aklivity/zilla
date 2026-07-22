@@ -21,6 +21,6 @@ module io.aklivity.zilla.config.catalog.apicurio
 
     exports io.aklivity.zilla.config.catalog.apicurio;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.catalog.apicurio.internal.ApicurioOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.CatalogInfo
+        with io.aklivity.zilla.config.catalog.apicurio.ApicurioCatalogInfo;
 }
