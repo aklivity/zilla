@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.ws.config;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class WsOptionsConfig extends OptionsConfig
 {

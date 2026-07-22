@@ -99,8 +99,12 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tcp.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tcp</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>

@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfigBuilder<T>>
 {

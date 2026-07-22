@@ -30,9 +30,9 @@ import java.time.Duration;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;

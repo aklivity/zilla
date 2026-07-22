@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class OpenapiAsyncapiConditionConfig extends ConditionConfig
 {

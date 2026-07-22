@@ -19,9 +19,9 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.WithConfig;
+import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
-import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
 public class OpenapiAsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {

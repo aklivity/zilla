@@ -18,9 +18,9 @@ import java.util.function.LongSupplier;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 

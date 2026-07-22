@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.binding;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
 
 /**
  * Per-thread data-plane context for a protocol binding.

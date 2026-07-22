@@ -27,12 +27,12 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public class McpHttpBindingConfigTest
 {

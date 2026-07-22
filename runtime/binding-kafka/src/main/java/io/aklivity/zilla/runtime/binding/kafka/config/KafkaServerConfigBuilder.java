@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.binding.kafka.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class KafkaServerConfigBuilder<T> extends ConfigBuilder<T, KafkaServerConfigBuilder<T>>
 {

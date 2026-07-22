@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.amqp.config;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.AmqpCapabilities;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class AmqpConditionConfig extends ConditionConfig
 {

@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.REMOTE_SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -35,8 +35,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.config.engine.internal.BindingConfigsAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class BindingConfigsAdapterTest

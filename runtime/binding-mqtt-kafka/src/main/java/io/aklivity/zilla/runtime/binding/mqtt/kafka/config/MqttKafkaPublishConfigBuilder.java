@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public class MqttKafkaPublishConfigBuilder<T> extends ConfigBuilder<T, MqttKafkaPublishConfigBuilder<T>>
 {

@@ -29,13 +29,13 @@ module io.aklivity.zilla.runtime.binding.mcp.openapi
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiBindingFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiOptionsConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiConditionConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiWithConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi

@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class HttpAuthorizationConfigBuilder<T> extends ConfigBuilder<T, HttpAuthorizationConfigBuilder<T>>
 {

@@ -19,7 +19,7 @@ module io.aklivity.zilla.runtime.catalog.filesystem
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
         with io.aklivity.zilla.runtime.catalog.filesystem.internal.FilesystemCatalogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi

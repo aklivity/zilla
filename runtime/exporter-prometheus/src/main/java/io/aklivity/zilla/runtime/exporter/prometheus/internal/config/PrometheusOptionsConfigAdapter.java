@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind.EXPORTER;
+import static io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi.Kind.EXPORTER;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -25,8 +25,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.PrometheusExporter;
 
 public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>

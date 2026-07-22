@@ -29,10 +29,10 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfig, JsonObject>
 {

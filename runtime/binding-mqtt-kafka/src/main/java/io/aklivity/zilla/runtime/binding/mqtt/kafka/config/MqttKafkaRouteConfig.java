@@ -21,11 +21,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaConditionMatcher;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaWithResolver;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public class MqttKafkaRouteConfig
 {

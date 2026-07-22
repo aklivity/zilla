@@ -23,7 +23,7 @@ module io.aklivity.zilla.runtime.catalog.schema.registry
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
         with io.aklivity.zilla.runtime.catalog.schema.registry.internal.SchemaRegistryCatalogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi

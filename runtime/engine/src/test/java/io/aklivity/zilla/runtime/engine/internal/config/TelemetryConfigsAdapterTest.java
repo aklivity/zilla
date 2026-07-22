@@ -29,7 +29,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
+import io.aklivity.zilla.config.engine.TelemetryConfig;
+import io.aklivity.zilla.config.engine.internal.TelemetryAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
 public class TelemetryConfigsAdapterTest

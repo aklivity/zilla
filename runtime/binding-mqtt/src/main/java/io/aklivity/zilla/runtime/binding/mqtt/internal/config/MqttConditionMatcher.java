@@ -29,7 +29,7 @@ import org.agrona.collections.LongObjPredicate;
 
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicParamConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 
 public final class MqttConditionMatcher
 {

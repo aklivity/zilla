@@ -54,6 +54,7 @@ import jakarta.json.bind.JsonbBuilder;
 import org.agrona.BitUtil;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBinding;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemConfiguration;
@@ -82,7 +83,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class FileSystemServerFactory implements FileSystemStreamFactory
 {

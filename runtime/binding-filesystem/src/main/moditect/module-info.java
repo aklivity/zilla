@@ -22,6 +22,6 @@ module io.aklivity.zilla.runtime.binding.filesystem
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBindingFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemOptionsConfigAdapter;
 }

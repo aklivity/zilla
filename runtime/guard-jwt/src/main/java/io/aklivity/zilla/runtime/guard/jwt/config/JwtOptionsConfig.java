@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class JwtOptionsConfig extends OptionsConfig
 {

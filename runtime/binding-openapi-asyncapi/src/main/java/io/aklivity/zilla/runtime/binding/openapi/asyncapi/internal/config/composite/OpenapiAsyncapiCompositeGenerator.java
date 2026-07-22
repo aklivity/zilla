@@ -23,6 +23,9 @@ import java.util.Set;
 
 import jakarta.json.JsonObject;
 
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationEx;
@@ -41,9 +44,6 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfi
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public abstract class OpenapiAsyncapiCompositeGenerator
 {

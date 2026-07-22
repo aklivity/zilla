@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.binding.http.config;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class HttpConditionConfig extends ConditionConfig
 {

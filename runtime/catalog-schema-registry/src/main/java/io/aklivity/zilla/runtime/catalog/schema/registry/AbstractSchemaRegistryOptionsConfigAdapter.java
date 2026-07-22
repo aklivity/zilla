@@ -30,10 +30,10 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends AbstractSchemaRegistryOptionsConfig>
     implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>

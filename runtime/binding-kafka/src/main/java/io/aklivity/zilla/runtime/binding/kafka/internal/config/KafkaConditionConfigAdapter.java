@@ -20,10 +20,10 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class KafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {

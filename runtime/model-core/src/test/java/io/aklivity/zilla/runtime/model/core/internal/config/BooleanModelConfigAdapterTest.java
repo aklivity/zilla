@@ -27,8 +27,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidateMode;
+import io.aklivity.zilla.config.engine.ValidateConfig;
+import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.runtime.model.core.config.BooleanModelConfig;
 
 public class BooleanModelConfigAdapterTest

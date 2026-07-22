@@ -1,0 +1,202 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+package io.aklivity.zilla.config.engine;
+
+import static java.util.Collections.emptyList;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+
+public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceConfigBuilder<T>>
+{
+    public static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
+    public static final List<CatalogConfig> CATALOGS_DEFAULT = emptyList();
+    public static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
+    public static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
+    public static final List<StoreConfig> STORES_DEFAULT = emptyList();
+    public static final TelemetryConfig TELEMETRY_DEFAULT = TelemetryConfig.EMPTY;
+
+    private final Function<NamespaceConfig, T> mapper;
+
+    private String name;
+    private TelemetryConfig telemetry;
+    private List<BindingConfig> bindings;
+    private List<CatalogConfig> catalogs;
+    private List<GuardConfig> guards;
+    private List<VaultConfig> vaults;
+    private List<StoreConfig> stores;
+
+    NamespaceConfigBuilder(
+        Function<NamespaceConfig, T> mapper)
+    {
+        this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<NamespaceConfigBuilder<T>> thisType()
+    {
+        return (Class<NamespaceConfigBuilder<T>>) getClass();
+    }
+
+    public NamespaceConfigBuilder<T> name(
+        String name)
+    {
+        this.name = name;
+        return this;
+    }
+
+    public TelemetryConfigBuilder<NamespaceConfigBuilder<T>> telemetry()
+    {
+        return new TelemetryConfigBuilder<>(this::telemetry).namespace(name);
+    }
+
+    public NamespaceConfigBuilder<T> telemetry(
+        TelemetryConfig telemetry)
+    {
+        this.telemetry = telemetry;
+        return this;
+    }
+
+    public BindingConfigBuilder<NamespaceConfigBuilder<T>> binding()
+    {
+        return new BindingConfigBuilder<>(this::binding).namespace(name);
+    }
+
+    public NamespaceConfigBuilder<T> binding(
+        BindingConfig binding)
+    {
+        if (bindings == null)
+        {
+            bindings = new LinkedList<>();
+        }
+        bindings.add(binding);
+        return this;
+    }
+
+    public NamespaceConfigBuilder<T> bindings(
+        List<BindingConfig> bindings)
+    {
+        this.bindings = bindings;
+        return this;
+    }
+
+    public CatalogConfigBuilder<NamespaceConfigBuilder<T>> catalog()
+    {
+        return new CatalogConfigBuilder<>(this::catalog).namespace(name);
+    }
+
+    public NamespaceConfigBuilder<T> catalog(
+        CatalogConfig catalog)
+    {
+        if (catalogs == null)
+        {
+            catalogs = new LinkedList<>();
+        }
+        catalogs.add(catalog);
+        return this;
+    }
+
+    public NamespaceConfigBuilder<T> catalogs(
+        List<CatalogConfig> catalogs)
+    {
+        this.catalogs = catalogs;
+        return this;
+    }
+
+    public GuardConfigBuilder<NamespaceConfigBuilder<T>> guard()
+    {
+        return new GuardConfigBuilder<>(this::guard).namespace(name);
+    }
+
+    public NamespaceConfigBuilder<T> guard(
+        GuardConfig guard)
+    {
+        if (guards == null)
+        {
+            guards = new LinkedList<>();
+        }
+        guards.add(guard);
+        return this;
+    }
+
+    public NamespaceConfigBuilder<T> guards(
+        List<GuardConfig> guards)
+    {
+        this.guards = guards;
+        return this;
+    }
+
+    public VaultConfigBuilder<NamespaceConfigBuilder<T>> vault()
+    {
+        return new VaultConfigBuilder<>(this::vault).namespace(name);
+    }
+
+    public NamespaceConfigBuilder<T> vault(
+        VaultConfig vault)
+    {
+        if (vaults == null)
+        {
+            vaults = new LinkedList<>();
+        }
+        vaults.add(vault);
+        return this;
+    }
+
+    public NamespaceConfigBuilder<T> vaults(
+        List<VaultConfig> vaults)
+    {
+        this.vaults = vaults;
+        return this;
+    }
+
+    public StoreConfigBuilder<NamespaceConfigBuilder<T>> store()
+    {
+        return new StoreConfigBuilder<>(this::store).namespace(name);
+    }
+
+    public NamespaceConfigBuilder<T> store(
+        StoreConfig store)
+    {
+        if (stores == null)
+        {
+            stores = new LinkedList<>();
+        }
+        stores.add(store);
+        return this;
+    }
+
+    public NamespaceConfigBuilder<T> stores(
+        List<StoreConfig> stores)
+    {
+        this.stores = stores;
+        return this;
+    }
+
+    public T build()
+    {
+        return mapper.apply(new NamespaceConfig(
+            name,
+            Optional.ofNullable(telemetry).orElse(TELEMETRY_DEFAULT),
+            Optional.ofNullable(bindings).orElse(BINDINGS_DEFAULT),
+            Optional.ofNullable(guards).orElse(GUARDS_DEFAULT),
+            Optional.ofNullable(vaults).orElse(VAULTS_DEFAULT),
+            Optional.ofNullable(catalogs).orElse(CATALOGS_DEFAULT),
+            Optional.ofNullable(stores).orElse(STORES_DEFAULT)));
+    }
+}

@@ -22,6 +22,9 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.SchemaConfig;
+
 public class CatalogedConfigTest
 {
     @Test

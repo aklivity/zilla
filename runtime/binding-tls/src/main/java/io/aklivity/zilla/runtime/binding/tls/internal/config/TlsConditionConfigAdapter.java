@@ -32,12 +32,12 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {

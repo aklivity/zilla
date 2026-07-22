@@ -24,10 +24,10 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;

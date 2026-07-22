@@ -25,10 +25,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class HttpOptionsConfig extends OptionsConfig
 {

@@ -48,7 +48,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 
 public final class HttpKafkaWithResolver
 {

@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 
 public final class SseKafkaWithResolver
 {

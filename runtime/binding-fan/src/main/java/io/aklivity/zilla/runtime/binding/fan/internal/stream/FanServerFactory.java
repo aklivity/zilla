@@ -26,6 +26,8 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.fan.internal.FanConfiguration;
 import io.aklivity.zilla.runtime.binding.fan.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.fan.internal.types.stream.AbortFW;
@@ -42,8 +44,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class FanServerFactory implements FanStreamFactory
 {

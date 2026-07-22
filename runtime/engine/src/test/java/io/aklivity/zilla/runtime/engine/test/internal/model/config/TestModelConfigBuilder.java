@@ -19,11 +19,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ValidateConfig;
 
 public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigBuilder<T>>
 {

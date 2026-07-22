@@ -30,12 +30,12 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfigAdapter;
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.SchemaConfig;
+import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
 
 public final class TestBindingOptionsConfigAdapter implements OptionsConfigAdapterSpi

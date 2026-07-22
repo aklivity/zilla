@@ -21,6 +21,6 @@ module io.aklivity.zilla.runtime.catalog.inline
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
         with io.aklivity.zilla.runtime.catalog.inline.internal.InlineCatalogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigAdapter;
 }

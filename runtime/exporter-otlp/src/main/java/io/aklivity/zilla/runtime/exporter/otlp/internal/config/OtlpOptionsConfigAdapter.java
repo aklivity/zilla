@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind.EXPORTER;
+import static io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi.Kind.EXPORTER;
 import static java.util.stream.Collectors.toList;
 
 import java.time.Duration;
@@ -28,8 +28,8 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.OtlpExporter;

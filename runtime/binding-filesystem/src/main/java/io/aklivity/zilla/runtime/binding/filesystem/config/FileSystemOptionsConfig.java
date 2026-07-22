@@ -18,7 +18,7 @@ import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class FileSystemOptionsConfig extends OptionsConfig
 {

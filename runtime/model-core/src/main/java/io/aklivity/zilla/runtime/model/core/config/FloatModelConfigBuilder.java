@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.model.core.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ValidateConfig;
 
 public class FloatModelConfigBuilder<T> extends ConfigBuilder<T, FloatModelConfigBuilder<T>>
 {

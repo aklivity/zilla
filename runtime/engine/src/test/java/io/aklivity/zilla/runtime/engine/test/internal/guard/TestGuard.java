@@ -23,13 +23,13 @@ import java.util.function.LongFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class TestGuard implements Guard
 {

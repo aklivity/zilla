@@ -21,9 +21,9 @@ import java.util.Map;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.factory.Factory;
 
 public final class EventFormatterFactory extends Factory
 {

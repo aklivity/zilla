@@ -24,9 +24,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public class AsyncapiConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {

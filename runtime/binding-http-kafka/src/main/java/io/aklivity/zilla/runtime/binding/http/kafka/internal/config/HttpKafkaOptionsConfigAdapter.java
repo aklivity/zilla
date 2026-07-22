@@ -19,6 +19,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyConfig;
@@ -27,8 +29,6 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfi
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaBinding;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

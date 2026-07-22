@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.config;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class McpHttpConditionConfig extends ConditionConfig
 {

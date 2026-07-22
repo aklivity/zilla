@@ -26,9 +26,9 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.OltpConfiguration;
 

@@ -19,7 +19,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class HttpExposeConfigBuilder<T> extends ConfigBuilder<T, HttpExposeConfigBuilder<T>>
 {

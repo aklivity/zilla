@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.http.config;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 
 public final class McpHttpBodyConfig
 {

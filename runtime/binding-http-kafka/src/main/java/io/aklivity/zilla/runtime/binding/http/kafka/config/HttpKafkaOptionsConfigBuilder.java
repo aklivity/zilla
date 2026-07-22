@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class HttpKafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaOptionsConfigBuilder<T>>
 {

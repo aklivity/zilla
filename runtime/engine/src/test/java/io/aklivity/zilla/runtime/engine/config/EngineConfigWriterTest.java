@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -32,6 +32,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
 
+import io.aklivity.zilla.config.engine.EngineConfig;
+import io.aklivity.zilla.config.engine.EngineConfigWriter;
 import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 

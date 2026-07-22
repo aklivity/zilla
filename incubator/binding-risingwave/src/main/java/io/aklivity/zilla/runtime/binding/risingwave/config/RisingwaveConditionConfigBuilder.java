@@ -18,9 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class RisingwaveConditionConfigBuilder<T> extends ConfigBuilder<T, RisingwaveConditionConfigBuilder<T>>
 {

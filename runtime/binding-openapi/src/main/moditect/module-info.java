@@ -33,10 +33,10 @@ module io.aklivity.zilla.runtime.binding.openapi
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBindingFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditionConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi

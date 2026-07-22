@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;

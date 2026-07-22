@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -38,6 +38,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
@@ -50,7 +51,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationCon
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 /**
  * Kept as a unit test rather than converted to a k3po IT (AsyncapiClientIT). The kafka/http/mqtt tests here

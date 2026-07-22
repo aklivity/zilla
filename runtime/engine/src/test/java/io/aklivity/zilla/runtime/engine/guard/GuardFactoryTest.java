@@ -23,8 +23,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.agrona.collections.MutableLong;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuard;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig;

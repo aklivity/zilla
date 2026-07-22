@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -37,6 +37,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
@@ -51,9 +54,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationCon
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 /**
  * Kept as a unit test rather than converted to a k3po IT (AsyncapiProxyIT). Two distinct blockers apply:

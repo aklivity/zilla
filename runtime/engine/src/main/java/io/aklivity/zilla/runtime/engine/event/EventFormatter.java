@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.engine.event;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.factory.Factory;
 
 public final class EventFormatter extends Factory
 {

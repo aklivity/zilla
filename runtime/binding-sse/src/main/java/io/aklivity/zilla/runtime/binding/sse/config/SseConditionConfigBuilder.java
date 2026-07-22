@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.sse.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public class SseConditionConfigBuilder<T> extends ConfigBuilder<T, SseConditionConfigBuilder<T>>
 {

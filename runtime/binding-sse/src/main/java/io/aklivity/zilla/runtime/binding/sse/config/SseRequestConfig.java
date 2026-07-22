@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.sse.config;
 
 import static java.util.function.Function.identity;
 
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 
 public class SseRequestConfig
 {

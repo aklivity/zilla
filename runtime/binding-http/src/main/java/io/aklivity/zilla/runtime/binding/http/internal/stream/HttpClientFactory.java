@@ -61,6 +61,7 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
@@ -118,7 +119,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class HttpClientFactory implements HttpStreamFactory

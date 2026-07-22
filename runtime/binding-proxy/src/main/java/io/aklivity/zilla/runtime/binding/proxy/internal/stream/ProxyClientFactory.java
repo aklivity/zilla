@@ -32,6 +32,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBinding;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyConfiguration;
 import io.aklivity.zilla.runtime.binding.proxy.internal.config.ProxyBindingConfig;
@@ -63,7 +64,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class ProxyClientFactory implements ProxyStreamFactory
 {

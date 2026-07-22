@@ -20,13 +20,13 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.Optional;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class GrpcKafkaBindingConfig
 {

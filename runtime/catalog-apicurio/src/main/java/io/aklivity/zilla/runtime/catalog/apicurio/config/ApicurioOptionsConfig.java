@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.catalog.apicurio.config;
 import java.time.Duration;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class ApicurioOptionsConfig extends OptionsConfig
 {

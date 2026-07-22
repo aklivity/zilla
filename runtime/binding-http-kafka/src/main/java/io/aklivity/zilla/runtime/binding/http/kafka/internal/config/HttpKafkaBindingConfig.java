@@ -24,6 +24,8 @@ import java.util.function.Consumer;
 
 import org.agrona.AsciiSequenceView;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
@@ -31,8 +33,6 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class HttpKafkaBindingConfig
 {

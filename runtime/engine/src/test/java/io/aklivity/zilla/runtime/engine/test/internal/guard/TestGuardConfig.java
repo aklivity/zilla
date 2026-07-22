@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfig;
 
 public final class TestGuardConfig

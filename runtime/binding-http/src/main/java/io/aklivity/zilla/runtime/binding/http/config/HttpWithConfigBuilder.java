@@ -15,16 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.http.config;
 
-import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class HttpWithConfigBuilder<T> extends ConfigBuilder<T, HttpWithConfigBuilder<T>>
 {

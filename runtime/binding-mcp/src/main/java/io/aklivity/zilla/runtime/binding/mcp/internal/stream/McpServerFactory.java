@@ -38,6 +38,7 @@ import jakarta.json.stream.JsonParserFactory;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpInitializeParams;
@@ -88,7 +89,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 

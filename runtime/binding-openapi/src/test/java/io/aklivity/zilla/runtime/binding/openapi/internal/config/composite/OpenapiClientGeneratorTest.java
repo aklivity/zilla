@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -35,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
@@ -46,7 +47,6 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public class OpenapiClientGeneratorTest
 {

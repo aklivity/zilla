@@ -27,9 +27,9 @@ import java.util.function.ToIntFunction;
 import org.agrona.collections.Long2LongCounterMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.HttpHeaderFW;

@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.vault.filesystem.config;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class FileSystemStoreConfigBuilder<T> extends ConfigBuilder<T, FileSystemStoreConfigBuilder<T>>
 {

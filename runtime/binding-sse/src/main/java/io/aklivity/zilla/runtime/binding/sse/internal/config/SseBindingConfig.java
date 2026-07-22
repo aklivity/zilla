@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public final class SseBindingConfig
 {

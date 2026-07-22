@@ -23,11 +23,11 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class RisingwaveConditionConfigAdapter implements ConditionConfigAdapterSpi,
     JsonbAdapter<ConditionConfig, JsonObject>

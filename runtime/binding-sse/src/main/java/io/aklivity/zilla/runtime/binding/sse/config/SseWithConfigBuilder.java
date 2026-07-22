@@ -15,12 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.config;
 
-import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class SseWithConfigBuilder<T> extends ConfigBuilder<T, SseWithConfigBuilder<T>>
 {

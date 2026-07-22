@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.mcp.config;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpOptionsConfig extends OptionsConfig
 {

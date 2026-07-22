@@ -18,8 +18,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class KarapaceOptionsConfigBuilder<T>
     extends AbstractSchemaRegistryOptionsConfigBuilder<T, KarapaceOptionsConfigBuilder<T>>

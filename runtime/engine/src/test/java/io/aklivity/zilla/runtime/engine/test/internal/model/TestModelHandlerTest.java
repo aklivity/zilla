@@ -22,11 +22,11 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.ValidateConfig;
+import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;

@@ -19,9 +19,9 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public final class RisingwaveKafkaConfigAdapter implements JsonbAdapter<RisingwaveKafkaConfig, JsonObject>
 {

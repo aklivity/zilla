@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry;
 
-import static io.aklivity.zilla.runtime.engine.factory.Aliasable.ALIASES_DEFAULT;
+import static io.aklivity.zilla.config.engine.factory.Aliasable.ALIASES_DEFAULT;
 
 import java.net.URL;
 import java.util.Set;

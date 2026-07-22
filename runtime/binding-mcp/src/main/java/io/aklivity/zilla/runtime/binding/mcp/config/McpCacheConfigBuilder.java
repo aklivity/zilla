@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.config;
 import java.time.Duration;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class McpCacheConfigBuilder<T> extends ConfigBuilder<T, McpCacheConfigBuilder<T>>
 {

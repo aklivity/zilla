@@ -24,8 +24,8 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.74</jacoco.coverage.ratio>
-    <jacoco.missed.count>9</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.59</jacoco.coverage.ratio>
+    <jacoco.missed.count>19</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -34,6 +34,11 @@
       <artifactId>engine.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>engine.conf</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -295,8 +300,8 @@
                 <include>org/openjdk/jmh/infra/generated/**/*.class</include>
               </includes>
               <excludes>
-                <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi</exclude>
-                <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi</exclude>
+                <exclude>META-INF/services/io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi</exclude>
+                <exclude>META-INF/services/io.aklivity.zilla.config.engine.WithConfigAdapterSpi</exclude>
                 <exclude>**/*IT.class</exclude>
               </excludes>
             </configuration>

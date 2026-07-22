@@ -23,10 +23,10 @@ import jakarta.json.JsonValue;
 import jakarta.json.JsonValue.ValueType;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidateConfigAdapter;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.ValidateConfig;
+import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfigBuilder;
 import io.aklivity.zilla.runtime.model.core.config.RangeConfig;

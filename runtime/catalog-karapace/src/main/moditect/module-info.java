@@ -22,7 +22,7 @@ module io.aklivity.zilla.runtime.catalog.karapace
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
         with io.aklivity.zilla.runtime.catalog.karapace.internal.KarapaceCatalogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.catalog.karapace.internal.config.KarapaceOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi

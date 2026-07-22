@@ -20,8 +20,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 
+import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.test.internal.store.config.TestStoreOptionsConfig;
 

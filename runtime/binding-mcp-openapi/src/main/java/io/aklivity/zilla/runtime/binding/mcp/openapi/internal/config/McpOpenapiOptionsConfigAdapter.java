@@ -23,6 +23,10 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfigBuilder;
@@ -33,10 +37,6 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificat
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiBinding;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class McpOpenapiOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

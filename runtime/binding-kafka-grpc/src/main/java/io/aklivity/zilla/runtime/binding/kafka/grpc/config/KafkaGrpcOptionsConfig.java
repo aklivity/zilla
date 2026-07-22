@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.config;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class KafkaGrpcOptionsConfig extends OptionsConfig
 {

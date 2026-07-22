@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.engine.catalog;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.engine.factory.Aliasable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.factory.Aliasable;
 
 /**
  * Entry point for a schema catalog plugin.

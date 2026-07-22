@@ -23,10 +23,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOptionsConfigBuilder<T>>
 {

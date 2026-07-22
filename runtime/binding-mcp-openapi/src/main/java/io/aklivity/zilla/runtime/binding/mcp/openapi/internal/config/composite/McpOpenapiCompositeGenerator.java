@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
@@ -43,6 +43,14 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
@@ -80,14 +88,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class McpOpenapiCompositeGenerator

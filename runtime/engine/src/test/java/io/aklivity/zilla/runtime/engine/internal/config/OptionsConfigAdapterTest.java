@@ -27,10 +27,10 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class OptionsConfigAdapterTest

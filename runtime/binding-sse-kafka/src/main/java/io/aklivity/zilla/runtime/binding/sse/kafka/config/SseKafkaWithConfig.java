@@ -19,7 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class SseKafkaWithConfig extends WithConfig
 {

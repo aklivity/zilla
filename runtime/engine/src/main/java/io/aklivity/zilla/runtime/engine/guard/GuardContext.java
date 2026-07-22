@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.config.engine.GuardConfig;
 
 /**
  * Per-thread context for an authorization guard.

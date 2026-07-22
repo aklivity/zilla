@@ -24,6 +24,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaPublishConfig;
@@ -31,8 +33,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaTopicsConfig
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

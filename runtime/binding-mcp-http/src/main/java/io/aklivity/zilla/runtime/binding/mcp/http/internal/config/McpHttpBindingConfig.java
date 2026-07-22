@@ -36,6 +36,11 @@ import jakarta.json.JsonReader;
 import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
@@ -43,11 +48,6 @@ import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class McpHttpBindingConfig

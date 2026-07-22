@@ -27,13 +27,13 @@ import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
 
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class SseKafkaRouteConfig
 {

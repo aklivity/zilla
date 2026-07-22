@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class HttpKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaConditionConfigBuilder<T>>
 {

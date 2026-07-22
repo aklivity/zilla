@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 import java.util.List;
 import java.util.Optional;
 
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class GrpcKafkaWithFetchConfig extends WithConfig
 {

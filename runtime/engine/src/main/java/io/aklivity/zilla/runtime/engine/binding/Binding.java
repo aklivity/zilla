@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.engine.binding;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.ConfigException;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.EngineController;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigException;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 /**
  * Entry point for a protocol binding plugin.

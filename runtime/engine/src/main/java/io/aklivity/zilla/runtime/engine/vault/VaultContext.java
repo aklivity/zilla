@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.vault;
 
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.config.engine.VaultConfig;
 
 /**
  * Per-thread context for a cryptographic material vault.

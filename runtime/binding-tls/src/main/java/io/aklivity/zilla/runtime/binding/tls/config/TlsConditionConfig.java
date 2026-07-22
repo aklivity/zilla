@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.binding.tls.config;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class TlsConditionConfig extends ConditionConfig
 {

@@ -21,6 +21,6 @@ module io.aklivity.zilla.runtime.guard.inline
     provides io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi
         with io.aklivity.zilla.runtime.guard.inline.internal.InlineGuardFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.guard.inline.internal.config.InlineOptionsConfigAdapter;
 }

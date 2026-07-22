@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
 
 public class MqttUserPropertyConfigBuilder<T> extends ConfigBuilder<T, MqttUserPropertyConfigBuilder<T>>
 {

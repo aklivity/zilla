@@ -18,9 +18,9 @@ package io.aklivity.zilla.runtime.binding.http.config;
 import java.util.Map;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class HttpWithConfig extends WithConfig
 {

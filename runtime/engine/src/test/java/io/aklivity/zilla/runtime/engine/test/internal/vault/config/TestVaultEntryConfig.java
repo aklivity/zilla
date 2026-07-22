@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.vault.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TestVaultEntryConfig extends OptionsConfig
 {

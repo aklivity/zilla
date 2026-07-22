@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 
 public final class TestGuardContext implements GuardContext

@@ -37,6 +37,10 @@ import java.util.stream.Stream;
 import org.agrona.AsciiSequenceView;
 import org.agrona.collections.ObjectHashSet;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMethodConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcProtobufConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
@@ -49,10 +53,6 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExF
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
 
 public final class GrpcBindingConfig
 {

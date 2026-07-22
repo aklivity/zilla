@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBe
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 
 public final class GrpcKafkaWithResolver
 {

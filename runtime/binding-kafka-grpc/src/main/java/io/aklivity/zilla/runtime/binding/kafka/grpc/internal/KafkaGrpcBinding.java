@@ -19,9 +19,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class KafkaGrpcBinding implements Binding
 {

@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.grpc.kafka.config;
 
 import java.util.Map;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class GrpcKafkaConditionConfig extends ConditionConfig
 {

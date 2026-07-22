@@ -24,15 +24,15 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpBinding;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class McpHttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

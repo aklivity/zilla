@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.binding.fan.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class FanBinding implements Binding
 {

@@ -23,11 +23,11 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicConfig, JsonObject>
 {

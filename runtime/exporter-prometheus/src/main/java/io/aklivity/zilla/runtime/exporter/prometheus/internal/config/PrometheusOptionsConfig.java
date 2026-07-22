@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.config;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class PrometheusOptionsConfig extends OptionsConfig
 {

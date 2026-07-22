@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
 import java.util.concurrent.ConcurrentMap;
 
+import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.SchemaRegistryCache;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.SchemaRegistryCatalogHandler;
@@ -23,7 +24,6 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class SchemaRegistryCatalogContext implements CatalogContext
 {

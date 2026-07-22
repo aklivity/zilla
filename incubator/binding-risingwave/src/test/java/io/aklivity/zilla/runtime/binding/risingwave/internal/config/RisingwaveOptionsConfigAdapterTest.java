@@ -29,14 +29,14 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveKafkaPropertiesConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class RisingwaveOptionsConfigAdapterTest

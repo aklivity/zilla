@@ -19,9 +19,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaWithProduceConfigBuilder<T>>
 {

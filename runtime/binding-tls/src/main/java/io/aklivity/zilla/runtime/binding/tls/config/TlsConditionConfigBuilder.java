@@ -21,8 +21,8 @@ import java.util.function.Function;
 
 import org.agrona.collections.IntArrayList;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class TlsConditionConfigBuilder<T> extends ConfigBuilder<T, TlsConditionConfigBuilder<T>>
 {

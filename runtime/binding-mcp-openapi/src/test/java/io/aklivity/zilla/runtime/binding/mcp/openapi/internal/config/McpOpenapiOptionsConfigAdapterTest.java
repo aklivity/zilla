@@ -29,11 +29,11 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class McpOpenapiOptionsConfigAdapterTest

@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslCredentialsConfig;
@@ -31,8 +33,6 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaBindingConfig

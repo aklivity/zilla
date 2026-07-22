@@ -22,6 +22,6 @@ module io.aklivity.zilla.runtime.exporter.otlp
     provides io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi
         with io.aklivity.zilla.runtime.exporter.otlp.internal.OtlpExporterFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpOptionsConfigAdapter;
 }

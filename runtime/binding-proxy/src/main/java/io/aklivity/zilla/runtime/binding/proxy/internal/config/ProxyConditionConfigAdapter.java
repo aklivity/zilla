@@ -20,12 +20,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyAddressConfig;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyConditionConfig;
 import io.aklivity.zilla.runtime.binding.proxy.config.ProxyInfoConfig;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class ProxyConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {

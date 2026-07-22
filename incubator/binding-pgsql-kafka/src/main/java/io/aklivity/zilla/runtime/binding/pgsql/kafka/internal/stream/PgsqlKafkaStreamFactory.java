@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public interface PgsqlKafkaStreamFactory extends BindingHandler
 {

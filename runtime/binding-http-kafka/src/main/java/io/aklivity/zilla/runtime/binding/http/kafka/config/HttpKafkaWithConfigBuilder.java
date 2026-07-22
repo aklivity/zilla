@@ -14,13 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
-import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaCapability;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class HttpKafkaWithConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaWithConfigBuilder<T>>
 {

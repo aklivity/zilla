@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.config;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class GrpcKafkaOptionsConfig extends OptionsConfig
 {

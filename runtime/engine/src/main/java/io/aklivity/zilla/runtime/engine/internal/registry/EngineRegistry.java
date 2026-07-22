@@ -23,9 +23,9 @@ import java.util.function.ToIntFunction;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;

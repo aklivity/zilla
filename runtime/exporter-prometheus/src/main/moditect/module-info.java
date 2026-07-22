@@ -20,6 +20,6 @@ module io.aklivity.zilla.runtime.exporter.prometheus
     provides io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi
         with io.aklivity.zilla.runtime.exporter.prometheus.internal.PrometheusExporterFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfigAdapter;
 }

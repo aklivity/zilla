@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 
+import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 
 /**
  * Per-thread recording context for a single {@link Metric}.

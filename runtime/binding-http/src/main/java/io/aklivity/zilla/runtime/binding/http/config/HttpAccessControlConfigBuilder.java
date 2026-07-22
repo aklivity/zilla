@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.binding.http.config;
 import java.time.Duration;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class HttpAccessControlConfigBuilder<T> extends ConfigBuilder<T, HttpAccessControlConfigBuilder<T>>
 {

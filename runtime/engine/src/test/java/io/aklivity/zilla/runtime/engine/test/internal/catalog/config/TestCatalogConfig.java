@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.catalog.config;
 
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.config.engine.CatalogConfig;
 
 public class TestCatalogConfig
 {

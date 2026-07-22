@@ -29,9 +29,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.LongFunction;
 
+import io.aklivity.zilla.config.engine.AttributeConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;

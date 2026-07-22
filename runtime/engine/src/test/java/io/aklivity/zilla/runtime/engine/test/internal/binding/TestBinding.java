@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigException;
 
 public final class TestBinding implements Binding
 {

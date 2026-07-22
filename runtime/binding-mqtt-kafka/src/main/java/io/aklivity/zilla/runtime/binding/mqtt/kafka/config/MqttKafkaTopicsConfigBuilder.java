@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public class MqttKafkaTopicsConfigBuilder<T> extends ConfigBuilder<T, MqttKafkaTopicsConfigBuilder<T>>
 {

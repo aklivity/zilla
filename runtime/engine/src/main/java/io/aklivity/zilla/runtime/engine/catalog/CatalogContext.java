@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
+import io.aklivity.zilla.config.engine.CatalogConfig;
 
 /**
  * Per-thread context for a schema catalog.

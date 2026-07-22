@@ -52,13 +52,15 @@ import java.util.stream.Collectors;
 import org.agrona.ErrorHandler;
 import org.agrona.collections.Int2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingInfo;
+import io.aklivity.zilla.config.engine.BindingInfoRegistry;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouterConfig;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
@@ -231,7 +233,10 @@ public final class Engine implements Collector, AutoCloseable
 
         final ContextImpl context = new ContextImpl(config, diagnoseOnError, labels::supplyLabelId);
 
+        final BindingInfoRegistry bindingInfos = BindingInfoRegistry.instantiate();
+
         final Collection<URL> schemaTypes = new ArrayList<>();
+        schemaTypes.addAll(bindingInfos.stream().map(BindingInfo::schema).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(exporters.stream().map(Exporter::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
@@ -261,6 +266,7 @@ public final class Engine implements Collector, AutoCloseable
         EngineManager manager = new EngineManager(
             schemaTypes,
             systemConfigs,
+            bindingInfos,
             bindingsByType::get,
             guardsByType::get,
             labels::supplyLabelId,

@@ -45,6 +45,8 @@ import javax.net.ssl.X509ExtendedKeyManager;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
@@ -54,8 +56,6 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyAddressFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExFW;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 

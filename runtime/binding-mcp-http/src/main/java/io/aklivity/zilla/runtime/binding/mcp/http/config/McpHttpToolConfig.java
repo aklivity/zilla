@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.config;
 
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 
 public final class McpHttpToolConfig
 {

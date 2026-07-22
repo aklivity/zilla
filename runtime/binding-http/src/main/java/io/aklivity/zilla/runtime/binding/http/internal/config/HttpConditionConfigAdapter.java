@@ -21,11 +21,11 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class HttpConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {

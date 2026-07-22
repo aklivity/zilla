@@ -18,9 +18,9 @@ package io.aklivity.zilla.runtime.binding.kafka.config;
 import java.util.Objects;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 
 public class KafkaTopicConfig
 {

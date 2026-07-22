@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.config;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class KafkaConditionConfig extends ConditionConfig
 {

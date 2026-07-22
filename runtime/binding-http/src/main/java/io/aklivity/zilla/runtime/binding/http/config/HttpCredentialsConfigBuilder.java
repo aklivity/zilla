@@ -19,7 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class HttpCredentialsConfigBuilder<T> extends ConfigBuilder<T, HttpCredentialsConfigBuilder<T>>
 {

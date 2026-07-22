@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.mcp.openapi.config;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class McpOpenapiWithConfigBuilder<T> extends ConfigBuilder<T, McpOpenapiWithConfigBuilder<T>>
 {

@@ -22,6 +22,6 @@ module io.aklivity.zilla.runtime.vault.filesystem
     provides io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi
         with io.aklivity.zilla.runtime.vault.filesystem.internal.FileSystemVaultFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfigAdapter;
 }

@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -37,6 +37,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.config.OpenapiAsyncapiOptionsConfig;
@@ -51,9 +54,6 @@ import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class OpenapiAsyncapiProxyGeneratorTest
 {

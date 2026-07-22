@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.model.core.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ValidateConfig;
 
 public class Int64ModelConfig extends ModelConfig
 {

@@ -19,10 +19,10 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.http.filesystem.config.HttpFileSystemConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.HttpFileSystemBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class HttpFileSystemConditionConfigAdapter
     implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>

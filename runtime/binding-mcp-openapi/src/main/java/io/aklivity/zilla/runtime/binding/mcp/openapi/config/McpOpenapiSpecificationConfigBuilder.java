@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class McpOpenapiSpecificationConfigBuilder<T> extends ConfigBuilder<T, McpOpenapiSpecificationConfigBuilder<T>>
 {

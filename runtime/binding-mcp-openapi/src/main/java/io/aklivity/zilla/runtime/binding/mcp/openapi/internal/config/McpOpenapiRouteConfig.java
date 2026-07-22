@@ -18,10 +18,10 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class McpOpenapiRouteConfig
 {

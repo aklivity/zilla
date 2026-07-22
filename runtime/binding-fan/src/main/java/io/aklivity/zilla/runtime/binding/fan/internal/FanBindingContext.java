@@ -15,18 +15,18 @@
  */
 package io.aklivity.zilla.runtime.binding.fan.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.fan.internal.stream.FanServerFactory;
 import io.aklivity.zilla.runtime.binding.fan.internal.stream.FanStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class FanBindingContext implements BindingContext
 {

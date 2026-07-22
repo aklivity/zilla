@@ -21,12 +21,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public class MqttKafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {

@@ -20,8 +20,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOptionsConfigBuilder<T>>
 {

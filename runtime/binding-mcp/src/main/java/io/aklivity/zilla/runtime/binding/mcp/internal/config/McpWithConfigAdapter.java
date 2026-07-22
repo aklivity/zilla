@@ -19,12 +19,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.WithConfig;
+import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpWithCacheConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpBinding;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
-import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
 public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {

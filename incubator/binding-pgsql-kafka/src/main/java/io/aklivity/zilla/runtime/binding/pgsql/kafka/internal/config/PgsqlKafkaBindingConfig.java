@@ -19,12 +19,12 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.LongFunction;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.PgsqlKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema.PgsqlKafkaKeyAvroSchemaTemplate;
 import io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema.PgsqlKafkaValueAvroSchemaTemplate;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class PgsqlKafkaBindingConfig
 {

@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.guard.jwt.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public class JwtKeyConfigBuilder<T> extends ConfigBuilder<T, JwtKeyConfigBuilder<T>>
 {

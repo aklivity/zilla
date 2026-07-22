@@ -22,13 +22,13 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
+import io.aklivity.zilla.config.engine.WithConfig;
+import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpBinding;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
-import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
 public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {

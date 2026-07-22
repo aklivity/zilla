@@ -29,12 +29,12 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class OpenapiOptionsConfigAdapterTest
 {

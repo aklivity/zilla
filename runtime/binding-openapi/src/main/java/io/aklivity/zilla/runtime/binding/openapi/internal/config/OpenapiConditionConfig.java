@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class OpenapiConditionConfig extends ConditionConfig
 {

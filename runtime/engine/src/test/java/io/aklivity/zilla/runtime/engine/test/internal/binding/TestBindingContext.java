@@ -15,11 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 final class TestBindingContext implements BindingContext
 {

@@ -23,6 +23,10 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig;
@@ -30,10 +34,6 @@ import io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpBinding;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class McpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

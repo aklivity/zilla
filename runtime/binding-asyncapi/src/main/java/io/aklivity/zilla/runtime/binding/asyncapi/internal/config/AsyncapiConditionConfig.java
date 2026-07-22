@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public class AsyncapiConditionConfig extends ConditionConfig
 {

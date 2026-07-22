@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.config;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveCommandType;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class RisingwaveConditionConfig extends ConditionConfig
 {

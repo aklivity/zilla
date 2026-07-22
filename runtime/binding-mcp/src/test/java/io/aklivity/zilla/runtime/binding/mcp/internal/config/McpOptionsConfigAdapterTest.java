@@ -31,10 +31,10 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class McpOptionsConfigAdapterTest
 {

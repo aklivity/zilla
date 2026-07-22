@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.vault.filesystem.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 
 public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, FileSystemOptionsConfigBuilder<T>>

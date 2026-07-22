@@ -20,7 +20,7 @@ module io.aklivity.zilla.runtime.model.json
 
     exports io.aklivity.zilla.runtime.model.json.config;
 
-    provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.ModelConfigAdapterSpi
         with io.aklivity.zilla.runtime.model.json.internal.config.JsonModelConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi

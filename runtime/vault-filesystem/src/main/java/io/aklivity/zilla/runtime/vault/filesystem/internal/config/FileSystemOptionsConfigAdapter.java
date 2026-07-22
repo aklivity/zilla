@@ -20,8 +20,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfigBuilder;

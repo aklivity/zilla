@@ -25,10 +25,10 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttUserPropertyConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public class MqttTopicConfigAdapter implements JsonbAdapter<MqttTopicConfig, JsonObject>
 {

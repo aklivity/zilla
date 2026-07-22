@@ -26,12 +26,12 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcBinding;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {

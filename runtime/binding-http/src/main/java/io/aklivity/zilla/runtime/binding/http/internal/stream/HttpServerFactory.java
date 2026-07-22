@@ -74,6 +74,7 @@ import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableReference;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
@@ -142,7 +143,6 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class HttpServerFactory implements HttpStreamFactory

@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

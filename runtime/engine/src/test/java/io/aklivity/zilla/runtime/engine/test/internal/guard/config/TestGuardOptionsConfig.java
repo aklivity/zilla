@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TestGuardOptionsConfig extends OptionsConfig
 {

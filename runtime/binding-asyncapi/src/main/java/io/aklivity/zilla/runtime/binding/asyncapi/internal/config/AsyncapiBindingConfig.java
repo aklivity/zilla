@@ -23,6 +23,10 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.MetricRefConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.OctetsFW;
@@ -35,10 +39,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class AsyncapiBindingConfig
 {

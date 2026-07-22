@@ -94,6 +94,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.amqp.internal.AmqpBinding;
 import io.aklivity.zilla.runtime.binding.amqp.internal.AmqpConfiguration;
 import io.aklivity.zilla.runtime.binding.amqp.internal.config.AmqpBindingConfig;
@@ -175,7 +176,6 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class AmqpServerFactory implements AmqpStreamFactory
 {

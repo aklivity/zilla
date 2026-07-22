@@ -19,15 +19,15 @@ import java.nio.charset.StandardCharsets;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
 
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.SchemaConfig;
+import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.runtime.common.avro.Avro;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public abstract class AvroModelHandler

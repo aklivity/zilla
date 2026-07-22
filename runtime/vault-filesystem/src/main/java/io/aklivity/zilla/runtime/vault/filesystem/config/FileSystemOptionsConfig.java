@@ -19,7 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 
 public final class FileSystemOptionsConfig extends OptionsConfig

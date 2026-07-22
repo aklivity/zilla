@@ -18,8 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class InlineOptionsConfigBuilder<T> extends ConfigBuilder<T, InlineOptionsConfigBuilder<T>>
 {

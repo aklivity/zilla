@@ -20,9 +20,9 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CERTIF
 import java.nio.file.Path;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;

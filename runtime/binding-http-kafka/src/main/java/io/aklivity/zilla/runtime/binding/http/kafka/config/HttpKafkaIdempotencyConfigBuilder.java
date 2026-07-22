@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
 
 public final class HttpKafkaIdempotencyConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaIdempotencyConfigBuilder<T>>
 {

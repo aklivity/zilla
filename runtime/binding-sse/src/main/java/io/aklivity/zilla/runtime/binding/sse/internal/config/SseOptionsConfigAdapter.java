@@ -24,12 +24,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
 import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.config.SseRequestConfig;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

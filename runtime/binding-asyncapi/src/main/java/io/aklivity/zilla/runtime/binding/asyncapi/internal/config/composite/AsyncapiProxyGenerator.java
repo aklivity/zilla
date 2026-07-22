@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
@@ -28,6 +28,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
@@ -67,10 +71,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiReplyView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaItemView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 {

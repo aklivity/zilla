@@ -23,14 +23,14 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.WithConfig;
+import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterHeaderConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaBinding;
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
-import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
 public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {

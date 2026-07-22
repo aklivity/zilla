@@ -21,9 +21,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.binding.sse.config.SsePathConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.config.SseRequestConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 
 public class SseRequestConfigAdapter implements JsonbAdapter<SseRequestConfig, JsonObject>
 {

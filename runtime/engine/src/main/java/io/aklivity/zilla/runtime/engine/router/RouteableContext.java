@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.router;
 
+import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 /**
  * Construction-tier context supplied to a {@link Router} during its setup.

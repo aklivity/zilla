@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.mcp.config;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class McpConditionConfigBuilder<T> extends ConfigBuilder<T, McpConditionConfigBuilder<T>>
 {

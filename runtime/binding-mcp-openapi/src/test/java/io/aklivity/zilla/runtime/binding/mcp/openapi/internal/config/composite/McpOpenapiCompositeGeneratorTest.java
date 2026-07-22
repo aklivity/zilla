@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -49,6 +49,11 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
@@ -62,11 +67,6 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiC
 import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 

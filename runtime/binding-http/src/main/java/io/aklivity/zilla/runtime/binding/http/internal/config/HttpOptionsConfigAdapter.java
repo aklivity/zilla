@@ -29,6 +29,8 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAllowConfig;
@@ -46,8 +48,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

@@ -16,8 +16,8 @@ package io.aklivity.zilla.runtime.binding.http.filesystem.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public final class HttpFileSystemConditionConfigBuilder<T> extends ConfigBuilder<T, HttpFileSystemConditionConfigBuilder<T>>
 {

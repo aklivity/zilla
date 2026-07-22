@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
@@ -24,6 +24,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Stream;
 
+import io.aklivity.zilla.config.binding.tcp.TcpConditionConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
@@ -33,8 +41,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
 import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
@@ -44,12 +50,6 @@ import io.aklivity.zilla.runtime.common.openapi.security.OpenapiGuardResolver;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiServerGenerator extends OpenapiCompositeGenerator

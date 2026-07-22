@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public class AsyncapiWithConfig extends WithConfig
 {
