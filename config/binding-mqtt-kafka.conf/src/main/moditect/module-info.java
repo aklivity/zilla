@@ -18,7 +18,9 @@ module io.aklivity.zilla.config.binding.mqtt.kafka
     requires jakarta.json.bind;
     requires org.agrona;
     requires io.aklivity.zilla.config.engine;
+
     exports io.aklivity.zilla.config.binding.mqtt.kafka;
-    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.config.binding.mqtt.kafka.internal.MqttKafkaConditionConfigAdapter;
+
+    provides io.aklivity.zilla.config.engine.BindingInfo
+        with io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaBindingInfo;
 }

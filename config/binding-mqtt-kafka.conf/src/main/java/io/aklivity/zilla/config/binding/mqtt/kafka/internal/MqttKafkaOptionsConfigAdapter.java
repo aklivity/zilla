@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
+package io.aklivity.zilla.config.binding.mqtt.kafka.internal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,16 +24,13 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaPublishConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaTopicsConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaPublishConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaTopicsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 
-public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public class MqttKafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String TOPICS_NAME = "topics";
     private static final String CLIENTS_NAME = "clients";
@@ -42,19 +39,7 @@ public class MqttKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String RETAINED_NAME = "retained";
     private static final String PUBLISH_NAME = "publish";
     private static final String QOS_MAX_NAME = "qosMax";
-    private static final String QOS_MAX_DEFAULT = MqttQoS.EXACTLY_ONCE.name().toLowerCase();
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.BINDING;
-    }
-
-    @Override
-    public String type()
-    {
-        return MqttKafkaBinding.NAME;
-    }
+    private static final String QOS_MAX_DEFAULT = "exactly_once";
 
     @Override
     public JsonObject adaptToJson(

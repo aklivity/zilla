@@ -25,9 +25,6 @@ module io.aklivity.zilla.runtime.binding.mqtt.kafka
     provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaWithConfigAdapter;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaOptionsConfigAdapter;
-
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaEventFormatterFactory;
 }

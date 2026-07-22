@@ -25,19 +25,12 @@ import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 
-public class MqttKafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public class MqttKafkaConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String SUBSCRIBE_NAME = "subscribe";
     private static final String PUBLISH_NAME = "publish";
     private static final String TOPIC_NAME = "topic";
-
-    @Override
-    public String type()
-    {
-        return "mqtt-kafka";
-    }
 
     @Override
     public JsonObject adaptToJson(
