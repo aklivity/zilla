@@ -160,6 +160,16 @@
                             {
                                 "const": "client"
                             },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "when": false
+                                    }
+                                }
+                            },
                             "options":
                             {
                                 "properties":
