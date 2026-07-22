@@ -28,9 +28,8 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 
-public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public final class KafkaGrpcConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final Pattern METHOD_PATTERN = Pattern.compile("^(?<Service>[^/]+)/(?<Method>[^/]+)");
     private static final String SERVICE_NAME = "Service";
@@ -40,12 +39,6 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
     private static final String HEADERS_NAME = "headers";
     private static final String REPLY_TO_NAME = "reply-to";
     private static final String METHOD_NAME = "method";
-
-    @Override
-    public String type()
-    {
-        return "kafka-grpc";
-    }
 
     @Override
     public JsonObject adaptToJson(

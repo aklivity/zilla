@@ -18,7 +18,9 @@ module io.aklivity.zilla.config.binding.kafka.grpc
     requires jakarta.json.bind;
     requires org.agrona;
     requires io.aklivity.zilla.config.engine;
+
     exports io.aklivity.zilla.config.binding.kafka.grpc;
-    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.config.binding.kafka.grpc.internal.KafkaGrpcConditionConfigAdapter;
+
+    provides io.aklivity.zilla.config.engine.BindingInfo
+        with io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcBindingInfo;
 }
