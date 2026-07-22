@@ -14,18 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.config;
 
-
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
-
 public final class GrpcKafkaReliabilityConfig
 {
     public final int field;
-    public final String8FW metadata;
+    public final String metadata;
 
 
     public GrpcKafkaReliabilityConfig(
         int field,
-        String8FW metadata)
+        String metadata)
     {
         this.field = field;
         this.metadata = metadata;

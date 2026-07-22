@@ -20,8 +20,8 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.binding.kafka.KafkaConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaConditionConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class KafkaRouteConfig

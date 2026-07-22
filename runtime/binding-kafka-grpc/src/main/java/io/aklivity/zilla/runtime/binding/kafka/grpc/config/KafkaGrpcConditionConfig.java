@@ -18,25 +18,23 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
 public final class KafkaGrpcConditionConfig extends ConditionConfig
 {
-    public final String16FW topic;
-    public final Optional<String16FW> key;
-    public final Optional<Map<String8FW, String16FW>> headers;
-    public final Optional<String16FW> replyTo;
-    public final Optional<String16FW> service;
-    public final Optional<String16FW> method;
+    public final String topic;
+    public final Optional<String> key;
+    public final Optional<Map<String, String>> headers;
+    public final Optional<String> replyTo;
+    public final Optional<String> service;
+    public final Optional<String> method;
 
     public KafkaGrpcConditionConfig(
-        String16FW topic,
-        String16FW replyTo,
-        String16FW key,
-        Map<String8FW, String16FW> headers,
-        String16FW service,
-        String16FW method)
+        String topic,
+        String replyTo,
+        String key,
+        Map<String, String> headers,
+        String service,
+        String method)
     {
         this.topic = topic;
         this.key =  Optional.ofNullable(key);

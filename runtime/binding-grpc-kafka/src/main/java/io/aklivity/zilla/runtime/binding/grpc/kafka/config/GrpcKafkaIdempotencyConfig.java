@@ -14,15 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.config;
 
-
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
-
 public final class GrpcKafkaIdempotencyConfig
 {
-    public final String8FW metadata;
+    public final String metadata;
 
     public GrpcKafkaIdempotencyConfig(
-        String8FW metadata)
+        String metadata)
     {
         this.metadata = metadata;
     }

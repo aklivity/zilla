@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfigBuilder;
@@ -45,7 +46,6 @@ import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.AsyncapiHttpOperationBindingEx;
-import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig.Method;

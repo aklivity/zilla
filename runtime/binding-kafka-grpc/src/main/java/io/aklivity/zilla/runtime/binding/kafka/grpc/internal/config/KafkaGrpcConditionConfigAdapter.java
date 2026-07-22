@@ -30,8 +30,6 @@ import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcBinding;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
 public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
@@ -58,36 +56,30 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(TOPIC_NAME, condition.topic.asString());
+        object.add(TOPIC_NAME, condition.topic);
 
         if (condition.replyTo.isPresent())
         {
-            object.add(REPLY_TO_NAME, condition.replyTo.get().asString());
+            object.add(REPLY_TO_NAME, condition.replyTo.get());
         }
 
         if (condition.key.isPresent())
         {
-            object.add(KEY_NAME, condition.key.get().asString());
+            object.add(KEY_NAME, condition.key.get());
         }
 
         if (condition.headers.isPresent() &&
             !condition.headers.isEmpty())
         {
             JsonObjectBuilder entries = Json.createObjectBuilder();
-            condition.headers.get().forEach((k, v) ->
-            {
-                String name = k.asString();
-                String value = v.asString();
-                entries.add(name, value);
-            });
+            condition.headers.get().forEach(entries::add);
 
             object.add(HEADERS_NAME, entries);
         }
 
         if (condition.service.isPresent())
         {
-            String method = String.format("%s/%s", condition.service.get().asString(),
-                condition.method.get().asString());
+            String method = String.format("%s/%s", condition.service.get(), condition.method.get());
             object.add(METHOD_NAME, method);
         }
 
@@ -98,43 +90,37 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String16FW topic = new String16FW(object.getString(TOPIC_NAME));
+        String topic = object.getString(TOPIC_NAME);
 
-        String16FW replyTo = object.containsKey(REPLY_TO_NAME)
-            ? new String16FW(object.getString(REPLY_TO_NAME))
+        String replyTo = object.containsKey(REPLY_TO_NAME)
+            ? object.getString(REPLY_TO_NAME)
             : null;
 
-        String16FW key = object.containsKey(KEY_NAME)
-            ? new String16FW(object.getString(KEY_NAME))
+        String key = object.containsKey(KEY_NAME)
+            ? object.getString(KEY_NAME)
             : null;
 
         JsonObject headers = object.containsKey(HEADERS_NAME)
             ? object.getJsonObject(HEADERS_NAME)
             : null;
 
-        final Map<String8FW, String16FW> newHeaders = new Object2ObjectHashMap<>();
+        final Map<String, String> newHeaders = new Object2ObjectHashMap<>();
 
         if (headers != null)
         {
-            headers.forEach((k, v) ->
-            {
-                final String8FW name = new String8FW(k);
-                final String16FW value = new String16FW(((JsonString) v).getString());
-
-                newHeaders.put(name, value);
-            });
+            headers.forEach((k, v) -> newHeaders.put(k, ((JsonString) v).getString()));
         }
 
-        String16FW newService = null;
-        String16FW newMethod = null;
+        String newService = null;
+        String newMethod = null;
         if (object.containsKey(METHOD_NAME))
         {
             String method = object.getString(METHOD_NAME);
             final Matcher matcher = METHOD_PATTERN.matcher(method);
             if (matcher.matches())
             {
-                newService = new String16FW(matcher.group(SERVICE_NAME));
-                newMethod = new String16FW(matcher.group(METHOD));
+                newService = matcher.group(SERVICE_NAME);
+                newMethod = matcher.group(METHOD);
             }
         }
 

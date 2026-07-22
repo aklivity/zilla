@@ -31,8 +31,6 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaIdempotencyC
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaReliabilityConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaOptionsConfigAdapter;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class GrpcKafkaOptionsConfigAdapterTest
@@ -70,10 +68,10 @@ public class GrpcKafkaOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(options.correlation, not(nullValue()));
         assertThat(options.reliability.field, equalTo(255));
-        assertThat(options.reliability.metadata.asString(), equalTo("last-message-id-x"));
-        assertThat(options.correlation.service.asString(), equalTo("zilla:service-x"));
-        assertThat(options.correlation.method.asString(), equalTo("zilla:method-x"));
-        assertThat(options.correlation.correlationId.asString(), equalTo("zilla:correlation-id-x"));
+        assertThat(options.reliability.metadata, equalTo("last-message-id-x"));
+        assertThat(options.correlation.service, equalTo("zilla:service-x"));
+        assertThat(options.correlation.method, equalTo("zilla:method-x"));
+        assertThat(options.correlation.correlationId, equalTo("zilla:correlation-id-x"));
     }
 
     @Test
@@ -81,13 +79,13 @@ public class GrpcKafkaOptionsConfigAdapterTest
     {
         GrpcKafkaOptionsConfig options = new GrpcKafkaOptionsConfig(
                 new GrpcKafkaReliabilityConfig(255,
-                    new String8FW("x-last-message-id")),
-                new GrpcKafkaIdempotencyConfig(new String8FW("x-idempotency-key")),
+                    "x-last-message-id"),
+                new GrpcKafkaIdempotencyConfig("x-idempotency-key"),
                 new GrpcKafkaCorrelationConfig(
-                    new String16FW("zilla:x-correlation-id"),
-                    new String16FW("zilla:x-service"),
-                    new String16FW("zilla:x-method"),
-                    new String16FW("zilla:x-reply-to")));
+                    "zilla:x-correlation-id",
+                    "zilla:x-service",
+                    "zilla:x-method",
+                    "zilla:x-reply-to"));
 
         String yaml = jsonb.toJson(options);
 

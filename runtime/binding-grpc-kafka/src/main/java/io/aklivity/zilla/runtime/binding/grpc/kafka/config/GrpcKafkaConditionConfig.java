@@ -17,18 +17,17 @@ package io.aklivity.zilla.runtime.binding.grpc.kafka.config;
 import java.util.Map;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 
 public final class GrpcKafkaConditionConfig extends ConditionConfig
 {
     public final String service;
     public final String method;
-    public final Map<String8FW, GrpcKafkaMetadataValueConfig> metadata;
+    public final Map<String, GrpcKafkaMetadataValueConfig> metadata;
 
     public GrpcKafkaConditionConfig(
         String service,
         String method,
-        Map<String8FW, GrpcKafkaMetadataValueConfig> metadata)
+        Map<String, GrpcKafkaMetadataValueConfig> metadata)
     {
         this.service = service;
         this.method = method;

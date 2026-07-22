@@ -37,6 +37,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiConditionConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiConditionServerConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
@@ -48,7 +49,6 @@ import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;

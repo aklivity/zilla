@@ -20,11 +20,16 @@
     <module>engine.conf</module>
     <module>binding-asyncapi.conf</module>
     <module>binding-filesystem.conf</module>
+    <module>binding-http.conf</module>
+    <module>binding-http-kafka.conf</module>
+    <module>binding-kafka.conf</module>
     <module>binding-tcp.conf</module>
     <module>binding-tls.conf</module>
     <module>binding-mcp.conf</module>
     <module>binding-mcp-http.conf</module>
+    <module>binding-mcp-openapi.conf</module>
     <module>binding-mqtt.conf</module>
+    <module>binding-mqtt-kafka.conf</module>
     <module>binding-openapi-asyncapi.conf</module>
     <module>binding-openapi.conf</module>
     <module>binding-proxy.conf</module>

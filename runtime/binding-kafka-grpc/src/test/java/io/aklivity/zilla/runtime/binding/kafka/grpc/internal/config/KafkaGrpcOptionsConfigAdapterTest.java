@@ -30,8 +30,6 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcIdempotencyConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class KafkaGrpcOptionsConfigAdapterTest
@@ -68,10 +66,10 @@ public class KafkaGrpcOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(options.acks, equalTo(LEADER_ONLY));
         assertThat(options.correlation, not(nullValue()));
-        assertThat(options.correlation.service.asString(), equalTo("zilla:x-service"));
-        assertThat(options.correlation.method.asString(), equalTo("zilla:x-method"));
-        assertThat(options.correlation.correlationId.asString(), equalTo("zilla:x-correlation-id"));
-        assertThat(options.correlation.replyTo.asString(), equalTo("zilla:x-reply-to"));
+        assertThat(options.correlation.service, equalTo("zilla:x-service"));
+        assertThat(options.correlation.method, equalTo("zilla:x-method"));
+        assertThat(options.correlation.correlationId, equalTo("zilla:x-correlation-id"));
+        assertThat(options.correlation.replyTo, equalTo("zilla:x-reply-to"));
     }
 
     @Test
@@ -79,12 +77,12 @@ public class KafkaGrpcOptionsConfigAdapterTest
     {
         KafkaGrpcOptionsConfig options = new KafkaGrpcOptionsConfig(
                 LEADER_ONLY,
-                new KafkaGrpcIdempotencyConfig(new String8FW("zilla:x-idempotency-key")),
+                new KafkaGrpcIdempotencyConfig("zilla:x-idempotency-key"),
                 new KafkaGrpcCorrelationConfig(
-                    new String16FW("zilla:x-correlation-id"),
-                    new String16FW("zilla:x-service"),
-                    new String16FW("zilla:x-method"),
-                    new String16FW("zilla:x-reply-to")));
+                    "zilla:x-correlation-id",
+                    "zilla:x-service",
+                    "zilla:x-method",
+                    "zilla:x-reply-to"));
 
         String yaml = jsonb.toJson(options);
 

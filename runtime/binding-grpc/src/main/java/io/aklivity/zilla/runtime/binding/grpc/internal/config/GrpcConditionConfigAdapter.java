@@ -31,8 +31,6 @@ import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcConditionConfig;
 import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 
 public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
@@ -61,9 +59,8 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             JsonObjectBuilder entries = Json.createObjectBuilder();
             condition.metadata.forEach((k, v) ->
             {
-                String key = k.asString();
-                String value = v.textValue != null ? v.textValue.asString() : v.base64Value.asString();
-                entries.add(key, value);
+                String value = v.textValue != null ? v.textValue : v.base64Value;
+                entries.add(k, value);
             });
 
             object.add(METADATA_NAME, entries);
@@ -89,13 +86,12 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             ? object.getJsonObject(METADATA_NAME)
             : null;
 
-        final Map<String8FW, GrpcMetadataValueConfig> newMetadata = new Object2ObjectHashMap<>();
+        final Map<String, GrpcMetadataValueConfig> newMetadata = new Object2ObjectHashMap<>();
 
         if (metadata != null)
         {
             metadata.forEach((k, v) ->
             {
-                final String8FW key = new String8FW(k);
                 String textValue = null;
                 String base64Value = null;
                 JsonValue.ValueType valueType = v.getValueType();
@@ -120,9 +116,8 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
                     throw new IllegalArgumentException("Unexpected type: " + valueType);
                 }
 
-                GrpcMetadataValueConfig metadataValue =  new GrpcMetadataValueConfig(new String16FW(textValue),
-                    new String16FW(base64Value));
-                newMetadata.put(key, metadataValue);
+                GrpcMetadataValueConfig metadataValue = new GrpcMetadataValueConfig(textValue, base64Value);
+                newMetadata.put(k, metadataValue);
             });
         }
 

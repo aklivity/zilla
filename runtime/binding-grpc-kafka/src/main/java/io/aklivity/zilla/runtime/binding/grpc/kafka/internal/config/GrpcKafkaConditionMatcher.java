@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType.BASE64;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaConditionConfig;
@@ -32,14 +33,14 @@ public final class GrpcKafkaConditionMatcher
 
     private final String16FW service;
     private final String16FW method;
-    private final Map<String8FW, GrpcKafkaMetadataValueConfig> metadataMatch;
+    private final Map<String8FW, GrpcKafkaMetadataValueMatcher> metadataMatch;
 
     public GrpcKafkaConditionMatcher(
         GrpcKafkaConditionConfig condition)
     {
         this.service = condition.service != null ? new String16FW(condition.service) : null;
         this.method = condition.method != null ? new String16FW(condition.method) : null;
-        this.metadataMatch = condition.metadata;
+        this.metadataMatch = asMetadataMatch(condition.metadata);
     }
 
     public boolean matches(
@@ -51,12 +52,12 @@ public final class GrpcKafkaConditionMatcher
 
         if (metadataMatch != null)
         {
-            for (Map.Entry<String8FW, GrpcKafkaMetadataValueConfig> entry : metadataMatch.entrySet())
+            for (Map.Entry<String8FW, GrpcKafkaMetadataValueMatcher> entry : metadataMatch.entrySet())
             {
                 final DirectBufferEx name = entry.getKey().value();
                 final GrpcMetadataFW metadata = metadataHeaders.matchFirst(h -> name.compareTo(h.name().value()) == 0);
 
-                final GrpcKafkaMetadataValueConfig value = entry.getValue();
+                final GrpcKafkaMetadataValueMatcher value = entry.getValue();
                 final DirectBufferEx matcher = metadata != null && metadata.type().get() == BASE64 ?
                     value.base64Value.value() : value.textValue.value();
 
@@ -78,5 +79,33 @@ public final class GrpcKafkaConditionMatcher
     {
         return this.method == null || WILDCARD.value().compareTo(this.method.value()) == 0 ||
             this.method.value().compareTo(method.value()) == 0;
+    }
+
+    private static Map<String8FW, GrpcKafkaMetadataValueMatcher> asMetadataMatch(
+        Map<String, GrpcKafkaMetadataValueConfig> metadata)
+    {
+        Map<String8FW, GrpcKafkaMetadataValueMatcher> metadataMatch = null;
+        if (metadata != null)
+        {
+            metadataMatch = new HashMap<>();
+            for (Map.Entry<String, GrpcKafkaMetadataValueConfig> entry : metadata.entrySet())
+            {
+                metadataMatch.put(new String8FW(entry.getKey()), new GrpcKafkaMetadataValueMatcher(entry.getValue()));
+            }
+        }
+        return metadataMatch;
+    }
+
+    private static final class GrpcKafkaMetadataValueMatcher
+    {
+        private final String16FW textValue;
+        private final String16FW base64Value;
+
+        private GrpcKafkaMetadataValueMatcher(
+            GrpcKafkaMetadataValueConfig config)
+        {
+            this.textValue = config.textValue != null ? new String16FW(config.textValue) : null;
+            this.base64Value = config.base64Value != null ? new String16FW(config.base64Value) : null;
+        }
     }
 }

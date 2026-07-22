@@ -28,8 +28,6 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcIdempotencyC
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcBinding;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
 public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -44,11 +42,11 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String CORRELATION_HEADERS_METHOD_NAME = "method";
     private static final String CORRELATION_HEADERS_REPLY_TO_NAME = "reply-to";
 
-    private static final String8FW IDEMPOTENCY_METADATA_DEFAULT = new String8FW("idempotency-key");
-    private static final String16FW CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = new String16FW("zilla:correlation-id");
-    private static final String16FW CORRELATION_HEADERS_SERVICE_DEFAULT = new String16FW("zilla:service");
-    private static final String16FW CORRELATION_HEADERS_METHOD_DEFAULT = new String16FW("zilla:method");
-    private static final String16FW CORRELATION_HEADERS_REPLY_TO_DEFAULT = new String16FW("zilla:reply-to");
+    private static final String IDEMPOTENCY_METADATA_DEFAULT = "idempotency-key";
+    private static final String CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = "zilla:correlation-id";
+    private static final String CORRELATION_HEADERS_SERVICE_DEFAULT = "zilla:service";
+    private static final String CORRELATION_HEADERS_METHOD_DEFAULT = "zilla:method";
+    private static final String CORRELATION_HEADERS_REPLY_TO_DEFAULT = "zilla:reply-to";
 
     private static final KafkaGrpcIdempotencyConfig IDEMPOTENCY_DEFAULT =
         new KafkaGrpcIdempotencyConfig(IDEMPOTENCY_METADATA_DEFAULT);
@@ -92,7 +90,7 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
             if (!IDEMPOTENCY_METADATA_DEFAULT.equals(idempotency.metadata))
             {
-                newIdempotency.add(IDEMPOTENCY_METADATA_NAME, idempotency.metadata.asString());
+                newIdempotency.add(IDEMPOTENCY_METADATA_NAME, idempotency.metadata);
             }
 
             object.add(IDEMPOTENCY_NAME, newIdempotency);
@@ -106,22 +104,22 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
             if (!CORRELATION_HEADERS_SERVICE_DEFAULT.equals(correlation.service))
             {
-                newHeaders.add(CORRELATION_HEADERS_SERVICE_NAME, correlation.service.asString());
+                newHeaders.add(CORRELATION_HEADERS_SERVICE_NAME, correlation.service);
             }
 
             if (!CORRELATION_HEADERS_METHOD_DEFAULT.equals(correlation.method))
             {
-                newHeaders.add(CORRELATION_HEADERS_METHOD_NAME, correlation.method.asString());
+                newHeaders.add(CORRELATION_HEADERS_METHOD_NAME, correlation.method);
             }
 
             if (!CORRELATION_HEADERS_CORRELATION_ID_DEFAULT.equals(correlation.correlationId))
             {
-                newHeaders.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, correlation.correlationId.asString());
+                newHeaders.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, correlation.correlationId);
             }
 
             if (!CORRELATION_HEADERS_REPLY_TO_DEFAULT.equals(correlation.replyTo))
             {
-                newHeaders.add(CORRELATION_HEADERS_REPLY_TO_NAME, correlation.replyTo.asString());
+                newHeaders.add(CORRELATION_HEADERS_REPLY_TO_NAME, correlation.replyTo);
             }
 
             JsonObjectBuilder newCorrelation = Json.createObjectBuilder();
@@ -146,10 +144,10 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         {
             JsonObject idempotency = object.getJsonObject(IDEMPOTENCY_NAME);
 
-            String8FW newMetadata = IDEMPOTENCY_METADATA_DEFAULT;
+            String newMetadata = IDEMPOTENCY_METADATA_DEFAULT;
             if (idempotency.containsKey(IDEMPOTENCY_METADATA_NAME))
             {
-                newMetadata = new String8FW(idempotency.getString(IDEMPOTENCY_METADATA_NAME));
+                newMetadata = idempotency.getString(IDEMPOTENCY_METADATA_NAME);
             }
 
             newIdempotency = new KafkaGrpcIdempotencyConfig(newMetadata);
@@ -163,28 +161,28 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             {
                 JsonObject headers = correlation.getJsonObject(CORRELATION_HEADERS_NAME);
 
-                String16FW newService = CORRELATION_HEADERS_SERVICE_DEFAULT;
+                String newService = CORRELATION_HEADERS_SERVICE_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_SERVICE_NAME))
                 {
-                    newService = new String16FW(headers.getString(CORRELATION_HEADERS_SERVICE_NAME));
+                    newService = headers.getString(CORRELATION_HEADERS_SERVICE_NAME);
                 }
 
-                String16FW newMethod = CORRELATION_HEADERS_METHOD_DEFAULT;
+                String newMethod = CORRELATION_HEADERS_METHOD_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_METHOD_NAME))
                 {
-                    newMethod = new String16FW(headers.getString(CORRELATION_HEADERS_METHOD_NAME));
+                    newMethod = headers.getString(CORRELATION_HEADERS_METHOD_NAME);
                 }
 
-                String16FW newCorrelationId = CORRELATION_HEADERS_CORRELATION_ID_DEFAULT;
+                String newCorrelationId = CORRELATION_HEADERS_CORRELATION_ID_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME))
                 {
-                    newCorrelationId = new String16FW(headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME));
+                    newCorrelationId = headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME);
                 }
 
-                String16FW newReplyTo = CORRELATION_HEADERS_REPLY_TO_DEFAULT;
+                String newReplyTo = CORRELATION_HEADERS_REPLY_TO_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_REPLY_TO_NAME))
                 {
-                    newReplyTo = new String16FW(headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME));
+                    newReplyTo = headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME);
                 }
 
                 newCorrelation = new KafkaGrpcCorrelationConfig(newCorrelationId, newService, newMethod, newReplyTo);

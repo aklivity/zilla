@@ -14,20 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.config;
 
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
-
 public class KafkaGrpcCorrelationConfig
 {
-    public final String16FW correlationId;
-    public final String16FW service;
-    public final String16FW method;
-    public final String16FW replyTo;
+    public final String correlationId;
+    public final String service;
+    public final String method;
+    public final String replyTo;
 
     public KafkaGrpcCorrelationConfig(
-        String16FW correlationId,
-        String16FW service,
-        String16FW method,
-        String16FW replyTo)
+        String correlationId,
+        String service,
+        String method,
+        String replyTo)
     {
         this.correlationId = correlationId;
         this.service = service;

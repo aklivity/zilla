@@ -22,8 +22,12 @@ This project includes:
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   zilla::config::binding-asyncapi.conf under The Apache Software License, Version 2.0
   zilla::config::binding-filesystem.conf under The Apache Software License, Version 2.0
+  zilla::config::binding-http-kafka.conf under Aklivity Community License Agreement
+  zilla::config::binding-http.conf under The Apache Software License, Version 2.0
   zilla::config::binding-mcp-http.conf under Aklivity Community License Agreement
+  zilla::config::binding-mcp-openapi.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp.conf under Aklivity Community License Agreement
+  zilla::config::binding-mqtt-kafka.conf under Aklivity Community License Agreement
   zilla::config::binding-mqtt.conf under The Apache Software License, Version 2.0
   zilla::config::binding-openapi-asyncapi.conf under The Apache Software License, Version 2.0
   zilla::config::binding-openapi.conf under The Apache Software License, Version 2.0

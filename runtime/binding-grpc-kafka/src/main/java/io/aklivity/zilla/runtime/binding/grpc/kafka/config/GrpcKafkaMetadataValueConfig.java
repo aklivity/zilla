@@ -14,17 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.config;
 
-
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
-
 public class GrpcKafkaMetadataValueConfig
 {
-    public final String16FW textValue;
-    public final String16FW base64Value;
+    public final String textValue;
+    public final String base64Value;
 
     public GrpcKafkaMetadataValueConfig(
-        String16FW textValue,
-        String16FW base64Value)
+        String textValue,
+        String base64Value)
     {
 
         this.textValue = textValue;

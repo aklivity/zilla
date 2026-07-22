@@ -27,8 +27,6 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaIdempotencyC
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaReliabilityConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaBinding;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 
 public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -44,14 +42,14 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String CORRELATION_HEADERS_METHOD_NAME = "method";
     private static final String CORRELATION_HEADERS_REPLY_TO_NAME = "reply-to";
 
-    private static final String16FW CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = new String16FW("zilla:correlation-id");
-    private static final String16FW CORRELATION_HEADERS_SERVICE_DEFAULT = new String16FW("zilla:service");
-    private static final String16FW CORRELATION_HEADERS_METHOD_DEFAULT = new String16FW("zilla:method");
-    private static final String16FW CORRELATION_HEADERS_REPLY_TO_DEFAULT = new String16FW("zilla:reply-to");
+    private static final String CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = "zilla:correlation-id";
+    private static final String CORRELATION_HEADERS_SERVICE_DEFAULT = "zilla:service";
+    private static final String CORRELATION_HEADERS_METHOD_DEFAULT = "zilla:method";
+    private static final String CORRELATION_HEADERS_REPLY_TO_DEFAULT = "zilla:reply-to";
 
     private static final int FIELD_DEFAULT = 32767;
-    private static final String8FW RELIABILITY_METADATA_DEFAULT = new String8FW("last-message-id");
-    private static final String8FW IDEMPOTENCY_METADATA_DEFAULT = new String8FW("idempotency-key");
+    private static final String RELIABILITY_METADATA_DEFAULT = "last-message-id";
+    private static final String IDEMPOTENCY_METADATA_DEFAULT = "idempotency-key";
     private static final GrpcKafkaCorrelationConfig CORRELATION_DEFAULT =
         new GrpcKafkaCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
             CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT, CORRELATION_HEADERS_REPLY_TO_DEFAULT);
@@ -98,7 +96,7 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
             if (!RELIABILITY_METADATA_DEFAULT.equals(reliability.metadata))
             {
-                newReliability.add(RELIABILITY_METADATA_NAME, reliability.metadata.asString());
+                newReliability.add(RELIABILITY_METADATA_NAME, reliability.metadata);
             }
 
             object.add(RELIABILITY_NAME, newReliability);
@@ -112,7 +110,7 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
             if (!IDEMPOTENCY_METADATA_DEFAULT.equals(idempotency.metadata))
             {
-                newIdempotency.add(IDEMPOTENCY_METADATA_NAME, idempotency.metadata.asString());
+                newIdempotency.add(IDEMPOTENCY_METADATA_NAME, idempotency.metadata);
             }
 
             object.add(IDEMPOTENCY_NAME, newIdempotency);
@@ -126,22 +124,22 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
             if (!CORRELATION_HEADERS_SERVICE_DEFAULT.equals(correlation.service))
             {
-                newHeaders.add(CORRELATION_HEADERS_SERVICE_NAME, correlation.service.asString());
+                newHeaders.add(CORRELATION_HEADERS_SERVICE_NAME, correlation.service);
             }
 
             if (!CORRELATION_HEADERS_METHOD_DEFAULT.equals(correlation.method))
             {
-                newHeaders.add(CORRELATION_HEADERS_METHOD_NAME, correlation.method.asString());
+                newHeaders.add(CORRELATION_HEADERS_METHOD_NAME, correlation.method);
             }
 
             if (!CORRELATION_HEADERS_CORRELATION_ID_DEFAULT.equals(correlation.correlationId))
             {
-                newHeaders.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, correlation.correlationId.asString());
+                newHeaders.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, correlation.correlationId);
             }
 
             if (!CORRELATION_HEADERS_REPLY_TO_DEFAULT.equals(correlation.replyTo))
             {
-                newHeaders.add(CORRELATION_HEADERS_REPLY_TO_NAME, correlation.replyTo.asString());
+                newHeaders.add(CORRELATION_HEADERS_REPLY_TO_NAME, correlation.replyTo);
             }
 
             JsonObjectBuilder newCorrelation = Json.createObjectBuilder();
@@ -172,10 +170,10 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
                 }
             }
 
-            String8FW newMetadata = RELIABILITY_METADATA_DEFAULT;
+            String newMetadata = RELIABILITY_METADATA_DEFAULT;
             if (reliability.containsKey(RELIABILITY_METADATA_NAME))
             {
-                newMetadata = new String8FW(reliability.getString(RELIABILITY_METADATA_NAME));
+                newMetadata = reliability.getString(RELIABILITY_METADATA_NAME);
             }
 
             newReliability = new GrpcKafkaReliabilityConfig(newField, newMetadata);
@@ -186,10 +184,10 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
         {
             JsonObject idempotency = object.getJsonObject(IDEMPOTENCY_NAME);
 
-            String8FW newMetadata = IDEMPOTENCY_METADATA_DEFAULT;
+            String newMetadata = IDEMPOTENCY_METADATA_DEFAULT;
             if (idempotency.containsKey(IDEMPOTENCY_METADATA_NAME))
             {
-                newMetadata = new String8FW(idempotency.getString(IDEMPOTENCY_METADATA_NAME));
+                newMetadata = idempotency.getString(IDEMPOTENCY_METADATA_NAME);
             }
 
             newIdempotency = new GrpcKafkaIdempotencyConfig(newMetadata);
@@ -203,28 +201,28 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             {
                 JsonObject headers = correlation.getJsonObject(CORRELATION_HEADERS_NAME);
 
-                String16FW newService = CORRELATION_HEADERS_SERVICE_DEFAULT;
+                String newService = CORRELATION_HEADERS_SERVICE_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_SERVICE_NAME))
                 {
-                    newService = new String16FW(headers.getString(CORRELATION_HEADERS_SERVICE_NAME));
+                    newService = headers.getString(CORRELATION_HEADERS_SERVICE_NAME);
                 }
 
-                String16FW newMethod = CORRELATION_HEADERS_METHOD_DEFAULT;
+                String newMethod = CORRELATION_HEADERS_METHOD_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_METHOD_NAME))
                 {
-                    newMethod = new String16FW(headers.getString(CORRELATION_HEADERS_METHOD_NAME));
+                    newMethod = headers.getString(CORRELATION_HEADERS_METHOD_NAME);
                 }
 
-                String16FW newCorrelationId = CORRELATION_HEADERS_CORRELATION_ID_DEFAULT;
+                String newCorrelationId = CORRELATION_HEADERS_CORRELATION_ID_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME))
                 {
-                    newCorrelationId = new String16FW(headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME));
+                    newCorrelationId = headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME);
                 }
 
-                String16FW newReplyTo = CORRELATION_HEADERS_REPLY_TO_DEFAULT;
+                String newReplyTo = CORRELATION_HEADERS_REPLY_TO_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_REPLY_TO_NAME))
                 {
-                    newReplyTo = new String16FW(headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME));
+                    newReplyTo = headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME);
                 }
 
                 newCorrelation = new GrpcKafkaCorrelationConfig(newCorrelationId, newService, newMethod, newReplyTo);

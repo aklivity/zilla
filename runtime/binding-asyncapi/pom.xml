@@ -68,8 +68,16 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-http.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-http-kafka.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
@@ -89,6 +97,10 @@
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-mqtt</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-mqtt-kafka.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>

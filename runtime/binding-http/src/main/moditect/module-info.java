@@ -16,6 +16,7 @@
 module io.aklivity.zilla.runtime.binding.http
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.binding.http;
 
     exports io.aklivity.zilla.runtime.binding.http.config;
 
@@ -24,9 +25,6 @@ module io.aklivity.zilla.runtime.binding.http
 
     provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.http.internal.config.HttpOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.http.internal.config.HttpConditionConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.http.internal.HttpEventFormatterFactory;

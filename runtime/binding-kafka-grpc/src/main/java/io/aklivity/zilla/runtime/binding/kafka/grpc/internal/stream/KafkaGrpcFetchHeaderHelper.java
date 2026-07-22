@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
@@ -68,15 +69,20 @@ public final class KafkaGrpcFetchHeaderHelper
         MutableDirectBufferEx metaBuffer)
     {
         this.metaBuffer = metaBuffer;
+        String16FW service = new String16FW(correlation.service);
+        String16FW method = new String16FW(correlation.method);
+        String16FW replyTo = new String16FW(correlation.replyTo);
+        String16FW correlationId = new String16FW(correlation.correlationId);
+
         Map<OctetsFW, Consumer<OctetsFW>> visitors = new HashMap<>();
-        visitors.put(new OctetsFW().wrap(correlation.service.value(),
-            0, correlation.service.length()), this::visitService);
-        visitors.put(new OctetsFW().wrap(correlation.method.value(),
-            0, correlation.method.length()), this::visitMethod);
-        visitors.put(new OctetsFW().wrap(correlation.replyTo.value(),
-            0, correlation.replyTo.length()), this::visitReplyTo);
-        visitors.put(new OctetsFW().wrap(correlation.correlationId.value(),
-            0, correlation.correlationId.length()), this::visitCorrelationId);
+        visitors.put(new OctetsFW().wrap(service.value(),
+            0, service.length()), this::visitService);
+        visitors.put(new OctetsFW().wrap(method.value(),
+            0, method.length()), this::visitMethod);
+        visitors.put(new OctetsFW().wrap(replyTo.value(),
+            0, replyTo.length()), this::visitReplyTo);
+        visitors.put(new OctetsFW().wrap(correlationId.value(),
+            0, correlationId.length()), this::visitCorrelationId);
         this.visitors = visitors;
     }
 

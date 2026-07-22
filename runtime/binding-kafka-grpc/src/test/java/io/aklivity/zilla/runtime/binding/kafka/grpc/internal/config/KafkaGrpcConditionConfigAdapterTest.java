@@ -29,8 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcConditionConfig;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
 public class KafkaGrpcConditionConfigAdapterTest
 {
@@ -61,11 +59,11 @@ public class KafkaGrpcConditionConfigAdapterTest
         KafkaGrpcConditionConfig condition = jsonb.fromJson(text, KafkaGrpcConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.topic.asString(), equalTo("responses"));
-        assertThat(condition.replyTo.get().asString(), equalTo("requests"));
-        assertThat(condition.service.get().asString(), equalTo("test"));
-        assertThat(condition.method.get().asString(), equalTo("*"));
-        assertThat(condition.key.get().asString(), equalTo("test"));
+        assertThat(condition.topic, equalTo("responses"));
+        assertThat(condition.replyTo.get(), equalTo("requests"));
+        assertThat(condition.service.get(), equalTo("test"));
+        assertThat(condition.method.get(), equalTo("*"));
+        assertThat(condition.key.get(), equalTo("test"));
         assertTrue(!condition.headers.isEmpty());
     }
 
@@ -73,12 +71,12 @@ public class KafkaGrpcConditionConfigAdapterTest
     public void shouldWriteCondition()
     {
         KafkaGrpcConditionConfig condition = new KafkaGrpcConditionConfig(
-            new String16FW("responses"),
-            new String16FW("requests"),
-            new String16FW("test"),
-            singletonMap(new String8FW("custom"), new String16FW("test")),
-            new String16FW("test"),
-            new String16FW("*")
+            "responses",
+            "requests",
+            "test",
+            singletonMap("custom", "test"),
+            "test",
+            "*"
         );
 
         String text = jsonb.toJson(condition);

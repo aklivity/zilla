@@ -14,16 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.config;
 
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
-
 public class GrpcMetadataValueConfig
 {
-    public final String16FW textValue;
-    public final String16FW base64Value;
+    public final String textValue;
+    public final String base64Value;
 
     public GrpcMetadataValueConfig(
-        String16FW textValue,
-        String16FW base64Value)
+        String textValue,
+        String base64Value)
     {
 
         this.textValue = textValue;

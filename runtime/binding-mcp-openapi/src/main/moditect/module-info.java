@@ -14,6 +14,8 @@
  */
 module io.aklivity.zilla.runtime.binding.mcp.openapi
 {
+    requires io.aklivity.zilla.config.binding.mcp.http;
+    requires io.aklivity.zilla.config.binding.mcp.openapi;
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.yaml;
 
@@ -28,12 +30,6 @@ module io.aklivity.zilla.runtime.binding.mcp.openapi
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiBindingFactorySpi;
-
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiConditionConfigAdapter;
 
     provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiWithConfigAdapter;
