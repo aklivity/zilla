@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
+import static io.aklivity.zilla.config.binding.http.HttpPolicyConfig.SAME_ORIGIN;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
@@ -36,18 +36,18 @@ import java.util.regex.Pattern;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.config.binding.http.HttpAccessControlConfig;
+import io.aklivity.zilla.config.binding.http.HttpAuthorizationConfig;
+import io.aklivity.zilla.config.binding.http.HttpCredentialsConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
+import io.aklivity.zilla.config.binding.http.HttpParamConfig;
+import io.aklivity.zilla.config.binding.http.HttpPatternConfig;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfig;
+import io.aklivity.zilla.config.binding.http.HttpResponseConfig;
+import io.aklivity.zilla.config.binding.http.HttpVersion;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpPatternConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;

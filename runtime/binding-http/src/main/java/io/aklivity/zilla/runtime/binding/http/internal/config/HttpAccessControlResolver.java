@@ -15,11 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
+import static io.aklivity.zilla.config.binding.http.HttpPolicyConfig.CROSS_ORIGIN;
 import static java.lang.ThreadLocal.withInitial;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig;
+import io.aklivity.zilla.config.binding.http.HttpAccessControlConfig;
+import io.aklivity.zilla.config.binding.http.HttpPolicyConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;

@@ -13,15 +13,37 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.config.binding.http
+package io.aklivity.zilla.config.binding.http;
+
+public enum HttpVersion
 {
-    requires jakarta.json;
-    requires jakarta.json.bind;
-    requires org.agrona;
-    requires io.aklivity.zilla.config.engine;
+    HTTP_1_1("http/1.1"),
+    HTTP_2("h2");
 
-    exports io.aklivity.zilla.config.binding.http;
+    private final String name;
 
-    provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.http.HttpBindingInfo;
+    HttpVersion(
+        String name)
+    {
+        this.name = name;
+    }
+
+    public String asString()
+    {
+        return name;
+    }
+
+    public static HttpVersion of(
+        String name)
+    {
+        switch (name)
+        {
+        case "http/1.1":
+            return HTTP_1_1;
+        case "h2":
+            return HTTP_2;
+        default:
+            return null;
+        }
+    }
 }

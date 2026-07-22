@@ -24,17 +24,10 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
 import io.aklivity.zilla.config.binding.http.HttpConditionConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 
-public final class HttpConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public final class HttpConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String HEADERS_NAME = "headers";
-
-    @Override
-    public String type()
-    {
-        return "http";
-    }
 
     @Override
     public JsonObject adaptToJson(

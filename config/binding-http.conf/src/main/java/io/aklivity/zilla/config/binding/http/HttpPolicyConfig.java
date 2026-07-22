@@ -13,15 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.config.binding.http
+package io.aklivity.zilla.config.binding.http;
+
+public enum HttpPolicyConfig
 {
-    requires jakarta.json;
-    requires jakarta.json.bind;
-    requires org.agrona;
-    requires io.aklivity.zilla.config.engine;
-
-    exports io.aklivity.zilla.config.binding.http;
-
-    provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.http.HttpBindingInfo;
+    SAME_ORIGIN,
+    CROSS_ORIGIN
 }

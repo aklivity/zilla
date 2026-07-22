@@ -34,7 +34,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/config/binding/openapi/schema/openapi.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/config/binding/tls/schema/tls.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/config/binding/tcp/schema/tcp.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/binding/http/schema/http.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/openapi/config");

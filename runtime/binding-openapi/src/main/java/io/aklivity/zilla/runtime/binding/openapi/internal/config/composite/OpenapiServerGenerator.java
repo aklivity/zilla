@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
+import static io.aklivity.zilla.config.binding.http.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
-import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
@@ -25,6 +25,11 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpParamConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfig.Method;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfigBuilder;
 import io.aklivity.zilla.config.binding.tcp.TcpConditionConfig;
 import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
 import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
@@ -36,11 +41,6 @@ import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
 import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig.Method;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;

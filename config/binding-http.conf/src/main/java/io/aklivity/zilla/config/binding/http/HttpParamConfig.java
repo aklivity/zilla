@@ -13,15 +13,27 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.config.binding.http
+package io.aklivity.zilla.config.binding.http;
+
+import static java.util.function.Function.identity;
+
+import io.aklivity.zilla.config.engine.ModelConfig;
+
+public class HttpParamConfig
 {
-    requires jakarta.json;
-    requires jakarta.json.bind;
-    requires org.agrona;
-    requires io.aklivity.zilla.config.engine;
+    public String name;
+    public ModelConfig model;
 
-    exports io.aklivity.zilla.config.binding.http;
+    public HttpParamConfig(
+        String name,
+        ModelConfig model)
+    {
+        this.name = name;
+        this.model = model;
+    }
 
-    provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.http.HttpBindingInfo;
+    public static HttpParamConfigBuilder<HttpParamConfig> builder()
+    {
+        return new HttpParamConfigBuilder<>(identity());
+    }
 }
