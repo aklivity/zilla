@@ -188,6 +188,15 @@ public class McpKafkaProxyIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.produce.yaml")
+    @Specification({
+        "${mcp}/tools.list/client"})
+    public void shouldListTools() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
