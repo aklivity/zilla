@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import jakarta.json.JsonObject;
@@ -29,7 +30,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private final BindingInfoRegistry bindingInfos;
+    private final Function<String, ? extends OptionsInfo> infoLookup;
     private final Map<String, OptionsConfigAdapterSpi> delegatesByType;
 
     private JsonbAdapter<OptionsConfig, JsonObject> delegate;
@@ -42,9 +43,9 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
 
     public OptionsConfigAdapter(
         OptionsConfigAdapterSpi.Kind kind,
-        BindingInfoRegistry bindingInfos)
+        Function<String, ? extends OptionsInfo> infoLookup)
     {
-        this.bindingInfos = bindingInfos;
+        this.infoLookup = infoLookup;
         this.delegatesByType = toMap(ServiceLoader
             .load(OptionsConfigAdapterSpi.class)
             .stream()
@@ -56,7 +57,7 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
     public void adaptType(
         String type)
     {
-        BindingInfo info = bindingInfos != null ? bindingInfos.lookup(type) : null;
+        OptionsInfo info = infoLookup != null ? infoLookup.apply(type) : null;
         delegate = info != null ? info.options() : delegatesByType.get(type);
     }
 

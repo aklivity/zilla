@@ -15,32 +15,10 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import java.net.URL;
-import java.util.List;
-
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.engine.factory.FactorySpi;
-
-public interface BindingInfo extends FactorySpi, OptionsInfo
+public interface OptionsInfo
 {
-    default List<String> aliases()
-    {
-        return List.of();
-    }
-
-    URL schema();
-
     JsonbAdapter<OptionsConfig, JsonObject> options();
-
-    default JsonbAdapter<ConditionConfig, JsonObject> condition()
-    {
-        return null;
-    }
-
-    default JsonbAdapter<WithConfig, JsonObject> with()
-    {
-        return null;
-    }
 }

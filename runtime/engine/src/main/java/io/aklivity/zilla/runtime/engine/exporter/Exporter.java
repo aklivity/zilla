@@ -47,9 +47,12 @@ public interface Exporter
     /**
      * Returns a URL pointing to the JSON schema for this exporter's configuration options.
      *
-     * @return the configuration schema URL
+     * @return the configuration schema URL, or {@code null}
      */
-    URL type();
+    default URL type()
+    {
+        return null;
+    }
 
     /**
      * Returns a URL pointing to a system-level configuration schema applied engine-wide

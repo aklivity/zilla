@@ -63,7 +63,10 @@ public interface Catalog extends Aliasable
     /**
      * Returns a URL pointing to the JSON schema for this catalog's configuration options.
      *
-     * @return the configuration schema URL
+     * @return the configuration schema URL, or {@code null}
      */
-    URL type();
+    default URL type()
+    {
+        return null;
+    }
 }

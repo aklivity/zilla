@@ -23,6 +23,7 @@ import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.config.engine.VaultConfigBuilder;
+import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 
 public class VaultAdapter
 {
@@ -35,7 +36,14 @@ public class VaultAdapter
 
     public VaultAdapter()
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.VAULT);
+        this(null);
+    }
+
+    public VaultAdapter(
+        VaultInfoRegistry vaultInfos)
+    {
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.VAULT,
+            vaultInfos != null ? vaultInfos::lookup : null);
     }
 
     public void adaptNamespace(

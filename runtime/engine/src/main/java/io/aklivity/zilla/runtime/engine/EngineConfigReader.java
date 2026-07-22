@@ -42,11 +42,15 @@ import jakarta.json.stream.JsonParser;
 import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.config.engine.BindingInfoRegistry;
+import io.aklivity.zilla.config.engine.CatalogInfoRegistry;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigAnnotator;
 import io.aklivity.zilla.config.engine.EngineConfigBuilder;
+import io.aklivity.zilla.config.engine.ExporterInfoRegistry;
+import io.aklivity.zilla.config.engine.GuardInfoRegistry;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 import io.aklivity.zilla.config.engine.internal.NamespaceAdapter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
@@ -62,6 +66,10 @@ public final class EngineConfigReader
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
     private final BindingInfoRegistry bindingInfos;
+    private final CatalogInfoRegistry catalogInfos;
+    private final GuardInfoRegistry guardInfos;
+    private final VaultInfoRegistry vaultInfos;
+    private final ExporterInfoRegistry exporterInfos;
     private final Consumer<String> logger;
 
     public EngineConfigReader(
@@ -69,12 +77,20 @@ public final class EngineConfigReader
         Resolver expressions,
         Collection<URL> schemaTypes,
         BindingInfoRegistry bindingInfos,
+        CatalogInfoRegistry catalogInfos,
+        GuardInfoRegistry guardInfos,
+        VaultInfoRegistry vaultInfos,
+        ExporterInfoRegistry exporterInfos,
         Consumer<String> logger)
     {
         this.config = config;
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
         this.bindingInfos = bindingInfos;
+        this.catalogInfos = catalogInfos;
+        this.guardInfos = guardInfos;
+        this.vaultInfos = vaultInfos;
+        this.exporterInfos = exporterInfos;
         this.logger = logger;
     }
 
@@ -126,7 +142,7 @@ public final class EngineConfigReader
             }
 
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(bindingInfos));
+                .withAdapters(new NamespaceAdapter(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos));
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(CONFIG_PROVIDER)
                 .withConfig(config)

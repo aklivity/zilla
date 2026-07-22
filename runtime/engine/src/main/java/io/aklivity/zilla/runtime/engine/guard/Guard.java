@@ -108,7 +108,10 @@ public interface Guard extends Aliasable
     /**
      * Returns a URL pointing to the JSON schema for this guard's configuration options.
      *
-     * @return the configuration schema URL
+     * @return the configuration schema URL, or {@code null}
      */
-    URL type();
+    default URL type()
+    {
+        return null;
+    }
 }

@@ -68,7 +68,8 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     {
         this.kind = new KindAdapter();
         this.route = new RouteAdapter(bindingInfos);
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, bindingInfos);
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING,
+            bindingInfos != null ? bindingInfos::lookup : null);
         this.cataloged = new CatalogedAdapter();
         this.telemetryRef = new TelemetryRefAdapter();
     }

@@ -15,32 +15,36 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import java.net.URL;
-import java.util.List;
+import static java.util.ServiceLoader.load;
 
-import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import java.util.Map;
+import java.util.stream.Stream;
 
-import io.aklivity.zilla.config.engine.factory.FactorySpi;
+import io.aklivity.zilla.config.engine.factory.Factory;
 
-public interface BindingInfo extends FactorySpi, OptionsInfo
+public final class GuardInfoRegistry extends Factory
 {
-    default List<String> aliases()
+    private final Map<String, GuardInfo> infosByType;
+
+    public static GuardInfoRegistry instantiate()
     {
-        return List.of();
+        return instantiate(load(GuardInfo.class), GuardInfoRegistry::new);
     }
 
-    URL schema();
-
-    JsonbAdapter<OptionsConfig, JsonObject> options();
-
-    default JsonbAdapter<ConditionConfig, JsonObject> condition()
+    public Stream<GuardInfo> stream()
     {
-        return null;
+        return infosByType.values().stream();
     }
 
-    default JsonbAdapter<WithConfig, JsonObject> with()
+    public GuardInfo lookup(
+        String type)
     {
-        return null;
+        return infosByType.get(type);
+    }
+
+    private GuardInfoRegistry(
+        Map<String, GuardInfo> infosByType)
+    {
+        this.infosByType = infosByType;
     }
 }
