@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.kafka.streams.application;
+package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,48 +26,69 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class ApiIT
+public class KafkaApiIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api")
+        .addScriptRoot("netCreateTopics",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0")
+        .addScriptRoot("netDeleteTopics",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/delete.topics.v3.api.versions.v0")
+        .addScriptRoot("netCreateTopicsUnsupported",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.unsupported")
+        .addScriptRoot("netCreateTopicsReused",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.reused");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
+    private final EngineRule engine = new EngineRule()
+        .directory("target/zilla-itests")
+        .countersBufferCapacity(8192)
+        .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
+        .external("net0")
+        .clean();
+
     @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("client.yaml")
     @Specification({
         "${app}/create.topics.v3/client",
-        "${app}/create.topics.v3/server"})
+        "${netCreateTopics}/create.topics/server"})
     public void shouldCreateTopicsV3() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("client.yaml")
     @Specification({
         "${app}/delete.topics.v3/client",
-        "${app}/delete.topics.v3/server"})
+        "${netDeleteTopics}/delete.topics/server"})
     public void shouldDeleteTopicsV3() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("client.yaml")
     @Specification({
         "${app}/create.topics.v3.unsupported.version/client",
-        "${app}/create.topics.v3.unsupported.version/server"})
+        "${netCreateTopicsUnsupported}/create.topics/server"})
     public void shouldCreateTopicsV3UnsupportedVersion() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("client.yaml")
     @Specification({
         "${app}/create.topics.v3.reused.connection/client",
-        "${app}/create.topics.v3.reused.connection/server"})
+        "${netCreateTopicsReused}/create.topics.then.delete.topics/server"})
     public void shouldCreateTopicsV3ReusedConnection() throws Exception
     {
         k3po.finish();
