@@ -26,6 +26,7 @@ public final class InlineOptionsConfigAdapter implements JsonbAdapter<OptionsCon
 {
     private static final String IDENTITY_NAME = "identity";
     private static final String CREDENTIALS_NAME = "credentials";
+    private static final String FORMAT_NAME = "format";
 
     @Override
     public JsonObject adaptToJson(
@@ -45,6 +46,11 @@ public final class InlineOptionsConfigAdapter implements JsonbAdapter<OptionsCon
             object.add(CREDENTIALS_NAME, inlineOptions.credentials);
         }
 
+        if (inlineOptions.format != null)
+        {
+            object.add(FORMAT_NAME, inlineOptions.format);
+        }
+
         return object.build();
     }
 
@@ -60,6 +66,10 @@ public final class InlineOptionsConfigAdapter implements JsonbAdapter<OptionsCon
             ? object.getString(CREDENTIALS_NAME)
             : null;
 
-        return new InlineOptionsConfig(identity, credentials);
+        String format = object.containsKey(FORMAT_NAME)
+            ? object.getString(FORMAT_NAME)
+            : null;
+
+        return new InlineOptionsConfig(identity, credentials, format);
     }
 }

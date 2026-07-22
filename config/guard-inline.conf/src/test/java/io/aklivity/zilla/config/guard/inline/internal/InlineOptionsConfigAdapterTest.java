@@ -69,7 +69,7 @@ public class InlineOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithCredentials()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig(null, "token");
+        InlineOptionsConfig options = new InlineOptionsConfig(null, "token", null);
 
         String yaml = jsonb.toJson(options);
 
@@ -80,7 +80,7 @@ public class InlineOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithIdentity()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig("alice", null);
+        InlineOptionsConfig options = new InlineOptionsConfig("alice", null, null);
 
         String yaml = jsonb.toJson(options);
 
@@ -91,11 +91,33 @@ public class InlineOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithNullFields()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig(null, null);
+        InlineOptionsConfig options = new InlineOptionsConfig(null, null, null);
 
         String yaml = jsonb.toJson(options);
 
         assertThat(yaml, not(nullValue()));
         assertThat(yaml, equalTo("{}\n"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithFormat()
+    {
+        String yaml = "format: \"{identity}:{credentials}\"";
+
+        InlineOptionsConfig options = jsonb.fromJson(yaml, InlineOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.format, equalTo("{identity}:{credentials}"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithFormat()
+    {
+        InlineOptionsConfig options = new InlineOptionsConfig(null, null, "{identity}:{credentials}");
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo("format: \"{identity}:{credentials}\"\n"));
     }
 }

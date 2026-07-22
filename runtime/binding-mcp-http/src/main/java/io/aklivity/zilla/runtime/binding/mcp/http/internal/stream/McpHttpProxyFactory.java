@@ -1340,11 +1340,11 @@ public final class McpHttpProxyFactory implements BindingHandler
 
                 responseGenerator = JsonEx.createGenerator();
                 JsonStream stream = JsonEx.stream(JsonEx.createParser());
-                if (tool != null && tool.outputWrapped)
+                if (tool != null && tool.outputMaybeWrapped)
                 {
-                    // the upstream body itself is not an object (e.g. a top-level array); wrap it to match
-                    // the {"result":<value>} shape McpOpenapiCompositeGenerator advertised as outputSchema,
-                    // before validating/projecting against that same wrapped schema below
+                    // nothing proves the upstream body is already an object; route it through the
+                    // transform that decides, from the real body's own first event, whether it actually
+                    // needs wrapping into {"result":<value>} before validating/projecting below
                     stream = stream.transform(new McpHttpResultWrap());
                 }
                 if (outputSchema != null)

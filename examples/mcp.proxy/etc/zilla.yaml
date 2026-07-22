@@ -322,10 +322,15 @@ bindings:
         # connection unless it configures its own routes[].with.cache.credentials
         # override, so one broad credential is enough here. This is the raw
         # JWT, not a "Bearer "-prefixed header value -- it's handed directly to
-        # guard.reauthorize(), not extracted from a header
+        # guard.reauthorize(), not extracted from a header. Its scope claim must
+        # include every guarded toolkit route's own toolkit-level scope below --
+        # a toolkit added without updating this credential silently never
+        # hydrates: the guard rejects the hydration stream, tools/list never
+        # shows it (not even as a cold/searchable tool), yet tools/call still
+        # works fine since real calls use the caller's own JWT, not this one
         authorization:
           authn_jwt:
-            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzNzEyNTMwNCwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSJ9.DEsguNDaHgHgn7MaK8KY1I9dW9SpTc5AUnVTQjY5v-Jmm1IWSpt-xModSTnWqfnlUImYNEbImlyXfSjFXiAd1rBCl-Sw9n6DCdkVPN2VQ1gybGNxVWyp1hlOGzQQSXWEmIOYjlRliRiTpaskNjgoyY7qawncIlIOY8xX0HnP11dONyNxgzSwaPio80e2cNlWjgHTrxSDY4ms5Svv4AInSr8BxSdvl3eOpFVlJ-XhZeOo4STcpaK1FeJgxwkxM6RGUk6ltCOc3V2gdmF6gFE_t41UzzSEvxzPPsW48VmigmCp29vC9Doi6WG_1H2M_CX85sEx7_R12Gh_Pmj53NBNuw"
+            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzODM1MDk3OSwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSBrYWZrYTp0b29scyBrYWZrYV9zcjp0b29scyJ9.YVgIJhaeJKXJqvXufzQbczxq6i7RiKa8WWt424ApOqQNeSNoX00IRoABHrb-SQHd9za5O9OJke0-VC7FdOlYpSXlF9fAJin4DDI2EPu3xGKGJt4PnZJCc6QUbQlOIcVHH3cldIveb9fYT4D152tL-b4njJ7lofcsyUHcTfXJ5OsDHX1lGnIyEKWeF7AeC6T7C5K5fzw5WqmC-P8owujfjqt8SgKjexoJxjKmsPdaC9rakPnP54wSUQcPpGB2bMJk1MU2sxxlGXYJ8YAa3Ms2V4P7X5eG-AbPTFk-_xOicEXDR0TOP11UE2J9ifDCi8_oH-88lSm9EXToQ865eDNxBg"
         # a fixed handful of frequently used tools stay eagerly listed; every other
         # tool across every toolkit (the "everything" reference server's dozen-plus
         # demo tools, most visibly) is omitted from tools/list -- because the search
@@ -341,6 +346,10 @@ bindings:
               - petstore__list_pets
               - petstore__search_pets
               - petstore__create_pet
+              - kafka_sr__list_subjects
+              - kafka_sr__register_schema
+              - kafka__produce
+              - kafka__consume
           search:
             toolkit: zilla
     routes:
@@ -366,6 +375,18 @@ bindings:
         guarded:
           authn_jwt:
             - petstore:tools
+      - exit: south_mcp_schema_registry_client
+        when:
+          - toolkit: kafka_sr
+        guarded:
+          authn_jwt:
+            - kafka_sr:tools
+      - exit: south_mcp_kafka_client
+        when:
+          - toolkit: kafka
+        guarded:
+          authn_jwt:
+            - kafka:tools
   south_mcp_client_everything:
     type: mcp
     kind: client
@@ -559,6 +580,42 @@ bindings:
         with:
           spec: petstore
           operation: get_pet
+  south_mcp_schema_registry_client:
+    type: mcp_schema_registry
+    kind: client
+    options:
+      server: http://karapace-registry:8081
+    # a second, tool-specific guard layered under the toolkit-level
+    # kafka_sr:tools gate above -- the mutating register_schema route
+    # additionally requires kafka_sr:write, every other (read-only)
+    # tool needs only the toolkit-level scope. Order matters: routes match in
+    # declaration order, so register_schema's own route must come before the
+    # catch-all glob or its guard would never apply
+    routes:
+      - when:
+          - tool: register_schema
+        guarded:
+          authn_jwt:
+            - kafka_sr:write
+      - when:
+          - tool: "*"
+  south_mcp_kafka_client:
+    type: mcp_kafka
+    kind: client
+    options:
+      servers:
+        - kafka.examples.dev:29092
+    # tool + topics together restrict each route to an allow-list of topics
+    # (exact names or *-glob patterns), not just a tool-name dispatch; a
+    # produce/consume call naming any other topic has no matching route
+    # and is rejected
+    routes:
+      - when:
+          - tool: produce
+            topics: [orders]
+      - when:
+          - tool: consume
+            topics: [orders]
 telemetry:
   metrics:
     - mcp.initialize
