@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
@@ -56,7 +57,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionCon
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfigBuilder;

@@ -102,6 +102,10 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-sse-kafka.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-sse-kafka</artifactId>
       <scope>provided</scope>
     </dependency>

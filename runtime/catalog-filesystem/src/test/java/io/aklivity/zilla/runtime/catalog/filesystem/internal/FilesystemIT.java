@@ -28,8 +28,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemSchemaConfig;
+import io.aklivity.zilla.config.catalog.filesystem.FilesystemOptionsConfig;
+import io.aklivity.zilla.config.catalog.filesystem.FilesystemSchemaConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;

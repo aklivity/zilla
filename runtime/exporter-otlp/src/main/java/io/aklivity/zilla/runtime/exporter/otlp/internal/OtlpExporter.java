@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
@@ -41,7 +42,7 @@ public class OtlpExporter implements Exporter
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/otlp.schema.patch.json");
+        return OtlpOptionsConfig.class.getResource("schema/otlp.schema.patch.json");
     }
 
     @Override

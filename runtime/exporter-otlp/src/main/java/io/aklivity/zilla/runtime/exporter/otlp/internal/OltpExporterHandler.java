@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.LOGS;
-import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
+import static io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig.OtlpSignalsConfig.LOGS;
+import static io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -31,11 +31,11 @@ import java.util.function.LongFunction;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.config.OtlpExporterConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.EventReader;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpLogsSerializer;

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.stdout.internal.config;
 
 import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.exporter.stdout.StdoutOptionsConfig;
 
 public class StdoutExporterConfig
 {

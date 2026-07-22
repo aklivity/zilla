@@ -22,10 +22,15 @@
     <module>binding-tls.conf</module>
     <module>binding-mqtt.conf</module>
     <module>binding-sse.conf</module>
+    <module>binding-sse-kafka.conf</module>
     <module>catalog-apicurio.conf</module>
+    <module>catalog-filesystem.conf</module>
     <module>catalog-schema-registry.conf</module>
     <module>catalog-karapace.conf</module>
     <module>catalog-inline.conf</module>
+    <module>exporter-otlp.conf</module>
+    <module>exporter-prometheus.conf</module>
+    <module>exporter-stdout.conf</module>
     <module>guard-inline.conf</module>
     <module>guard-jwt.conf</module>
     <module>vault-filesystem.conf</module>

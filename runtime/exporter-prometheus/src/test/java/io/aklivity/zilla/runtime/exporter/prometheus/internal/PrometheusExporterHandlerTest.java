@@ -31,12 +31,12 @@ import java.time.Duration;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.exporter.prometheus.PrometheusEndpointConfig;
+import io.aklivity.zilla.config.exporter.prometheus.PrometheusOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig;
 
 public class PrometheusExporterHandlerTest
 {

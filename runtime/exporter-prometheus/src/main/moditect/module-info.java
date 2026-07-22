@@ -16,10 +16,8 @@ module io.aklivity.zilla.runtime.exporter.prometheus
 {
     requires jdk.httpserver;
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.exporter.prometheus;
 
     provides io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi
         with io.aklivity.zilla.runtime.exporter.prometheus.internal.PrometheusExporterFactorySpi;
-
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfigAdapter;
 }

@@ -115,7 +115,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-sse-kafka.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>catalog-apicurio.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>catalog-filesystem.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -131,6 +141,21 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>catalog-inline.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>exporter-otlp.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>exporter-prometheus.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>exporter-stdout.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

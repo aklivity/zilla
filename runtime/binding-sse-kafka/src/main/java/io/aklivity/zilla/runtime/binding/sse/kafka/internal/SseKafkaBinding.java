@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
@@ -40,7 +41,7 @@ public final class SseKafkaBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/sse.kafka.schema.patch.json");
+        return SseKafkaConditionConfig.class.getResource("schema/sse.kafka.schema.patch.json");
     }
 
     @Override
