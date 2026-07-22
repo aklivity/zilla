@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_I
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -134,6 +135,111 @@ public final class KafkaClientApiFactory implements BindingHandler
         this.clientsByAffinity = new Long2ObjectHashMap<>();
     }
 
+    @FunctionalInterface
+    private interface KafkaApiClientDecoder
+    {
+        int decode(
+            KafkaApiClient client,
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            MutableDirectBufferEx buffer,
+            int offset,
+            int progress,
+            int limit);
+    }
+
+    private int decodeResponseHeader(
+        KafkaApiClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        decode:
+        if (length != 0)
+        {
+            final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
+            if (responseHeader == null)
+            {
+                break decode;
+            }
+
+            final int correlationIdLimit = responseHeader.limit() + RESPONSE_HEADER_FIELD_SIZE_CORRELATION_ID;
+            if (correlationIdLimit > limit)
+            {
+                break decode;
+            }
+
+            progress = correlationIdLimit;
+
+            final int responseBodyLength = responseHeader.length() - RESPONSE_HEADER_FIELD_SIZE_CORRELATION_ID;
+
+            client.onDecodeResponseHeader(traceId, authorization, responseBodyLength);
+        }
+
+        return progress;
+    }
+
+    private int decodeResponseBody(
+        KafkaApiClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            final int forwarded = client.onDecodeResponseBody(traceId, authorization, budgetId, buffer, progress, limit);
+            progress += forwarded;
+        }
+
+        return progress;
+    }
+
+    private int decodeReject(
+        KafkaApiClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        client.cleanupNet(traceId);
+        client.decoder = decodeIgnoreAll;
+        return limit;
+    }
+
+    private int decodeIgnoreAll(
+        KafkaApiClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return limit;
+    }
+
     @Override
     public MessageConsumer newStream(
         int msgTypeId,
@@ -224,285 +330,6 @@ public final class KafkaClientApiFactory implements BindingHandler
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
         return receiver;
-    }
-
-    private void doBegin(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long affinity,
-        Consumer<OctetsFW.Builder> extension)
-    {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .affinity(affinity)
-                .extension(extension)
-                .build();
-
-        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-    }
-
-    private void doData(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx payload,
-        int offset,
-        int length,
-        Consumer<OctetsFW.Builder> extension)
-    {
-        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .payload(payload, offset, length)
-                .extension(extension)
-                .build();
-
-        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
-    }
-
-    private void doEnd(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        Consumer<OctetsFW.Builder> extension)
-    {
-        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .extension(extension)
-                .build();
-
-        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
-    }
-
-    private void doAbort(
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        Consumer<OctetsFW.Builder> extension)
-    {
-        final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .extension(extension)
-                .build();
-
-        receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
-    }
-
-    private void doWindow(
-        MessageConsumer sender,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int padding)
-    {
-        final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(budgetId)
-                .padding(padding)
-                .build();
-
-        sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
-    }
-
-    private void doReset(
-        MessageConsumer sender,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        Flyweight extension)
-    {
-        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                .build();
-
-        sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
-    }
-
-    @FunctionalInterface
-    private interface KafkaApiClientDecoder
-    {
-        int decode(
-            KafkaApiClient client,
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            MutableDirectBufferEx buffer,
-            int offset,
-            int progress,
-            int limit);
-    }
-
-    private int decodeResponseHeader(
-        KafkaApiClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final int length = limit - progress;
-
-        decode:
-        if (length != 0)
-        {
-            final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
-            if (responseHeader == null)
-            {
-                break decode;
-            }
-
-            final int correlationIdLimit = responseHeader.limit() + RESPONSE_HEADER_FIELD_SIZE_CORRELATION_ID;
-            if (correlationIdLimit > limit)
-            {
-                break decode;
-            }
-
-            progress = correlationIdLimit;
-
-            final int responseBodyLength = responseHeader.length() - RESPONSE_HEADER_FIELD_SIZE_CORRELATION_ID;
-
-            client.onDecodeResponseHeader(traceId, authorization, responseBodyLength);
-        }
-
-        return progress;
-    }
-
-    private int decodeResponseBody(
-        KafkaApiClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        MutableDirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final int length = limit - progress;
-
-        if (length != 0)
-        {
-            final int forwarded = client.onDecodeResponseBody(traceId, authorization, budgetId, buffer, progress, limit);
-            progress += forwarded;
-        }
-
-        return progress;
-    }
-
-    private int decodeReject(
-        KafkaApiClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        client.cleanupNet(traceId);
-        client.decoder = decodeIgnoreAll;
-        return limit;
-    }
-
-    private int decodeIgnoreAll(
-        KafkaApiClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        return limit;
     }
 
     private final class KafkaApiStream
@@ -876,7 +703,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         private final long initialId;
         private final long replyId;
         private final KafkaServerConfig server;
-        private final ArrayDeque<KafkaApiStream> pending;
+        private final Deque<KafkaApiStream> pending;
 
         private MessageConsumer network;
         private int state;
@@ -1249,9 +1076,10 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (!KafkaState.initialClosed(state))
             {
+                state = KafkaState.closedInitial(state);
+
                 doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
-                state = KafkaState.closedInitial(state);
             }
 
             cleanupEncodeSlot();
@@ -1263,9 +1091,10 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (!KafkaState.replyClosed(state))
             {
+                state = KafkaState.closedReply(state);
+
                 doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
-                state = KafkaState.closedReply(state);
             }
 
             cleanupDecodeSlot();
@@ -1520,5 +1349,179 @@ public final class KafkaClientApiFactory implements BindingHandler
                 initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
+    }
+
+    private void doBegin(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(extension)
+                .build();
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+    }
+
+    private void doData(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx payload,
+        int offset,
+        int length,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .payload(payload, offset, length)
+                .extension(extension)
+                .build();
+
+        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private void doEnd(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension)
+                .build();
+
+        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+    }
+
+    private void doAbort(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension)
+                .build();
+
+        receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+    }
+
+    private void doWindow(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding)
+    {
+        final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .padding(padding)
+                .build();
+
+        sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
+    }
+
+    private void doReset(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+        sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 }
