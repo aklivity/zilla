@@ -28,4 +28,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                  .build()
                                 .build()}
 
-connect aborted
+connect aborted zilla:reset.ext ${kafka:matchResetEx()
+                                        .typeId(zilla:id("kafka"))
+                                        .error(35)
+                                        .build()}

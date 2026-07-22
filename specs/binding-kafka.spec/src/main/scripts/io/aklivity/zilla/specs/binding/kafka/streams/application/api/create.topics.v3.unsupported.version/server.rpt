@@ -21,4 +21,7 @@ accept ${serverAddress}
     option zilla:transmission "half-duplex"
     option zilla:byteorder "network"
 
-rejected
+rejected zilla:reset.ext ${kafka:resetEx()
+                                 .typeId(zilla:id("kafka"))
+                                 .error(35)
+                                 .build()}

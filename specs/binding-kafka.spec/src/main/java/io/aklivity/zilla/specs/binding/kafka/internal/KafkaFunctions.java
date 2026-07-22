@@ -168,6 +168,12 @@ public final class KafkaFunctions
     }
 
     @Function
+    public static KafkaResetExMatcherBuilder matchResetEx()
+    {
+        return new KafkaResetExMatcherBuilder();
+    }
+
+    @Function
     public static KafkaEndExBuilder endEx()
     {
         return new KafkaEndExBuilder();
@@ -4165,6 +4171,84 @@ public final class KafkaFunctions
             final byte[] array = new byte[resetEx.sizeof()];
             resetEx.buffer().getBytes(resetExRO.offset(), array);
             return array;
+        }
+    }
+
+    public static final class KafkaResetExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final KafkaResetExFW resetExRO = new KafkaResetExFW();
+
+        private Integer typeId;
+        private Integer error;
+        private String16FW consumerId;
+
+        public KafkaResetExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public KafkaResetExMatcherBuilder error(
+            int error)
+        {
+            this.error = error;
+            return this;
+        }
+
+        public KafkaResetExMatcherBuilder consumerId(
+            String consumerId)
+        {
+            this.consumerId = new String16FW(consumerId);
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null ? this::match : buf -> null;
+        }
+
+        private KafkaResetExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final KafkaResetExFW resetEx = resetExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (resetEx != null &&
+                matchTypeId(resetEx) &&
+                matchError(resetEx) &&
+                matchConsumerId(resetEx))
+            {
+                byteBuf.position(byteBuf.position() + resetEx.sizeof());
+                return resetEx;
+            }
+
+            throw new Exception(resetEx.toString());
+        }
+
+        private boolean matchTypeId(
+            KafkaResetExFW resetEx)
+        {
+            return typeId == resetEx.typeId();
+        }
+
+        private boolean matchError(
+            KafkaResetExFW resetEx)
+        {
+            return error == null || error == resetEx.error();
+        }
+
+        private boolean matchConsumerId(
+            KafkaResetExFW resetEx)
+        {
+            return consumerId == null || consumerId.equals(resetEx.consumerId());
         }
     }
 
