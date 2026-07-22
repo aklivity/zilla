@@ -15,16 +15,15 @@
 package io.aklivity.zilla.runtime.binding.kafka.grpc.config;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
 
 public final class KafkaGrpcOptionsConfig extends OptionsConfig
 {
-    public final KafkaAckMode acks;
+    public final String acks;
     public final KafkaGrpcIdempotencyConfig idempotency;
     public final KafkaGrpcCorrelationConfig correlation;
 
     public KafkaGrpcOptionsConfig(
-        KafkaAckMode acks,
+        String acks,
         KafkaGrpcIdempotencyConfig idempotency,
         KafkaGrpcCorrelationConfig correlation)
     {

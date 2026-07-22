@@ -27,11 +27,10 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcCorrelationC
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcIdempotencyConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcBinding;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
 
 public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
+    private static final String ACKS_DEFAULT = "in_sync_replicas";
     private static final String ACKS_NAME = "acks";
     private static final String IDEMPOTENCY_NAME = "idempotency";
     private static final String IDEMPOTENCY_METADATA_NAME = "metadata";
@@ -77,9 +76,9 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (kafkaGrpcOptions.acks != ACKS_DEFAULT)
+        if (!ACKS_DEFAULT.equals(kafkaGrpcOptions.acks))
         {
-            object.add(ACKS_NAME, kafkaGrpcOptions.acks.name().toLowerCase());
+            object.add(ACKS_NAME, kafkaGrpcOptions.acks);
         }
 
         KafkaGrpcIdempotencyConfig idempotency = kafkaGrpcOptions.idempotency;
@@ -135,8 +134,8 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        KafkaAckMode newProduceAcks = object.containsKey(ACKS_NAME)
-            ? KafkaAckMode.valueOf(object.getString(ACKS_NAME).toUpperCase())
+        String newProduceAcks = object.containsKey(ACKS_NAME)
+            ? object.getString(ACKS_NAME)
             : ACKS_DEFAULT;
 
         KafkaGrpcIdempotencyConfig newIdempotency = IDEMPOTENCY_DEFAULT;

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode.LEADER_ONLY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -64,7 +63,7 @@ public class KafkaGrpcOptionsConfigAdapterTest
         KafkaGrpcOptionsConfig options = jsonb.fromJson(yaml, KafkaGrpcOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.acks, equalTo(LEADER_ONLY));
+        assertThat(options.acks, equalTo("leader_only"));
         assertThat(options.correlation, not(nullValue()));
         assertThat(options.correlation.service, equalTo("zilla:x-service"));
         assertThat(options.correlation.method, equalTo("zilla:x-method"));
@@ -76,7 +75,7 @@ public class KafkaGrpcOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         KafkaGrpcOptionsConfig options = new KafkaGrpcOptionsConfig(
-                LEADER_ONLY,
+                "leader_only",
                 new KafkaGrpcIdempotencyConfig("zilla:x-idempotency-key"),
                 new KafkaGrpcCorrelationConfig(
                     "zilla:x-correlation-id",

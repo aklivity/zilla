@@ -46,7 +46,7 @@ public final class KafkaGrpcConditionResolver
     public KafkaGrpcConditionResult resolve()
     {
         String16FW topic = new String16FW(condition.topic);
-        KafkaAckMode acks = options.acks;
+        KafkaAckMode acks = KafkaAckMode.valueOf(options.acks.toUpperCase());
 
         List<KafkaGrpcFetchFilterResult> filters = null;
         DirectBufferEx key = null;
