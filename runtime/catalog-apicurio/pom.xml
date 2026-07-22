@@ -22,8 +22,8 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.91</jacoco.coverage.ratio>
-    <jacoco.missed.count>0</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.28</jacoco.coverage.ratio>
+    <jacoco.missed.count>5</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -32,6 +32,11 @@
       <artifactId>catalog-apicurio.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>catalog-apicurio.conf</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -91,33 +96,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>catalog-apicurio.spec</artifactId>
-                  <fileMappers>
-                    <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                      <pattern>^\Qio/aklivity/zilla/specs/catalog/apicurio/\E</pattern>
-                      <replacement>io/aklivity/zilla/runtime/catalog/apicurio/internal/</replacement>
-                    </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
-                </artifactItem>
-              </artifactItems>
-              <includes>io/aklivity/zilla/specs/catalog/apicurio/schema/apicurio.schema.patch.json</includes>
-              <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

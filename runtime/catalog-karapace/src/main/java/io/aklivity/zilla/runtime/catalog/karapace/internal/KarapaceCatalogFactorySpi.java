@@ -17,12 +17,13 @@ package io.aklivity.zilla.runtime.catalog.karapace.internal;
 import java.net.URL;
 import java.util.Set;
 
+import io.aklivity.zilla.config.catalog.karapace.KarapaceOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.AbstractSchemaRegistryCatalogFactorySpi;
 
 public final class KarapaceCatalogFactorySpi extends AbstractSchemaRegistryCatalogFactorySpi
 {
-    public static final String TYPE = "karapace-schema-registry";
-    public static final Set<String> TYPE_ALIASES = Set.of("karapace");
+    public static final String TYPE = KarapaceOptionsConfig.TYPE;
+    public static final Set<String> TYPE_ALIASES = KarapaceOptionsConfig.TYPE_ALIASES;
 
     public KarapaceCatalogFactorySpi()
     {
@@ -31,6 +32,6 @@ public final class KarapaceCatalogFactorySpi extends AbstractSchemaRegistryCatal
 
     private static URL supplySchema()
     {
-        return KarapaceCatalogFactorySpi.class.getResource("schema/karapace.schema.patch.json");
+        return KarapaceOptionsConfig.class.getResource("schema/karapace.schema.patch.json");
     }
 }

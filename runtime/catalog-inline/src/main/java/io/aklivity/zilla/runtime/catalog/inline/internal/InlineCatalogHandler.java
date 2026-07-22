@@ -21,8 +21,8 @@ import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Object2IntHashMap;
 
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineSchemaConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
 public class InlineCatalogHandler implements CatalogHandler

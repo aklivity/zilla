@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;

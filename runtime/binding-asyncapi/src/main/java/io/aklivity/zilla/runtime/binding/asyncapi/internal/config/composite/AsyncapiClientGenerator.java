@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 
 import jakarta.json.bind.Jsonb;
 
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
@@ -44,7 +45,6 @@ import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiChannelView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;

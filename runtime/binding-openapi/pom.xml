@@ -75,7 +75,12 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-inline.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-inline</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>

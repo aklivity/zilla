@@ -19,5 +19,9 @@
   <modules>
     <module>engine.conf</module>
     <module>binding-tcp.conf</module>
+    <module>catalog-apicurio.conf</module>
+    <module>catalog-schema-registry.conf</module>
+    <module>catalog-karapace.conf</module>
+    <module>catalog-inline.conf</module>
   </modules>
 </project>

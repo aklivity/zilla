@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.catalog.inline.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
@@ -46,6 +47,6 @@ public class InlineCatalog implements Catalog
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/inline.schema.patch.json");
+        return InlineOptionsConfig.class.getResource("schema/inline.schema.patch.json");
     }
 }

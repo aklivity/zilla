@@ -16,15 +16,12 @@ module io.aklivity.zilla.runtime.catalog.schema.registry
 {
     requires java.net.http;
     requires io.aklivity.zilla.runtime.engine;
+    requires transitive io.aklivity.zilla.config.catalog.schema.registry;
 
     exports io.aklivity.zilla.runtime.catalog.schema.registry;
-    exports io.aklivity.zilla.runtime.catalog.schema.registry.config;
 
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
         with io.aklivity.zilla.runtime.catalog.schema.registry.internal.SchemaRegistryCatalogFactorySpi;
-
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaRegistryEventFormatterFactory;

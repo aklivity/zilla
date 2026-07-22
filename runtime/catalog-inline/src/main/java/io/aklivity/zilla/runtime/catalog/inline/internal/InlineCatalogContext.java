@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.catalog.inline.internal;
 
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.config.engine.CatalogConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 

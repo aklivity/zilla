@@ -24,7 +24,7 @@ import java.time.Duration;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
+import io.aklivity.zilla.config.catalog.apicurio.ApicurioOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;

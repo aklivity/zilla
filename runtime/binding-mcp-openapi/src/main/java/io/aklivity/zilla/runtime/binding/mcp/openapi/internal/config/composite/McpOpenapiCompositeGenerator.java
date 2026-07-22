@@ -43,6 +43,8 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
@@ -72,8 +74,6 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiB
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiRouteConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;

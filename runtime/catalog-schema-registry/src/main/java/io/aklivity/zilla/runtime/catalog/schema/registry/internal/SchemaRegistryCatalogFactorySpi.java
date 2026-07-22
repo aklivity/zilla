@@ -16,11 +16,12 @@ package io.aklivity.zilla.runtime.catalog.schema.registry.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.catalog.schema.registry.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.AbstractSchemaRegistryCatalogFactorySpi;
 
 public final class SchemaRegistryCatalogFactorySpi extends AbstractSchemaRegistryCatalogFactorySpi
 {
-    public static final String TYPE = "schema-registry";
+    public static final String TYPE = SchemaRegistryOptionsConfig.TYPE;
 
     public SchemaRegistryCatalogFactorySpi()
     {
@@ -30,6 +31,6 @@ public final class SchemaRegistryCatalogFactorySpi extends AbstractSchemaRegistr
 
     private static URL supplySchema()
     {
-        return SchemaRegistryCatalog.class.getResource("schema/schema.registry.schema.patch.json");
+        return SchemaRegistryOptionsConfig.class.getResource("schema/schema.registry.schema.patch.json");
     }
 }

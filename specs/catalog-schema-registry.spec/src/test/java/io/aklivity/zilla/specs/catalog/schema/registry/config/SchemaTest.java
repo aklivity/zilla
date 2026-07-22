@@ -29,7 +29,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/catalog/schema/registry/schema/schema.registry.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/catalog/schema/registry/schema/schema.registry.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/catalog/schema/registry/config");

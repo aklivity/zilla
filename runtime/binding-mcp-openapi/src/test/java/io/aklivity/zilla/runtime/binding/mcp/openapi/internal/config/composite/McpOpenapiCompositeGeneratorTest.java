@@ -49,6 +49,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
@@ -64,7 +65,6 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsCon
 import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;

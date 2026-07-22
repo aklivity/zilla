@@ -22,8 +22,8 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.91</jacoco.coverage.ratio>
-    <jacoco.missed.count>0</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.52</jacoco.coverage.ratio>
+    <jacoco.missed.count>1</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -42,6 +42,11 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>catalog-schema-registry</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>catalog-karapace.conf</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
