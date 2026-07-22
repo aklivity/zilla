@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.exporter.prometheus.internal;
 
-import static io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi.Kind.EXPORTER;
-
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -26,11 +24,10 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.exporter.prometheus.PrometheusEndpointConfig;
 import io.aklivity.zilla.config.exporter.prometheus.PrometheusOptionsConfig;
 
-public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public class PrometheusOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String ENDPOINTS_NAME = "endpoints";
 
@@ -39,18 +36,6 @@ public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     public PrometheusOptionsConfigAdapter()
     {
         this.endpoint = new PrometheusEndpointAdapter();
-    }
-
-    @Override
-    public Kind kind()
-    {
-        return EXPORTER;
-    }
-
-    @Override
-    public String type()
-    {
-        return "prometheus";
     }
 
     @Override

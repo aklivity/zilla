@@ -12,30 +12,36 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.exporter.stdout.internal;
+package io.aklivity.zilla.config.exporter.prometheus;
 
-import jakarta.json.Json;
+import java.net.URL;
+
 import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ExporterInfo;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.exporter.stdout.StdoutOptionsConfig;
+import io.aklivity.zilla.config.exporter.prometheus.internal.PrometheusOptionsConfigAdapter;
 
-public class StdoutOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class PrometheusExporterInfo implements ExporterInfo
 {
+    public static final String TYPE = "prometheus";
+
     @Override
-    public JsonObject adaptToJson(
-        OptionsConfig options)
+    public String type()
     {
-        JsonObjectBuilder object = Json.createObjectBuilder();
-        return object.build();
+        return TYPE;
     }
 
     @Override
-    public OptionsConfig adaptFromJson(
-        JsonObject object)
+    public URL schema()
     {
-        return new StdoutOptionsConfig();
+        return getClass().getResource("schema/prometheus.schema.patch.json");
+    }
+
+    @Override
+    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    {
+        return new PrometheusOptionsConfigAdapter();
     }
 }

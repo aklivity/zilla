@@ -21,6 +21,6 @@ module io.aklivity.zilla.config.exporter.otlp
 
     exports io.aklivity.zilla.config.exporter.otlp;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.exporter.otlp.internal.OtlpOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.ExporterInfo
+        with io.aklivity.zilla.config.exporter.otlp.OtlpExporterInfo;
 }

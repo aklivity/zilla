@@ -20,6 +20,6 @@ module io.aklivity.zilla.config.exporter.stdout
 
     exports io.aklivity.zilla.config.exporter.stdout;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.exporter.stdout.internal.StdoutOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.ExporterInfo
+        with io.aklivity.zilla.config.exporter.stdout.StdoutExporterInfo;
 }

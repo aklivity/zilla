@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.config.exporter.otlp.internal;
 
-import static io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi.Kind.EXPORTER;
 import static java.util.stream.Collectors.toList;
 
 import java.time.Duration;
@@ -29,11 +28,10 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig;
 import io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfigBuilder;
 
-public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public class OtlpOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String INTERVAL_NAME = "interval";
     private static final String SIGNALS_NAME = "signals";
@@ -53,18 +51,6 @@ public class OtlpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbA
     {
         this.signals = new OtlpSignalsAdapter();
         this.endpoint = new OtlpEndpointAdapter();
-    }
-
-    @Override
-    public Kind kind()
-    {
-        return EXPORTER;
-    }
-
-    @Override
-    public String type()
-    {
-        return "otlp";
     }
 
     @Override
