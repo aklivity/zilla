@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tls.internal.config;
+package io.aklivity.zilla.config.binding.tls.internal;
 
 import static java.util.stream.Collectors.toList;
 
@@ -28,14 +28,12 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
 
-public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public final class TlsOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String VERSION_NAME = "version";
     private static final String KEYS_NAME = "keys";
@@ -45,18 +43,6 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String MUTUAL_NAME = "mutual";
     private static final String SIGNERS_NAME = "signers";
     private static final String TRUSTCACERTS_NAME = "trustcacerts";
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.BINDING;
-    }
-
-    @Override
-    public String type()
-    {
-        return TlsBinding.NAME;
-    }
 
     @Override
     public JsonObject adaptToJson(

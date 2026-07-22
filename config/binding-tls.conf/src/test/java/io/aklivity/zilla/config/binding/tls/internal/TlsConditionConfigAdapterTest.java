@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tls.internal.config;
+package io.aklivity.zilla.config.binding.tls.internal;
 
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,8 +31,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
+import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
+import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
 
 public class TlsConditionConfigAdapterTest
 {

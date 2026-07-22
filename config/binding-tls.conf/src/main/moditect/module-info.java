@@ -13,16 +13,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.runtime.binding.tls
+module io.aklivity.zilla.config.binding.tls
 {
-    requires jdk.crypto.ec;
+    requires jakarta.json;
+    requires jakarta.json.bind;
+    requires org.agrona;
+    requires io.aklivity.zilla.config.engine;
 
-    requires io.aklivity.zilla.config.binding.tls;
-    requires io.aklivity.zilla.runtime.engine;
+    exports io.aklivity.zilla.config.binding.tls;
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.tls.internal.TlsBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.binding.tls.internal.TlsEventFormatterFactory;
+    provides io.aklivity.zilla.config.engine.BindingInfo
+        with io.aklivity.zilla.config.binding.tls.TlsBindingInfo;
 }

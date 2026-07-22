@@ -26,6 +26,8 @@ import java.util.stream.Stream;
 
 import io.aklivity.zilla.config.binding.tcp.TcpConditionConfig;
 import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
+import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
@@ -41,8 +43,6 @@ import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedResolution;

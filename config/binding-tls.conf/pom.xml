@@ -7,13 +7,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>specs</artifactId>
+    <artifactId>config</artifactId>
     <version>develop-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>binding-tls.spec</artifactId>
-  <name>zilla::specs::binding-tls.spec</name>
+  <artifactId>binding-tls.conf</artifactId>
+  <name>zilla::config::binding-tls.conf</name>
 
   <licenses>
     <license>
@@ -24,29 +24,36 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.70</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
     <dependency>
-      <groupId>io.aklivity.k3po</groupId>
-      <artifactId>lang</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>binding-proxy.spec</artifactId>
+      <artifactId>engine.conf</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>vault-filesystem.spec</artifactId>
-      <version>${project.version}</version>
+      <groupId>jakarta.json</groupId>
+      <artifactId>jakarta.json-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.json.bind</groupId>
+      <artifactId>jakarta.json.bind-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.agrona</groupId>
+      <artifactId>agrona</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse</groupId>
+      <artifactId>yasson</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>binding-tls.conf</artifactId>
+      <artifactId>common-json</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
@@ -56,63 +63,26 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.aklivity.k3po</groupId>
-      <artifactId>control-junit</artifactId>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-library</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-library</artifactId>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-      </resource>
-      <resource>
-        <directory>src/main/scripts</directory>
-      </resource>
-    </resources>
-
     <plugins>
       <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>flyweight-maven-plugin</artifactId>
-        <version>${project.version}</version>
-        <configuration>
-          <scopeNames>core tls proxy</scopeNames>
-          <packageName>io.aklivity.zilla.specs.binding.tls.internal.types</packageName>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>**/keys</exclude>
-            <exclude>**/keys2</exclude>
-            <exclude>**/trust</exclude>
-            <exclude>**/signers</exclude>
-            <exclude>**/signers2</exclude>
-            <exclude>**/*.csr</exclude>
-            <exclude>**/*.crt</exclude>
-            <exclude>**/*.pem</exclude>
-          </excludes>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -130,23 +100,6 @@
         <artifactId>moditect-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>io.aklivity.k3po</groupId>
-        <artifactId>k3po-maven-plugin</artifactId>
-        <dependencies>
-          <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>engine</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-          </dependency>
-          <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>engine</artifactId>
-            <version>${project.version}</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
       </plugin>
@@ -154,9 +107,6 @@
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
-          <excludes>
-            <exclude>io/aklivity/zilla/specs/binding/tls/internal/types/**/*.class</exclude>
-          </excludes>
           <rules>
             <rule>
               <element>BUNDLE</element>
@@ -176,6 +126,6 @@
           </rules>
         </configuration>
       </plugin>
-     </plugins>
-   </build>
+    </plugins>
+  </build>
 </project>

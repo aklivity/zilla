@@ -37,6 +37,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
@@ -51,8 +53,6 @@ import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiComposit
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditionServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;

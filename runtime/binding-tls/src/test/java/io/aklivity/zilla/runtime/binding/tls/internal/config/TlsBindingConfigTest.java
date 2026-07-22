@@ -35,10 +35,10 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;

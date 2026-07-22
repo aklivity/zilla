@@ -45,10 +45,10 @@ import javax.net.ssl.X509ExtendedKeyManager;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager;

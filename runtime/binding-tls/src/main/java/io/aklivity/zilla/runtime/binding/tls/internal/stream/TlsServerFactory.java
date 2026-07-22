@@ -51,8 +51,8 @@ import javax.security.auth.x500.X500Principal;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;

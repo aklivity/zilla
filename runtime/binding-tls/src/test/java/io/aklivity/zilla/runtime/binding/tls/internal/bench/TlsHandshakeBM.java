@@ -42,8 +42,8 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;

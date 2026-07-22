@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tls.internal.config;
+package io.aklivity.zilla.config.binding.tls.internal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,26 +32,18 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
+import io.aklivity.zilla.config.binding.tls.TlsConditionConfigBuilder;
+import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfigBuilder;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
-import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
 
-public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public final class TlsConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String AUTHORITY_NAME = "authority";
     private static final String ALPN_NAME = "alpn";
     private static final String PORT_NAME = "port";
     private static final String TRUST_NAME = "trust";
     private static final String MUTUAL_NAME = "mutual";
-
-    @Override
-    public String type()
-    {
-        return TlsBinding.NAME;
-    }
 
     @Override
     public JsonObject adaptToJson(
