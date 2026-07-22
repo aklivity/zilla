@@ -161,4 +161,13 @@ public class McpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.list/client",
+        "${mcp}/tools.list/server"})
+    public void shouldListTools() throws Exception
+    {
+        k3po.finish();
+    }
 }
