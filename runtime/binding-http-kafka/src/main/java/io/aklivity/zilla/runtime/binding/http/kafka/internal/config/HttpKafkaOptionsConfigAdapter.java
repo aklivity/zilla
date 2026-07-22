@@ -27,15 +27,13 @@ import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyC
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaBinding;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 
 public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String IDEMPOTENCY_NAME = "idempotency";
     private static final String IDEMPOTENCY_HEADER_NAME = "header";
 
-    private static final String8FW IDEMPOTENCY_HEADER_DEFAULT = new String8FW("idempotency-key");
+    private static final String IDEMPOTENCY_HEADER_DEFAULT = "idempotency-key";
     private static final HttpKafkaIdempotencyConfig IDEMPOTENCY_DEFAULT =
         new HttpKafkaIdempotencyConfig(
             IDEMPOTENCY_HEADER_DEFAULT);
@@ -45,8 +43,8 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String CORRELATION_HEADERS_REPLY_TO_NAME = "reply-to";
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
 
-    private static final String16FW CORRELATION_HEADERS_REPLY_TO_DEFAULT = new String16FW("zilla:reply-to");
-    private static final String16FW CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = new String16FW("zilla:correlation-id");
+    private static final String CORRELATION_HEADERS_REPLY_TO_DEFAULT = "zilla:reply-to";
+    private static final String CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = "zilla:correlation-id";
     private static final HttpKafkaCorrelationConfig CORRELATION_DEFAULT =
         new HttpKafkaCorrelationConfig(
             CORRELATION_HEADERS_REPLY_TO_DEFAULT,
@@ -80,7 +78,7 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             !(IDEMPOTENCY_DEFAULT.header.equals(idempotency.header)))
         {
             JsonObjectBuilder newIdempotency = Json.createObjectBuilder();
-            newIdempotency.add(IDEMPOTENCY_HEADER_NAME, idempotency.header.asString());
+            newIdempotency.add(IDEMPOTENCY_HEADER_NAME, idempotency.header);
 
             object.add(IDEMPOTENCY_NAME, newIdempotency);
         }
@@ -92,12 +90,12 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             JsonObjectBuilder newHeaders = Json.createObjectBuilder();
             if (!CORRELATION_HEADERS_REPLY_TO_DEFAULT.equals(correlation.replyTo))
             {
-                newHeaders.add(CORRELATION_HEADERS_REPLY_TO_NAME, correlation.replyTo.asString());
+                newHeaders.add(CORRELATION_HEADERS_REPLY_TO_NAME, correlation.replyTo);
             }
 
             if (!CORRELATION_HEADERS_CORRELATION_ID_DEFAULT.equals(correlation.correlationId))
             {
-                newHeaders.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, correlation.correlationId.asString());
+                newHeaders.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, correlation.correlationId);
             }
 
             JsonObjectBuilder newCorrelation = Json.createObjectBuilder();

@@ -16,16 +16,14 @@ package io.aklivity.zilla.runtime.binding.http.kafka.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
-
 public final class HttpKafkaCorrelationConfig
 {
-    public final String16FW replyTo;
-    public final String16FW correlationId;
+    public final String replyTo;
+    public final String correlationId;
 
     public HttpKafkaCorrelationConfig(
-        String16FW replyTo,
-        String16FW correlationId)
+        String replyTo,
+        String correlationId)
     {
         this.replyTo = replyTo;
         this.correlationId = correlationId;

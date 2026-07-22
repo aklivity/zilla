@@ -167,7 +167,8 @@ public final class HttpKafkaWithResolver
 
     private final byte[] hashBytesRW = new byte[8192];
 
-    private final HttpKafkaOptionsConfig options;
+    private final HttpKafkaCorrelationResolver correlation;
+    private final String8FW idempotencyHeader;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final LongObjectBiFunction<MatchResult, String> attributeReplacer;
     private final HttpKafkaWithConfig with;
@@ -188,7 +189,8 @@ public final class HttpKafkaWithResolver
         LongObjectBiFunction<MatchResult, String> attributeReplacer,
         HttpKafkaWithConfig with)
     {
-        this.options = options;
+        this.correlation = new HttpKafkaCorrelationResolver(options.correlation);
+        this.idempotencyHeader = new String8FW(options.idempotency.header);
         this.identityReplacer = identityReplacer;
         this.attributeReplacer = attributeReplacer;
         this.with = with;
@@ -342,7 +344,7 @@ public final class HttpKafkaWithResolver
 
         final String16FW asyncId = correlationId;
 
-        final HttpHeaderFW httpIdempotencyKey = httpHeaders.matchFirst(h -> options.idempotency.header.equals(h.name()));
+        final HttpHeaderFW httpIdempotencyKey = httpHeaders.matchFirst(h -> idempotencyHeader.equals(h.name()));
         final String16FW idempotencyKey = correlationId == null && httpIdempotencyKey != null
                 ? new String16FW(httpIdempotencyKey.value().asString())
                 : correlationId == null
@@ -465,7 +467,7 @@ public final class HttpKafkaWithResolver
         }
 
         return new HttpKafkaWithProduceResult(
-                compositeId, options.correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
+                compositeId, correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
                 produce.correlationId, idempotencyKey, async, hash, timeout);
     }
 

@@ -17,12 +17,11 @@ package io.aklivity.zilla.runtime.binding.http.kafka.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 
 public final class HttpKafkaCorrelationConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaCorrelationConfigBuilder<T>>
 {
-    private static final String16FW CORRELATION_HEADERS_REPLY_TO_DEFAULT = new String16FW("zilla:reply-to");
-    private static final String16FW CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = new String16FW("zilla:correlation-id");
+    private static final String CORRELATION_HEADERS_REPLY_TO_DEFAULT = "zilla:reply-to";
+    private static final String CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = "zilla:correlation-id";
 
     private final Function<HttpKafkaCorrelationConfig, T> mapper;
 
@@ -59,11 +58,11 @@ public final class HttpKafkaCorrelationConfigBuilder<T> extends ConfigBuilder<T,
     @Override
     public T build()
     {
-        String16FW replyTo = this.replyTo != null
-            ? new String16FW(this.replyTo)
+        String replyTo = this.replyTo != null
+            ? this.replyTo
             : CORRELATION_HEADERS_REPLY_TO_DEFAULT;
-        String16FW correlationId = this.correlationId != null
-            ? new String16FW(this.correlationId)
+        String correlationId = this.correlationId != null
+            ? this.correlationId
             : CORRELATION_HEADERS_CORRELATION_ID_DEFAULT;
         return mapper.apply(new HttpKafkaCorrelationConfig(replyTo, correlationId));
     }

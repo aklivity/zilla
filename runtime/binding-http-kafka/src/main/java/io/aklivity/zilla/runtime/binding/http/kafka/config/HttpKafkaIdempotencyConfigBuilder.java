@@ -17,11 +17,10 @@ package io.aklivity.zilla.runtime.binding.http.kafka.config;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 
 public final class HttpKafkaIdempotencyConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaIdempotencyConfigBuilder<T>>
 {
-    private static final String8FW IDEMPOTENCY_HEADER_DEFAULT = new String8FW("idempotency-key");
+    private static final String IDEMPOTENCY_HEADER_DEFAULT = "idempotency-key";
 
     private final Function<HttpKafkaIdempotencyConfig, T> mapper;
 
@@ -50,7 +49,7 @@ public final class HttpKafkaIdempotencyConfigBuilder<T> extends ConfigBuilder<T,
     @Override
     public T build()
     {
-        String8FW header = this.header != null ?  new String8FW(this.header) : IDEMPOTENCY_HEADER_DEFAULT;
+        String header = this.header != null ? this.header : IDEMPOTENCY_HEADER_DEFAULT;
         return mapper.apply(new HttpKafkaIdempotencyConfig(header));
     }
 }

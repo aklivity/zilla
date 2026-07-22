@@ -29,8 +29,6 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class HttpKafkaOptionsConfigAdapterTest
@@ -65,10 +63,10 @@ public class HttpKafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.idempotency, not(nullValue()));
-        assertThat(options.idempotency.header.asString(), equalTo("idempotency-key"));
+        assertThat(options.idempotency.header, equalTo("idempotency-key"));
         assertThat(options.correlation, not(nullValue()));
-        assertThat(options.correlation.replyTo.asString(), equalTo("zilla:reply-to"));
-        assertThat(options.correlation.correlationId.asString(), equalTo("zilla:correlation-id"));
+        assertThat(options.correlation.replyTo, equalTo("zilla:reply-to"));
+        assertThat(options.correlation.correlationId, equalTo("zilla:correlation-id"));
     }
 
     @Test
@@ -76,10 +74,10 @@ public class HttpKafkaOptionsConfigAdapterTest
     {
         HttpKafkaOptionsConfig options = new HttpKafkaOptionsConfig(
                 new HttpKafkaIdempotencyConfig(
-                    new String8FW("x-idempotency-key")),
+                    "x-idempotency-key"),
                 new HttpKafkaCorrelationConfig(
-                    new String16FW("zilla:x-reply-to"),
-                    new String16FW("zilla:x-correlation-id")));
+                    "zilla:x-reply-to",
+                    "zilla:x-correlation-id"));
 
         String yaml = jsonb.toJson(options);
 
