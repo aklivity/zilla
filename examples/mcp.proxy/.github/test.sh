@@ -39,6 +39,24 @@
 #      tcp_client pipeline, not the engine's test double)
 #  16. kafka__consume reads that same record back, round-tripping the exact
 #      value through the real broker
+#  17. kafka_sr__register_schema registers a real schema against a
+#      real Karapace instance (mcp_schema_registry kind:client's own
+#      generated composite, not a mock), with ${result.id} interpolated
+#      into the tool's summary
+#  18. kafka_sr__list_subjects and describe_subject confirm the
+#      registration is real, persisted Karapace state
+#  19. kafka_sr__get_schema reads the schema back by version, with
+#      two result fields (${result.id}, ${result.version}) interpolated
+#      at once
+#  20. kafka_sr__set_compatibility then get_compatibility round-trip
+#      a compatibility level -- a fresh subject has none configured until
+#      set_compatibility is called at least once
+#  21. kafka_sr__check_compatibility validates a schema against the
+#      configured compatibility level
+#  22. mcp_schema_registry's own routes[].guarded layers a tool-specific
+#      scope (kafka_sr:write) under the toolkit-level scope
+#      (kafka_sr:tools) for register_schema only -- no OpenAPI
+#      security scheme is involved, unlike petstore's create_pet
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -70,8 +88,8 @@ encode_jwt() {
 
 JWT_NONE=""
 JWT_URLELICIT=$(encode_jwt "urlelicit:authorize")
-JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools")
-JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka:tools")
+JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools kafka_sr:tools")
+JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools")
 
 # WHEN: a url-elicitation-capable client initializes against the gateway
 # THEN: the gateway negotiates protocol version 2025-11-25 in the response
@@ -144,6 +162,7 @@ assert_no_token() {
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
     ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^kafka_sr__' &&
     ! echo "$TOOLS_NONE" | grep -q '^kafka__' &&
     ! echo "$TOOLS_NONE" | grep -q 'petstore+' &&
     ! echo "$TOOLS_NONE" | grep -q 'github+'
@@ -163,14 +182,15 @@ else
   EXIT=1
 fi
 
-# WHEN: a caller has toolkit-level scopes (github:tools, petstore:tools) but
-#       none of the finer-grained operation scopes
-# THEN: petstore__list_pets, both petstore resources, and github's
-#       pull_by_number template are listed (none of them declare their own
-#       operation-level security) but petstore__create_pet and
-#       github__create_pr are not (they require pets:write / github:pr:write
-#       respectively) -- proof that toolkit access alone does not imply
-#       access to every tool/resource in it
+# WHEN: a caller has toolkit-level scopes (github:tools, petstore:tools,
+#       kafka_sr:tools) but none of the finer-grained operation scopes
+# THEN: petstore__list_pets, both petstore resources, github's
+#       pull_by_number template, and kafka_sr__list_subjects are listed
+#       (none of them declare an extra scope beyond toolkit access) but
+#       petstore__create_pet, github__create_pr, and
+#       kafka_sr__register_schema are not (they require pets:write /
+#       github:pr:write / kafka_sr:write respectively) -- proof that
+#       toolkit access alone does not imply access to every tool/resource in it
 assert_partial_token() {
   TOOLS_PARTIAL=$(list_tools "$JWT_PARTIAL")
   echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
@@ -178,8 +198,10 @@ assert_partial_token() {
     echo "$TOOLS_PARTIAL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__list_subjects$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__register_schema$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^kafka__'
 }
@@ -190,11 +212,13 @@ if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__list_subjects$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__register_schema$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^kafka__'; then
-  echo "✅ toolkit-only scope: sees list_pets, search_pets, and all three read-only resources, but not create_pet or create_pr"
+  echo "✅ toolkit-only scope: sees list_pets, search_pets, list_subjects, and all three read-only resources, but not create_pet, create_pr, or register_schema"
 else
   echo "❌ toolkit-only scope did not layer as expected"
   EXIT=1
@@ -213,6 +237,8 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
     echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$'
 }
@@ -227,6 +253,8 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
     echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
@@ -444,6 +472,155 @@ if echo "$CREATE_PET_OUT" | grep -q 'Nibbles'; then
   echo "✅ petstore__create_pet succeeded for a pets:write-scoped caller"
 else
   echo "❌ petstore__create_pet did not succeed as expected"
+  EXIT=1
+fi
+
+SR_SUBJECT="orders-value"
+SR_SCHEMA='{\"type\":\"record\",\"name\":\"Order\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"}]}'
+
+# WHEN: a kafka_sr:write-scoped caller calls kafka_sr__register_schema
+# THEN: the schema is registered against the real Karapace instance (not a
+#       mock) -- mcp_schema_registry kind:client's own generated composite
+#       (mcp_openapi -> mcp_http -> http_client) talks to an actual Schema
+#       Registry end to end, and the tool's summary interpolates the id
+#       Karapace actually assigned via ${result.id}
+call_register_schema() {
+  REGISTER_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_sr__register_schema" \
+      -e CALL_ARGS="{\"subject\":\"$SR_SUBJECT\",\"schemaType\":\"AVRO\",\"schema\":\"$SR_SCHEMA\"}" \
+      tools-list-client 2>&1)
+  echo "$REGISTER_OUT" | grep -q 'Registered schema with id'
+}
+retry_until 10 3 call_register_schema
+echo "REGISTER_OUT=$REGISTER_OUT"
+if echo "$REGISTER_OUT" | grep -q 'Registered schema with id'; then
+  echo "✅ kafka_sr__register_schema registered a real schema against Karapace"
+else
+  echo "❌ kafka_sr__register_schema did not succeed against Karapace"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_sr__list_subjects and describe_subject
+# THEN: the subject registered above comes back as real, persisted Karapace
+#       state -- not just an echo of the register call
+call_list_subjects() {
+  LIST_SUBJECTS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_sr__list_subjects" \
+      tools-list-client 2>&1)
+  echo "$LIST_SUBJECTS_OUT" | grep -q "$SR_SUBJECT"
+}
+retry_until 5 3 call_list_subjects
+echo "LIST_SUBJECTS_OUT=$LIST_SUBJECTS_OUT"
+if echo "$LIST_SUBJECTS_OUT" | grep -q "$SR_SUBJECT"; then
+  echo "✅ kafka_sr__list_subjects saw the registered subject in real Karapace state"
+else
+  echo "❌ kafka_sr__list_subjects did not see the registered subject"
+  EXIT=1
+fi
+
+call_describe_subject() {
+  DESCRIBE_SUBJECT_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_sr__describe_subject" \
+      -e CALL_ARGS="{\"subject\":\"$SR_SUBJECT\"}" \
+      tools-list-client 2>&1)
+  echo "$DESCRIBE_SUBJECT_OUT" | grep -q '\[1\]'
+}
+retry_until 5 3 call_describe_subject
+echo "DESCRIBE_SUBJECT_OUT=$DESCRIBE_SUBJECT_OUT"
+if echo "$DESCRIBE_SUBJECT_OUT" | grep -q '\[1\]'; then
+  echo "✅ kafka_sr__describe_subject listed version 1 of the registered subject"
+else
+  echo "❌ kafka_sr__describe_subject did not list the registered version"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_sr__get_schema for the registered
+#       subject/version
+# THEN: the schema is read back, with two result fields (${result.id},
+#       ${result.version}) interpolated into the summary at once
+call_get_schema() {
+  GET_SCHEMA_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_sr__get_schema" \
+      -e CALL_ARGS="{\"subject\":\"$SR_SUBJECT\",\"version\":\"latest\"}" \
+      tools-list-client 2>&1)
+  echo "$GET_SCHEMA_OUT" | grep -q 'Retrieved schema id 1, version 1'
+}
+retry_until 5 3 call_get_schema
+echo "GET_SCHEMA_OUT=$GET_SCHEMA_OUT"
+if echo "$GET_SCHEMA_OUT" | grep -q 'Retrieved schema id 1, version 1'; then
+  echo "✅ kafka_sr__get_schema read the schema back with both result fields interpolated"
+else
+  echo "❌ kafka_sr__get_schema did not read the schema back as expected"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_sr__set_compatibility then
+#       get_compatibility for the registered subject
+# THEN: a freshly registered subject has no compatibility level configured
+#       until set_compatibility establishes one -- a real Karapace behavior
+#       this example surfaces rather than papering over with a default
+call_set_compatibility() {
+  SET_COMPAT_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_sr__set_compatibility" \
+      -e CALL_ARGS="{\"subject\":\"$SR_SUBJECT\",\"compatibility\":\"FULL\"}" \
+      tools-list-client 2>&1)
+  echo "$SET_COMPAT_OUT" | grep -q 'Compatibility level set to FULL'
+}
+retry_until 5 3 call_set_compatibility
+echo "SET_COMPAT_OUT=$SET_COMPAT_OUT"
+if echo "$SET_COMPAT_OUT" | grep -q 'Compatibility level set to FULL'; then
+  echo "✅ kafka_sr__set_compatibility set a compatibility level on the registered subject"
+else
+  echo "❌ kafka_sr__set_compatibility did not succeed as expected"
+  EXIT=1
+fi
+
+call_get_compatibility() {
+  GET_COMPAT_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_sr__get_compatibility" \
+      -e CALL_ARGS="{\"subject\":\"$SR_SUBJECT\"}" \
+      tools-list-client 2>&1)
+  echo "$GET_COMPAT_OUT" | grep -q 'Compatibility level is FULL'
+}
+retry_until 5 3 call_get_compatibility
+echo "GET_COMPAT_OUT=$GET_COMPAT_OUT"
+if echo "$GET_COMPAT_OUT" | grep -q 'Compatibility level is FULL'; then
+  echo "✅ kafka_sr__get_compatibility read back the level set above"
+else
+  echo "❌ kafka_sr__get_compatibility did not succeed as expected"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_sr__check_compatibility against
+#       the configured compatibility level
+# THEN: the identical schema is reported compatible
+call_check_compatibility() {
+  CHECK_COMPAT_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_sr__check_compatibility" \
+      -e CALL_ARGS="{\"subject\":\"$SR_SUBJECT\",\"version\":\"1\",\"schemaType\":\"AVRO\",\"schema\":\"$SR_SCHEMA\"}" \
+      tools-list-client 2>&1)
+  echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'
+}
+retry_until 5 3 call_check_compatibility
+echo "CHECK_COMPAT_OUT=$CHECK_COMPAT_OUT"
+if echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'; then
+  echo "✅ kafka_sr__check_compatibility reported the identical schema as compatible"
+else
+  echo "❌ kafka_sr__check_compatibility did not succeed as expected"
   EXIT=1
 fi
 

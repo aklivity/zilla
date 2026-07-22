@@ -423,7 +423,7 @@ public final class McpOpenapiCompositeGenerator
 
             if (entry.tool != null)
             {
-                final boolean outputWrapped = entry.tool.output == null && !hasObjectOutputSchema(entry.operation);
+                final boolean outputMaybeWrapped = entry.tool.output == null && !hasObjectOutputSchema(entry.operation);
                 final ModelConfig output = entry.tool.output != null
                     ? qualifyModel(binding, entry.tool.output)
                     : jsonModel("%s-output".formatted(name));
@@ -440,7 +440,7 @@ public final class McpOpenapiCompositeGenerator
                     : entry.operation.summary != null
                         ? entry.operation.summary
                         : "Call %s".formatted(entry.operation.id);
-                tools.add(new McpHttpToolConfig(entry.tool.name, summary, description, input, output, outputWrapped));
+                tools.add(new McpHttpToolConfig(entry.tool.name, summary, description, input, output, outputMaybeWrapped));
             }
             else
             {
