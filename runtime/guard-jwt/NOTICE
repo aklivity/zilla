@@ -15,7 +15,7 @@ This project includes:
   jose4j under The Apache Software License, Version 2.0
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   SLF4J API Module under MIT
-  zilla::config::engine.conf under The Apache Software License, Version 2.0
+  zilla::config::engine.conf under Aklivity Community License Agreement
   zilla::config::guard-jwt.conf under Aklivity Community License Agreement
   zilla::runtime::common-feature under The Apache Software License, Version 2.0
   zilla::runtime::common-lang under Aklivity Community License Agreement

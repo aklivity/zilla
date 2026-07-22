@@ -17,7 +17,7 @@ This project includes:
   zilla::config::binding-mcp-openapi.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-schema-registry.conf under Aklivity Community License Agreement
   zilla::config::catalog-inline.conf under Aklivity Community License Agreement
-  zilla::config::engine.conf under The Apache Software License, Version 2.0
+  zilla::config::engine.conf under Aklivity Community License Agreement
   zilla::config::model-core.conf under Aklivity Community License Agreement
   zilla::config::model-json.conf under Aklivity Community License Agreement
   zilla::runtime::binding-mcp-http under Aklivity Community License Agreement
