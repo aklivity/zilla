@@ -30,6 +30,8 @@ services:
         condition: service_healthy
       petstore:
         condition: service_healthy
+      karapace-registry:
+        condition: service_started
       kafka:
         condition: service_healthy
       kafka-init:
@@ -166,6 +168,32 @@ services:
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic orders
         echo "Successfully created the following topics:";
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
+
+  # Real Karapace Schema Registry backing the mcp_schema_registry
+  # "schemaregistry" toolkit -- talks to the same real Kafka broker as the
+  # "kafka" toolkit above, storing schemas in its own _schemas topic.
+  karapace-registry:
+    image: ghcr.io/aiven-open/karapace:3.15.2
+    entrypoint:
+      - /bin/bash
+      - /opt/karapace/start.sh
+      - registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - 8081:8081
+    environment:
+      KARAPACE_ADVERTISED_HOSTNAME: karapace-registry
+      KARAPACE_BOOTSTRAP_URI: kafka.examples.dev:29092
+      KARAPACE_PORT: 8081
+      KARAPACE_HOST: 0.0.0.0
+      KARAPACE_CLIENT_ID: karapace
+      KARAPACE_GROUP_ID: karapace-registry
+      KARAPACE_MASTER_ELIGIBILITY: "true"
+      KARAPACE_TOPIC_NAME: _schemas
+      KARAPACE_LOG_LEVEL: WARNING
+      KARAPACE_COMPATIBILITY: BACKWARD
 
   # Mints JWTs for the authn_jwt guard. Run on demand, e.g.:
   #   docker compose run --rm jwt-cli encode --alg RS256 --kid example \
