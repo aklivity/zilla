@@ -126,7 +126,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
-        this.encodePool = context.bufferPool();
+        this.encodePool = context.bufferPool().duplicate();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
@@ -533,9 +533,9 @@ public final class KafkaClientApiFactory implements BindingHandler
         private long authorization;
         private int requestBytesSent;
 
-        private int replyEncodeSlot = NO_SLOT;
-        private int replyEncodeSlotOffset;
-        private boolean replyEndPending;
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private boolean deferredEnd;
 
         KafkaApiStream(
             MessageConsumer application,
@@ -655,9 +655,11 @@ public final class KafkaClientApiFactory implements BindingHandler
             this.replyMax = maximum;
             this.replyPad = padding;
 
+            state = KafkaState.openedReply(state);
+
             assert replyAck <= replySeq;
 
-            flushReplyEncodeSlot(window.traceId());
+            flushEncodeSlot(window.traceId());
         }
 
         private void onAppReset(
@@ -719,19 +721,15 @@ public final class KafkaClientApiFactory implements BindingHandler
             int offset,
             int limit)
         {
-            if (replyEncodeSlot != NO_SLOT)
+            if (encodeSlot != NO_SLOT)
             {
-                final int length = limit - offset;
-                final byte[] copy = new byte[length];
-                buffer.getBytes(offset, copy);
-
-                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(replyEncodeSlot);
-                encodeBuffer.putBytes(replyEncodeSlotOffset, copy);
-                replyEncodeSlotOffset += length;
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
+                encodeSlotOffset += limit - offset;
 
                 buffer = encodeBuffer;
                 offset = 0;
-                limit = replyEncodeSlotOffset;
+                limit = encodeSlotOffset;
             }
 
             encodeAppData(traceId, buffer, offset, limit);
@@ -767,65 +765,62 @@ public final class KafkaClientApiFactory implements BindingHandler
             final int remaining = length - flushed;
             if (remaining > 0)
             {
-                if (replyEncodeSlot == NO_SLOT)
+                if (encodeSlot == NO_SLOT)
                 {
-                    replyEncodeSlot = encodePool.acquire(replyId);
+                    encodeSlot = encodePool.acquire(replyId);
                 }
 
-                if (replyEncodeSlot == NO_SLOT)
+                if (encodeSlot == NO_SLOT)
                 {
                     client.cleanupNet(traceId);
                 }
                 else
                 {
-                    final byte[] copy = new byte[remaining];
-                    buffer.getBytes(offset + flushed, copy);
-
-                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(replyEncodeSlot);
-                    encodeBuffer.putBytes(0, copy);
-                    replyEncodeSlotOffset = remaining;
+                    final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                    encodeBuffer.putBytes(0, buffer, offset + flushed, remaining);
+                    encodeSlotOffset = remaining;
                 }
             }
             else
             {
-                cleanupReplyEncodeSlot();
+                cleanupEncodeSlot();
 
-                if (replyEndPending)
+                if (deferredEnd)
                 {
-                    replyEndPending = false;
+                    deferredEnd = false;
                     doAppEnd(traceId);
                 }
             }
         }
 
-        private void flushReplyEncodeSlot(
+        private void flushEncodeSlot(
             long traceId)
         {
-            if (replyEncodeSlot != NO_SLOT)
+            if (encodeSlot != NO_SLOT)
             {
-                final MutableDirectBufferEx buffer = encodePool.buffer(replyEncodeSlot);
-                final int limit = replyEncodeSlotOffset;
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
+                final int limit = encodeSlotOffset;
 
                 encodeAppData(traceId, buffer, 0, limit);
             }
         }
 
-        private void cleanupReplyEncodeSlot()
+        private void cleanupEncodeSlot()
         {
-            if (replyEncodeSlot != NO_SLOT)
+            if (encodeSlot != NO_SLOT)
             {
-                encodePool.release(replyEncodeSlot);
-                replyEncodeSlot = NO_SLOT;
-                replyEncodeSlotOffset = 0;
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
             }
         }
 
         private void doAppEnd(
             long traceId)
         {
-            if (replyEncodeSlot != NO_SLOT)
+            if (encodeSlot != NO_SLOT)
             {
-                replyEndPending = true;
+                deferredEnd = true;
             }
             else if (!KafkaState.replyClosed(state))
             {
@@ -871,7 +866,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             doAppReset(traceId, kafkaResetEx);
             doAppAbort(traceId);
 
-            cleanupReplyEncodeSlot();
+            cleanupEncodeSlot();
         }
     }
 
@@ -1108,7 +1103,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             state = KafkaState.closedReply(state);
 
-            cleanupDecodeSlotIfNecessary();
+            cleanupDecodeSlot();
             failPending(traceId, ERROR_NONE);
         }
 
@@ -1239,13 +1234,16 @@ public final class KafkaClientApiFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            state = KafkaState.closedInitial(state);
+            if (!KafkaState.initialClosed(state))
+            {
+                state = KafkaState.closedInitial(state);
 
-            cleanupEncodeSlotIfNecessary();
-            cleanupBudgetIfNecessary();
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+            }
 
-            doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, EMPTY_EXTENSION);
+            cleanupEncodeSlot();
+            cleanupBudget();
         }
 
         private void doNetAbort(
@@ -1258,8 +1256,8 @@ public final class KafkaClientApiFactory implements BindingHandler
                 state = KafkaState.closedInitial(state);
             }
 
-            cleanupEncodeSlotIfNecessary();
-            cleanupBudgetIfNecessary();
+            cleanupEncodeSlot();
+            cleanupBudget();
         }
 
         private void doNetReset(
@@ -1272,7 +1270,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 state = KafkaState.closedReply(state);
             }
 
-            cleanupDecodeSlotIfNecessary();
+            cleanupDecodeSlot();
         }
 
         private void doNetWindow(
@@ -1358,7 +1356,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
             else
             {
-                cleanupEncodeSlotIfNecessary();
+                cleanupEncodeSlot();
             }
         }
 
@@ -1402,7 +1400,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
             else
             {
-                cleanupDecodeSlotIfNecessary();
+                cleanupDecodeSlot();
 
                 if (reserved > 0)
                 {
@@ -1495,7 +1493,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             failPending(traceId, ERROR_NONE);
         }
 
-        private void cleanupDecodeSlotIfNecessary()
+        private void cleanupDecodeSlot()
         {
             if (decodeSlot != NO_SLOT)
             {
@@ -1506,7 +1504,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
         }
 
-        private void cleanupEncodeSlotIfNecessary()
+        private void cleanupEncodeSlot()
         {
             if (encodeSlot != NO_SLOT)
             {
@@ -1516,7 +1514,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
         }
 
-        private void cleanupBudgetIfNecessary()
+        private void cleanupBudget()
         {
             if (initialDebIndex != NO_DEBITOR_INDEX)
             {

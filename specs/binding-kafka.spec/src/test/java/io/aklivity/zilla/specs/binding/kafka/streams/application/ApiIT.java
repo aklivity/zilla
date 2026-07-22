@@ -45,4 +45,13 @@ public class ApiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/delete.topics.v3/client",
+        "${app}/delete.topics.v3/server"})
+    public void shouldDeleteTopicsV3() throws Exception
+    {
+        k3po.finish();
+    }
 }
