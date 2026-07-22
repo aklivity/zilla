@@ -24,7 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.guard.inline.internal.config.InlineOptionsConfig;
+import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
 
 public class InlineGuardHandlerTest
 {

@@ -29,9 +29,9 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.guard.inline.internal.config.InlineOptionsConfig;
 
 public class InlineIT
 {
