@@ -765,6 +765,22 @@ scope protocol
             }
         }
 
+        scope api_versions
+        {
+            struct ApiVersionsResponse // v0
+            {
+                int16 errorCode;
+                int32 apiKeyCount;
+            }
+
+            struct ApiVersionsResponseKey
+            {
+                int16 apiKey;
+                int16 minVersion;
+                int16 maxVersion;
+            }
+        }
+
         scope sasl
         {
             struct SaslHandshakeRequest // v1
