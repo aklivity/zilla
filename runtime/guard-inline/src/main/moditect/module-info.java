@@ -15,12 +15,10 @@
 module io.aklivity.zilla.runtime.guard.inline
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.guard.inline;
     requires jakarta.json;
     requires jakarta.json.bind;
 
     provides io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi
         with io.aklivity.zilla.runtime.guard.inline.internal.InlineGuardFactorySpi;
-
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.guard.inline.internal.config.InlineOptionsConfigAdapter;
 }

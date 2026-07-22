@@ -22,8 +22,8 @@ import java.util.function.LongSupplier;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.guard.inline.internal.config.InlineOptionsConfig;
 
 public class InlineGuardHandler implements GuardHandler
 {

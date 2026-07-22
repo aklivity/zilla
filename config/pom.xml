@@ -26,5 +26,8 @@
     <module>catalog-schema-registry.conf</module>
     <module>catalog-karapace.conf</module>
     <module>catalog-inline.conf</module>
+    <module>guard-inline.conf</module>
+    <module>guard-jwt.conf</module>
+    <module>vault-filesystem.conf</module>
   </modules>
 </project>

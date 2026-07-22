@@ -26,6 +26,7 @@ import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -61,7 +62,7 @@ public class InlineGuard implements Guard
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/inline.schema.patch.json");
+        return InlineOptionsConfig.class.getResource("schema/inline.schema.patch.json");
     }
 
     @Override

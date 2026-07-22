@@ -21,11 +21,11 @@ import java.nio.file.Path;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
 
 final class FileSystemContext implements VaultContext
 {

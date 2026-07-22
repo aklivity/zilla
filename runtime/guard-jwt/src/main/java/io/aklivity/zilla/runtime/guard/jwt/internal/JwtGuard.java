@@ -25,6 +25,7 @@ import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -54,7 +55,7 @@ public final class JwtGuard implements Guard
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/jwt.schema.patch.json");
+        return JwtOptionsConfig.class.getResource("schema/jwt.schema.patch.json");
     }
 
     @Override

@@ -16,12 +16,8 @@
 module io.aklivity.zilla.runtime.vault.filesystem
 {
     requires io.aklivity.zilla.runtime.engine;
-
-    exports io.aklivity.zilla.runtime.vault.filesystem.config;
+    requires io.aklivity.zilla.config.vault.filesystem;
 
     provides io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi
         with io.aklivity.zilla.runtime.vault.filesystem.internal.FileSystemVaultFactorySpi;
-
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfigAdapter;
 }

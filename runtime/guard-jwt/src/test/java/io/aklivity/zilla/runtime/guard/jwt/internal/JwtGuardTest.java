@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
+import static io.aklivity.zilla.config.guard.jwt.internal.keys.JwtKeyConfigs.RFC7515_RS256_CONFIG;
 import static io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardHandlerTest.sign;
-import static io.aklivity.zilla.runtime.guard.jwt.internal.keys.JwtKeyConfigs.RFC7515_RS256_CONFIG;
 import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
 import static java.time.Duration.ofSeconds;
 import static java.util.function.Function.identity;
@@ -36,6 +36,7 @@ import org.mockito.Mockito;
 
 import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -44,7 +45,6 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
 public class JwtGuardTest
 {
