@@ -180,6 +180,8 @@ scope kafka
     {
         enum KafkaApi (uint8)
         {
+            API_REQUEST (248),
+            API_RESPONSE (249),
             REQUEST (250),
             RESPONSE (251),
             CONSUMER (252),
@@ -201,6 +203,8 @@ scope kafka
 
         union KafkaBeginEx switch (uint8) extends core::stream::Extension
         {
+            case 248: kafka::stream::KafkaApiRequestBeginEx apiRequest;
+            case 249: kafka::stream::KafkaApiResponseBeginEx apiResponse;
             case 250: kafka::stream::KafkaRequestBeginEx request;
             case 251: kafka::stream::KafkaResponseBeginEx response;
             case 252: kafka::stream::KafkaConsumerBeginEx consumer;
@@ -241,6 +245,34 @@ scope kafka
         {
             int32 error = 0;
             string16 consumerId = null;
+        }
+
+        struct KafkaTaggedField
+        {
+            varuint32 tag;
+            varuint32 length;
+            octets[length] value;
+        }
+
+        struct KafkaApiRequestBeginEx
+        {
+            int32 length;
+            int16 api;
+            int16 version;
+            string16 clientId = null;
+            KafkaTaggedField[] tags;
+        }
+
+        struct KafkaApiResponseBeginEx
+        {
+            int32 length;
+            int16 version;
+            KafkaTaggedField[] tags;
+        }
+
+        struct KafkaEndEx extends core::stream::Extension
+        {
+            KafkaTaggedField[] tags;
         }
 
         struct KafkaBootstrapBeginEx
