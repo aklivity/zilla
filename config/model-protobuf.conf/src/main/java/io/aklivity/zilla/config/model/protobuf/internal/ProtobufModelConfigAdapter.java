@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.protobuf.internal.config;
+package io.aklivity.zilla.config.model.protobuf.internal;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -32,8 +32,8 @@ import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
-import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
-import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfigBuilder;
+import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
+import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfigBuilder;
 
 public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {

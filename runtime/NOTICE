@@ -39,6 +39,7 @@ This project includes:
   zilla::config::model-avro.conf under Aklivity Community License Agreement
   zilla::config::model-core.conf under Aklivity Community License Agreement
   zilla::config::model-json.conf under Aklivity Community License Agreement
+  zilla::config::model-protobuf.conf under Aklivity Community License Agreement
   zilla::config::vault-filesystem.conf under The Apache Software License, Version 2.0
   zilla::runtime::common-agrona under The Apache Software License, Version 2.0
   zilla::runtime::common-asyncapi under Aklivity Community License Agreement

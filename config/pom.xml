@@ -36,6 +36,7 @@
     <module>model-avro.conf</module>
     <module>model-core.conf</module>
     <module>model-json.conf</module>
+    <module>model-protobuf.conf</module>
     <module>vault-filesystem.conf</module>
   </modules>
 </project>
