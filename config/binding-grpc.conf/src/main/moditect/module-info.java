@@ -19,6 +19,6 @@ module io.aklivity.zilla.config.binding.grpc
     requires org.agrona;
     requires io.aklivity.zilla.config.engine;
     exports io.aklivity.zilla.config.binding.grpc;
-    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.config.binding.grpc.internal.GrpcConditionConfigAdapter;
+    provides io.aklivity.zilla.config.engine.BindingInfo
+        with io.aklivity.zilla.config.binding.grpc.GrpcBindingInfo;
 }

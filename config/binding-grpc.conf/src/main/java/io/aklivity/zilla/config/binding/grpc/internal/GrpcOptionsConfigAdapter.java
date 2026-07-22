@@ -12,13 +12,27 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.config.binding.http.filesystem
+package io.aklivity.zilla.config.binding.grpc.internal;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.config.engine.OptionsConfig;
+
+public final class GrpcOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
-    requires jakarta.json;
-    requires jakarta.json.bind;
-    requires org.agrona;
-    requires io.aklivity.zilla.config.engine;
-    exports io.aklivity.zilla.config.binding.http.filesystem;
-    provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemBindingInfo;
+    @Override
+    public JsonObject adaptToJson(
+        OptionsConfig options)
+    {
+        return Json.createObjectBuilder().build();
+    }
+
+    @Override
+    public OptionsConfig adaptFromJson(
+        JsonObject object)
+    {
+        return new OptionsConfig();
+    }
 }

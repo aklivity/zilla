@@ -14,15 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal;
 
-import java.net.URL;
-
-import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class SseKafkaBinding implements Binding
 {
-    public static final String NAME = "sse-kafka";
+    public static final String NAME = SseKafkaBindingInfo.TYPE;
 
     private final SseKafkaConfiguration config;
 
@@ -36,12 +34,6 @@ public final class SseKafkaBinding implements Binding
     public String name()
     {
         return SseKafkaBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return SseKafkaConditionConfig.class.getResource("schema/sse.kafka.schema.patch.json");
     }
 
     @Override

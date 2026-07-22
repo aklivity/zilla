@@ -29,20 +29,13 @@ import org.agrona.collections.Object2ObjectHashMap;
 import io.aklivity.zilla.config.binding.grpc.GrpcConditionConfig;
 import io.aklivity.zilla.config.binding.grpc.GrpcMetadataValueConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 
-public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public final class GrpcConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String BASE64_NAME = "base64";
     private static final String METHOD_NAME = "method";
     private static final String METADATA_NAME = "metadata";
     private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
-
-    @Override
-    public String type()
-    {
-        return "grpc";
-    }
 
     @Override
     public JsonObject adaptToJson(

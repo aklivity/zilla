@@ -14,15 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.http.filesystem.internal;
 
-import java.net.URL;
-
-import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemConditionConfig;
+import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class HttpFileSystemBinding implements Binding
 {
-    public static final String NAME = "http-filesystem";
+    public static final String NAME = HttpFileSystemBindingInfo.TYPE;
 
     private final HttpFileSystemConfiguration config;
 
@@ -36,12 +34,6 @@ public final class HttpFileSystemBinding implements Binding
     public String name()
     {
         return HttpFileSystemBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return HttpFileSystemConditionConfig.class.getResource("schema/http.filesystem.schema.patch.json");
     }
 
     @Override

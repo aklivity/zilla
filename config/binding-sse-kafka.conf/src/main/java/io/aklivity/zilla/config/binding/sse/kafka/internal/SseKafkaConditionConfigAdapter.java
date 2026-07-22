@@ -21,17 +21,10 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 
-public final class SseKafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public final class SseKafkaConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String PATH_NAME = "path";
-
-    @Override
-    public String type()
-    {
-        return "sse-kafka";
-    }
 
     @Override
     public JsonObject adaptToJson(

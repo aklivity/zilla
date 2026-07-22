@@ -14,16 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal;
 
-import java.net.URL;
-
-import io.aklivity.zilla.config.binding.grpc.GrpcConditionConfig;
+import io.aklivity.zilla.config.binding.grpc.GrpcBindingInfo;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class GrpcBinding implements Binding
 {
-    public static final String NAME = "grpc";
+    public static final String NAME = GrpcBindingInfo.TYPE;
 
     private final GrpcConfiguration config;
 
@@ -37,12 +35,6 @@ public final class GrpcBinding implements Binding
     public String name()
     {
         return GrpcBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return GrpcConditionConfig.class.getResource("schema/grpc.schema.patch.json");
     }
 
     @Override
