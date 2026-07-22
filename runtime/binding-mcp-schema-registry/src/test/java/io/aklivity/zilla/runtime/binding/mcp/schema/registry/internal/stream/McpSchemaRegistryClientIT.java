@@ -145,14 +145,4 @@ public class McpSchemaRegistryClientIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Specification({
-        "${mcp}/list.contexts/client",
-        "${http}/list.contexts/server"})
-    public void shouldCallToolListContexts() throws Exception
-    {
-        k3po.finish();
-    }
 }

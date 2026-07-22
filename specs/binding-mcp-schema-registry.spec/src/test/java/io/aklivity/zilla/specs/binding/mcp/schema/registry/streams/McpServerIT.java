@@ -124,14 +124,4 @@ public class McpServerIT
     {
         k3po.finish();
     }
-
-
-    @Test
-    @Specification({
-        "${mcp}/list.contexts/client",
-        "${mcp}/list.contexts/server"})
-    public void shouldCallToolListContexts() throws Exception
-    {
-        k3po.finish();
-    }
 }

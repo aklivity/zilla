@@ -47,7 +47,7 @@ public final class McpSchemaRegistryCompositeGenerator
 
     private static final List<String> TOOLS = List.of(
         "list_subjects", "describe_subject", "get_schema", "register_schema", "delete_subject",
-        "delete_schema_version", "check_compatibility", "get_compatibility", "set_compatibility", "list_contexts");
+        "delete_schema_version", "check_compatibility", "get_compatibility", "set_compatibility");
 
     private final String bundledSpec;
 

@@ -55,7 +55,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
 {
     private static final List<String> TOOLS = List.of(
         "list_subjects", "describe_subject", "get_schema", "register_schema", "delete_subject",
-        "delete_schema_version", "check_compatibility", "get_compatibility", "set_compatibility", "list_contexts");
+        "delete_schema_version", "check_compatibility", "get_compatibility", "set_compatibility");
 
     @Rule
     public final MockitoRule rule = MockitoJUnit.rule();
@@ -172,8 +172,8 @@ public class McpSchemaRegistryCompositeGeneratorTest
             .map(route -> ((McpOpenapiConditionConfig) route.when.get(0)).tool)
             .toList();
 
-        assertThat(routedTools, hasSize(3));
-        assertThat(routedTools, equalTo(List.of("list_subjects", "get_schema", "list_contexts")));
+        assertThat(routedTools, hasSize(2));
+        assertThat(routedTools, equalTo(List.of("list_subjects", "get_schema")));
     }
 
     @Test

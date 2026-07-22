@@ -124,14 +124,4 @@ public class HttpClientIT
     {
         k3po.finish();
     }
-
-
-    @Test
-    @Specification({
-        "${http}/list.contexts/client",
-        "${http}/list.contexts/server"})
-    public void shouldProxyListContextsToHttp() throws Exception
-    {
-        k3po.finish();
-    }
 }
