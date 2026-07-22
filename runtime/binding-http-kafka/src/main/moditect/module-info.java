@@ -22,9 +22,6 @@ module io.aklivity.zilla.runtime.binding.http.kafka
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaBindingFactorySpi;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaOptionsConfigAdapter;
-
     provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaWithConfigAdapter;
 }

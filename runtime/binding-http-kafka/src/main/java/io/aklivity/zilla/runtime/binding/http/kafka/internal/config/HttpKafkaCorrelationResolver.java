@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 
 public final class HttpKafkaCorrelationResolver

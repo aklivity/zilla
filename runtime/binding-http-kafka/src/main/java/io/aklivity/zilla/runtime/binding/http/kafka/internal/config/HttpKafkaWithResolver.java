@@ -28,7 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;

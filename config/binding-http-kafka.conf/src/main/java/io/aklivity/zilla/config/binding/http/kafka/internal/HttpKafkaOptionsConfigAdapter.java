@@ -12,23 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
+package io.aklivity.zilla.config.binding.http.kafka.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCorrelationConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCorrelationConfigBuilder;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaIdempotencyConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaIdempotencyConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaBinding;
 
-public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public final class HttpKafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String IDEMPOTENCY_NAME = "idempotency";
     private static final String IDEMPOTENCY_HEADER_NAME = "header";
@@ -52,18 +50,6 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
     public static final HttpKafkaOptionsConfig DEFAULT =
         new HttpKafkaOptionsConfig(IDEMPOTENCY_DEFAULT, CORRELATION_DEFAULT);
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.BINDING;
-    }
-
-    @Override
-    public String type()
-    {
-        return HttpKafkaBinding.NAME;
-    }
 
     @Override
     public JsonObject adaptToJson(

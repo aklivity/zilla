@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
+import static io.aklivity.zilla.config.binding.http.kafka.internal.HttpKafkaOptionsConfigAdapter.DEFAULT;
 import static java.util.stream.Collectors.toList;
 
 import java.util.HashMap;
@@ -24,9 +25,9 @@ import java.util.function.Consumer;
 
 import org.agrona.AsciiSequenceView;
 
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
@@ -53,7 +54,7 @@ public final class HttpKafkaBindingConfig
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
                 .map(HttpKafkaOptionsConfig.class::cast)
-                .orElse(HttpKafkaOptionsConfigAdapter.DEFAULT);
+                .orElse(DEFAULT);
         this.routes = binding.routes.stream().map(r -> new HttpKafkaRouteConfig(options, r, context)).collect(toList());
         this.helper = new HttpKafkaHeaderHelper();
     }

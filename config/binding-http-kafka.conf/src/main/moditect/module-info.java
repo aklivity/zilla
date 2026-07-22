@@ -18,7 +18,9 @@ module io.aklivity.zilla.config.binding.http.kafka
     requires jakarta.json.bind;
     requires org.agrona;
     requires io.aklivity.zilla.config.engine;
+
     exports io.aklivity.zilla.config.binding.http.kafka;
-    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.config.binding.http.kafka.internal.HttpKafkaConditionConfigAdapter;
+
+    provides io.aklivity.zilla.config.engine.BindingInfo
+        with io.aklivity.zilla.config.binding.http.kafka.HttpKafkaBindingInfo;
 }

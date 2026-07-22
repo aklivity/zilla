@@ -21,18 +21,11 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 
-public final class HttpKafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
+public final class HttpKafkaConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String METHOD_NAME = "method";
     private static final String PATH_NAME = "path";
-
-    @Override
-    public String type()
-    {
-        return "http-kafka";
-    }
 
     @Override
     public JsonObject adaptToJson(
