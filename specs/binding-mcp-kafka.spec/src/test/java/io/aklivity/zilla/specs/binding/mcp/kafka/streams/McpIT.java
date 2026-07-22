@@ -98,4 +98,58 @@ public class McpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/produce.args.multiframe/client",
+        "${mcp}/produce.args.multiframe/server"})
+    public void shouldProduceWithArgsSpanningMultipleDataFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/consume.result.multiframe/client",
+        "${mcp}/consume.result.multiframe/server"})
+    public void shouldChunkConsumeResultAcrossEncodeSlotBoundary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/reject.topic.not.allowed/client",
+        "${mcp}/reject.topic.not.allowed/server"})
+    public void shouldRejectProduceWhenTopicNotInAllowlist() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/reject.not.authorized/client",
+        "${mcp}/reject.not.authorized/server"})
+    public void shouldRejectToolsCallWhenRouteNotAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/produce.abort/client",
+        "${mcp}/produce.abort/server"})
+    public void shouldAbortMidProduce() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/consume.abort/client",
+        "${mcp}/consume.abort/server"})
+    public void shouldAbortMidConsume() throws Exception
+    {
+        k3po.finish();
+    }
 }

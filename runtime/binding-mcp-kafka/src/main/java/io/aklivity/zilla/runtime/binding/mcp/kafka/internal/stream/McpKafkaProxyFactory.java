@@ -1557,6 +1557,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 cleanupEncodeSlot();
             }
 
+            doKafkaAbort(traceId);
             peer.doMcpAbort(traceId);
         }
 

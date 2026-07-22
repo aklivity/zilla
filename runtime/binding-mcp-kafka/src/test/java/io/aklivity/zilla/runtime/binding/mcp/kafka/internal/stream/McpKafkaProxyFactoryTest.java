@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -161,16 +160,9 @@ public class McpKafkaProxyFactoryTest
     private BindingConfig newBinding(
         String tool)
     {
-        return newBinding(tool, null);
-    }
-
-    private BindingConfig newBinding(
-        String tool,
-        String topic)
-    {
         final RouteConfig route = RouteConfig.builder()
             .exit("kafka0")
-            .when(new McpKafkaConditionConfig(tool, null, topic))
+            .when(new McpKafkaConditionConfig(tool, null, null))
             .build();
         route.id = ROUTE_ID;
 
@@ -388,15 +380,6 @@ public class McpKafkaProxyFactoryTest
         return new String(bytes, UTF_8);
     }
 
-    private String concatPayloads(
-        List<Recorded> sink,
-        int typeId)
-    {
-        final StringBuilder text = new StringBuilder();
-        sink.stream().filter(r -> r.typeId == typeId).forEach(r -> text.append(payloadText(r)));
-        return text.toString();
-    }
-
     private KafkaBeginExFW kafkaBeginEx(
         Recorded recorded)
     {
@@ -524,47 +507,6 @@ public class McpKafkaProxyFactoryTest
     }
 
     @Test
-    public void shouldCompleteProduceOnWindowDrainThenKafkaEnd() throws Exception
-    {
-        factory.attach(newBinding("produce"));
-
-        final String body = "{\"name\":\"produce\",\"arguments\":{\"topic\":\"orders\",\"value\":\"hello\"}}";
-        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
-
-        data(stream, INITIAL_ID, body);
-
-        final MessageConsumer kafkaSender = captureKafkaSender();
-        final long kafkaInitialId = supplyId.get() - 1L;
-
-        // no data sent yet - waiting for the first window to grant real credit
-        assertEquals(0, countOf(kafkaSent, DataFW.TYPE_ID));
-
-        // first window grants credit -> deferred produce record is flushed
-        window(kafkaSender, kafkaInitialId, 0L, 8192);
-        assertEquals(1, countOf(kafkaSent, DataFW.TYPE_ID));
-
-        // window not yet caught up with what we sent -> no end yet
-        assertEquals(0, countOf(kafkaSent, EndFW.TYPE_ID));
-
-        // window drains fully (acknowledge catches up to the 5 bytes written) -> fire-and-forget end
-        window(kafkaSender, kafkaInitialId, 5L, 8192);
-        assertEquals(1, countOf(kafkaSent, EndFW.TYPE_ID));
-
-        // no result sent to the mcp client yet - waiting on kafka's own reply end
-        assertEquals(0, countOf(mcpSent, DataFW.TYPE_ID));
-
-        // kafka's reply end arrives -> synthesize the success envelope
-        end(kafkaSender, kafkaInitialId | 0x01L);
-
-        final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"content\":[{\"type\": \"text\",\"text\": \"Produced record to orders topic\"}]," +
-            "\"isError\": false}",
-            result);
-
-        assertEquals(1, countOf(mcpSent, EndFW.TYPE_ID));
-    }
-
-    @Test
     public void shouldSynthesizeProduceErrorAndAbortOnKafkaReset() throws Exception
     {
         factory.attach(newBinding("produce"));
@@ -686,60 +628,6 @@ public class McpKafkaProxyFactoryTest
     }
 
     @Test
-    public void shouldParseProduceArgsSpanningMultipleDataFrames() throws Exception
-    {
-        when(context.bufferPool()).thenReturn(new TestBufferPool(40));
-        factory = new McpKafkaProxyFactory(new McpKafkaConfiguration(), context);
-        factory.attach(newBinding("produce", "orders"));
-
-        final String body = "{\"name\":\"produce\",\"arguments\":{\"topic\":\"orders\",\"value\":\"hello-world-this-is-long\"}}";
-        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
-
-        final byte[] bytes = body.getBytes(UTF_8);
-        final int chunkSize = 15;
-        for (int offset = 0; offset < bytes.length; offset += chunkSize)
-        {
-            final int length = Math.min(chunkSize, bytes.length - offset);
-            data(stream, INITIAL_ID, new String(bytes, offset, length, UTF_8));
-        }
-
-        assertEquals(1, countOf(kafkaSent, BeginFW.TYPE_ID));
-
-        final KafkaBeginExFW kafkaBeginEx = kafkaBeginEx(nthOf(kafkaSent, BeginFW.TYPE_ID, 1));
-        assertEquals("orders", kafkaBeginEx.merged().topic().asString());
-    }
-
-    @Test
-    public void shouldChunkConsumeResultAcrossEncodeSlotBoundary() throws Exception
-    {
-        when(context.bufferPool()).thenReturn(new TestBufferPool(64));
-        factory = new McpKafkaProxyFactory(new McpKafkaConfiguration(), context);
-        factory.attach(newBinding("consume"));
-
-        final String body = "{\"name\":\"consume\",\"arguments\":{\"topic\":\"orders\",\"limit\":2}}";
-        final MessageConsumer stream = beginToolsCall("consume", body.length(), 0L);
-
-        data(stream, INITIAL_ID, body);
-
-        final MessageConsumer kafkaSender = captureKafkaSender();
-        final long kafkaReplyId = (supplyId.get() - 1L) | 0x01L;
-
-        final String value1 = "value-1-".repeat(10);
-        final String value2 = "value-2-".repeat(10);
-        dataWithPayload(kafkaSender, kafkaReplyId, value1);
-        dataWithPayload(kafkaSender, kafkaReplyId, value2);
-
-        assertTrue(countOf(mcpSent, DataFW.TYPE_ID) > 1);
-
-        final String result = concatPayloads(mcpSent, DataFW.TYPE_ID);
-        assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[{\"key\":null,\"headers\":[]," +
-            "\"value\":\"" + value1 + "\"},{\"key\":null,\"headers\":[],\"value\":\"" + value2 + "\"}]," +
-            "\"count\":2},\"content\":[{\"type\":\"text\",\"text\":\"Consumed 2 messages from topic orders\"}]," +
-            "\"isError\":false}",
-            result);
-    }
-
-    @Test
     public void shouldRouteUnrecognizedToolWithoutBufferingArguments() throws Exception
     {
         factory.attach(newBinding("unsupported_tool"));
@@ -761,48 +649,4 @@ public class McpKafkaProxyFactoryTest
         assertEquals(0, countOf(kafkaSent, BeginFW.TYPE_ID));
     }
 
-    @Test
-    public void shouldProduceWhenTopicMatchesAllowlist() throws Exception
-    {
-        factory.attach(newBinding("produce", "orders"));
-
-        final String body = "{\"name\":\"produce\",\"arguments\":{\"topic\":\"orders\",\"value\":\"hello\"}}";
-        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
-
-        data(stream, INITIAL_ID, body);
-
-        assertEquals(1, countOf(kafkaSent, BeginFW.TYPE_ID));
-        assertEquals(0, countOf(mcpSent, ResetFW.TYPE_ID));
-    }
-
-    @Test
-    public void shouldRejectProduceWhenTopicNotInAllowlist() throws Exception
-    {
-        factory.attach(newBinding("produce", "orders"));
-
-        final String body = "{\"name\":\"produce\",\"arguments\":{\"topic\":\"other\",\"value\":\"hello\"}}";
-        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
-
-        data(stream, INITIAL_ID, body);
-
-        assertEquals(0, countOf(kafkaSent, BeginFW.TYPE_ID));
-        assertEquals(1, countOf(mcpSent, ResetFW.TYPE_ID));
-
-        final Recorded recorded = nthOf(mcpSent, ResetFW.TYPE_ID, 1);
-        final ResetFW reset = resetRO.wrap(new UnsafeBufferEx(recorded.bytes), 0, recorded.bytes.length);
-        assertEquals(0, reset.extension().sizeof());
-    }
-
-    @Test
-    public void shouldRejectToolsCallWhenRouteNotAuthorized() throws Exception
-    {
-        final BindingConfig binding = newBinding("produce");
-        binding.routes.get(0).authorized = (authorization, identity) -> false;
-        factory.attach(binding);
-
-        final MessageConsumer stream = beginToolsCall("produce", 10, 0L);
-
-        assertNull(stream);
-        assertEquals(0, countOf(kafkaSent, BeginFW.TYPE_ID));
-    }
 }

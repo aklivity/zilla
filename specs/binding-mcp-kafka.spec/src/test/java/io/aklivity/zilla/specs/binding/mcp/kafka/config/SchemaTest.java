@@ -33,6 +33,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/binding/kafka/schema/kafka.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/binding/mcp/kafka/schema/mcp.kafka.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/kafka/config");
 
     @Test
@@ -99,5 +100,13 @@ public class SchemaTest
     public void shouldRejectProxyWithVault()
     {
         schema.validate("proxy.with.vault.yaml");
+    }
+
+    @Test
+    public void shouldValidateProxyProduceGuarded()
+    {
+        JsonObject config = schema.validate("proxy.produce.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
     }
 }

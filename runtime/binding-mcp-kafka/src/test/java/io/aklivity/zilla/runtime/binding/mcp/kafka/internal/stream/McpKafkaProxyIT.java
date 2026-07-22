@@ -120,6 +120,64 @@ public class McpKafkaProxyIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.produce.yaml")
+    @Specification({
+        "${mcp}/produce.args.multiframe/client",
+        "${kafka}/produce.args.multiframe/server"})
+    public void shouldProduceWithArgsSpanningMultipleDataFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.produce.topic.allowlist.yaml")
+    @Specification({
+        "${mcp}/produce/client",
+        "${kafka}/produce/server"})
+    public void shouldProduceWhenTopicMatchesAllowlist() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.produce.topic.allowlist.yaml")
+    @Specification({
+        "${mcp}/reject.topic.not.allowed/client"})
+    public void shouldRejectProduceWhenTopicNotInAllowlist() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.produce.guarded.yaml")
+    @Specification({
+        "${mcp}/reject.not.authorized/client"})
+    public void shouldRejectToolsCallWhenRouteNotAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.produce.yaml")
+    @Specification({
+        "${mcp}/produce.abort/client",
+        "${kafka}/produce.abort/server"})
+    public void shouldAbortMidProduce() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.consume.yaml")
+    @Specification({
+        "${mcp}/consume.abort/client",
+        "${kafka}/consume.abort/server"})
+    public void shouldAbortMidConsume() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
