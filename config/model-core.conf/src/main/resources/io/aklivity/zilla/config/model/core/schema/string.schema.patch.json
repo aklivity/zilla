@@ -1,0 +1,58 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/models/types/enum/-",
+        "value": "string"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/models/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "string"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "string"
+                    },
+                    "encoding":
+                    {
+                        "type": "string",
+                        "enum": [ "utf_8", "utf_16" ]
+                    },
+                    "minLength":
+                    {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "maxLength":
+                    {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "pattern":
+                    {
+                        "type": "string"
+                    },
+                    "validate":
+                    {
+                        "$ref": "#/$defs/validate"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

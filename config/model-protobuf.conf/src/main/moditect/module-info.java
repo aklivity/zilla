@@ -23,4 +23,7 @@ module io.aklivity.zilla.config.model.protobuf
 
     provides io.aklivity.zilla.config.engine.ModelConfigAdapterSpi
         with io.aklivity.zilla.config.model.protobuf.internal.ProtobufModelConfigAdapter;
+
+    provides io.aklivity.zilla.config.engine.ModelInfo
+        with io.aklivity.zilla.config.model.protobuf.ProtobufModelInfo;
 }

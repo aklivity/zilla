@@ -23,4 +23,7 @@ module io.aklivity.zilla.config.model.avro
 
     provides io.aklivity.zilla.config.engine.ModelConfigAdapterSpi
         with io.aklivity.zilla.config.model.avro.internal.AvroModelConfigAdapter;
+
+    provides io.aklivity.zilla.config.engine.ModelInfo
+        with io.aklivity.zilla.config.model.avro.AvroModelInfo;
 }

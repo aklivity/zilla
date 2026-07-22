@@ -28,4 +28,12 @@ module io.aklivity.zilla.config.model.core
             io.aklivity.zilla.config.model.core.internal.Int32ModelConfigAdapter,
             io.aklivity.zilla.config.model.core.internal.Int64ModelConfigAdapter,
             io.aklivity.zilla.config.model.core.internal.StringModelConfigAdapter;
+
+    provides io.aklivity.zilla.config.engine.ModelInfo
+        with io.aklivity.zilla.config.model.core.BooleanModelInfo,
+            io.aklivity.zilla.config.model.core.DoubleModelInfo,
+            io.aklivity.zilla.config.model.core.FloatModelInfo,
+            io.aklivity.zilla.config.model.core.Int32ModelInfo,
+            io.aklivity.zilla.config.model.core.Int64ModelInfo,
+            io.aklivity.zilla.config.model.core.StringModelInfo;
 }
