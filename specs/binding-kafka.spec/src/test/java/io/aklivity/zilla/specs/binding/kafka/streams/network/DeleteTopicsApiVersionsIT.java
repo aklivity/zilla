@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.kafka.streams.application;
+package io.aklivity.zilla.specs.binding.kafka.streams.network;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -27,10 +27,11 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class ApiIT
+public class DeleteTopicsApiVersionsIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api");
+        .addScriptRoot("net",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/delete.topics.v3.api.versions.v0");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -39,36 +40,9 @@ public class ApiIT
 
     @Test
     @Specification({
-        "${app}/create.topics.v3/client",
-        "${app}/create.topics.v3/server"})
-    public void shouldCreateTopicsV3() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/delete.topics.v3/client",
-        "${app}/delete.topics.v3/server"})
-    public void shouldDeleteTopicsV3() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.unsupported.version/client",
-        "${app}/create.topics.v3.unsupported.version/server"})
-    public void shouldCreateTopicsV3UnsupportedVersion() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.reused.connection/client",
-        "${app}/create.topics.v3.reused.connection/server"})
-    public void shouldCreateTopicsV3ReusedConnection() throws Exception
+        "${net}/delete.topics/client",
+        "${net}/delete.topics/server"})
+    public void shouldDeleteTopicsV3ApiVersionsV0() throws Exception
     {
         k3po.finish();
     }

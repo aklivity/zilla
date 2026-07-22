@@ -33,8 +33,14 @@ public class ApiIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api")
-        .addScriptRoot("netCreateTopics", "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3")
-        .addScriptRoot("netDeleteTopics", "io/aklivity/zilla/specs/binding/kafka/streams/network/delete.topics.v3");
+        .addScriptRoot("netCreateTopics",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0")
+        .addScriptRoot("netDeleteTopics",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/delete.topics.v3.api.versions.v0")
+        .addScriptRoot("netCreateTopicsUnsupported",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.unsupported")
+        .addScriptRoot("netCreateTopicsReused",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.reused");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -64,6 +70,26 @@ public class ApiIT
         "${app}/delete.topics.v3/client",
         "${netDeleteTopics}/delete.topics/server"})
     public void shouldDeleteTopicsV3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/create.topics.v3.unsupported.version/client",
+        "${netCreateTopicsUnsupported}/create.topics/server"})
+    public void shouldCreateTopicsV3UnsupportedVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/create.topics.v3.reused.connection/client",
+        "${netCreateTopicsReused}/create.topics.then.delete.topics/server"})
+    public void shouldCreateTopicsV3ReusedConnection() throws Exception
     {
         k3po.finish();
     }
