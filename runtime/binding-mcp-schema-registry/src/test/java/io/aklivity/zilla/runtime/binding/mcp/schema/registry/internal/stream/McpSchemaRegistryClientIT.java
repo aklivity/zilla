@@ -59,6 +59,15 @@ public class McpSchemaRegistryClientIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/tools.list/client"})
+    public void shouldListTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/list.subjects/client",
         "${http}/list.subjects/server"})
     public void shouldCallToolListSubjects() throws Exception
