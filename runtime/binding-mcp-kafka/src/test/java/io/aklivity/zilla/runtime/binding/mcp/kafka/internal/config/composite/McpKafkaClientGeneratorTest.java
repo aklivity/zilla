@@ -26,14 +26,14 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaCompositeConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class McpKafkaClientGeneratorTest

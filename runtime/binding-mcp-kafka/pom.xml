@@ -61,6 +61,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-mcp-kafka.conf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>common-json</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -126,33 +131,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-mcp-kafka.spec</artifactId>
-                  <fileMappers>
-                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                       <pattern>^\Qio/aklivity/zilla/specs/binding/mcp/kafka/\E</pattern>
-                       <replacement>io/aklivity/zilla/runtime/binding/mcp/kafka/internal/</replacement>
-                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
-                </artifactItem>
-              </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/mcp/kafka/schema/mcp.kafka.schema.patch.json</includes>
-              <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

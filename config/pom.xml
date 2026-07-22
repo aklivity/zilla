@@ -31,7 +31,9 @@
     <module>binding-tls.conf</module>
     <module>binding-mcp.conf</module>
     <module>binding-mcp-http.conf</module>
+    <module>binding-mcp-kafka.conf</module>
     <module>binding-mcp-openapi.conf</module>
+    <module>binding-mcp-schema-registry.conf</module>
     <module>binding-mqtt.conf</module>
     <module>binding-mqtt-kafka.conf</module>
     <module>binding-openapi-asyncapi.conf</module>

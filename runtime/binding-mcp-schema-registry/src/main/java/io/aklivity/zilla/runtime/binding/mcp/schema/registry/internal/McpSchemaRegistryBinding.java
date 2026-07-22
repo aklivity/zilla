@@ -14,15 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal;
 
-import java.net.URL;
-
+import io.aklivity.zilla.config.binding.mcp.schema.registry.McpSchemaRegistryBindingInfo;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class McpSchemaRegistryBinding implements Binding
 {
-    public static final String NAME = "mcp_schema_registry";
+    public static final String NAME = McpSchemaRegistryBindingInfo.TYPE;
 
     private final McpSchemaRegistryConfiguration config;
 
@@ -36,12 +35,6 @@ public final class McpSchemaRegistryBinding implements Binding
     public String name()
     {
         return McpSchemaRegistryBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/mcp_schema_registry.schema.patch.json");
     }
 
     @Override

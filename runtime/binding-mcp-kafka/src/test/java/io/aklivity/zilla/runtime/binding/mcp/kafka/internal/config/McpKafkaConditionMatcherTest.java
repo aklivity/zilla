@@ -20,7 +20,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaConditionConfig;
 
 public class McpKafkaConditionMatcherTest
 {
