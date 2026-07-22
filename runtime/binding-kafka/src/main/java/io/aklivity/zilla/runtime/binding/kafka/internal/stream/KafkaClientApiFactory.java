@@ -535,7 +535,6 @@ public final class KafkaClientApiFactory implements BindingHandler
 
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
-        private boolean deferredEnd;
 
         KafkaApiStream(
             MessageConsumer application,
@@ -785,9 +784,8 @@ public final class KafkaClientApiFactory implements BindingHandler
             {
                 cleanupEncodeSlot();
 
-                if (deferredEnd)
+                if (KafkaState.replyClosing(state) && !KafkaState.replyClosed(state))
                 {
-                    deferredEnd = false;
                     doAppEnd(traceId);
                 }
             }
@@ -820,7 +818,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (encodeSlot != NO_SLOT)
             {
-                deferredEnd = true;
+                state = KafkaState.closingReply(state);
             }
             else if (!KafkaState.replyClosed(state))
             {
