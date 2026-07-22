@@ -64,6 +64,10 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-asyncapi.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
       <scope>provided</scope>
     </dependency>
@@ -294,35 +298,6 @@
             <goals>
               <goal>generate</goal>
             </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-asyncapi.spec</artifactId>
-                  <fileMappers>
-                    <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                      <pattern>^\Qio/aklivity/zilla/specs/binding/asyncapi/\E</pattern>
-                      <replacement>io/aklivity/zilla/runtime/binding/asyncapi/internal/</replacement>
-                    </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
-                </artifactItem>
-              </artifactItems>
-              <includes>
-                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json
-              </includes>
-              <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
           </execution>
         </executions>
       </plugin>

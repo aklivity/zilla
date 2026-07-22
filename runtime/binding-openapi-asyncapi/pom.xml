@@ -37,6 +37,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-openapi-asyncapi.conf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -167,28 +172,6 @@
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-openapi-asyncapi.spec</artifactId>
-                  <fileMappers>
-                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                       <pattern>^\Qio/aklivity/zilla/specs/binding/openapi/asyncapi/\E</pattern>
-                       <replacement>io/aklivity/zilla/runtime/binding/openapi/asyncapi/internal/</replacement>
-                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
-                </artifactItem>
-              </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/openapi/asyncapi/schema/openapi.asyncapi.schema.patch.json</includes>
-              <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
-          </execution>
           <execution>
             <id>unpack-openapi</id>
             <phase>generate-sources</phase>

@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionConfig;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
@@ -37,7 +38,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindin
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeRouteConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiRouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiWithConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.AsyncapiHttpOperationBindingEx;

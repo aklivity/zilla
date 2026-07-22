@@ -23,11 +23,11 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.MetricRefConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.String8FW;

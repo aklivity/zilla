@@ -23,11 +23,11 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.MetricRefConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.String8FW;

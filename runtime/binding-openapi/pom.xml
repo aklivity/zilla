@@ -37,6 +37,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-openapi.conf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -207,8 +212,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/openapi/schema/openapi.schema.patch.json,
-                io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json,
+              <includes>io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json,
                 io/aklivity/zilla/specs/binding/tcp/schema/tcp.schema.patch.json,
                 io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json
               </includes>

@@ -14,14 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal;
 
-import java.net.URL;
-
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpHttpBinding implements Binding
 {
-    public static final String NAME = "mcp_http";
+    public static final String NAME = McpHttpBindingInfo.TYPE;
 
     private final McpHttpConfiguration config;
 
@@ -35,12 +34,6 @@ public final class McpHttpBinding implements Binding
     public String name()
     {
         return McpHttpBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/mcp_http.schema.patch.json");
     }
 
     @Override

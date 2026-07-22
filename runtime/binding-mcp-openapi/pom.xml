@@ -70,6 +70,11 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-mcp-http.conf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>common-openapi</artifactId>
     </dependency>
     <dependency>

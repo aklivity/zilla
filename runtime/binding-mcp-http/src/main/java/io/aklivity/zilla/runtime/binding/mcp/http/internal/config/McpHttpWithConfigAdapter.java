@@ -22,11 +22,11 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpBodyConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpBinding;
 
