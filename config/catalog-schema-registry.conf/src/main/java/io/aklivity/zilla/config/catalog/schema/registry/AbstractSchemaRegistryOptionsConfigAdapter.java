@@ -18,7 +18,6 @@ import static java.util.stream.Collectors.toList;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import jakarta.json.Json;
@@ -31,10 +30,9 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
 public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends AbstractSchemaRegistryOptionsConfig>
-    implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+    implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String URL = "url";
     private static final String CONTEXT = "context";
@@ -47,28 +45,8 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     private static final String AUTHORIZATION_CREDENTIALS_HEADERS_NAME = "headers";
     private static final String TLS_NAME = "tls";
 
-    private final String type;
-    private final Set<String> aliases;
     private final Class<T> optionsType;
     private final Supplier<AbstractSchemaRegistryOptionsConfigBuilder<T, ?>> supplyBuilder;
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.CATALOG;
-    }
-
-    @Override
-    public String type()
-    {
-        return type;
-    }
-
-    @Override
-    public Set<String> aliases()
-    {
-        return aliases;
-    }
 
     @Override
     public JsonObject adaptToJson(
@@ -216,21 +194,9 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     }
 
     protected AbstractSchemaRegistryOptionsConfigAdapter(
-        String type,
         Class<T> optionsType,
         Supplier<AbstractSchemaRegistryOptionsConfigBuilder<T, ?>> supplyOptions)
     {
-        this(type, ALIASES_DEFAULT, optionsType, supplyOptions);
-    }
-
-    protected AbstractSchemaRegistryOptionsConfigAdapter(
-        String type,
-        Set<String> aliases,
-        Class<T> optionsType,
-        Supplier<AbstractSchemaRegistryOptionsConfigBuilder<T, ?>> supplyOptions)
-    {
-        this.type = type;
-        this.aliases = aliases;
         this.optionsType = optionsType;
         this.supplyBuilder = supplyOptions;
     }

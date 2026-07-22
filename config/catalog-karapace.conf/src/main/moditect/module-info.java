@@ -22,6 +22,6 @@ module io.aklivity.zilla.config.catalog.karapace
 
     exports io.aklivity.zilla.config.catalog.karapace;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.catalog.karapace.internal.KarapaceOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.CatalogInfo
+        with io.aklivity.zilla.config.catalog.karapace.KarapaceCatalogInfo;
 }

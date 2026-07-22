@@ -21,6 +21,6 @@ public class SchemaRegistryOptionsConfigAdapter extends AbstractSchemaRegistryOp
 {
     public SchemaRegistryOptionsConfigAdapter()
     {
-        super(SchemaRegistryOptionsConfig.TYPE, SchemaRegistryOptionsConfig.class, SchemaRegistryOptionsConfig::builder);
+        super(SchemaRegistryOptionsConfig.class, SchemaRegistryOptionsConfig::builder);
     }
 }

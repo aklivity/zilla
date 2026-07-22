@@ -21,6 +21,6 @@ module io.aklivity.zilla.config.catalog.filesystem
 
     exports io.aklivity.zilla.config.catalog.filesystem;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.catalog.filesystem.internal.FilesystemOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.CatalogInfo
+        with io.aklivity.zilla.config.catalog.filesystem.FilesystemCatalogInfo;
 }

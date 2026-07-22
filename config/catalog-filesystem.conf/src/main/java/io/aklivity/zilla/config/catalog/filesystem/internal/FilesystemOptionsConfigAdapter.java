@@ -23,24 +23,11 @@ import io.aklivity.zilla.config.catalog.filesystem.FilesystemOptionsConfig;
 import io.aklivity.zilla.config.catalog.filesystem.FilesystemOptionsConfigBuilder;
 import io.aklivity.zilla.config.catalog.filesystem.FilesystemSchemaConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
-public class FilesystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public class FilesystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SUBJECTS_NAME = "subjects";
     private static final String PATH_NAME = "path";
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.CATALOG;
-    }
-
-    @Override
-    public String type()
-    {
-        return "filesystem";
-    }
 
     @Override
     public JsonObject adaptToJson(

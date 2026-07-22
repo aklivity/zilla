@@ -21,6 +21,6 @@ module io.aklivity.zilla.config.catalog.schema.registry
 
     exports io.aklivity.zilla.config.catalog.schema.registry;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.catalog.schema.registry.internal.SchemaRegistryOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.CatalogInfo
+        with io.aklivity.zilla.config.catalog.schema.registry.SchemaRegistryCatalogInfo;
 }

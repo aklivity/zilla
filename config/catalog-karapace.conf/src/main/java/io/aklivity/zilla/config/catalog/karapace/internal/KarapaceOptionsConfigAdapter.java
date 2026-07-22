@@ -21,7 +21,6 @@ public final class KarapaceOptionsConfigAdapter extends AbstractSchemaRegistryOp
 {
     public KarapaceOptionsConfigAdapter()
     {
-        super(KarapaceOptionsConfig.TYPE, KarapaceOptionsConfig.TYPE_ALIASES,
-            KarapaceOptionsConfig.class, KarapaceOptionsConfig::builder);
+        super(KarapaceOptionsConfig.class, KarapaceOptionsConfig::builder);
     }
 }

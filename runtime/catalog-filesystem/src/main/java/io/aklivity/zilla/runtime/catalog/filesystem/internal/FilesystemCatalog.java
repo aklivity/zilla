@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
-import java.net.URL;
-
-import io.aklivity.zilla.config.catalog.filesystem.FilesystemOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
@@ -42,11 +39,5 @@ public class FilesystemCatalog implements Catalog
         EngineContext context)
     {
         return new FilesystemCatalogContext(context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return FilesystemOptionsConfig.class.getResource("schema/filesystem.schema.patch.json");
     }
 }

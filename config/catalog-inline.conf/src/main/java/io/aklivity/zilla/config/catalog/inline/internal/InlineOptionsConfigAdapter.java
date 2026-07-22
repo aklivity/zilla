@@ -24,26 +24,13 @@ import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.config.catalog.inline.InlineSchemaConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineSchemaConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
-public class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public class InlineOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SUBJECTS_NAME = "subjects";
     private static final String VERSION_NAME = "version";
     private static final String SCHEMA_NAME = "schema";
     private static final String VERSION_DEFAULT = "latest";
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.CATALOG;
-    }
-
-    @Override
-    public String type()
-    {
-        return "inline";
-    }
 
     @Override
     public JsonObject adaptToJson(

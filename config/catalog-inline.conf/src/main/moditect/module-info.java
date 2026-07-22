@@ -21,6 +21,6 @@ module io.aklivity.zilla.config.catalog.inline
 
     exports io.aklivity.zilla.config.catalog.inline;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.catalog.inline.internal.InlineOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.CatalogInfo
+        with io.aklivity.zilla.config.catalog.inline.InlineCatalogInfo;
 }

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.karapace.internal;
 
-import java.net.URL;
 import java.util.Set;
 
 import io.aklivity.zilla.config.catalog.karapace.KarapaceOptionsConfig;
@@ -27,11 +26,6 @@ public final class KarapaceCatalogFactorySpi extends AbstractSchemaRegistryCatal
 
     public KarapaceCatalogFactorySpi()
     {
-        super(TYPE, TYPE_ALIASES, KarapaceCatalogFactorySpi::supplySchema);
-    }
-
-    private static URL supplySchema()
-    {
-        return KarapaceOptionsConfig.class.getResource("schema/karapace.schema.patch.json");
+        super(TYPE, TYPE_ALIASES);
     }
 }
