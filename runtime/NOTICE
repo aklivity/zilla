@@ -20,11 +20,15 @@ This project includes:
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   jose4j under The Apache Software License, Version 2.0
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  zilla::config::binding-filesystem.conf under The Apache Software License, Version 2.0
+  zilla::config::binding-mcp.conf under Aklivity Community License Agreement
   zilla::config::binding-mqtt.conf under The Apache Software License, Version 2.0
+  zilla::config::binding-proxy.conf under The Apache Software License, Version 2.0
   zilla::config::binding-sse-kafka.conf under Aklivity Community License Agreement
   zilla::config::binding-sse.conf under The Apache Software License, Version 2.0
   zilla::config::binding-tcp.conf under The Apache Software License, Version 2.0
   zilla::config::binding-tls.conf under The Apache Software License, Version 2.0
+  zilla::config::binding-ws.conf under The Apache Software License, Version 2.0
   zilla::config::catalog-apicurio.conf under Aklivity Community License Agreement
   zilla::config::catalog-filesystem.conf under Aklivity Community License Agreement
   zilla::config::catalog-inline.conf under Aklivity Community License Agreement

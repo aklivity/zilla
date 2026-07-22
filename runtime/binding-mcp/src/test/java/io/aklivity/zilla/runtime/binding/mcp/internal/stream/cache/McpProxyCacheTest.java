@@ -34,10 +34,10 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.mcp.McpCacheConfig;
+import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache.McpListCache;

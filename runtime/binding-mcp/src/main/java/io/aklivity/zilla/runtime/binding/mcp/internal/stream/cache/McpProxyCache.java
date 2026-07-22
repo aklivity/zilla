@@ -40,10 +40,10 @@ import jakarta.json.stream.JsonParser;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
 
+import io.aklivity.zilla.config.binding.mcp.McpCacheConfig;
+import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerConfig;
+import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;

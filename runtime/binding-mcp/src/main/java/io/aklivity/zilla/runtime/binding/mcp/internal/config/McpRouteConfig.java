@@ -33,9 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.binding.mcp.McpConditionConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
 import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;

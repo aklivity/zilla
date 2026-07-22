@@ -19,9 +19,9 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.binding.ws.WsOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.runtime.binding.ws.config.WsOptionsConfig;
 
 public final class WsBindingConfig
 {

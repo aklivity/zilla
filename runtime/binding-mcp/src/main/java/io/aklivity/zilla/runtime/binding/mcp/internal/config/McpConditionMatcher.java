@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.McpConditionConfig;
 
 final class McpConditionMatcher
 {

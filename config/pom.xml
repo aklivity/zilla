@@ -18,11 +18,15 @@
 
   <modules>
     <module>engine.conf</module>
+    <module>binding-filesystem.conf</module>
     <module>binding-tcp.conf</module>
     <module>binding-tls.conf</module>
+    <module>binding-mcp.conf</module>
     <module>binding-mqtt.conf</module>
+    <module>binding-proxy.conf</module>
     <module>binding-sse.conf</module>
     <module>binding-sse-kafka.conf</module>
+    <module>binding-ws.conf</module>
     <module>catalog-apicurio.conf</module>
     <module>catalog-filesystem.conf</module>
     <module>catalog-schema-registry.conf</module>

@@ -21,8 +21,8 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.binding.ws.WsConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.binding.ws.config.WsConditionConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class WsRouteConfig

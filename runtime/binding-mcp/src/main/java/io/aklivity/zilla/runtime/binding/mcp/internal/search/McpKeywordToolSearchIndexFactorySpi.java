@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.search;
 import java.util.List;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpKeywordToolSearchIndexConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfig;
+import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
+import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi;
 

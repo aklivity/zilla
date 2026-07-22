@@ -95,6 +95,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-filesystem.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-tcp.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -105,7 +110,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-mqtt.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-proxy.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -116,6 +131,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-sse-kafka.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-ws.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

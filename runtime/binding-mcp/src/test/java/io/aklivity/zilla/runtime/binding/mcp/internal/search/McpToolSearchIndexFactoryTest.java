@@ -26,8 +26,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpKeywordToolSearchIndexConfig;
+import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
+import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchDocument;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchMatch;

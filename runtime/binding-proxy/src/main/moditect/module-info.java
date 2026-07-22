@@ -15,16 +15,9 @@
  */
 module io.aklivity.zilla.runtime.binding.proxy
 {
+    requires io.aklivity.zilla.config.binding.proxy;
     requires io.aklivity.zilla.runtime.engine;
-
-    exports io.aklivity.zilla.runtime.binding.proxy.config;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBindingFactorySpi;
-
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.proxy.internal.config.ProxyOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.proxy.internal.config.ProxyConditionConfigAdapter;
 }

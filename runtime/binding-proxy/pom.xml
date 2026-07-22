@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.93</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.92</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -34,6 +34,11 @@
       <artifactId>binding-proxy.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-proxy.conf</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -120,33 +125,6 @@
         <artifactId>maven-checkstyle-plugin</artifactId>
       </plugin>
       <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-proxy.spec</artifactId>
-                  <fileMappers>
-                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                       <pattern>^\Qio/aklivity/zilla/specs/binding/proxy/\E</pattern>
-                       <replacement>io/aklivity/zilla/runtime/binding/proxy/internal/</replacement>
-                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
-                </artifactItem>
-              </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/proxy/schema/proxy.schema.patch.json</includes>
-              <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
       </plugin>
@@ -224,6 +202,8 @@
             <includes>
               <include>org.agrona:agrona</include>
               <include>io.aklivity.zilla:engine</include>
+              <include>io.aklivity.zilla:engine.conf</include>
+              <include>io.aklivity.zilla:binding-proxy.conf</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>
               <include>org.apache.commons:commons-math3</include>

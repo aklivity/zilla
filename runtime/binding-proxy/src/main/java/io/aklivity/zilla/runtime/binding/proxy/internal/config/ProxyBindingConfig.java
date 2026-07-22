@@ -19,9 +19,9 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.binding.proxy.ProxyOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.runtime.binding.proxy.config.ProxyOptionsConfig;
 import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
 
 public final class ProxyBindingConfig
