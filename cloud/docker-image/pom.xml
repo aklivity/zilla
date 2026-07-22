@@ -315,7 +315,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>guard-identity</artifactId>
+      <artifactId>guard-inline</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

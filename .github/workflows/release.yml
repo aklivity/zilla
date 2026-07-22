@@ -48,7 +48,7 @@ jobs:
         fi
 
     - name: Cache Homebrew
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: /home/linuxbrew/.linuxbrew
         key: ${{ runner.os }}-homebrew
@@ -111,34 +111,26 @@ jobs:
 
     - name: Update POM versions on release branch
       run: |
-        ./mvnw versions:set -DgenerateBackupPoms=false -DnewVersion=${{ inputs.version }}
+        ./mvnw org.codehaus.mojo:versions-maven-plugin:2.18.0:set -DgenerateBackupPoms=false -DnewVersion=${{ inputs.version }}
 
-    - name: Generate CHANGELOG on release branch (attempt 1)
-      id: changelog-1
-      continue-on-error: true
-      uses: janheinrichmerker/action-github-changelog-generator@v2.4
+    - name: Cache gitflow-changelog events
+      uses: actions/cache@v6
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        path: .gitflow-changelog-cache.json
+        key: gitflow-changelog-v3-${{ github.repository }}-${{ github.run_id }}
+        restore-keys: |
+          gitflow-changelog-v3-${{ github.repository }}-
 
-    - name: Generate CHANGELOG on release branch (attempt 2)
-      id: changelog-2
-      if: steps.changelog-1.outcome == 'failure'
+    - name: Generate CHANGELOG on release branch
+      id: changelog
       continue-on-error: true
-      uses: janheinrichmerker/action-github-changelog-generator@v2.4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Generate CHANGELOG on release branch (attempt 3)
-      id: changelog-3
-      if: steps.changelog-1.outcome == 'failure' && steps.changelog-2.outcome == 'failure'
-      continue-on-error: true
-      uses: janheinrichmerker/action-github-changelog-generator@v2.4
+      uses: aklivity/gitflow-changelog@v0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Warn if CHANGELOG generation failed on release branch
-      if: steps.changelog-1.outcome == 'failure' && steps.changelog-2.outcome == 'failure' && steps.changelog-3.outcome == 'failure'
-      run: echo "::warning::CHANGELOG generation failed after 3 attempts; release/${{ inputs.version }} will carry the previous CHANGELOG.md unchanged."
+      if: steps.changelog.outcome == 'failure'
+      run: echo "::warning::CHANGELOG generation failed on release/${{ inputs.version }}; release/${{ inputs.version }} will carry the previous CHANGELOG.md unchanged."
 
     - name: Commit POM versions and CHANGELOG on release branch
       run: git commit -a -m "Prepare release ${{ inputs.version }}"
@@ -203,7 +195,7 @@ jobs:
           > .maven-cache-key
 
     - name: Cache Maven packages
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('.maven-cache-key') }}
@@ -317,7 +309,7 @@ jobs:
 
     steps:
     - name: Cache Homebrew
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: /home/linuxbrew/.linuxbrew
         key: ${{ runner.os }}-homebrew
@@ -383,32 +375,24 @@ jobs:
         git fetch origin ${{ github.ref_name }}
         git checkout ${{ github.ref_name }}
 
-    - name: Generate CHANGELOG on base branch (attempt 1)
-      id: changelog-1
-      continue-on-error: true
-      uses: janheinrichmerker/action-github-changelog-generator@v2.4
+    - name: Cache gitflow-changelog events
+      uses: actions/cache@v6
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        path: .gitflow-changelog-cache.json
+        key: gitflow-changelog-v3-${{ github.repository }}-${{ github.run_id }}
+        restore-keys: |
+          gitflow-changelog-v3-${{ github.repository }}-
 
-    - name: Generate CHANGELOG on base branch (attempt 2)
-      id: changelog-2
-      if: steps.changelog-1.outcome == 'failure'
+    - name: Generate CHANGELOG on base branch
+      id: changelog
       continue-on-error: true
-      uses: janheinrichmerker/action-github-changelog-generator@v2.4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Generate CHANGELOG on base branch (attempt 3)
-      id: changelog-3
-      if: steps.changelog-1.outcome == 'failure' && steps.changelog-2.outcome == 'failure'
-      continue-on-error: true
-      uses: janheinrichmerker/action-github-changelog-generator@v2.4
+      uses: aklivity/gitflow-changelog@v0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Warn if CHANGELOG generation failed on base branch
-      if: steps.changelog-1.outcome == 'failure' && steps.changelog-2.outcome == 'failure' && steps.changelog-3.outcome == 'failure'
-      run: echo "::warning::CHANGELOG generation failed after 3 attempts; ${{ github.ref_name }} was not updated. The release itself (tag, merge) already completed successfully — rerun CHANGELOG generation manually or it will catch up next release."
+      if: steps.changelog.outcome == 'failure'
+      run: echo "::warning::CHANGELOG generation failed on ${{ github.ref_name }}; the release itself (tag, merge) already completed successfully — rerun CHANGELOG generation manually or it will catch up next release."
 
     - name: Commit and push CHANGELOG on base branch (if needed)
       run: |

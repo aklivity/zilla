@@ -69,7 +69,7 @@
     "io.aklivity.zilla:exporter-prometheus",
     "io.aklivity.zilla:exporter-stdout",
     "io.aklivity.zilla:filesystem-http",
-    "io.aklivity.zilla:guard-identity",
+    "io.aklivity.zilla:guard-inline",
     "io.aklivity.zilla:guard-jwt",
     "io.aklivity.zilla:metrics-stream",
     "io.aklivity.zilla:metrics-http",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Aklivity Inc.
+ * Copyright 2021-2026 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -619,6 +619,19 @@ public final class ZpmInstall extends ZpmCommand
         }
         providesMatcher.appendTail(cleanedModuleInfo);
         moduleInfoContents = cleanedModuleInfo.toString();
+
+        Set<String> mergedUses = new LinkedHashSet<>(uses);
+        for (Path path : delegate.paths)
+        {
+            ModuleFinder.of(path).findAll().stream()
+                .map(ModuleReference::descriptor)
+                .filter(descriptor -> !descriptor.isAutomatic())
+                .flatMap(descriptor -> descriptor.uses().stream())
+                .map(service -> String.format("    uses %s;", service))
+                .forEach(mergedUses::add);
+        }
+        uses.clear();
+        uses.addAll(mergedUses);
 
         if (!uses.isEmpty())
         {

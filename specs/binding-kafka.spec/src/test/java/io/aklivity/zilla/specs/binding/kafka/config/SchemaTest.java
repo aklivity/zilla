@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Aklivity Inc.
+ * Copyright 2021-2026 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -105,14 +105,6 @@ public class SchemaTest
     public void shouldValidateClientOptionsSaslScram()
     {
         JsonObject config = schema.validate("client.options.sasl.scram.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateClientWhenTopic()
-    {
-        JsonObject config = schema.validate("client.when.topic.yaml");
 
         assertThat(config, not(nullValue()));
     }

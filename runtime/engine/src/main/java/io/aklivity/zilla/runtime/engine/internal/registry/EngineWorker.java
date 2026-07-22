@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Aklivity Inc.
+ * Copyright 2021-2026 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -992,8 +992,20 @@ public class EngineWorker implements EngineContext, Agent
         Map<String, ExporterContext> exportersByType = exporters.stream()
             .collect(toMap(Exporter::name, e -> e.supply(this), (a, b) -> a, LinkedHashMap::new));
 
-        Map<String, GuardContext> guardsByType = guards.stream()
-            .collect(toMap(Guard::name, g -> g.supply(this), (a, b) -> a, LinkedHashMap::new));
+        Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
+        for (Guard guard : guards)
+        {
+            String type = guard.name();
+            Set<String> aliases = guard.aliases();
+
+            GuardContext context = guard.supply(this);
+
+            guardsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                guardsByType.put(alias, context);
+            }
+        }
 
         Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
         for (Vault vault : vaults)

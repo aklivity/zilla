@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Aklivity Inc.
+ * Copyright 2021-2026 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -52,7 +52,7 @@ public class ClientDescribeIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.topic.yaml")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/topic.unknown/client"})
     public void shouldRejectWhenTopicUnknown() throws Exception
@@ -61,7 +61,7 @@ public class ClientDescribeIT
     }
 
     @Test
-    @Configuration("client.when.topic.yaml")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/topic.config.info.incomplete/client",
         "${net}/topic.config.info.incomplete/server"})
@@ -71,7 +71,7 @@ public class ClientDescribeIT
     }
 
     @Test
-    @Configuration("client.when.topic.yaml")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/topic.config.info.synonyms/client",
         "${net}/topic.config.info.synonyms/server"})
@@ -82,7 +82,7 @@ public class ClientDescribeIT
     }
 
     @Test
-    @Configuration("client.when.topic.yaml")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/topic.config.info.partial/client",
         "${net}/topic.config.info.partial/server"})
@@ -93,7 +93,7 @@ public class ClientDescribeIT
     }
 
     @Test
-    @Configuration("client.when.topic.yaml")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/topic.config.info/client",
         "${net}/topic.config.info/server"})
@@ -103,7 +103,7 @@ public class ClientDescribeIT
     }
 
     @Test
-    @Configuration("client.when.topic.yaml")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/topic.config.info.changed/client",
         "${net}/topic.config.info.changed/server"})
