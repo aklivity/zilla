@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -32,6 +34,7 @@ public class InlineGuardHandler implements GuardHandler
     private final Long2ObjectHashMap<InlineSessionStore> sessionStoresByContextId;
     private final String identity;
     private final String credentials;
+    private final Matcher formatMatcher;
 
     public InlineGuardHandler(
         LongSupplier supplyAuthorizedId,
@@ -42,6 +45,9 @@ public class InlineGuardHandler implements GuardHandler
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
         this.identity = options != null ? options.identity : null;
         this.credentials = options != null ? options.credentials : null;
+        this.formatMatcher = options != null && options.format != null
+            ? Pattern.compile(toFormatPattern(options.format)).matcher("")
+            : null;
     }
 
     @Override
@@ -51,8 +57,25 @@ public class InlineGuardHandler implements GuardHandler
         long contextId,
         String credentials)
     {
+        String identityPart = credentials;
+        String credentialsPart = credentials;
+
+        if (formatMatcher != null)
+        {
+            if (formatMatcher.reset(credentials).matches())
+            {
+                identityPart = formatMatcher.group("identity");
+                credentialsPart = formatMatcher.group("credentials");
+            }
+            else
+            {
+                credentialsPart = this.credentials;
+            }
+        }
+
         InlineSessionStore sessionStore = supplySessionStore(contextId);
-        InlineSession session = sessionStore.supplySession(credentials);
+        InlineSession session = sessionStore.supplySession(identityPart);
+        session.credentials = credentialsPart;
         session.traceId = traceId;
         session.bindingId = bindingId;
 
@@ -101,7 +124,7 @@ public class InlineGuardHandler implements GuardHandler
         long sessionId)
     {
         InlineSession session = sessionsById.get(sessionId);
-        return session != null ? session.identity : credentials;
+        return session != null ? session.credentials : credentials;
     }
 
     @Override
@@ -130,6 +153,16 @@ public class InlineGuardHandler implements GuardHandler
         long contextId)
     {
         return sessionStoresByContextId.computeIfAbsent(contextId, InlineSessionStore::new);
+    }
+
+    private static String toFormatPattern(
+        String format)
+    {
+        String pattern = format
+            .replaceAll("([\\\\.^$|?*+()\\[\\]])", "\\\\$1")
+            .replace("{identity}", "(?<identity>[^\\s]+)")
+            .replace("{credentials}", "(?<credentials>[^\\s]+)");
+        return "^" + pattern + "$";
     }
 
     boolean verify(
@@ -205,6 +238,7 @@ public class InlineGuardHandler implements GuardHandler
         private final String identity;
         private final Consumer<InlineSession> unshare;
 
+        private String credentials;
         private long traceId;
         private long bindingId;
 
