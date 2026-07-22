@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.guard.inline.internal;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 
 import java.lang.invoke.VarHandle;
-import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -26,7 +25,6 @@ import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.engine.GuardedConfig;
-import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -57,12 +55,6 @@ public class InlineGuard implements Guard
     public Set<String> aliases()
     {
         return ALIASES;
-    }
-
-    @Override
-    public URL type()
-    {
-        return InlineOptionsConfig.class.getResource("schema/inline.schema.patch.json");
     }
 
     @Override

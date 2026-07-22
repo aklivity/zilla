@@ -21,33 +21,18 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 
-public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public final class FileSystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String FILESYSTEM_NAME = "filesystem";
-
     private static final String KEYS_NAME = "keys";
     private static final String TRUST_NAME = "trust";
     private static final String SIGNERS_NAME = "signers";
     private static final String REVOCATION_NAME = "revocation";
 
     private final FileSystemStoreConfigAdapter store = new FileSystemStoreConfigAdapter();
-
-    @Override
-    public String type()
-    {
-        return FILESYSTEM_NAME;
-    }
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.VAULT;
-    }
 
     @Override
     public JsonObject adaptToJson(

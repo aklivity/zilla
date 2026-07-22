@@ -20,6 +20,6 @@ module io.aklivity.zilla.config.guard.inline
 
     exports io.aklivity.zilla.config.guard.inline;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.guard.inline.internal.InlineOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.GuardInfo
+        with io.aklivity.zilla.config.guard.inline.InlineGuardInfo;
 }

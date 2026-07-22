@@ -15,9 +15,6 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
-import java.net.URL;
-
-import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
@@ -38,12 +35,6 @@ public final class FileSystemVault implements Vault
     public String name()
     {
         return FileSystemVault.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return FileSystemOptionsConfig.class.getResource("schema/filesystem.schema.patch.json");
     }
 
     @Override

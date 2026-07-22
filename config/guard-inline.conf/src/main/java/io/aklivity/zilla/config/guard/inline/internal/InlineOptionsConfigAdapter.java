@@ -14,39 +14,18 @@
  */
 package io.aklivity.zilla.config.guard.inline.internal;
 
-import java.util.Set;
-
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
 
-public final class InlineOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public final class InlineOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String IDENTITY_NAME = "identity";
     private static final String CREDENTIALS_NAME = "credentials";
-
-    @Override
-    public String type()
-    {
-        return "inline";
-    }
-
-    @Override
-    public Set<String> aliases()
-    {
-        return Set.of("identity");
-    }
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.GUARD;
-    }
 
     @Override
     public JsonObject adaptToJson(

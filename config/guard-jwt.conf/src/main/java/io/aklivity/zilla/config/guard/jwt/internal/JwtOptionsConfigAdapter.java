@@ -29,12 +29,11 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.guard.jwt.JwtKeyConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfigBuilder;
 
-public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public final class JwtOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String ISSUER_NAME = "issuer";
     private static final String AUDIENCE_NAME = "audience";
@@ -47,18 +46,6 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final List<JwtKeyConfig> KEYS_DEFAULT = emptyList();
 
     private final JwtKeyConfigAdapter key = new JwtKeyConfigAdapter();
-
-    @Override
-    public String type()
-    {
-        return "jwt";
-    }
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.GUARD;
-    }
 
     @Override
     public JsonObject adaptToJson(

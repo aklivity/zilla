@@ -23,6 +23,6 @@ module io.aklivity.zilla.config.vault.filesystem
 
     exports io.aklivity.zilla.config.vault.filesystem;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.vault.filesystem.internal.FileSystemOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.VaultInfo
+        with io.aklivity.zilla.config.vault.filesystem.FileSystemVaultInfo;
 }

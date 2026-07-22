@@ -21,6 +21,6 @@ module io.aklivity.zilla.config.guard.jwt
 
     exports io.aklivity.zilla.config.guard.jwt;
 
-    provides io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.config.guard.jwt.internal.JwtOptionsConfigAdapter;
+    provides io.aklivity.zilla.config.engine.GuardInfo
+        with io.aklivity.zilla.config.guard.jwt.JwtGuardInfo;
 }
