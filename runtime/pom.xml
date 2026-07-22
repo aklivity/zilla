@@ -105,6 +105,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mqtt.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>catalog-apicurio.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
