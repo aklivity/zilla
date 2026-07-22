@@ -29,6 +29,11 @@
 <dependencies>
   <dependency>
     <groupId>${project.groupId}</groupId>
+    <artifactId>model-json.conf</artifactId>
+    <version>${project.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>${project.groupId}</groupId>
     <artifactId>model-json.spec</artifactId>
     <version>${project.version}</version>
     <scope>provided</scope>

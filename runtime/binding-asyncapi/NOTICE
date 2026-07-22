@@ -24,6 +24,7 @@ This project includes:
   zilla::config::catalog-schema-registry.conf under Aklivity Community License Agreement
   zilla::config::engine.conf under The Apache Software License, Version 2.0
   zilla::config::model-core.conf under Aklivity Community License Agreement
+  zilla::config::model-json.conf under Aklivity Community License Agreement
   zilla::runtime::common-agrona under The Apache Software License, Version 2.0
   zilla::runtime::common-asyncapi under Aklivity Community License Agreement
   zilla::runtime::common-feature under The Apache Software License, Version 2.0

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.json.config;
+package io.aklivity.zilla.config.model.json;
 
 import java.util.LinkedList;
 import java.util.List;

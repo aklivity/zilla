@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.model.json.internal.config;
+package io.aklivity.zilla.config.model.json.internal;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -32,8 +32,8 @@ import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfigBuilder;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
+import io.aklivity.zilla.config.model.json.JsonModelConfigBuilder;
 
 public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
 {

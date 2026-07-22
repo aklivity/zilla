@@ -12,17 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.model.json
+module io.aklivity.zilla.config.model.json
 {
-    requires io.aklivity.zilla.runtime.engine;
+    requires jakarta.json;
+    requires jakarta.json.bind;
+    requires org.agrona;
+    requires io.aklivity.zilla.config.engine;
 
-    requires io.aklivity.zilla.runtime.common.json;
+    exports io.aklivity.zilla.config.model.json;
 
-    requires io.aklivity.zilla.config.model.json;
-
-    provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
-        with io.aklivity.zilla.runtime.model.json.internal.JsonModelFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.model.json.internal.JsonModelEventFormatterFactory;
+    provides io.aklivity.zilla.config.engine.ModelConfigAdapterSpi
+        with io.aklivity.zilla.config.model.json.internal.JsonModelConfigAdapter;
 }

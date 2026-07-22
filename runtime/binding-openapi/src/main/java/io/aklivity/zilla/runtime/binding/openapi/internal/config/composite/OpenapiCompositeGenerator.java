@@ -50,6 +50,7 @@ import io.aklivity.zilla.config.model.core.Int64ModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.StringPattern;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
@@ -69,7 +70,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.model.core.internal.StringModel;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public abstract class OpenapiCompositeGenerator
 {
