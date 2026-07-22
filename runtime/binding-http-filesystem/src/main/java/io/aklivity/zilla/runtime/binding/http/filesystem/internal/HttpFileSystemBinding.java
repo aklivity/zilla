@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.http.filesystem.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemConditionConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
@@ -40,7 +41,7 @@ public final class HttpFileSystemBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/http.filesystem.schema.patch.json");
+        return HttpFileSystemConditionConfig.class.getResource("schema/http.filesystem.schema.patch.json");
     }
 
     @Override

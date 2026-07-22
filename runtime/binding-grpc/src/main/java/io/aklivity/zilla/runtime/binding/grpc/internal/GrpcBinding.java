@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.grpc.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.binding.grpc.GrpcConditionConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -41,7 +42,7 @@ public final class GrpcBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/grpc.schema.patch.json");
+        return GrpcConditionConfig.class.getResource("schema/grpc.schema.patch.json");
     }
 
     @Override

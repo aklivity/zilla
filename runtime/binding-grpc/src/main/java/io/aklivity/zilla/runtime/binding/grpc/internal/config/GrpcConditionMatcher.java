@@ -21,8 +21,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcConditionConfig;
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMetadataValueConfig;
+import io.aklivity.zilla.config.binding.grpc.GrpcConditionConfig;
+import io.aklivity.zilla.config.binding.grpc.GrpcMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;

@@ -19,8 +19,8 @@ import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream
 import java.util.HashMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaConditionConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaMetadataValueConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;

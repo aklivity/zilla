@@ -25,9 +25,9 @@ import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
 import java.util.stream.Collectors;
 
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaConditionConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;

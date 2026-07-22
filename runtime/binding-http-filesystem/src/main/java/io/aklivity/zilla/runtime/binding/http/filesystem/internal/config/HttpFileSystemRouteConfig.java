@@ -22,8 +22,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.binding.http.filesystem.config.HttpFileSystemConditionConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class HttpFileSystemRouteConfig

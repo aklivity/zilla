@@ -14,14 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal;
 
-import java.net.URL;
-
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class GrpcKafkaBinding implements Binding
 {
-    public static final String NAME = "grpc-kafka";
+    public static final String NAME = GrpcKafkaBindingInfo.TYPE;
 
     private final GrpcKafkaConfiguration config;
 
@@ -35,12 +34,6 @@ public final class GrpcKafkaBinding implements Binding
     public String name()
     {
         return GrpcKafkaBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/grpc.kafka.schema.patch.json");
     }
 
     @Override

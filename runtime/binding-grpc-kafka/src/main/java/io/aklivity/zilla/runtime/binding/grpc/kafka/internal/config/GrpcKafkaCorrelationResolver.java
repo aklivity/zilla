@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaCorrelationConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 
 public final class GrpcKafkaCorrelationResolver
