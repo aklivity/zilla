@@ -25,9 +25,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterHeaderConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterHeaderConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.stream.SseKafkaIdHelper;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;

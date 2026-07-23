@@ -22,6 +22,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceOverrideConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
 
 public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<GrpcKafkaWithConfig, JsonObject>

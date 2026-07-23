@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 import java.util.List;
 import java.util.Optional;
 
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceOverrideConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
 
 public final class GrpcKafkaWithProduceConfig

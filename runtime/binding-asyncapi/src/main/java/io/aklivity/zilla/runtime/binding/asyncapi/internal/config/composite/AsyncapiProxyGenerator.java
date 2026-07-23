@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
+import static io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
-import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
@@ -36,7 +36,11 @@ import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchMergeConfig
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaWithConfig;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfigBuilder;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterConfigBuilder;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
@@ -56,10 +60,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedRef;
 import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedResolution;

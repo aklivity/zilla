@@ -20,4 +20,6 @@ module io.aklivity.zilla.config.binding.sse.kafka
     exports io.aklivity.zilla.config.binding.sse.kafka;
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.sse.kafka.internal.SseKafkaBindingInfo;
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
+        with io.aklivity.zilla.config.binding.sse.kafka.internal.SseKafkaWithConfigAdapter;
 }

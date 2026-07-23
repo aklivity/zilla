@@ -35,14 +35,14 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterHeaderConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceOverrideConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaCapability;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithConfigAdapter;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithFetchConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithFetchFilterConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithFetchFilterHeaderConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceOverrideConfig;
 
 public class GrpcKafkaWithConfigAdapterTest
 {

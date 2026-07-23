@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.kafka.config;
+package io.aklivity.zilla.config.binding.sse.kafka;
 
 import java.util.function.Function;
 

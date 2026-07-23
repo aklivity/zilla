@@ -12,9 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
+package io.aklivity.zilla.config.binding.sse.kafka.internal;
 
-import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
+import static io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig.EVENT_ID_DEFAULT;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -23,14 +23,13 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfigBuilder;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterConfigBuilder;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterHeaderConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfigBuilder;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterConfigBuilder;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithFilterHeaderConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaBinding;
 
 public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
@@ -44,7 +43,7 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
     @Override
     public String type()
     {
-        return SseKafkaBinding.TYPE;
+        return SseKafkaBindingInfo.TYPE;
     }
 
     @Override

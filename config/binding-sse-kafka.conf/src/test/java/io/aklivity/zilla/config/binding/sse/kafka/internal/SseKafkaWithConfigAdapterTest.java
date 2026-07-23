@@ -12,13 +12,13 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
+package io.aklivity.zilla.config.binding.sse.kafka.internal;
 
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
 import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
-import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
-import static io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
+import static io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig.EVENT_ID_DEFAULT;
+import static io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
@@ -34,7 +34,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig;
 
 public class SseKafkaWithConfigAdapterTest
 {

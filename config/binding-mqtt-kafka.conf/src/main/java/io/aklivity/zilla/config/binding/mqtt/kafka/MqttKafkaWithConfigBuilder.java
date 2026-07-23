@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
+package io.aklivity.zilla.config.binding.mqtt.kafka;
 
 import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 

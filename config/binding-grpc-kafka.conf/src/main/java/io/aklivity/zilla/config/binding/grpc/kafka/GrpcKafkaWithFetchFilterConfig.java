@@ -12,33 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.kafka.config;
+package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
-public final class SseKafkaWithFilterConfig
+public final class GrpcKafkaWithFetchFilterConfig
 {
     public final Optional<String> key;
-    public final Optional<List<SseKafkaWithFilterHeaderConfig>> headers;
+    public final Optional<List<GrpcKafkaWithFetchFilterHeaderConfig>> headers;
 
-    SseKafkaWithFilterConfig(
+    public GrpcKafkaWithFetchFilterConfig(
         String key,
-        List<SseKafkaWithFilterHeaderConfig> headers)
+        List<GrpcKafkaWithFetchFilterHeaderConfig> headers)
     {
         this.key = Optional.ofNullable(key);
         this.headers = Optional.ofNullable(headers);
-    }
-
-    public static SseKafkaWithFilterConfigBuilder<SseKafkaWithFilterConfig> builder()
-    {
-        return new SseKafkaWithFilterConfigBuilder<>(SseKafkaWithFilterConfig.class::cast);
-    }
-
-    public static <T> SseKafkaWithFilterConfigBuilder<T> builder(
-        Function<SseKafkaWithFilterConfig, T> mapper)
-    {
-        return new SseKafkaWithFilterConfigBuilder<>(mapper);
     }
 }

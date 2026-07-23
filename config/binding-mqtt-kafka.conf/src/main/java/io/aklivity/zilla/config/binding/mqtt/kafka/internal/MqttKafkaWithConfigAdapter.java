@@ -12,17 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
+package io.aklivity.zilla.config.binding.mqtt.kafka.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
 
 public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
@@ -31,7 +30,7 @@ public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
     @Override
     public String type()
     {
-        return MqttKafkaBinding.TYPE;
+        return MqttKafkaBindingInfo.TYPE;
     }
 
     @Override

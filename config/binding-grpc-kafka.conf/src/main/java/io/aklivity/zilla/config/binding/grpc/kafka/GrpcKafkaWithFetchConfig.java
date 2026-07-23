@@ -12,21 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
+package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.List;
 import java.util.Optional;
 
-public final class GrpcKafkaWithFetchFilterConfig
-{
-    public final Optional<String> key;
-    public final Optional<List<GrpcKafkaWithFetchFilterHeaderConfig>> headers;
+import io.aklivity.zilla.config.engine.WithConfig;
 
-    public GrpcKafkaWithFetchFilterConfig(
-        String key,
-        List<GrpcKafkaWithFetchFilterHeaderConfig> headers)
+public final class GrpcKafkaWithFetchConfig extends WithConfig
+{
+    public final String topic;
+    public final Optional<List<GrpcKafkaWithFetchFilterConfig>> filters;
+
+
+    public GrpcKafkaWithFetchConfig(
+        String topic,
+        List<GrpcKafkaWithFetchFilterConfig> filters)
     {
-        this.key = Optional.ofNullable(key);
-        this.headers = Optional.ofNullable(headers);
+        this.topic = topic;
+        this.filters = Optional.ofNullable(filters);
     }
 }
