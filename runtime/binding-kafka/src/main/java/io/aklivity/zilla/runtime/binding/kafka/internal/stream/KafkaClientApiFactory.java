@@ -27,6 +27,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -124,6 +125,8 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final ResponseErrorCodeFW responseErrorCodeRO = new ResponseErrorCodeFW();
     private final ApiVersionsResponseFW apiVersionsResponseRO = new ApiVersionsResponseFW();
     private final ApiVersionsResponseKeyFW apiVersionsResponseKeyRO = new ApiVersionsResponseKeyFW();
+    private final ApiVersionsResponseFW.Builder apiVersionsResponseRW = new ApiVersionsResponseFW.Builder();
+    private final ApiVersionsResponseKeyFW.Builder apiVersionsResponseKeyRW = new ApiVersionsResponseKeyFW.Builder();
 
     private final SaslHandshakeRequestFW.Builder saslHandshakeRequestRW = new SaslHandshakeRequestFW.Builder();
     private final SaslAuthenticateRequestFW.Builder saslAuthenticateRequestRW = new SaslAuthenticateRequestFW.Builder();
@@ -1062,6 +1065,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
         private boolean apiVersionsResolved;
         private boolean apiVersionsRequestExplicit;
+        private boolean apiVersionsExplicit;
         private final Int2IntHashMap apiVersionRangeByApiKey;
         private int apiVersionKeysRemaining;
 
@@ -1136,6 +1140,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                     if (head.api == API_VERSIONS_API_KEY && head.version == API_VERSIONS_API_VERSION)
                     {
                         apiVersionsRequestExplicit = true;
+                        apiVersionsExplicit = true;
                         head.doAppWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
                         doEncodeApiVersionsRequestExplicit(head, traceId, initialBudgetId);
                     }
@@ -1164,6 +1169,21 @@ public final class KafkaClientApiFactory implements BindingHandler
                     doEncodeSaslHandshakeRequest(traceId, initialBudgetId, head.authorization);
                 }
                 return;
+            }
+
+            {
+                final KafkaApiStream head = pending.peek();
+                if (head != null && head.api == API_VERSIONS_API_KEY && head.version == API_VERSIONS_API_VERSION)
+                {
+                    pending.poll();
+                    head.doAppWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
+                    doEncodeApiVersionsResponseSynthetic(head, traceId);
+                    if (!pending.isEmpty())
+                    {
+                        doEncodeRequest(traceId);
+                    }
+                    return;
+                }
             }
 
             KafkaApiStream head;
@@ -1467,6 +1487,50 @@ public final class KafkaClientApiFactory implements BindingHandler
             decoder = decodeApiVersionsResponse;
         }
 
+        private void doEncodeApiVersionsResponseSynthetic(
+            KafkaApiStream stream,
+            long traceId)
+        {
+            final int apiKeyCount = apiVersionRangeByApiKey.size();
+            final int responseBodyLength = 6 + apiKeyCount * 6;
+
+            stream.doAppBegin(traceId, responseBodyLength);
+
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
+            final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            int encodeProgress = encodeOffset;
+
+            final ApiVersionsResponseFW apiVersionsResponse =
+                apiVersionsResponseRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .errorCode((short) ERROR_NONE)
+                    .apiKeyCount(apiKeyCount)
+                    .build();
+
+            encodeProgress = apiVersionsResponse.limit();
+
+            for (Map.Entry<Integer, Integer> entry : apiVersionRangeByApiKey.entrySet())
+            {
+                final short apiKey = (short)(int) entry.getKey();
+                final int range = entry.getValue();
+                final short minVersion = (short)(range >> 16);
+                final short maxVersion = (short)(range & 0xFFFF);
+
+                final ApiVersionsResponseKeyFW apiVersionsResponseKey =
+                    apiVersionsResponseKeyRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .apiKey(apiKey)
+                        .minVersion(minVersion)
+                        .maxVersion(maxVersion)
+                        .build();
+
+                encodeProgress = apiVersionsResponseKey.limit();
+            }
+
+            stream.doAppData(traceId, encodeBuffer, encodeOffset, encodeProgress);
+            stream.doAppEnd(traceId);
+        }
+
         private void onNet(
             int msgTypeId,
             DirectBufferEx buffer,
@@ -1575,8 +1639,11 @@ public final class KafkaClientApiFactory implements BindingHandler
             state = KafkaState.closedReply(state);
             doNetEnd(traceId, authorization);
 
-            apiVersionsResolved = false;
-            apiVersionRangeByApiKey.clear();
+            if (!apiVersionsExplicit)
+            {
+                apiVersionsResolved = false;
+                apiVersionRangeByApiKey.clear();
+            }
             saslResolved = false;
 
             cleanupDecodeSlot();
@@ -2198,8 +2265,11 @@ public final class KafkaClientApiFactory implements BindingHandler
             doNetReset(traceId);
             doNetAbort(traceId);
 
-            apiVersionsResolved = false;
-            apiVersionRangeByApiKey.clear();
+            if (!apiVersionsExplicit)
+            {
+                apiVersionsResolved = false;
+                apiVersionRangeByApiKey.clear();
+            }
             saslResolved = false;
 
             cleanupAppActive(traceId, EMPTY_OCTETS);

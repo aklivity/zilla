@@ -56,4 +56,14 @@ public class KafkaApiVersionsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/api.versions.v0.repeated/client",
+        "${net}/api.versions.v0/server"})
+    public void shouldGetApiVersionsRepeated() throws Exception
+    {
+        k3po.finish();
+    }
 }

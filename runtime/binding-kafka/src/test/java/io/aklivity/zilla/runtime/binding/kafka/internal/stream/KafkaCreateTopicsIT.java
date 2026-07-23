@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_API_VERSIONS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_API_VERSIONS_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_RECONNECT_DELAY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -104,6 +105,30 @@ public class KafkaCreateTopicsIT
         "${app}/create.topics.v3/client",
         "${net}/create.topics.v3.authorized/server"})
     public void shouldCreateTopicsV3ExplicitSasl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guard.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
+    @Specification({
+        "${app}/api.versions.v0.authorized/client",
+        "${app}/create.topics.v3/client",
+        "${net}/create.topics.v3.authorized/server"})
+    public void shouldAuthenticateExplicitlyWhenGuardConfigured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
+    @Configure(name = KAFKA_CLIENT_RECONNECT_DELAY_NAME, value = "0")
+    @Specification({
+        "${app}/create.topics.v3.reconnect.sticky/client",
+        "${net}/create.topics.v3.reconnect.sticky/server"})
+    public void shouldReconnectWithStickyExplicitApiVersions() throws Exception
     {
         k3po.finish();
     }
