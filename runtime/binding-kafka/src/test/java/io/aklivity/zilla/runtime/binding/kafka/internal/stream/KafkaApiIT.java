@@ -40,7 +40,11 @@ public class KafkaApiIT
         .addScriptRoot("netCreateTopicsUnsupported",
             "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.unsupported")
         .addScriptRoot("netCreateTopicsReused",
-            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.reused");
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.reused")
+        .addScriptRoot("netCreateTopicsUnsupportedReactive",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.unsupported.version.reactive")
+        .addScriptRoot("netCreateTopicsReconnect",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.reconnect");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -90,6 +94,36 @@ public class KafkaApiIT
         "${app}/create.topics.v3.reused.connection/client",
         "${netCreateTopicsReused}/create.topics.then.delete.topics/server"})
     public void shouldCreateTopicsV3ReusedConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/create.topics.v3.explicit.api.versions/client",
+        "${netCreateTopics}/create.topics/server"})
+    public void shouldCreateTopicsV3ExplicitApiVersions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/create.topics.v3.unsupported.version.reactive/client",
+        "${netCreateTopicsUnsupportedReactive}/create.topics/server"})
+    public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/create.topics.v3.reconnect/client",
+        "${netCreateTopicsReconnect}/create.topics.aborted.then.delete.topics/server"})
+    public void shouldCreateTopicsV3Reconnect() throws Exception
     {
         k3po.finish();
     }

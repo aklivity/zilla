@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseErrorCodeFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.api_versions.ApiVersionsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.api_versions.ApiVersionsResponseKeyFW;
@@ -70,6 +71,7 @@ public final class KafkaClientApiFactory implements BindingHandler
     private static final int ERROR_NONE = 0;
     private static final int ERROR_UNSUPPORTED_VERSION = 35;
     private static final int RESPONSE_HEADER_FIELD_SIZE_CORRELATION_ID = 4;
+    private static final int RESPONSE_ERROR_CODE_SIZE = 2;
     private static final int NO_API_VERSION_RANGE = -1;
     private static final short API_VERSIONS_API_KEY = 18;
     private static final short API_VERSIONS_API_VERSION = 0;
@@ -100,11 +102,13 @@ public final class KafkaClientApiFactory implements BindingHandler
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
+    private final ResponseErrorCodeFW responseErrorCodeRO = new ResponseErrorCodeFW();
     private final ApiVersionsResponseFW apiVersionsResponseRO = new ApiVersionsResponseFW();
     private final ApiVersionsResponseKeyFW apiVersionsResponseKeyRO = new ApiVersionsResponseKeyFW();
 
     private final KafkaApiClientDecoder decodeResponseHeader = this::decodeResponseHeader;
     private final KafkaApiClientDecoder decodeResponseBody = this::decodeResponseBody;
+    private final KafkaApiClientDecoder decodeResponseErrorCode = this::decodeResponseErrorCode;
     private final KafkaApiClientDecoder decodeApiVersionsResponse = this::decodeApiVersionsResponse;
     private final KafkaApiClientDecoder decodeApiVersionsResponseKeys = this::decodeApiVersionsResponseKeys;
     private final KafkaApiClientDecoder decodeApiVersionsResponseKey = this::decodeApiVersionsResponseKey;
@@ -125,6 +129,7 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final Long2ObjectHashMap<KafkaApiClient> clientsByAffinity;
     private final KafkaEventContext event;
+    private final boolean apiVersionsEnabled;
 
     public KafkaClientApiFactory(
         KafkaConfiguration config,
@@ -134,6 +139,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         Signaler signaler,
         BindingHandler streamFactory)
     {
+        this.apiVersionsEnabled = config.clientApiVersions();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = signaler;
@@ -203,6 +209,36 @@ public final class KafkaClientApiFactory implements BindingHandler
         return progress;
     }
 
+    private int decodeResponseErrorCode(
+        KafkaApiClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        decode:
+        if (length != 0)
+        {
+            final ResponseErrorCodeFW responseErrorCode = responseErrorCodeRO.tryWrap(buffer, progress, limit);
+            if (responseErrorCode == null)
+            {
+                break decode;
+            }
+
+            progress = responseErrorCode.limit();
+
+            client.onDecodeResponseErrorCode(traceId, responseErrorCode.errorCode());
+        }
+
+        return progress;
+    }
+
     private int decodeResponseBody(
         KafkaApiClient client,
         long traceId,
@@ -262,8 +298,10 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             progress = apiVersionsResponse.limit();
 
-            client.onDecodeApiVersionsResponse(traceId, apiVersionsResponse.errorCode(),
-                apiVersionsResponse.apiKeyCount());
+            final int responseBodyLength = responseHeader.length() - RESPONSE_HEADER_FIELD_SIZE_CORRELATION_ID;
+
+            client.onDecodeApiVersionsResponse(traceId, buffer, correlationIdLimit, apiVersionsResponse.limit(),
+                responseBodyLength, apiVersionsResponse.errorCode(), apiVersionsResponse.apiKeyCount());
         }
 
         return progress;
@@ -301,6 +339,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         decode:
         if (length != 0)
         {
+            final int keyOffset = progress;
             final ApiVersionsResponseKeyFW apiVersionsResponseKey = apiVersionsResponseKeyRO.tryWrap(buffer, progress, limit);
             if (apiVersionsResponseKey == null)
             {
@@ -309,8 +348,8 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             progress = apiVersionsResponseKey.limit();
 
-            client.onDecodeApiVersionsResponseKey(apiVersionsResponseKey.apiKey(), apiVersionsResponseKey.minVersion(),
-                apiVersionsResponseKey.maxVersion());
+            client.onDecodeApiVersionsResponseKey(traceId, buffer, keyOffset, progress,
+                apiVersionsResponseKey.apiKey(), apiVersionsResponseKey.minVersion(), apiVersionsResponseKey.maxVersion());
         }
 
         return progress;
@@ -567,6 +606,11 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
+            if (!(client.pending.peek() == this && client.requestInFlight))
+            {
+                client.pending.remove(this);
+            }
+
             client.cleanupNet(traceId);
         }
 
@@ -600,6 +644,11 @@ public final class KafkaClientApiFactory implements BindingHandler
             final long traceId = reset.traceId();
 
             state = KafkaState.closedReply(state);
+
+            if (!(client.pending.peek() == this && client.requestInFlight))
+            {
+                client.pending.remove(this);
+            }
 
             client.cleanupNet(traceId);
         }
@@ -806,8 +855,8 @@ public final class KafkaClientApiFactory implements BindingHandler
         private final long originId;
         private final long routedId;
         private final long affinity;
-        private final long initialId;
-        private final long replyId;
+        private long initialId;
+        private long replyId;
         private final KafkaServerConfig server;
         private final Deque<KafkaApiStream> pending;
 
@@ -836,8 +885,10 @@ public final class KafkaClientApiFactory implements BindingHandler
         private int nextCorrelationId;
         private int responseBytesRemaining;
         private boolean attached;
+        private boolean requestInFlight;
 
         private boolean apiVersionsResolved;
+        private boolean apiVersionsRequestExplicit;
         private final Int2IntHashMap apiVersionRangeByApiKey;
         private int apiVersionKeysRemaining;
 
@@ -853,8 +904,6 @@ public final class KafkaClientApiFactory implements BindingHandler
             this.originId = originId;
             this.routedId = routedId;
             this.affinity = affinity;
-            this.initialId = supplyInitialId.applyAsLong(routedId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
             this.server = servers != null && !servers.isEmpty() ? servers.get(0) : null;
             this.pending = new ArrayDeque<>();
             this.apiVersionRangeByApiKey = new Int2IntHashMap(NO_API_VERSION_RANGE);
@@ -885,12 +934,35 @@ public final class KafkaClientApiFactory implements BindingHandler
         private void doEncodeRequest(
             long traceId)
         {
-            if (!apiVersionsResolved)
+            if (!apiVersionsEnabled)
             {
-                if (pending.peek() != null)
+                final KafkaApiStream head = pending.peek();
+                if (head != null)
                 {
                     attached = true;
-                    doEncodeApiVersionsRequest(traceId, initialBudgetId);
+                    head.doAppWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
+                    doEncodeRequestHeader(head, traceId, initialBudgetId);
+                }
+                return;
+            }
+
+            if (!apiVersionsResolved)
+            {
+                final KafkaApiStream head = pending.peek();
+                if (head != null)
+                {
+                    attached = true;
+                    if (head.api == API_VERSIONS_API_KEY && head.version == API_VERSIONS_API_VERSION)
+                    {
+                        apiVersionsRequestExplicit = true;
+                        head.doAppWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
+                        doEncodeApiVersionsRequestExplicit(head, traceId, initialBudgetId);
+                    }
+                    else
+                    {
+                        apiVersionsRequestExplicit = false;
+                        doEncodeApiVersionsRequest(traceId, initialBudgetId);
+                    }
                 }
                 return;
             }
@@ -968,11 +1040,13 @@ public final class KafkaClientApiFactory implements BindingHandler
             decoder = decodeApiVersionsResponse;
         }
 
-        private void doEncodeRequestHeader(
+        private void encodeRequestHeader(
             KafkaApiStream stream,
             long traceId,
             long budgetId)
         {
+            requestInFlight = true;
+
             final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
@@ -1002,8 +1076,26 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .build();
 
             doNetData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+        }
+
+        private void doEncodeRequestHeader(
+            KafkaApiStream stream,
+            long traceId,
+            long budgetId)
+        {
+            encodeRequestHeader(stream, traceId, budgetId);
 
             decoder = decodeResponseHeader;
+        }
+
+        private void doEncodeApiVersionsRequestExplicit(
+            KafkaApiStream stream,
+            long traceId,
+            long budgetId)
+        {
+            encodeRequestHeader(stream, traceId, budgetId);
+
+            decoder = decodeApiVersionsResponse;
         }
 
         private void onNet(
@@ -1112,12 +1204,15 @@ public final class KafkaClientApiFactory implements BindingHandler
             final long traceId = end.traceId();
 
             state = KafkaState.closedReply(state);
+            doNetEnd(traceId, authorization);
 
             apiVersionsResolved = false;
             apiVersionRangeByApiKey.clear();
 
             cleanupDecodeSlot();
-            failPending(traceId, ERROR_NONE);
+            failActive(traceId, ERROR_NONE);
+
+            resumePending(traceId);
         }
 
         private void onNetAbort(
@@ -1200,26 +1295,59 @@ public final class KafkaClientApiFactory implements BindingHandler
             long authorization,
             long affinity)
         {
-            state = KafkaState.openingInitial(state);
-
-            Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
-
-            if (server != null)
+            if (KafkaState.closed(state))
             {
-                extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
-                    .typeId(proxyTypeId)
-                    .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
-                        .source("0.0.0.0")
-                        .destination(server.host)
-                        .sourcePort(0)
-                        .destinationPort(server.port)))
-                    .infos(i -> i.item(ii -> ii.authority(server.host)))
-                    .build()
-                    .sizeof());
+                state = 0;
+
+                initialSeq = 0;
+                initialAck = 0;
+                initialMax = 0;
+                initialPad = 0;
+                initialBudgetId = NO_BUDGET_ID;
+
+                replySeq = 0;
+                replyAck = 0;
+                replyMax = 0;
+
+                nextCorrelationId = 0;
+                responseBytesRemaining = 0;
+                apiVersionKeysRemaining = 0;
+
+                attached = false;
+                requestInFlight = false;
+                apiVersionsRequestExplicit = false;
+
+                decoder = decodeReject;
             }
 
-            network = KafkaClientApiFactory.this.newStream(this::onNet, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, authorization, affinity, extension);
+            if (!KafkaState.initialOpening(state))
+            {
+                assert state == 0;
+
+                this.initialId = supplyInitialId.applyAsLong(routedId);
+                this.replyId = supplyReplyId.applyAsLong(initialId);
+
+                state = KafkaState.openingInitial(state);
+
+                Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+                if (server != null)
+                {
+                    extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                        .typeId(proxyTypeId)
+                        .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                            .source("0.0.0.0")
+                            .destination(server.host)
+                            .sourcePort(0)
+                            .destinationPort(server.port)))
+                        .infos(i -> i.item(ii -> ii.authority(server.host)))
+                        .build()
+                        .sizeof());
+                }
+
+                network = KafkaClientApiFactory.this.newStream(this::onNet, originId, routedId, initialId,
+                        initialSeq, initialAck, initialMax, traceId, authorization, affinity, extension);
+            }
         }
 
         private void doNetData(
@@ -1426,16 +1554,33 @@ public final class KafkaClientApiFactory implements BindingHandler
 
         private void onDecodeApiVersionsResponse(
             long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            int responseBodyLength,
             short errorCode,
             int apiKeyCount)
         {
             if (errorCode != ERROR_NONE)
             {
-                cleanupNet(traceId);
+                cleanupNetHard(traceId);
             }
             else
             {
                 apiVersionKeysRemaining = apiKeyCount;
+
+                if (apiVersionsRequestExplicit)
+                {
+                    responseBytesRemaining = responseBodyLength;
+
+                    final KafkaApiStream head = pending.peek();
+                    if (head != null)
+                    {
+                        head.doAppBegin(traceId, responseBodyLength);
+                    }
+                }
+
+                forwardApiVersionsResponseBytes(traceId, buffer, offset, limit);
                 decoder = decodeApiVersionsResponseKeys;
             }
         }
@@ -1446,8 +1591,17 @@ public final class KafkaClientApiFactory implements BindingHandler
             if (apiVersionKeysRemaining == 0)
             {
                 apiVersionsResolved = true;
-                decoder = decodeResponseHeader;
-                doEncodeRequest(traceId);
+
+                if (apiVersionsRequestExplicit)
+                {
+                    apiVersionsRequestExplicit = false;
+                    onResponseComplete(traceId);
+                }
+                else
+                {
+                    decoder = decodeResponseHeader;
+                    doEncodeRequest(traceId);
+                }
             }
             else
             {
@@ -1456,6 +1610,10 @@ public final class KafkaClientApiFactory implements BindingHandler
         }
 
         private void onDecodeApiVersionsResponseKey(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
             short apiKey,
             short minVersion,
             short maxVersion)
@@ -1463,7 +1621,26 @@ public final class KafkaClientApiFactory implements BindingHandler
             final int range = (minVersion << Short.SIZE) | (maxVersion & 0xFFFF);
             apiVersionRangeByApiKey.put(apiKey, range);
             apiVersionKeysRemaining--;
+
+            forwardApiVersionsResponseBytes(traceId, buffer, offset, limit);
             decoder = decodeApiVersionsResponseKeys;
+        }
+
+        private void forwardApiVersionsResponseBytes(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (apiVersionsRequestExplicit)
+            {
+                final KafkaApiStream head = pending.peek();
+                if (head != null)
+                {
+                    head.doAppData(traceId, buffer, offset, limit);
+                    responseBytesRemaining -= limit - offset;
+                }
+            }
         }
 
         private void onDecodeResponseHeader(
@@ -1471,19 +1648,53 @@ public final class KafkaClientApiFactory implements BindingHandler
             long authorization,
             int responseBodyLength)
         {
-            final KafkaApiStream head = pending.peek();
+            if (responseBodyLength == RESPONSE_ERROR_CODE_SIZE)
+            {
+                decoder = decodeResponseErrorCode;
+            }
+            else
+            {
+                final KafkaApiStream head = pending.peek();
+                if (head != null)
+                {
+                    responseBytesRemaining = responseBodyLength;
+                    head.doAppBegin(traceId, responseBodyLength);
+
+                    if (responseBodyLength == 0)
+                    {
+                        onResponseComplete(traceId);
+                    }
+                }
+
+                decoder = decodeResponseBody;
+            }
+        }
+
+        private void onDecodeResponseErrorCode(
+            long traceId,
+            short errorCode)
+        {
+            requestInFlight = false;
+
+            final KafkaApiStream head = pending.poll();
             if (head != null)
             {
-                responseBytesRemaining = responseBodyLength;
-                head.doAppBegin(traceId, responseBodyLength);
-
-                if (responseBodyLength == 0)
+                if (errorCode == ERROR_UNSUPPORTED_VERSION)
                 {
-                    onResponseComplete(traceId);
+                    event.apiVersionRejected(traceId, routedId, head.api, head.version);
+                    apiVersionsResolved = false;
+                    apiVersionRangeByApiKey.clear();
                 }
+
+                head.cleanupApp(traceId, errorCode);
             }
 
-            decoder = decodeResponseBody;
+            decoder = decodeResponseHeader;
+
+            if (!pending.isEmpty())
+            {
+                doEncodeRequest(traceId);
+            }
         }
 
         private int onDecodeResponseBody(
@@ -1516,6 +1727,8 @@ public final class KafkaClientApiFactory implements BindingHandler
         private void onResponseComplete(
             long traceId)
         {
+            requestInFlight = false;
+
             final KafkaApiStream head = pending.poll();
             if (head != null)
             {
@@ -1541,6 +1754,44 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
         }
 
+        private void failActive(
+            long traceId,
+            int error)
+        {
+            if (requestInFlight)
+            {
+                requestInFlight = false;
+
+                final KafkaApiStream head = pending.poll();
+                if (head != null)
+                {
+                    head.cleanupApp(traceId, error);
+                }
+            }
+        }
+
+        private void resumePending(
+            long traceId)
+        {
+            if (!pending.isEmpty())
+            {
+                doNetBegin(traceId, authorization, affinity);
+            }
+        }
+
+        private void cleanupNetHard(
+            long traceId)
+        {
+            doNetReset(traceId);
+            doNetAbort(traceId);
+
+            apiVersionsResolved = false;
+            apiVersionRangeByApiKey.clear();
+            apiVersionsRequestExplicit = false;
+
+            failPending(traceId, ERROR_NONE);
+        }
+
         private void cleanupNet(
             long traceId)
         {
@@ -1550,7 +1801,8 @@ public final class KafkaClientApiFactory implements BindingHandler
             apiVersionsResolved = false;
             apiVersionRangeByApiKey.clear();
 
-            failPending(traceId, ERROR_NONE);
+            failActive(traceId, ERROR_NONE);
+            resumePending(traceId);
         }
 
         private void cleanupDecodeSlot()

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.kafka.streams.application;
+package io.aklivity.zilla.specs.binding.kafka.streams.network;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -27,10 +27,19 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class KafkaApiIT
+public class KafkaCreateTopicsIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api");
+        .addScriptRoot("net",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0")
+        .addScriptRoot("netUnsupported",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.unsupported")
+        .addScriptRoot("netReused",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.reused")
+        .addScriptRoot("netUnsupportedReactive",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.unsupported.version.reactive")
+        .addScriptRoot("netReconnect",
+            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.reconnect");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -39,26 +48,17 @@ public class KafkaApiIT
 
     @Test
     @Specification({
-        "${app}/create.topics.v3/client",
-        "${app}/create.topics.v3/server"})
-    public void shouldCreateTopicsV3() throws Exception
+        "${net}/create.topics/client",
+        "${net}/create.topics/server"})
+    public void shouldCreateTopicsV3ApiVersionsV0() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/delete.topics.v3/client",
-        "${app}/delete.topics.v3/server"})
-    public void shouldDeleteTopicsV3() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.unsupported.version/client",
-        "${app}/create.topics.v3.unsupported.version/server"})
+        "${netUnsupported}/create.topics/client",
+        "${netUnsupported}/create.topics/server"})
     public void shouldCreateTopicsV3UnsupportedVersion() throws Exception
     {
         k3po.finish();
@@ -66,8 +66,8 @@ public class KafkaApiIT
 
     @Test
     @Specification({
-        "${app}/create.topics.v3.reused.connection/client",
-        "${app}/create.topics.v3.reused.connection/server"})
+        "${netReused}/create.topics.then.delete.topics/client",
+        "${netReused}/create.topics.then.delete.topics/server"})
     public void shouldCreateTopicsV3ReusedConnection() throws Exception
     {
         k3po.finish();
@@ -75,17 +75,8 @@ public class KafkaApiIT
 
     @Test
     @Specification({
-        "${app}/create.topics.v3.explicit.api.versions/client",
-        "${app}/create.topics.v3.explicit.api.versions/server"})
-    public void shouldCreateTopicsV3ExplicitApiVersions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.unsupported.version.reactive/client",
-        "${app}/create.topics.v3.unsupported.version.reactive/server"})
+        "${netUnsupportedReactive}/create.topics/client",
+        "${netUnsupportedReactive}/create.topics/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
     {
         k3po.finish();
@@ -93,8 +84,8 @@ public class KafkaApiIT
 
     @Test
     @Specification({
-        "${app}/create.topics.v3.reconnect/client",
-        "${app}/create.topics.v3.reconnect/server"})
+        "${netReconnect}/create.topics.aborted.then.delete.topics/client",
+        "${netReconnect}/create.topics.aborted.then.delete.topics/server"})
     public void shouldCreateTopicsV3Reconnect() throws Exception
     {
         k3po.finish();

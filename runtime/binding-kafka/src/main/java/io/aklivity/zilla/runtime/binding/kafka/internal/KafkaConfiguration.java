@@ -79,6 +79,7 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<String> KAFKA_CLIENT_ID;
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
     public static final BooleanPropertyDef KAFKA_CLIENT_CONNECTION_POOL;
+    public static final BooleanPropertyDef KAFKA_CLIENT_API_VERSIONS;
     public static final BooleanPropertyDef KAFKA_VERBOSE;
     public static final BooleanPropertyDef KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS;
 
@@ -133,6 +134,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CLIENT_CONNECTION_POOL = config.property("client.connection.pool", true);
+        KAFKA_CLIENT_API_VERSIONS = config.property("client.api.versions", true);
         KAFKA_VERBOSE = config.property("verbose", KafkaConfiguration::supplyVerbose);
         KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS = config.property("client.describe.config.include.synonyms", false);
         KAFKA_CONFIG = config;
@@ -287,6 +289,11 @@ public class KafkaConfiguration extends Configuration
     public boolean clientConnectionPool()
     {
         return KAFKA_CLIENT_CONNECTION_POOL.getAsBoolean(this);
+    }
+
+    public boolean clientApiVersions()
+    {
+        return KAFKA_CLIENT_API_VERSIONS.getAsBoolean(this);
     }
 
     public int cacheClientReconnect()
