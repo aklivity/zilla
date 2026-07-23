@@ -87,4 +87,16 @@ public class KafkaCreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/sasl.handshake.v1/client",
+        "${app}/sasl.authenticate.v1/client",
+        "${app}/create.topics.v3/client",
+        "${net}/authenticated/server"})
+    public void shouldCreateTopicsV3ExplicitSasl() throws Exception
+    {
+        k3po.finish();
+    }
 }
