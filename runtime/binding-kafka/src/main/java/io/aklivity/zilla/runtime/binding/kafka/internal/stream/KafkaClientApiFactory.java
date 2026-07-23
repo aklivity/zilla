@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_I
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -34,6 +35,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -48,6 +50,11 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseErro
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.api_versions.ApiVersionsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.api_versions.ApiVersionsResponseKeyFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslAuthenticateRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslAuthenticateResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeMechanismResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
@@ -69,16 +76,23 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientApiFactory implements BindingHandler
 {
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_ILLEGAL_SASL_STATE = 34;
     private static final int ERROR_UNSUPPORTED_VERSION = 35;
+    private static final int ERROR_SASL_AUTHENTICATION_FAILED = 58;
     private static final int RESPONSE_HEADER_FIELD_SIZE_CORRELATION_ID = 4;
     private static final int RESPONSE_ERROR_CODE_SIZE = 2;
     private static final int NO_API_VERSION_RANGE = -1;
     private static final short API_VERSIONS_API_KEY = 18;
     private static final short API_VERSIONS_API_VERSION = 0;
+    private static final short SASL_HANDSHAKE_API_KEY = 17;
+    private static final short SASL_HANDSHAKE_API_VERSION = 1;
+    private static final short SASL_AUTHENTICATE_API_KEY = 36;
+    private static final short SASL_AUTHENTICATE_API_VERSION = 1;
     private static final int SIGNAL_RECONNECT = 1;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
@@ -111,12 +125,22 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final ApiVersionsResponseFW apiVersionsResponseRO = new ApiVersionsResponseFW();
     private final ApiVersionsResponseKeyFW apiVersionsResponseKeyRO = new ApiVersionsResponseKeyFW();
 
+    private final SaslHandshakeRequestFW.Builder saslHandshakeRequestRW = new SaslHandshakeRequestFW.Builder();
+    private final SaslAuthenticateRequestFW.Builder saslAuthenticateRequestRW = new SaslAuthenticateRequestFW.Builder();
+    private final SaslHandshakeResponseFW saslHandshakeResponseRO = new SaslHandshakeResponseFW();
+    private final SaslHandshakeMechanismResponseFW saslHandshakeMechanismResponseRO = new SaslHandshakeMechanismResponseFW();
+    private final SaslAuthenticateResponseFW saslAuthenticateResponseRO = new SaslAuthenticateResponseFW();
+
     private final KafkaApiClientDecoder decodeResponseHeader = this::decodeResponseHeader;
     private final KafkaApiClientDecoder decodeResponseBody = this::decodeResponseBody;
     private final KafkaApiClientDecoder decodeResponseErrorCode = this::decodeResponseErrorCode;
     private final KafkaApiClientDecoder decodeApiVersionsResponse = this::decodeApiVersionsResponse;
     private final KafkaApiClientDecoder decodeApiVersionsResponseKeys = this::decodeApiVersionsResponseKeys;
     private final KafkaApiClientDecoder decodeApiVersionsResponseKey = this::decodeApiVersionsResponseKey;
+    private final KafkaApiClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
+    private final KafkaApiClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
+    private final KafkaApiClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
+    private final KafkaApiClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
     private final KafkaApiClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaApiClientDecoder decodeReject = this::decodeReject;
 
@@ -364,6 +388,134 @@ public final class KafkaClientApiFactory implements BindingHandler
         return progress;
     }
 
+    private static boolean isSaslRequest(
+        short api)
+    {
+        return api == SASL_HANDSHAKE_API_KEY || api == SASL_AUTHENTICATE_API_KEY;
+    }
+
+    private int decodeSaslHandshakeResponse(
+        KafkaApiClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        decode:
+        if (length != 0)
+        {
+            final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
+            if (responseHeader == null)
+            {
+                break decode;
+            }
+
+            final SaslHandshakeResponseFW saslHandshakeResponse =
+                saslHandshakeResponseRO.tryWrap(buffer, responseHeader.limit(), limit);
+            if (saslHandshakeResponse == null)
+            {
+                break decode;
+            }
+
+            progress = saslHandshakeResponse.limit();
+
+            client.onDecodeSaslHandshakeResponse(traceId, saslHandshakeResponse.errorCode(),
+                saslHandshakeResponse.mechanismCount());
+        }
+
+        return progress;
+    }
+
+    private int decodeSaslHandshakeMechanisms(
+        KafkaApiClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        client.onDecodeSaslHandshakeMechanisms(traceId);
+
+        return progress;
+    }
+
+    private int decodeSaslHandshakeMechanism(
+        KafkaApiClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        decode:
+        if (length != 0)
+        {
+            final SaslHandshakeMechanismResponseFW mechanism =
+                saslHandshakeMechanismResponseRO.tryWrap(buffer, progress, limit);
+            if (mechanism == null)
+            {
+                break decode;
+            }
+
+            progress = mechanism.limit();
+
+            client.onDecodeSaslHandshakeMechanism(traceId);
+        }
+
+        return progress;
+    }
+
+    private int decodeSaslAuthenticateResponse(
+        KafkaApiClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        decode:
+        if (length != 0)
+        {
+            final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
+            if (responseHeader == null)
+            {
+                break decode;
+            }
+
+            final SaslAuthenticateResponseFW saslAuthenticateResponse =
+                saslAuthenticateResponseRO.tryWrap(buffer, responseHeader.limit(), limit);
+            if (saslAuthenticateResponse == null)
+            {
+                break decode;
+            }
+
+            progress = saslAuthenticateResponse.limit();
+
+            client.onDecodeSaslAuthenticateResponse(traceId, saslAuthenticateResponse.errorCode());
+        }
+
+        return progress;
+    }
+
     private int decodeReject(
         KafkaApiClient client,
         long traceId,
@@ -434,7 +586,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 : null;
 
             final KafkaApiClient client = clientsByAffinity.computeIfAbsent(affinity,
-                a -> new KafkaApiClient(routedId, resolvedId, a, binding.servers()));
+                a -> new KafkaApiClient(routedId, resolvedId, a, binding.servers(), binding.guard, binding.sasl()));
 
             newStream = new KafkaApiStream(
                     application,
@@ -874,6 +1026,8 @@ public final class KafkaClientApiFactory implements BindingHandler
         private long initialId;
         private long replyId;
         private final KafkaServerConfig server;
+        private final GuardHandler guard;
+        private final KafkaSaslConfig sasl;
         private final Deque<KafkaApiStream> pending;
 
         private MessageConsumer network;
@@ -911,6 +1065,10 @@ public final class KafkaClientApiFactory implements BindingHandler
         private final Int2IntHashMap apiVersionRangeByApiKey;
         private int apiVersionKeysRemaining;
 
+        private boolean saslResolved;
+        private int saslMechanismsRemaining;
+        private long guardSession;
+
         private BudgetDebitor initialDeb;
         private KafkaApiClientDecoder decoder;
 
@@ -918,12 +1076,16 @@ public final class KafkaClientApiFactory implements BindingHandler
             long originId,
             long routedId,
             long affinity,
-            List<KafkaServerConfig> servers)
+            List<KafkaServerConfig> servers,
+            GuardHandler guard,
+            KafkaSaslConfig sasl)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.affinity = affinity;
             this.server = servers != null && !servers.isEmpty() ? servers.get(0) : null;
+            this.guard = guard;
+            this.sasl = sasl;
             this.pending = new ArrayDeque<>();
             this.apiVersionRangeByApiKey = new Int2IntHashMap(NO_API_VERSION_RANGE);
             this.decoder = decodeReject;
@@ -986,9 +1148,35 @@ public final class KafkaClientApiFactory implements BindingHandler
                 return;
             }
 
+            if (guard != null && !saslResolved)
+            {
+                KafkaApiStream head;
+                while ((head = pending.peek()) != null && isSaslRequest(head.api))
+                {
+                    pending.poll();
+                    event.saslAuthenticationFailed(traceId, routedId, null);
+                    head.cleanupApp(traceId, ERROR_ILLEGAL_SASL_STATE);
+                }
+
+                if (head != null)
+                {
+                    attached = true;
+                    doEncodeSaslHandshakeRequest(traceId, initialBudgetId, head.authorization);
+                }
+                return;
+            }
+
             KafkaApiStream head;
             while ((head = pending.peek()) != null)
             {
+                if (guard != null && isSaslRequest(head.api))
+                {
+                    pending.poll();
+                    event.saslAuthenticationFailed(traceId, routedId, null);
+                    head.cleanupApp(traceId, ERROR_ILLEGAL_SASL_STATE);
+                    continue;
+                }
+
                 if (apiVersionSupported(head.api, head.version))
                 {
                     attached = true;
@@ -1057,6 +1245,168 @@ public final class KafkaClientApiFactory implements BindingHandler
             doNetData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
             decoder = decodeApiVersionsResponse;
+        }
+
+        private void doEncodeSaslHandshakeRequest(
+            long traceId,
+            long budgetId,
+            long authorization)
+        {
+            guardSession = guard.reauthorize(traceId, routedId, initialId, guard.credentials(authorization));
+
+            if ((guardSession & MASK_AUTHORIZED) == 0L)
+            {
+                event.saslAuthenticationFailed(traceId, routedId, null);
+                cleanupNetPending(traceId, ERROR_SASL_AUTHENTICATION_FAILED);
+            }
+            else
+            {
+                final MutableDirectBufferEx encodeBuffer = writeBuffer;
+                final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+                final int encodeLimit = encodeBuffer.capacity();
+
+                int encodeProgress = encodeOffset;
+
+                final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .length(0)
+                    .apiKey(SASL_HANDSHAKE_API_KEY)
+                    .apiVersion(SASL_HANDSHAKE_API_VERSION)
+                    .correlationId(0)
+                    .clientId(pending.peek().clientId)
+                    .build();
+
+                encodeProgress = requestHeader.limit();
+
+                final SaslHandshakeRequestFW saslHandshakeRequest =
+                    saslHandshakeRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .mechanism(sasl.mechanism.toUpperCase())
+                        .build();
+
+                encodeProgress = saslHandshakeRequest.limit();
+
+                final int correlationId = nextCorrelationId++;
+                final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
+
+                requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
+                    .length(requestSize)
+                    .apiKey(requestHeader.apiKey())
+                    .apiVersion(requestHeader.apiVersion())
+                    .correlationId(correlationId)
+                    .clientId(requestHeader.clientId())
+                    .build();
+
+                doNetData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+
+                decoder = decodeSaslHandshakeResponse;
+            }
+        }
+
+        private void onDecodeSaslHandshakeResponse(
+            long traceId,
+            short errorCode,
+            int mechanismCount)
+        {
+            if (errorCode != ERROR_NONE)
+            {
+                event.saslAuthenticationFailed(traceId, routedId, null);
+                cleanupNetPending(traceId, ERROR_SASL_AUTHENTICATION_FAILED);
+            }
+            else
+            {
+                saslMechanismsRemaining = mechanismCount;
+                decoder = decodeSaslHandshakeMechanisms;
+            }
+        }
+
+        private void onDecodeSaslHandshakeMechanisms(
+            long traceId)
+        {
+            if (saslMechanismsRemaining == 0)
+            {
+                doEncodeSaslAuthenticateRequest(traceId, initialBudgetId);
+            }
+            else
+            {
+                decoder = decodeSaslHandshakeMechanism;
+            }
+        }
+
+        private void onDecodeSaslHandshakeMechanism(
+            long traceId)
+        {
+            saslMechanismsRemaining--;
+            decoder = decodeSaslHandshakeMechanisms;
+        }
+
+        private void doEncodeSaslAuthenticateRequest(
+            long traceId,
+            long budgetId)
+        {
+            final String username = guard.identity(guardSession);
+            final String password = guard.credentials(guardSession);
+
+            final MutableDirectBufferEx encodeBuffer = writeBuffer;
+            final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+            final int encodeLimit = encodeBuffer.capacity();
+
+            int encodeProgress = encodeOffset;
+
+            final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                .length(0)
+                .apiKey(SASL_AUTHENTICATE_API_KEY)
+                .apiVersion(SASL_AUTHENTICATE_API_VERSION)
+                .correlationId(0)
+                .clientId(pending.peek().clientId)
+                .build();
+
+            encodeProgress = requestHeader.limit();
+
+            final SaslAuthenticateRequestFW saslAuthenticateRequest =
+                saslAuthenticateRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .authBytes(a -> a.put((b, o, l) ->
+                    {
+                        int p = o;
+                        b.putByte(p++, (byte) 0);
+                        p += b.putStringWithoutLengthUtf8(p, username);
+                        b.putByte(p++, (byte) 0);
+                        p += b.putStringWithoutLengthUtf8(p, password);
+                        return p - o;
+                    }))
+                    .build();
+
+            encodeProgress = saslAuthenticateRequest.limit();
+
+            final int correlationId = nextCorrelationId++;
+            final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
+
+            requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
+                .length(requestSize)
+                .apiKey(requestHeader.apiKey())
+                .apiVersion(requestHeader.apiVersion())
+                .correlationId(correlationId)
+                .clientId(requestHeader.clientId())
+                .build();
+
+            doNetData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+
+            decoder = decodeSaslAuthenticateResponse;
+        }
+
+        private void onDecodeSaslAuthenticateResponse(
+            long traceId,
+            short errorCode)
+        {
+            if (errorCode != ERROR_NONE)
+            {
+                event.saslAuthenticationFailed(traceId, routedId, guard.identity(guardSession));
+                cleanupNetPending(traceId, ERROR_SASL_AUTHENTICATION_FAILED);
+            }
+            else
+            {
+                saslResolved = true;
+                decoder = decodeResponseHeader;
+                doEncodeRequest(traceId);
+            }
         }
 
         private void encodeRequestHeader(
@@ -1227,6 +1577,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             apiVersionsResolved = false;
             apiVersionRangeByApiKey.clear();
+            saslResolved = false;
 
             cleanupDecodeSlot();
             cleanupAppActive(traceId, EMPTY_OCTETS);
@@ -1331,6 +1682,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 nextCorrelationId = 0;
                 responseBytesRemaining = 0;
                 apiVersionKeysRemaining = 0;
+                saslMechanismsRemaining = 0;
 
                 attached = false;
                 requestInFlight = false;
@@ -1826,6 +2178,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             apiVersionsResolved = false;
             apiVersionRangeByApiKey.clear();
             apiVersionsRequestExplicit = false;
+            saslResolved = false;
 
             final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -1847,6 +2200,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             apiVersionsResolved = false;
             apiVersionRangeByApiKey.clear();
+            saslResolved = false;
 
             cleanupAppActive(traceId, EMPTY_OCTETS);
             doNetSignalReconnect(traceId);

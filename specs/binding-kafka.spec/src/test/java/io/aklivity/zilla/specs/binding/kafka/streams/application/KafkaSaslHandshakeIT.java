@@ -45,4 +45,13 @@ public class KafkaSaslHandshakeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/sasl.handshake.v1.rejected/client",
+        "${app}/sasl.handshake.v1.rejected/server"})
+    public void shouldRejectSaslHandshakeV1WhenGuardConfigured() throws Exception
+    {
+        k3po.finish();
+    }
 }

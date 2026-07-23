@@ -45,4 +45,13 @@ public class KafkaSaslHandshakeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/authenticate/client",
+        "${net}/authenticate/server"})
+    public void shouldAuthenticate() throws Exception
+    {
+        k3po.finish();
+    }
 }
