@@ -29,7 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class KafkaSaslHandshakeIT
+public class KafkaSaslAuthenticateIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api")
@@ -50,29 +50,9 @@ public class KafkaSaslHandshakeIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/sasl.handshake.v1/client",
-        "${net}/handshake/server"})
-    public void shouldHandshakeSaslPlain() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.guard.yaml")
-    @Specification({
-        "${app}/create.topics.v3/client",
-        "${net}/authenticated/server"})
-    public void shouldAuthenticateImplicitlyWhenGuardConfigured() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.guard.yaml")
-    @Specification({
-        "${app}/sasl.handshake.v1.rejected/client",
-        "${net}/versions/server"})
-    public void shouldRejectSaslHandshakeV1WhenGuardConfigured() throws Exception
+        "${app}/sasl.authenticate.v1/client",
+        "${net}/authenticate/server"})
+    public void shouldAuthenticateSaslPlain() throws Exception
     {
         k3po.finish();
     }
