@@ -15,12 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics.reader;
 
-import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
@@ -29,17 +26,14 @@ public class MetricsReader
 {
     private final Collector collector;
     private final LongFunction<String> labelResolver;
-    private final LongPredicate resolveBindingLive;
     private final List<MetricRecord> records;
 
     public MetricsReader(
         Collector collector,
-        LongFunction<String> labelResolver,
-        LongPredicate resolveBindingLive)
+        LongFunction<String> labelResolver)
     {
         this.collector = collector;
         this.labelResolver = labelResolver;
-        this.resolveBindingLive = resolveBindingLive;
         this.records = new LinkedList<>();
         collectCounters();
         collectGauges();
@@ -58,11 +52,8 @@ public class MetricsReader
             long bindingId = ids[0];
             int metricId = (int) ids[1];
             int attributesId = (int) ids[2];
-            if (isLive(bindingId))
-            {
-                LongSupplier reader = collector.counter(bindingId, metricId, attributesId);
-                records.add(new ScalarRecord(bindingId, metricId, attributesId, reader, labelResolver));
-            }
+            LongSupplier reader = collector.counter(bindingId, metricId, attributesId);
+            records.add(new ScalarRecord(bindingId, metricId, attributesId, reader, labelResolver));
         }
     }
 
@@ -73,11 +64,8 @@ public class MetricsReader
             long bindingId = ids[0];
             int metricId = (int) ids[1];
             int attributesId = (int) ids[2];
-            if (isLive(bindingId))
-            {
-                LongSupplier reader = collector.gauge(bindingId, metricId, attributesId);
-                records.add(new ScalarRecord(bindingId, metricId, attributesId, reader, labelResolver));
-            }
+            LongSupplier reader = collector.gauge(bindingId, metricId, attributesId);
+            records.add(new ScalarRecord(bindingId, metricId, attributesId, reader, labelResolver));
         }
     }
 
@@ -88,17 +76,8 @@ public class MetricsReader
             long bindingId = ids[0];
             int metricId = (int) ids[1];
             int attributesId = (int) ids[2];
-            if (isLive(bindingId))
-            {
-                LongSupplier[] readers = collector.histogram(bindingId, metricId, attributesId);
-                records.add(new HistogramRecord(bindingId, metricId, attributesId, readers, labelResolver));
-            }
+            LongSupplier[] readers = collector.histogram(bindingId, metricId, attributesId);
+            records.add(new HistogramRecord(bindingId, metricId, attributesId, readers, labelResolver));
         }
-    }
-
-    private boolean isLive(
-        long bindingId)
-    {
-        return bindingId == NO_NAMESPACED_ID || resolveBindingLive.test(bindingId);
     }
 }
