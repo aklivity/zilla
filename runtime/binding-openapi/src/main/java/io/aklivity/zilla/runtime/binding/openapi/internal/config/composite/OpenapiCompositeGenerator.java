@@ -69,7 +69,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.model.core.internal.StringModel;
 
 public abstract class OpenapiCompositeGenerator
 {
@@ -644,7 +643,7 @@ public abstract class OpenapiCompositeGenerator
                 String type,
                 String format)
             {
-                return StringModel.NAME.equals(type)
+                return "string".equals(type)
                     ? StringModelConfig.builder()
                         .inject(s -> injectStringPattern(s, format))
                         .build()

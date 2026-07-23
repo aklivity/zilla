@@ -18,7 +18,6 @@ This project includes:
   zilla::config::binding-mcp-schema-registry.conf under Aklivity Community License Agreement
   zilla::config::catalog-inline.conf under Aklivity Community License Agreement
   zilla::config::engine.conf under Aklivity Community License Agreement
-  zilla::config::model-core.conf under Aklivity Community License Agreement
   zilla::config::model-json.conf under Aklivity Community License Agreement
   zilla::runtime::binding-mcp-http under Aklivity Community License Agreement
   zilla::runtime::binding-mcp-openapi under Aklivity Community License Agreement
@@ -29,6 +28,4 @@ This project includes:
   zilla::runtime::common-lang under Aklivity Community License Agreement
   zilla::runtime::common-openapi under Aklivity Community License Agreement
   zilla::runtime::common-yaml under Aklivity Community License Agreement
-  zilla::runtime::model-core under Aklivity Community License Agreement
-  zilla::runtime::model-json under Aklivity Community License Agreement
 

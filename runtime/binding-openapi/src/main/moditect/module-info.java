@@ -26,8 +26,8 @@ module io.aklivity.zilla.runtime.binding.openapi
     requires io.aklivity.zilla.runtime.catalog.inline;
     requires io.aklivity.zilla.runtime.guard.jwt;
     requires io.aklivity.zilla.runtime.vault.filesystem;
-    requires io.aklivity.zilla.runtime.model.core;
-    requires io.aklivity.zilla.runtime.model.json;
+    requires io.aklivity.zilla.config.model.core;
+    requires io.aklivity.zilla.config.model.json;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBindingFactorySpi;
