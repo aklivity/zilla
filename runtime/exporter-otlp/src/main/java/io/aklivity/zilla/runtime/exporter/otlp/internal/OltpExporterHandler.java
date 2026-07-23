@@ -134,7 +134,8 @@ public class OltpExporterHandler implements ExporterHandler
     {
         if (signals.contains(METRICS) && (metricsResponse == null || metricsResponse.isDone()))
         {
-            MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
+            MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName,
+                bindingId -> resolveKind.apply(bindingId) != null);
             metricsSerializer = new OtlpMetricsSerializer(metrics.records(), attributes,
                 context::resolveMetric, resolveKind);
             String metricsJson = metricsSerializer.serializeAll();

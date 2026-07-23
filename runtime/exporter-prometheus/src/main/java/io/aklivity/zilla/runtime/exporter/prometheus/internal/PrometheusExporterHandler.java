@@ -104,7 +104,7 @@ public class PrometheusExporterHandler implements ExporterHandler
 
     private String generateOutput()
     {
-        MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
+        MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName, bindingId -> true);
         List<MetricRecord> records = metrics.records();
         PrometheusMetricsPrinter printer = new PrometheusMetricsPrinter(records, descriptor::kind,
             descriptor::name, descriptor::description, descriptor::milliseconds);

@@ -86,7 +86,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
             .build())
         {
             engine.start();
-            MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName);
+            MetricsReader metrics = new MetricsReader(engine, engine::supplyLocalName, bindingId -> true);
             LongPredicate filter = supplyFilter(namespace, binding, engine::supplyLabelId);
             List<MetricRecord> records = filter(metrics.records(), filter);
             MetricsPrinter printer = new MetricsPrinter(records);

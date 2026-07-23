@@ -63,7 +63,7 @@ public class MetricsReaderTest
         int histogramId = 10;
         when(collector.histogramIds()).thenReturn(new long[][]{{bindingId, histogramId, attributesId}});
         when(collector.histogram(bindingId, histogramId, attributesId)).thenReturn(READER_HISTOGRAM);
-        MetricsReader metrics = new MetricsReader(collector, labelResolver);
+        MetricsReader metrics = new MetricsReader(collector, labelResolver, id -> true);
 
         // WHEN
         List<MetricRecord> records = metrics.records();
@@ -89,12 +89,41 @@ public class MetricsReaderTest
         when(collector.counterIds()).thenReturn(new long[][]{});
         when(collector.gaugeIds()).thenReturn(new long[][]{});
         when(collector.histogramIds()).thenReturn(new long[][]{});
-        MetricsReader metrics = new MetricsReader(collector, labelResolver);
+        MetricsReader metrics = new MetricsReader(collector, labelResolver, id -> true);
 
         // WHEN
         List<MetricRecord> records = metrics.records();
 
         // THEN
         assertThat(records.size(), equalTo(0));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldExcludeMetricsForBindingsThatAreNoLongerLive()
+    {
+        // GIVEN
+        LongFunction<String> labelResolver = mock(LongFunction.class);
+        Collector collector = mock(Collector.class);
+        long liveBindingId = NamespacedId.id(4, 7);
+        long staleBindingId = NamespacedId.id(5, 7);
+        int counterId = 8;
+        int attributesId = 0;
+        when(collector.counterIds()).thenReturn(new long[][]{
+            {liveBindingId, counterId, attributesId},
+            {staleBindingId, counterId, attributesId}
+        });
+        when(collector.counter(liveBindingId, counterId, attributesId)).thenReturn(READER_42);
+        when(collector.gaugeIds()).thenReturn(new long[][]{});
+        when(collector.histogramIds()).thenReturn(new long[][]{});
+        MetricsReader metrics = new MetricsReader(collector, labelResolver, bindingId -> bindingId == liveBindingId);
+
+        // WHEN
+        List<MetricRecord> records = metrics.records();
+
+        // THEN
+        assertThat(records.size(), equalTo(1));
+        ScalarRecord counter = (ScalarRecord) records.get(0);
+        assertThat(counter.bindingId(), equalTo(liveBindingId));
     }
 }
