@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
+package io.aklivity.zilla.config.binding.http.kafka.internal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,11 +24,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCapability;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterHeaderConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchMergeConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
 
 public final class HttpKafkaWithFetchConfigAdapter implements JsonbAdapter<HttpKafkaWithConfig, JsonObject>
 {

@@ -12,14 +12,12 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.config;
+package io.aklivity.zilla.config.binding.http.kafka;
 
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaCapability;
 
 public final class HttpKafkaWithConfig extends WithConfig
 {

@@ -12,18 +12,10 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
+package io.aklivity.zilla.config.binding.http.kafka.internal;
 
-import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
-import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresent;
-import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
-import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
-import static io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode.LEADER_ONLY;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -35,13 +27,14 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCapability;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceAsyncHeaderConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceOverrideConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
 
 public class HttpKafkaWithConfigAdapterTest
 {
@@ -68,10 +61,10 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.FETCH));
-        assertThat(with.fetch, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(true));
         assertThat(with.fetch.get().topic, equalTo("test"));
-        assertThat(with.fetch.get().filters, isEmpty());
-        assertThat(with.produce, isEmpty());
+        assertThat(with.fetch.get().filters.isPresent(), equalTo(false));
+        assertThat(with.produce.isPresent(), equalTo(false));
     }
 
     @Test
@@ -114,14 +107,14 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.FETCH));
-        assertThat(with.fetch, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(true));
         assertThat(with.fetch.get().topic, equalTo("test"));
-        assertThat(with.fetch.get().filters.get(), contains(
-                both(hasField("key", isPresentAnd(equalTo("fixed-key")))).
-                and(hasField("headers", isPresentAnd(contains(
-                    both(hasField("name", equalTo("tag"))).
-                    and(hasField("value", equalTo("fixed-tag")))))))));
-        assertThat(with.produce, isEmpty());
+        assertThat(with.fetch.get().filters.get().size(), equalTo(1));
+        assertThat(with.fetch.get().filters.get().get(0).key.get(), equalTo("fixed-key"));
+        assertThat(with.fetch.get().filters.get().get(0).headers.get().size(), equalTo(1));
+        assertThat(with.fetch.get().filters.get().get(0).headers.get().get(0).name, equalTo("tag"));
+        assertThat(with.fetch.get().filters.get().get(0).headers.get().get(0).value, equalTo("fixed-tag"));
+        assertThat(with.produce.isPresent(), equalTo(false));
     }
 
     @Test
@@ -169,14 +162,14 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.FETCH));
-        assertThat(with.fetch, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(true));
         assertThat(with.fetch.get().topic, equalTo("test"));
-        assertThat(with.fetch.get().filters, isEmpty());
-        assertThat(with.fetch.get().merge, isPresentAnd(
-                allOf(hasField("contentType", equalTo("application/json")),
-                      hasField("initial", equalTo("[]")),
-                      hasField("path", equalTo("/-")))));
-        assertThat(with.produce, isEmpty());
+        assertThat(with.fetch.get().filters.isPresent(), equalTo(false));
+        assertThat(with.fetch.get().merge.isPresent(), equalTo(true));
+        assertThat(with.fetch.get().merge.get().contentType, equalTo("application/json"));
+        assertThat(with.fetch.get().merge.get().initial, equalTo("[]"));
+        assertThat(with.fetch.get().merge.get().path, equalTo("/-"));
+        assertThat(with.produce.isPresent(), equalTo(false));
     }
 
     @Test
@@ -217,13 +210,13 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
-        assertThat(with.fetch, isEmpty());
-        assertThat(with.produce, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(false));
+        assertThat(with.produce.isPresent(), equalTo(true));
         assertThat(with.produce.get().topic, equalTo("test"));
-        assertThat(with.produce.get().key, isEmpty());
-        assertThat(with.produce.get().overrides, isEmpty());
-        assertThat(with.produce.get().replyTo, isEmpty());
-        assertThat(with.produce.get().async, isEmpty());
+        assertThat(with.produce.get().key.isPresent(), equalTo(false));
+        assertThat(with.produce.get().overrides.isPresent(), equalTo(false));
+        assertThat(with.produce.get().replyTo.isPresent(), equalTo(false));
+        assertThat(with.produce.get().async.isPresent(), equalTo(false));
     }
 
     @Test
@@ -256,14 +249,14 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
-        assertThat(with.fetch, isEmpty());
-        assertThat(with.produce, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(false));
+        assertThat(with.produce.isPresent(), equalTo(true));
         assertThat(with.produce.get().topic, equalTo("test"));
-        assertThat(with.produce.get().acks, equalTo(LEADER_ONLY));
-        assertThat(with.produce.get().key, not(isPresent()));
-        assertThat(with.produce.get().overrides, isEmpty());
-        assertThat(with.produce.get().replyTo, isEmpty());
-        assertThat(with.produce.get().async, isEmpty());
+        assertThat(with.produce.get().acks, equalTo("leader_only"));
+        assertThat(with.produce.get().key.isPresent(), equalTo(false));
+        assertThat(with.produce.get().overrides.isPresent(), equalTo(false));
+        assertThat(with.produce.get().replyTo.isPresent(), equalTo(false));
+        assertThat(with.produce.get().async.isPresent(), equalTo(false));
     }
 
     @Test
@@ -296,13 +289,13 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
-        assertThat(with.fetch, isEmpty());
-        assertThat(with.produce, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(false));
+        assertThat(with.produce.isPresent(), equalTo(true));
         assertThat(with.produce.get().topic, equalTo("test"));
-        assertThat(with.produce.get().key, isPresentAnd(equalTo("${params.id}")));
-        assertThat(with.produce.get().overrides, isEmpty());
-        assertThat(with.produce.get().replyTo, isEmpty());
-        assertThat(with.produce.get().async, isEmpty());
+        assertThat(with.produce.get().key.get(), equalTo("${params.id}"));
+        assertThat(with.produce.get().overrides.isPresent(), equalTo(false));
+        assertThat(with.produce.get().replyTo.isPresent(), equalTo(false));
+        assertThat(with.produce.get().async.isPresent(), equalTo(false));
     }
 
     @Test
@@ -339,17 +332,15 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
-        assertThat(with.fetch, isEmpty());
-        assertThat(with.produce, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(false));
+        assertThat(with.produce.isPresent(), equalTo(true));
         assertThat(with.produce.get().topic, equalTo("test"));
-        assertThat(with.produce.get().key, isEmpty());
-        assertThat(with.produce.get().overrides,
-                isPresentAnd(
-                    contains(
-                        allOf(hasField("name", equalTo("id")),
-                              hasField("value", equalTo("${params.id}"))))));
-        assertThat(with.produce.get().replyTo, isEmpty());
-        assertThat(with.produce.get().async, isEmpty());
+        assertThat(with.produce.get().key.isPresent(), equalTo(false));
+        assertThat(with.produce.get().overrides.get().size(), equalTo(1));
+        assertThat(with.produce.get().overrides.get().get(0).name, equalTo("id"));
+        assertThat(with.produce.get().overrides.get().get(0).value, equalTo("${params.id}"));
+        assertThat(with.produce.get().replyTo.isPresent(), equalTo(false));
+        assertThat(with.produce.get().async.isPresent(), equalTo(false));
     }
 
     @Test
@@ -386,13 +377,13 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
-        assertThat(with.fetch, isEmpty());
-        assertThat(with.produce, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(false));
+        assertThat(with.produce.isPresent(), equalTo(true));
         assertThat(with.produce.get().topic, equalTo("test"));
-        assertThat(with.produce.get().key, isEmpty());
-        assertThat(with.produce.get().overrides, isEmpty());
-        assertThat(with.produce.get().replyTo, isPresentAnd(equalTo("replies")));
-        assertThat(with.produce.get().async, isEmpty());
+        assertThat(with.produce.get().key.isPresent(), equalTo(false));
+        assertThat(with.produce.get().overrides.isPresent(), equalTo(false));
+        assertThat(with.produce.get().replyTo.get(), equalTo("replies"));
+        assertThat(with.produce.get().async.isPresent(), equalTo(false));
     }
 
     @Test
@@ -429,17 +420,15 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
-        assertThat(with.fetch, isEmpty());
-        assertThat(with.produce, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(false));
+        assertThat(with.produce.isPresent(), equalTo(true));
         assertThat(with.produce.get().topic, equalTo("test"));
-        assertThat(with.produce.get().key, isEmpty());
-        assertThat(with.produce.get().overrides, isEmpty());
-        assertThat(with.produce.get().replyTo, isEmpty());
-        assertThat(with.produce.get().async,
-                isPresentAnd(
-                    contains(
-                        allOf(hasField("name", equalTo("location")),
-                              hasField("value", equalTo("/items/${params.id};${correlationId}"))))));
+        assertThat(with.produce.get().key.isPresent(), equalTo(false));
+        assertThat(with.produce.get().overrides.isPresent(), equalTo(false));
+        assertThat(with.produce.get().replyTo.isPresent(), equalTo(false));
+        assertThat(with.produce.get().async.get().size(), equalTo(1));
+        assertThat(with.produce.get().async.get().get(0).name, equalTo("location"));
+        assertThat(with.produce.get().async.get().get(0).value, equalTo("/items/${params.id};${correlationId}"));
     }
 
     @Test
@@ -484,16 +473,14 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
-        assertThat(with.fetch, isEmpty());
-        assertThat(with.produce, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(false));
+        assertThat(with.produce.isPresent(), equalTo(true));
         assertThat(with.produce.get().topic, equalTo("test"));
-        assertThat(with.produce.get().key, isPresentAnd(equalTo("${params.id}")));
-        assertThat(with.produce.get().replyTo, isPresentAnd(equalTo("replies")));
-        assertThat(with.produce.get().overrides,
-                isPresentAnd(
-                    contains(
-                        allOf(hasField("name", equalTo("zilla:identity")),
-                              hasField("value", equalTo("${guarded['lsauthgaurd'].identity}"))))));
+        assertThat(with.produce.get().key.get(), equalTo("${params.id}"));
+        assertThat(with.produce.get().replyTo.get(), equalTo("replies"));
+        assertThat(with.produce.get().overrides.get().size(), equalTo(1));
+        assertThat(with.produce.get().overrides.get().get(0).name, equalTo("zilla:identity"));
+        assertThat(with.produce.get().overrides.get().get(0).value, equalTo("${guarded['lsauthgaurd'].identity}"));
     }
 
     @Test
@@ -548,15 +535,13 @@ public class HttpKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
-        assertThat(with.produce.get().overrides,
-                isPresentAnd(
-                    contains(
-                        allOf(hasField("name", equalTo("zilla:identity")),
-                              hasField("value", equalTo("${guarded['jwt'].identity}"))),
-                        allOf(hasField("name", equalTo("zilla:username")),
-                              hasField("value", equalTo("${guarded['jwt'].attributes.username}"))),
-                        allOf(hasField("name", equalTo("zilla:email")),
-                              hasField("value", equalTo("${guarded['jwt'].attributes.email}"))))));
+        assertThat(with.produce.get().overrides.get().size(), equalTo(3));
+        assertThat(with.produce.get().overrides.get().get(0).name, equalTo("zilla:identity"));
+        assertThat(with.produce.get().overrides.get().get(0).value, equalTo("${guarded['jwt'].identity}"));
+        assertThat(with.produce.get().overrides.get().get(1).name, equalTo("zilla:username"));
+        assertThat(with.produce.get().overrides.get().get(1).value, equalTo("${guarded['jwt'].attributes.username}"));
+        assertThat(with.produce.get().overrides.get().get(2).name, equalTo("zilla:email"));
+        assertThat(with.produce.get().overrides.get().get(2).value, equalTo("${guarded['jwt'].attributes.email}"));
     }
 
     @Test

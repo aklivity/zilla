@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
+package io.aklivity.zilla.config.binding.http.kafka.internal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,11 +22,11 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCapability;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceAsyncHeaderConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceOverrideConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
 
 public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<HttpKafkaWithConfig, JsonObject>
 {
@@ -39,7 +39,7 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
     private static final String ASYNC_NAME = "async";
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
 
-    private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
+    private static final String ACKS_DEFAULT = "in_sync_replicas";
 
     @Override
     public JsonObject adaptToJson(
@@ -53,9 +53,9 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
 
         object.add(TOPIC_NAME, produce.topic);
 
-        if (produce.acks != ACKS_DEFAULT)
+        if (!ACKS_DEFAULT.equals(produce.acks))
         {
-            object.add(ACKS_NAME, produce.acks.name().toLowerCase());
+            object.add(ACKS_NAME, produce.acks);
         }
 
         if (produce.key.isPresent())
@@ -82,7 +82,7 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
 
         if (produce.correlationId != null)
         {
-            object.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, produce.correlationId.asString());
+            object.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, produce.correlationId);
         }
 
         if (produce.async.isPresent())
@@ -106,8 +106,8 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
     {
         String newTopic = object.getString(TOPIC_NAME);
 
-        KafkaAckMode newAcks = object.containsKey(ACKS_NAME)
-            ? KafkaAckMode.valueOf(object.getString(ACKS_NAME).toUpperCase())
+        String newAcks = object.containsKey(ACKS_NAME)
+            ? object.getString(ACKS_NAME)
             : ACKS_DEFAULT;
 
         String newKey = object.containsKey(KEY_NAME)
@@ -159,7 +159,7 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
         return HttpKafkaWithConfig.builder()
             .produce(HttpKafkaWithProduceConfig.builder()
                 .topic(newTopic)
-                .acks(newAcks.name())
+                .acks(newAcks)
                 .key(newKey)
                 .overrides(newOverrides)
                 .replyTo(newReplyTo)

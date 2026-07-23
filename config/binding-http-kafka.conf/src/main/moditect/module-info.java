@@ -22,4 +22,7 @@ module io.aklivity.zilla.config.binding.http.kafka
 
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.http.kafka.internal.HttpKafkaBindingInfo;
+
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
+        with io.aklivity.zilla.config.binding.http.kafka.internal.HttpKafkaWithConfigAdapter;
 }

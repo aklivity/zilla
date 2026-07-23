@@ -17,11 +17,6 @@ module io.aklivity.zilla.runtime.binding.http.kafka
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.config.binding.http.kafka;
 
-    exports io.aklivity.zilla.runtime.binding.http.kafka.config;
-
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaBindingFactorySpi;
-
-    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.http.kafka.internal.config.HttpKafkaWithConfigAdapter;
 }

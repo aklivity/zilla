@@ -12,31 +12,25 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.config;
+package io.aklivity.zilla.config.binding.http.kafka;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceAsyncHeaderConfig;
-import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceAsyncHeaderConfigBuilder;
-import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceOverrideConfig;
-import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceOverrideConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 
 public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T, HttpKafkaWithProduceConfigBuilder<T>>
 {
     private final Function<HttpKafkaWithProduceConfig, T> mapper;
     private String topic;
-    private KafkaAckMode acks;
+    private String acks;
     private String key;
     private List<HttpKafkaWithProduceOverrideConfig> overrides;
     private String replyTo;
     private List<HttpKafkaWithProduceAsyncHeaderConfig> async;
-    private String16FW correlationId;
+    private String correlationId;
 
 
     HttpKafkaWithProduceConfigBuilder(
@@ -55,7 +49,7 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
     public HttpKafkaWithProduceConfigBuilder<T> acks(
         String acks)
     {
-        this.acks = KafkaAckMode.valueOf(acks.toUpperCase());
+        this.acks = acks;
         return this;
     }
 
@@ -88,7 +82,7 @@ public final class HttpKafkaWithProduceConfigBuilder<T> extends ConfigBuilder<T,
     public HttpKafkaWithProduceConfigBuilder<T> correlationId(
         String correlationId)
     {
-        this.correlationId = correlationId != null ? new String16FW(correlationId) : null;
+        this.correlationId = correlationId;
         return this;
     }
 
