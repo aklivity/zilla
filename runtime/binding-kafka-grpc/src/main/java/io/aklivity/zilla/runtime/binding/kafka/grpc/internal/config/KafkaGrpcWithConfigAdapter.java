@@ -32,7 +32,7 @@ public class KafkaGrpcWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
     @Override
     public String type()
     {
-        return KafkaGrpcBinding.NAME;
+        return KafkaGrpcBinding.TYPE;
     }
 
     @Override

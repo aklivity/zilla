@@ -18,14 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcBindingInfo;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class KafkaGrpcBinding implements Binding
 {
-    public static final String NAME = KafkaGrpcBindingInfo.TYPE;
+    public static final String TYPE = "kafka-grpc";
 
     private static final AtomicInteger WORKER_COUNT_ZERO = new AtomicInteger();
 
@@ -42,7 +41,7 @@ public final class KafkaGrpcBinding implements Binding
     @Override
     public String name()
     {
-        return KafkaGrpcBinding.NAME;
+        return KafkaGrpcBinding.TYPE;
     }
 
     @Override
