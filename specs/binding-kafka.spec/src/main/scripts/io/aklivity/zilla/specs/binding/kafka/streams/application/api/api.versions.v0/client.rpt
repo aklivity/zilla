@@ -14,30 +14,37 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:byteorder "network"
+    option zilla:affinity 0
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .apiRequest()
                                  .length(0)
-                                 .api(19)
-                                 .version(3)
+                                 .api(18)
+                                 .version(0)
                                  .clientId("zilla")
                                  .build()
                                 .build()}
 
 connected
 
-write zilla:reset.ext ${kafka:resetEx()
-                           .typeId(zilla:id("kafka"))
-                           .error(35)
-                           .build()}
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiResponse()
+                                 .length(12)
+                                 .version(0)
+                                 .build()
+                                .build()}
 
-read abort
+read  0s                                 # error code
+      1                                  # api key count
+        19s                              # create topics
+        0s                               # min version
+        7s                               # max version
+
+write close
+read closed

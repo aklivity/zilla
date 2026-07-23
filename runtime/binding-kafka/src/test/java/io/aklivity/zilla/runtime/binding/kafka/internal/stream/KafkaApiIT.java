@@ -33,18 +33,7 @@ public class KafkaApiIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api")
-        .addScriptRoot("netCreateTopics",
-            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0")
-        .addScriptRoot("netDeleteTopics",
-            "io/aklivity/zilla/specs/binding/kafka/streams/network/delete.topics.v3.api.versions.v0")
-        .addScriptRoot("netCreateTopicsUnsupported",
-            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.unsupported")
-        .addScriptRoot("netCreateTopicsReused",
-            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.api.versions.v0.reused")
-        .addScriptRoot("netCreateTopicsUnsupportedReactive",
-            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.unsupported.version.reactive")
-        .addScriptRoot("netCreateTopicsReconnect",
-            "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3.reconnect");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/api");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -62,7 +51,7 @@ public class KafkaApiIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/create.topics.v3/client",
-        "${netCreateTopics}/create.topics/server"})
+        "${net}/create.topics/server"})
     public void shouldCreateTopicsV3() throws Exception
     {
         k3po.finish();
@@ -72,7 +61,7 @@ public class KafkaApiIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/delete.topics.v3/client",
-        "${netDeleteTopics}/delete.topics/server"})
+        "${net}/delete.topics/server"})
     public void shouldDeleteTopicsV3() throws Exception
     {
         k3po.finish();
@@ -81,38 +70,8 @@ public class KafkaApiIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/create.topics.v3.unsupported.version/client",
-        "${netCreateTopicsUnsupported}/create.topics/server"})
-    public void shouldCreateTopicsV3UnsupportedVersion() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/create.topics.v3.reused.connection/client",
-        "${netCreateTopicsReused}/create.topics.then.delete.topics/server"})
-    public void shouldCreateTopicsV3ReusedConnection() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/create.topics.v3.explicit.api.versions/client",
-        "${netCreateTopics}/create.topics/server"})
-    public void shouldCreateTopicsV3ExplicitApiVersions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/create.topics.v3.unsupported.version.reactive/client",
-        "${netCreateTopicsUnsupportedReactive}/create.topics/server"})
+        "${app}/create.topics.v3.unsupported/client",
+        "${net}/unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
     {
         k3po.finish();
@@ -121,9 +80,20 @@ public class KafkaApiIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/create.topics.v3.reconnect/client",
-        "${netCreateTopicsReconnect}/create.topics.aborted.then.delete.topics/server"})
-    public void shouldCreateTopicsV3Reconnect() throws Exception
+        "${app}/create.topics.v3.reuse.connection/client",
+        "${net}/reuse.connection/server"})
+    public void shouldCreateTopicsV3ReuseConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/api.versions.v0/client",
+        "${app}/create.topics.v3/client",
+        "${net}/create.topics/server"})
+    public void shouldCreateTopicsV3ExplicitApiVersions() throws Exception
     {
         k3po.finish();
     }
