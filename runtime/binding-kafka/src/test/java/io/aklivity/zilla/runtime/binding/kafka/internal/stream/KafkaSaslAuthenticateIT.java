@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_API_VERSIONS_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_API_VERSIONS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -29,7 +29,6 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class KafkaSaslAuthenticateIT
 {
@@ -43,6 +42,7 @@ public class KafkaSaslAuthenticateIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
+        .configure(KAFKA_CLIENT_API_VERSIONS, false)
         .external("net0")
         .clean();
 
@@ -51,7 +51,6 @@ public class KafkaSaslAuthenticateIT
 
     @Test
     @Configuration("client.yaml")
-    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "false")
     @Specification({
         "${app}/sasl.authenticate.v1/client",
         "${net}/sasl.authenticate.v1/server"})
