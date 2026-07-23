@@ -431,7 +431,7 @@ public class NamespaceRegistry
         int namespaceId = NamespacedId.namespaceId(bindingId);
         NamespaceRegistry namespace = findNamespace.apply(namespaceId);
         int localId = NamespacedId.localId(bindingId);
-        BindingRegistry binding = namespace.findBinding(localId);
+        BindingRegistry binding = namespace == null ? null : namespace.findBinding(localId);
         return binding == null ? null : binding.kind();
     }
 

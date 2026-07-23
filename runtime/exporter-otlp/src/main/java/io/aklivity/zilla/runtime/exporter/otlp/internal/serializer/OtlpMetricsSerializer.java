@@ -329,7 +329,7 @@ public class OtlpMetricsSerializer
             if (bindingId != NO_NAMESPACED_ID)
             {
                 KindConfig kind = resolveKind.apply(bindingId);
-                Map<String, String> externalNames = KIND_METRIC_NAMES.get(kind);
+                Map<String, String> externalNames = kind == null ? null : KIND_METRIC_NAMES.get(kind);
                 if (externalNames != null)
                 {
                     result = externalNames.get(internalMetricName);
