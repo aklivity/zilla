@@ -65,12 +65,7 @@
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-openapi</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-asyncapi</artifactId>
-      <scope>runtime</scope>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
@@ -79,26 +74,6 @@
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http-kafka</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-mqtt-kafka</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-http</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-mqtt</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-kafka</artifactId>
-      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
