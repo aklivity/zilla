@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
@@ -580,13 +581,17 @@ public interface EngineContext
      * @param bindingId     the namespaced binding id
      * @param metricId      the metric label id
      * @param attributesId  the attributes label id encoding user-defined dimensions
+     * @param bindingKind   the binding's own kind (server, client, etc.), captured once at record-creation
+     *                      time so it remains available even if the binding's namespace is later detached
+     *                      or replaced; {@code null} when the metric is not tied to a specific binding
      * @return a consumer that records metric values
      */
     LongConsumer supplyMetricWriter(
         Metric.Kind kind,
         long bindingId,
         int metricId,
-        int attributesId);
+        int attributesId,
+        KindConfig bindingKind);
 
     /**
      * Returns a {@link MessageConsumer} for writing structured event frames to the engine's

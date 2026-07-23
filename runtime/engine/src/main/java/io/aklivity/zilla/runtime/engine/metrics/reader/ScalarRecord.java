@@ -23,6 +23,8 @@ import java.util.function.DoubleSupplier;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public class ScalarRecord implements MetricRecord
@@ -31,6 +33,7 @@ public class ScalarRecord implements MetricRecord
     private final int metricId;
     private final int attributesId;
     private final int namespaceId;
+    private final KindConfig bindingKind;
     private final LongSupplier reader;
     private final LongFunction<String> labelResolver;
 
@@ -38,6 +41,7 @@ public class ScalarRecord implements MetricRecord
         long bindingId,
         int metricId,
         int attributesId,
+        int kind,
         LongSupplier reader,
         LongFunction<String> labelResolver)
     {
@@ -45,6 +49,7 @@ public class ScalarRecord implements MetricRecord
         this.metricId = metricId;
         this.attributesId = attributesId;
         this.namespaceId = namespaceId(bindingId);
+        this.bindingKind = kind != MetricsLayout.NO_KIND ? KindConfig.values()[kind] : null;
         this.reader = reader;
         this.labelResolver = labelResolver;
     }
@@ -78,6 +83,12 @@ public class ScalarRecord implements MetricRecord
     public int attributesId()
     {
         return attributesId;
+    }
+
+    @Override
+    public KindConfig bindingKind()
+    {
+        return bindingKind;
     }
 
     @Override

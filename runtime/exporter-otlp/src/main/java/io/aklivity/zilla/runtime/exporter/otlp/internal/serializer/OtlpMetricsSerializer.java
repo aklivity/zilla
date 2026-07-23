@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -66,7 +64,6 @@ public class OtlpMetricsSerializer
 
     private final List<MetricRecord> records;
     private final List<AttributeConfig> attributes;
-    private final LongFunction<KindConfig> resolveKind;
     private final Function<String, Metric> resolveMetric;
     private final OtlpMetricsDescriptor descriptor;
     private final AttributeConfig serviceNameAttribute;
@@ -74,13 +71,11 @@ public class OtlpMetricsSerializer
     public OtlpMetricsSerializer(
         List<MetricRecord> records,
         List<AttributeConfig> attributes,
-        Function<String, Metric> resolveMetric,
-        LongFunction<KindConfig> resolveKind)
+        Function<String, Metric> resolveMetric)
     {
         this.records = records;
         this.attributes = attributes;
         this.resolveMetric = resolveMetric;
-        this.resolveKind = resolveKind;
         this.descriptor = new OtlpMetricsDescriptor();
         this.serviceNameAttribute = resolveServiceNameAttribute();
     }
@@ -159,7 +154,7 @@ public class OtlpMetricsSerializer
                 .add("isMonotonic", true);
         }
         return Json.createObjectBuilder()
-            .add("name", descriptor.nameByBinding(record.metric(), record.bindingId()))
+            .add("name", descriptor.nameByBinding(record.metric(), record.bindingKind()))
             .add("unit", descriptor.unit(record.metric()))
             .add("description", descriptor.description(record.metric()))
             .add(kind, scalarData)
@@ -257,7 +252,7 @@ public class OtlpMetricsSerializer
             .add("aggregationTemporality", CUMULATIVE)
             .add("dataPoints", dataPoints);
         return Json.createObjectBuilder()
-            .add("name", descriptor.nameByBinding(record.metric(), record.bindingId()))
+            .add("name", descriptor.nameByBinding(record.metric(), record.bindingKind()))
             .add("description", descriptor.description(record.metric()))
             .add("unit", unit)
             .add("histogram", histogramData)
@@ -323,18 +318,10 @@ public class OtlpMetricsSerializer
 
         public String nameByBinding(
             String internalMetricName,
-            long bindingId)
+            KindConfig bindingKind)
         {
-            String result = null;
-            if (bindingId != NO_NAMESPACED_ID)
-            {
-                KindConfig kind = resolveKind.apply(bindingId);
-                Map<String, String> externalNames = kind == null ? null : KIND_METRIC_NAMES.get(kind);
-                if (externalNames != null)
-                {
-                    result = externalNames.get(internalMetricName);
-                }
-            }
+            Map<String, String> externalNames = bindingKind == null ? null : KIND_METRIC_NAMES.get(bindingKind);
+            String result = externalNames == null ? null : externalNames.get(internalMetricName);
             return result != null ? result : internalMetricName;
         }
 

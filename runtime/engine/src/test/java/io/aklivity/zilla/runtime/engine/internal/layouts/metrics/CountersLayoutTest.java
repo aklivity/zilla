@@ -42,9 +42,9 @@ public class CountersLayoutTest
                 .label("counters")
                 .build();
 
-        LongConsumer writer1 = layout.supplyWriter(11L, 42, 0);
-        LongConsumer writer2 = layout.supplyWriter(22L, 77, 0);
-        LongConsumer writer3 = layout.supplyWriter(33L, 88, 0);
+        LongConsumer writer1 = layout.supplyWriter(11L, 42, 0, MetricsLayout.NO_KIND);
+        LongConsumer writer2 = layout.supplyWriter(22L, 77, 0, MetricsLayout.NO_KIND);
+        LongConsumer writer3 = layout.supplyWriter(33L, 88, 0, MetricsLayout.NO_KIND);
 
         LongSupplier reader1 = layout.supplyReader(11L, 42, 0);
         LongSupplier reader2 = layout.supplyReader(22L, 77, 0);
@@ -84,11 +84,11 @@ public class CountersLayoutTest
                 .label("counters")
                 .build();
 
-        layout.supplyWriter(11L, 42, 0);
-        layout.supplyWriter(22L, 77, 0);
+        layout.supplyWriter(11L, 42, 0, MetricsLayout.NO_KIND);
+        layout.supplyWriter(22L, 77, 0, MetricsLayout.NO_KIND);
         assertThrows(IndexOutOfBoundsException.class, () ->
         {
-            layout.supplyWriter(33L, 88, 0);
+            layout.supplyWriter(33L, 88, 0, MetricsLayout.NO_KIND);
         });
 
         layout.close();
@@ -108,10 +108,10 @@ public class CountersLayoutTest
                 .label("counters")
                 .build();
 
-        layout.supplyWriter(11L, 42, 0);
-        layout.supplyWriter(22L, 77, 0);
-        layout.supplyWriter(33L, 88, 0);
-        long[][] expectedIds = new long[][]{{11L, 42L, 0L}, {22L, 77L, 0L}, {33L, 88L, 0L}};
+        layout.supplyWriter(11L, 42, 0, 1);
+        layout.supplyWriter(22L, 77, 0, 2);
+        layout.supplyWriter(33L, 88, 0, 3);
+        long[][] expectedIds = new long[][]{{11L, 42L, 0L, 1L}, {22L, 77L, 0L, 2L}, {33L, 88L, 0L, 3L}};
 
         assertThat(layout.getIds(), equalTo(expectedIds));
     }

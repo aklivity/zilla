@@ -27,11 +27,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricsReader;
@@ -55,7 +53,6 @@ public class OltpExporterHandler implements ExporterHandler
     private final URI logsEndpoint;
     private final long interval;
     private final Collector collector;
-    private final LongFunction<KindConfig> resolveKind;
     private final List<AttributeConfig> attributes;
     private final HttpClient metricsClient;
     private final HttpClient logsClient;
@@ -75,7 +72,6 @@ public class OltpExporterHandler implements ExporterHandler
         EngineContext context,
         OtlpExporterConfig exporter,
         Collector collector,
-        LongFunction<KindConfig> resolveKind,
         List<AttributeConfig> attributes)
     {
         this.retryInterval = config.retryInterval().toMillis();
@@ -91,7 +87,6 @@ public class OltpExporterHandler implements ExporterHandler
         this.protocol = options.endpoint.protocol;
         this.interval = options.interval.toMillis();
         this.collector = collector;
-        this.resolveKind = resolveKind;
         this.attributes = attributes;
         this.authorization = options.authorization;
         this.clock = context.clock();
@@ -135,8 +130,7 @@ public class OltpExporterHandler implements ExporterHandler
         if (signals.contains(METRICS) && (metricsResponse == null || metricsResponse.isDone()))
         {
             MetricsReader metrics = new MetricsReader(collector, context::supplyLocalName);
-            metricsSerializer = new OtlpMetricsSerializer(metrics.records(), attributes,
-                context::resolveMetric, resolveKind);
+            metricsSerializer = new OtlpMetricsSerializer(metrics.records(), attributes, context::resolveMetric);
             String metricsJson = metricsSerializer.serializeAll();
             HttpRequest.Builder metricsRequest = HttpRequest.newBuilder()
                 .uri(metricsEndpoint)

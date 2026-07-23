@@ -22,25 +22,42 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer.OtlpMetricsDescriptor;
 
 public class OtlpMetricsSerializerTest
 {
     @Test
-    public void shouldFallBackToInternalNameWhenBindingNamespaceNoLongerExists() throws Exception
+    public void shouldFallBackToInternalNameWhenBindingKindNotCaptured() throws Exception
     {
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(
             List.of(),
             List.of(),
-            name -> null,
-            bindingId -> null);
+            name -> null);
 
         Field descriptorField = OtlpMetricsSerializer.class.getDeclaredField("descriptor");
         descriptorField.setAccessible(true);
         OtlpMetricsDescriptor descriptor = (OtlpMetricsDescriptor) descriptorField.get(serializer);
 
-        String name = descriptor.nameByBinding("http.request.size", 1L);
+        String name = descriptor.nameByBinding("http.request.size", null);
 
         assertThat(name, equalTo("http.request.size"));
+    }
+
+    @Test
+    public void shouldResolveExternalNameByBindingKind() throws Exception
+    {
+        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(
+            List.of(),
+            List.of(),
+            name -> null);
+
+        Field descriptorField = OtlpMetricsSerializer.class.getDeclaredField("descriptor");
+        descriptorField.setAccessible(true);
+        OtlpMetricsDescriptor descriptor = (OtlpMetricsDescriptor) descriptorField.get(serializer);
+
+        String name = descriptor.nameByBinding("http.request.size", KindConfig.SERVER);
+
+        assertThat(name, equalTo("http.server.request.size"));
     }
 }

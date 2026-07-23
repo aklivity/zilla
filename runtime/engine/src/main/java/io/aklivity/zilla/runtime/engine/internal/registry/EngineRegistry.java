@@ -25,6 +25,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
@@ -33,7 +34,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
-import io.aklivity.zilla.runtime.engine.util.function.ObjectLongIntIntFunction;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectLongIntIntObjectFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class EngineRegistry
@@ -48,7 +49,7 @@ public class EngineRegistry
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer exporterAttached;
     private final LongConsumer exporterDetached;
-    private final ObjectLongIntIntFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
+    private final ObjectLongIntIntObjectFunction<Metric.Kind, KindConfig, LongConsumer> supplyMetricRecorder;
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
     private final LongConsumer detachBinding;
     private final Collector collector;
@@ -65,7 +66,7 @@ public class EngineRegistry
         ToIntFunction<String> supplyLabelId,
         LongConsumer exporterAttached,
         LongConsumer exporterDetached,
-        ObjectLongIntIntFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
+        ObjectLongIntIntObjectFunction<Metric.Kind, KindConfig, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
         Collector collector,
         Consumer<NamespaceConfig> process)
