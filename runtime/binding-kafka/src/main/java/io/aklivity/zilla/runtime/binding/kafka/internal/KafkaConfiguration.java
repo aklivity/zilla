@@ -80,6 +80,7 @@ public class KafkaConfiguration extends Configuration
     public static final PropertyDef<InstanceIdSupplier> KAFKA_CLIENT_INSTANCE_ID;
     public static final BooleanPropertyDef KAFKA_CLIENT_CONNECTION_POOL;
     public static final BooleanPropertyDef KAFKA_CLIENT_API_VERSIONS;
+    public static final IntPropertyDef KAFKA_CLIENT_RECONNECT_DELAY;
     public static final BooleanPropertyDef KAFKA_VERBOSE;
     public static final BooleanPropertyDef KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS;
 
@@ -135,6 +136,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CLIENT_CONNECTION_POOL = config.property("client.connection.pool", true);
         KAFKA_CLIENT_API_VERSIONS = config.property("client.api.versions", true);
+        KAFKA_CLIENT_RECONNECT_DELAY = config.property("client.reconnect", 5);
         KAFKA_VERBOSE = config.property("verbose", KafkaConfiguration::supplyVerbose);
         KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS = config.property("client.describe.config.include.synonyms", false);
         KAFKA_CONFIG = config;
@@ -294,6 +296,11 @@ public class KafkaConfiguration extends Configuration
     public boolean clientApiVersions()
     {
         return KAFKA_CLIENT_API_VERSIONS.getAsBoolean(this);
+    }
+
+    public int clientReconnectDelay()
+    {
+        return KAFKA_CLIENT_RECONNECT_DELAY.getAsInt(this);
     }
 
     public int cacheClientReconnect()
