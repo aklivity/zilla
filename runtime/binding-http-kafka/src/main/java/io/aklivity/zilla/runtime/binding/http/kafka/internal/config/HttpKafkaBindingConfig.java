@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
-import static io.aklivity.zilla.config.binding.http.kafka.internal.HttpKafkaOptionsConfigAdapter.DEFAULT;
+import static io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfig.DEFAULT;
 import static java.util.stream.Collectors.toList;
 
 import java.util.HashMap;

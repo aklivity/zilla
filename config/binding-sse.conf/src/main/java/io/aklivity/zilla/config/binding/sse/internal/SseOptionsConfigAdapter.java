@@ -32,8 +32,6 @@ public final class SseOptionsConfigAdapter implements JsonbAdapter<OptionsConfig
 {
     private static final String RETRY_NAME = "retry";
     private static final String REQUESTS_NAME = "requests";
-    public static final int RETRY_DEFAULT = 2000;
-
 
     private final SseRequestConfigAdapter ssePath = new SseRequestConfigAdapter();
 
@@ -45,7 +43,7 @@ public final class SseOptionsConfigAdapter implements JsonbAdapter<OptionsConfig
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (sseOptions.retry != SseOptionsConfigAdapter.RETRY_DEFAULT)
+        if (sseOptions.retry != SseOptionsConfig.RETRY_DEFAULT)
         {
             object.add(RETRY_NAME, sseOptions.retry);
         }
@@ -74,7 +72,7 @@ public final class SseOptionsConfigAdapter implements JsonbAdapter<OptionsConfig
         }
         else
         {
-            sseOptions.retry(SseOptionsConfigAdapter.RETRY_DEFAULT);
+            sseOptions.retry(SseOptionsConfig.RETRY_DEFAULT);
         }
 
         if (object.containsKey(REQUESTS_NAME))

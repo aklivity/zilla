@@ -20,6 +20,11 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class HttpKafkaOptionsConfig extends OptionsConfig
 {
+    public static final HttpKafkaOptionsConfig DEFAULT =
+        new HttpKafkaOptionsConfig(
+            new HttpKafkaIdempotencyConfig("idempotency-key"),
+            new HttpKafkaCorrelationConfig("zilla:reply-to", "zilla:correlation-id"));
+
     public final HttpKafkaIdempotencyConfig idempotency;
     public final HttpKafkaCorrelationConfig correlation;
 

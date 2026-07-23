@@ -39,26 +39,18 @@ public final class GrpcKafkaOptionsConfigAdapter implements JsonbAdapter<Options
     private static final String CORRELATION_HEADERS_METHOD_NAME = "method";
     private static final String CORRELATION_HEADERS_REPLY_TO_NAME = "reply-to";
 
-    private static final String CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = "zilla:correlation-id";
-    private static final String CORRELATION_HEADERS_SERVICE_DEFAULT = "zilla:service";
-    private static final String CORRELATION_HEADERS_METHOD_DEFAULT = "zilla:method";
-    private static final String CORRELATION_HEADERS_REPLY_TO_DEFAULT = "zilla:reply-to";
+    private static final GrpcKafkaReliabilityConfig RELIABILITY_DEFAULT = GrpcKafkaOptionsConfig.DEFAULT.reliability;
+    private static final int FIELD_DEFAULT = RELIABILITY_DEFAULT.field;
+    private static final String RELIABILITY_METADATA_DEFAULT = RELIABILITY_DEFAULT.metadata;
 
-    private static final int FIELD_DEFAULT = 32767;
-    private static final String RELIABILITY_METADATA_DEFAULT = "last-message-id";
-    private static final String IDEMPOTENCY_METADATA_DEFAULT = "idempotency-key";
-    private static final GrpcKafkaCorrelationConfig CORRELATION_DEFAULT =
-        new GrpcKafkaCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
-            CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT, CORRELATION_HEADERS_REPLY_TO_DEFAULT);
+    private static final GrpcKafkaIdempotencyConfig IDEMPOTENCY_DEFAULT = GrpcKafkaOptionsConfig.DEFAULT.idempotency;
+    private static final String IDEMPOTENCY_METADATA_DEFAULT = IDEMPOTENCY_DEFAULT.metadata;
 
-    private static final GrpcKafkaReliabilityConfig RELIABILITY_DEFAULT =
-        new GrpcKafkaReliabilityConfig(FIELD_DEFAULT, RELIABILITY_METADATA_DEFAULT);
-
-    private static final GrpcKafkaIdempotencyConfig IDEMPOTENCY_DEFAULT =
-        new GrpcKafkaIdempotencyConfig(IDEMPOTENCY_METADATA_DEFAULT);
-
-    public static final GrpcKafkaOptionsConfig DEFAULT =
-        new GrpcKafkaOptionsConfig(RELIABILITY_DEFAULT, IDEMPOTENCY_DEFAULT, CORRELATION_DEFAULT);
+    private static final GrpcKafkaCorrelationConfig CORRELATION_DEFAULT = GrpcKafkaOptionsConfig.DEFAULT.correlation;
+    private static final String CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = CORRELATION_DEFAULT.correlationId;
+    private static final String CORRELATION_HEADERS_SERVICE_DEFAULT = CORRELATION_DEFAULT.service;
+    private static final String CORRELATION_HEADERS_METHOD_DEFAULT = CORRELATION_DEFAULT.method;
+    private static final String CORRELATION_HEADERS_REPLY_TO_DEFAULT = CORRELATION_DEFAULT.replyTo;
 
     @Override
     public JsonObject adaptToJson(

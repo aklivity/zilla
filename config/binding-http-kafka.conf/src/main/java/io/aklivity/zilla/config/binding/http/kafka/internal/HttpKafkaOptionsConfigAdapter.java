@@ -31,25 +31,14 @@ public final class HttpKafkaOptionsConfigAdapter implements JsonbAdapter<Options
     private static final String IDEMPOTENCY_NAME = "idempotency";
     private static final String IDEMPOTENCY_HEADER_NAME = "header";
 
-    private static final String IDEMPOTENCY_HEADER_DEFAULT = "idempotency-key";
-    private static final HttpKafkaIdempotencyConfig IDEMPOTENCY_DEFAULT =
-        new HttpKafkaIdempotencyConfig(
-            IDEMPOTENCY_HEADER_DEFAULT);
+    private static final HttpKafkaIdempotencyConfig IDEMPOTENCY_DEFAULT = HttpKafkaOptionsConfig.DEFAULT.idempotency;
 
     private static final String CORRELATION_NAME = "correlation";
     private static final String CORRELATION_HEADERS_NAME = "headers";
     private static final String CORRELATION_HEADERS_REPLY_TO_NAME = "reply-to";
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
 
-    private static final String CORRELATION_HEADERS_REPLY_TO_DEFAULT = "zilla:reply-to";
-    private static final String CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = "zilla:correlation-id";
-    private static final HttpKafkaCorrelationConfig CORRELATION_DEFAULT =
-        new HttpKafkaCorrelationConfig(
-            CORRELATION_HEADERS_REPLY_TO_DEFAULT,
-            CORRELATION_HEADERS_CORRELATION_ID_DEFAULT);
-
-    public static final HttpKafkaOptionsConfig DEFAULT =
-        new HttpKafkaOptionsConfig(IDEMPOTENCY_DEFAULT, CORRELATION_DEFAULT);
+    private static final HttpKafkaCorrelationConfig CORRELATION_DEFAULT = HttpKafkaOptionsConfig.DEFAULT.correlation;
 
     @Override
     public JsonObject adaptToJson(
@@ -74,12 +63,12 @@ public final class HttpKafkaOptionsConfigAdapter implements JsonbAdapter<Options
             !CORRELATION_DEFAULT.equals(correlation))
         {
             JsonObjectBuilder newHeaders = Json.createObjectBuilder();
-            if (!CORRELATION_HEADERS_REPLY_TO_DEFAULT.equals(correlation.replyTo))
+            if (!CORRELATION_DEFAULT.replyTo.equals(correlation.replyTo))
             {
                 newHeaders.add(CORRELATION_HEADERS_REPLY_TO_NAME, correlation.replyTo);
             }
 
-            if (!CORRELATION_HEADERS_CORRELATION_ID_DEFAULT.equals(correlation.correlationId))
+            if (!CORRELATION_DEFAULT.correlationId.equals(correlation.correlationId))
             {
                 newHeaders.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, correlation.correlationId);
             }

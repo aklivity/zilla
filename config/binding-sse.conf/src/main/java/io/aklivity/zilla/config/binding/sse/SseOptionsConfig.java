@@ -27,6 +27,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class SseOptionsConfig extends OptionsConfig
 {
+    public static final int RETRY_DEFAULT = 2000;
+
     public final int retry;
     public final List<SseRequestConfig> requests;
 

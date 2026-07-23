@@ -26,7 +26,6 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class KafkaGrpcOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String ACKS_DEFAULT = "in_sync_replicas";
     private static final String ACKS_NAME = "acks";
     private static final String IDEMPOTENCY_NAME = "idempotency";
     private static final String IDEMPOTENCY_METADATA_NAME = "metadata";
@@ -37,20 +36,14 @@ public final class KafkaGrpcOptionsConfigAdapter implements JsonbAdapter<Options
     private static final String CORRELATION_HEADERS_METHOD_NAME = "method";
     private static final String CORRELATION_HEADERS_REPLY_TO_NAME = "reply-to";
 
-    private static final String IDEMPOTENCY_METADATA_DEFAULT = "idempotency-key";
-    private static final String CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = "zilla:correlation-id";
-    private static final String CORRELATION_HEADERS_SERVICE_DEFAULT = "zilla:service";
-    private static final String CORRELATION_HEADERS_METHOD_DEFAULT = "zilla:method";
-    private static final String CORRELATION_HEADERS_REPLY_TO_DEFAULT = "zilla:reply-to";
-
-    private static final KafkaGrpcIdempotencyConfig IDEMPOTENCY_DEFAULT =
-        new KafkaGrpcIdempotencyConfig(IDEMPOTENCY_METADATA_DEFAULT);
-    private static final KafkaGrpcCorrelationConfig CORRELATION_DEFAULT =
-        new KafkaGrpcCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
-            CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT,
-            CORRELATION_HEADERS_REPLY_TO_DEFAULT);
-    public static final KafkaGrpcOptionsConfig DEFAULT =
-        new KafkaGrpcOptionsConfig(ACKS_DEFAULT, IDEMPOTENCY_DEFAULT, CORRELATION_DEFAULT);
+    private static final String ACKS_DEFAULT = KafkaGrpcOptionsConfig.DEFAULT.acks;
+    private static final KafkaGrpcIdempotencyConfig IDEMPOTENCY_DEFAULT = KafkaGrpcOptionsConfig.DEFAULT.idempotency;
+    private static final String IDEMPOTENCY_METADATA_DEFAULT = IDEMPOTENCY_DEFAULT.metadata;
+    private static final KafkaGrpcCorrelationConfig CORRELATION_DEFAULT = KafkaGrpcOptionsConfig.DEFAULT.correlation;
+    private static final String CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = CORRELATION_DEFAULT.correlationId;
+    private static final String CORRELATION_HEADERS_SERVICE_DEFAULT = CORRELATION_DEFAULT.service;
+    private static final String CORRELATION_HEADERS_METHOD_DEFAULT = CORRELATION_DEFAULT.method;
+    private static final String CORRELATION_HEADERS_REPLY_TO_DEFAULT = CORRELATION_DEFAULT.replyTo;
 
     @Override
     public JsonObject adaptToJson(

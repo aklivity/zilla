@@ -18,6 +18,12 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class GrpcKafkaOptionsConfig extends OptionsConfig
 {
+    public static final GrpcKafkaOptionsConfig DEFAULT =
+        new GrpcKafkaOptionsConfig(
+            new GrpcKafkaReliabilityConfig(32767, "last-message-id"),
+            new GrpcKafkaIdempotencyConfig("idempotency-key"),
+            new GrpcKafkaCorrelationConfig("zilla:correlation-id", "zilla:service", "zilla:method", "zilla:reply-to"));
+
     public final GrpcKafkaReliabilityConfig reliability;
     public final GrpcKafkaIdempotencyConfig idempotency;
     public final GrpcKafkaCorrelationConfig correlation;

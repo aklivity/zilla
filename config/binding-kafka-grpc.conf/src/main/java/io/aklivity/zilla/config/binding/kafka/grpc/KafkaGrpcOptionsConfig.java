@@ -18,6 +18,12 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class KafkaGrpcOptionsConfig extends OptionsConfig
 {
+    public static final KafkaGrpcOptionsConfig DEFAULT =
+        new KafkaGrpcOptionsConfig(
+            "in_sync_replicas",
+            new KafkaGrpcIdempotencyConfig("idempotency-key"),
+            new KafkaGrpcCorrelationConfig("zilla:correlation-id", "zilla:service", "zilla:method", "zilla:reply-to"));
+
     public final String acks;
     public final KafkaGrpcIdempotencyConfig idempotency;
     public final KafkaGrpcCorrelationConfig correlation;
