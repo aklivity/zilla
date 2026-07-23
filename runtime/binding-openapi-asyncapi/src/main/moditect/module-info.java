@@ -20,10 +20,6 @@ module io.aklivity.zilla.runtime.binding.openapi.asyncapi
     requires io.aklivity.zilla.runtime.common.yaml;
     requires io.aklivity.zilla.runtime.common.openapi;
     requires io.aklivity.zilla.runtime.common.asyncapi;
-    requires io.aklivity.zilla.runtime.binding.asyncapi;
-    requires io.aklivity.zilla.runtime.binding.openapi;
-    requires io.aklivity.zilla.runtime.binding.http;
-    requires io.aklivity.zilla.runtime.binding.kafka;
     requires io.aklivity.zilla.runtime.binding.http.kafka;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi

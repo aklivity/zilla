@@ -64,35 +64,11 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-openapi</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-asyncapi</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http-kafka.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http-kafka</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-mqtt-kafka</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-http</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-mqtt</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.aklivity.zilla</groupId>
-      <artifactId>binding-kafka</artifactId>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
