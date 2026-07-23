@@ -26,8 +26,8 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
+import io.aklivity.zilla.config.binding.http.HttpWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;

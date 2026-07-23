@@ -22,4 +22,7 @@ module io.aklivity.zilla.config.binding.http
 
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.http.HttpBindingInfo;
+
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
+        with io.aklivity.zilla.config.binding.http.internal.HttpWithConfigAdapter;
 }
