@@ -185,7 +185,17 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-core</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-json.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-json</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
@@ -193,7 +203,17 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-avro</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-protobuf.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-protobuf</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
