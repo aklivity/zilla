@@ -23,4 +23,7 @@ module io.aklivity.zilla.config.binding.kafka.grpc
 
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.kafka.grpc.internal.KafkaGrpcBindingInfo;
+
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
+        with io.aklivity.zilla.config.binding.kafka.grpc.internal.KafkaGrpcWithConfigAdapter;
 }

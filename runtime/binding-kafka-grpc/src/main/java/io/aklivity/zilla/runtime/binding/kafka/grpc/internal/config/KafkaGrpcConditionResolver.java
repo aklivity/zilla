@@ -19,6 +19,7 @@ import java.util.List;
 
 import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcConditionConfig;
 import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcWithConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
@@ -93,7 +94,7 @@ public final class KafkaGrpcConditionResolver
             filters.add(new KafkaGrpcFetchFilterResult(key, headers));
         }
 
-        return new KafkaGrpcConditionResult(with.scheme, with.authority, topic, acks,
+        return new KafkaGrpcConditionResult(new String16FW(with.scheme), new String16FW(with.authority), topic, acks,
             filters, options.correlation);
     }
 }
