@@ -48,18 +48,18 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/create.topics.v3.unsupported/client",
-        "${net}/create.topics.v3.unsupported/server"})
-    public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
+        "${net}/create.topics.v3.negotiated/client",
+        "${net}/create.topics.v3.negotiated/server"})
+    public void shouldCreateTopicsV3Negotiated() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/create.topics.v3.reuse.connection/client",
-        "${net}/create.topics.v3.reuse.connection/server"})
-    public void shouldCreateTopicsV3ReuseConnection() throws Exception
+        "${net}/create.topics.v3.unsupported/client",
+        "${net}/create.topics.v3.unsupported/server"})
+    public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
     {
         k3po.finish();
     }
