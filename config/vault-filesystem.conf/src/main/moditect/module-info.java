@@ -18,7 +18,6 @@ module io.aklivity.zilla.config.vault.filesystem
     requires jakarta.json.bind;
     requires org.agrona;
     requires io.aklivity.zilla.config.engine;
-    requires io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.config.vault.filesystem;
 

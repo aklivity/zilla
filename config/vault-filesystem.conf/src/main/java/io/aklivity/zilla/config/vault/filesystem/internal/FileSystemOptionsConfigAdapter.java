@@ -22,7 +22,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 
 public final class FileSystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -58,7 +57,7 @@ public final class FileSystemOptionsConfigAdapter implements JsonbAdapter<Option
 
         if (fsOptions.revocation != null)
         {
-            object.add(REVOCATION_NAME, fsOptions.revocation.name().toLowerCase());
+            object.add(REVOCATION_NAME, fsOptions.revocation);
         }
 
         return object.build();
@@ -87,7 +86,7 @@ public final class FileSystemOptionsConfigAdapter implements JsonbAdapter<Option
 
         if (object.containsKey(REVOCATION_NAME))
         {
-            fsOptions.revocation(RevocationStrategy.valueOf(object.getString(REVOCATION_NAME)));
+            fsOptions.revocation(object.getString(REVOCATION_NAME));
         }
 
         return fsOptions.build();

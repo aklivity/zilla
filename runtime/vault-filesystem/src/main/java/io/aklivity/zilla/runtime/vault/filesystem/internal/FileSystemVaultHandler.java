@@ -84,7 +84,9 @@ public class FileSystemVaultHandler implements VaultHandler
             ? aliases -> newSignersFactory(aliases, signers, keys)
             : aliases -> null;
 
-        this.revocation = options.revocation != null ? options.revocation : revocation;
+        this.revocation = options.revocation != null
+            ? RevocationStrategy.valueOf(options.revocation.toUpperCase())
+            : revocation;
         this.trust = supplyStoreInfo(resolvePath, options.trust);
         supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
     }
