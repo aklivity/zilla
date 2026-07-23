@@ -39,8 +39,8 @@ public class KafkaApiVersionsIT
 
     @Test
     @Specification({
-        "${net}/versions/client",
-        "${net}/versions/server"})
+        "${net}/api.versions/client",
+        "${net}/api.versions/server"})
     public void shouldGetApiVersions() throws Exception
     {
         k3po.finish();

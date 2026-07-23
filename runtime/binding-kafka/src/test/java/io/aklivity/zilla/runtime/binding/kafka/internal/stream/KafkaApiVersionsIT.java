@@ -51,7 +51,7 @@ public class KafkaApiVersionsIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/api.versions.v0/client",
-        "${net}/versions/server"})
+        "${net}/api.versions/server"})
     public void shouldGetApiVersions() throws Exception
     {
         k3po.finish();

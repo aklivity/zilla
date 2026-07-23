@@ -48,8 +48,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/unsupported/client",
-        "${net}/unsupported/server"})
+        "${net}/create.topics.unsupported/client",
+        "${net}/create.topics.unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
     {
         k3po.finish();
@@ -57,8 +57,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/reuse.connection/client",
-        "${net}/reuse.connection/server"})
+        "${net}/create.topics.reuse.connection/client",
+        "${net}/create.topics.reuse.connection/server"})
     public void shouldCreateTopicsV3ReuseConnection() throws Exception
     {
         k3po.finish();
@@ -66,8 +66,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/reconnect/client",
-        "${net}/reconnect/server"})
+        "${net}/create.topics.reconnect/client",
+        "${net}/create.topics.reconnect/server"})
     public void shouldReconnect() throws Exception
     {
         k3po.finish();

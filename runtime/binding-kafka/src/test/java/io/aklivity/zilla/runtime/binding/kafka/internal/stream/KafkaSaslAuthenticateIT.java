@@ -51,7 +51,7 @@ public class KafkaSaslAuthenticateIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/sasl.authenticate.v1/client",
-        "${net}/authenticate/server"})
+        "${net}/sasl.authenticate/server"})
     public void shouldAuthenticateSaslPlain() throws Exception
     {
         k3po.finish();
