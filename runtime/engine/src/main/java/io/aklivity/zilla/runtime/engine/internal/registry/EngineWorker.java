@@ -174,7 +174,6 @@ import io.aklivity.zilla.runtime.engine.router.RouterContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
-import io.aklivity.zilla.runtime.engine.util.function.LongIntIntIntFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -205,7 +204,6 @@ public class EngineWorker implements EngineContext, Agent
     private final String agentName;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
-    private final Object2ObjectHashMap<Metric.Kind, LongIntIntIntFunction<LongConsumer>> metricWriterSuppliers;
     private final Collection<Binding> bindings;
     private final Collection<Exporter> exporters;
     private final Collection<Guard> guards;
@@ -353,11 +351,6 @@ public class EngineWorker implements EngineContext, Agent
                 .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .build();
-
-        metricWriterSuppliers = new Object2ObjectHashMap<>();
-        metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
-        metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
-        metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
@@ -2048,7 +2041,12 @@ public class EngineWorker implements EngineContext, Agent
         KindConfig bindingKind)
     {
         int bindingKindId = bindingKind == null ? MetricsLayout.NO_KIND : bindingKind.ordinal();
-        return metricWriterSuppliers.get(kind).apply(bindingId, metricId, attributesId, bindingKindId);
+        return switch (kind)
+        {
+        case COUNTER -> countersLayout.supplyWriter(bindingId, metricId, attributesId, bindingKindId);
+        case GAUGE -> gaugesLayout.supplyWriter(bindingId, metricId, attributesId, bindingKindId);
+        case HISTOGRAM -> histogramsLayout.supplyWriter(bindingId, metricId, attributesId, bindingKindId);
+        };
     }
 
     public EventWriter eventWriter()
