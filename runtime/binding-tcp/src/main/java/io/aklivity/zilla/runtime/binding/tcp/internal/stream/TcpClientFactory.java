@@ -791,13 +791,17 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppAbort(
             long traceId)
         {
-            if (TcpState.replyOpening(state) &&
+            if (!TcpState.replyOpening(state) &&
                 !TcpState.replyClosed(state))
             {
-                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
+                doAppBegin(traceId, null, null);
             }
 
-            state = TcpState.closeReply(state);
+            if (!TcpState.replyClosed(state))
+            {
+                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
+                state = TcpState.closeReply(state);
+            }
         }
 
         private void cleanup(
@@ -970,12 +974,20 @@ public class TcpClientFactory implements TcpStreamFactory
         InetSocketAddress localAddress,
         InetSocketAddress remoteAddress)
     {
-        return (buffer, offset, limit) -> localAddress != null || remoteAddress != null
-                ? beginExRW.wrap(buffer, offset, limit)
-                         .typeId(proxyTypeId)
-                         .address(a -> proxyAddress(a, localAddress, remoteAddress))
-                         .build()
-                         .sizeof()
-                : 0;
+        return (buffer, offset, limit) -> beginExRW.wrap(buffer, offset, limit)
+                .typeId(proxyTypeId)
+                .address(a ->
+                {
+                    if (localAddress != null || remoteAddress != null)
+                    {
+                        proxyAddress(a, localAddress, remoteAddress);
+                    }
+                    else
+                    {
+                        a.none(n -> {});
+                    }
+                })
+                .build()
+                .sizeof();
     }
 }
