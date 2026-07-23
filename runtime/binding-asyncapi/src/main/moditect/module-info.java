@@ -51,9 +51,6 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBindingFactorySpi;
 
-    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiWithConfigAdapter;
-
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.event.AsyncapiEventFormatterFactory;
 

@@ -12,34 +12,34 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config;
+package io.aklivity.zilla.config.binding.asyncapi.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiBindingInfo;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBinding;
 
-public class OpenapiAsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
-    private static final String TAG_NAME = "tag";
 
     @Override
     public String type()
     {
-        return OpenapiAsyncapiBinding.NAME;
+        return AsyncapiBindingInfo.TYPE;
     }
 
     @Override
     public JsonObject adaptToJson(
         WithConfig with)
     {
-        OpenapiAsyncapiWithConfig config = (OpenapiAsyncapiWithConfig) with;
+        AsyncapiWithConfig config = (AsyncapiWithConfig) with;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -51,11 +51,6 @@ public class OpenapiAsyncapiWithConfigAdapter implements WithConfigAdapterSpi, J
         if (config.operation != null)
         {
             object.add(OPERATION_NAME, config.operation);
-        }
-
-        if (config.tag != null)
-        {
-            object.add(TAG_NAME, config.tag);
         }
 
         return object.build();
@@ -73,10 +68,6 @@ public class OpenapiAsyncapiWithConfigAdapter implements WithConfigAdapterSpi, J
             ? object.getString(OPERATION_NAME)
             : null;
 
-        String tag = object.containsKey(TAG_NAME)
-            ? object.getString(TAG_NAME)
-            : null;
-
-        return new OpenapiAsyncapiWithConfig(spec, operation, tag);
+        return new AsyncapiWithConfig(spec, operation);
     }
 }

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiConditionConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 

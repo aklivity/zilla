@@ -24,4 +24,6 @@ module io.aklivity.zilla.config.binding.openapi.asyncapi
 
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiBindingInfo;
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
+        with io.aklivity.zilla.config.binding.openapi.asyncapi.internal.OpenapiAsyncapiWithConfigAdapter;
 }
