@@ -72,4 +72,13 @@ public class KafkaCreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.v3.reconnect.sticky/client",
+        "${net}/create.topics.v3.reconnect.sticky/server"})
+    public void shouldReconnectWithStickyExplicitApiVersions() throws Exception
+    {
+        k3po.finish();
+    }
 }

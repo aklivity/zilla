@@ -1,0 +1,97 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkAcceptWindow 8192
+
+accept "zilla://streams/net0"
+  option zilla:window ${networkAcceptWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+
+connected
+
+read  15                                # size
+      18s                               # api_versions
+      0s                                # v0
+      (int:apiVersionsRequestId)
+      5s "zilla"                        # client id
+
+write 22                                 # size
+      ${apiVersionsRequestId}
+      0s                                 # error code
+      2                                  # api key count
+        19s                              # create topics
+        0s                               # min version
+        7s                               # max version
+        20s                              # delete topics
+        0s                               # min version
+        6s                               # max version
+
+read 144                                # size
+      19s                               # create topics
+      3s                                # v3
+      (int:createTopicsRequestId)
+      5s "zilla"                        # client id
+      2                                 # topic count
+        6s "events"                     # name
+        1                               # number of partitions
+        1s                              # replication factor
+        1                               # assignments
+            0                           # partition index
+            1                           # broker ids
+                0                       # broker id
+        1                               # configs
+            14s "cleanup.policy"        # name
+            6s "delete"                 # value
+        9s "snapshots"                  # name
+        1                               # number of partitions
+        1s                              # replication factor
+        1                               # assignments
+            0                           # partition index
+            1                           # broker ids
+                0                       # broker id
+        1                               # configs
+            14s "cleanup.policy"        # name
+            7s "compact"                # value
+      0                                 # timeout
+      [0x00]                           # validateOnly
+
+write abort
+
+accepted
+
+connected
+
+read  42                                # size
+      20s                               # delete topics
+      3s                                # v3
+      (int:deleteTopicsRequestId)
+      5s "zilla"                        # client id
+      2                                 # topic count
+        6s "events"                      # name
+        9s "snapshots"                  # name
+      0                                 # timeout
+
+write 35                                 # size
+      ${deleteTopicsRequestId}
+      0                                  # throttle time ms
+      2                                  # topics
+        6s "events"                      # name
+        0s                               # error code
+        9s "snapshots"                   # name
+        0s                               # error code

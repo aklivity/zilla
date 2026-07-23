@@ -45,4 +45,22 @@ public class KafkaApiVersionsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/api.versions.v0.authorized/client",
+        "${app}/api.versions.v0.authorized/server"})
+    public void shouldGetApiVersionsAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/api.versions.v0.repeated/client",
+        "${app}/api.versions.v0.repeated/server"})
+    public void shouldGetApiVersionsRepeated() throws Exception
+    {
+        k3po.finish();
+    }
 }
