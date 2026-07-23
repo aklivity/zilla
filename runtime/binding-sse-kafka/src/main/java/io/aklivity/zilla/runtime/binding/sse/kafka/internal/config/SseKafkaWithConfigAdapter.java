@@ -44,7 +44,7 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
     @Override
     public String type()
     {
-        return SseKafkaBinding.NAME;
+        return SseKafkaBinding.TYPE;
     }
 
     @Override

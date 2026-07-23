@@ -31,7 +31,7 @@ public final class HttpFileSystemWithConfigAdapter implements WithConfigAdapterS
     @Override
     public String type()
     {
-        return HttpFileSystemBinding.NAME;
+        return HttpFileSystemBinding.TYPE;
     }
 
     @Override

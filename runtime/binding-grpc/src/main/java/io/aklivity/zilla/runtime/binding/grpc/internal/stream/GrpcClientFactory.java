@@ -140,7 +140,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
-        this.grpcTypeId = context.supplyTypeId(GrpcBinding.NAME);
+        this.grpcTypeId = context.supplyTypeId(GrpcBinding.TYPE);
         this.bindings = new Long2ObjectHashMap<>();
         this.helper = new HttpGrpcResponseHeaderHelper(metadataBuffer);
 

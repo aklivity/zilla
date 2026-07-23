@@ -31,7 +31,7 @@ public final class GrpcKafkaWithConfigAdapter implements WithConfigAdapterSpi, J
     @Override
     public String type()
     {
-        return GrpcKafkaBinding.NAME;
+        return GrpcKafkaBinding.TYPE;
     }
 
     @Override

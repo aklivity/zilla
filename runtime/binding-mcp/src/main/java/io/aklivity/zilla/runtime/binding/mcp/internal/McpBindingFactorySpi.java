@@ -22,7 +22,7 @@ public final class McpBindingFactorySpi implements BindingFactorySpi
     @Override
     public String type()
     {
-        return McpBinding.NAME;
+        return McpBinding.TYPE;
     }
 
     @Override

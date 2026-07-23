@@ -43,7 +43,7 @@ public final class McpHttpEventContext
     public McpHttpEventContext(
         EngineContext context)
     {
-        this.mcpHttpTypeId = context.supplyTypeId(McpHttpBinding.NAME);
+        this.mcpHttpTypeId = context.supplyTypeId(McpHttpBinding.TYPE);
         this.schemaAccessorUnresolvedEventId = context.supplyEventId("binding.mcp_http.schema.accessor.unresolved");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();

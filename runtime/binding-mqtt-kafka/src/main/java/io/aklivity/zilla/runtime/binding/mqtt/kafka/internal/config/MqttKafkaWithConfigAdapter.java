@@ -31,7 +31,7 @@ public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
     @Override
     public String type()
     {
-        return MqttKafkaBinding.NAME;
+        return MqttKafkaBinding.TYPE;
     }
 
     @Override

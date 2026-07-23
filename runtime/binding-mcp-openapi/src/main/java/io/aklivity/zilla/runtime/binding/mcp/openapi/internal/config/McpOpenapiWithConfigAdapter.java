@@ -39,7 +39,7 @@ public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, 
     @Override
     public String type()
     {
-        return McpOpenapiBinding.NAME;
+        return McpOpenapiBinding.TYPE;
     }
 
     @Override

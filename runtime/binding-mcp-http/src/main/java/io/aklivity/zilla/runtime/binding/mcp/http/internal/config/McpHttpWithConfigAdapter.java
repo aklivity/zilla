@@ -43,7 +43,7 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
     @Override
     public String type()
     {
-        return McpHttpBinding.NAME;
+        return McpHttpBinding.TYPE;
     }
 
     @Override

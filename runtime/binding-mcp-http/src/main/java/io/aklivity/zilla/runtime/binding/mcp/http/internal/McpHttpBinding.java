@@ -14,13 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal;
 
-import io.aklivity.zilla.config.binding.mcp.http.McpHttpBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpHttpBinding implements Binding
 {
-    public static final String NAME = McpHttpBindingInfo.TYPE;
+    public static final String TYPE = "mcp_http";
 
     private final McpHttpConfiguration config;
 
@@ -33,7 +32,7 @@ public final class McpHttpBinding implements Binding
     @Override
     public String name()
     {
-        return McpHttpBinding.NAME;
+        return McpHttpBinding.TYPE;
     }
 
     @Override

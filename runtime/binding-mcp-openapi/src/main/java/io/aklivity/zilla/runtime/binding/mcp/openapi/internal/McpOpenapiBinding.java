@@ -14,14 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal;
 
-import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingInfo;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpOpenapiBinding implements Binding
 {
-    public static final String NAME = McpOpenapiBindingInfo.TYPE;
+    public static final String TYPE = "mcp_openapi";
 
     private final McpOpenapiConfiguration config;
 
@@ -34,21 +33,21 @@ public final class McpOpenapiBinding implements Binding
     @Override
     public String name()
     {
-        return NAME;
+        return TYPE;
     }
 
     @Override
     public String originType(
         KindConfig kind)
     {
-        return kind == KindConfig.CLIENT ? NAME : null;
+        return kind == KindConfig.CLIENT ? TYPE : null;
     }
 
     @Override
     public String routedType(
         KindConfig kind)
     {
-        return kind == KindConfig.CLIENT ? NAME : null;
+        return kind == KindConfig.CLIENT ? TYPE : null;
     }
 
     @Override

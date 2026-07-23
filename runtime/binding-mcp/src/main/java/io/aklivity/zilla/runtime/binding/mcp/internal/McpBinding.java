@@ -14,13 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal;
 
-import io.aklivity.zilla.config.binding.mcp.McpBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpBinding implements Binding
 {
-    public static final String NAME = McpBindingInfo.TYPE;
+    public static final String TYPE = "mcp";
 
     private final McpConfiguration config;
 
@@ -33,7 +32,7 @@ public final class McpBinding implements Binding
     @Override
     public String name()
     {
-        return McpBinding.NAME;
+        return McpBinding.TYPE;
     }
 
     @Override

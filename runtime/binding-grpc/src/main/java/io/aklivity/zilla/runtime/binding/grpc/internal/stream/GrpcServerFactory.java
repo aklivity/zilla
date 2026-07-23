@@ -258,7 +258,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.grpcTypeId = context.supplyTypeId(GrpcBinding.NAME);
+        this.grpcTypeId = context.supplyTypeId(GrpcBinding.TYPE);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
     }
 

@@ -14,13 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal;
 
-import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class GrpcKafkaBinding implements Binding
 {
-    public static final String NAME = GrpcKafkaBindingInfo.TYPE;
+    public static final String TYPE = "grpc-kafka";
 
     private final GrpcKafkaConfiguration config;
 
@@ -33,7 +32,7 @@ public final class GrpcKafkaBinding implements Binding
     @Override
     public String name()
     {
-        return GrpcKafkaBinding.NAME;
+        return GrpcKafkaBinding.TYPE;
     }
 
     @Override

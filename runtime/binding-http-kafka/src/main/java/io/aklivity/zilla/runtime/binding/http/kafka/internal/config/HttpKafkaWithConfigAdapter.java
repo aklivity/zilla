@@ -32,7 +32,7 @@ public final class HttpKafkaWithConfigAdapter implements WithConfigAdapterSpi, J
     @Override
     public String type()
     {
-        return HttpKafkaBinding.NAME;
+        return HttpKafkaBinding.TYPE;
     }
 
     @Override

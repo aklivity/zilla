@@ -29,6 +29,6 @@ public final class McpEventFormatterFactory implements EventFormatterFactorySpi
     @Override
     public String type()
     {
-        return McpBinding.NAME;
+        return McpBinding.TYPE;
     }
 }

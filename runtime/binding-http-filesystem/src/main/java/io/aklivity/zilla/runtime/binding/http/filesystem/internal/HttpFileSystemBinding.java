@@ -14,13 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.http.filesystem.internal;
 
-import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class HttpFileSystemBinding implements Binding
 {
-    public static final String NAME = HttpFileSystemBindingInfo.TYPE;
+    public static final String TYPE = "http-filesystem";
 
     private final HttpFileSystemConfiguration config;
 
@@ -33,7 +32,7 @@ public final class HttpFileSystemBinding implements Binding
     @Override
     public String name()
     {
-        return HttpFileSystemBinding.NAME;
+        return HttpFileSystemBinding.TYPE;
     }
 
     @Override

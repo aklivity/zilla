@@ -22,7 +22,7 @@ public final class HttpKafkaBindingFactorySpi implements BindingFactorySpi
     @Override
     public String type()
     {
-        return HttpKafkaBinding.NAME;
+        return HttpKafkaBinding.TYPE;
     }
 
 

@@ -14,13 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.internal;
 
-import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpKafkaBinding implements Binding
 {
-    public static final String NAME = McpKafkaBindingInfo.TYPE;
+    public static final String TYPE = "mcp_kafka";
 
     private final McpKafkaConfiguration config;
 
@@ -33,7 +32,7 @@ public final class McpKafkaBinding implements Binding
     @Override
     public String name()
     {
-        return McpKafkaBinding.NAME;
+        return McpKafkaBinding.TYPE;
     }
 
     @Override

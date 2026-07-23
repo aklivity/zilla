@@ -14,13 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal;
 
-import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class SseKafkaBinding implements Binding
 {
-    public static final String NAME = SseKafkaBindingInfo.TYPE;
+    public static final String TYPE = "sse-kafka";
 
     private final SseKafkaConfiguration config;
 
@@ -33,7 +32,7 @@ public final class SseKafkaBinding implements Binding
     @Override
     public String name()
     {
-        return SseKafkaBinding.NAME;
+        return SseKafkaBinding.TYPE;
     }
 
     @Override

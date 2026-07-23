@@ -34,7 +34,7 @@ public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
     @Override
     public String type()
     {
-        return McpBinding.NAME;
+        return McpBinding.TYPE;
     }
 
     @Override
