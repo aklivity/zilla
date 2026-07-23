@@ -19,12 +19,16 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddres
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static java.lang.System.currentTimeMillis;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
+import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Int2IntHashMap;
@@ -75,6 +79,7 @@ public final class KafkaClientApiFactory implements BindingHandler
     private static final int NO_API_VERSION_RANGE = -1;
     private static final short API_VERSIONS_API_KEY = 18;
     private static final short API_VERSIONS_API_VERSION = 0;
+    private static final int SIGNAL_RECONNECT = 1;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -123,6 +128,7 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final BufferPool encodePool;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final LongSupplier supplyTraceId;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
@@ -130,6 +136,7 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final Long2ObjectHashMap<KafkaApiClient> clientsByAffinity;
     private final KafkaEventContext event;
     private final boolean apiVersionsEnabled;
+    private final int reconnectDelay;
 
     public KafkaClientApiFactory(
         KafkaConfiguration config,
@@ -140,6 +147,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         BindingHandler streamFactory)
     {
         this.apiVersionsEnabled = config.clientApiVersions();
+        this.reconnectDelay = config.clientReconnectDelay();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = signaler;
@@ -150,6 +158,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         this.encodePool = context.bufferPool().duplicate();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
+        this.supplyTraceId = context::supplyTraceId;
         this.event = new KafkaEventContext(context);
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
@@ -887,6 +896,9 @@ public final class KafkaClientApiFactory implements BindingHandler
         private boolean attached;
         private boolean requestInFlight;
 
+        private long reconnectAt = NO_CANCEL_ID;
+        private int reconnectAttempt;
+
         private boolean apiVersionsResolved;
         private boolean apiVersionsRequestExplicit;
         private final Int2IntHashMap apiVersionRangeByApiKey;
@@ -1212,7 +1224,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             cleanupDecodeSlot();
             failActive(traceId, ERROR_NONE);
 
-            resumePending(traceId);
+            doNetSignalReconnect(traceId);
         }
 
         private void onNetAbort(
@@ -1770,11 +1782,40 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
         }
 
-        private void resumePending(
+        private void doNetSignalReconnect(
             long traceId)
         {
             if (!pending.isEmpty())
             {
+                if (reconnectDelay != 0)
+                {
+                    if (reconnectAt != NO_CANCEL_ID)
+                    {
+                        signaler.cancel(reconnectAt);
+                    }
+
+                    this.reconnectAt = signaler.signalAt(
+                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                        SIGNAL_RECONNECT,
+                        this::onNetSignalReconnect);
+                }
+                else
+                {
+                    doNetBegin(traceId, authorization, affinity);
+                }
+            }
+        }
+
+        private void onNetSignalReconnect(
+            int signalId)
+        {
+            assert signalId == SIGNAL_RECONNECT;
+
+            this.reconnectAt = NO_CANCEL_ID;
+
+            if (!pending.isEmpty())
+            {
+                final long traceId = supplyTraceId.getAsLong();
                 doNetBegin(traceId, authorization, affinity);
             }
         }
@@ -1802,7 +1843,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             apiVersionRangeByApiKey.clear();
 
             failActive(traceId, ERROR_NONE);
-            resumePending(traceId);
+            doNetSignalReconnect(traceId);
         }
 
         private void cleanupDecodeSlot()
