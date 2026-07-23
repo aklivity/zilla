@@ -33,9 +33,6 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
@@ -50,8 +47,8 @@ import io.aklivity.zilla.config.engine.EngineConfigBuilder;
 import io.aklivity.zilla.config.engine.ExporterInfoRegistry;
 import io.aklivity.zilla.config.engine.GuardInfoRegistry;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigReader;
 import io.aklivity.zilla.config.engine.VaultInfoRegistry;
-import io.aklivity.zilla.config.engine.internal.NamespaceAdapter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -141,18 +138,13 @@ public final class EngineConfigReader
                 break read;
             }
 
-            JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos));
-            Jsonb jsonb = JsonbBuilder.newBuilder()
-                .withProvider(CONFIG_PROVIDER)
-                .withConfig(config)
-                .build();
+            NamespaceConfigReader namespaces =
+                new NamespaceConfigReader(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos);
 
             EngineConfigBuilder<EngineConfig> builder = EngineConfig.builder();
             for (int configAt : configsAt)
             {
-                NamespaceConfig namespace = jsonb.fromJson(
-                    new StringReader(readable.substring(configAt)), NamespaceConfig.class);
+                NamespaceConfig namespace = namespaces.read(readable.substring(configAt));
                 namespace.configAt = configAt;
                 builder.namespace(namespace);
 

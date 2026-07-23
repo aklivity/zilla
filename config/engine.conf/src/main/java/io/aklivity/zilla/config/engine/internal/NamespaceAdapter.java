@@ -23,7 +23,6 @@ import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.VAULTS_DEFA
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -46,8 +45,6 @@ import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 
 public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObject>
 {
-    public static final Pattern PATTERN_NAME = Pattern.compile("(?:(?<namespace>[^\\:]+)\\:)?(?<name>[^\\:]+)");
-
     private static final String NAME_NAME = "name";
     private static final String TELEMETRY_NAME = "telemetry";
     private static final String BINDINGS_NAME = "bindings";

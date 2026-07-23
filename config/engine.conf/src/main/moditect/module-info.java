@@ -25,6 +25,11 @@ module io.aklivity.zilla.config.engine
     exports io.aklivity.zilla.config.engine.factory;
 
     uses io.aklivity.zilla.config.engine.BindingInfo;
+    uses io.aklivity.zilla.config.engine.CatalogInfo;
+    uses io.aklivity.zilla.config.engine.GuardInfo;
+    uses io.aklivity.zilla.config.engine.VaultInfo;
+    uses io.aklivity.zilla.config.engine.ExporterInfo;
+    uses io.aklivity.zilla.config.engine.ModelInfo;
     uses io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
     uses io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.config.engine.WithConfigAdapterSpi;

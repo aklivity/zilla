@@ -33,6 +33,7 @@ import org.agrona.collections.MutableInteger;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.BindingInfoRegistry;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.RouteConfig;
@@ -166,7 +167,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
         for (String name : object.keySet())
         {
-            Matcher matcher = NamespaceAdapter.PATTERN_NAME.matcher(name);
+            Matcher matcher = NamespaceConfig.PATTERN_NAME.matcher(name);
             if (!matcher.matches())
             {
                 throw new IllegalStateException(String.format("%s does not match pattern", name));

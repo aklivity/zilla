@@ -43,9 +43,6 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -66,12 +63,12 @@ import io.aklivity.zilla.config.engine.MetricConfig;
 import io.aklivity.zilla.config.engine.MetricRefConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigReader;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.config.engine.VaultInfoRegistry;
-import io.aklivity.zilla.config.engine.internal.NamespaceAdapter;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -319,15 +316,9 @@ public class EngineManager
 
             if (!systemPatched.equals(systemBase))
             {
-                JsonbConfig config = new JsonbConfig()
-                    .withAdapters(new NamespaceAdapter(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos))
-                    .withFormatting(true);
-                Jsonb jsonb = JsonbBuilder.newBuilder()
-                    .withProvider(schemaProvider)
-                    .withConfig(config)
-                    .build();
-
-                NamespaceConfig namespace = jsonb.fromJson(systemPatched.toString(), NamespaceConfig.class);
+                NamespaceConfigReader namespaces =
+                    new NamespaceConfigReader(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos);
+                NamespaceConfig namespace = namespaces.read(systemPatched.toString());
 
                 EngineConfigWriter writer = new EngineConfigWriter(
                     bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos);
@@ -638,7 +629,7 @@ public class EngineManager
             int namespaceId)
         {
             this.namespaceId = namespaceId;
-            this.matchName = ThreadLocal.withInitial(() -> NamespaceAdapter.PATTERN_NAME.matcher(""));
+            this.matchName = ThreadLocal.withInitial(() -> NamespaceConfig.PATTERN_NAME.matcher(""));
         }
 
         private long resolve(

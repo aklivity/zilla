@@ -19,10 +19,13 @@ import static java.util.function.Function.identity;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class NamespaceConfig
 {
     public static final String FILESYSTEM = "filesystem";
+
+    public static final Pattern PATTERN_NAME = Pattern.compile("(?:(?<namespace>[^\\:]+)\\:)?(?<name>[^\\:]+)");
 
     public transient int id;
     public transient int configAt;
