@@ -12,18 +12,10 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.blinding.grpc.kafka.internal.config;
+package io.aklivity.zilla.config.binding.grpc.kafka.internal;
 
-import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
-import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresent;
-import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
-import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
-import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode.LEADER_ONLY;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -35,14 +27,13 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCapability;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterHeaderConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceOverrideConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaCapability;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithConfigAdapter;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceConfig;
 
 public class GrpcKafkaWithConfigAdapterTest
 {
@@ -69,10 +60,10 @@ public class GrpcKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(GrpcKafkaCapability.FETCH));
-        assertThat(with.fetch, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(true));
         assertThat(with.fetch.get().topic, equalTo("test"));
-        assertThat(with.fetch.get().filters, isEmpty());
-        assertThat(with.produce, isEmpty());
+        assertThat(with.fetch.get().filters.isPresent(), equalTo(false));
+        assertThat(with.produce.isPresent(), equalTo(false));
     }
 
     @Test
@@ -110,14 +101,14 @@ public class GrpcKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(GrpcKafkaCapability.FETCH));
-        assertThat(with.fetch, isPresent());
+        assertThat(with.fetch.isPresent(), equalTo(true));
         assertThat(with.fetch.get().topic, equalTo("test"));
-        assertThat(with.fetch.get().filters.get(), contains(
-            both(hasField("key", isPresentAnd(equalTo("fixed-key")))).
-                and(hasField("headers", isPresentAnd(contains(
-                    both(hasField("name", equalTo("tag"))).
-                        and(hasField("value", equalTo("fixed-tag")))))))));
-        assertThat(with.produce, isEmpty());
+        assertThat(with.fetch.get().filters.get().size(), equalTo(1));
+        assertThat(with.fetch.get().filters.get().get(0).key.get(), equalTo("fixed-key"));
+        assertThat(with.fetch.get().filters.get().get(0).headers.get().size(), equalTo(1));
+        assertThat(with.fetch.get().filters.get().get(0).headers.get().get(0).name, equalTo("tag"));
+        assertThat(with.fetch.get().filters.get().get(0).headers.get().get(0).value, equalTo("fixed-tag"));
+        assertThat(with.produce.isPresent(), equalTo(false));
     }
 
     @Test
@@ -168,17 +159,16 @@ public class GrpcKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.capability, equalTo(GrpcKafkaCapability.PRODUCE));
-        assertThat(with.produce, isPresent());
+        assertThat(with.produce.isPresent(), equalTo(true));
         assertThat(with.produce.get().topic, equalTo("items"));
-        assertThat(with.produce.get().acks, equalTo(LEADER_ONLY));
+        assertThat(with.produce.get().acks, equalTo("leader_only"));
         assertThat(with.produce.get().key.get(), equalTo("test"));
-        assertThat(with.produce.get().overrides,
-            isPresentAnd(
-                contains(
-                    allOf(hasField("name", equalTo("header-test")),
-                        hasField("value", equalTo("test"))))));
+        assertThat(with.produce.get().overrides.isPresent(), equalTo(true));
+        assertThat(with.produce.get().overrides.get().size(), equalTo(1));
+        assertThat(with.produce.get().overrides.get().get(0).name, equalTo("header-test"));
+        assertThat(with.produce.get().overrides.get().get(0).value, equalTo("test"));
         assertThat(with.produce.get().replyTo, equalTo("items-replies"));
-        assertThat(with.fetch, isEmpty());
+        assertThat(with.fetch.isPresent(), equalTo(false));
     }
 
     @Test
@@ -187,7 +177,7 @@ public class GrpcKafkaWithConfigAdapterTest
         GrpcKafkaWithConfig with = new GrpcKafkaWithConfig(
             new GrpcKafkaWithProduceConfig(
                 "items",
-                LEADER_ONLY,
+                "leader_only",
                 "test",
                 singletonList(new GrpcKafkaWithProduceOverrideConfig("header-test", "test")),
                 "items-replies"

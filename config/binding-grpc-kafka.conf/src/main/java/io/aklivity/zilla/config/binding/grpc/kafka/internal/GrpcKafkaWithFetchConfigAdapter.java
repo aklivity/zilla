@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
+package io.aklivity.zilla.config.binding.grpc.kafka.internal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +24,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCapability;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterHeaderConfig;

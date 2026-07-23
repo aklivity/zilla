@@ -12,11 +12,10 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
+package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.Optional;
 
-import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class GrpcKafkaWithConfig extends WithConfig

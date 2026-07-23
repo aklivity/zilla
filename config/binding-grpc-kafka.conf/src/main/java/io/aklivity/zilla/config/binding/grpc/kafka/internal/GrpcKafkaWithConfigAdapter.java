@@ -12,14 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
+package io.aklivity.zilla.config.binding.grpc.kafka.internal;
 
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCapability;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaBinding;
 
 public final class GrpcKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
@@ -31,7 +32,7 @@ public final class GrpcKafkaWithConfigAdapter implements WithConfigAdapterSpi, J
     @Override
     public String type()
     {
-        return GrpcKafkaBinding.TYPE;
+        return GrpcKafkaBindingInfo.TYPE;
     }
 
     @Override

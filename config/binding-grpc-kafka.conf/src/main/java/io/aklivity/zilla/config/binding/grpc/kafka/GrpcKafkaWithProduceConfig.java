@@ -12,18 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
+package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.List;
 import java.util.Optional;
 
-import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceOverrideConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
-
 public final class GrpcKafkaWithProduceConfig
 {
     public final String topic;
-    public final KafkaAckMode acks;
+    public final String acks;
     public final Optional<String> key;
     public final Optional<List<GrpcKafkaWithProduceOverrideConfig>> overrides;
     public final String replyTo;
@@ -31,7 +28,7 @@ public final class GrpcKafkaWithProduceConfig
 
     public GrpcKafkaWithProduceConfig(
         String topic,
-        KafkaAckMode acks,
+        String acks,
         String key,
         List<GrpcKafkaWithProduceOverrideConfig> overrides,
         String replyTo)

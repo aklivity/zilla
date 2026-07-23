@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
+package io.aklivity.zilla.config.binding.grpc.kafka.internal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,12 +22,14 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCapability;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceOverrideConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
 
 public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<GrpcKafkaWithConfig, JsonObject>
 {
-    private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
+    private static final String ACKS_DEFAULT = "in_sync_replicas";
 
     private static final String CAPABILITY_NAME = "capability";
     private static final String TOPIC_NAME = "topic";
@@ -47,9 +49,9 @@ public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<Grp
         object.add(CAPABILITY_NAME, GrpcKafkaCapability.PRODUCE.asString());
         object.add(TOPIC_NAME, grpcKafkaWith.topic);
 
-        if (grpcKafkaWith.acks != ACKS_DEFAULT)
+        if (!ACKS_DEFAULT.equals(grpcKafkaWith.acks))
         {
-            object.add(ACKS_NAME, grpcKafkaWith.acks.name().toLowerCase());
+            object.add(ACKS_NAME, grpcKafkaWith.acks);
         }
 
         if (grpcKafkaWith.key.isPresent())
@@ -80,8 +82,8 @@ public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<Grp
     {
         String newTopic = object.getString(TOPIC_NAME);
 
-        KafkaAckMode newProduceAcks = object.containsKey(ACKS_NAME)
-            ? KafkaAckMode.valueOf(object.getString(ACKS_NAME).toUpperCase())
+        String newProduceAcks = object.containsKey(ACKS_NAME)
+            ? object.getString(ACKS_NAME)
             : ACKS_DEFAULT;
 
         String newProduceKey = object.containsKey(KEY_NAME)
