@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.kafka.streams.application;
+package io.aklivity.zilla.specs.binding.kafka.streams.network;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -27,10 +27,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class KafkaApiIT
+public class KafkaApiVersionsIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/api");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -39,45 +39,9 @@ public class KafkaApiIT
 
     @Test
     @Specification({
-        "${app}/api.versions.v0/client",
-        "${app}/api.versions.v0/server"})
-    public void shouldApiVersionsV0() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3/client",
-        "${app}/create.topics.v3/server"})
-    public void shouldCreateTopicsV3() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/delete.topics.v3/client",
-        "${app}/delete.topics.v3/server"})
-    public void shouldDeleteTopicsV3() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.reuse.connection/client",
-        "${app}/create.topics.v3.reuse.connection/server"})
-    public void shouldCreateTopicsV3ReuseConnection() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.unsupported/client",
-        "${app}/create.topics.v3.unsupported/server"})
-    public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
+        "${net}/versions/client",
+        "${net}/versions/server"})
+    public void shouldGetApiVersions() throws Exception
     {
         k3po.finish();
     }

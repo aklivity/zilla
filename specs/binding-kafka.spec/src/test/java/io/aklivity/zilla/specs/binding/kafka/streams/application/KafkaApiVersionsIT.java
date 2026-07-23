@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.kafka.streams.network;
+package io.aklivity.zilla.specs.binding.kafka.streams.application;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -27,10 +27,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class KafkaApiIT
+public class KafkaApiVersionsIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/api");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -39,45 +39,9 @@ public class KafkaApiIT
 
     @Test
     @Specification({
-        "${net}/create.topics/client",
-        "${net}/create.topics/server"})
-    public void shouldCreateTopicsV3() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/delete.topics/client",
-        "${net}/delete.topics/server"})
-    public void shouldDeleteTopicsV3() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/unsupported/client",
-        "${net}/unsupported/server"})
-    public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/reuse.connection/client",
-        "${net}/reuse.connection/server"})
-    public void shouldReuseConnection() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/reconnect/client",
-        "${net}/reconnect/server"})
-    public void shouldReconnect() throws Exception
+        "${app}/api.versions.v0/client",
+        "${app}/api.versions.v0/server"})
+    public void shouldGetApiVersions() throws Exception
     {
         k3po.finish();
     }

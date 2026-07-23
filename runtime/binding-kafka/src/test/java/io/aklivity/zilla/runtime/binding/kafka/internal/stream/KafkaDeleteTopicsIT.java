@@ -29,7 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class KafkaApiIT
+public class KafkaDeleteTopicsIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api")
@@ -50,50 +50,9 @@ public class KafkaApiIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/create.topics.v3/client",
-        "${net}/create.topics/server"})
-    public void shouldCreateTopicsV3() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
         "${app}/delete.topics.v3/client",
         "${net}/delete.topics/server"})
     public void shouldDeleteTopicsV3() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/create.topics.v3.unsupported/client",
-        "${net}/unsupported/server"})
-    public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/create.topics.v3.reuse.connection/client",
-        "${net}/reuse.connection/server"})
-    public void shouldCreateTopicsV3ReuseConnection() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/api.versions.v0/client",
-        "${app}/create.topics.v3/client",
-        "${net}/create.topics/server"})
-    public void shouldCreateTopicsV3ExplicitApiVersions() throws Exception
     {
         k3po.finish();
     }
