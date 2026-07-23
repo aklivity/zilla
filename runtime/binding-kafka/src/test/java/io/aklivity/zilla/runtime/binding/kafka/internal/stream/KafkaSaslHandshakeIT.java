@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_API_VERSIONS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_API_VERSIONS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -43,6 +44,7 @@ public class KafkaSaslHandshakeIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
+        .configure(KAFKA_CLIENT_API_VERSIONS, false)
         .external("net0")
         .clean();
 
@@ -51,7 +53,6 @@ public class KafkaSaslHandshakeIT
 
     @Test
     @Configuration("client.yaml")
-    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "false")
     @Specification({
         "${app}/sasl.handshake.v1/client",
         "${net}/sasl.handshake.v1/server"})
@@ -62,9 +63,10 @@ public class KafkaSaslHandshakeIT
 
     @Test
     @Configuration("client.guard.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Specification({
         "${app}/create.topics.v3/client",
-        "${net}/create.topics.v3.authenticated/server"})
+        "${net}/create.topics.v3.authorized/server"})
     public void shouldAuthenticateImplicitlyWhenGuardConfigured() throws Exception
     {
         k3po.finish();
@@ -72,6 +74,7 @@ public class KafkaSaslHandshakeIT
 
     @Test
     @Configuration("client.guard.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Specification({
         "${app}/sasl.handshake.v1.rejected/client",
         "${net}/api.versions.v0/server"})
