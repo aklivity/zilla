@@ -14,38 +14,36 @@
 # under the License.
 #
 
-property networkAcceptWindow 8192
+property networkConnectWindow 8192
 
-accept "zilla://streams/net0"
-  option zilla:window ${networkAcceptWindow}
+property apiVersionsRequestId ${kafka:newRequestId()}
+property newRequestId ${kafka:newRequestId()}
+
+connect "zilla://streams/net0"
+  option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
 
-accepted
-
 connected
 
-read  15                                # size
+write 15                                # size
       18s                               # api_versions
       0s                                # v0
-      (int:apiVersionsRequestId)
+      ${apiVersionsRequestId}
       5s "zilla"                        # client id
 
-write 22                                 # size
-      ${apiVersionsRequestId}
+read  16                                 # size
+      (int:apiVersionsRequestId)
       0s                                 # error code
-      2                                  # api key count
+      1                                  # api key count
         19s                              # create topics
         0s                               # min version
         7s                               # max version
-        20s                              # delete topics
-        0s                               # min version
-        6s                               # max version
 
-read 144                                # size
+write 144                               # size
       19s                               # create topics
       3s                                # v3
-      (int:createTopicsRequestId)
+      ${newRequestId}
       5s "zilla"                        # client id
       2                                 # topic count
         6s "events"                     # name
@@ -71,8 +69,8 @@ read 144                                # size
       0                                 # timeout
       [0x00]                           # validateOnly
 
-write 39                                 # size
-      ${createTopicsRequestId}
+read  39                                 # size
+      (int:newRequestId)
       0                                  # throttle time ms
       2                                  # topics
         6s "events"                      # name
@@ -81,22 +79,3 @@ write 39                                 # size
         9s "snapshots"                   # name
         0s                               # error code
         -1s                              # error message
-
-read  42                                # size
-      20s                               # delete topics
-      3s                                # v3
-      (int:deleteTopicsRequestId)
-      5s "zilla"                        # client id
-      2                                 # topic count
-        6s "events"                     # name
-        9s "snapshots"                  # name
-      0                                 # timeout
-
-write 35                                 # size
-      ${deleteTopicsRequestId}
-      0                                  # throttle time ms
-      2                                  # topics
-        6s "events"                      # name
-        0s                               # error code
-        9s "snapshots"                   # name
-        0s                               # error code

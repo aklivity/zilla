@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_API_VERSIONS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class KafkaCreateTopicsIT
 {
@@ -49,10 +51,21 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Configuration("client.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "false")
     @Specification({
         "${app}/create.topics.v3/client",
         "${net}/create.topics.v3/server"})
     public void shouldCreateTopicsV3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/create.topics.v3/client",
+        "${net}/create.topics.v3.negotiated/server"})
+    public void shouldCreateTopicsV3Negotiated() throws Exception
     {
         k3po.finish();
     }
@@ -70,19 +83,9 @@ public class KafkaCreateTopicsIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/create.topics.v3.reuse.connection/client",
-        "${net}/create.topics.v3.reuse.connection/server"})
-    public void shouldCreateTopicsV3ReuseConnection() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
         "${app}/api.versions.v0/client",
         "${app}/create.topics.v3/client",
-        "${net}/create.topics.v3/server"})
+        "${net}/create.topics.v3.negotiated/server"})
     public void shouldCreateTopicsV3ExplicitApiVersions() throws Exception
     {
         k3po.finish();

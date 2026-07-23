@@ -54,13 +54,4 @@ public class KafkaCreateTopicsIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.reuse.connection/client",
-        "${app}/create.topics.v3.reuse.connection/server"})
-    public void shouldCreateTopicsV3ReuseConnection() throws Exception
-    {
-        k3po.finish();
-    }
 }

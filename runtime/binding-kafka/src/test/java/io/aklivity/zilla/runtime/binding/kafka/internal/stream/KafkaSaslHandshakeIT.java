@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_API_VERSIONS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class KafkaSaslHandshakeIT
 {
@@ -49,6 +51,7 @@ public class KafkaSaslHandshakeIT
 
     @Test
     @Configuration("client.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "false")
     @Specification({
         "${app}/sasl.handshake.v1/client",
         "${net}/sasl.handshake.v1/server"})

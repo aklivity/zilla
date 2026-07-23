@@ -16,7 +16,6 @@
 
 property networkConnectWindow 8192
 
-property apiVersionsRequestId ${kafka:newRequestId()}
 property newRequestId ${kafka:newRequestId()}
 
 connect "zilla://streams/net0"
@@ -25,20 +24,6 @@ connect "zilla://streams/net0"
   option zilla:byteorder "network"
 
 connected
-
-write 15                                # size
-      18s                               # api_versions
-      0s                                # v0
-      ${apiVersionsRequestId}
-      5s "zilla"                        # client id
-
-read  16                                 # size
-      (int:apiVersionsRequestId)
-      0s                                 # error code
-      1                                  # api key count
-        17s                              # sasl handshake
-        0s                               # min version
-        1s                               # max version
 
 write 22                                # size
       17s                               # sasl.handshake
