@@ -26,8 +26,8 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.config.binding.mqtt.MqttConditionConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttWithConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 

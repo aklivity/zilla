@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.binding.sse.SseConditionConfig;
+import io.aklivity.zilla.config.binding.sse.SseWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.binding.sse.config.SseWithConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class SseRouteConfig
