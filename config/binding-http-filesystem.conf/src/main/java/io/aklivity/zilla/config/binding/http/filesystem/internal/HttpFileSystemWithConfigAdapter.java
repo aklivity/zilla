@@ -12,16 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.filesystem.internal.config;
+package io.aklivity.zilla.config.binding.http.filesystem.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.http.filesystem.internal.HttpFileSystemBinding;
 
 public final class HttpFileSystemWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
@@ -31,7 +31,7 @@ public final class HttpFileSystemWithConfigAdapter implements WithConfigAdapterS
     @Override
     public String type()
     {
-        return HttpFileSystemBinding.TYPE;
+        return HttpFileSystemBindingInfo.TYPE;
     }
 
     @Override

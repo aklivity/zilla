@@ -20,4 +20,6 @@ module io.aklivity.zilla.config.binding.http.filesystem
     exports io.aklivity.zilla.config.binding.http.filesystem;
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.http.filesystem.internal.HttpFileSystemBindingInfo;
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
+        with io.aklivity.zilla.config.binding.http.filesystem.internal.HttpFileSystemWithConfigAdapter;
 }

@@ -19,7 +19,4 @@ module io.aklivity.zilla.runtime.binding.http.filesystem
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.http.filesystem.internal.HttpFileSystemBindingFactorySpi;
-
-    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFileSystemWithConfigAdapter;
 }
