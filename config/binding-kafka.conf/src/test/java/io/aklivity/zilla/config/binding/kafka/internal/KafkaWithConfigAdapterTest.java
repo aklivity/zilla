@@ -1,23 +1,19 @@
 /*
- * Copyright 2021-2026 Aklivity Inc.
+ * Copyright 2021-2026 Aklivity Inc
  *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.aklivity.io/aklivity-community-license/
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.config;
+package io.aklivity.zilla.config.binding.kafka.internal;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode.LEADER_ONLY;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType.JSON_PATCH;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -29,6 +25,8 @@ import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import io.aklivity.zilla.config.binding.kafka.KafkaWithConfig;
 
 public class KafkaWithConfigAdapterTest
 {
@@ -55,15 +53,15 @@ public class KafkaWithConfigAdapterTest
         KafkaWithConfig with = jsonb.fromJson(text, KafkaWithConfig.class);
 
         assertThat(with, not(nullValue()));
-        assertThat(with.defaultOffset, equalTo(HISTORICAL));
-        assertThat(with.deltaType, equalTo(JSON_PATCH));
-        assertThat(with.ackMode, equalTo(LEADER_ONLY));
+        assertThat(with.defaultOffset, equalTo("historical"));
+        assertThat(with.deltaType, equalTo("json_patch"));
+        assertThat(with.ackMode, equalTo("leader_only"));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        KafkaWithConfig with = new KafkaWithConfig(HISTORICAL, JSON_PATCH, LEADER_ONLY);
+        KafkaWithConfig with = new KafkaWithConfig("historical", "json_patch", "leader_only");
 
         String text = jsonb.toJson(with);
 

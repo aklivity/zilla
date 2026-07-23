@@ -227,8 +227,9 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyFetchPartition(partitionId);
-                final long defaultOffset = resolved.with != null ?
-                    resolved.with.defaultOffset.value() : KafkaOffsetType.HISTORICAL.value();
+                final long defaultOffset = resolved.with != null
+                    ? KafkaOffsetType.valueOf(resolved.with.defaultOffset.toUpperCase()).value()
+                    : KafkaOffsetType.HISTORICAL.value();
                 final KafkaCacheClientFetchFanout newFanout =
                         new KafkaCacheClientFetchFanout(
                             routedId,
