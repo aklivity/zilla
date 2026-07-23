@@ -12,16 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.config;
+package io.aklivity.zilla.config.binding.http.kafka;
 
 import java.util.function.Function;
 
-public final class HttpKafkaWithProduceAsyncHeaderConfig
+public final class HttpKafkaWithProduceOverrideConfig
 {
     public final String name;
     public final String value;
 
-    public HttpKafkaWithProduceAsyncHeaderConfig(
+    public HttpKafkaWithProduceOverrideConfig(
         String name,
         String value)
     {
@@ -29,14 +29,14 @@ public final class HttpKafkaWithProduceAsyncHeaderConfig
         this.value = value;
     }
 
-    public static HttpKafkaWithProduceAsyncHeaderConfigBuilder<HttpKafkaWithProduceAsyncHeaderConfig> builder()
+    public static HttpKafkaWithProduceOverrideConfigBuilder<HttpKafkaWithProduceOverrideConfig> builder()
     {
-        return new HttpKafkaWithProduceAsyncHeaderConfigBuilder<>(HttpKafkaWithProduceAsyncHeaderConfig.class::cast);
+        return new HttpKafkaWithProduceOverrideConfigBuilder<>(HttpKafkaWithProduceOverrideConfig.class::cast);
     }
 
-    public static <T> HttpKafkaWithProduceAsyncHeaderConfigBuilder<T> builder(
-        Function<HttpKafkaWithProduceAsyncHeaderConfig, T> mapper)
+    public static <T> HttpKafkaWithProduceOverrideConfigBuilder<T> builder(
+        Function<HttpKafkaWithProduceOverrideConfig, T> mapper)
     {
-        return new HttpKafkaWithProduceAsyncHeaderConfigBuilder<>(mapper);
+        return new HttpKafkaWithProduceOverrideConfigBuilder<>(mapper);
     }
 }

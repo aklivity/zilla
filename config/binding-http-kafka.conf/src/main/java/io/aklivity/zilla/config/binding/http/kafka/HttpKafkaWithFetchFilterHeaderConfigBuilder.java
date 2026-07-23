@@ -12,34 +12,34 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.config;
+package io.aklivity.zilla.config.binding.http.kafka;
 
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 
-public final class HttpKafkaWithProduceAsyncHeaderConfigBuilder<T> extends
-    ConfigBuilder<T, HttpKafkaWithProduceAsyncHeaderConfigBuilder<T>>
+public final class HttpKafkaWithFetchFilterHeaderConfigBuilder<T> extends
+    ConfigBuilder<T, HttpKafkaWithFetchFilterHeaderConfigBuilder<T>>
 {
-    private final Function<HttpKafkaWithProduceAsyncHeaderConfig, T> mapper;
+    private final Function<HttpKafkaWithFetchFilterHeaderConfig, T> mapper;
     private String name;
     private String value;
 
 
-    HttpKafkaWithProduceAsyncHeaderConfigBuilder(
-        Function<HttpKafkaWithProduceAsyncHeaderConfig, T> mapper)
+    HttpKafkaWithFetchFilterHeaderConfigBuilder(
+        Function<HttpKafkaWithFetchFilterHeaderConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
-    public HttpKafkaWithProduceAsyncHeaderConfigBuilder<T> name(
+    public HttpKafkaWithFetchFilterHeaderConfigBuilder<T> name(
         String name)
     {
         this.name = name;
         return this;
     }
 
-    public HttpKafkaWithProduceAsyncHeaderConfigBuilder<T> value(
+    public HttpKafkaWithFetchFilterHeaderConfigBuilder<T> value(
         String value)
     {
         this.value = value;
@@ -48,15 +48,14 @@ public final class HttpKafkaWithProduceAsyncHeaderConfigBuilder<T> extends
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<HttpKafkaWithProduceAsyncHeaderConfigBuilder<T>> thisType()
+    protected Class<HttpKafkaWithFetchFilterHeaderConfigBuilder<T>> thisType()
     {
-        return (Class<HttpKafkaWithProduceAsyncHeaderConfigBuilder<T>>) getClass();
+        return (Class<HttpKafkaWithFetchFilterHeaderConfigBuilder<T>>) getClass();
     }
-
 
     @Override
     public T build()
     {
-        return mapper.apply(new HttpKafkaWithProduceAsyncHeaderConfig(name, value));
+        return mapper.apply(new HttpKafkaWithFetchFilterHeaderConfig(name, value));
     }
 }

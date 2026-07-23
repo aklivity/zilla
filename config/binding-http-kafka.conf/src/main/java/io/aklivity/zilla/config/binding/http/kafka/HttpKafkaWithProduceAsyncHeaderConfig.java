@@ -12,16 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.kafka.config;
+package io.aklivity.zilla.config.binding.http.kafka;
 
 import java.util.function.Function;
 
-public final class HttpKafkaWithFetchFilterHeaderConfig
+public final class HttpKafkaWithProduceAsyncHeaderConfig
 {
     public final String name;
     public final String value;
 
-    public HttpKafkaWithFetchFilterHeaderConfig(
+    public HttpKafkaWithProduceAsyncHeaderConfig(
         String name,
         String value)
     {
@@ -29,14 +29,14 @@ public final class HttpKafkaWithFetchFilterHeaderConfig
         this.value = value;
     }
 
-    public static HttpKafkaWithFetchFilterHeaderConfigBuilder<HttpKafkaWithFetchFilterHeaderConfig> builder()
+    public static HttpKafkaWithProduceAsyncHeaderConfigBuilder<HttpKafkaWithProduceAsyncHeaderConfig> builder()
     {
-        return new HttpKafkaWithFetchFilterHeaderConfigBuilder<>(HttpKafkaWithFetchFilterHeaderConfig.class::cast);
+        return new HttpKafkaWithProduceAsyncHeaderConfigBuilder<>(HttpKafkaWithProduceAsyncHeaderConfig.class::cast);
     }
 
-    public static <T> HttpKafkaWithFetchFilterHeaderConfigBuilder<T> builder(
-        Function<HttpKafkaWithFetchFilterHeaderConfig, T> mapper)
+    public static <T> HttpKafkaWithProduceAsyncHeaderConfigBuilder<T> builder(
+        Function<HttpKafkaWithProduceAsyncHeaderConfig, T> mapper)
     {
-        return new HttpKafkaWithFetchFilterHeaderConfigBuilder<>(mapper);
+        return new HttpKafkaWithProduceAsyncHeaderConfigBuilder<>(mapper);
     }
 }

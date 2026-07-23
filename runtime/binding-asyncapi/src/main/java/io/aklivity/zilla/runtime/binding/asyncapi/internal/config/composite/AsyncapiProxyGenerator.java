@@ -30,6 +30,9 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchConfigBuilder;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterConfigBuilder;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
@@ -52,9 +55,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.ka
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka.AsyncapiMqttKafkaChannelEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaWithConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
