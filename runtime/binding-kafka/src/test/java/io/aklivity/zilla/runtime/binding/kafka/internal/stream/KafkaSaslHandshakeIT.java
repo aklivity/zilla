@@ -56,4 +56,24 @@ public class KafkaSaslHandshakeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.guard.yaml")
+    @Specification({
+        "${app}/create.topics.v3/client",
+        "${net}/authenticate/server"})
+    public void shouldAuthenticateImplicitlyWhenGuardConfigured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guard.yaml")
+    @Specification({
+        "${app}/sasl.handshake.v1.rejected/client",
+        "${net}/versions/server"})
+    public void shouldRejectSaslHandshakeV1WhenGuardConfigured() throws Exception
+    {
+        k3po.finish();
+    }
 }
