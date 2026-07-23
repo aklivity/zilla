@@ -1232,7 +1232,7 @@ public class EngineWorker implements EngineContext, Agent
     public LongConsumer supplyGaugeWriter(
         int metricId)
     {
-        return gaugesLayout.supplyWriter(NO_NAMESPACED_ID, metricId, 0, MetricsLayout.NO_KIND);
+        return gaugesLayout.supplyWriter(NO_NAMESPACED_ID, metricId, 0);
     }
 
     // required for testing
@@ -1241,7 +1241,7 @@ public class EngineWorker implements EngineContext, Agent
         int metricId,
         int attributesId)
     {
-        return countersLayout.supplyWriter(bindingId, metricId, attributesId, MetricsLayout.NO_KIND);
+        return countersLayout.supplyWriter(bindingId, metricId, attributesId);
     }
 
     // required for testing
@@ -1250,7 +1250,7 @@ public class EngineWorker implements EngineContext, Agent
         int metricId,
         int attributesId)
     {
-        return gaugesLayout.supplyWriter(bindingId, metricId, attributesId, MetricsLayout.NO_KIND);
+        return gaugesLayout.supplyWriter(bindingId, metricId, attributesId);
     }
 
     // required for testing
@@ -1259,7 +1259,7 @@ public class EngineWorker implements EngineContext, Agent
         int metricId,
         int attributesId)
     {
-        return histogramsLayout.supplyWriter(bindingId, metricId, attributesId, MetricsLayout.NO_KIND);
+        return histogramsLayout.supplyWriter(bindingId, metricId, attributesId);
     }
 
     @Override

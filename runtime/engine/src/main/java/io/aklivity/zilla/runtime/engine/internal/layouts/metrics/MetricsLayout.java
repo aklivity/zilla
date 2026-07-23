@@ -123,6 +123,14 @@ public abstract class MetricsLayout implements AutoCloseable
         return metricId == 0;
     }
 
+    public LongConsumer supplyWriter(
+        long bindingId,
+        int metricId,
+        int attributesId)
+    {
+        return supplyWriter(bindingId, metricId, attributesId, NO_KIND);
+    }
+
     public abstract LongConsumer supplyWriter(
         long bindingId,
         int metricId,

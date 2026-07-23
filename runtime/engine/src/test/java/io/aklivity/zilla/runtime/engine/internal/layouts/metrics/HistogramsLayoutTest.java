@@ -41,7 +41,7 @@ public class HistogramsLayoutTest
                 .readonly(false)
                 .build();
 
-        LongConsumer writer = histogramsLayout.supplyWriter(11L, 42, 0, MetricsLayout.NO_KIND);
+        LongConsumer writer = histogramsLayout.supplyWriter(11L, 42, 0);
         LongSupplier[] readers = histogramsLayout.supplyReaders(11L, 42, 0);
 
         // bucket 0 (0L - 1L)
@@ -126,9 +126,9 @@ public class HistogramsLayoutTest
                 .readonly(false)
                 .build();
 
-        LongConsumer writer1 = histogramsLayout.supplyWriter(11L, 42, 0, MetricsLayout.NO_KIND);
-        LongConsumer writer2 = histogramsLayout.supplyWriter(22L, 77, 0, MetricsLayout.NO_KIND);
-        LongConsumer writer3 = histogramsLayout.supplyWriter(33L, 88, 0, MetricsLayout.NO_KIND);
+        LongConsumer writer1 = histogramsLayout.supplyWriter(11L, 42, 0);
+        LongConsumer writer2 = histogramsLayout.supplyWriter(22L, 77, 0);
+        LongConsumer writer3 = histogramsLayout.supplyWriter(33L, 88, 0);
 
         LongSupplier[] readers0 = histogramsLayout.supplyReaders(99999L, 99999, 0);
         LongSupplier[] readers1 = histogramsLayout.supplyReaders(11L, 42, 0);
@@ -185,11 +185,11 @@ public class HistogramsLayoutTest
                 .readonly(false)
                 .build();
 
-        histogramsLayout.supplyWriter(11L, 42, 0, MetricsLayout.NO_KIND);
-        histogramsLayout.supplyWriter(22L, 77, 0, MetricsLayout.NO_KIND);
+        histogramsLayout.supplyWriter(11L, 42, 0);
+        histogramsLayout.supplyWriter(22L, 77, 0);
         assertThrows(IndexOutOfBoundsException.class, () ->
         {
-            histogramsLayout.supplyWriter(33L, 88, 0, MetricsLayout.NO_KIND);
+            histogramsLayout.supplyWriter(33L, 88, 0);
         });
 
         histogramsLayout.close();
