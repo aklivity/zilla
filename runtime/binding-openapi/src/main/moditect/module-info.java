@@ -18,7 +18,11 @@ module io.aklivity.zilla.runtime.binding.openapi
     requires transitive io.aklivity.zilla.runtime.common.openapi;
     requires io.aklivity.zilla.runtime.common.yaml;
 
+    requires io.aklivity.zilla.config.binding.http;
     requires io.aklivity.zilla.config.binding.openapi;
+    requires io.aklivity.zilla.config.binding.tcp;
+    requires io.aklivity.zilla.config.binding.tls;
+    requires io.aklivity.zilla.config.catalog.inline;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.http;
     requires io.aklivity.zilla.runtime.binding.tcp;

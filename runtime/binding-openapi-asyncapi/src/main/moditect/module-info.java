@@ -14,6 +14,7 @@
  */
 module io.aklivity.zilla.runtime.binding.openapi.asyncapi
 {
+    requires io.aklivity.zilla.config.binding.http.kafka;
     requires io.aklivity.zilla.config.binding.openapi.asyncapi;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.common.json;
