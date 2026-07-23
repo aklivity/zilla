@@ -39,8 +39,8 @@ public class KafkaSaslHandshakeIT
 
     @Test
     @Specification({
-        "${net}/sasl.handshake/client",
-        "${net}/sasl.handshake/server"})
+        "${net}/sasl.handshake.v1/client",
+        "${net}/sasl.handshake.v1/server"})
     public void shouldHandshakeSaslPlain() throws Exception
     {
         k3po.finish();
@@ -48,8 +48,8 @@ public class KafkaSaslHandshakeIT
 
     @Test
     @Specification({
-        "${net}/create.topics.authenticated/client",
-        "${net}/create.topics.authenticated/server"})
+        "${net}/create.topics.v3.authenticated/client",
+        "${net}/create.topics.v3.authenticated/server"})
     public void shouldCreateTopicsV3WhenAuthenticated() throws Exception
     {
         k3po.finish();

@@ -39,8 +39,8 @@ public class KafkaSaslAuthenticateIT
 
     @Test
     @Specification({
-        "${net}/sasl.authenticate/client",
-        "${net}/sasl.authenticate/server"})
+        "${net}/sasl.authenticate.v1/client",
+        "${net}/sasl.authenticate.v1/server"})
     public void shouldAuthenticateSaslPlain() throws Exception
     {
         k3po.finish();

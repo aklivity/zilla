@@ -51,7 +51,7 @@ public class KafkaCreateTopicsIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/create.topics.v3/client",
-        "${net}/create.topics/server"})
+        "${net}/create.topics.v3/server"})
     public void shouldCreateTopicsV3() throws Exception
     {
         k3po.finish();
@@ -61,7 +61,7 @@ public class KafkaCreateTopicsIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/create.topics.v3.unsupported/client",
-        "${net}/create.topics.unsupported/server"})
+        "${net}/create.topics.v3.unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
     {
         k3po.finish();
@@ -71,7 +71,7 @@ public class KafkaCreateTopicsIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/create.topics.v3.reuse.connection/client",
-        "${net}/create.topics.reuse.connection/server"})
+        "${net}/create.topics.v3.reuse.connection/server"})
     public void shouldCreateTopicsV3ReuseConnection() throws Exception
     {
         k3po.finish();
@@ -82,7 +82,7 @@ public class KafkaCreateTopicsIT
     @Specification({
         "${app}/api.versions.v0/client",
         "${app}/create.topics.v3/client",
-        "${net}/create.topics/server"})
+        "${net}/create.topics.v3/server"})
     public void shouldCreateTopicsV3ExplicitApiVersions() throws Exception
     {
         k3po.finish();
@@ -94,7 +94,7 @@ public class KafkaCreateTopicsIT
         "${app}/sasl.handshake.v1/client",
         "${app}/sasl.authenticate.v1/client",
         "${app}/create.topics.v3/client",
-        "${net}/create.topics.authenticated/server"})
+        "${net}/create.topics.v3.authenticated/server"})
     public void shouldCreateTopicsV3ExplicitSasl() throws Exception
     {
         k3po.finish();
