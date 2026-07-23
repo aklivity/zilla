@@ -13,7 +13,9 @@
 // the same field, printed as JSON since there's more than a name to show;
 // zilla__execute_tool's own result is the target tool's real result, passed
 // through unchanged, so it prints exactly like calling that tool directly;
-// every other tool's result prints its text content as-is -- or READ_RESOURCE
+// every other tool's result prints its text content as-is, followed by a
+// second line with the raw structuredContent JSON if the result carries one
+// (e.g. mcp_kafka's consume tool) -- or READ_RESOURCE
 // (a concrete URI, with any {template} placeholders already substituted) to
 // read one resource and print its contents. Optionally carries a bearer
 // token on the initial request so .github/test.sh can observe how the result
@@ -58,6 +60,10 @@ const main = async () =>
             }
             const describe = (c) => c.text ?? JSON.stringify(c);
             console.log(result.content?.map(describe).join(" ") ?? "");
+            if (result.structuredContent !== undefined)
+            {
+                console.log(JSON.stringify(result.structuredContent));
+            }
             return;
         }
 

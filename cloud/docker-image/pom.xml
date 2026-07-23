@@ -147,7 +147,19 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-mcp-kafka</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>binding-mcp-openapi</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-mcp-schema-registry</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -309,7 +321,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>guard-identity</artifactId>
+      <artifactId>guard-inline</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

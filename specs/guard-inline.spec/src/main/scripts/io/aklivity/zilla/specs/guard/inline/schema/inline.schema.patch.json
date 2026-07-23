@@ -1,0 +1,63 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/guard/properties/type/enum/-",
+        "value": "inline"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/guard/properties/type/enum/-",
+        "value": "identity"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/guard/allOf/-",
+        "value":
+        {
+            "if":
+            {
+               "properties":
+                {
+                    "type":
+                    {
+                        "enum": [ "inline", "identity" ]
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "enum": [ "inline", "identity" ]
+                    },
+                    "kind": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "identity":
+                            {
+                                "title": "Identity",
+                                "type": "string"
+                            },
+                            "credentials":
+                            {
+                                "title": "Credentials",
+                                "type": "string"
+                            },
+                            "format":
+                            {
+                                "title": "Format",
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

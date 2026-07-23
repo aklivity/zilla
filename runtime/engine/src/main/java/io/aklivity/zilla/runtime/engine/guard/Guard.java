@@ -22,6 +22,7 @@ import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
+import io.aklivity.zilla.runtime.engine.factory.Aliasable;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
@@ -41,7 +42,7 @@ import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
  * @see GuardHandler
  * @see GuardFactorySpi
  */
-public interface Guard
+public interface Guard extends Aliasable
 {
     /**
      * Returns the unique name identifying this guard type, e.g. {@code "jwt"}.

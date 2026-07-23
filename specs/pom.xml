@@ -29,7 +29,9 @@
     <module>binding-grpc.spec</module>
     <module>binding-mcp.spec</module>
     <module>binding-mcp-http.spec</module>
+    <module>binding-mcp-kafka.spec</module>
     <module>binding-mcp-openapi.spec</module>
+    <module>binding-mcp-schema-registry.spec</module>
     <module>binding-mqtt.spec</module>
     <module>binding-openapi.spec</module>
     <module>binding-openapi-asyncapi.spec</module>
@@ -59,7 +61,7 @@
     <module>model-core.spec</module>
     <module>model-json.spec</module>
     <module>model-protobuf.spec</module>
-    <module>guard-identity.spec</module>
+    <module>guard-inline.spec</module>
     <module>guard-jwt.spec</module>
     <module>store-memory.spec</module>
     <module>vault-filesystem.spec</module>
@@ -144,7 +146,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-schema-registry.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-mqtt.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-kafka.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -169,7 +181,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>guard-identity.spec</artifactId>
+        <artifactId>guard-inline.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

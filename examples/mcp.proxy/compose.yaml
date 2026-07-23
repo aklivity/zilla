@@ -30,6 +30,12 @@ services:
         condition: service_healthy
       petstore:
         condition: service_healthy
+      karapace-registry:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   everything:
     image: node:20-alpine
@@ -110,6 +116,84 @@ services:
       timeout: 3s
       retries: 20
       test: ["CMD", "nc", "-z", "127.0.0.1", "4002"]
+
+  # Real single-node Kafka broker (KRaft mode) backing the mcp_kafka "kafka" toolkit.
+  kafka:
+    image: apache/kafka:4.1.1
+    restart: unless-stopped
+    hostname: kafka.examples.dev
+    ports:
+      - 9092:9092
+    healthcheck:
+      test: /opt/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server kafka.examples.dev:29092 || exit 1
+      interval: 1s
+      timeout: 60s
+      retries: 60
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_BROKER_ID: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@127.0.0.1:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENERS: "CLIENT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "CLIENT://localhost:9092,INTERNAL://kafka.examples.dev:29092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_LOG_DIRS: "/tmp/logs"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+  # One-shot topic setup; auto-create also covers this, but an explicit topic
+  # documents intent the same way every other *.kafka.* example in this repo does.
+  kafka-init:
+    image: apache/kafka:4.1.1
+    user: root
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    deploy:
+      restart_policy:
+        condition: none
+        max_attempts: 0
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+    command:
+      - |
+        echo "Creating kafka topic";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic orders
+        echo "Successfully created the following topics:";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
+
+  # Real Karapace Schema Registry backing the mcp_schema_registry
+  # "schemaregistry" toolkit -- talks to the same real Kafka broker as the
+  # "kafka" toolkit above, storing schemas in its own _schemas topic.
+  karapace-registry:
+    image: ghcr.io/aiven-open/karapace:3.15.2
+    entrypoint:
+      - /bin/bash
+      - /opt/karapace/start.sh
+      - registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - 8081:8081
+    environment:
+      KARAPACE_ADVERTISED_HOSTNAME: karapace-registry
+      KARAPACE_BOOTSTRAP_URI: kafka.examples.dev:29092
+      KARAPACE_PORT: 8081
+      KARAPACE_HOST: 0.0.0.0
+      KARAPACE_CLIENT_ID: karapace
+      KARAPACE_GROUP_ID: karapace-registry
+      KARAPACE_MASTER_ELIGIBILITY: "true"
+      KARAPACE_TOPIC_NAME: _schemas
+      KARAPACE_LOG_LEVEL: WARNING
+      KARAPACE_COMPATIBILITY: BACKWARD
 
   # Mints JWTs for the authn_jwt guard. Run on demand, e.g.:
   #   docker compose run --rm jwt-cli encode --alg RS256 --kid example \
