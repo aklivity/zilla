@@ -27,7 +27,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class KafkaSaslHandshakeIT
+public class KafkaSaslAuthenticateIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/api");
@@ -39,18 +39,9 @@ public class KafkaSaslHandshakeIT
 
     @Test
     @Specification({
-        "${net}/handshake/client",
-        "${net}/handshake/server"})
-    public void shouldHandshakeSaslPlain() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/authenticated/client",
-        "${net}/authenticated/server"})
-    public void shouldCreateTopicsV3WhenAuthenticated() throws Exception
+        "${net}/authenticate/client",
+        "${net}/authenticate/server"})
+    public void shouldAuthenticateSaslPlain() throws Exception
     {
         k3po.finish();
     }

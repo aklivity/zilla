@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.kafka.streams.network;
+package io.aklivity.zilla.specs.binding.kafka.streams.application;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -27,10 +27,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class KafkaSaslHandshakeIT
+public class KafkaSaslAuthenticateIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/api");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/api");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -39,18 +39,9 @@ public class KafkaSaslHandshakeIT
 
     @Test
     @Specification({
-        "${net}/handshake/client",
-        "${net}/handshake/server"})
-    public void shouldHandshakeSaslPlain() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/authenticated/client",
-        "${net}/authenticated/server"})
-    public void shouldCreateTopicsV3WhenAuthenticated() throws Exception
+        "${app}/sasl.authenticate.v1/client",
+        "${app}/sasl.authenticate.v1/server"})
+    public void shouldAuthenticateSaslPlain() throws Exception
     {
         k3po.finish();
     }
