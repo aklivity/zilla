@@ -27,9 +27,4 @@ public interface ExporterInfo extends FactorySpi, OptionsInfo
     }
 
     URL schema();
-
-    default URL system()
-    {
-        return null;
-    }
 }

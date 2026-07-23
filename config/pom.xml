@@ -19,6 +19,8 @@
   <modules>
     <module>engine.conf</module>
     <module>binding-asyncapi.conf</module>
+    <module>binding-echo.conf</module>
+    <module>binding-fan.conf</module>
     <module>binding-filesystem.conf</module>
     <module>binding-grpc.conf</module>
     <module>binding-grpc-kafka.conf</module>
@@ -56,6 +58,7 @@
     <module>model-core.conf</module>
     <module>model-json.conf</module>
     <module>model-protobuf.conf</module>
+    <module>store-memory.conf</module>
     <module>vault-filesystem.conf</module>
   </modules>
 </project>

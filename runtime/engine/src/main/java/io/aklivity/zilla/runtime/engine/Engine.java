@@ -65,6 +65,8 @@ import io.aklivity.zilla.config.engine.ModelInfo;
 import io.aklivity.zilla.config.engine.ModelInfoRegistry;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.RouterConfig;
+import io.aklivity.zilla.config.engine.StoreInfo;
+import io.aklivity.zilla.config.engine.StoreInfoRegistry;
 import io.aklivity.zilla.config.engine.VaultInfo;
 import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -249,30 +251,21 @@ public final class Engine implements Collector, AutoCloseable
         final VaultInfoRegistry vaultInfos = VaultInfoRegistry.instantiate();
         final ExporterInfoRegistry exporterInfos = ExporterInfoRegistry.instantiate();
         final ModelInfoRegistry modelInfos = ModelInfoRegistry.instantiate();
+        final StoreInfoRegistry storeInfos = StoreInfoRegistry.instantiate();
 
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindingInfos.stream().map(BindingInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(exporterInfos.stream().map(ExporterInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(exporters.stream().map(Exporter::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(guardInfos.stream().map(GuardInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaultInfos.stream().map(VaultInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(catalogInfos.stream().map(CatalogInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(modelInfos.stream().map(ModelInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(stores.stream().map(Store::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(storeInfos.stream().map(StoreInfo::schema).filter(Objects::nonNull).collect(toList()));
 
         final Collection<URL> systemConfigs = new ArrayList<>();
         bindings.stream()
             .map(Binding::system)
-            .filter(Objects::nonNull)
-            .forEach(systemConfigs::add);
-        exporterInfos.stream()
-            .map(ExporterInfo::system)
             .filter(Objects::nonNull)
             .forEach(systemConfigs::add);
         exporters.stream()
@@ -295,6 +288,7 @@ public final class Engine implements Collector, AutoCloseable
             guardInfos,
             vaultInfos,
             exporterInfos,
+            storeInfos,
             bindingsByType::get,
             guardsByType::get,
             labels::supplyLabelId,

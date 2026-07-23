@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
-import java.net.URL;
-
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -40,12 +38,6 @@ public final class TestBinding implements Binding
     public String name()
     {
         return "test";
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("test.schema.patch.json");
     }
 
     @Override

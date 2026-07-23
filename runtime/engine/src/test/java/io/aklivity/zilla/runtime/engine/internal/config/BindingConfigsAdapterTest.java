@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.BindingInfoRegistry;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.internal.BindingConfigsAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
@@ -47,8 +48,9 @@ public class BindingConfigsAdapterTest
     @Before
     public void initJson()
     {
+        BindingInfoRegistry bindingInfos = BindingInfoRegistry.instantiate();
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new BindingConfigsAdapter().adaptNamespace("test"));
+                .withAdapters(new BindingConfigsAdapter(bindingInfos).adaptNamespace("test"));
         jsonb = JsonbBuilder.create(config);
     }
 

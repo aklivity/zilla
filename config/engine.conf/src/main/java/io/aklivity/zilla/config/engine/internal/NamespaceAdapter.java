@@ -40,6 +40,7 @@ import io.aklivity.zilla.config.engine.GuardInfoRegistry;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
 import io.aklivity.zilla.config.engine.StoreConfig;
+import io.aklivity.zilla.config.engine.StoreInfoRegistry;
 import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 
@@ -62,13 +63,13 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
 
     public NamespaceAdapter()
     {
-        this(null, null, null, null, null);
+        this(null, null, null, null, null, null);
     }
 
     public NamespaceAdapter(
         BindingInfoRegistry bindingInfos)
     {
-        this(bindingInfos, null, null, null, null);
+        this(bindingInfos, null, null, null, null, null);
     }
 
     public NamespaceAdapter(
@@ -76,14 +77,15 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
         CatalogInfoRegistry catalogInfos,
         GuardInfoRegistry guardInfos,
         VaultInfoRegistry vaultInfos,
-        ExporterInfoRegistry exporterInfos)
+        ExporterInfoRegistry exporterInfos,
+        StoreInfoRegistry storeInfos)
     {
         telemetry = new TelemetryAdapter(exporterInfos);
         binding = new BindingConfigsAdapter(bindingInfos);
         guard = new GuardAdapter(guardInfos);
         vault = new VaultAdapter(vaultInfos);
         catalog = new CatalogAdapter(catalogInfos);
-        store = new StoreAdapter();
+        store = new StoreAdapter(storeInfos);
     }
 
     @Override

@@ -56,7 +56,7 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
     public void adaptType(
         String type)
     {
-        OptionsInfo info = infoLookup != null ? infoLookup.apply(type) : null;
+        OptionsInfo info = infoLookup != null && type != null ? infoLookup.apply(type) : null;
         delegate = info != null ? info.options() : delegatesByType.get(type);
     }
 

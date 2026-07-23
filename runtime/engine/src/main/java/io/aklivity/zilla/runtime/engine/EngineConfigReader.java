@@ -48,6 +48,7 @@ import io.aklivity.zilla.config.engine.ExporterInfoRegistry;
 import io.aklivity.zilla.config.engine.GuardInfoRegistry;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigReader;
+import io.aklivity.zilla.config.engine.StoreInfoRegistry;
 import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
@@ -67,6 +68,7 @@ public final class EngineConfigReader
     private final GuardInfoRegistry guardInfos;
     private final VaultInfoRegistry vaultInfos;
     private final ExporterInfoRegistry exporterInfos;
+    private final StoreInfoRegistry storeInfos;
     private final Consumer<String> logger;
 
     public EngineConfigReader(
@@ -78,6 +80,7 @@ public final class EngineConfigReader
         GuardInfoRegistry guardInfos,
         VaultInfoRegistry vaultInfos,
         ExporterInfoRegistry exporterInfos,
+        StoreInfoRegistry storeInfos,
         Consumer<String> logger)
     {
         this.config = config;
@@ -88,6 +91,7 @@ public final class EngineConfigReader
         this.guardInfos = guardInfos;
         this.vaultInfos = vaultInfos;
         this.exporterInfos = exporterInfos;
+        this.storeInfos = storeInfos;
         this.logger = logger;
     }
 
@@ -139,7 +143,7 @@ public final class EngineConfigReader
             }
 
             NamespaceConfigReader namespaces =
-                new NamespaceConfigReader(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos);
+                new NamespaceConfigReader(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos, storeInfos);
 
             EngineConfigBuilder<EngineConfig> builder = EngineConfig.builder();
             for (int configAt : configsAt)

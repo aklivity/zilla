@@ -22,6 +22,7 @@ import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.StoreConfigBuilder;
+import io.aklivity.zilla.config.engine.StoreInfoRegistry;
 
 public class StoreAdapter
 {
@@ -34,7 +35,14 @@ public class StoreAdapter
 
     public StoreAdapter()
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.STORE);
+        this(null);
+    }
+
+    public StoreAdapter(
+        StoreInfoRegistry storeInfos)
+    {
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.STORE,
+            storeInfos != null ? storeInfos::lookup : null);
     }
 
     public void adaptNamespace(

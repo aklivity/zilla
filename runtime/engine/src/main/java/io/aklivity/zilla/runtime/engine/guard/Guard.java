@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
-import java.net.URL;
 import java.util.function.LongFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
@@ -104,14 +103,4 @@ public interface Guard extends Aliasable
     LongObjectBiFunction<String, String> attributor(
         LongToIntFunction indexOf,
         GuardedConfig config);
-
-    /**
-     * Returns a URL pointing to the JSON schema for this guard's configuration options.
-     *
-     * @return the configuration schema URL, or {@code null}
-     */
-    default URL type()
-    {
-        return null;
-    }
 }

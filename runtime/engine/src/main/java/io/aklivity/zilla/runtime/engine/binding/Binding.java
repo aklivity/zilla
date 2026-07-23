@@ -80,17 +80,6 @@ public interface Binding
     }
 
     /**
-     * Returns a URL pointing to the JSON schema for this binding's configuration options, or
-     * {@code null} if no schema is provided.
-     *
-     * @return the configuration schema URL, or {@code null}
-     */
-    default URL type()
-    {
-        return null;
-    }
-
-    /**
      * Returns a URL pointing to a JSON Patch document contributing to the built-in {@code sys:}
      * namespace when this binding is active (e.g. adding a default client binding). Returns
      * {@code null} by default for bindings that have no system-level contribution.

@@ -15,6 +15,7 @@
 module io.aklivity.zilla.runtime.store.memory
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.store.memory;
 
     provides io.aklivity.zilla.runtime.engine.store.StoreFactorySpi
         with io.aklivity.zilla.runtime.store.memory.internal.MemoryStoreFactorySpi;

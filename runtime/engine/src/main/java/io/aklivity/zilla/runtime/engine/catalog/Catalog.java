@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.catalog;
 
-import java.net.URL;
-
 import io.aklivity.zilla.config.engine.factory.Aliasable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
@@ -59,14 +57,4 @@ public interface Catalog extends Aliasable
      */
     CatalogContext supply(
         EngineContext context);
-
-    /**
-     * Returns a URL pointing to the JSON schema for this catalog's configuration options.
-     *
-     * @return the configuration schema URL, or {@code null}
-     */
-    default URL type()
-    {
-        return null;
-    }
 }

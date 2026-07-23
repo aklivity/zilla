@@ -282,7 +282,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-echo.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-fan</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-fan.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -578,6 +588,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>store-memory</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>store-memory.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -34,10 +34,11 @@ public final class NamespaceConfigReader
         CatalogInfoRegistry catalogInfos,
         GuardInfoRegistry guardInfos,
         VaultInfoRegistry vaultInfos,
-        ExporterInfoRegistry exporterInfos)
+        ExporterInfoRegistry exporterInfos,
+        StoreInfoRegistry storeInfos)
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new NamespaceAdapter(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos));
+            .withAdapters(new NamespaceAdapter(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos, storeInfos));
         this.jsonb = JsonbBuilder.newBuilder()
             .withProvider(YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true)))
             .withConfig(config)

@@ -45,16 +45,6 @@ public interface Exporter
     String name();
 
     /**
-     * Returns a URL pointing to the JSON schema for this exporter's configuration options.
-     *
-     * @return the configuration schema URL, or {@code null}
-     */
-    default URL type()
-    {
-        return null;
-    }
-
-    /**
      * Returns a URL pointing to a system-level configuration schema applied engine-wide
      * when this exporter is active (e.g., enabling a Prometheus HTTP listener).
      * Returns {@code null} by default for exporters with no system-level side effects.

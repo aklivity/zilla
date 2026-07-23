@@ -66,6 +66,7 @@ import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigReader;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.StoreConfig;
+import io.aklivity.zilla.config.engine.StoreInfoRegistry;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.config.engine.VaultInfoRegistry;
@@ -95,6 +96,7 @@ public class EngineManager
     private final GuardInfoRegistry guardInfos;
     private final VaultInfoRegistry vaultInfos;
     private final ExporterInfoRegistry exporterInfos;
+    private final StoreInfoRegistry storeInfos;
     private final Function<String, Binding> bindingByType;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
@@ -124,6 +126,7 @@ public class EngineManager
         GuardInfoRegistry guardInfos,
         VaultInfoRegistry vaultInfos,
         ExporterInfoRegistry exporterInfos,
+        StoreInfoRegistry storeInfos,
         Function<String, Binding> bindingByType,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
@@ -145,6 +148,7 @@ public class EngineManager
         this.guardInfos = guardInfos;
         this.vaultInfos = vaultInfos;
         this.exporterInfos = exporterInfos;
+        this.storeInfos = storeInfos;
         this.bindingByType = bindingByType;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
@@ -316,12 +320,12 @@ public class EngineManager
 
             if (!systemPatched.equals(systemBase))
             {
-                NamespaceConfigReader namespaces =
-                    new NamespaceConfigReader(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos);
+                NamespaceConfigReader namespaces = new NamespaceConfigReader(
+                    bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos, storeInfos);
                 NamespaceConfig namespace = namespaces.read(systemPatched.toString());
 
                 EngineConfigWriter writer = new EngineConfigWriter(
-                    bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos);
+                    bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos, storeInfos);
                 systemYaml = writer.write(namespace);
             }
         }
@@ -349,6 +353,7 @@ public class EngineManager
                 guardInfos,
                 vaultInfos,
                 exporterInfos,
+                storeInfos,
                 logger);
 
             engine = reader.read(configText);

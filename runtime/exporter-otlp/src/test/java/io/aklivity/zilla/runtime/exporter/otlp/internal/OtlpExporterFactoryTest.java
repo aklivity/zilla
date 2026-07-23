@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -44,7 +43,6 @@ public class OtlpExporterFactoryTest
         // THEN
         assertThat(exporter, instanceOf(OtlpExporter.class));
         assertThat(exporter.name(), equalTo("otlp"));
-        assertThat(exporter.type(), nullValue());
         assertThat(context, instanceOf(ExporterContext.class));
     }
 }

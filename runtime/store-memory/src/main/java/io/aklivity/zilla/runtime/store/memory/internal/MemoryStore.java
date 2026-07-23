@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.store.memory.internal;
 
-import java.net.URL;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -54,12 +53,6 @@ final class MemoryStore implements Store
             this::supplyLocks,
             this::releaseEntries,
             context::dispatch);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/memory.schema.patch.json");
     }
 
     private ConcurrentMap<String, MemoryEntry> acquireEntries(
