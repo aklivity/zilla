@@ -12,19 +12,18 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.internal.config;
+package io.aklivity.zilla.config.binding.mcp.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.mcp.McpWithCacheConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.McpWithConfig;
+import io.aklivity.zilla.config.binding.mcp.McpWithConfigBuilder;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpWithCacheConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mcp.internal.McpBinding;
 
 public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
@@ -34,7 +33,7 @@ public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
     @Override
     public String type()
     {
-        return McpBinding.TYPE;
+        return McpBindingInfo.TYPE;
     }
 
     @Override

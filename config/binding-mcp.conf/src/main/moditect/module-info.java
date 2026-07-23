@@ -25,6 +25,9 @@ module io.aklivity.zilla.config.binding.mcp
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.mcp.internal.McpBindingInfo;
 
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
+        with io.aklivity.zilla.config.binding.mcp.internal.McpWithConfigAdapter;
+
     provides io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfigAdapterSpi
         with io.aklivity.zilla.config.binding.mcp.internal.McpKeywordToolSearchIndexConfigAdapterSpi;
 }

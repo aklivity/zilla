@@ -22,4 +22,7 @@ module io.aklivity.zilla.config.binding.mcp.openapi
 
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.mcp.openapi.internal.McpOpenapiBindingInfo;
+
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
+        with io.aklivity.zilla.config.binding.mcp.openapi.internal.McpOpenapiWithConfigAdapter;
 }

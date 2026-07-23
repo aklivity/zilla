@@ -12,12 +12,11 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.http.config;
+package io.aklivity.zilla.config.binding.mcp.http;
 
 import java.util.Map;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.binding.mcp.http.McpHttpBodyConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 

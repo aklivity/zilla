@@ -12,30 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.mcp.config;
+package io.aklivity.zilla.config.binding.mcp;
+
+import static java.util.function.Function.identity;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.WithConfig;
-
-public final class McpWithConfig extends WithConfig
+public final class McpWithCacheConfig
 {
-    public final McpWithCacheConfig cache;
+    public final String credentials;
 
-    public McpWithConfig(
-        McpWithCacheConfig cache)
+    McpWithCacheConfig(
+        String credentials)
     {
-        this.cache = cache;
+        this.credentials = credentials;
     }
 
-    public static McpWithConfigBuilder<McpWithConfig> builder()
+    public static McpWithCacheConfigBuilder<McpWithCacheConfig> builder()
     {
-        return new McpWithConfigBuilder<>(McpWithConfig.class::cast);
+        return new McpWithCacheConfigBuilder<>(identity());
     }
 
-    public static <T> McpWithConfigBuilder<T> builder(
-        Function<WithConfig, T> mapper)
+    public static <T> McpWithCacheConfigBuilder<T> builder(
+        Function<McpWithCacheConfig, T> mapper)
     {
-        return new McpWithConfigBuilder<>(mapper);
+        return new McpWithCacheConfigBuilder<>(mapper);
     }
 }

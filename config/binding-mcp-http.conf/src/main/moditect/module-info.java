@@ -22,4 +22,7 @@ module io.aklivity.zilla.config.binding.mcp.http
 
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.mcp.http.internal.McpHttpBindingInfo;
+
+    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
+        with io.aklivity.zilla.config.binding.mcp.http.internal.McpHttpWithConfigAdapter;
 }

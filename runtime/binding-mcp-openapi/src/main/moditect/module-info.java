@@ -25,13 +25,8 @@ module io.aklivity.zilla.runtime.binding.mcp.openapi
     requires io.aklivity.zilla.runtime.catalog.inline;
     requires io.aklivity.zilla.config.model.json;
 
-    exports io.aklivity.zilla.runtime.binding.mcp.openapi.config;
-
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiBindingFactorySpi;
-
-    provides io.aklivity.zilla.config.engine.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiWithConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.event.McpOpenapiEventFormatterFactory;
