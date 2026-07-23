@@ -39,6 +39,15 @@ public class KafkaApiIT
 
     @Test
     @Specification({
+        "${app}/api.versions.v0/client",
+        "${app}/api.versions.v0/server"})
+    public void shouldApiVersionsV0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.topics.v3/client",
         "${app}/create.topics.v3/server"})
     public void shouldCreateTopicsV3() throws Exception
@@ -57,45 +66,18 @@ public class KafkaApiIT
 
     @Test
     @Specification({
-        "${app}/create.topics.v3.unsupported.version/client",
-        "${app}/create.topics.v3.unsupported.version/server"})
-    public void shouldCreateTopicsV3UnsupportedVersion() throws Exception
+        "${app}/create.topics.v3.reuse.connection/client",
+        "${app}/create.topics.v3.reuse.connection/server"})
+    public void shouldCreateTopicsV3ReuseConnection() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/create.topics.v3.reused.connection/client",
-        "${app}/create.topics.v3.reused.connection/server"})
-    public void shouldCreateTopicsV3ReusedConnection() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.explicit.api.versions/client",
-        "${app}/create.topics.v3.explicit.api.versions/server"})
-    public void shouldCreateTopicsV3ExplicitApiVersions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.unsupported.version.reactive/client",
-        "${app}/create.topics.v3.unsupported.version.reactive/server"})
+        "${app}/create.topics.v3.unsupported/client",
+        "${app}/create.topics.v3.unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/create.topics.v3.reconnect/client",
-        "${app}/create.topics.v3.reconnect/server"})
-    public void shouldCreateTopicsV3Reconnect() throws Exception
     {
         k3po.finish();
     }

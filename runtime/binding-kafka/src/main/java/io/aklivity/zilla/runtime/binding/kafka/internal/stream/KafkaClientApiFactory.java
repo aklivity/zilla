@@ -852,7 +852,14 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .error(error)
                 .build();
 
-            doAppReset(traceId, kafkaResetEx);
+            cleanupApp(traceId, kafkaResetEx);
+        }
+
+        private void cleanupApp(
+            long traceId,
+            Flyweight extension)
+        {
+            doAppReset(traceId, extension);
             doAppAbort(traceId);
 
             cleanupEncodeSlot();
@@ -1222,7 +1229,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             apiVersionRangeByApiKey.clear();
 
             cleanupDecodeSlot();
-            failActive(traceId, ERROR_NONE);
+            cleanupAppActive(traceId, EMPTY_OCTETS);
 
             doNetSignalReconnect(traceId);
         }
@@ -1575,7 +1582,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (errorCode != ERROR_NONE)
             {
-                cleanupNetHard(traceId);
+                cleanupNetPending(traceId, errorCode);
             }
             else
             {
@@ -1755,20 +1762,9 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
         }
 
-        private void failPending(
+        private void cleanupAppActive(
             long traceId,
-            int error)
-        {
-            KafkaApiStream stream;
-            while ((stream = pending.poll()) != null)
-            {
-                stream.cleanupApp(traceId, error);
-            }
-        }
-
-        private void failActive(
-            long traceId,
-            int error)
+            Flyweight extension)
         {
             if (requestInFlight)
             {
@@ -1777,7 +1773,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 final KafkaApiStream head = pending.poll();
                 if (head != null)
                 {
-                    head.cleanupApp(traceId, error);
+                    head.cleanupApp(traceId, extension);
                 }
             }
         }
@@ -1820,8 +1816,9 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
         }
 
-        private void cleanupNetHard(
-            long traceId)
+        private void cleanupNetPending(
+            long traceId,
+            int error)
         {
             doNetReset(traceId);
             doNetAbort(traceId);
@@ -1830,7 +1827,16 @@ public final class KafkaClientApiFactory implements BindingHandler
             apiVersionRangeByApiKey.clear();
             apiVersionsRequestExplicit = false;
 
-            failPending(traceId, ERROR_NONE);
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .error(error)
+                .build();
+
+            KafkaApiStream stream;
+            while ((stream = pending.poll()) != null)
+            {
+                stream.cleanupApp(traceId, kafkaResetEx);
+            }
         }
 
         private void cleanupNet(
@@ -1842,7 +1848,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             apiVersionsResolved = false;
             apiVersionRangeByApiKey.clear();
 
-            failActive(traceId, ERROR_NONE);
+            cleanupAppActive(traceId, EMPTY_OCTETS);
             doNetSignalReconnect(traceId);
         }
 
