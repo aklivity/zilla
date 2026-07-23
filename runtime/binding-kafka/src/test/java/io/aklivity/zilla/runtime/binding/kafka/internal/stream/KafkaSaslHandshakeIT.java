@@ -51,7 +51,7 @@ public class KafkaSaslHandshakeIT
     @Configuration("client.yaml")
     @Specification({
         "${app}/sasl.handshake.v1/client",
-        "${net}/handshake/server"})
+        "${net}/sasl.handshake/server"})
     public void shouldHandshakeSaslPlain() throws Exception
     {
         k3po.finish();
@@ -61,7 +61,7 @@ public class KafkaSaslHandshakeIT
     @Configuration("client.guard.yaml")
     @Specification({
         "${app}/create.topics.v3/client",
-        "${net}/authenticated/server"})
+        "${net}/create.topics.authenticated/server"})
     public void shouldAuthenticateImplicitlyWhenGuardConfigured() throws Exception
     {
         k3po.finish();
@@ -71,7 +71,7 @@ public class KafkaSaslHandshakeIT
     @Configuration("client.guard.yaml")
     @Specification({
         "${app}/sasl.handshake.v1.rejected/client",
-        "${net}/versions/server"})
+        "${net}/api.versions/server"})
     public void shouldRejectSaslHandshakeV1WhenGuardConfigured() throws Exception
     {
         k3po.finish();
