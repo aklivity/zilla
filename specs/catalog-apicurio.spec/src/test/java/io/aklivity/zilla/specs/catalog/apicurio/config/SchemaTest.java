@@ -29,7 +29,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/config/catalog/apicurio/schema/apicurio.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/catalog/apicurio/internal/schema/apicurio.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/catalog/apicurio/config");
 
     @Test

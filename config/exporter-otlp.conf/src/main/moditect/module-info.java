@@ -16,11 +16,10 @@ module io.aklivity.zilla.config.exporter.otlp
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.exporter.otlp;
 
     provides io.aklivity.zilla.config.engine.ExporterInfo
-        with io.aklivity.zilla.config.exporter.otlp.OtlpExporterInfo;
+        with io.aklivity.zilla.config.exporter.otlp.internal.OtlpExporterInfo;
 }

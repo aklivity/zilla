@@ -16,9 +16,8 @@ module io.aklivity.zilla.config.binding.sse.kafka
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
     exports io.aklivity.zilla.config.binding.sse.kafka;
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.sse.kafka.SseKafkaBindingInfo;
+        with io.aklivity.zilla.config.binding.sse.kafka.internal.SseKafkaBindingInfo;
 }

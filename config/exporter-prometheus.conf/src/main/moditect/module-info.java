@@ -21,5 +21,5 @@ module io.aklivity.zilla.config.exporter.prometheus
     exports io.aklivity.zilla.config.exporter.prometheus;
 
     provides io.aklivity.zilla.config.engine.ExporterInfo
-        with io.aklivity.zilla.config.exporter.prometheus.PrometheusExporterInfo;
+        with io.aklivity.zilla.config.exporter.prometheus.internal.PrometheusExporterInfo;
 }

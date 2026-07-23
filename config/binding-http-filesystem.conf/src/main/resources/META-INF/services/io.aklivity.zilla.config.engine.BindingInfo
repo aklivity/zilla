@@ -1,1 +1,1 @@
-io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemBindingInfo
+io.aklivity.zilla.config.binding.http.filesystem.internal.HttpFileSystemBindingInfo

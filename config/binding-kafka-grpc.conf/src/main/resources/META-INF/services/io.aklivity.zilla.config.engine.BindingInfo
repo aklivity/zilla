@@ -1,1 +1,1 @@
-io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcBindingInfo
+io.aklivity.zilla.config.binding.kafka.grpc.internal.KafkaGrpcBindingInfo

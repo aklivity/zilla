@@ -16,11 +16,10 @@ module io.aklivity.zilla.config.catalog.apicurio
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.catalog.apicurio;
 
     provides io.aklivity.zilla.config.engine.CatalogInfo
-        with io.aklivity.zilla.config.catalog.apicurio.ApicurioCatalogInfo;
+        with io.aklivity.zilla.config.catalog.apicurio.internal.ApicurioCatalogInfo;
 }

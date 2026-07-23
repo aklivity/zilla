@@ -16,7 +16,6 @@ module io.aklivity.zilla.config.model.protobuf
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.model.protobuf;
@@ -25,5 +24,5 @@ module io.aklivity.zilla.config.model.protobuf
         with io.aklivity.zilla.config.model.protobuf.internal.ProtobufModelConfigAdapter;
 
     provides io.aklivity.zilla.config.engine.ModelInfo
-        with io.aklivity.zilla.config.model.protobuf.ProtobufModelInfo;
+        with io.aklivity.zilla.config.model.protobuf.internal.ProtobufModelInfo;
 }

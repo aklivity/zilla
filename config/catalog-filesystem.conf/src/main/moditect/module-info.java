@@ -16,11 +16,10 @@ module io.aklivity.zilla.config.catalog.filesystem
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.catalog.filesystem;
 
     provides io.aklivity.zilla.config.engine.CatalogInfo
-        with io.aklivity.zilla.config.catalog.filesystem.FilesystemCatalogInfo;
+        with io.aklivity.zilla.config.catalog.filesystem.internal.FilesystemCatalogInfo;
 }

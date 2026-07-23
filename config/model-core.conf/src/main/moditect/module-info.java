@@ -16,7 +16,6 @@ module io.aklivity.zilla.config.model.core
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.model.core;
@@ -30,10 +29,10 @@ module io.aklivity.zilla.config.model.core
             io.aklivity.zilla.config.model.core.internal.StringModelConfigAdapter;
 
     provides io.aklivity.zilla.config.engine.ModelInfo
-        with io.aklivity.zilla.config.model.core.BooleanModelInfo,
-            io.aklivity.zilla.config.model.core.DoubleModelInfo,
-            io.aklivity.zilla.config.model.core.FloatModelInfo,
-            io.aklivity.zilla.config.model.core.Int32ModelInfo,
-            io.aklivity.zilla.config.model.core.Int64ModelInfo,
-            io.aklivity.zilla.config.model.core.StringModelInfo;
+        with io.aklivity.zilla.config.model.core.internal.BooleanModelInfo,
+            io.aklivity.zilla.config.model.core.internal.DoubleModelInfo,
+            io.aklivity.zilla.config.model.core.internal.FloatModelInfo,
+            io.aklivity.zilla.config.model.core.internal.Int32ModelInfo,
+            io.aklivity.zilla.config.model.core.internal.Int64ModelInfo,
+            io.aklivity.zilla.config.model.core.internal.StringModelInfo;
 }

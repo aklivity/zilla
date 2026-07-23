@@ -16,12 +16,11 @@ module io.aklivity.zilla.config.binding.mcp.kafka
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
     requires transitive io.aklivity.zilla.config.binding.kafka;
 
     exports io.aklivity.zilla.config.binding.mcp.kafka;
 
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaBindingInfo;
+        with io.aklivity.zilla.config.binding.mcp.kafka.internal.McpKafkaBindingInfo;
 }

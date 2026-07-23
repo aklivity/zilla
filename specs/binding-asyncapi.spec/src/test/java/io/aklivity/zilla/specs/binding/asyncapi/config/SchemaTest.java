@@ -37,7 +37,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/config/binding/kafka/schema/kafka.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/config/binding/http/schema/http.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/config/binding/mqtt/schema/mqtt.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/config/binding/mqtt/kafka/schema/mqtt.kafka.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/binding/mqtt/kafka/internal/schema/mqtt.kafka.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")

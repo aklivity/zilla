@@ -16,7 +16,6 @@ module io.aklivity.zilla.config.binding.mcp
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.binding.mcp;
@@ -24,7 +23,7 @@ module io.aklivity.zilla.config.binding.mcp
     uses io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfigAdapterSpi;
 
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.mcp.McpBindingInfo;
+        with io.aklivity.zilla.config.binding.mcp.internal.McpBindingInfo;
 
     provides io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfigAdapterSpi
         with io.aklivity.zilla.config.binding.mcp.internal.McpKeywordToolSearchIndexConfigAdapterSpi;

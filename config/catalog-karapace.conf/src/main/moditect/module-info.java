@@ -16,12 +16,11 @@ module io.aklivity.zilla.config.catalog.karapace
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
     requires transitive io.aklivity.zilla.config.catalog.schema.registry;
 
     exports io.aklivity.zilla.config.catalog.karapace;
 
     provides io.aklivity.zilla.config.engine.CatalogInfo
-        with io.aklivity.zilla.config.catalog.karapace.KarapaceCatalogInfo;
+        with io.aklivity.zilla.config.catalog.karapace.internal.KarapaceCatalogInfo;
 }

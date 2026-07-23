@@ -20,5 +20,5 @@ module io.aklivity.zilla.config.binding.grpc
     requires io.aklivity.zilla.config.engine;
     exports io.aklivity.zilla.config.binding.grpc;
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.grpc.GrpcBindingInfo;
+        with io.aklivity.zilla.config.binding.grpc.internal.GrpcBindingInfo;
 }

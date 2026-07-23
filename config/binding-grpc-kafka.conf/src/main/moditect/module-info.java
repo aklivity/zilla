@@ -22,5 +22,5 @@ module io.aklivity.zilla.config.binding.grpc.kafka
     exports io.aklivity.zilla.config.binding.grpc.kafka;
 
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaBindingInfo;
+        with io.aklivity.zilla.config.binding.grpc.kafka.internal.GrpcKafkaBindingInfo;
 }

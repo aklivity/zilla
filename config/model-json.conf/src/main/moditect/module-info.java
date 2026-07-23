@@ -16,7 +16,6 @@ module io.aklivity.zilla.config.model.json
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.model.json;
@@ -25,5 +24,5 @@ module io.aklivity.zilla.config.model.json
         with io.aklivity.zilla.config.model.json.internal.JsonModelConfigAdapter;
 
     provides io.aklivity.zilla.config.engine.ModelInfo
-        with io.aklivity.zilla.config.model.json.JsonModelInfo;
+        with io.aklivity.zilla.config.model.json.internal.JsonModelInfo;
 }

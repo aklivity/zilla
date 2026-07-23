@@ -16,9 +16,8 @@ module io.aklivity.zilla.config.binding.http.filesystem
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
     exports io.aklivity.zilla.config.binding.http.filesystem;
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemBindingInfo;
+        with io.aklivity.zilla.config.binding.http.filesystem.internal.HttpFileSystemBindingInfo;
 }

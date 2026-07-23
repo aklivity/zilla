@@ -34,7 +34,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/config/guard/jwt/schema/jwt.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/guard/jwt/internal/schema/jwt.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/guard/jwt/config");
 
     @Test

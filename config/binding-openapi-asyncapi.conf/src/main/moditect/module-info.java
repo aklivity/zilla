@@ -16,7 +16,6 @@ module io.aklivity.zilla.config.binding.openapi.asyncapi
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
     requires io.aklivity.zilla.runtime.common.asyncapi;
     requires io.aklivity.zilla.runtime.common.openapi;

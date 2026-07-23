@@ -16,7 +16,6 @@ module io.aklivity.zilla.config.model.avro
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.model.avro;
@@ -25,5 +24,5 @@ module io.aklivity.zilla.config.model.avro
         with io.aklivity.zilla.config.model.avro.internal.AvroModelConfigAdapter;
 
     provides io.aklivity.zilla.config.engine.ModelInfo
-        with io.aklivity.zilla.config.model.avro.AvroModelInfo;
+        with io.aklivity.zilla.config.model.avro.internal.AvroModelInfo;
 }

@@ -16,7 +16,6 @@ module io.aklivity.zilla.config.binding.mqtt
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.binding.mqtt;

@@ -16,11 +16,10 @@ module io.aklivity.zilla.config.catalog.inline
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.catalog.inline;
 
     provides io.aklivity.zilla.config.engine.CatalogInfo
-        with io.aklivity.zilla.config.catalog.inline.InlineCatalogInfo;
+        with io.aklivity.zilla.config.catalog.inline.internal.InlineCatalogInfo;
 }

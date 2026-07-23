@@ -16,11 +16,10 @@ module io.aklivity.zilla.config.binding.mcp.openapi
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.binding.mcp.openapi;
 
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingInfo;
+        with io.aklivity.zilla.config.binding.mcp.openapi.internal.McpOpenapiBindingInfo;
 }

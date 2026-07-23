@@ -16,11 +16,10 @@ module io.aklivity.zilla.config.guard.jwt
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.guard.jwt;
 
     provides io.aklivity.zilla.config.engine.GuardInfo
-        with io.aklivity.zilla.config.guard.jwt.JwtGuardInfo;
+        with io.aklivity.zilla.config.guard.jwt.internal.JwtGuardInfo;
 }

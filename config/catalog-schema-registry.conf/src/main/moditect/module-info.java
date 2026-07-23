@@ -16,11 +16,10 @@ module io.aklivity.zilla.config.catalog.schema.registry
 {
     requires jakarta.json;
     requires jakarta.json.bind;
-    requires org.agrona;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.catalog.schema.registry;
 
     provides io.aklivity.zilla.config.engine.CatalogInfo
-        with io.aklivity.zilla.config.catalog.schema.registry.SchemaRegistryCatalogInfo;
+        with io.aklivity.zilla.config.catalog.schema.registry.internal.SchemaRegistryCatalogInfo;
 }
