@@ -791,17 +791,13 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppAbort(
             long traceId)
         {
-            if (!TcpState.replyOpening(state) &&
+            if (TcpState.replyOpening(state) &&
                 !TcpState.replyClosed(state))
             {
-                doAppBegin(traceId, null, null);
+                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
             }
 
-            if (!TcpState.replyClosed(state))
-            {
-                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
-                state = TcpState.closeReply(state);
-            }
+            state = TcpState.closeReply(state);
         }
 
         private void cleanup(
