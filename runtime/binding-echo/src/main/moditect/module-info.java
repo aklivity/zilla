@@ -16,6 +16,7 @@
 module io.aklivity.zilla.runtime.binding.echo
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.binding.echo;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.echo.internal.EchoBindingFactorySpi;

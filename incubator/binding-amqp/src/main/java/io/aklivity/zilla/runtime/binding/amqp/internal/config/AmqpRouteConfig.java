@@ -21,8 +21,8 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.binding.amqp.AmqpConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.binding.amqp.config.AmqpConditionConfig;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.AmqpCapabilities;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 

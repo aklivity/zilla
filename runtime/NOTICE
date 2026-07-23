@@ -21,6 +21,8 @@ This project includes:
   jose4j under The Apache Software License, Version 2.0
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   zilla::config::binding-asyncapi.conf under Aklivity Community License Agreement
+  zilla::config::binding-echo.conf under Aklivity Community License Agreement
+  zilla::config::binding-fan.conf under Aklivity Community License Agreement
   zilla::config::binding-filesystem.conf under Aklivity Community License Agreement
   zilla::config::binding-grpc-kafka.conf under Aklivity Community License Agreement
   zilla::config::binding-grpc.conf under Aklivity Community License Agreement

@@ -16,9 +16,9 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.binding.risingwave.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.CreateFunction;
 import io.aklivity.zilla.runtime.binding.pgsql.parser.model.FunctionArgument;
-import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.stream.RisingwaveCompletionCommand;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.types.stream.PgsqlFlushExFW;
 

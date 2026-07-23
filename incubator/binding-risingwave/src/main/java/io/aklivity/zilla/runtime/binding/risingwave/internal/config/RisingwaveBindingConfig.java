@@ -19,11 +19,11 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.LongFunction;
 
+import io.aklivity.zilla.config.binding.risingwave.RisingwaveOptionsConfig;
+import io.aklivity.zilla.config.binding.risingwave.RisingwaveUdfConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveOptionsConfig;
-import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveUdfConfig;
 import io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveConfiguration;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;

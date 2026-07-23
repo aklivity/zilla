@@ -29,7 +29,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/binding/risingwave/schema/risingwave.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/binding/risingwave/internal/schema/risingwave.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/risingwave/config");

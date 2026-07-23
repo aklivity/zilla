@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.echo.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
@@ -36,12 +34,6 @@ final class EchoBinding implements Binding
     public String name()
     {
         return EchoBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/echo.schema.patch.json");
     }
 
     @Override
