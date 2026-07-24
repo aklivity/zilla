@@ -33,6 +33,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -468,7 +469,8 @@ public class TlsWorker implements EngineContext
         Metric.Kind kind,
         long bindingId,
         int metricId,
-        int attributesId)
+        int attributesId,
+        KindConfig bindingKind)
     {
         return null;
     }

@@ -16,11 +16,9 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal;
 
 import java.util.List;
 import java.util.SortedSet;
-import java.util.function.LongFunction;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.config.engine.ExporterConfig;
-import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
@@ -49,8 +47,7 @@ public class StdoutExporterContext implements ExporterContext
     public ExporterHandler attach(
         ExporterConfig exporter,
         List<AttributeConfig> attributes,
-        Collector collector,
-        LongFunction<KindConfig> resolveKind)
+        Collector collector)
     {
         StdoutExporterConfig stdoutExporter = new StdoutExporterConfig(exporter);
         return new StdoutExporterHandler(config, this, stdoutExporter);

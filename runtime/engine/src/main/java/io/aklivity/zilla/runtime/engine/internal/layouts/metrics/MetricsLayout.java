@@ -30,11 +30,15 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 
 public abstract class MetricsLayout implements AutoCloseable
 {
+    public static final int NO_KIND = -1;
+
     // Record key: long bindingId (8 bytes) + int metricId (4 bytes) + int attributesId (4 bytes)
+    //           + long bindingKind (8 bytes, captured once at record-creation time)
     protected static final int BINDING_ID_OFFSET = 0;
     protected static final int METRIC_ID_OFFSET = BitUtil.SIZE_OF_LONG;
     protected static final int ATTRIBUTES_ID_OFFSET = BitUtil.SIZE_OF_LONG + BitUtil.SIZE_OF_INT;
-    protected static final int VALUE_OFFSET = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT;
+    protected static final int KIND_OFFSET = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT;
+    protected static final int VALUE_OFFSET = KIND_OFFSET + BitUtil.SIZE_OF_LONG;
     protected static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
     protected static final int NOT_FOUND = -1;
 
@@ -63,21 +67,23 @@ public abstract class MetricsLayout implements AutoCloseable
         int metricId,
         int attributesId)
     {
-        return findPosition(bindingId, metricId, attributesId, false);
+        return findPosition(bindingId, metricId, attributesId, NO_KIND, false);
     }
 
     protected int findOrSetPosition(
         long bindingId,
         int metricId,
-        int attributesId)
+        int attributesId,
+        int kind)
     {
-        return findPosition(bindingId, metricId, attributesId, true);
+        return findPosition(bindingId, metricId, attributesId, kind, true);
     }
 
     private int findPosition(
         long bindingId,
         int metricId,
         int attributesId,
+        int kind,
         boolean createIfEmpty)
     {
         int pos = 0;
@@ -95,7 +101,7 @@ public abstract class MetricsLayout implements AutoCloseable
             {
                 if (createIfEmpty)
                 {
-                    createRecord(bindingId, metricId, attributesId, pos);
+                    createRecord(bindingId, metricId, attributesId, kind, pos);
                 }
                 else
                 {
@@ -117,10 +123,19 @@ public abstract class MetricsLayout implements AutoCloseable
         return metricId == 0;
     }
 
+    public LongConsumer supplyWriter(
+        long bindingId,
+        int metricId,
+        int attributesId)
+    {
+        return supplyWriter(bindingId, metricId, attributesId, NO_KIND);
+    }
+
     public abstract LongConsumer supplyWriter(
         long bindingId,
         int metricId,
-        int attributesId);
+        int attributesId,
+        int kind);
 
     public abstract LongSupplier supplyReader(
         long bindingId,
@@ -136,6 +151,7 @@ public abstract class MetricsLayout implements AutoCloseable
         long bindingId,
         int metricId,
         int attributesId,
+        int kind,
         int index);
 
     protected abstract int recordSize();
@@ -166,8 +182,9 @@ public abstract class MetricsLayout implements AutoCloseable
             long bindingId = buffer.getLong(index + BINDING_ID_OFFSET);
             long metricId = buffer.getInt(index + METRIC_ID_OFFSET);
             long attributesId = buffer.getInt(index + ATTRIBUTES_ID_OFFSET);
+            long kind = buffer.getLong(index + KIND_OFFSET);
             index += recordSize();
-            return new long[]{bindingId, metricId, attributesId};
+            return new long[]{bindingId, metricId, attributesId, kind};
         }
     }
 }

@@ -16,11 +16,9 @@
 package io.aklivity.zilla.runtime.engine.exporter;
 
 import java.util.List;
-import java.util.function.LongFunction;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.config.engine.ExporterConfig;
-import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 
 /**
@@ -39,21 +37,19 @@ public interface ExporterContext
     /**
      * Attaches an exporter configuration and returns a handler that will drive the export cycle.
      * <p>
-     * The {@code collector} provides access to the current metric values. The {@code resolveKind}
-     * function maps a binding id to its {@link KindConfig}, used to label exported metrics.
+     * The {@code collector} provides access to the current metric values, including the binding
+     * kind captured at record-creation time for metrics tied to a binding.
      * </p>
      *
      * @param config       the exporter configuration
      * @param attributes   the set of engine-level attributes to include as metric labels
      * @param collector    the metric value source to read from during export
-     * @param resolveKind  function mapping a binding id to its {@link KindConfig}
      * @return a new {@link ExporterHandler} that drives the export cycle for this configuration
      */
     ExporterHandler attach(
         ExporterConfig config,
         List<AttributeConfig> attributes,
-        Collector collector,
-        LongFunction<KindConfig> resolveKind);
+        Collector collector);
 
     /**
      * Detaches a previously attached exporter, releasing any associated resources.

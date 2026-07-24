@@ -15,11 +15,9 @@
 package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 
 import java.util.List;
-import java.util.function.LongFunction;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.config.engine.ExporterConfig;
-import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
@@ -44,8 +42,7 @@ public class PrometheusExporterContext implements ExporterContext
     public ExporterHandler attach(
         ExporterConfig exporter,
         List<AttributeConfig> attributes,
-        Collector collector,
-        LongFunction<KindConfig> resolveKind)
+        Collector collector)
     {
         PrometheusExporterConfig prometheusExporter = new PrometheusExporterConfig(exporter);
         return new PrometheusExporterHandler(config, context, prometheusExporter, collector);

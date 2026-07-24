@@ -93,6 +93,7 @@ import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.EngineConfigWriter;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.RouterConfig;
@@ -141,6 +142,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCapacityMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCountMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageMetric;
@@ -172,7 +174,6 @@ import io.aklivity.zilla.runtime.engine.router.RouterContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
-import io.aklivity.zilla.runtime.engine.util.function.LongIntIntFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -203,7 +204,6 @@ public class EngineWorker implements EngineContext, Agent
     private final String agentName;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
-    private final Object2ObjectHashMap<Metric.Kind, LongIntIntFunction<LongConsumer>> metricWriterSuppliers;
     private final Collection<Binding> bindings;
     private final Collection<Exporter> exporters;
     private final Collection<Guard> guards;
@@ -351,11 +351,6 @@ public class EngineWorker implements EngineContext, Agent
                 .capacity(config.countersBufferCapacity())
                 .readonly(readonly)
                 .build();
-
-        metricWriterSuppliers = new Object2ObjectHashMap<>();
-        metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
-        metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
-        metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
@@ -828,7 +823,7 @@ public class EngineWorker implements EngineContext, Agent
     {
         final int metricId = labels.supplyLabelId(EngineWorkersUsageMetric.NAME);
 
-        return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId, 0);
+        return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId, 0, null);
     }
 
     @Override
@@ -1061,7 +1056,7 @@ public class EngineWorker implements EngineContext, Agent
         if (!readonly)
         {
             int workersMetricId = labels.supplyLabelId(EngineWorkersCountMetric.NAME);
-            LongConsumer recordCount = supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, workersMetricId, 0);
+            LongConsumer recordCount = supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, workersMetricId, 0, null);
 
             int capacityMetricId = labels.supplyLabelId(EngineWorkersCapacityMetric.NAME);
             LongConsumer recordCapacity = supplyGaugeWriter(capacityMetricId);
@@ -2042,9 +2037,16 @@ public class EngineWorker implements EngineContext, Agent
         Metric.Kind kind,
         long bindingId,
         int metricId,
-        int attributesId)
+        int attributesId,
+        KindConfig bindingKind)
     {
-        return metricWriterSuppliers.get(kind).apply(bindingId, metricId, attributesId);
+        int bindingKindId = bindingKind == null ? MetricsLayout.NO_KIND : bindingKind.ordinal();
+        return switch (kind)
+        {
+        case COUNTER -> countersLayout.supplyWriter(bindingId, metricId, attributesId, bindingKindId);
+        case GAUGE -> gaugesLayout.supplyWriter(bindingId, metricId, attributesId, bindingKindId);
+        case HISTOGRAM -> histogramsLayout.supplyWriter(bindingId, metricId, attributesId, bindingKindId);
+        };
     }
 
     public EventWriter eventWriter()

@@ -16,23 +16,25 @@
 package io.aklivity.zilla.runtime.engine.util.function;
 
 /**
- * A function that accepts an object, a primitive {@code long}, and two primitive {@code int} arguments
- * and produces a result, avoiding boxing overhead for the numeric arguments.
+ * A function that accepts an object, a primitive {@code long}, two primitive {@code int} arguments,
+ * and a second object, and produces a result, avoiding boxing overhead for the numeric arguments.
  *
- * @param <T>  the type of the object argument
+ * @param <T>  the type of the first object argument
+ * @param <U>  the type of the second object argument
  * @param <R>  the result type
  */
 @FunctionalInterface
-public interface ObjectLongIntIntFunction<T, R>
+public interface ObjectLongIntIntObjectFunction<T, U, R>
 {
     /**
      * Applies this function to the given arguments.
      *
-     * @param object  the object argument
-     * @param value1  the {@code long} argument
-     * @param value2  the first {@code int} argument
-     * @param value3  the second {@code int} argument
+     * @param object1  the first object argument
+     * @param value1   the {@code long} argument
+     * @param value2   the first {@code int} argument
+     * @param value3   the second {@code int} argument
+     * @param object2  the second object argument
      * @return the result
      */
-    R apply(T object, long value1, int value2, int value3);
+    R apply(T object1, long value1, int value2, int value3, U object2);
 }

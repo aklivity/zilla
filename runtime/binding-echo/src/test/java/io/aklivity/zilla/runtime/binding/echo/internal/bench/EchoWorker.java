@@ -23,6 +23,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -399,7 +400,8 @@ public class EchoWorker implements EngineContext
         Metric.Kind kind,
         long bindingId,
         int metricId,
-        int attributesId)
+        int attributesId,
+        KindConfig bindingKind)
     {
         return null;
     }

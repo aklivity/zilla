@@ -225,7 +225,7 @@ final class TestBindingFactory implements BindingHandler
                     int attributesId = 0;
 
                     LongConsumer writer = context.supplyMetricWriter(Metric.Kind.valueOf(metric.kind.toUpperCase()),
-                        binding.id, metricId, attributesId);
+                        binding.id, metricId, attributesId, null);
 
                     writer.accept(metric.values[context.index()]);
                 }

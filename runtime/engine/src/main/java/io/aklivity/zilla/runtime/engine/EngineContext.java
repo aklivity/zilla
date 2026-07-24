@@ -23,6 +23,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -580,13 +581,17 @@ public interface EngineContext
      * @param bindingId     the namespaced binding id
      * @param metricId      the metric label id
      * @param attributesId  the attributes label id encoding user-defined dimensions
+     * @param bindingKind   the binding's own kind (server, client, etc.), captured once at record-creation
+     *                      time so it remains available even if the binding's namespace is later detached
+     *                      or replaced; {@code null} when the metric is not tied to a specific binding
      * @return a consumer that records metric values
      */
     LongConsumer supplyMetricWriter(
         Metric.Kind kind,
         long bindingId,
         int metricId,
-        int attributesId);
+        int attributesId,
+        KindConfig bindingKind);
 
     /**
      * Returns a {@link MessageConsumer} for writing structured event frames to the engine's
