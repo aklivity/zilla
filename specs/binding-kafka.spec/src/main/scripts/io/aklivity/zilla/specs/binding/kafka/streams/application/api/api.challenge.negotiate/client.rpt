@@ -31,7 +31,7 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read advise zilla:challenge ${kafka:challengeEx()
+write advised zilla:challenge ${kafka:matchChallengeEx()
                                   .typeId(zilla:id("kafka"))
                                   .apiChallenge()
                                       .versions(0, 7)
