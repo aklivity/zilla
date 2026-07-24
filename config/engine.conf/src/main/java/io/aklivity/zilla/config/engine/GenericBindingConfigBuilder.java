@@ -34,6 +34,20 @@ public final class GenericBindingConfigBuilder<T>
     }
 
     @Override
+    public GenericBindingConfigBuilder<T> type(
+        String type)
+    {
+        return super.type(type);
+    }
+
+    @Override
+    public <C extends ConfigBuilder<GenericBindingConfigBuilder<T>, C>> C options(
+        Function<Function<OptionsConfig, GenericBindingConfigBuilder<T>>, C> options)
+    {
+        return super.options(options);
+    }
+
+    @Override
     protected GenericRouteConfigBuilder<GenericBindingConfigBuilder<T>> newRoute()
     {
         return new GenericRouteConfigBuilder<>(this::route);

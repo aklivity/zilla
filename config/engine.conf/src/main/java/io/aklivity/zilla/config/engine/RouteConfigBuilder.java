@@ -54,7 +54,7 @@ public abstract class RouteConfigBuilder<T, R extends RouteConfigBuilder<T, R>> 
         return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<R, C>> C when(
+    protected <C extends ConfigBuilder<R, C>> C when(
         Function<Function<ConditionConfig, R>, C> condition)
     {
         return condition.apply(this::when);
@@ -71,7 +71,7 @@ public abstract class RouteConfigBuilder<T, R extends RouteConfigBuilder<T, R>> 
         return thisType().cast(this);
     }
 
-    public <B extends ConfigBuilder<R, B>> B with(
+    protected <B extends ConfigBuilder<R, B>> B with(
         Function<Function<WithConfig, R>, B> with)
     {
         return with.apply(this::with);

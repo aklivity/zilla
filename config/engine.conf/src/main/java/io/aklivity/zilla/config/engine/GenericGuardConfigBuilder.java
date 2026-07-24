@@ -32,6 +32,20 @@ public final class GenericGuardConfigBuilder<T> extends GuardConfigBuilder<T, Ge
     }
 
     @Override
+    public GenericGuardConfigBuilder<T> type(
+        String type)
+    {
+        return super.type(type);
+    }
+
+    @Override
+    public <C extends ConfigBuilder<GenericGuardConfigBuilder<T>, C>> C options(
+        Function<Function<OptionsConfig, GenericGuardConfigBuilder<T>>, C> options)
+    {
+        return super.options(options);
+    }
+
+    @Override
     protected GuardConfig newGuard(
         String namespace,
         String name,

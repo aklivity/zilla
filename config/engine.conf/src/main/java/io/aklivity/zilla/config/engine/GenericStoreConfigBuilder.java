@@ -32,6 +32,20 @@ public final class GenericStoreConfigBuilder<T> extends StoreConfigBuilder<T, Ge
     }
 
     @Override
+    public GenericStoreConfigBuilder<T> type(
+        String type)
+    {
+        return super.type(type);
+    }
+
+    @Override
+    public <C extends ConfigBuilder<GenericStoreConfigBuilder<T>, C>> C options(
+        Function<Function<OptionsConfig, GenericStoreConfigBuilder<T>>, C> options)
+    {
+        return super.options(options);
+    }
+
+    @Override
     protected StoreConfig newStore(
         String namespace,
         String name,

@@ -30,4 +30,18 @@ public final class GenericRouteConfigBuilder<T> extends RouteConfigBuilder<T, Ge
     {
         return (Class<GenericRouteConfigBuilder<T>>) getClass();
     }
+
+    @Override
+    public <C extends ConfigBuilder<GenericRouteConfigBuilder<T>, C>> C when(
+        Function<Function<ConditionConfig, GenericRouteConfigBuilder<T>>, C> condition)
+    {
+        return super.when(condition);
+    }
+
+    @Override
+    public <B extends ConfigBuilder<GenericRouteConfigBuilder<T>, B>> B with(
+        Function<Function<WithConfig, GenericRouteConfigBuilder<T>>, B> with)
+    {
+        return super.with(with);
+    }
 }

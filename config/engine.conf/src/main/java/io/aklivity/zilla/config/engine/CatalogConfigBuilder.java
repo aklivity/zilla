@@ -48,7 +48,7 @@ public abstract class CatalogConfigBuilder<T, B extends CatalogConfigBuilder<T, 
         return thisType().cast(this);
     }
 
-    public B type(
+    protected B type(
         String type)
     {
         this.type = requireNonNull(type);
@@ -62,7 +62,7 @@ public abstract class CatalogConfigBuilder<T, B extends CatalogConfigBuilder<T, 
         return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<B, C>> C options(
+    protected <C extends ConfigBuilder<B, C>> C options(
         Function<Function<OptionsConfig, B>, C> options)
     {
         return options.apply(this::options);

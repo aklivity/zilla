@@ -32,6 +32,20 @@ public final class GenericCatalogConfigBuilder<T> extends CatalogConfigBuilder<T
     }
 
     @Override
+    public GenericCatalogConfigBuilder<T> type(
+        String type)
+    {
+        return super.type(type);
+    }
+
+    @Override
+    public <C extends ConfigBuilder<GenericCatalogConfigBuilder<T>, C>> C options(
+        Function<Function<OptionsConfig, GenericCatalogConfigBuilder<T>>, C> options)
+    {
+        return super.options(options);
+    }
+
+    @Override
     protected CatalogConfig newCatalog(
         String namespace,
         String name,

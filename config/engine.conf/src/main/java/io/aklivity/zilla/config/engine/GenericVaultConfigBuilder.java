@@ -32,6 +32,20 @@ public final class GenericVaultConfigBuilder<T> extends VaultConfigBuilder<T, Ge
     }
 
     @Override
+    public GenericVaultConfigBuilder<T> type(
+        String type)
+    {
+        return super.type(type);
+    }
+
+    @Override
+    public <C extends ConfigBuilder<GenericVaultConfigBuilder<T>, C>> C options(
+        Function<Function<OptionsConfig, GenericVaultConfigBuilder<T>>, C> options)
+    {
+        return super.options(options);
+    }
+
+    @Override
     protected VaultConfig newVault(
         String namespace,
         String name,

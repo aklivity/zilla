@@ -32,6 +32,20 @@ public final class GenericExporterConfigBuilder<T> extends ExporterConfigBuilder
     }
 
     @Override
+    public GenericExporterConfigBuilder<T> type(
+        String type)
+    {
+        return super.type(type);
+    }
+
+    @Override
+    public <C extends ConfigBuilder<GenericExporterConfigBuilder<T>, C>> C options(
+        Function<Function<OptionsConfig, GenericExporterConfigBuilder<T>>, C> options)
+    {
+        return super.options(options);
+    }
+
+    @Override
     protected ExporterConfig newExporter(
         String namespace,
         String name,

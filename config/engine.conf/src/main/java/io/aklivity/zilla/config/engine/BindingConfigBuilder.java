@@ -72,7 +72,7 @@ public abstract class BindingConfigBuilder<
         return thisType().cast(this);
     }
 
-    public B type(
+    protected B type(
         String type)
     {
         this.type = type;
@@ -100,7 +100,7 @@ public abstract class BindingConfigBuilder<
         return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<B, C>> C options(
+    protected <C extends ConfigBuilder<B, C>> C options(
         Function<Function<OptionsConfig, B>, C> options)
     {
         return options.apply(this::options);
