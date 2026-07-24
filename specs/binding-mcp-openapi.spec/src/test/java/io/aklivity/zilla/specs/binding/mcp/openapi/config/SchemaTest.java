@@ -30,7 +30,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/config/binding/mcp/openapi/internal/schema/mcp_openapi.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/mcp/openapi/schema/mcp_openapi.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/config/catalog/inline/internal/schema/inline.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/openapi/config");
