@@ -642,23 +642,24 @@ scope protocol
 
         scope create_topics
         {
-            struct CreateTopicsRequest // v3
+            struct CreateTopicsRequest // v7
             {
-                int32 topicCount;
+                varuint32 taggedFields;
+                varuint32n topicCount;
             }
 
             struct TopicRequest
             {
-                string16 name;
+                varstring name;
                 int32 partitions;
                 int16 replicas;
-                int32 assignmentCount;
+                varuint32n assignmentCount;
             }
 
             struct AssignmentRequest
             {
                int32 partitionIndex;
-               int32 brokerCount;
+               varuint32n brokerCount;
             }
 
             struct BrokerRequest
@@ -666,35 +667,72 @@ scope protocol
                 int32 brokerId;
             }
 
+            struct AssignmentRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
             struct ConfigsRequest
             {
-                int32 configCount;
+                varuint32n configCount;
             }
 
             struct ConfigRequest
             {
-                string16 name;
-                string16 value = null;
+                varstring name;
+                varstring value = null;
+                varuint32 taggedFields;
+            }
+
+            struct TopicRequestPart2
+            {
+                varuint32 taggedFields;
             }
 
             struct CreateTopicsRequestPart2
             {
                 int32 timeout;
                 uint8 validate_only;
+                varuint32 taggedFields;
             }
 
             struct CreateTopicsResponse
             {
                 int32 correlationId;
+                varuint32 taggedFields;
                 int32 throttleTimeMillis;
-                int32 topicCount;
+                varuint32n topicCount;
             }
 
             struct TopicResponse
             {
-                string16 name;
+                varstring name;
+                octets[16] topicId;
                 int16 error;
-                string16 message = null;
+                varstring message = null;
+                int32 numPartitions;
+                int16 replicationFactor;
+                varuint32n configCount;
+            }
+
+            struct ConfigResponse
+            {
+                varstring name;
+                varstring value = null;
+                uint8 readOnly;
+                int8 configSource;
+                uint8 isSensitive;
+                varuint32 taggedFields;
+            }
+
+            struct TopicResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct CreateTopicsResponsePart2
+            {
+                varuint32 taggedFields;
             }
         }
 

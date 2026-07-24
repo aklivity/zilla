@@ -39,8 +39,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/create.topics.v3/client",
-        "${net}/create.topics.v3/server"})
+        "${net}/create.topics.v7/client",
+        "${net}/create.topics.v7/server"})
     public void shouldCreateTopicsV3() throws Exception
     {
         k3po.finish();
@@ -48,8 +48,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/create.topics.v3.negotiated/client",
-        "${net}/create.topics.v3.negotiated/server"})
+        "${net}/create.topics.v7.negotiated/client",
+        "${net}/create.topics.v7.negotiated/server"})
     public void shouldCreateTopicsV3Negotiated() throws Exception
     {
         k3po.finish();
@@ -57,8 +57,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/create.topics.v3.unsupported/client",
-        "${net}/create.topics.v3.unsupported/server"})
+        "${net}/create.topics.v7.unsupported/client",
+        "${net}/create.topics.v7.unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
     {
         k3po.finish();
@@ -66,8 +66,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/create.topics.v3.reconnect/client",
-        "${net}/create.topics.v3.reconnect/server"})
+        "${net}/create.topics.v7.reconnect/client",
+        "${net}/create.topics.v7.reconnect/server"})
     public void shouldReconnect() throws Exception
     {
         k3po.finish();
@@ -75,8 +75,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/create.topics.v3.reconnect.sticky/client",
-        "${net}/create.topics.v3.reconnect.sticky/server"})
+        "${net}/create.topics.v7.reconnect.sticky/client",
+        "${net}/create.topics.v7.reconnect.sticky/server"})
     public void shouldReconnectWithStickyExplicitApiVersions() throws Exception
     {
         k3po.finish();

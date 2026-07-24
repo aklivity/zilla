@@ -28,26 +28,12 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                .apiRequest()
                                  .length(110)
                                  .api(19)
-                                 .version(99)
+                                 .version(7)
                                  .clientId("zilla")
                                  .build()
                                 .build()}
 
 connected
-
-read advise zilla:challenge ${kafka:challengeEx()
-                                    .typeId(zilla:id("kafka"))
-                                    .apiChallenge()
-                                        .versions(0, 7)
-                                        .build()
-                                    .build()}
-
-read advised zilla:flush ${kafka:matchFlushEx()
-                               .typeId(zilla:id("kafka"))
-                               .apiFlush()
-                                   .version(7)
-                                   .build()
-                               .build()}
 
 read  [0x00]                            # tagged fields
       [0x03]                            # topic count

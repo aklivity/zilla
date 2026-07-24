@@ -55,8 +55,8 @@ public class KafkaCreateTopicsIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/create.topics.v3/client",
-        "${net}/create.topics.v3/server"})
+        "${app}/create.topics.v7/client",
+        "${net}/create.topics.v7/server"})
     public void shouldCreateTopicsV3() throws Exception
     {
         k3po.finish();
@@ -66,8 +66,8 @@ public class KafkaCreateTopicsIT
     @Configuration("client.yaml")
     @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Specification({
-        "${app}/create.topics.v3/client",
-        "${net}/create.topics.v3.negotiated/server"})
+        "${app}/create.topics.v7/client",
+        "${net}/create.topics.v7.negotiated/server"})
     public void shouldCreateTopicsV3Negotiated() throws Exception
     {
         k3po.finish();
@@ -77,8 +77,8 @@ public class KafkaCreateTopicsIT
     @Configuration("client.yaml")
     @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Specification({
-        "${app}/create.topics.v3.unsupported/client",
-        "${net}/create.topics.v3.unsupported/server"})
+        "${app}/create.topics.v7.unsupported/client",
+        "${net}/create.topics.v7.unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
     {
         k3po.finish();
@@ -89,8 +89,8 @@ public class KafkaCreateTopicsIT
     @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Specification({
         "${app}/api.versions.v0/client",
-        "${app}/create.topics.v3/client",
-        "${net}/create.topics.v3.negotiated/server"})
+        "${app}/create.topics.v7/client",
+        "${net}/create.topics.v7.negotiated/server"})
     public void shouldCreateTopicsV3ExplicitApiVersions() throws Exception
     {
         k3po.finish();
@@ -102,8 +102,8 @@ public class KafkaCreateTopicsIT
     @Specification({
         "${app}/sasl.handshake.v1/client",
         "${app}/sasl.authenticate.v1/client",
-        "${app}/create.topics.v3/client",
-        "${net}/create.topics.v3.authorized/server"})
+        "${app}/create.topics.v7/client",
+        "${net}/create.topics.v7.authorized/server"})
     public void shouldCreateTopicsV3ExplicitSasl() throws Exception
     {
         k3po.finish();
@@ -114,8 +114,8 @@ public class KafkaCreateTopicsIT
     @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Specification({
         "${app}/api.versions.v0.authorized/client",
-        "${app}/create.topics.v3/client",
-        "${net}/create.topics.v3.authorized/server"})
+        "${app}/create.topics.v7/client",
+        "${net}/create.topics.v7.authorized/server"})
     public void shouldAuthenticateExplicitlyWhenGuardConfigured() throws Exception
     {
         k3po.finish();
@@ -126,8 +126,8 @@ public class KafkaCreateTopicsIT
     @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Configure(name = KAFKA_CLIENT_RECONNECT_DELAY_NAME, value = "0")
     @Specification({
-        "${app}/create.topics.v3.reconnect.sticky/client",
-        "${net}/create.topics.v3.reconnect.sticky/server"})
+        "${app}/create.topics.v7.reconnect.sticky/client",
+        "${net}/create.topics.v7.reconnect.sticky/server"})
     public void shouldReconnectWithStickyExplicitApiVersions() throws Exception
     {
         k3po.finish();

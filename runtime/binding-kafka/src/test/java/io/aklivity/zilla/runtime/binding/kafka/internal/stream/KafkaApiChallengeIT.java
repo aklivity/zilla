@@ -56,7 +56,7 @@ public class KafkaApiChallengeIT
     @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Specification({
         "${app}/api.challenge.negotiate/client",
-        "${net}/create.topics.v3.negotiated/server"})
+        "${net}/create.topics.v7.negotiated/server"})
     public void shouldChallengeNegotiate() throws Exception
     {
         k3po.finish();

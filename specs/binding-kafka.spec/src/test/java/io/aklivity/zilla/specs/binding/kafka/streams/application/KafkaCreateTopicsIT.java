@@ -39,8 +39,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${app}/create.topics.v3/client",
-        "${app}/create.topics.v3/server"})
+        "${app}/create.topics.v7/client",
+        "${app}/create.topics.v7/server"})
     public void shouldCreateTopicsV3() throws Exception
     {
         k3po.finish();
@@ -48,8 +48,8 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${app}/create.topics.v3.unsupported/client",
-        "${app}/create.topics.v3.unsupported/server"})
+        "${app}/create.topics.v7.unsupported/client",
+        "${app}/create.topics.v7.unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
     {
         k3po.finish();

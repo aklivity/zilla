@@ -65,8 +65,8 @@ public class KafkaSaslHandshakeIT
     @Configuration("client.guard.yaml")
     @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Specification({
-        "${app}/create.topics.v3/client",
-        "${net}/create.topics.v3.authorized/server"})
+        "${app}/create.topics.v7/client",
+        "${net}/create.topics.v7.authorized/server"})
     public void shouldAuthenticateImplicitlyWhenGuardConfigured() throws Exception
     {
         k3po.finish();

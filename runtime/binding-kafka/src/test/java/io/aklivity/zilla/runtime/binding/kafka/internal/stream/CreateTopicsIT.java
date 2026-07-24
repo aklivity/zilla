@@ -33,7 +33,7 @@ public class CreateTopicsIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/create.topics")
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v3");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/create.topics.v7");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 

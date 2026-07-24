@@ -14,42 +14,63 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:byteorder "network"
+    option zilla:affinity 0
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .apiRequest()
-                                 .length(110)
-                                 .api(19)
-                                 .version(99)
+                                 .length(0)
+                                 .api(18)
+                                 .version(0)
                                  .clientId("zilla")
                                  .build()
                                 .build()}
 
 connected
 
-read advise zilla:challenge ${kafka:challengeEx()
-                                    .typeId(zilla:id("kafka"))
-                                    .apiChallenge()
-                                        .versions(0, 7)
-                                        .build()
-                                    .build()}
-
-read advised zilla:flush ${kafka:matchFlushEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
-                               .apiFlush()
-                                   .version(7)
-                                   .build()
-                               .build()}
+                               .apiResponse()
+                                 .length(18)
+                                 .version(0)
+                                 .build()
+                                .build()}
 
-read  [0x00]                            # tagged fields
+read  0s                                 # error code
+      2                                  # api key count
+        19s                              # create topics
+        0s                               # min version
+        7s                               # max version
+        20s                              # delete topics
+        0s                               # min version
+        6s                               # max version
+
+write close
+read closed
+
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:byteorder "network"
+    option zilla:affinity 0
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiRequest()
+                                 .length(110)
+                                 .api(19)
+                                 .version(7)
+                                 .clientId("zilla")
+                                 .build()
+                                .build()}
+
+connected
+
+write [0x00]                            # tagged fields
       [0x03]                            # topic count
         [0x07] "events"                 # name
         1                               # number of partitions
@@ -81,36 +102,45 @@ read  [0x00]                            # tagged fields
       [0x00]                            # validate only
       [0x00]                            # tagged fields
 
+write aborted
+
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:byteorder "network"
+    option zilla:affinity 0
+
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
-                               .apiResponse()
-                                 .length(78)
-                                 .version(7)
+                               .apiRequest()
+                                 .length(27)
+                                 .api(20)
+                                 .version(3)
+                                 .clientId("zilla")
                                  .build()
                                 .build()}
 
-write [0x00]                             # tagged fields
-      0                                  # throttle time ms
-      [0x03]                             # topics
-        [0x07] "events"                  # name
-        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
-        0s                               # error code
-        [0x00]                           # error message
-        1                                # number of partitions
-        1s                               # replication factor
-        [0x01]                           # configs
-        [0x00]                           # tagged fields
-        [0x0a] "snapshots"                # name
-        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
-        0s                               # error code
-        [0x00]                           # error message
-        1                                # number of partitions
-        1s                               # replication factor
-        [0x01]                           # configs
-        [0x00]                           # tagged fields
-      [0x00]                             # tagged fields
+connected
 
-write flush
+write 2                                 # topic count
+        6s "events"                     # name
+        9s "snapshots"                  # name
+      0                                 # timeout
 
-read closed
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiResponse()
+                                 .length(31)
+                                 .version(3)
+                                 .build()
+                                .build()}
+
+read  0                                  # throttle time ms
+      2                                  # topics
+        6s "events"                      # name
+        0s                               # error code
+        9s "snapshots"                   # name
+        0s                               # error code
+
 write close
+read closed

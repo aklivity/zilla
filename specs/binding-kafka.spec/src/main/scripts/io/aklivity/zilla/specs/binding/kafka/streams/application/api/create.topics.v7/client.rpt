@@ -14,42 +14,24 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:byteorder "network"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .apiRequest()
                                  .length(110)
                                  .api(19)
-                                 .version(99)
+                                 .version(7)
                                  .clientId("zilla")
                                  .build()
                                 .build()}
 
 connected
 
-read advise zilla:challenge ${kafka:challengeEx()
-                                    .typeId(zilla:id("kafka"))
-                                    .apiChallenge()
-                                        .versions(0, 7)
-                                        .build()
-                                    .build()}
-
-read advised zilla:flush ${kafka:matchFlushEx()
-                               .typeId(zilla:id("kafka"))
-                               .apiFlush()
-                                   .version(7)
-                                   .build()
-                               .build()}
-
-read  [0x00]                            # tagged fields
+write [0x00]                            # tagged fields
       [0x03]                            # topic count
         [0x07] "events"                 # name
         1                               # number of partitions
@@ -81,7 +63,7 @@ read  [0x00]                            # tagged fields
       [0x00]                            # validate only
       [0x00]                            # tagged fields
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .apiResponse()
                                  .length(78)
@@ -89,7 +71,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                  .build()
                                 .build()}
 
-write [0x00]                             # tagged fields
+read  [0x00]                             # tagged fields
       0                                  # throttle time ms
       [0x03]                             # topics
         [0x07] "events"                  # name
@@ -110,7 +92,5 @@ write [0x00]                             # tagged fields
         [0x00]                           # tagged fields
       [0x00]                             # tagged fields
 
-write flush
-
-read closed
 write close
+read closed
