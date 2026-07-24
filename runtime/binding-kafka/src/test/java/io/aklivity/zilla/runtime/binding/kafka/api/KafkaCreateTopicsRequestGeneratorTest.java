@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
+package io.aklivity.zilla.runtime.binding.kafka.api;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -22,10 +22,10 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsRequestGenerator.Assignment;
-import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsRequestGenerator.Config;
-import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsRequestGenerator.Request;
-import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsRequestGenerator.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Assignment;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Config;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Request;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Topic;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 

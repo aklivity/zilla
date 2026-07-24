@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
+package io.aklivity.zilla.runtime.binding.kafka.api;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -21,9 +21,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsResponsePipeline.ConfigResult;
-import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsResponsePipeline.Response;
-import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsResponsePipeline.TopicResult;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponsePipeline.ConfigResult;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponsePipeline.Response;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponsePipeline.TopicResult;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
