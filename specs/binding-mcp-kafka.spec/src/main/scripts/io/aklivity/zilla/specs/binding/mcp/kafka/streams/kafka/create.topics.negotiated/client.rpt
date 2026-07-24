@@ -28,14 +28,14 @@ write zilla:begin.ext ${kafka:beginEx()
                                  .build()
                                 .build()}
 
-connected
-
 write advised zilla:challenge ${kafka:matchChallengeEx()
                                   .typeId(zilla:id("kafka"))
                                   .apiChallenge()
                                       .versions(0, 7)
                                       .build()
                                   .build()}
+
+connected
 
 write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))

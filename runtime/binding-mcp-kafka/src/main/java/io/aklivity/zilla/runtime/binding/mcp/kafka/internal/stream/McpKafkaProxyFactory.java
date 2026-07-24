@@ -2399,23 +2399,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .clientId("zilla"))
                 .build();
 
-            final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(resolvedId)
-                .streamId(kafkaInitialId)
-                .sequence(0)
-                .acknowledge(0)
-                .maximum(0)
-                .traceId(traceId)
-                .authorization(authorization)
-                .affinity(affinity)
-                .extension(kafkaBeginEx.buffer(), kafkaBeginEx.offset(), kafkaBeginEx.sizeof())
-                .build();
-
-            // assign kafka before dispatching BEGIN -- a synchronously-reentrant CHALLENGE
-            // must see a non-null receiver when it turns around and sends FLUSH
-            kafka = streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), this::onKafkaMessage);
-            kafka.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+            kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
+                traceId, authorization, affinity, kafkaBeginEx);
         }
 
         @Override

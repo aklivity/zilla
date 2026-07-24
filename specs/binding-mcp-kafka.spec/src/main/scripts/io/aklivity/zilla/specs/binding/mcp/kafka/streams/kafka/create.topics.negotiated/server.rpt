@@ -32,14 +32,14 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                  .build()
                                 .build()}
 
-connected
-
 read advise zilla:challenge ${kafka:challengeEx()
                                     .typeId(zilla:id("kafka"))
                                     .apiChallenge()
                                         .versions(0, 7)
                                         .build()
                                     .build()}
+
+connected
 
 read advised zilla:flush ${kafka:matchFlushEx()
                                .typeId(zilla:id("kafka"))

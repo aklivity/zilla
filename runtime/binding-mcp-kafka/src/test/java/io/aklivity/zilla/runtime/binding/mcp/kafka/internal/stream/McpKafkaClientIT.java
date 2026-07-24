@@ -85,6 +85,16 @@ public class McpKafkaClientIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.create.topics.yaml")
+    @Specification({
+        "${mcp}/create.topics/client",
+        "${kafka}/create.topics.negotiated/server"})
+    public void shouldCreateTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
