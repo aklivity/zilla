@@ -15,11 +15,8 @@
 package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.function.Function.identity;
 
-import java.util.function.Function;
-
-public class CatalogConfig
+public abstract class CatalogConfig
 {
     public transient long id;
     public transient long vaultId;
@@ -31,18 +28,7 @@ public class CatalogConfig
     public final String vault;
     public final OptionsConfig options;
 
-    public static CatalogConfigBuilder<CatalogConfig> builder()
-    {
-        return new CatalogConfigBuilder<>(identity());
-    }
-
-    public static <T> CatalogConfigBuilder<T> builder(
-        Function<CatalogConfig, T> mapper)
-    {
-        return new CatalogConfigBuilder<>(mapper);
-    }
-
-    CatalogConfig(
+    protected CatalogConfig(
         String namespace,
         String name,
         String type,

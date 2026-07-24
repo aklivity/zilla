@@ -18,8 +18,9 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
+import io.aklivity.zilla.config.engine.GenericGuardConfig;
+import io.aklivity.zilla.config.engine.GenericGuardConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardConfig;
-import io.aklivity.zilla.config.engine.GuardConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardInfoRegistry;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
@@ -88,7 +89,7 @@ public class GuardAdapter
 
         options.adaptType(type);
 
-        GuardConfigBuilder<GuardConfig> guard = GuardConfig.builder()
+        GenericGuardConfigBuilder<GenericGuardConfig> guard = GenericGuardConfig.builder()
             .namespace(namespace)
             .name(name)
             .type(type);

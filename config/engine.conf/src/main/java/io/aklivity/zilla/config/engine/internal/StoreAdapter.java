@@ -18,10 +18,11 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
+import io.aklivity.zilla.config.engine.GenericStoreConfig;
+import io.aklivity.zilla.config.engine.GenericStoreConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.StoreConfig;
-import io.aklivity.zilla.config.engine.StoreConfigBuilder;
 import io.aklivity.zilla.config.engine.StoreInfoRegistry;
 
 public class StoreAdapter
@@ -76,7 +77,7 @@ public class StoreAdapter
 
         options.adaptType(type);
 
-        StoreConfigBuilder<StoreConfig> store = StoreConfig.builder()
+        GenericStoreConfigBuilder<GenericStoreConfig> store = GenericStoreConfig.builder()
             .namespace(namespace)
             .name(name)
             .type(type);

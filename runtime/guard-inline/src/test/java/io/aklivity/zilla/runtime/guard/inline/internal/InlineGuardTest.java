@@ -25,7 +25,7 @@ import java.util.function.UnaryOperator;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import io.aklivity.zilla.config.engine.GuardConfig;
+import io.aklivity.zilla.config.engine.GenericGuardConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
@@ -94,7 +94,7 @@ public class InlineGuardTest
         Guard guard = factory.create("inline", config);
 
         GuardContext context = guard.supply(engine);
-        context.attach(GuardConfig.builder()
+        context.attach(GenericGuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")

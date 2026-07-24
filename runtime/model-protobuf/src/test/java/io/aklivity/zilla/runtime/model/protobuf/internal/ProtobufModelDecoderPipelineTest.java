@@ -29,7 +29,7 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -154,7 +154,7 @@ public class ProtobufModelDecoderPipelineTest
     @Test
     public void shouldExtractScalarFields()
     {
-        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+        TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")
@@ -273,7 +273,7 @@ public class ProtobufModelDecoderPipelineTest
     private ProtobufModelHandlerImpl newHandler(
         String view)
     {
-        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+        TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")

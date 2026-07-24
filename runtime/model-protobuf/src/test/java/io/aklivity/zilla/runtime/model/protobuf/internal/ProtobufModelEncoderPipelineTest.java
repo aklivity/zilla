@@ -26,7 +26,7 @@ import java.time.Clock;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -161,7 +161,7 @@ public class ProtobufModelEncoderPipelineTest
     private ProtobufModelHandlerImpl newHandler(
         String record)
     {
-        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+        TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")

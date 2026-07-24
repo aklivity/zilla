@@ -18,7 +18,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.Function;
 
-public final class VaultConfigBuilder<T> extends ConfigBuilder<T, VaultConfigBuilder<T>>
+public abstract class VaultConfigBuilder<T, B extends VaultConfigBuilder<T, B>> extends ConfigBuilder<T, B>
 {
     private final Function<VaultConfig, T> mapper;
 
@@ -28,56 +28,55 @@ public final class VaultConfigBuilder<T> extends ConfigBuilder<T, VaultConfigBui
 
     private String namespace;
 
-    VaultConfigBuilder(
+    protected VaultConfigBuilder(
         Function<VaultConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<VaultConfigBuilder<T>> thisType()
-    {
-        return (Class<VaultConfigBuilder<T>>) getClass();
-    }
-
-    public VaultConfigBuilder<T> namespace(
+    public B namespace(
         String namespace)
     {
         this.namespace = namespace;
-        return this;
+        return thisType().cast(this);
     }
 
-    public VaultConfigBuilder<T> name(
+    public B name(
         String name)
     {
         this.name = name;
-        return this;
+        return thisType().cast(this);
     }
 
-    public VaultConfigBuilder<T> type(
+    public B type(
         String type)
     {
         this.type = requireNonNull(type);
-        return this;
+        return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<VaultConfigBuilder<T>, C>> C options(
-        Function<Function<OptionsConfig, VaultConfigBuilder<T>>, C> options)
+    public <C extends ConfigBuilder<B, C>> C options(
+        Function<Function<OptionsConfig, B>, C> options)
     {
         return options.apply(this::options);
     }
 
-    public VaultConfigBuilder<T> options(
+    public B options(
         OptionsConfig options)
     {
         this.options = options;
-        return this;
+        return thisType().cast(this);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new VaultConfig(namespace, name, type, options));
+        return mapper.apply(newVault(namespace, name, type, options));
     }
+
+    protected abstract VaultConfig newVault(
+        String namespace,
+        String name,
+        String type,
+        OptionsConfig options);
 }

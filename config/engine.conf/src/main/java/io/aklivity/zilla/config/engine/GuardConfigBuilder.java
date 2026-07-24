@@ -16,7 +16,7 @@ package io.aklivity.zilla.config.engine;
 
 import java.util.function.Function;
 
-public final class GuardConfigBuilder<T> extends ConfigBuilder<T, GuardConfigBuilder<T>>
+public abstract class GuardConfigBuilder<T, B extends GuardConfigBuilder<T, B>> extends ConfigBuilder<T, B>
 {
     private final Function<GuardConfig, T> mapper;
 
@@ -27,70 +27,71 @@ public final class GuardConfigBuilder<T> extends ConfigBuilder<T, GuardConfigBui
     private String store;
     private OptionsConfig options;
 
-    GuardConfigBuilder(
+    protected GuardConfigBuilder(
         Function<GuardConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<GuardConfigBuilder<T>> thisType()
-    {
-        return (Class<GuardConfigBuilder<T>>) getClass();
-    }
-
-    public GuardConfigBuilder<T> namespace(
+    public B namespace(
         String namespace)
     {
         this.namespace = namespace;
-        return this;
+        return thisType().cast(this);
     }
 
-    public GuardConfigBuilder<T> name(
+    public B name(
         String name)
     {
         this.name = name;
-        return this;
+        return thisType().cast(this);
     }
 
-    public GuardConfigBuilder<T> type(
+    public B type(
         String type)
     {
         this.type = type;
-        return this;
+        return thisType().cast(this);
     }
 
-    public GuardConfigBuilder<T> kind(
+    public B kind(
         String kind)
     {
         this.kind = kind;
-        return this;
+        return thisType().cast(this);
     }
 
-    public GuardConfigBuilder<T> store(
+    public B store(
         String store)
     {
         this.store = store;
-        return this;
+        return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<GuardConfigBuilder<T>, C>> C options(
-        Function<Function<OptionsConfig, GuardConfigBuilder<T>>, C> options)
+    public <C extends ConfigBuilder<B, C>> C options(
+        Function<Function<OptionsConfig, B>, C> options)
     {
         return options.apply(this::options);
     }
 
-    public GuardConfigBuilder<T> options(
+    public B options(
         OptionsConfig options)
     {
         this.options = options;
-        return this;
+        return thisType().cast(this);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new GuardConfig(namespace, name, type, kind, store, options));
+        return mapper.apply(newGuard(namespace, name, type, kind, store, options));
     }
+
+    protected abstract GuardConfig newGuard(
+        String namespace,
+        String name,
+        String type,
+        String kind,
+        String store,
+        OptionsConfig options);
 }

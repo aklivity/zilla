@@ -25,7 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.catalog.schema.registry.SchemaRegistryOptionsConfig;
-import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.SchemaRegistryCatalogHandler;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -44,7 +44,7 @@ public class SchemaRegistryCatalogHandlerTest
     @Before
     public void setup()
     {
-        catalogConfig = CatalogConfig.builder(c -> new SchemaRegistryCatalogConfig(context, c))
+        catalogConfig = GenericCatalogConfig.builder(c -> new SchemaRegistryCatalogConfig(context, c))
             .namespace("test")
             .name("test0")
             .type(SchemaRegistryCatalogFactorySpi.TYPE)

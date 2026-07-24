@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
@@ -162,7 +162,7 @@ public class ProtobufModelHandlerTest
         String view,
         String record)
     {
-        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+        TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")

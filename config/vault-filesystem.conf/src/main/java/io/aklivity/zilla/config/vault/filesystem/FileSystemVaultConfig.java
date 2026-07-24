@@ -12,34 +12,32 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.engine;
+package io.aklivity.zilla.config.vault.filesystem;
 
-import static java.util.Objects.requireNonNull;
+import java.util.function.Function;
 
-public abstract class ExporterConfig
+import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.VaultConfig;
+
+public final class FileSystemVaultConfig extends VaultConfig
 {
-    public final String namespace;
-    public final String name;
-    public final String qname;
-    public final String type;
-    public final String vault;
-    public final OptionsConfig options;
+    public static FileSystemVaultConfigBuilder<FileSystemVaultConfig> builder()
+    {
+        return new FileSystemVaultConfigBuilder<>(FileSystemVaultConfig.class::cast);
+    }
 
-    public transient long id;
-    public transient long vaultId;
+    public static <T> FileSystemVaultConfigBuilder<T> builder(
+        Function<VaultConfig, T> mapper)
+    {
+        return new FileSystemVaultConfigBuilder<>(mapper);
+    }
 
-    protected ExporterConfig(
+    FileSystemVaultConfig(
         String namespace,
         String name,
         String type,
-        String vault,
         OptionsConfig options)
     {
-        this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
-        this.qname = String.format("%s:%s", namespace, name);
-        this.type = requireNonNull(type);
-        this.vault = vault;
-        this.options = options;
+        super(namespace, name, type, options);
     }
 }

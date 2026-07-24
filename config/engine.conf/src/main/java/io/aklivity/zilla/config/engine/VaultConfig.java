@@ -15,9 +15,8 @@
 package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.function.Function.identity;
 
-public class VaultConfig
+public abstract class VaultConfig
 {
     public transient long id;
     public transient boolean local;
@@ -28,12 +27,7 @@ public class VaultConfig
     public final String type;
     public final OptionsConfig options;
 
-    public static VaultConfigBuilder<VaultConfig> builder()
-    {
-        return new VaultConfigBuilder<>(identity());
-    }
-
-    VaultConfig(
+    protected VaultConfig(
         String namespace,
         String name,
         String type,

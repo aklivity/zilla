@@ -19,8 +19,9 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.config.engine.CatalogConfig;
-import io.aklivity.zilla.config.engine.CatalogConfigBuilder;
 import io.aklivity.zilla.config.engine.CatalogInfoRegistry;
+import io.aklivity.zilla.config.engine.GenericCatalogConfig;
+import io.aklivity.zilla.config.engine.GenericCatalogConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
@@ -73,7 +74,7 @@ public class CatalogAdapter
         String name,
         JsonObject object) throws Exception
     {
-        CatalogConfigBuilder<CatalogConfig> builder = CatalogConfig.builder()
+        GenericCatalogConfigBuilder<GenericCatalogConfig> builder = GenericCatalogConfig.builder()
             .namespace(namespace)
             .name(name);
 

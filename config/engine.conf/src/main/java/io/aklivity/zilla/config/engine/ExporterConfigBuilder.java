@@ -16,7 +16,7 @@ package io.aklivity.zilla.config.engine;
 
 import java.util.function.Function;
 
-public final class ExporterConfigBuilder<T> extends ConfigBuilder<T, ExporterConfigBuilder<T>>
+public abstract class ExporterConfigBuilder<T, B extends ExporterConfigBuilder<T, B>> extends ConfigBuilder<T, B>
 {
     private final Function<ExporterConfig, T> mapper;
 
@@ -26,63 +26,63 @@ public final class ExporterConfigBuilder<T> extends ConfigBuilder<T, ExporterCon
     private String vault;
     private OptionsConfig options;
 
-    ExporterConfigBuilder(
+    protected ExporterConfigBuilder(
         Function<ExporterConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<ExporterConfigBuilder<T>> thisType()
-    {
-        return (Class<ExporterConfigBuilder<T>>) getClass();
-    }
-
-    public ExporterConfigBuilder<T> namespace(
+    public B namespace(
         String namespace)
     {
         this.namespace = namespace;
-        return this;
+        return thisType().cast(this);
     }
 
-    public ExporterConfigBuilder<T> name(
+    public B name(
         String name)
     {
         this.name = name;
-        return this;
+        return thisType().cast(this);
     }
 
-    public ExporterConfigBuilder<T> vault(
+    public B vault(
         String vault)
     {
         this.vault = vault;
-        return this;
+        return thisType().cast(this);
     }
 
-    public ExporterConfigBuilder<T> type(
+    public B type(
         String type)
     {
         this.type = type;
-        return this;
+        return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<ExporterConfigBuilder<T>, C>> C options(
-        Function<Function<OptionsConfig, ExporterConfigBuilder<T>>, C> options)
+    public <C extends ConfigBuilder<B, C>> C options(
+        Function<Function<OptionsConfig, B>, C> options)
     {
         return options.apply(this::options);
     }
 
-    public ExporterConfigBuilder<T> options(
+    public B options(
         OptionsConfig options)
     {
         this.options = options;
-        return this;
+        return thisType().cast(this);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new ExporterConfig(namespace, name, type, vault, options));
+        return mapper.apply(newExporter(namespace, name, type, vault, options));
     }
+
+    protected abstract ExporterConfig newExporter(
+        String namespace,
+        String name,
+        String type,
+        String vault,
+        OptionsConfig options);
 }

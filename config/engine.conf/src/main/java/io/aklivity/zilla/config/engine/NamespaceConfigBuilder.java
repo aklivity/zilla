@@ -101,9 +101,15 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
         return this;
     }
 
-    public CatalogConfigBuilder<NamespaceConfigBuilder<T>> catalog()
+    public GenericCatalogConfigBuilder<NamespaceConfigBuilder<T>> catalog()
     {
-        return new CatalogConfigBuilder<>(this::catalog).namespace(name);
+        return new GenericCatalogConfigBuilder<>(this::catalog).namespace(name);
+    }
+
+    public <B extends CatalogConfigBuilder<NamespaceConfigBuilder<T>, B>> B catalog(
+        Function<Function<CatalogConfig, NamespaceConfigBuilder<T>>, B> catalog)
+    {
+        return catalog.apply(this::catalog).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> catalog(
@@ -124,9 +130,15 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
         return this;
     }
 
-    public GuardConfigBuilder<NamespaceConfigBuilder<T>> guard()
+    public GenericGuardConfigBuilder<NamespaceConfigBuilder<T>> guard()
     {
-        return new GuardConfigBuilder<>(this::guard).namespace(name);
+        return new GenericGuardConfigBuilder<>(this::guard).namespace(name);
+    }
+
+    public <B extends GuardConfigBuilder<NamespaceConfigBuilder<T>, B>> B guard(
+        Function<Function<GuardConfig, NamespaceConfigBuilder<T>>, B> guard)
+    {
+        return guard.apply(this::guard).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> guard(
@@ -147,9 +159,15 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
         return this;
     }
 
-    public VaultConfigBuilder<NamespaceConfigBuilder<T>> vault()
+    public GenericVaultConfigBuilder<NamespaceConfigBuilder<T>> vault()
     {
-        return new VaultConfigBuilder<>(this::vault).namespace(name);
+        return new GenericVaultConfigBuilder<>(this::vault).namespace(name);
+    }
+
+    public <B extends VaultConfigBuilder<NamespaceConfigBuilder<T>, B>> B vault(
+        Function<Function<VaultConfig, NamespaceConfigBuilder<T>>, B> vault)
+    {
+        return vault.apply(this::vault).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> vault(
@@ -170,9 +188,15 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
         return this;
     }
 
-    public StoreConfigBuilder<NamespaceConfigBuilder<T>> store()
+    public GenericStoreConfigBuilder<NamespaceConfigBuilder<T>> store()
     {
-        return new StoreConfigBuilder<>(this::store).namespace(name);
+        return new GenericStoreConfigBuilder<>(this::store).namespace(name);
+    }
+
+    public <B extends StoreConfigBuilder<NamespaceConfigBuilder<T>, B>> B store(
+        Function<Function<StoreConfig, NamespaceConfigBuilder<T>>, B> store)
+    {
+        return store.apply(this::store).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> store(

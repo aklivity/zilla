@@ -24,6 +24,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.config.engine.ExporterInfoRegistry;
+import io.aklivity.zilla.config.engine.GenericExporterConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
@@ -98,7 +99,7 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
                 vault = item.getString(VAULT_NAME);
             }
 
-            exporters.add(ExporterConfig.builder()
+            exporters.add(GenericExporterConfig.builder()
                 .namespace(namespace)
                 .name(name)
                 .type(type)

@@ -85,9 +85,15 @@ public final class TelemetryConfigBuilder<T> extends ConfigBuilder<T, TelemetryC
         return this;
     }
 
-    public ExporterConfigBuilder<TelemetryConfigBuilder<T>> exporter()
+    public GenericExporterConfigBuilder<TelemetryConfigBuilder<T>> exporter()
     {
-        return new ExporterConfigBuilder<>(this::exporter).namespace(namespace);
+        return new GenericExporterConfigBuilder<>(this::exporter).namespace(namespace);
+    }
+
+    public <B extends ExporterConfigBuilder<TelemetryConfigBuilder<T>, B>> B exporter(
+        Function<Function<ExporterConfig, TelemetryConfigBuilder<T>>, B> exporter)
+    {
+        return exporter.apply(this::exporter).namespace(namespace);
     }
 
     public TelemetryConfigBuilder<T> exporter(

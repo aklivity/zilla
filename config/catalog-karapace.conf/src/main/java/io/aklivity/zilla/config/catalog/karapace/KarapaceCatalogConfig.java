@@ -12,34 +12,33 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.engine;
+package io.aklivity.zilla.config.catalog.karapace;
 
-import static java.util.Objects.requireNonNull;
+import java.util.function.Function;
 
-public abstract class ExporterConfig
+import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+
+public final class KarapaceCatalogConfig extends CatalogConfig
 {
-    public final String namespace;
-    public final String name;
-    public final String qname;
-    public final String type;
-    public final String vault;
-    public final OptionsConfig options;
+    public static KarapaceCatalogConfigBuilder<KarapaceCatalogConfig> builder()
+    {
+        return new KarapaceCatalogConfigBuilder<>(KarapaceCatalogConfig.class::cast);
+    }
 
-    public transient long id;
-    public transient long vaultId;
+    public static <T> KarapaceCatalogConfigBuilder<T> builder(
+        Function<CatalogConfig, T> mapper)
+    {
+        return new KarapaceCatalogConfigBuilder<>(mapper);
+    }
 
-    protected ExporterConfig(
+    KarapaceCatalogConfig(
         String namespace,
         String name,
         String type,
         String vault,
         OptionsConfig options)
     {
-        this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
-        this.qname = String.format("%s:%s", namespace, name);
-        this.type = requireNonNull(type);
-        this.vault = vault;
-        this.options = options;
+        super(namespace, name, type, vault, options);
     }
 }

@@ -28,7 +28,7 @@ import java.time.Clock;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
@@ -119,7 +119,7 @@ public class JsonModelLenientTest
     private JsonModelHandlerImpl newHandler(
         ValidateConfig validate)
     {
-        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+        TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")

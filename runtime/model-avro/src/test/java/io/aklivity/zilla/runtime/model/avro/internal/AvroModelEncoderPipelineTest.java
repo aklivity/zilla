@@ -27,7 +27,7 @@ import java.time.Clock;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.config.model.avro.AvroModelConfigBuilder;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -149,7 +149,7 @@ public class AvroModelEncoderPipelineTest
     private AvroModelHandlerImpl newHandler(
         String view)
     {
-        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+        TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")

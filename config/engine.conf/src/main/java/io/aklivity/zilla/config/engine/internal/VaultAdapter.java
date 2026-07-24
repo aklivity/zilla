@@ -18,10 +18,11 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
+import io.aklivity.zilla.config.engine.GenericVaultConfig;
+import io.aklivity.zilla.config.engine.GenericVaultConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.VaultConfig;
-import io.aklivity.zilla.config.engine.VaultConfigBuilder;
 import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 
 public class VaultAdapter
@@ -75,7 +76,7 @@ public class VaultAdapter
         String type = object.getString(TYPE_NAME);
         options.adaptType(type);
 
-        VaultConfigBuilder<VaultConfig> vault = VaultConfig.builder()
+        GenericVaultConfigBuilder<GenericVaultConfig> vault = GenericVaultConfig.builder()
             .namespace(namespace)
             .name(name)
             .type(type);

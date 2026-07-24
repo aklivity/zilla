@@ -15,9 +15,8 @@
 package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.function.Function.identity;
 
-public class StoreConfig
+public abstract class StoreConfig
 {
     public transient long id;
 
@@ -27,12 +26,7 @@ public class StoreConfig
     public final String type;
     public final OptionsConfig options;
 
-    public static final StoreConfigBuilder<StoreConfig> builder()
-    {
-        return new StoreConfigBuilder<>(identity());
-    }
-
-    StoreConfig(
+    protected StoreConfig(
         String namespace,
         String name,
         String type,

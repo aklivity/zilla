@@ -31,6 +31,7 @@ import java.time.Duration;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.engine.GenericExporterConfig;
 import io.aklivity.zilla.config.exporter.prometheus.PrometheusEndpointConfig;
 import io.aklivity.zilla.config.exporter.prometheus.PrometheusOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -57,7 +58,7 @@ public class PrometheusExporterHandlerTest
         PrometheusOptionsConfig options = PrometheusOptionsConfig.builder()
             .endpoints(new PrometheusEndpointConfig[]{endpoint})
             .build();
-        ExporterConfig exporter = ExporterConfig.builder()
+        ExporterConfig exporter = GenericExporterConfig.builder()
                 .namespace("test")
                 .name("test0")
                 .type("prometheus")

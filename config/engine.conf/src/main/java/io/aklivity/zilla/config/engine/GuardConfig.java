@@ -15,11 +15,10 @@
 package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.function.Function.identity;
 
 import java.util.function.ToLongFunction;
 
-public class GuardConfig
+public abstract class GuardConfig
 {
     public transient long id;
     public transient long storeId;
@@ -34,12 +33,7 @@ public class GuardConfig
     public final String store;
     public final OptionsConfig options;
 
-    public static final GuardConfigBuilder<GuardConfig> builder()
-    {
-        return new GuardConfigBuilder<>(identity());
-    }
-
-    GuardConfig(
+    protected GuardConfig(
         String namespace,
         String name,
         String type,

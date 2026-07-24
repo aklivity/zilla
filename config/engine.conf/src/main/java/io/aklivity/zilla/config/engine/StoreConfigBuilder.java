@@ -16,7 +16,7 @@ package io.aklivity.zilla.config.engine;
 
 import java.util.function.Function;
 
-public final class StoreConfigBuilder<T> extends ConfigBuilder<T, StoreConfigBuilder<T>>
+public abstract class StoreConfigBuilder<T, B extends StoreConfigBuilder<T, B>> extends ConfigBuilder<T, B>
 {
     private final Function<StoreConfig, T> mapper;
 
@@ -25,56 +25,55 @@ public final class StoreConfigBuilder<T> extends ConfigBuilder<T, StoreConfigBui
     private String type;
     private OptionsConfig options;
 
-    StoreConfigBuilder(
+    protected StoreConfigBuilder(
         Function<StoreConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<StoreConfigBuilder<T>> thisType()
-    {
-        return (Class<StoreConfigBuilder<T>>) getClass();
-    }
-
-    public StoreConfigBuilder<T> namespace(
+    public B namespace(
         String namespace)
     {
         this.namespace = namespace;
-        return this;
+        return thisType().cast(this);
     }
 
-    public StoreConfigBuilder<T> name(
+    public B name(
         String name)
     {
         this.name = name;
-        return this;
+        return thisType().cast(this);
     }
 
-    public StoreConfigBuilder<T> type(
+    public B type(
         String type)
     {
         this.type = type;
-        return this;
+        return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<StoreConfigBuilder<T>, C>> C options(
-        Function<Function<OptionsConfig, StoreConfigBuilder<T>>, C> options)
+    public <C extends ConfigBuilder<B, C>> C options(
+        Function<Function<OptionsConfig, B>, C> options)
     {
         return options.apply(this::options);
     }
 
-    public StoreConfigBuilder<T> options(
+    public B options(
         OptionsConfig options)
     {
         this.options = options;
-        return this;
+        return thisType().cast(this);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new StoreConfig(namespace, name, type, options));
+        return mapper.apply(newStore(namespace, name, type, options));
     }
+
+    protected abstract StoreConfig newStore(
+        String namespace,
+        String name,
+        String type,
+        OptionsConfig options);
 }

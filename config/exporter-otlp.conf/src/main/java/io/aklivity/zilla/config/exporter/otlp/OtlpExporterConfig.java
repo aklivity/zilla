@@ -12,34 +12,33 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.engine;
+package io.aklivity.zilla.config.exporter.otlp;
 
-import static java.util.Objects.requireNonNull;
+import java.util.function.Function;
 
-public abstract class ExporterConfig
+import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+
+public final class OtlpExporterConfig extends ExporterConfig
 {
-    public final String namespace;
-    public final String name;
-    public final String qname;
-    public final String type;
-    public final String vault;
-    public final OptionsConfig options;
+    public static OtlpExporterConfigBuilder<OtlpExporterConfig> builder()
+    {
+        return new OtlpExporterConfigBuilder<>(OtlpExporterConfig.class::cast);
+    }
 
-    public transient long id;
-    public transient long vaultId;
+    public static <T> OtlpExporterConfigBuilder<T> builder(
+        Function<ExporterConfig, T> mapper)
+    {
+        return new OtlpExporterConfigBuilder<>(mapper);
+    }
 
-    protected ExporterConfig(
+    OtlpExporterConfig(
         String namespace,
         String name,
         String type,
         String vault,
         OptionsConfig options)
     {
-        this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
-        this.qname = String.format("%s:%s", namespace, name);
-        this.type = requireNonNull(type);
-        this.vault = vault;
-        this.options = options;
+        super(namespace, name, type, vault, options);
     }
 }

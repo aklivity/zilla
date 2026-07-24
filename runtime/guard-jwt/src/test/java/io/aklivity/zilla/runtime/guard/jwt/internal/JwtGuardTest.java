@@ -34,6 +34,7 @@ import org.jose4j.jwt.JwtClaims;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import io.aklivity.zilla.config.engine.GenericGuardConfig;
 import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
@@ -111,7 +112,7 @@ public class JwtGuardTest
         Guard guard = factory.create("jwt", config);
 
         GuardContext context = guard.supply(engine);
-        context.attach(GuardConfig.builder()
+        context.attach(GenericGuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")
@@ -143,7 +144,7 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        GuardHandler handler = context.attach(GuardConfig.builder()
+        GuardHandler handler = context.attach(GenericGuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")
@@ -196,7 +197,7 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        GuardHandler handler = context.attach(GuardConfig.builder()
+        GuardHandler handler = context.attach(GenericGuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")
@@ -248,7 +249,7 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        GuardHandler handler = context.attach(GuardConfig.builder()
+        GuardHandler handler = context.attach(GenericGuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")
@@ -299,7 +300,7 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        GuardHandler handler = context.attach(GuardConfig.builder()
+        GuardHandler handler = context.attach(GenericGuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")
@@ -344,7 +345,7 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        GuardConfig config = GuardConfig.builder()
+        GuardConfig config = GenericGuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")
@@ -401,7 +402,7 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        GuardHandler handler = context.attach(GuardConfig.builder()
+        GuardHandler handler = context.attach(GenericGuardConfig.builder()
                 .inject(identity())
                 .namespace("test")
                 .name("test0")
@@ -447,7 +448,7 @@ public class JwtGuardTest
         GuardContext context = guard.supply(engine);
 
         Duration challenge = ofSeconds(3L);
-        GuardConfig config = GuardConfig.builder()
+        GuardConfig config = GenericGuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")
@@ -505,7 +506,7 @@ public class JwtGuardTest
 
         GuardContext context = guard.supply(engine);
 
-        GuardHandler handler = context.attach(GuardConfig.builder()
+        GuardHandler handler = context.attach(GenericGuardConfig.builder()
             .inject(identity())
             .namespace("test")
             .name("test0")

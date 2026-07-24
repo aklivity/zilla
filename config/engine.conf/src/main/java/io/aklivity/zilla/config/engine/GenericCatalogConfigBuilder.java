@@ -14,32 +14,31 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static java.util.Objects.requireNonNull;
+import java.util.function.Function;
 
-public abstract class ExporterConfig
+public final class GenericCatalogConfigBuilder<T> extends CatalogConfigBuilder<T, GenericCatalogConfigBuilder<T>>
 {
-    public final String namespace;
-    public final String name;
-    public final String qname;
-    public final String type;
-    public final String vault;
-    public final OptionsConfig options;
+    GenericCatalogConfigBuilder(
+        Function<CatalogConfig, T> mapper)
+    {
+        super(mapper);
+    }
 
-    public transient long id;
-    public transient long vaultId;
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<GenericCatalogConfigBuilder<T>> thisType()
+    {
+        return (Class<GenericCatalogConfigBuilder<T>>) getClass();
+    }
 
-    protected ExporterConfig(
+    @Override
+    protected CatalogConfig newCatalog(
         String namespace,
         String name,
         String type,
         String vault,
         OptionsConfig options)
     {
-        this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
-        this.qname = String.format("%s:%s", namespace, name);
-        this.type = requireNonNull(type);
-        this.vault = vault;
-        this.options = options;
+        return new GenericCatalogConfig(namespace, name, type, vault, options);
     }
 }

@@ -18,7 +18,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.Function;
 
-public final class CatalogConfigBuilder<T> extends ConfigBuilder<T, CatalogConfigBuilder<T>>
+public abstract class CatalogConfigBuilder<T, B extends CatalogConfigBuilder<T, B>> extends ConfigBuilder<T, B>
 {
     private final Function<CatalogConfig, T> mapper;
 
@@ -28,63 +28,63 @@ public final class CatalogConfigBuilder<T> extends ConfigBuilder<T, CatalogConfi
     private String vault;
     private OptionsConfig options;
 
-    CatalogConfigBuilder(
+    protected CatalogConfigBuilder(
         Function<CatalogConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<CatalogConfigBuilder<T>> thisType()
-    {
-        return (Class<CatalogConfigBuilder<T>>) getClass();
-    }
-
-    public CatalogConfigBuilder<T> namespace(
+    public B namespace(
         String namespace)
     {
         this.namespace = namespace;
-        return this;
+        return thisType().cast(this);
     }
 
-    public CatalogConfigBuilder<T> name(
+    public B name(
         String name)
     {
         this.name = name;
-        return this;
+        return thisType().cast(this);
     }
 
-    public CatalogConfigBuilder<T> type(
+    public B type(
         String type)
     {
         this.type = requireNonNull(type);
-        return this;
+        return thisType().cast(this);
     }
 
-    public CatalogConfigBuilder<T> vault(
+    public B vault(
         String vault)
     {
         this.vault = vault;
-        return this;
+        return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<CatalogConfigBuilder<T>, C>> C options(
-        Function<Function<OptionsConfig, CatalogConfigBuilder<T>>, C> options)
+    public <C extends ConfigBuilder<B, C>> C options(
+        Function<Function<OptionsConfig, B>, C> options)
     {
         return options.apply(this::options);
     }
 
-    public CatalogConfigBuilder<T> options(
+    public B options(
         OptionsConfig options)
     {
         this.options = options;
-        return this;
+        return thisType().cast(this);
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new CatalogConfig(namespace, name, type, vault, options));
+        return mapper.apply(newCatalog(namespace, name, type, vault, options));
     }
+
+    protected abstract CatalogConfig newCatalog(
+        String namespace,
+        String name,
+        String type,
+        String vault,
+        OptionsConfig options);
 }

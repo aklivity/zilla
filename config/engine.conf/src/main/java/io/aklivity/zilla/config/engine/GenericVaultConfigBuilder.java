@@ -14,32 +14,30 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static java.util.Objects.requireNonNull;
+import java.util.function.Function;
 
-public abstract class ExporterConfig
+public final class GenericVaultConfigBuilder<T> extends VaultConfigBuilder<T, GenericVaultConfigBuilder<T>>
 {
-    public final String namespace;
-    public final String name;
-    public final String qname;
-    public final String type;
-    public final String vault;
-    public final OptionsConfig options;
+    GenericVaultConfigBuilder(
+        Function<VaultConfig, T> mapper)
+    {
+        super(mapper);
+    }
 
-    public transient long id;
-    public transient long vaultId;
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<GenericVaultConfigBuilder<T>> thisType()
+    {
+        return (Class<GenericVaultConfigBuilder<T>>) getClass();
+    }
 
-    protected ExporterConfig(
+    @Override
+    protected VaultConfig newVault(
         String namespace,
         String name,
         String type,
-        String vault,
         OptionsConfig options)
     {
-        this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
-        this.qname = String.format("%s:%s", namespace, name);
-        this.type = requireNonNull(type);
-        this.vault = vault;
-        this.options = options;
+        return new GenericVaultConfig(namespace, name, type, options);
     }
 }
