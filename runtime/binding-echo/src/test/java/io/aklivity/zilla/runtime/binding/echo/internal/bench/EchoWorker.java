@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
@@ -399,7 +400,8 @@ public class EchoWorker implements EngineContext
         Metric.Kind kind,
         long bindingId,
         int metricId,
-        int attributesId)
+        int attributesId,
+        KindConfig bindingKind)
     {
         return null;
     }

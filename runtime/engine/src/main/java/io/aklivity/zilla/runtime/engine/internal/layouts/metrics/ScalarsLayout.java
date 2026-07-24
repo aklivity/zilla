@@ -36,8 +36,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public abstract class ScalarsLayout extends MetricsLayout
 {
-    // Record: long bindingId (8) + int metricId (4) + int attributesId (4) + long value (8) = 24 bytes
-    private static final int RECORD_SIZE = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT + BitUtil.SIZE_OF_LONG;
+    // Record: long bindingId (8) + int metricId (4) + int attributesId (4) + long kind (8) + long value (8) = 32 bytes
+    private static final int RECORD_SIZE = VALUE_OFFSET + BitUtil.SIZE_OF_LONG;
 
     protected ScalarsLayout(
         AtomicBufferEx buffer)
@@ -49,7 +49,8 @@ public abstract class ScalarsLayout extends MetricsLayout
     public abstract LongConsumer supplyWriter(
         long bindingId,
         int metricId,
-        int attributesId);
+        int attributesId,
+        int kind);
 
     @Override
     public LongSupplier supplyReader(
@@ -84,11 +85,13 @@ public abstract class ScalarsLayout extends MetricsLayout
         long bindingId,
         int metricId,
         int attributesId,
+        int kind,
         int index)
     {
         buffer.putLong(index + BINDING_ID_OFFSET, bindingId);
         buffer.putInt(index + METRIC_ID_OFFSET, metricId);
         buffer.putInt(index + ATTRIBUTES_ID_OFFSET, attributesId);
+        buffer.putLong(index + KIND_OFFSET, kind);
         buffer.putLong(index + VALUE_OFFSET, 0L);
     }
 

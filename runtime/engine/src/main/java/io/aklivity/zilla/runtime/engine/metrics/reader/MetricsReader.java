@@ -52,8 +52,9 @@ public class MetricsReader
             long bindingId = ids[0];
             int metricId = (int) ids[1];
             int attributesId = (int) ids[2];
+            int kind = (int) ids[3];
             LongSupplier reader = collector.counter(bindingId, metricId, attributesId);
-            records.add(new ScalarRecord(bindingId, metricId, attributesId, reader, labelResolver));
+            records.add(new ScalarRecord(bindingId, metricId, attributesId, kind, reader, labelResolver));
         }
     }
 
@@ -64,8 +65,9 @@ public class MetricsReader
             long bindingId = ids[0];
             int metricId = (int) ids[1];
             int attributesId = (int) ids[2];
+            int kind = (int) ids[3];
             LongSupplier reader = collector.gauge(bindingId, metricId, attributesId);
-            records.add(new ScalarRecord(bindingId, metricId, attributesId, reader, labelResolver));
+            records.add(new ScalarRecord(bindingId, metricId, attributesId, kind, reader, labelResolver));
         }
     }
 
@@ -76,8 +78,9 @@ public class MetricsReader
             long bindingId = ids[0];
             int metricId = (int) ids[1];
             int attributesId = (int) ids[2];
+            int kind = (int) ids[3];
             LongSupplier[] readers = collector.histogram(bindingId, metricId, attributesId);
-            records.add(new HistogramRecord(bindingId, metricId, attributesId, readers, labelResolver));
+            records.add(new HistogramRecord(bindingId, metricId, attributesId, kind, readers, labelResolver));
         }
     }
 }

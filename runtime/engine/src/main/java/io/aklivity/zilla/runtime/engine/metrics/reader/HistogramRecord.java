@@ -26,6 +26,9 @@ import java.util.function.LongSupplier;
 
 import org.agrona.collections.Int2IntHashMap;
 
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
+
 public class HistogramRecord implements MetricRecord
 {
     private static final Int2IntHashMap MS_BUCKET_MAP = generateMillisecondsBucketMap();
@@ -34,6 +37,7 @@ public class HistogramRecord implements MetricRecord
     private final int metricId;
     private final int attributesId;
     private final int namespaceId;
+    private final KindConfig bindingKind;
     private final LongSupplier[] readers;
     private final LongFunction<String> labelResolver;
 
@@ -44,6 +48,7 @@ public class HistogramRecord implements MetricRecord
         long bindingId,
         int metricId,
         int attributesId,
+        int kind,
         LongSupplier[] readers,
         LongFunction<String> labelResolver)
     {
@@ -51,6 +56,7 @@ public class HistogramRecord implements MetricRecord
         this.metricId = metricId;
         this.attributesId = attributesId;
         this.namespaceId = namespaceId(bindingId);
+        this.bindingKind = kind != MetricsLayout.NO_KIND ? KindConfig.values()[kind] : null;
         this.readers = readers;
         this.labelResolver = labelResolver;
     }
@@ -84,6 +90,12 @@ public class HistogramRecord implements MetricRecord
     public int attributesId()
     {
         return attributesId;
+    }
+
+    @Override
+    public KindConfig bindingKind()
+    {
+        return bindingKind;
     }
 
     @Override
