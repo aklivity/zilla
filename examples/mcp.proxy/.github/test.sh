@@ -57,6 +57,12 @@
 #      scope (kafka_sr:write) under the toolkit-level scope
 #      (kafka_sr:tools) for register_schema only -- no OpenAPI
 #      security scheme is involved, unlike petstore's create_pet
+#  23. kafka__create_topics creates a real topic on the same broker
+#      (mcp_kafka kind:client's own generated pipeline, not the engine's
+#      test double), gated by its own tool-specific kafka:write scope
+#      layered under the toolkit-level kafka:tools scope -- the same
+#      layering mechanism as register_schema/kafka_sr:write, demonstrated
+#      on a different toolkit
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -89,7 +95,7 @@ encode_jwt() {
 JWT_NONE=""
 JWT_URLELICIT=$(encode_jwt "urlelicit:authorize")
 JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools kafka_sr:tools")
-JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools")
+JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write")
 
 # WHEN: a url-elicitation-capable client initializes against the gateway
 # THEN: the gateway negotiates protocol version 2025-11-25 in the response
@@ -240,7 +246,8 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__consume$'
+    echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -256,7 +263,8 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__consume$'; then
+    echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -665,6 +673,29 @@ if echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'; then
   echo "✅ kafka__consume read the produced record back from the real Kafka broker"
 else
   echo "❌ kafka__consume did not read the produced record back"
+  EXIT=1
+fi
+
+# WHEN: a kafka:write-scoped caller calls kafka__create_topics
+# THEN: a new topic is created on the real Kafka broker -- proving the
+#       tool-specific kafka:write scope (layered under the toolkit-level
+#       kafka:tools guard already exercised above by produce/consume) is
+#       sufficient to actually invoke the tool, not just see it listed
+call_kafka_create_topics() {
+  KAFKA_CREATE_TOPICS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__create_topics" \
+      -e CALL_ARGS='{"topics":[{"name":"widgets","partitions":1,"replicas":1}]}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_CREATE_TOPICS_OUT" | grep -q 'Created topic(s): widgets'
+}
+retry_until 10 3 call_kafka_create_topics
+echo "KAFKA_CREATE_TOPICS_OUT=$KAFKA_CREATE_TOPICS_OUT"
+if echo "$KAFKA_CREATE_TOPICS_OUT" | grep -q 'Created topic(s): widgets'; then
+  echo "✅ kafka__create_topics created a new topic on the real Kafka broker"
+else
+  echo "❌ kafka__create_topics did not succeed against the real broker"
   EXIT=1
 fi
 
