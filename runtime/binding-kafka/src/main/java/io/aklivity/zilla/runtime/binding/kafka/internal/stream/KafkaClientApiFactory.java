@@ -58,11 +58,15 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHan
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.sasl.SaslHandshakeResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaApiRequestBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaChallengeExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
@@ -107,8 +111,10 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
     private final SignalFW signalRO = new SignalFW();
+    private final FlushFW flushRO = new FlushFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
+    private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -116,9 +122,11 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
+    private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
+    private final KafkaChallengeExFW.Builder kafkaChallengeExRW = new KafkaChallengeExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
@@ -651,7 +659,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         private final long affinity;
         private final KafkaApiClient client;
         private final short api;
-        private final short version;
+        private short version;
         private final String16FW clientId;
         private final int requestLength;
 
@@ -728,6 +736,10 @@ public final class KafkaClientApiFactory implements BindingHandler
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onAppReset(reset);
+                break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onAppFlush(flush);
                 break;
             default:
                 break;
@@ -815,6 +827,40 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
 
             client.cleanupNet(traceId);
+        }
+
+        private void onAppFlush(
+            FlushFW flush)
+        {
+            final long traceId = flush.traceId();
+            final OctetsFW extension = flush.extension();
+            final ExtensionFW flushEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final KafkaFlushExFW kafkaFlushEx = flushEx != null && flushEx.typeId() == kafkaTypeId ?
+                    kafkaFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
+
+            if (kafkaFlushEx != null && kafkaFlushEx.kind() == KafkaFlushExFW.KIND_API_FLUSH)
+            {
+                final short chosenVersion = kafkaFlushEx.apiFlush().version();
+
+                this.version = chosenVersion;
+
+                if (client.apiVersionSupported(api, chosenVersion))
+                {
+                    doAppWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
+                    client.doEncodeRequestHeader(this, traceId, client.initialBudgetId);
+                }
+                else
+                {
+                    client.pending.poll();
+                    event.apiVersionRejected(traceId, client.routedId, api, chosenVersion);
+                    cleanupApp(traceId, ERROR_UNSUPPORTED_VERSION);
+
+                    if (!client.pending.isEmpty())
+                    {
+                        client.doEncodeRequest(traceId);
+                    }
+                }
+            }
         }
 
         private void doAppWindow(
@@ -995,6 +1041,25 @@ public final class KafkaClientApiFactory implements BindingHandler
 
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, extension);
+            }
+        }
+
+        private void doAppChallenge(
+            long traceId,
+            short minVersion,
+            short maxVersion)
+        {
+            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            {
+                final KafkaChallengeExFW kafkaChallengeEx = kafkaChallengeExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .apiChallenge(c -> c.versions(v -> v.min(minVersion).max(maxVersion)))
+                        .build();
+
+                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, 0L, 0);
+                doChallenge(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, kafkaChallengeEx);
             }
         }
 
@@ -1202,6 +1267,13 @@ public final class KafkaClientApiFactory implements BindingHandler
                     attached = true;
                     head.doAppWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
                     doEncodeRequestHeader(head, traceId, initialBudgetId);
+                    break;
+                }
+
+                if (apiVersionRangeByApiKey.containsKey(head.api))
+                {
+                    final int range = apiVersionRangeByApiKey.get(head.api);
+                    head.doAppChallenge(traceId, (short) (range >> 16), (short) (range & 0xFFFF));
                     break;
                 }
 
@@ -2479,5 +2551,32 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    private void doChallenge(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+        sender.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
     }
 }

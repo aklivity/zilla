@@ -66,10 +66,13 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssig
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaAlterConfigsRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaAlterConfigsResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiChallengeExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaChallengeExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaClusterBrokerFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
@@ -171,6 +174,18 @@ public final class KafkaFunctions
     public static KafkaResetExMatcherBuilder matchResetEx()
     {
         return new KafkaResetExMatcherBuilder();
+    }
+
+    @Function
+    public static KafkaChallengeExBuilder challengeEx()
+    {
+        return new KafkaChallengeExBuilder();
+    }
+
+    @Function
+    public static KafkaChallengeExMatcherBuilder matchChallengeEx()
+    {
+        return new KafkaChallengeExMatcherBuilder();
     }
 
     @Function
@@ -3589,6 +3604,13 @@ public final class KafkaFunctions
             return this;
         }
 
+        public KafkaApiFlushExBuilder apiFlush()
+        {
+            flushExRW.kind(KafkaApi.API_REQUEST.value());
+
+            return new KafkaApiFlushExBuilder();
+        }
+
         public KafkaMergedFlushExBuilder merged()
         {
             flushExRW.kind(KafkaApi.MERGED.value());
@@ -3630,6 +3652,30 @@ public final class KafkaFunctions
             final byte[] array = new byte[flushEx.sizeof()];
             flushEx.buffer().getBytes(flushEx.offset(), array);
             return array;
+        }
+
+        public final class KafkaApiFlushExBuilder
+        {
+            private final KafkaApiFlushExFW.Builder apiFlushExRW = new KafkaApiFlushExFW.Builder();
+
+            private KafkaApiFlushExBuilder()
+            {
+                apiFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_API_FLUSH, writeBuffer.capacity());
+            }
+
+            public KafkaApiFlushExBuilder version(
+                int version)
+            {
+                apiFlushExRW.version((short) version);
+                return this;
+            }
+
+            public KafkaFlushExBuilder build()
+            {
+                final KafkaApiFlushExFW apiFlushEx = apiFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, apiFlushEx.limit());
+                return KafkaFlushExBuilder.this;
+            }
         }
 
         public final class KafkaMergedFlushExBuilder
@@ -4249,6 +4295,178 @@ public final class KafkaFunctions
             KafkaResetExFW resetEx)
         {
             return consumerId == null || consumerId.equals(resetEx.consumerId());
+        }
+    }
+
+    public static final class KafkaChallengeExBuilder
+    {
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+
+        private final KafkaChallengeExFW challengeExRO = new KafkaChallengeExFW();
+
+        private final KafkaChallengeExFW.Builder challengeExRW = new KafkaChallengeExFW.Builder();
+
+        private KafkaChallengeExBuilder()
+        {
+            challengeExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public KafkaChallengeExBuilder typeId(
+            int typeId)
+        {
+            challengeExRW.typeId(typeId);
+            return this;
+        }
+
+        public KafkaApiChallengeExBuilder apiChallenge()
+        {
+            challengeExRW.kind(KafkaApi.API_REQUEST.value());
+
+            return new KafkaApiChallengeExBuilder();
+        }
+
+        public byte[] build()
+        {
+            final KafkaChallengeExFW challengeEx = challengeExRO;
+            final byte[] array = new byte[challengeEx.sizeof()];
+            challengeEx.buffer().getBytes(challengeEx.offset(), array);
+            return array;
+        }
+
+        public final class KafkaApiChallengeExBuilder
+        {
+            private final KafkaApiChallengeExFW.Builder apiChallengeExRW = new KafkaApiChallengeExFW.Builder();
+
+            private KafkaApiChallengeExBuilder()
+            {
+                apiChallengeExRW.wrap(writeBuffer, KafkaChallengeExFW.FIELD_OFFSET_API_CHALLENGE, writeBuffer.capacity());
+            }
+
+            public KafkaApiChallengeExBuilder versions(
+                int min,
+                int max)
+            {
+                apiChallengeExRW.versions(v -> v.min((short) min).max((short) max));
+                return this;
+            }
+
+            public KafkaChallengeExBuilder build()
+            {
+                final KafkaApiChallengeExFW apiChallengeEx = apiChallengeExRW.build();
+                challengeExRO.wrap(writeBuffer, 0, apiChallengeEx.limit());
+                return KafkaChallengeExBuilder.this;
+            }
+        }
+    }
+
+    public static final class KafkaChallengeExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final KafkaChallengeExFW challengeExRO = new KafkaChallengeExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<KafkaChallengeExFW> caseMatcher;
+
+        public KafkaApiChallengeExMatcherBuilder apiChallenge()
+        {
+            final KafkaApiChallengeExMatcherBuilder matcherBuilder = new KafkaApiChallengeExMatcherBuilder();
+
+            this.kind = KafkaApi.API_REQUEST.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaChallengeExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private KafkaChallengeExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final KafkaChallengeExFW challengeEx = challengeExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (challengeEx != null &&
+                matchTypeId(challengeEx) &&
+                matchKind(challengeEx) &&
+                matchCase(challengeEx))
+            {
+                byteBuf.position(byteBuf.position() + challengeEx.sizeof());
+                return challengeEx;
+            }
+
+            throw new Exception(challengeEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final KafkaChallengeExFW challengeEx)
+        {
+            return typeId == null || typeId == challengeEx.typeId();
+        }
+
+        private boolean matchKind(
+            final KafkaChallengeExFW challengeEx)
+        {
+            return kind == null || kind == challengeEx.kind();
+        }
+
+        private boolean matchCase(
+            final KafkaChallengeExFW challengeEx) throws Exception
+        {
+            return caseMatcher == null || caseMatcher.test(challengeEx);
+        }
+
+        public final class KafkaApiChallengeExMatcherBuilder
+        {
+            private Short min;
+            private Short max;
+
+            private KafkaApiChallengeExMatcherBuilder()
+            {
+            }
+
+            public KafkaApiChallengeExMatcherBuilder versions(
+                int min,
+                int max)
+            {
+                this.min = (short) min;
+                this.max = (short) max;
+                return this;
+            }
+
+            public KafkaChallengeExMatcherBuilder build()
+            {
+                return KafkaChallengeExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaChallengeExFW challengeEx)
+            {
+                final KafkaApiChallengeExFW apiChallengeEx = challengeEx.apiChallenge();
+                return matchVersions(apiChallengeEx);
+            }
+
+            private boolean matchVersions(
+                final KafkaApiChallengeExFW apiChallengeEx)
+            {
+                return (min == null || min == apiChallengeEx.versions().min()) &&
+                    (max == null || max == apiChallengeEx.versions().max());
+            }
         }
     }
 
@@ -5601,6 +5819,15 @@ public final class KafkaFunctions
         private Integer kind;
         private Predicate<KafkaFlushExFW> caseMatcher;
 
+        public KafkaApiFlushExMatcherBuilder apiFlush()
+        {
+            final KafkaApiFlushExMatcherBuilder matcherBuilder = new KafkaApiFlushExMatcherBuilder();
+
+            this.kind = KafkaApi.API_REQUEST.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public KafkaMergedFlushExMatcherBuilder merged()
         {
             final KafkaMergedFlushExMatcherBuilder matcherBuilder = new KafkaMergedFlushExMatcherBuilder();
@@ -5697,6 +5924,40 @@ public final class KafkaFunctions
             final KafkaFlushExFW flushEx) throws Exception
         {
             return caseMatcher == null || caseMatcher.test(flushEx);
+        }
+
+        public final class KafkaApiFlushExMatcherBuilder
+        {
+            private Short version;
+
+            private KafkaApiFlushExMatcherBuilder()
+            {
+            }
+
+            public KafkaApiFlushExMatcherBuilder version(
+                int version)
+            {
+                this.version = (short) version;
+                return this;
+            }
+
+            public KafkaFlushExMatcherBuilder build()
+            {
+                return KafkaFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaFlushExFW flushEx)
+            {
+                final KafkaApiFlushExFW apiFlushEx = flushEx.apiFlush();
+                return matchVersion(apiFlushEx);
+            }
+
+            private boolean matchVersion(
+                final KafkaApiFlushExFW apiFlushEx)
+            {
+                return version == null || version == apiFlushEx.version();
+            }
         }
 
         public final class KafkaFetchFlushExMatcherBuilder

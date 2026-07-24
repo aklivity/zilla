@@ -28,7 +28,25 @@ write zilla:begin.ext ${kafka:beginEx()
                                  .build()
                                 .build()}
 
-connect aborted zilla:reset.ext ${kafka:matchResetEx()
-                                        .typeId(zilla:id("kafka"))
-                                        .error(35)
-                                        .build()}
+connected
+
+read advise zilla:challenge ${kafka:challengeEx()
+                                  .typeId(zilla:id("kafka"))
+                                  .apiChallenge()
+                                      .versions(0, 2)
+                                      .build()
+                                  .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .apiFlush()
+                                  .version(3)
+                                  .build()
+                              .build()}
+
+read zilla:reset.ext ${kafka:matchResetEx()
+                                    .typeId(zilla:id("kafka"))
+                                    .error(35)
+                                    .build()}
+
+write aborted
