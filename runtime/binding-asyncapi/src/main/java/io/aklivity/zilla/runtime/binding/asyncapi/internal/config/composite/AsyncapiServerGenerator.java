@@ -23,27 +23,24 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
-import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
+import io.aklivity.zilla.config.binding.http.HttpBindingConfig;
+import io.aklivity.zilla.config.binding.http.HttpBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.http.HttpRequestConfig.Method;
 import io.aklivity.zilla.config.binding.http.HttpRequestConfigBuilder;
-import io.aklivity.zilla.config.binding.http.HttpWithConfig;
-import io.aklivity.zilla.config.binding.mqtt.MqttConditionConfig;
-import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttBindingConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.MqttTopicConfigBuilder;
-import io.aklivity.zilla.config.binding.mqtt.MqttWithConfig;
-import io.aklivity.zilla.config.binding.sse.SseConditionConfig;
-import io.aklivity.zilla.config.binding.sse.SseOptionsConfig;
+import io.aklivity.zilla.config.binding.sse.SseBindingConfig;
+import io.aklivity.zilla.config.binding.sse.SseBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.SseOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.SsePathConfigBuilder;
-import io.aklivity.zilla.config.binding.sse.SseWithConfig;
-import io.aklivity.zilla.config.binding.tcp.TcpConditionConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpBindingConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
-import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
-import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
-import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.binding.tls.TlsBindingConfig;
+import io.aklivity.zilla.config.binding.tls.TlsBindingConfigBuilder;
 import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
@@ -157,9 +154,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     .build();
 
                 namespace
-                    .binding()
+                    .binding(TcpBindingConfig::builder)
                         .name("tcp_server0")
-                        .type("tcp")
                         .kind(SERVER)
                         .options(tcpOptions)
                         .inject(this::injectTcpRoutes)
@@ -169,13 +165,13 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return namespace;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectTcpRoutes(
-                B binding)
+            private <C> TcpBindingConfigBuilder<C> injectTcpRoutes(
+                TcpBindingConfigBuilder<C> binding)
             {
                 resolveServers().stream()
                     .filter(s -> plain.contains(s.getScheme()))
                     .forEach(s -> binding.route()
-                        .when(TcpConditionConfig::builder)
+                        .when()
                             .port(s.getPort())
                             .build()
                         .exit(String.format("%s_server0", s.getScheme()))
@@ -184,7 +180,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 resolveServers().stream()
                     .filter(s -> secure.contains(s.getScheme()))
                     .forEach(s -> binding.route()
-                        .when(TcpConditionConfig::builder)
+                        .when()
                             .port(s.getPort())
                             .build()
                         .exit("tls_server0")
@@ -199,12 +195,11 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 if (resolveServers().stream()
                     .anyMatch(s -> secure.contains(s.getScheme())))
                 {
-                    namespace.binding()
+                    namespace.binding(TlsBindingConfig::builder)
                         .name("tls_server0")
-                        .type("tls")
                         .kind(SERVER)
                         .vault(config.qvault)
-                        .options(TlsOptionsConfig::builder)
+                        .options()
                             .alpn(resolveTlsAlpn())
                             .build()
                         .inject(this::injectTlsRoutes)
@@ -221,13 +216,13 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     : null;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectTlsRoutes(
-                B binding)
+            private <C> TlsBindingConfigBuilder<C> injectTlsRoutes(
+                TlsBindingConfigBuilder<C> binding)
             {
                 resolveServers().stream()
                     .filter(s -> secure.contains(s.getScheme()))
                     .forEach(s -> binding.route()
-                        .when(TlsConditionConfig::builder)
+                        .when()
                             .port(s.getPort())
                             .authority(s.getHost())
                             .build()
@@ -270,11 +265,10 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
-                    .binding()
+                    .binding(HttpBindingConfig::builder)
                         .name("http_server0")
-                        .type("http")
                         .kind(SERVER)
-                        .options(HttpOptionsConfig::builder)
+                        .options()
                             .access()
                                 .policy(CROSS_ORIGIN)
                                 .build()
@@ -399,8 +393,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return request;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectHttpRoutes(
-                B binding)
+            private <C> HttpBindingConfigBuilder<C> injectHttpRoutes(
+                HttpBindingConfigBuilder<C> binding)
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
@@ -415,12 +409,12 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                                 binding
                                     .route()
                                     .exit(config.qname)
-                                    .when(HttpConditionConfig::builder)
+                                    .when()
                                         .header(":path", path + address)
                                         .header(":method",
                                             operation.binding("http", AsyncapiHttpOperationBindingEx.class).get().method)
                                         .build()
-                                    .with(HttpWithConfig::builder)
+                                    .with()
                                         .compositeId(operation.compositeId)
                                         .build()
                                     .inject(route -> injectHttpServerRouteGuarded(route, operation))
@@ -432,7 +426,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                                 binding
                                     .route()
                                     .exit("sse_server0")
-                                    .when(HttpConditionConfig::builder)
+                                    .when()
                                         .header(":path", path + address)
                                         .header(":method", "GET")
                                         .build()
@@ -485,11 +479,10 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
-                    .binding()
+                    .binding(SseBindingConfig::builder)
                         .name("sse_server0")
-                        .type("sse")
                         .kind(SERVER)
-                        .options(SseOptionsConfig::builder)
+                        .options()
                             .inject(this::injectSseRequests)
                             .build()
                         .inject(this::injectSseRoutes)
@@ -538,8 +531,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return request;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectSseRoutes(
-                B binding)
+            private <C> SseBindingConfigBuilder<C> injectSseRoutes(
+                SseBindingConfigBuilder<C> binding)
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
@@ -555,10 +548,10 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                             binding
                                 .route()
                                 .exit(config.qname)
-                                .when(SseConditionConfig::builder)
+                                .when()
                                     .path(path + address)
                                     .build()
-                                .with(SseWithConfig::builder)
+                                .with()
                                     .compositeId(operation.compositeId)
                                     .build()
                                 .build());
@@ -576,11 +569,10 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 
                 return namespace
                         .inject(this::injectMqttStore)
-                        .binding()
+                        .binding(MqttBindingConfig::builder)
                             .name("mqtt_server0")
-                            .type("mqtt")
                             .kind(SERVER)
-                            .options(MqttOptionsConfig::builder)
+                            .options()
                                 .store(store)
                                 .inject(options -> injectMqttAuthorization(options, schema))
                                 .inject(this::injectMqttTopicsOptions)
@@ -658,8 +650,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return topic;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttRoutes(
-                B binding)
+            private <C> MqttBindingConfigBuilder<C> injectMqttRoutes(
+                MqttBindingConfigBuilder<C> binding)
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
@@ -669,12 +661,12 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 
                 binding.route()
                     .exit(config.qname)
-                    .when(MqttConditionConfig::builder)
+                    .when()
                         .session()
                             .clientId("*")
                             .build()
                         .build()
-                    .with(MqttWithConfig::builder)
+                    .with()
                         .compositeId(schema.asyncapi.compositeId)
                         .build()
                     .build();
@@ -682,8 +674,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return binding;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttRoute(
-                B binding,
+            private <C> MqttBindingConfigBuilder<C> injectMqttRoute(
+                MqttBindingConfigBuilder<C> binding,
                 AsyncapiOperationView operation)
             {
                 String topic = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "#");
@@ -692,12 +684,12 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 {
                     binding.route()
                         .exit(config.qname)
-                        .when(MqttConditionConfig::builder)
+                        .when()
                             .publish()
                                 .topic(topic)
                                 .build()
                             .build()
-                        .with(MqttWithConfig::builder)
+                        .with()
                             .compositeId(operation.compositeId)
                             .build()
                         .build();
@@ -706,12 +698,12 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 {
                     binding.route()
                         .exit(config.qname)
-                        .when(MqttConditionConfig::builder)
+                        .when()
                             .subscribe()
                                 .topic(topic)
                                 .build()
                             .build()
-                        .with(MqttWithConfig::builder)
+                        .with()
                             .compositeId(operation.compositeId)
                             .build()
                         .build();

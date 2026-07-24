@@ -24,18 +24,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
-import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
+import io.aklivity.zilla.config.binding.http.HttpBindingConfig;
+import io.aklivity.zilla.config.binding.http.HttpBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.http.HttpParamConfigBuilder;
 import io.aklivity.zilla.config.binding.http.HttpRequestConfig.Method;
 import io.aklivity.zilla.config.binding.http.HttpRequestConfigBuilder;
-import io.aklivity.zilla.config.binding.http.HttpWithConfig;
-import io.aklivity.zilla.config.binding.tcp.TcpConditionConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpBindingConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
-import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
-import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
-import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.binding.tls.TlsBindingConfig;
+import io.aklivity.zilla.config.binding.tls.TlsBindingConfigBuilder;
 import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
@@ -153,9 +152,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .build();
 
                 namespace
-                    .binding()
+                    .binding(TcpBindingConfig::builder)
                         .name("tcp_server0")
-                        .type("tcp")
                         .kind(SERVER)
                         .options(tcpOptions)
                         .inject(this::injectTcpRoutes)
@@ -165,8 +163,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return namespace;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectTcpRoutes(
-                B binding)
+            private <C> TcpBindingConfigBuilder<C> injectTcpRoutes(
+                TcpBindingConfigBuilder<C> binding)
             {
                 resolveServers().stream()
                     .collect(toMap(URI::getPort, identity(), (first, second) -> first, LinkedHashMap::new))
@@ -176,7 +174,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         if (plain.contains(server.getScheme()))
                         {
                             binding.route()
-                                .when(TcpConditionConfig::builder)
+                                .when()
                                     .port(server.getPort())
                                     .build()
                                 .exit("http_server0")
@@ -185,7 +183,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                         else if (secure.contains(server.getScheme()))
                         {
                             binding.route()
-                                .when(TcpConditionConfig::builder)
+                                .when()
                                     .port(server.getPort())
                                     .build()
                                 .exit("tls_server0")
@@ -201,12 +199,11 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
             {
                 if (resolveServers().stream().anyMatch(server -> secure.contains(server.getScheme())))
                 {
-                    namespace.binding()
+                    namespace.binding(TlsBindingConfig::builder)
                         .name("tls_server0")
-                        .type("tls")
                         .kind(SERVER)
                         .vault(config.qvault)
-                        .options(TlsOptionsConfig::builder)
+                        .options()
                             .alpn(TLS_ALPN_PROTOCOLS)
                             .build()
                         .inject(this::injectTlsRoutes)
@@ -216,14 +213,14 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return namespace;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectTlsRoutes(
-                B binding)
+            private <C> TlsBindingConfigBuilder<C> injectTlsRoutes(
+                TlsBindingConfigBuilder<C> binding)
             {
                 resolveServers().stream()
                     .filter(server -> secure.contains(server.getScheme()))
                     .forEach(server ->
                         binding.route()
-                            .when(TlsConditionConfig::builder)
+                            .when()
                                 .port(server.getPort())
                                 .authority(server.getHost())
                                 .build()
@@ -237,11 +234,10 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 NamespaceConfigBuilder<C> namespace)
             {
                 return namespace
-                    .binding()
+                    .binding(HttpBindingConfig::builder)
                         .name("http_server0")
-                        .type("http")
                         .kind(SERVER)
-                        .options(HttpOptionsConfig::builder)
+                        .options()
                             .access()
                                 .policy(CROSS_ORIGIN)
                                 .build()
@@ -365,8 +361,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return cataloged;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectHttpRoutes(
-                B binding)
+            private <C> HttpBindingConfigBuilder<C> injectHttpRoutes(
+                HttpBindingConfigBuilder<C> binding)
             {
                 final List<URI> servers = resolveServers();
 
@@ -381,13 +377,13 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                             binding
                                 .route()
                                 .exit(config.qname)
-                                .when(HttpConditionConfig::builder)
+                                .when()
                                     .header(":path",
                                         OpenapiServerView.requestPath(server, operation.path)
                                             .replaceAll(REGEX_ADDRESS_PARAMETER, "*"))
                                     .header(":method", operation.method)
                                     .build()
-                                .with(HttpWithConfig::builder)
+                                .with()
                                     .compositeId(operation.compositeId)
                                     .build()
                                 .inject(route -> injectHttpServerRouteGuarded(route, operation))

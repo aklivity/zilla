@@ -30,21 +30,21 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionConfig;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiWithConfig;
-import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaConditionConfig;
-import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaBindingConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaBindingConfigBuilder;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaRouteConfigBuilder;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchConfigBuilder;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterConfigBuilder;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchMergeConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceConfigBuilder;
-import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaBindingConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
-import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
-import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaWithConfig;
-import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
-import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaBindingConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaBindingConfigBuilder;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaRouteConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterConfigBuilder;
-import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
 import io.aklivity.zilla.config.engine.RouteConfigBuilder;
@@ -284,9 +284,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                 private <C> NamespaceConfigBuilder<C> injectMqttKafka(
                     NamespaceConfigBuilder<C> namespace)
                 {
-                    return namespace.binding()
+                    return namespace.binding(MqttKafkaBindingConfig::builder)
                         .name("mqtt_kafka_proxy0")
-                        .type("mqtt-kafka")
                         .kind(PROXY)
                         .inject(this::injectMetrics)
                         .inject(this::injectMqttKafkaOptions)
@@ -294,8 +293,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         .build();
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttKafkaOptions(
-                    B binding)
+                private <C> MqttKafkaBindingConfigBuilder<C> injectMqttKafkaOptions(
+                    MqttKafkaBindingConfigBuilder<C> binding)
                 {
                     final AsyncapiView specification = mapping.with.asyncapi;
                     final Map<String, AsyncapiChannelView> channelsByRole = specification.channels.values().stream()
@@ -308,7 +307,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     final AsyncapiChannelView messages = requireMqttKafkaRole(channelsByRole, "messages");
                     final AsyncapiChannelView retained = requireMqttKafkaRole(channelsByRole, "retained");
 
-                    return binding.options(MqttKafkaOptionsConfig::builder)
+                    return binding.options()
                         .topics()
                             .sessions(sessions.address)
                             .messages(messages.address)
@@ -328,8 +327,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         "x-zilla-mqtt-kafka role \"%s\" not declared on any channel of the kafka spec".formatted(role));
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttKafkaRoutes(
-                    B binding)
+                private <C> MqttKafkaBindingConfigBuilder<C> injectMqttKafkaRoutes(
+                    MqttKafkaBindingConfigBuilder<C> binding)
                 {
                     for (ProxyRouteHelper route : mqttKafkaRoutes)
                     {
@@ -361,8 +360,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return binding;
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttKafkaRoute(
-                    B binding,
+                private <C> MqttKafkaBindingConfigBuilder<C> injectMqttKafkaRoute(
+                    MqttKafkaBindingConfigBuilder<C> binding,
                     AsyncapiOperationView mqttOperation,
                     AsyncapiOperationView kafkaOperation)
                 {
@@ -372,11 +371,11 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                     binding.route()
                         .exit(config.qname)
-                        .when(MqttKafkaConditionConfig::builder)
+                        .when()
                             .topic(mqttOperation.channel.address)
                             .kind(kind)
                             .build()
-                        .with(MqttKafkaWithConfig::builder)
+                        .with()
                             .compositeId(mqttOperation.compositeId)
                             .messages(kafkaOperation.channel.address.replaceAll("\\{([^{}]*)\\}", "\\${params.$1}"))
                             .build()
@@ -414,17 +413,16 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                 private <C> NamespaceConfigBuilder<C> injectSseKafka(
                     NamespaceConfigBuilder<C> namespace)
                 {
-                    return namespace.binding()
+                    return namespace.binding(SseKafkaBindingConfig::builder)
                         .name("sse_kafka_proxy0")
-                        .type("sse-kafka")
                         .kind(PROXY)
                         .inject(this::injectMetrics)
                         .inject(this::injectSseKafkaRoutes)
                         .build();
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectSseKafkaRoutes(
-                    B binding)
+                private <C> SseKafkaBindingConfigBuilder<C> injectSseKafkaRoutes(
+                    SseKafkaBindingConfigBuilder<C> binding)
                 {
                     for (ProxyRouteHelper route : sseKafkaRoutes)
                     {
@@ -456,8 +454,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return binding;
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectSseKafkaRoute(
-                    B binding,
+                private <C> SseKafkaBindingConfigBuilder<C> injectSseKafkaRoute(
+                    SseKafkaBindingConfigBuilder<C> binding,
                     AsyncapiSchemaConfig schema,
                     AsyncapiOperationView sseOperation,
                     AsyncapiOperationView kafkaOperation)
@@ -468,7 +466,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                         binding.route()
                             .exit(config.qname)
-                            .when(SseKafkaConditionConfig::builder)
+                            .when()
                                 .path(sseOperation.channel.address)
                                 .build()
                             .inject(route -> injectSseKafkaRouteWith(route, sseOperation, kafkaOperation, guardQname(resolution)))
@@ -479,8 +477,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return binding;
                 }
 
-                private <C, R extends RouteConfigBuilder<C, R>> R injectSseKafkaRouteWith(
-                    R route,
+                private <C> SseKafkaRouteConfigBuilder<C> injectSseKafkaRouteWith(
+                    SseKafkaRouteConfigBuilder<C> route,
                     AsyncapiOperationView sseOperation,
                     AsyncapiOperationView kafkaOperation,
                     String guardQname)
@@ -488,7 +486,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     if ("receive".equals(kafkaOperation.action))
                     {
                         route
-                            .with(SseKafkaWithConfig::builder)
+                            .with()
                             .compositeId(sseOperation.compositeId)
                             .topic(kafkaOperation.channel.address)
                             .eventId(EVENT_ID_DEFAULT)
@@ -604,17 +602,16 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                 private <C> NamespaceConfigBuilder<C> injectHttpKafka(
                     NamespaceConfigBuilder<C> namespace)
                 {
-                    return namespace.binding()
+                    return namespace.binding(HttpKafkaBindingConfig::builder)
                         .name("http_kafka_proxy0")
-                        .type("http-kafka")
                         .kind(PROXY)
                         .inject(this::injectMetrics)
                         .inject(this::injectHttpKafkaRoutes)
                         .build();
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectHttpKafkaRoutes(
-                    B binding)
+                private <C> HttpKafkaBindingConfigBuilder<C> injectHttpKafkaRoutes(
+                    HttpKafkaBindingConfigBuilder<C> binding)
                 {
                     for (ProxyRouteHelper route : httpKafkaRoutes)
                     {
@@ -646,8 +643,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return binding;
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectHttpKafkaRoute(
-                    B binding,
+                private <C> HttpKafkaBindingConfigBuilder<C> injectHttpKafkaRoute(
+                    HttpKafkaBindingConfigBuilder<C> binding,
                     AsyncapiSchemaConfig schema,
                     AsyncapiOperationView httpOperation,
                     AsyncapiOperationView kafkaOperation)
@@ -676,12 +673,12 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                                         binding.route()
                                             .exit(config.qname)
-                                            .when(HttpKafkaConditionConfig::builder)
+                                            .when()
                                                 .method(httpPeerOp
                                                     .binding("http", AsyncapiHttpOperationBindingEx.class).get().method)
                                                 .path(httpPeerOp.channel.address)
                                                 .build()
-                                            .with(HttpKafkaWithConfig::builder)
+                                            .with()
                                                 .compositeId(httpOperation.compositeId)
                                                 .produce()
                                                     .topic(kafkaOperation.channel.address)
@@ -699,7 +696,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                         binding.route()
                             .exit(config.qname)
-                            .when(HttpKafkaConditionConfig::builder)
+                            .when()
                                 .method(httpMethod)
                                 .path(httpPath)
                                 .build()
@@ -712,8 +709,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return binding;
                 }
 
-                private <C, R extends RouteConfigBuilder<C, R>> R injectHttpKafkaRouteWith(
-                    R route,
+                private <C> HttpKafkaRouteConfigBuilder<C> injectHttpKafkaRouteWith(
+                    HttpKafkaRouteConfigBuilder<C> route,
                     AsyncapiOperationView httpOperation,
                     AsyncapiOperationView kafkaOperation,
                     String guardQname)
@@ -722,7 +719,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     {
                     case "receive":
                         route
-                            .with(HttpKafkaWithConfig::builder)
+                            .with()
                             .compositeId(httpOperation.compositeId)
                             .fetch()
                                 .topic(kafkaOperation.channel.address)
@@ -732,7 +729,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         break;
                     case "send":
                         route
-                            .with(HttpKafkaWithConfig::builder)
+                            .with()
                             .compositeId(httpOperation.compositeId)
                             .produce()
                                 .topic(kafkaOperation.channel.address)

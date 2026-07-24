@@ -23,15 +23,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiConditionConfig;
-import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiRouteConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
-import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
-import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeRouteConfig;
@@ -72,11 +72,10 @@ public final class McpSchemaRegistryCompositeGenerator
                         .build()
                     .build()
                 .build()
-            .binding()
+            .binding(McpOpenapiBindingConfig::builder)
                 .name(BINDING_NAME)
-                .type("mcp_openapi")
                 .kind(CLIENT)
-                .options(McpOpenapiOptionsConfig::builder)
+                .options()
                     .spec()
                         .label(SUBJECT_NAME)
                         .server(binding.options.server)
@@ -98,8 +97,8 @@ public final class McpSchemaRegistryCompositeGenerator
             List.of(new McpSchemaRegistryCompositeRouteConfig(routeId)));
     }
 
-    private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectRoutes(
-        B mcpOpenapi,
+    private <C> McpOpenapiBindingConfigBuilder<C> injectRoutes(
+        McpOpenapiBindingConfigBuilder<C> mcpOpenapi,
         McpSchemaRegistryBindingConfig binding)
     {
         for (String tool : TOOLS)
@@ -135,8 +134,8 @@ public final class McpSchemaRegistryCompositeGenerator
         return compileGlob(pattern).matcher(tool).matches();
     }
 
-    private <C, R extends RouteConfigBuilder<C, R>> R injectGuarded(
-        R route,
+    private <C> McpOpenapiRouteConfigBuilder<C> injectGuarded(
+        McpOpenapiRouteConfigBuilder<C> route,
         McpSchemaRegistryBindingConfig binding,
         List<GuardedConfig> guarded)
     {

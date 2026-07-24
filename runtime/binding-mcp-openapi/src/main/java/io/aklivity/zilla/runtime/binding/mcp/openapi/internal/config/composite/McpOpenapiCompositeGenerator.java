@@ -44,11 +44,14 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpAuthorizationConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpBindingConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpBodyConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpRouteConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiAuthorizationConfig;
@@ -62,14 +65,12 @@ import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
-import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
-import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
@@ -398,9 +399,8 @@ public final class McpOpenapiCompositeGenerator
         List<RoutedOperation> routed)
     {
         return namespace
-            .binding()
+            .binding(McpHttpBindingConfig::builder)
                 .name(BINDING_NAME)
-                .type("mcp_http")
                 .kind(PROXY)
                 .options(mcpHttpOptions(binding, routed))
                 .inject(b -> injectRoutes(b, routed))
@@ -488,8 +488,8 @@ public final class McpOpenapiCompositeGenerator
             : null;
     }
 
-    private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectRoutes(
-        B binding,
+    private <C> McpHttpBindingConfigBuilder<C> injectRoutes(
+        McpHttpBindingConfigBuilder<C> binding,
         List<RoutedOperation> routed)
     {
         for (RoutedOperation entry : routed)
@@ -511,8 +511,8 @@ public final class McpOpenapiCompositeGenerator
         return binding;
     }
 
-    private <C, R extends RouteConfigBuilder<C, R>> R injectGuarded(
-        R route,
+    private <C> McpHttpRouteConfigBuilder<C> injectGuarded(
+        McpHttpRouteConfigBuilder<C> route,
         RoutedOperation entry)
     {
         for (GuardedRef ref : entry.guarded)
