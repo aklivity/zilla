@@ -61,10 +61,13 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiChallengeExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaChallengeExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerFlushExFW;
@@ -4290,6 +4293,85 @@ public class KafkaFunctionsTest
                 .length(12)
                 .version((short) 0)
                 .tagsItem(t -> t.tag(1).length(5).value(v -> v.set("value".getBytes(UTF_8)))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateApiChallengeExtension()
+    {
+        byte[] build = KafkaFunctions.challengeEx()
+                                     .typeId(0x01)
+                                     .apiChallenge()
+                                         .versions(0, 7)
+                                         .build()
+                                     .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaChallengeExFW challengeEx = new KafkaChallengeExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, challengeEx.typeId());
+        assertEquals(KafkaApi.API_REQUEST.value(), challengeEx.kind());
+
+        final KafkaApiChallengeExFW apiChallengeEx = challengeEx.apiChallenge();
+        assertEquals(0, apiChallengeEx.versions().min());
+        assertEquals(7, apiChallengeEx.versions().max());
+    }
+
+    @Test
+    public void shouldMatchApiChallengeExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchChallengeEx()
+            .apiChallenge()
+                .versions(0, 7)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaChallengeExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .apiChallenge(f -> f.versions(v -> v.min((short) 0).max((short) 7)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateApiFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+                                     .typeId(0x01)
+                                     .apiFlush()
+                                         .version(3)
+                                         .build()
+                                     .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+        assertEquals(KafkaApi.API_REQUEST.value(), flushEx.kind());
+
+        final KafkaApiFlushExFW apiFlushEx = flushEx.apiFlush();
+        assertEquals(3, apiFlushEx.version());
+    }
+
+    @Test
+    public void shouldMatchApiFlushExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .apiFlush()
+                .version(3)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .apiFlush(f -> f.version((short) 3))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
