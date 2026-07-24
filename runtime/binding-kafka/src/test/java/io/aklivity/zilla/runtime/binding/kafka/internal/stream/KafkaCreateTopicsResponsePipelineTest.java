@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsResponsePipeline.ConfigResult;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsResponsePipeline.Response;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCreateTopicsResponsePipeline.TopicResult;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -41,7 +42,13 @@ public class KafkaCreateTopicsResponsePipelineTest
         0x00,
         0x00, 0x00, 0x00, 0x01,
         0x00, 0x01,
+        0x02,
+        0x0f, 'c', 'l', 'e', 'a', 'n', 'u', 'p', '.', 'p', 'o', 'l', 'i', 'c', 'y',
+        0x07, 'd', 'e', 'l', 'e', 't', 'e',
+        0x00,
         0x01,
+        0x00,
+        0x00,
         0x00,
         0x0a, 's', 'n', 'a', 'p', 's', 'h', 'o', 't', 's',
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -73,7 +80,14 @@ public class KafkaCreateTopicsResponsePipelineTest
         assertNull(events.message());
         assertEquals(1, events.numPartitions());
         assertEquals(1, events.replicationFactor());
-        assertTrue(events.configs().isEmpty());
+        assertEquals(1, events.configs().size());
+
+        ConfigResult cleanupPolicy = events.configs().get(0);
+        assertEquals("cleanup.policy", cleanupPolicy.name());
+        assertEquals("delete", cleanupPolicy.value());
+        assertEquals(false, cleanupPolicy.readOnly());
+        assertEquals(1, cleanupPolicy.configSource());
+        assertEquals(false, cleanupPolicy.isSensitive());
 
         TopicResult snapshots = response.topics().get(1);
         assertEquals("snapshots", snapshots.name());
