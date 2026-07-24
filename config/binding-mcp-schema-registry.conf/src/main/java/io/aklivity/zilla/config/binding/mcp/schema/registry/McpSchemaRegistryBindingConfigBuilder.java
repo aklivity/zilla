@@ -26,8 +26,9 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class McpSchemaRegistryBindingConfigBuilder<T> extends
-    BindingConfigBuilder<T, McpSchemaRegistryBindingConfigBuilder<T>>
+public final class McpSchemaRegistryBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, McpSchemaRegistryBindingConfigBuilder<T>,
+        McpSchemaRegistryRouteConfigBuilder<McpSchemaRegistryBindingConfigBuilder<T>>>
 {
     McpSchemaRegistryBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -49,10 +50,9 @@ public final class McpSchemaRegistryBindingConfigBuilder<T> extends
     }
 
     @Override
-    public McpSchemaRegistryRouteConfigBuilder<McpSchemaRegistryBindingConfigBuilder<T>> route()
+    protected McpSchemaRegistryRouteConfigBuilder<McpSchemaRegistryBindingConfigBuilder<T>> newRoute()
     {
-        return new McpSchemaRegistryRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new McpSchemaRegistryRouteConfigBuilder<>(this::route);
     }
 
     @Override

@@ -21,7 +21,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public abstract class BindingConfigBuilder<T, B extends BindingConfigBuilder<T, B>> extends ConfigBuilder<T, B>
+public abstract class BindingConfigBuilder<
+    T,
+    B extends BindingConfigBuilder<T, B, R>,
+    R extends RouteConfigBuilder<B, R>>
+    extends ConfigBuilder<T, B>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
     public static final List<CatalogedConfig> CATALOGS_DEFAULT = emptyList();
@@ -133,11 +137,12 @@ public abstract class BindingConfigBuilder<T, B extends BindingConfigBuilder<T, 
         return thisType().cast(this);
     }
 
-    public RouteConfigBuilder<B, ?> route()
+    public final R route()
     {
-        return new GenericRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return newRoute().order(nextRouteOrder());
     }
+
+    protected abstract R newRoute();
 
     protected final int nextRouteOrder()
     {

@@ -26,7 +26,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class GrpcBindingConfigBuilder<T> extends BindingConfigBuilder<T, GrpcBindingConfigBuilder<T>>
+public final class GrpcBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, GrpcBindingConfigBuilder<T>, GrpcRouteConfigBuilder<GrpcBindingConfigBuilder<T>>>
 {
     GrpcBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -43,10 +44,9 @@ public final class GrpcBindingConfigBuilder<T> extends BindingConfigBuilder<T, G
     }
 
     @Override
-    public GrpcRouteConfigBuilder<GrpcBindingConfigBuilder<T>> route()
+    protected GrpcRouteConfigBuilder<GrpcBindingConfigBuilder<T>> newRoute()
     {
-        return new GrpcRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new GrpcRouteConfigBuilder<>(this::route);
     }
 
     @Override

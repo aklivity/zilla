@@ -25,7 +25,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class HttpBindingConfigBuilder<T> extends BindingConfigBuilder<T, HttpBindingConfigBuilder<T>>
+public final class HttpBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, HttpBindingConfigBuilder<T>, HttpRouteConfigBuilder<HttpBindingConfigBuilder<T>>>
 {
     HttpBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -47,10 +48,9 @@ public final class HttpBindingConfigBuilder<T> extends BindingConfigBuilder<T, H
     }
 
     @Override
-    public HttpRouteConfigBuilder<HttpBindingConfigBuilder<T>> route()
+    protected HttpRouteConfigBuilder<HttpBindingConfigBuilder<T>> newRoute()
     {
-        return new HttpRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new HttpRouteConfigBuilder<>(this::route);
     }
 
     @Override

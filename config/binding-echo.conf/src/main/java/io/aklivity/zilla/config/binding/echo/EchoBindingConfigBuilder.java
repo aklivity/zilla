@@ -21,12 +21,14 @@ import io.aklivity.zilla.config.binding.echo.internal.EchoBindingInfo;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class EchoBindingConfigBuilder<T> extends BindingConfigBuilder<T, EchoBindingConfigBuilder<T>>
+public final class EchoBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, EchoBindingConfigBuilder<T>, GenericRouteConfigBuilder<EchoBindingConfigBuilder<T>>>
 {
     EchoBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -40,6 +42,12 @@ public final class EchoBindingConfigBuilder<T> extends BindingConfigBuilder<T, E
     protected Class<EchoBindingConfigBuilder<T>> thisType()
     {
         return (Class<EchoBindingConfigBuilder<T>>) getClass();
+    }
+
+    @Override
+    protected GenericRouteConfigBuilder<EchoBindingConfigBuilder<T>> newRoute()
+    {
+        return new GenericRouteConfigBuilder<>(this::route);
     }
 
     @Override

@@ -25,7 +25,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class KafkaBindingConfigBuilder<T> extends BindingConfigBuilder<T, KafkaBindingConfigBuilder<T>>
+public final class KafkaBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, KafkaBindingConfigBuilder<T>, KafkaRouteConfigBuilder<KafkaBindingConfigBuilder<T>>>
 {
     KafkaBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -47,10 +48,9 @@ public final class KafkaBindingConfigBuilder<T> extends BindingConfigBuilder<T, 
     }
 
     @Override
-    public KafkaRouteConfigBuilder<KafkaBindingConfigBuilder<T>> route()
+    protected KafkaRouteConfigBuilder<KafkaBindingConfigBuilder<T>> newRoute()
     {
-        return new KafkaRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new KafkaRouteConfigBuilder<>(this::route);
     }
 
     @Override

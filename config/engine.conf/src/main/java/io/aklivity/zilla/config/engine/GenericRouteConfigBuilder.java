@@ -18,7 +18,7 @@ import java.util.function.Function;
 
 public final class GenericRouteConfigBuilder<T> extends RouteConfigBuilder<T, GenericRouteConfigBuilder<T>>
 {
-    GenericRouteConfigBuilder(
+    public GenericRouteConfigBuilder(
         Function<RouteConfig, T> mapper)
     {
         super(mapper);

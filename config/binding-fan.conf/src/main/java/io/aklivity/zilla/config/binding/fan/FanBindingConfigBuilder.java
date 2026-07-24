@@ -21,12 +21,14 @@ import io.aklivity.zilla.config.binding.fan.internal.FanBindingInfo;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class FanBindingConfigBuilder<T> extends BindingConfigBuilder<T, FanBindingConfigBuilder<T>>
+public final class FanBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, FanBindingConfigBuilder<T>, GenericRouteConfigBuilder<FanBindingConfigBuilder<T>>>
 {
     FanBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -40,6 +42,12 @@ public final class FanBindingConfigBuilder<T> extends BindingConfigBuilder<T, Fa
     protected Class<FanBindingConfigBuilder<T>> thisType()
     {
         return (Class<FanBindingConfigBuilder<T>>) getClass();
+    }
+
+    @Override
+    protected GenericRouteConfigBuilder<FanBindingConfigBuilder<T>> newRoute()
+    {
+        return new GenericRouteConfigBuilder<>(this::route);
     }
 
     @Override

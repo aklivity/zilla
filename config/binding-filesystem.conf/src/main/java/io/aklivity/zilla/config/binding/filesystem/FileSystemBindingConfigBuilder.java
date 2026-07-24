@@ -20,12 +20,15 @@ import java.util.function.Function;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class FileSystemBindingConfigBuilder<T> extends BindingConfigBuilder<T, FileSystemBindingConfigBuilder<T>>
+public final class FileSystemBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, FileSystemBindingConfigBuilder<T>,
+        GenericRouteConfigBuilder<FileSystemBindingConfigBuilder<T>>>
 {
     FileSystemBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -44,6 +47,12 @@ public final class FileSystemBindingConfigBuilder<T> extends BindingConfigBuilde
     public FileSystemOptionsConfigBuilder<FileSystemBindingConfigBuilder<T>> options()
     {
         return new FileSystemOptionsConfigBuilder<>(this::options);
+    }
+
+    @Override
+    protected GenericRouteConfigBuilder<FileSystemBindingConfigBuilder<T>> newRoute()
+    {
+        return new GenericRouteConfigBuilder<>(this::route);
     }
 
     @Override

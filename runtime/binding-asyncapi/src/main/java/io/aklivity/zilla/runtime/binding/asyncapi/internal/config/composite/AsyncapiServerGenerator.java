@@ -169,7 +169,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return namespace;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B>> B injectTcpRoutes(
+            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectTcpRoutes(
                 B binding)
             {
                 resolveServers().stream()
@@ -221,7 +221,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     : null;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B>> B injectTlsRoutes(
+            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectTlsRoutes(
                 B binding)
             {
                 resolveServers().stream()
@@ -399,7 +399,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return request;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B>> B injectHttpRoutes(
+            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectHttpRoutes(
                 B binding)
             {
                 Stream.of(schema)
@@ -412,8 +412,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         if (operation.hasBinding("http") && allowed(operation))
                         {
                             resolvePaths(operation).forEach(path ->
-                            {
-                                RouteConfigBuilder<?, ?> route = binding
+                                binding
                                     .route()
                                     .exit(config.qname)
                                     .when(HttpConditionConfig::builder)
@@ -423,10 +422,9 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                                         .build()
                                     .with(HttpWithConfig::builder)
                                         .compositeId(operation.compositeId)
-                                        .build();
-                                injectHttpServerRouteGuarded(route, operation);
-                                route.build();
-                            });
+                                        .build()
+                                    .inject(route -> injectHttpServerRouteGuarded(route, operation))
+                                    .build());
                         }
                         else if (operation.hasBinding("x-zilla-sse"))
                         {
@@ -467,8 +465,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return allowed;
             }
 
-            private void injectHttpServerRouteGuarded(
-                RouteConfigBuilder<?, ?> route,
+            private <C, R extends RouteConfigBuilder<C, R>> R injectHttpServerRouteGuarded(
+                R route,
                 AsyncapiOperationView operation)
             {
                 for (GuardedRef ref : resolveGuarded(operation).guarded)
@@ -479,6 +477,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                             .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                             .build();
                 }
+
+                return route;
             }
 
             private <C> NamespaceConfigBuilder<C> injectSseServer(
@@ -538,7 +538,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return request;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B>> B injectSseRoutes(
+            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectSseRoutes(
                 B binding)
             {
                 Stream.of(schema)
@@ -658,7 +658,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return topic;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B>> B injectMqttRoutes(
+            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttRoutes(
                 B binding)
             {
                 Stream.of(schema)
@@ -682,7 +682,7 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return binding;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B>> B injectMqttRoute(
+            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttRoute(
                 B binding,
                 AsyncapiOperationView operation)
             {

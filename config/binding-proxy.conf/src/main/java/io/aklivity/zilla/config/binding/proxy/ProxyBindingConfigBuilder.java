@@ -25,7 +25,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class ProxyBindingConfigBuilder<T> extends BindingConfigBuilder<T, ProxyBindingConfigBuilder<T>>
+public final class ProxyBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, ProxyBindingConfigBuilder<T>, ProxyRouteConfigBuilder<ProxyBindingConfigBuilder<T>>>
 {
     ProxyBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -47,10 +48,9 @@ public final class ProxyBindingConfigBuilder<T> extends BindingConfigBuilder<T, 
     }
 
     @Override
-    public ProxyRouteConfigBuilder<ProxyBindingConfigBuilder<T>> route()
+    protected ProxyRouteConfigBuilder<ProxyBindingConfigBuilder<T>> newRoute()
     {
-        return new ProxyRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new ProxyRouteConfigBuilder<>(this::route);
     }
 
     @Override

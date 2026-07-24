@@ -294,7 +294,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         .build();
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B>> B injectMqttKafkaOptions(
+                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttKafkaOptions(
                     B binding)
                 {
                     final AsyncapiView specification = mapping.with.asyncapi;
@@ -328,7 +328,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         "x-zilla-mqtt-kafka role \"%s\" not declared on any channel of the kafka spec".formatted(role));
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B>> B injectMqttKafkaRoutes(
+                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttKafkaRoutes(
                     B binding)
                 {
                     for (ProxyRouteHelper route : mqttKafkaRoutes)
@@ -361,7 +361,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return binding;
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B>> B injectMqttKafkaRoute(
+                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMqttKafkaRoute(
                     B binding,
                     AsyncapiOperationView mqttOperation,
                     AsyncapiOperationView kafkaOperation)
@@ -423,7 +423,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         .build();
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B>> B injectSseKafkaRoutes(
+                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectSseKafkaRoutes(
                     B binding)
                 {
                     for (ProxyRouteHelper route : sseKafkaRoutes)
@@ -456,7 +456,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return binding;
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B>> B injectSseKafkaRoute(
+                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectSseKafkaRoute(
                     B binding,
                     AsyncapiSchemaConfig schema,
                     AsyncapiOperationView sseOperation,
@@ -466,22 +466,21 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     {
                         final GuardedResolution resolution = resolveGuarded(schema, sseOperation);
 
-                        RouteConfigBuilder<?, ?> route = binding.route()
+                        binding.route()
                             .exit(config.qname)
                             .when(SseKafkaConditionConfig::builder)
                                 .path(sseOperation.channel.address)
-                                .build();
-                        injectSseKafkaRouteWith(route, sseOperation, kafkaOperation, guardQname(resolution));
-                        injectSseServerRouteGuarded(route, resolution);
-                        route.build();
+                                .build()
+                            .inject(route -> injectSseKafkaRouteWith(route, sseOperation, kafkaOperation, guardQname(resolution)))
+                            .inject(route -> injectSseServerRouteGuarded(route, resolution))
+                            .build();
                     }
 
                     return binding;
                 }
 
-
-                private void injectSseKafkaRouteWith(
-                    RouteConfigBuilder<?, ?> route,
+                private <C, R extends RouteConfigBuilder<C, R>> R injectSseKafkaRouteWith(
+                    R route,
                     AsyncapiOperationView sseOperation,
                     AsyncapiOperationView kafkaOperation,
                     String guardQname)
@@ -496,6 +495,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                             .inject(w -> injectSseKafkaRouteWithFilters(w, sseOperation, guardQname))
                             .build();
                     }
+
+                    return route;
                 }
 
                 private <C> SseKafkaWithConfigBuilder<C> injectSseKafkaRouteWithFilters(
@@ -547,8 +548,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return with;
                 }
 
-                private void injectSseServerRouteGuarded(
-                    RouteConfigBuilder<?, ?> route,
+                private <C, R extends RouteConfigBuilder<C, R>> R injectSseServerRouteGuarded(
+                    R route,
                     GuardedResolution resolution)
                 {
                     for (GuardedRef ref : resolution.guarded)
@@ -559,6 +560,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                                 .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                                 .build();
                     }
+
+                    return route;
                 }
             }
 
@@ -610,7 +613,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                         .build();
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B>> B injectHttpKafkaRoutes(
+                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectHttpKafkaRoutes(
                     B binding)
                 {
                     for (ProxyRouteHelper route : httpKafkaRoutes)
@@ -643,7 +646,7 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return binding;
                 }
 
-                private <C, B extends BindingConfigBuilder<C, B>> B injectHttpKafkaRoute(
+                private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectHttpKafkaRoute(
                     B binding,
                     AsyncapiSchemaConfig schema,
                     AsyncapiOperationView httpOperation,
@@ -694,22 +697,23 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
 
                         final GuardedResolution resolution = resolveGuarded(schema, httpOperation);
 
-                        RouteConfigBuilder<?, ?> route = binding.route()
+                        binding.route()
                             .exit(config.qname)
                             .when(HttpKafkaConditionConfig::builder)
                                 .method(httpMethod)
                                 .path(httpPath)
-                                .build();
-                        injectHttpKafkaRouteWith(route, httpOperation, kafkaOperation, guardQname(resolution));
-                        injectHttpServerRouteGuarded(route, resolution);
-                        route.build();
+                                .build()
+                            .inject(route -> injectHttpKafkaRouteWith(
+                                route, httpOperation, kafkaOperation, guardQname(resolution)))
+                            .inject(route -> injectHttpServerRouteGuarded(route, resolution))
+                            .build();
                     }
 
                     return binding;
                 }
 
-                private void injectHttpKafkaRouteWith(
-                    RouteConfigBuilder<?, ?> route,
+                private <C, R extends RouteConfigBuilder<C, R>> R injectHttpKafkaRouteWith(
+                    R route,
                     AsyncapiOperationView httpOperation,
                     AsyncapiOperationView kafkaOperation,
                     String guardQname)
@@ -737,6 +741,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                             .build();
                         break;
                     }
+
+                    return route;
                 }
 
                 private <C> HttpKafkaWithFetchConfigBuilder<C> injectHttpKafkaRouteFetchWith(
@@ -898,8 +904,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     return produce;
                 }
 
-                private void injectHttpServerRouteGuarded(
-                    RouteConfigBuilder<?, ?> route,
+                private <C, R extends RouteConfigBuilder<C, R>> R injectHttpServerRouteGuarded(
+                    R route,
                     GuardedResolution resolution)
                 {
                     for (GuardedRef ref : resolution.guarded)
@@ -910,6 +916,8 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                                 .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                                 .build();
                     }
+
+                    return route;
                 }
 
                 private List<String> findParams(

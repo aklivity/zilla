@@ -26,7 +26,9 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class HttpFileSystemBindingConfigBuilder<T> extends BindingConfigBuilder<T, HttpFileSystemBindingConfigBuilder<T>>
+public final class HttpFileSystemBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, HttpFileSystemBindingConfigBuilder<T>,
+        HttpFileSystemRouteConfigBuilder<HttpFileSystemBindingConfigBuilder<T>>>
 {
     HttpFileSystemBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -43,10 +45,9 @@ public final class HttpFileSystemBindingConfigBuilder<T> extends BindingConfigBu
     }
 
     @Override
-    public HttpFileSystemRouteConfigBuilder<HttpFileSystemBindingConfigBuilder<T>> route()
+    protected HttpFileSystemRouteConfigBuilder<HttpFileSystemBindingConfigBuilder<T>> newRoute()
     {
-        return new HttpFileSystemRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new HttpFileSystemRouteConfigBuilder<>(this::route);
     }
 
     @Override

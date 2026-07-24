@@ -25,7 +25,11 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class OpenapiAsyncapiBindingConfigBuilder<T> extends BindingConfigBuilder<T, OpenapiAsyncapiBindingConfigBuilder<T>>
+public final class OpenapiAsyncapiBindingConfigBuilder<T>
+    extends BindingConfigBuilder<
+        T,
+        OpenapiAsyncapiBindingConfigBuilder<T>,
+        OpenapiAsyncapiRouteConfigBuilder<OpenapiAsyncapiBindingConfigBuilder<T>>>
 {
     OpenapiAsyncapiBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -47,10 +51,9 @@ public final class OpenapiAsyncapiBindingConfigBuilder<T> extends BindingConfigB
     }
 
     @Override
-    public OpenapiAsyncapiRouteConfigBuilder<OpenapiAsyncapiBindingConfigBuilder<T>> route()
+    protected OpenapiAsyncapiRouteConfigBuilder<OpenapiAsyncapiBindingConfigBuilder<T>> newRoute()
     {
-        return new OpenapiAsyncapiRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new OpenapiAsyncapiRouteConfigBuilder<>(this::route);
     }
 
     @Override

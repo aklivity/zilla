@@ -488,7 +488,7 @@ public final class McpOpenapiCompositeGenerator
             : null;
     }
 
-    private <C, B extends BindingConfigBuilder<C, B>> B injectRoutes(
+    private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectRoutes(
         B binding,
         List<RoutedOperation> routed)
     {
@@ -500,19 +500,19 @@ public final class McpOpenapiCompositeGenerator
                 .build();
             final McpHttpWithConfig with = withConfig(entry);
 
-            RouteConfigBuilder<?, ?> route = binding.route()
+            binding.route()
                 .when(when)
                 .with(with)
-                .exit(httpClientExit);
-            injectGuarded(route, entry);
-            route.build();
+                .exit(httpClientExit)
+                .inject(route -> injectGuarded(route, entry))
+                .build();
         }
 
         return binding;
     }
 
-    private void injectGuarded(
-        RouteConfigBuilder<?, ?> route,
+    private <C, R extends RouteConfigBuilder<C, R>> R injectGuarded(
+        R route,
         RoutedOperation entry)
     {
         for (GuardedRef ref : entry.guarded)
@@ -522,6 +522,8 @@ public final class McpOpenapiCompositeGenerator
                 .inject(g -> injectRoles(g, ref.roles))
                 .build();
         }
+
+        return route;
     }
 
     private <C> McpHttpResourceConfigBuilder<C> injectMimeType(

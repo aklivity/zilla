@@ -43,6 +43,7 @@ import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.config.model.core.BooleanModelConfig;
 import io.aklivity.zilla.config.model.core.DoubleModelConfig;
 import io.aklivity.zilla.config.model.core.FloatModelConfig;
@@ -517,7 +518,7 @@ public abstract class OpenapiCompositeGenerator
                 injector.accept(model);
             }
 
-            protected final <C, B extends BindingConfigBuilder<C, B>> B injectMetrics(
+            protected final <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectMetrics(
                 B binding)
             {
                 if (config.metricRefs.stream()

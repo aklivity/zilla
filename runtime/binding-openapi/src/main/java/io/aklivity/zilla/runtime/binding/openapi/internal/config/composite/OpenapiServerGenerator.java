@@ -165,7 +165,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return namespace;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B>> B injectTcpRoutes(
+            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectTcpRoutes(
                 B binding)
             {
                 resolveServers().stream()
@@ -216,7 +216,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return namespace;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B>> B injectTlsRoutes(
+            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectTlsRoutes(
                 B binding)
             {
                 resolveServers().stream()
@@ -365,7 +365,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return cataloged;
             }
 
-            private <C, B extends BindingConfigBuilder<C, B>> B injectHttpRoutes(
+            private <C, B extends BindingConfigBuilder<C, B, R>, R extends RouteConfigBuilder<B, R>> B injectHttpRoutes(
                 B binding)
             {
                 final List<URI> servers = resolveServers();
@@ -378,8 +378,7 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .filter(config::included)
                     .forEach(operation ->
                         servers.forEach(server ->
-                        {
-                            RouteConfigBuilder<?, ?> route = binding
+                            binding
                                 .route()
                                 .exit(config.qname)
                                 .when(HttpConditionConfig::builder)
@@ -390,10 +389,9 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                                     .build()
                                 .with(HttpWithConfig::builder)
                                     .compositeId(operation.compositeId)
-                                    .build();
-                            injectHttpServerRouteGuarded(route, operation);
-                            route.build();
-                        }));
+                                    .build()
+                                .inject(route -> injectHttpServerRouteGuarded(route, operation))
+                                .build()));
 
                 return binding;
             }
@@ -420,8 +418,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return allowed;
             }
 
-            private void injectHttpServerRouteGuarded(
-                RouteConfigBuilder<?, ?> route,
+            private <C, R extends RouteConfigBuilder<C, R>> R injectHttpServerRouteGuarded(
+                R route,
                 OpenapiOperationView operation)
             {
                 for (GuardedRef ref : resolveGuarded(operation).guarded)
@@ -432,6 +430,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                             .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                             .build();
                 }
+
+                return route;
             }
         }
     }

@@ -26,7 +26,10 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class GrpcKafkaBindingConfigBuilder<T> extends BindingConfigBuilder<T, GrpcKafkaBindingConfigBuilder<T>>
+public final class GrpcKafkaBindingConfigBuilder<T> extends BindingConfigBuilder<
+    T,
+    GrpcKafkaBindingConfigBuilder<T>,
+    GrpcKafkaRouteConfigBuilder<GrpcKafkaBindingConfigBuilder<T>>>
 {
     GrpcKafkaBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -48,10 +51,9 @@ public final class GrpcKafkaBindingConfigBuilder<T> extends BindingConfigBuilder
     }
 
     @Override
-    public GrpcKafkaRouteConfigBuilder<GrpcKafkaBindingConfigBuilder<T>> route()
+    protected GrpcKafkaRouteConfigBuilder<GrpcKafkaBindingConfigBuilder<T>> newRoute()
     {
-        return new GrpcKafkaRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new GrpcKafkaRouteConfigBuilder<>(this::route);
     }
 
     @Override

@@ -25,7 +25,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class SseBindingConfigBuilder<T> extends BindingConfigBuilder<T, SseBindingConfigBuilder<T>>
+public final class SseBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, SseBindingConfigBuilder<T>, SseRouteConfigBuilder<SseBindingConfigBuilder<T>>>
 {
     SseBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -47,10 +48,9 @@ public final class SseBindingConfigBuilder<T> extends BindingConfigBuilder<T, Ss
     }
 
     @Override
-    public SseRouteConfigBuilder<SseBindingConfigBuilder<T>> route()
+    protected SseRouteConfigBuilder<SseBindingConfigBuilder<T>> newRoute()
     {
-        return new SseRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new SseRouteConfigBuilder<>(this::route);
     }
 
     @Override

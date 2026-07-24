@@ -17,7 +17,8 @@ package io.aklivity.zilla.config.engine;
 import java.util.List;
 import java.util.function.Function;
 
-public final class GenericBindingConfigBuilder<T> extends BindingConfigBuilder<T, GenericBindingConfigBuilder<T>>
+public final class GenericBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, GenericBindingConfigBuilder<T>, GenericRouteConfigBuilder<GenericBindingConfigBuilder<T>>>
 {
     GenericBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -30,6 +31,12 @@ public final class GenericBindingConfigBuilder<T> extends BindingConfigBuilder<T
     protected Class<GenericBindingConfigBuilder<T>> thisType()
     {
         return (Class<GenericBindingConfigBuilder<T>>) getClass();
+    }
+
+    @Override
+    protected GenericRouteConfigBuilder<GenericBindingConfigBuilder<T>> newRoute()
+    {
+        return new GenericRouteConfigBuilder<>(this::route);
     }
 
     @Override

@@ -26,7 +26,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 
-public final class McpKafkaBindingConfigBuilder<T> extends BindingConfigBuilder<T, McpKafkaBindingConfigBuilder<T>>
+public final class McpKafkaBindingConfigBuilder<T>
+    extends BindingConfigBuilder<T, McpKafkaBindingConfigBuilder<T>, McpKafkaRouteConfigBuilder<McpKafkaBindingConfigBuilder<T>>>
 {
     McpKafkaBindingConfigBuilder(
         Function<BindingConfig, T> mapper)
@@ -48,10 +49,9 @@ public final class McpKafkaBindingConfigBuilder<T> extends BindingConfigBuilder<
     }
 
     @Override
-    public McpKafkaRouteConfigBuilder<McpKafkaBindingConfigBuilder<T>> route()
+    protected McpKafkaRouteConfigBuilder<McpKafkaBindingConfigBuilder<T>> newRoute()
     {
-        return new McpKafkaRouteConfigBuilder<>(this::route)
-            .order(nextRouteOrder());
+        return new McpKafkaRouteConfigBuilder<>(this::route);
     }
 
     @Override
