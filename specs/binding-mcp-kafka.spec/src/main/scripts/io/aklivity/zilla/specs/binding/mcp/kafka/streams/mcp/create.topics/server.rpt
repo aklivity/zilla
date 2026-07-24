@@ -43,26 +43,20 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
+                          .toolsCall()
                               .sessionId("session-1")
+                              .name("create_topics")
+                              .contentLength(313)
                               .build()
                           .build()}
 
 connected
 
+read '{"name":"create_topics","arguments":{"topics":[{"name":"events","partitions":1,"replicas":1,"assignments":[{"partition":0,"brokers":[0]}],"configs":{"cleanup.policy":"delete"}},{"name":"snapshots","partitions":1,"replicas":1,"assignments":[{"partition":0,"brokers":[0]}],"configs":{"cleanup.policy":"compact"}}]}}'
+
 write flush
 
-write  '{"tools":[{"name":"produce","inputSchema":{"type":"object","properties":'
-        '{"topic":{"type":"string"},"value":{"type":"string"},"key":{"type":"string"},'
-        '"partition":{"type":"integer"}},"required":["topic","value"]}},'
-        '{"name":"consume","inputSchema":{"type":"object","properties":'
-        '{"topic":{"type":"string"},"partition":{"type":"integer"},"offset":{"type":"integer"},'
-        '"limit":{"type":"integer"}},"required":["topic"]}},'
-        '{"name":"create_topics","inputSchema":{"type":"object","properties":'
-        '{"topics":{"type":"array","items":{"type":"object","properties":'
-        '{"name":{"type":"string"},"partitions":{"type":"integer"},"replicas":{"type":"integer"},'
-        '"assignments":{"type":"array"},"configs":{"type":"object"}},"required":'
-        '["name","partitions","replicas"]}}},"required":["topics"]}}]}'
+write '{"content":[{"type": "text","text": "Created topic(s): events, snapshots"}],"isError": false}'
 write flush
 
 write close

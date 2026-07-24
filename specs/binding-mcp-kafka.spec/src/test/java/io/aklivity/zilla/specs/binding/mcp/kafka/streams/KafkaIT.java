@@ -116,4 +116,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/create.topics/client",
+        "${kafka}/create.topics/server"})
+    public void shouldCreateTopics() throws Exception
+    {
+        k3po.finish();
+    }
 }

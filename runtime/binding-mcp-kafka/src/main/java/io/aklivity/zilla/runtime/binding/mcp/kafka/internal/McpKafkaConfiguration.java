@@ -30,6 +30,7 @@ public class McpKafkaConfiguration extends Configuration
 
     public static final PropertyDef<SessionIdSupplier> MCP_KAFKA_SESSION_ID;
     public static final PropertyDef<String> MCP_KAFKA_CACHE_CLIENT_EXIT;
+    public static final PropertyDef<String> MCP_KAFKA_DIRECT_CLIENT_EXIT;
 
     static
     {
@@ -37,6 +38,7 @@ public class McpKafkaConfiguration extends Configuration
         MCP_KAFKA_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
             McpKafkaConfiguration::decodeSessionIdSupplier, McpKafkaConfiguration::defaultSessionIdSupplier);
         MCP_KAFKA_CACHE_CLIENT_EXIT = config.property("cache.client.exit", "");
+        MCP_KAFKA_DIRECT_CLIENT_EXIT = config.property("direct.client.exit", "");
         MCP_KAFKA_CONFIG = config;
     }
 
@@ -59,6 +61,11 @@ public class McpKafkaConfiguration extends Configuration
     public String cacheClientExit()
     {
         return MCP_KAFKA_CACHE_CLIENT_EXIT.get(this);
+    }
+
+    public String directClientExit()
+    {
+        return MCP_KAFKA_DIRECT_CLIENT_EXIT.get(this);
     }
 
     private static SessionIdSupplier decodeSessionIdSupplier(
