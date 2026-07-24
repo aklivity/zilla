@@ -44,6 +44,7 @@ import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineSchemaConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
@@ -76,7 +77,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
     @Test
     public void shouldGenerateComposite()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_schema_registry")
@@ -147,7 +148,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
     @Test
     public void shouldReduceScopeToDeclaredTools()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_schema_registry")
@@ -185,7 +186,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
     {
         when(context.supplyQName(eq(3L))).thenReturn("test:jwt0");
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_schema_registry")
@@ -224,7 +225,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
     @Test
     public void shouldExposeNoRoutesWhenNoToolMatches()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_schema_registry")

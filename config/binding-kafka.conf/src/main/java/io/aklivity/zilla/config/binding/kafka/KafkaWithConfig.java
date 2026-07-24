@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.binding.kafka;
 
-import java.util.function.Function;
-
 import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class KafkaWithConfig extends WithConfig
@@ -27,12 +25,6 @@ public final class KafkaWithConfig extends WithConfig
     public static KafkaWithConfigBuilder<KafkaWithConfig> builder()
     {
         return new KafkaWithConfigBuilder<>(KafkaWithConfig.class::cast);
-    }
-
-    public static <T> KafkaWithConfigBuilder<T> builder(
-        Function<WithConfig, T> mapper)
-    {
-        return new KafkaWithConfigBuilder<>(mapper);
     }
 
     KafkaWithConfig(

@@ -44,6 +44,7 @@ import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig.MqttConnectProperty;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
@@ -163,7 +164,7 @@ public class AsyncapiClientGeneratorTest
     private BindingConfig bindingWithServerOverride(
         String server)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -192,7 +193,7 @@ public class AsyncapiClientGeneratorTest
             .catalog(new AsyncapiCatalogConfig("catalog0", "test", "latest"));
         security.forEach(specBuilder::security);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")

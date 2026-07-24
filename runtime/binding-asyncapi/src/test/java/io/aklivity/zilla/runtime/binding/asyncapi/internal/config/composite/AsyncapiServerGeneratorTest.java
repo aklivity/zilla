@@ -44,6 +44,7 @@ import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig.MqttConnectProper
 import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
 import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
@@ -221,7 +222,7 @@ public class AsyncapiServerGeneratorTest
             security.forEach(specBuilder::security);
         }
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")

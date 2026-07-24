@@ -44,6 +44,7 @@ import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
@@ -326,7 +327,7 @@ public class AsyncapiProxyGeneratorTest
             security.forEach(sseSpec::security);
         }
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -424,7 +425,7 @@ public class AsyncapiProxyGeneratorTest
     @Test
     public void shouldResolveMqttKafkaTopicsFromChannelRoles()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -477,7 +478,7 @@ public class AsyncapiProxyGeneratorTest
     @Test
     public void shouldIncludeMqttKafkaRouteWhenServerNameMatches()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -530,7 +531,7 @@ public class AsyncapiProxyGeneratorTest
     @Test
     public void shouldExcludeMqttKafkaRouteWhenServerNameDoesNotMatch()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -583,7 +584,7 @@ public class AsyncapiProxyGeneratorTest
     @Test
     public void shouldExcludeMqttKafkaRouteWhenOperationNotScopedToRouteServer()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -636,7 +637,7 @@ public class AsyncapiProxyGeneratorTest
     @Test
     public void shouldReportClearErrorWhenMqttKafkaChannelRoleMissing()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")

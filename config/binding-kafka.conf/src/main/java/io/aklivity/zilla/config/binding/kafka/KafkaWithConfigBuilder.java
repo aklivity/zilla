@@ -33,17 +33,6 @@ public final class KafkaWithConfigBuilder<T> extends ConfigBuilder<T, KafkaWithC
         this.mapper = mapper;
     }
 
-    public static KafkaWithConfigBuilder<KafkaWithConfig> builder()
-    {
-        return new KafkaWithConfigBuilder<>(KafkaWithConfig.class::cast);
-    }
-
-    public static <T> KafkaWithConfigBuilder<T> builder(
-        Function<WithConfig, T> mapper)
-    {
-        return new KafkaWithConfigBuilder<>(mapper);
-    }
-
     @Override
     @SuppressWarnings("unchecked")
     protected Class<KafkaWithConfigBuilder<T>> thisType()

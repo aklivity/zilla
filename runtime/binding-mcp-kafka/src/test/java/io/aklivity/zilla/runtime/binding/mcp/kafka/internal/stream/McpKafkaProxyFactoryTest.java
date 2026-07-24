@@ -39,6 +39,7 @@ import org.mockito.ArgumentCaptor;
 
 import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaConditionConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
@@ -168,7 +169,7 @@ public class McpKafkaProxyFactoryTest
             .build();
         route.id = ROUTE_ID;
 
-        final BindingConfig binding = BindingConfig.builder()
+        final BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")

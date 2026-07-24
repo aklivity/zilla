@@ -15,13 +15,11 @@
 package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.function.Function.identity;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
-public class BindingConfig
+public abstract class BindingConfig
 {
     public transient long id;
     public transient long entryId;
@@ -50,34 +48,7 @@ public class BindingConfig
     public final List<RouteConfig> routes;
     public final TelemetryRefConfig telemetryRef;
 
-    public static BindingConfigBuilder<BindingConfig> builder()
-    {
-        return new BindingConfigBuilder<>(identity());
-    }
-
-    public static <T> BindingConfigBuilder<T> builder(
-        Function<BindingConfig, T> mapper)
-    {
-        return new BindingConfigBuilder<>(mapper);
-    }
-
-    public static BindingConfigBuilder<BindingConfig> builder(
-        BindingConfig binding)
-    {
-        return builder()
-            .vault(binding.vault)
-            .namespace(binding.namespace)
-            .name(binding.name)
-            .type(binding.type)
-            .kind(binding.kind)
-            .entry(binding.entry)
-            .options(binding.options)
-            .catalogs(binding.catalogs)
-            .routes(binding.routes)
-            .telemetry(binding.telemetryRef);
-    }
-
-    BindingConfig(
+    protected BindingConfig(
         String namespace,
         String name,
         String type,

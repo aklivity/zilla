@@ -30,6 +30,7 @@ import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaCompositeConfig;
@@ -58,7 +59,7 @@ public class McpKafkaClientGeneratorTest
                 .build()
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")
@@ -122,7 +123,7 @@ public class McpKafkaClientGeneratorTest
                 .build()
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")
@@ -152,7 +153,7 @@ public class McpKafkaClientGeneratorTest
                 .build()
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")
@@ -185,7 +186,7 @@ public class McpKafkaClientGeneratorTest
                 .build()
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")
@@ -230,7 +231,7 @@ public class McpKafkaClientGeneratorTest
                 .build()
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")
@@ -265,7 +266,7 @@ public class McpKafkaClientGeneratorTest
                 .build()
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")
@@ -300,7 +301,7 @@ public class McpKafkaClientGeneratorTest
                 .build()
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")

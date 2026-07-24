@@ -45,8 +45,9 @@ import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
 import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
@@ -200,7 +201,7 @@ public class OpenapiServerGeneratorTest
     private BindingConfig binding(
         Map<String, String> security)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")
@@ -221,7 +222,7 @@ public class OpenapiServerGeneratorTest
     private BindingConfig bindingWithOverlay(
         Map<String, String> security)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")
@@ -242,7 +243,7 @@ public class OpenapiServerGeneratorTest
 
     private BindingConfig bindingSecure()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")
@@ -263,7 +264,7 @@ public class OpenapiServerGeneratorTest
     private BindingConfig bindingMultiServers(
         ConditionConfig when)
     {
-        BindingConfigBuilder<BindingConfig> builder = BindingConfig.builder()
+        GenericBindingConfigBuilder<GenericBindingConfig> builder = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")

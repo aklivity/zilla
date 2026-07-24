@@ -98,8 +98,8 @@ public final class McpSchemaRegistryCompositeGenerator
             List.of(new McpSchemaRegistryCompositeRouteConfig(routeId)));
     }
 
-    private <C> BindingConfigBuilder<C> injectRoutes(
-        BindingConfigBuilder<C> mcpOpenapi,
+    private <C, B extends BindingConfigBuilder<C, B>> B injectRoutes(
+        B mcpOpenapi,
         McpSchemaRegistryBindingConfig binding)
     {
         for (String tool : TOOLS)
@@ -108,11 +108,11 @@ public final class McpSchemaRegistryCompositeGenerator
             if (binding.routes.isEmpty() || matched != null)
             {
                 List<GuardedConfig> guarded = matched != null ? matched.guarded : List.of();
-                mcpOpenapi.route()
+                RouteConfigBuilder<?, ?> route = mcpOpenapi.route()
                     .when(McpOpenapiConditionConfig.builder().tool(tool).build())
-                    .with(McpOpenapiWithConfig.builder().spec(SUBJECT_NAME).operation(tool).build())
-                    .inject(r -> injectGuarded(r, binding, guarded))
-                    .build();
+                    .with(McpOpenapiWithConfig.builder().spec(SUBJECT_NAME).operation(tool).build());
+                injectGuarded(route, binding, guarded);
+                route.build();
             }
         }
         return mcpOpenapi;
@@ -135,8 +135,8 @@ public final class McpSchemaRegistryCompositeGenerator
         return compileGlob(pattern).matcher(tool).matches();
     }
 
-    private <C> RouteConfigBuilder<C> injectGuarded(
-        RouteConfigBuilder<C> route,
+    private void injectGuarded(
+        RouteConfigBuilder<?, ?> route,
         McpSchemaRegistryBindingConfig binding,
         List<GuardedConfig> guarded)
     {
@@ -148,7 +148,6 @@ public final class McpSchemaRegistryCompositeGenerator
                 .inject(g -> injectRoles(g, guard.roles))
                 .build();
         }
-        return route;
     }
 
     private <C> GuardedConfigBuilder<C> injectRoles(

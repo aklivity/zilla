@@ -39,6 +39,7 @@ import io.aklivity.zilla.config.binding.http.HttpAuthorizationConfig;
 import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
@@ -131,7 +132,7 @@ public class OpenapiClientGeneratorTest
     private BindingConfig binding(
         Map<String, String> security)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")
@@ -150,7 +151,7 @@ public class OpenapiClientGeneratorTest
 
     private BindingConfig bindingSecure()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")

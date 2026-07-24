@@ -14,20 +14,40 @@
  */
 package io.aklivity.zilla.config.binding.kafka;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
-public final class KafkaConditionConfig extends ConditionConfig
+public final class KafkaConditionConfigBuilder<T> extends ConfigBuilder<T, KafkaConditionConfigBuilder<T>>
 {
-    public final String topic;
+    private final Function<ConditionConfig, T> mapper;
 
-    public static KafkaConditionConfigBuilder<KafkaConditionConfig> builder()
+    private String topic;
+
+    KafkaConditionConfigBuilder(
+        Function<ConditionConfig, T> mapper)
     {
-        return new KafkaConditionConfigBuilder<>(KafkaConditionConfig.class::cast);
+        this.mapper = mapper;
     }
 
-    KafkaConditionConfig(
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<KafkaConditionConfigBuilder<T>> thisType()
+    {
+        return (Class<KafkaConditionConfigBuilder<T>>) getClass();
+    }
+
+    public KafkaConditionConfigBuilder<T> topic(
         String topic)
     {
         this.topic = topic;
+        return this;
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new KafkaConditionConfig(topic));
     }
 }

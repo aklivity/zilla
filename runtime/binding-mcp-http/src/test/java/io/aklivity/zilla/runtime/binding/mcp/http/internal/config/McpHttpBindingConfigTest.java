@@ -30,9 +30,10 @@ import org.junit.Test;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 
 public class McpHttpBindingConfigTest
 {
@@ -43,7 +44,7 @@ public class McpHttpBindingConfigTest
         boolean withMapping,
         boolean authorized)
     {
-        RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder().order(order);
+        GenericRouteConfigBuilder<RouteConfig> builder = RouteConfig.builder().order(order);
         if (tool != null || resource != null)
         {
             builder = builder.when(McpHttpConditionConfig.builder()
@@ -66,7 +67,7 @@ public class McpHttpBindingConfigTest
     private static McpHttpBindingConfig binding(
         List<RouteConfig> routes)
     {
-        BindingConfig config = BindingConfig.builder()
+        BindingConfig config = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_http")

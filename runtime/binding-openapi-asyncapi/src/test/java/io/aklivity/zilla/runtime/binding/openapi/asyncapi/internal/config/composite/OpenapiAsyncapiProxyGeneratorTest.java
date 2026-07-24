@@ -43,6 +43,7 @@ import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiConditio
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiWithConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
@@ -221,7 +222,7 @@ public class OpenapiAsyncapiProxyGeneratorTest
     private BindingConfig binding(
         Map<String, String> security)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi-asyncapi")
@@ -255,7 +256,7 @@ public class OpenapiAsyncapiProxyGeneratorTest
 
     private BindingConfig bindingWithOverlay()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi-asyncapi")
@@ -292,7 +293,7 @@ public class OpenapiAsyncapiProxyGeneratorTest
     private BindingConfig bindingWithCondition(
         OpenapiAsyncapiConditionConfig condition)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi-asyncapi")
@@ -473,7 +474,7 @@ public class OpenapiAsyncapiProxyGeneratorTest
     @Test
     public void shouldIgnoreAsyncapiSideSecurity()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi-asyncapi")

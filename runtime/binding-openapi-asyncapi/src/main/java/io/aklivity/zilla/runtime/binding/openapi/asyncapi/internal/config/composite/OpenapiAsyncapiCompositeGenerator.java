@@ -270,8 +270,8 @@ public abstract class OpenapiAsyncapiCompositeGenerator
             protected abstract <C> NamespaceConfigBuilder<C> injectAll(
                 NamespaceConfigBuilder<C> namespace);
 
-            protected final <C> BindingConfigBuilder<C> injectMetrics(
-                BindingConfigBuilder<C> binding)
+            protected final <C, B extends BindingConfigBuilder<C, B>> B injectMetrics(
+                B binding)
             {
                 if (config.metricRefs.stream()
                         .anyMatch(m -> m.name.startsWith("stream.")))

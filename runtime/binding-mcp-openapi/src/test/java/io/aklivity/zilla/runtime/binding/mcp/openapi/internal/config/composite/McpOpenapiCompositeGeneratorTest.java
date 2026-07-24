@@ -59,6 +59,7 @@ import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
@@ -366,7 +367,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldGenerateToolAndResource()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -459,7 +460,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldForwardAuthorizationToMcpHttp()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -508,7 +509,7 @@ public class McpOpenapiCompositeGeneratorTest
         lenient().when(catalog.resolve(eq("rest-api-overlay"), eq("latest"))).thenReturn(9);
         lenient().when(catalog.resolve(eq(9))).thenReturn(SPEC_OVERLAY);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -557,7 +558,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldFlattenInputSchemaWithBodyCollisionSuffix()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -622,7 +623,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         ModelConfig override = StringModelConfig.builder().build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -675,7 +676,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldOverrideSummary()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -737,7 +738,7 @@ public class McpOpenapiCompositeGeneratorTest
                 .build()
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -799,7 +800,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         ModelConfig override = StringModelConfig.builder().build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -852,7 +853,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldOverrideResourceMimeType()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -903,7 +904,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDefaultResourceMimeTypeToOpenapiContentTypeWhenNoOverrideConfigured()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -949,7 +950,7 @@ public class McpOpenapiCompositeGeneratorTest
         lenient().when(catalog.resolve(eq("multi-content-api"), eq("latest"))).thenReturn(77);
         lenient().when(catalog.resolve(eq(77))).thenReturn(MULTI_CONTENT_TYPE_SPEC);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -991,7 +992,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDefaultResourceDescriptionToNullWhenNoOverrideConfigured()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1038,7 +1039,7 @@ public class McpOpenapiCompositeGeneratorTest
         lenient().when(catalog.resolve(eq("notifications-api"), eq("latest"))).thenReturn(88);
         lenient().when(catalog.resolve(eq(88))).thenReturn(NOTIFICATIONS_SPEC);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1084,7 +1085,7 @@ public class McpOpenapiCompositeGeneratorTest
         lenient().when(catalog.resolve(eq("notifications-api"), eq("latest"))).thenReturn(88);
         lenient().when(catalog.resolve(eq(88))).thenReturn(NOTIFICATIONS_SPEC);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1127,7 +1128,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldUseOpenapiSummaryAsToolSummary()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1174,7 +1175,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDefaultToolDescriptionToOperationDescriptionWhenPresent()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1222,7 +1223,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDefaultToolDescriptionToOperationIdWhenDescriptionAbsent()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1270,7 +1271,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldInterpolateQueryParameters()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1319,7 +1320,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldRebindPathParameterViaParams()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1367,7 +1368,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldEmitBodyTemplateWhenBodyPresent()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1421,7 +1422,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldRebindRequiredQueryParameterViaParams()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1469,7 +1470,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldRebindOptionalQueryParameterViaParams()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1517,7 +1518,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldRebindHeaderParameterViaParams()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1565,7 +1566,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldRebindCookieParameterViaParams()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1615,7 +1616,7 @@ public class McpOpenapiCompositeGeneratorTest
     {
         lenient().when(catalog.resolve(eq("other-api"), eq("latest"))).thenReturn(9);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1703,7 +1704,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldPassThroughRolesForGuardedScheme()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1751,7 +1752,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldGuardApiKeySecurityScheme()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1798,7 +1799,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldUnionRolesWhenSameAlternativeSchemesMapToSameGuard()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1846,7 +1847,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldGuardOperatorDeclaredRouteWithNoSpecSecurity()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1897,7 +1898,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldComposeOperatorDeclaredGuardWithDistinctSpecDerivedGuard()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -1953,7 +1954,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldUnionOperatorDeclaredRolesWithSpecDerivedGuardForSameGuard()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2005,7 +2006,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDenyOperationRequiringMultipleDistinctGuards()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2054,7 +2055,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDenyOperationWithOrAlternativeSecurity()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2103,7 +2104,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldAllowUnguardedWhenSchemeHasNoGuardConfigured()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2150,7 +2151,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldAllowUnguardedWhenSecurityMapAbsentButOperationRequiresSecurity()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2196,7 +2197,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldGuardOnlyMappedSchemeWhenAlternativeIsMixed()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2246,7 +2247,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldAllowExplicitEmptySecurityWithoutGuard()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2293,7 +2294,7 @@ public class McpOpenapiCompositeGeneratorTest
         lenient().when(catalog.resolve(eq("internal-api"), eq("latest"))).thenReturn(55);
         lenient().when(catalog.resolve(eq(55))).thenReturn(SPEC_WITH_DEFAULT_SECURITY);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2340,7 +2341,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldNotGuardOperationWithNoSecurityRequirement()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2381,7 +2382,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldDefaultToolNameToSnakeCasedOperationId()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2421,7 +2422,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldExpandAllOperationsForSpecOnlyRoute()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2462,7 +2463,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldExpandOperationsByTag()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2502,7 +2503,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldExpandOperationsByGlobPattern()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2544,7 +2545,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldClaimOperationForEarlierExplicitRouteBeforeLaterBulkRoute()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2594,7 +2595,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldExcludeBulkOperationsFilteredOutByCapability()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2637,7 +2638,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldIncludeBulkOperationsAdmittedByCapability()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2683,7 +2684,7 @@ public class McpOpenapiCompositeGeneratorTest
         lenient().when(catalog.resolve(eq("widgets-api"), eq("latest"))).thenReturn(77);
         lenient().when(catalog.resolve(eq(77))).thenReturn(WIDGETS_SPEC);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2724,7 +2725,7 @@ public class McpOpenapiCompositeGeneratorTest
         lenient().when(catalog.resolve(eq("petstore-api"), eq("latest"))).thenReturn(66);
         lenient().when(catalog.resolve(eq(66))).thenReturn(PETSTORE_SPEC);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
@@ -2795,7 +2796,7 @@ public class McpOpenapiCompositeGeneratorTest
 
         ModelConfig override = StringModelConfig.builder().build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")

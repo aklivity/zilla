@@ -33,6 +33,7 @@ import org.junit.Test;
 import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
@@ -114,7 +115,7 @@ public class McpKafkaClientFactoryTest
                 .build())
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")

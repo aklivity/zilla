@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfigBuilder<T>>
+public abstract class BindingConfigBuilder<T, B extends BindingConfigBuilder<T, B>> extends ConfigBuilder<T, B>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
     public static final List<CatalogedConfig> CATALOGS_DEFAULT = emptyList();
@@ -41,94 +41,87 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
     private List<CatalogedConfig> catalogs;
     private TelemetryRefConfig telemetryRef;
 
-    BindingConfigBuilder(
+    protected BindingConfigBuilder(
         Function<BindingConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<BindingConfigBuilder<T>> thisType()
-    {
-        return (Class<BindingConfigBuilder<T>>) getClass();
-    }
-
-    public BindingConfigBuilder<T> vault(
+    public B vault(
         String vault)
     {
         this.vault = vault;
-        return this;
+        return thisType().cast(this);
     }
 
-    public BindingConfigBuilder<T> namespace(
+    public B namespace(
         String namespace)
     {
         this.namespace = namespace;
-        return this;
+        return thisType().cast(this);
     }
 
-    public BindingConfigBuilder<T> name(
+    public B name(
         String name)
     {
         this.name = name;
-        return this;
+        return thisType().cast(this);
     }
 
-    public BindingConfigBuilder<T> type(
+    public B type(
         String type)
     {
         this.type = type;
-        return this;
+        return thisType().cast(this);
     }
 
-    public BindingConfigBuilder<T> kind(
+    public B kind(
         KindConfig kind)
     {
         this.kind = kind;
-        return this;
+        return thisType().cast(this);
     }
 
-    public BindingConfigBuilder<T> entry(
+    public B entry(
         String entry)
     {
         this.entry = entry;
-        return this;
+        return thisType().cast(this);
     }
 
-    public BindingConfigBuilder<T> exit(
+    public B exit(
         String exit)
     {
         this.exit = exit;
-        return this;
+        return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<BindingConfigBuilder<T>, C>> C options(
-        Function<Function<OptionsConfig, BindingConfigBuilder<T>>, C> options)
+    public <C extends ConfigBuilder<B, C>> C options(
+        Function<Function<OptionsConfig, B>, C> options)
     {
         return options.apply(this::options);
     }
 
-    public BindingConfigBuilder<T> options(
+    public B options(
         OptionsConfig options)
     {
         this.options = options;
-        return this;
+        return thisType().cast(this);
     }
 
-    public BindingConfigBuilder<T> catalogs(
+    public B catalogs(
         List<CatalogedConfig> catalogs)
     {
         this.catalogs = catalogs;
-        return this;
+        return thisType().cast(this);
     }
 
-    public CatalogedConfigBuilder<BindingConfigBuilder<T>> catalog()
+    public CatalogedConfigBuilder<B> catalog()
     {
         return new CatalogedConfigBuilder<>(this::catalog);
     }
 
-    public BindingConfigBuilder<T> catalog(
+    public B catalog(
         CatalogedConfig catalog)
     {
         if (catalogs == null)
@@ -137,16 +130,21 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         }
 
         catalogs.add(catalog);
-        return this;
+        return thisType().cast(this);
     }
 
-    public RouteConfigBuilder<BindingConfigBuilder<T>> route()
+    public RouteConfigBuilder<B, ?> route()
     {
-        return new RouteConfigBuilder<>(this::route)
-            .order(routes != null ? routes.size() : 0);
+        return new GenericRouteConfigBuilder<>(this::route)
+            .order(nextRouteOrder());
     }
 
-    public BindingConfigBuilder<T> route(
+    protected final int nextRouteOrder()
+    {
+        return routes != null ? routes.size() : 0;
+    }
+
+    public B route(
         RouteConfig route)
     {
         if (routes == null)
@@ -157,26 +155,26 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
         assert route.order == routes.size();
 
         routes.add(route);
-        return this;
+        return thisType().cast(this);
     }
 
-    public BindingConfigBuilder<T> routes(
+    public B routes(
         List<RouteConfig> routes)
     {
         routes.forEach(this::route);
-        return this;
+        return thisType().cast(this);
     }
 
-    public TelemetryRefConfigBuilder<BindingConfigBuilder<T>> telemetry()
+    public TelemetryRefConfigBuilder<B> telemetry()
     {
         return new TelemetryRefConfigBuilder<>(this::telemetry);
     }
 
-    public BindingConfigBuilder<T> telemetry(
+    public B telemetry(
         TelemetryRefConfig telemetryRef)
     {
         this.telemetryRef = telemetryRef;
-        return this;
+        return thisType().cast(this);
     }
 
     @Override
@@ -189,7 +187,7 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
                 .build();
         }
 
-        return mapper.apply(new BindingConfig(
+        return mapper.apply(newBinding(
             namespace,
             name,
             type,
@@ -201,4 +199,16 @@ public final class BindingConfigBuilder<T> extends ConfigBuilder<T, BindingConfi
             Optional.ofNullable(routes).orElse(ROUTES_DEFAULT),
             telemetryRef));
     }
+
+    protected abstract BindingConfig newBinding(
+        String namespace,
+        String name,
+        String type,
+        KindConfig kind,
+        String entry,
+        String vault,
+        OptionsConfig options,
+        List<CatalogedConfig> catalogs,
+        List<RouteConfig> routes,
+        TelemetryRefConfig telemetryRef);
 }

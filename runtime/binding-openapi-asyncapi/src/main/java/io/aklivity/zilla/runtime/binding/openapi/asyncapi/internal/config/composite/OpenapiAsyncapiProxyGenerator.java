@@ -270,8 +270,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                         .build();
                 }
 
-                private <C> BindingConfigBuilder<C> injectHttpKafkaRoutes(
-                    BindingConfigBuilder<C> binding)
+                private <C, B extends BindingConfigBuilder<C, B>> B injectHttpKafkaRoutes(
+                    B binding)
                 {
                     for (ProxyRouteHelper route : httpKafkaRoutes)
                     {
@@ -377,8 +377,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     return Pattern.compile(regex.toString());
                 }
 
-                private <C> BindingConfigBuilder<C> injectHttpKafkaRoute(
-                    BindingConfigBuilder<C> binding,
+                private <C, B extends BindingConfigBuilder<C, B>> B injectHttpKafkaRoute(
+                    B binding,
                     OpenapiSchemaConfig schema,
                     OpenapiOperationView httpOp,
                     AsyncapiOperationView kafkaOp)
@@ -387,23 +387,23 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     {
                         final GuardedResolution resolution = resolveGuarded(schema, httpOp);
 
-                        binding
+                        RouteConfigBuilder<?, ?> route = binding
                             .route()
                                 .exit(config.qname)
                                 .when(HttpKafkaConditionConfig::builder)
                                     .method(httpOp.method)
                                     .path(httpOp.path)
-                                    .build()
-                                .inject(r -> injectHttpKafkaRouteWith(r, httpOp, kafkaOp, guardQname(resolution)))
-                                .inject(r -> injectHttpServerRouteGuarded(r, resolution))
-                                .build();
+                                    .build();
+                        injectHttpKafkaRouteWith(route, httpOp, kafkaOp, guardQname(resolution));
+                        injectHttpServerRouteGuarded(route, resolution);
+                        route.build();
                     }
 
                     return binding;
                 }
 
-                private <C> RouteConfigBuilder<C> injectHttpKafkaRouteWith(
-                    RouteConfigBuilder<C> route,
+                private void injectHttpKafkaRouteWith(
+                    RouteConfigBuilder<?, ?> route,
                     OpenapiOperationView httpOperation,
                     AsyncapiOperationView kafkaOperation,
                     String guardQname)
@@ -431,8 +431,6 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                             .build();
                         break;
                     }
-
-                    return route;
                 }
 
                 private <C> HttpKafkaWithFetchConfigBuilder<C> injectHttpKafkaRouteFetchWith(
@@ -598,8 +596,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                 }
 
 
-                private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
-                    RouteConfigBuilder<C> route,
+                private void injectHttpServerRouteGuarded(
+                    RouteConfigBuilder<?, ?> route,
                     GuardedResolution resolution)
                 {
                     for (GuardedRef ref : resolution.guarded)
@@ -610,8 +608,6 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                                 .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                                 .build();
                     }
-
-                    return route;
                 }
 
                 private GuardedResolution resolveGuarded(

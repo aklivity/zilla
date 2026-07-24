@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class RouteConfigBuilder<T> extends ConfigBuilder<T, RouteConfigBuilder<T>>
+public abstract class RouteConfigBuilder<T, R extends RouteConfigBuilder<T, R>> extends ConfigBuilder<T, R>
 {
     public static final List<ConditionConfig> WHEN_DEFAULT = emptyList();
     public static final List<GuardedConfig> GUARDED_DEFAULT = emptyList();
@@ -34,40 +34,33 @@ public final class RouteConfigBuilder<T> extends ConfigBuilder<T, RouteConfigBui
     private WithConfig with;
     private List<GuardedConfig> guarded;
 
-    RouteConfigBuilder(
+    protected RouteConfigBuilder(
         Function<RouteConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<RouteConfigBuilder<T>> thisType()
-    {
-        return (Class<RouteConfigBuilder<T>>) getClass();
-    }
-
-    public RouteConfigBuilder<T> order(
+    public R order(
         int order)
     {
         this.order = order;
-        return this;
+        return thisType().cast(this);
     }
 
-    public RouteConfigBuilder<T> exit(
+    public R exit(
         String exit)
     {
         this.exit = exit;
-        return this;
+        return thisType().cast(this);
     }
 
-    public <C extends ConfigBuilder<RouteConfigBuilder<T>, C>> C when(
-        Function<Function<ConditionConfig, RouteConfigBuilder<T>>, C> condition)
+    public <C extends ConfigBuilder<R, C>> C when(
+        Function<Function<ConditionConfig, R>, C> condition)
     {
         return condition.apply(this::when);
     }
 
-    public RouteConfigBuilder<T> when(
+    public R when(
         ConditionConfig condition)
     {
         if (when == null)
@@ -75,28 +68,28 @@ public final class RouteConfigBuilder<T> extends ConfigBuilder<T, RouteConfigBui
             when = new LinkedList<>();
         }
         when.add(condition);
-        return this;
+        return thisType().cast(this);
     }
 
-    public <B extends ConfigBuilder<RouteConfigBuilder<T>, B>> B with(
-        Function<Function<WithConfig, RouteConfigBuilder<T>>, B> with)
+    public <B extends ConfigBuilder<R, B>> B with(
+        Function<Function<WithConfig, R>, B> with)
     {
         return with.apply(this::with);
     }
 
-    public RouteConfigBuilder<T> with(
+    public R with(
         WithConfig with)
     {
         this.with = with;
-        return this;
+        return thisType().cast(this);
     }
 
-    public GuardedConfigBuilder<RouteConfigBuilder<T>> guarded()
+    public GuardedConfigBuilder<R> guarded()
     {
         return new GuardedConfigBuilder<>(this::guarded);
     }
 
-    public RouteConfigBuilder<T> guarded(
+    public R guarded(
         GuardedConfig guarded)
     {
         if (this.guarded == null)
@@ -104,7 +97,7 @@ public final class RouteConfigBuilder<T> extends ConfigBuilder<T, RouteConfigBui
             this.guarded = new LinkedList<>();
         }
         this.guarded.add(guarded);
-        return this;
+        return thisType().cast(this);
     }
 
     @Override

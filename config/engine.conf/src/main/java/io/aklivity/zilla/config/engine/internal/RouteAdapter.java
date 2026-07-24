@@ -28,10 +28,10 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingInfoRegistry;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 
 public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 {
@@ -119,7 +119,7 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     public RouteConfig adaptFromJson(
         JsonObject object)
     {
-        RouteConfigBuilder<RouteConfig> route = RouteConfig.builder()
+        GenericRouteConfigBuilder<RouteConfig> route = RouteConfig.builder()
             .order(index);
 
         if (object.containsKey(EXIT_NAME))

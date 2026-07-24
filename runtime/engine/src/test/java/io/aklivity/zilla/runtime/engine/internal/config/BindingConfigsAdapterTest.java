@@ -37,6 +37,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingInfoRegistry;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.internal.BindingConfigsAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
@@ -81,7 +82,7 @@ public class BindingConfigsAdapterTest
     {
         BindingConfig[] bindings =
         {
-            BindingConfig.builder()
+            GenericBindingConfig.builder()
                 .inject(identity())
                 .namespace("test")
                 .name("test")
@@ -126,7 +127,7 @@ public class BindingConfigsAdapterTest
     {
         BindingConfig[] bindings =
         {
-            BindingConfig.builder()
+            GenericBindingConfig.builder()
                 .inject(identity())
                 .namespace("test")
                 .name("test")
@@ -172,7 +173,7 @@ public class BindingConfigsAdapterTest
     {
         BindingConfig[] bindings =
         {
-            BindingConfig.builder()
+            GenericBindingConfig.builder()
                 .namespace("test")
                 .name("test")
                 .type("test")
@@ -223,7 +224,7 @@ public class BindingConfigsAdapterTest
     {
         BindingConfig[] bindings =
         {
-            BindingConfig.builder()
+            GenericBindingConfig.builder()
                 .inject(identity())
                 .namespace("test")
                 .name("test")
@@ -243,7 +244,7 @@ public class BindingConfigsAdapterTest
     {
         BindingConfig[] bindings =
         {
-            BindingConfig.builder()
+            GenericBindingConfig.builder()
                 .namespace("test")
                 .name("test")
                 .type("test")
@@ -329,7 +330,7 @@ public class BindingConfigsAdapterTest
     {
         BindingConfig[] bindings =
         {
-            BindingConfig.builder()
+            GenericBindingConfig.builder()
                 .namespace("test")
                 .name("test")
                 .type("test")
@@ -388,7 +389,7 @@ public class BindingConfigsAdapterTest
     {
         BindingConfig[] bindings =
         {
-            BindingConfig.builder()
+            GenericBindingConfig.builder()
                 .namespace("test")
                 .name("test")
                 .type("test")
@@ -417,7 +418,7 @@ public class BindingConfigsAdapterTest
     {
         BindingConfig[] bindings =
             {
-                BindingConfig.builder()
+                GenericBindingConfig.builder()
                     .namespace("test")
                     .name("test")
                     .type("test")
@@ -473,7 +474,7 @@ public class BindingConfigsAdapterTest
     {
         BindingConfig[] bindings =
         {
-            BindingConfig.builder()
+            GenericBindingConfig.builder()
                 .namespace("test")
                 .name("test")
                 .type("test")

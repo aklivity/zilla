@@ -50,6 +50,8 @@ public final class KafkaConditionConfigAdapter implements JsonbAdapter<Condition
                 ? object.getString(TOPIC_NAME)
                 : null;
 
-        return new KafkaConditionConfig(topic);
+        return KafkaConditionConfig.builder()
+            .topic(topic)
+            .build();
     }
 }

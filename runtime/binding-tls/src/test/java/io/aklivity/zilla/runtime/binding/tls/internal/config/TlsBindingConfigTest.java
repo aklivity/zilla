@@ -38,6 +38,7 @@ import org.junit.Test;
 import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
 import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -52,7 +53,7 @@ public class TlsBindingConfigTest
         KindConfig kind,
         TlsOptionsConfig options)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("tls0")
             .type("tls")

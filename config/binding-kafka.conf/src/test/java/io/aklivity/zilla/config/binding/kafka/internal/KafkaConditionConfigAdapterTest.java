@@ -57,7 +57,9 @@ public class KafkaConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        KafkaConditionConfig condition = new KafkaConditionConfig("test");
+        KafkaConditionConfig condition = KafkaConditionConfig.builder()
+            .topic("test")
+            .build();
 
         String text = jsonb.toJson(condition);
 

@@ -72,9 +72,15 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
         return this;
     }
 
-    public BindingConfigBuilder<NamespaceConfigBuilder<T>> binding()
+    public GenericBindingConfigBuilder<NamespaceConfigBuilder<T>> binding()
     {
-        return new BindingConfigBuilder<>(this::binding).namespace(name);
+        return new GenericBindingConfigBuilder<>(this::binding).namespace(name);
+    }
+
+    public <B extends BindingConfigBuilder<NamespaceConfigBuilder<T>, B>> B binding(
+        Function<Function<BindingConfig, NamespaceConfigBuilder<T>>, B> binding)
+    {
+        return binding.apply(this::binding).namespace(name);
     }
 
     public NamespaceConfigBuilder<T> binding(

@@ -27,8 +27,8 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 
 public class McpHttpRouteConfigTest
 {
@@ -37,7 +37,7 @@ public class McpHttpRouteConfigTest
         String resource,
         boolean withMapping)
     {
-        RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder();
+        GenericRouteConfigBuilder<RouteConfig> builder = RouteConfig.builder();
         if (tool != null || resource != null)
         {
             builder = builder.when(McpHttpConditionConfig.builder()

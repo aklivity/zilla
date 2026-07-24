@@ -12,22 +12,22 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.kafka;
+package io.aklivity.zilla.config.engine;
 
-import io.aklivity.zilla.config.engine.ConditionConfig;
+import java.util.function.Function;
 
-public final class KafkaConditionConfig extends ConditionConfig
+public final class GenericRouteConfigBuilder<T> extends RouteConfigBuilder<T, GenericRouteConfigBuilder<T>>
 {
-    public final String topic;
-
-    public static KafkaConditionConfigBuilder<KafkaConditionConfig> builder()
+    GenericRouteConfigBuilder(
+        Function<RouteConfig, T> mapper)
     {
-        return new KafkaConditionConfigBuilder<>(KafkaConditionConfig.class::cast);
+        super(mapper);
     }
 
-    KafkaConditionConfig(
-        String topic)
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<GenericRouteConfigBuilder<T>> thisType()
     {
-        this.topic = topic;
+        return (Class<GenericRouteConfigBuilder<T>>) getClass();
     }
 }

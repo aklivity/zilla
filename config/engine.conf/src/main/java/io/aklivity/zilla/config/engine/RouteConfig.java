@@ -35,9 +35,9 @@ public class RouteConfig
     public final WithConfig with;
     public final List<GuardedConfig> guarded;
 
-    public static RouteConfigBuilder<RouteConfig> builder()
+    public static GenericRouteConfigBuilder<RouteConfig> builder()
     {
-        return new RouteConfigBuilder<>(identity());
+        return new GenericRouteConfigBuilder<>(identity());
     }
 
     RouteConfig(
