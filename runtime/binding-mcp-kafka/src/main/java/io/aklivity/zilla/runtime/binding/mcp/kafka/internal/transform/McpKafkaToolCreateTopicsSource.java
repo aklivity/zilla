@@ -54,12 +54,11 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  *   }
  * }
  * }</pre>
- * {@code assignments}, {@code configs}, {@code timeout} and {@code validateOnly} are optional.
+ * {@code assignments}, {@code configs}, {@code timeout} and {@code validateOnly} are optional;
+ * {@code timeout} defaults to {@code zilla.binding.mcp.kafka.request.timeout} (default {@code PT30S}).
  */
 public final class McpKafkaToolCreateTopicsSource implements JsonSink
 {
-    private static final int DEFAULT_TIMEOUT_MS = 30_000;
-
     private enum Context
     {
         ROOT,
@@ -72,6 +71,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         CONFIGS
     }
 
+    private final int defaultTimeoutMs;
     private final Deque<Context> stack = new ArrayDeque<>();
     private final List<Topic> topics = new ArrayList<>();
     private final StringBuilder text = new StringBuilder();
@@ -92,6 +92,12 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
 
     private Request request;
 
+    public McpKafkaToolCreateTopicsSource(
+        int defaultTimeoutMs)
+    {
+        this.defaultTimeoutMs = defaultTimeoutMs;
+    }
+
     public Request request()
     {
         return request;
@@ -104,7 +110,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         topics.clear();
         text.setLength(0);
         key = null;
-        timeoutMs = DEFAULT_TIMEOUT_MS;
+        timeoutMs = defaultTimeoutMs;
         validateOnly = false;
         request = null;
     }
@@ -319,7 +325,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         switch (key)
         {
         case "timeout":
-            timeoutMs = parseInt(value, DEFAULT_TIMEOUT_MS);
+            timeoutMs = parseInt(value, defaultTimeoutMs);
             break;
         case "validateOnly":
             validateOnly = Boolean.parseBoolean(value);

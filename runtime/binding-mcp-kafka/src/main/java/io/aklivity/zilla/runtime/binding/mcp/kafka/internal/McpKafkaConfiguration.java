@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.kafka.internal;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.time.Duration;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -31,6 +32,7 @@ public class McpKafkaConfiguration extends Configuration
     public static final PropertyDef<SessionIdSupplier> MCP_KAFKA_SESSION_ID;
     public static final PropertyDef<String> MCP_KAFKA_CACHE_CLIENT_EXIT;
     public static final PropertyDef<String> MCP_KAFKA_DIRECT_CLIENT_EXIT;
+    public static final PropertyDef<Duration> MCP_KAFKA_REQUEST_TIMEOUT;
 
     static
     {
@@ -39,6 +41,8 @@ public class McpKafkaConfiguration extends Configuration
             McpKafkaConfiguration::decodeSessionIdSupplier, McpKafkaConfiguration::defaultSessionIdSupplier);
         MCP_KAFKA_CACHE_CLIENT_EXIT = config.property("cache.client.exit", "");
         MCP_KAFKA_DIRECT_CLIENT_EXIT = config.property("direct.client.exit", "");
+        MCP_KAFKA_REQUEST_TIMEOUT = config.property(Duration.class, "request.timeout",
+            (c, v) -> Duration.parse(v), "PT30S");
         MCP_KAFKA_CONFIG = config;
     }
 
@@ -66,6 +70,11 @@ public class McpKafkaConfiguration extends Configuration
     public String directClientExit()
     {
         return MCP_KAFKA_DIRECT_CLIENT_EXIT.get(this);
+    }
+
+    public Duration requestTimeout()
+    {
+        return MCP_KAFKA_REQUEST_TIMEOUT.get(this);
     }
 
     private static SessionIdSupplier decodeSessionIdSupplier(

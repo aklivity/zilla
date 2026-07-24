@@ -172,6 +172,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final BufferPool encodePool;
     private final KafkaCreateTopicsRequestGenerator createTopicsRequestGenerator;
     private final KafkaCreateTopicsResponsePipeline createTopicsResponsePipeline;
+    private final int createTopicsRequestTimeoutMs;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
 
@@ -195,6 +196,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.encodePool = context.bufferPool().duplicate();
         this.createTopicsRequestGenerator = new KafkaCreateTopicsRequestGenerator();
         this.createTopicsResponsePipeline = new KafkaCreateTopicsResponsePipeline();
+        this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
 
     @Override
@@ -1154,7 +1156,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 if (TOOL_CREATE_TOPICS.equals(tool))
                 {
-                    createTopicsSource = new McpKafkaToolCreateTopicsSource();
+                    createTopicsSource = new McpKafkaToolCreateTopicsSource(createTopicsRequestTimeoutMs);
                     argsPipeline = JsonEx.stream(JsonEx.createParser()).into(createTopicsSource);
                 }
                 else

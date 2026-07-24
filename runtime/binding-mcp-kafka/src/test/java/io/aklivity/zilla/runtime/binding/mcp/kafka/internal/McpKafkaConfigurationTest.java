@@ -14,10 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.internal;
 
+import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration.MCP_KAFKA_REQUEST_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration.MCP_KAFKA_SESSION_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.time.Duration;
 import java.util.Properties;
 
 import org.junit.Test;
@@ -27,11 +29,13 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class McpKafkaConfigurationTest
 {
     public static final String MCP_KAFKA_SESSION_ID_NAME = "zilla.binding.mcp.kafka.session.id";
+    public static final String MCP_KAFKA_REQUEST_TIMEOUT_NAME = "zilla.binding.mcp.kafka.request.timeout";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(MCP_KAFKA_SESSION_ID.name(), MCP_KAFKA_SESSION_ID_NAME);
+        assertEquals(MCP_KAFKA_REQUEST_TIMEOUT.name(), MCP_KAFKA_REQUEST_TIMEOUT_NAME);
     }
 
     @Test
@@ -51,6 +55,24 @@ public class McpKafkaConfigurationTest
         final McpKafkaConfiguration config = new McpKafkaConfiguration(new Configuration(properties));
 
         assertEquals("session-fixed", config.sessionIdSupplier().get());
+    }
+
+    @Test
+    public void shouldDefaultRequestTimeoutToThirtySeconds() throws Exception
+    {
+        final McpKafkaConfiguration config = new McpKafkaConfiguration();
+
+        assertEquals(Duration.ofSeconds(30), config.requestTimeout());
+    }
+
+    @Test
+    public void shouldOverrideRequestTimeout() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty(MCP_KAFKA_REQUEST_TIMEOUT_NAME, "PT10S");
+        final McpKafkaConfiguration config = new McpKafkaConfiguration(new Configuration(properties));
+
+        assertEquals(Duration.ofSeconds(10), config.requestTimeout());
     }
 
     public static String fixedSessionId()
