@@ -19,8 +19,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.List;
-
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -29,7 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiConditionConfig;
-import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiConditionServerConfig;
 
 public class OpenapiAsyncapiConditionConfigAdapterTest
 {
@@ -62,7 +59,10 @@ public class OpenapiAsyncapiConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        OpenapiAsyncapiConditionConfig condition = new OpenapiAsyncapiConditionConfig("test", "o-id");
+        OpenapiAsyncapiConditionConfig condition = OpenapiAsyncapiConditionConfig.builder()
+            .spec("test")
+            .operation("o-id")
+            .build();
 
         String text = jsonb.toJson(condition);
 
@@ -95,8 +95,14 @@ public class OpenapiAsyncapiConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithTagAndServers()
     {
-        OpenapiAsyncapiConditionConfig condition = new OpenapiAsyncapiConditionConfig("test", "o-id", "pets",
-            List.of(new OpenapiAsyncapiConditionServerConfig("http://localhost:9090/prod")));
+        OpenapiAsyncapiConditionConfig condition = OpenapiAsyncapiConditionConfig.builder()
+            .spec("test")
+            .operation("o-id")
+            .tag("pets")
+            .server()
+                .url("http://localhost:9090/prod")
+                .build()
+            .build();
 
         String text = jsonb.toJson(condition);
 

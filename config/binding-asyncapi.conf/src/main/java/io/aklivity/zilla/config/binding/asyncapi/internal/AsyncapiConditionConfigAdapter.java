@@ -106,10 +106,18 @@ public final class AsyncapiConditionConfigAdapter implements JsonbAdapter<Condit
                 String url = serverJson.containsKey(SERVER_URL_NAME)
                     ? serverJson.getString(SERVER_URL_NAME)
                     : null;
-                servers.add(new AsyncapiConditionServerConfig(name, url));
+                servers.add(AsyncapiConditionServerConfig.builder()
+                    .name(name)
+                    .url(url)
+                    .build());
             }
         }
 
-        return new AsyncapiConditionConfig(spec, operation, tag, servers);
+        return AsyncapiConditionConfig.builder()
+            .spec(spec)
+            .operation(operation)
+            .tag(tag)
+            .servers(servers)
+            .build();
     }
 }

@@ -30,7 +30,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.openapi.OpenapiConditionConfig;
-import io.aklivity.zilla.config.binding.openapi.OpenapiConditionServerConfig;
 
 public class OpenapiConditionConfigAdapterTest
 {
@@ -79,7 +78,10 @@ public class OpenapiConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", "testOperationId", null);
+        OpenapiConditionConfig condition = OpenapiConditionConfig.builder()
+            .spec("test")
+            .operation("testOperationId")
+            .build();
 
         String text = jsonb.toJson(condition);
 
@@ -94,7 +96,10 @@ public class OpenapiConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithTag()
     {
-        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, "admin");
+        OpenapiConditionConfig condition = OpenapiConditionConfig.builder()
+            .spec("test")
+            .tag("admin")
+            .build();
 
         String text = jsonb.toJson(condition);
 
@@ -109,7 +114,10 @@ public class OpenapiConditionConfigAdapterTest
     @Test
     public void shouldMatchOperationGlob()
     {
-        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", "list*", null);
+        OpenapiConditionConfig condition = OpenapiConditionConfig.builder()
+            .spec("test")
+            .operation("list*")
+            .build();
 
         assertThat(condition.matches("test", "listPets", null), equalTo(true));
         assertThat(condition.matches("test", "createPets", null), equalTo(false));
@@ -118,7 +126,10 @@ public class OpenapiConditionConfigAdapterTest
     @Test
     public void shouldMatchTag()
     {
-        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, "admin");
+        OpenapiConditionConfig condition = OpenapiConditionConfig.builder()
+            .spec("test")
+            .tag("admin")
+            .build();
 
         assertThat(condition.matches("test", "listPets", List.of("admin")), equalTo(true));
         assertThat(condition.matches("test", "listPets", List.of("pets")), equalTo(false));
@@ -143,8 +154,12 @@ public class OpenapiConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithServers()
     {
-        OpenapiConditionConfig condition = new OpenapiConditionConfig("test", null, null,
-            List.of(new OpenapiConditionServerConfig("http://localhost:9090/prod")));
+        OpenapiConditionConfig condition = OpenapiConditionConfig.builder()
+            .spec("test")
+            .server()
+                .url("http://localhost:9090/prod")
+                .build()
+            .build();
 
         String text = jsonb.toJson(condition);
 

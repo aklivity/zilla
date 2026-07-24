@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionConfig;
-import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionServerConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.common.asyncapi.model.Asyncapi;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
@@ -82,7 +81,10 @@ public class AsyncapiConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", "testOperationId", null);
+        AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .operation("testOperationId")
+            .build();
 
         String text = jsonb.toJson(condition);
 
@@ -97,7 +99,10 @@ public class AsyncapiConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithTag()
     {
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, "admin");
+        AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .tag("admin")
+            .build();
 
         String text = jsonb.toJson(condition);
 
@@ -112,7 +117,10 @@ public class AsyncapiConditionConfigAdapterTest
     @Test
     public void shouldMatchOperationGlob()
     {
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", "list*", null);
+        AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .operation("list*")
+            .build();
 
         assertThat(condition.matches("test", "listPets", null, null), equalTo(true));
         assertThat(condition.matches("test", "createPets", null, null), equalTo(false));
@@ -121,7 +129,10 @@ public class AsyncapiConditionConfigAdapterTest
     @Test
     public void shouldMatchTag()
     {
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, "admin");
+        AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .tag("admin")
+            .build();
 
         assertThat(condition.matches("test", "listPets", List.of("admin"), null), equalTo(true));
         assertThat(condition.matches("test", "listPets", List.of("pets"), null), equalTo(false));
@@ -149,8 +160,13 @@ public class AsyncapiConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithServers()
     {
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig("prod", "http://localhost:9090/prod")));
+        AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .server()
+                .name("prod")
+                .url("http://localhost:9090/prod")
+                .build()
+            .build();
 
         String text = jsonb.toJson(condition);
 
@@ -169,13 +185,21 @@ public class AsyncapiConditionConfigAdapterTest
             .filter(s -> "prod".equals(s.name))
             .toList();
 
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig("prod", null)));
+        AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .server()
+                .name("prod")
+                .build()
+            .build();
 
         assertThat(condition.matches("test", "listPets", null, prodOnly), equalTo(true));
 
-        AsyncapiConditionConfig other = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig("qa", null)));
+        AsyncapiConditionConfig other = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .server()
+                .name("qa")
+                .build()
+            .build();
 
         assertThat(other.matches("test", "listPets", null, prodOnly), equalTo(false));
     }
@@ -187,13 +211,21 @@ public class AsyncapiConditionConfigAdapterTest
             .filter(s -> "prod".equals(s.name))
             .toList();
 
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig(null, "http://localhost:9090/prod")));
+        AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .server()
+                .url("http://localhost:9090/prod")
+                .build()
+            .build();
 
         assertThat(condition.matches("test", "listPets", null, prodOnly), equalTo(true));
 
-        AsyncapiConditionConfig other = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig(null, "http://localhost:8080/qa")));
+        AsyncapiConditionConfig other = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .server()
+                .url("http://localhost:8080/qa")
+                .build()
+            .build();
 
         assertThat(other.matches("test", "listPets", null, prodOnly), equalTo(false));
     }
@@ -215,13 +247,21 @@ public class AsyncapiConditionConfigAdapterTest
 
         List<AsyncapiServerView> servers = AsyncapiView.of(model).servers;
 
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig(null, "kafka://broker.example.com:9092")));
+        AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .server()
+                .url("kafka://broker.example.com:9092")
+                .build()
+            .build();
 
         assertThat(condition.matches("test", "listPets", null, servers), equalTo(true));
 
-        AsyncapiConditionConfig other = new AsyncapiConditionConfig("test", null, null,
-            List.of(new AsyncapiConditionServerConfig(null, "kafka://other.example.com:9092")));
+        AsyncapiConditionConfig other = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .server()
+                .url("kafka://other.example.com:9092")
+                .build()
+            .build();
 
         assertThat(other.matches("test", "listPets", null, servers), equalTo(false));
     }
@@ -229,7 +269,9 @@ public class AsyncapiConditionConfigAdapterTest
     @Test
     public void shouldMatchAnyServerWhenOmitted() throws Exception
     {
-        AsyncapiConditionConfig condition = new AsyncapiConditionConfig("test", null, null);
+        AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
+            .spec("test")
+            .build();
 
         assertThat(condition.matches("test", "listPets", null, serverViews()), equalTo(true));
         assertThat(condition.matches("test", "listPets", null, null), equalTo(true));

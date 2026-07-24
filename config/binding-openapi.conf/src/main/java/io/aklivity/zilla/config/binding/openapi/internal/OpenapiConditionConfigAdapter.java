@@ -87,10 +87,17 @@ public final class OpenapiConditionConfigAdapter implements JsonbAdapter<Conditi
         List<OpenapiConditionServerConfig> servers = object.containsKey(SERVERS_NAME)
             ? object.getJsonArray(SERVERS_NAME).stream()
                 .map(JsonValue::asJsonObject)
-                .map(server -> new OpenapiConditionServerConfig(server.getString(URL_NAME)))
+                .map(server -> OpenapiConditionServerConfig.builder()
+                    .url(server.getString(URL_NAME))
+                    .build())
                 .toList()
             : null;
 
-        return new OpenapiConditionConfig(spec, operation, tag, servers);
+        return OpenapiConditionConfig.builder()
+            .spec(spec)
+            .operation(operation)
+            .tag(tag)
+            .servers(servers)
+            .build();
     }
 }

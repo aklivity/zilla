@@ -38,7 +38,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionConfig;
-import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionServerConfig;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfig;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiWithConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
@@ -341,8 +340,12 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("sse-id", null, null))
-                .with(new AsyncapiWithConfig("kafka-id", null))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("sse-id")
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-id")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -446,8 +449,14 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -493,9 +502,17 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
-                    List.of(new AsyncapiConditionServerConfig("broker", null))))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .server()
+                        .name("broker")
+                        .build()
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -538,9 +555,17 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
-                    List.of(new AsyncapiConditionServerConfig("other", null))))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .server()
+                        .name("other")
+                        .build()
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -583,9 +608,17 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
-                    List.of(new AsyncapiConditionServerConfig("otherBroker", null))))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .server()
+                        .name("otherBroker")
+                        .build()
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -628,8 +661,14 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;

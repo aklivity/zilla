@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.openapi.asyncapi;
 
 import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
@@ -26,14 +27,18 @@ public class OpenapiAsyncapiConditionConfig extends ConditionConfig
     public final String tag;
     public final List<OpenapiAsyncapiConditionServerConfig> servers;
 
-    public OpenapiAsyncapiConditionConfig(
-        String spec,
-        String operation)
+    public static OpenapiAsyncapiConditionConfigBuilder<OpenapiAsyncapiConditionConfig> builder()
     {
-        this(spec, operation, null, null);
+        return new OpenapiAsyncapiConditionConfigBuilder<>(OpenapiAsyncapiConditionConfig.class::cast);
     }
 
-    public OpenapiAsyncapiConditionConfig(
+    public static <T> OpenapiAsyncapiConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new OpenapiAsyncapiConditionConfigBuilder<>(mapper);
+    }
+
+    OpenapiAsyncapiConditionConfig(
         String spec,
         String operation,
         String tag,

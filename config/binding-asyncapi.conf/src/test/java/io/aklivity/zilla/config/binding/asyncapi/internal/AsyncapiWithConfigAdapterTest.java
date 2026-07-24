@@ -66,7 +66,10 @@ public class AsyncapiWithConfigAdapterTest
     @Test
     public void shouldWriteWith()
     {
-        AsyncapiWithConfig with = new AsyncapiWithConfig("test", "testOperation");
+        AsyncapiWithConfig with = AsyncapiWithConfig.builder()
+            .spec("test")
+            .operation("testOperation")
+            .build();
 
         String text = jsonb.toJson(with);
 
@@ -77,7 +80,9 @@ public class AsyncapiWithConfigAdapterTest
     @Test
     public void shouldWriteWithSpecOnly()
     {
-        AsyncapiWithConfig with = new AsyncapiWithConfig("test", null);
+        AsyncapiWithConfig with = AsyncapiWithConfig.builder()
+            .spec("test")
+            .build();
 
         String text = jsonb.toJson(with);
 

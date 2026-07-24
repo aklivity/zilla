@@ -41,7 +41,6 @@ import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiConditionConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiOptionsConfig;
-import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiSpecConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiWithConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
@@ -227,20 +226,27 @@ public class OpenapiAsyncapiProxyGeneratorTest
             .name("composite0")
             .type("openapi-asyncapi")
             .kind(PROXY)
-            .options(new OpenapiAsyncapiOptionsConfig(new OpenapiAsyncapiSpecConfig(
-                Set.of(new OpenapiSpecificationConfig(
-                    "openapi-id",
-                    null,
-                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
-                    security)),
-                Set.of(AsyncapiSpecificationConfig.builder()
-                    .label("asyncapi-id")
-                    .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
-                    .build()))))
+            .options(OpenapiAsyncapiOptionsConfig.builder()
+                .specs()
+                    .openapi(Set.of(new OpenapiSpecificationConfig(
+                        "openapi-id",
+                        null,
+                        List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
+                        security)))
+                    .asyncapi(Set.of(AsyncapiSpecificationConfig.builder()
+                        .label("asyncapi-id")
+                        .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
+                        .build()))
+                    .build()
+                .build())
             .route()
                 .exit("asyncapi_client0")
-                .when(new OpenapiAsyncapiConditionConfig("openapi-id", null))
-                .with(new OpenapiAsyncapiWithConfig("asyncapi-id", null, null))
+                .when(OpenapiAsyncapiConditionConfig.builder()
+                    .spec("openapi-id")
+                    .build())
+                .with(OpenapiAsyncapiWithConfig.builder()
+                    .spec("asyncapi-id")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -254,22 +260,29 @@ public class OpenapiAsyncapiProxyGeneratorTest
             .name("composite0")
             .type("openapi-asyncapi")
             .kind(PROXY)
-            .options(new OpenapiAsyncapiOptionsConfig(new OpenapiAsyncapiSpecConfig(
-                Set.of(new OpenapiSpecificationConfig(
-                    "openapi-id",
-                    null,
-                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
-                    Map.of("bearerAuth", "guard0"),
-                    new OpenapiCatalogConfig("catalog0", "test-overlay", "latest"))),
-                Set.of(AsyncapiSpecificationConfig.builder()
-                    .label("asyncapi-id")
-                    .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
-                    .overlay(new AsyncapiCatalogConfig("catalog1", "test-overlay", "latest"))
-                    .build()))))
+            .options(OpenapiAsyncapiOptionsConfig.builder()
+                .specs()
+                    .openapi(Set.of(new OpenapiSpecificationConfig(
+                        "openapi-id",
+                        null,
+                        List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
+                        Map.of("bearerAuth", "guard0"),
+                        new OpenapiCatalogConfig("catalog0", "test-overlay", "latest"))))
+                    .asyncapi(Set.of(AsyncapiSpecificationConfig.builder()
+                        .label("asyncapi-id")
+                        .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
+                        .overlay(new AsyncapiCatalogConfig("catalog1", "test-overlay", "latest"))
+                        .build()))
+                    .build()
+                .build())
             .route()
                 .exit("asyncapi_client0")
-                .when(new OpenapiAsyncapiConditionConfig("openapi-id", null))
-                .with(new OpenapiAsyncapiWithConfig("asyncapi-id", null, null))
+                .when(OpenapiAsyncapiConditionConfig.builder()
+                    .spec("openapi-id")
+                    .build())
+                .with(OpenapiAsyncapiWithConfig.builder()
+                    .spec("asyncapi-id")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -284,20 +297,25 @@ public class OpenapiAsyncapiProxyGeneratorTest
             .name("composite0")
             .type("openapi-asyncapi")
             .kind(PROXY)
-            .options(new OpenapiAsyncapiOptionsConfig(new OpenapiAsyncapiSpecConfig(
-                Set.of(new OpenapiSpecificationConfig(
-                    "openapi-id",
-                    null,
-                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
-                    Map.of("bearerAuth", "guard0"))),
-                Set.of(AsyncapiSpecificationConfig.builder()
-                    .label("asyncapi-id")
-                    .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
-                    .build()))))
+            .options(OpenapiAsyncapiOptionsConfig.builder()
+                .specs()
+                    .openapi(Set.of(new OpenapiSpecificationConfig(
+                        "openapi-id",
+                        null,
+                        List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
+                        Map.of("bearerAuth", "guard0"))))
+                    .asyncapi(Set.of(AsyncapiSpecificationConfig.builder()
+                        .label("asyncapi-id")
+                        .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
+                        .build()))
+                    .build()
+                .build())
             .route()
                 .exit("asyncapi_client0")
                 .when(condition)
-                .with(new OpenapiAsyncapiWithConfig("asyncapi-id", null, null))
+                .with(OpenapiAsyncapiWithConfig.builder()
+                    .spec("asyncapi-id")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -422,7 +440,10 @@ public class OpenapiAsyncapiProxyGeneratorTest
     public void shouldIncludeHttpKafkaRouteWhenTagMatches()
     {
         OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context,
-            bindingWithCondition(new OpenapiAsyncapiConditionConfig("openapi-id", null, "pets", null))));
+            bindingWithCondition(OpenapiAsyncapiConditionConfig.builder()
+                .spec("openapi-id")
+                .tag("pets")
+                .build())));
 
         BindingConfig httpKafka = composite.namespaces.get(0).bindings.stream()
             .filter(b -> "http_kafka_proxy0".equals(b.name))
@@ -436,7 +457,10 @@ public class OpenapiAsyncapiProxyGeneratorTest
     public void shouldExcludeHttpKafkaRouteWhenTagDoesNotMatch()
     {
         OpenapiAsyncapiCompositeConfig composite = generator.generate(new OpenapiAsyncapiBindingConfig(context,
-            bindingWithCondition(new OpenapiAsyncapiConditionConfig("openapi-id", null, "other", null))));
+            bindingWithCondition(OpenapiAsyncapiConditionConfig.builder()
+                .spec("openapi-id")
+                .tag("other")
+                .build())));
 
         BindingConfig httpKafka = composite.namespaces.get(0).bindings.stream()
             .filter(b -> "http_kafka_proxy0".equals(b.name))
@@ -454,21 +478,28 @@ public class OpenapiAsyncapiProxyGeneratorTest
             .name("composite0")
             .type("openapi-asyncapi")
             .kind(PROXY)
-            .options(new OpenapiAsyncapiOptionsConfig(new OpenapiAsyncapiSpecConfig(
-                Set.of(new OpenapiSpecificationConfig(
-                    "openapi-id",
-                    null,
-                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
-                    null)),
-                Set.of(AsyncapiSpecificationConfig.builder()
-                    .label("asyncapi-id")
-                    .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
-                    .security("kafkaAuth", "guard0")
-                    .build()))))
+            .options(OpenapiAsyncapiOptionsConfig.builder()
+                .specs()
+                    .openapi(Set.of(new OpenapiSpecificationConfig(
+                        "openapi-id",
+                        null,
+                        List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
+                        null)))
+                    .asyncapi(Set.of(AsyncapiSpecificationConfig.builder()
+                        .label("asyncapi-id")
+                        .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
+                        .security("kafkaAuth", "guard0")
+                        .build()))
+                    .build()
+                .build())
             .route()
                 .exit("asyncapi_client0")
-                .when(new OpenapiAsyncapiConditionConfig("openapi-id", null))
-                .with(new OpenapiAsyncapiWithConfig("asyncapi-id", null, null))
+                .when(OpenapiAsyncapiConditionConfig.builder()
+                    .spec("openapi-id")
+                    .build())
+                .with(OpenapiAsyncapiWithConfig.builder()
+                    .spec("asyncapi-id")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.asyncapi;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
@@ -29,15 +30,18 @@ public class AsyncapiConditionConfig extends ConditionConfig
 
     private final Pattern operationGlob;
 
-    public AsyncapiConditionConfig(
-        String spec,
-        String operation,
-        String tag)
+    public static AsyncapiConditionConfigBuilder<AsyncapiConditionConfig> builder()
     {
-        this(spec, operation, tag, null);
+        return new AsyncapiConditionConfigBuilder<>(AsyncapiConditionConfig.class::cast);
     }
 
-    public AsyncapiConditionConfig(
+    public static <T> AsyncapiConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new AsyncapiConditionConfigBuilder<>(mapper);
+    }
+
+    AsyncapiConditionConfig(
         String spec,
         String operation,
         String tag,

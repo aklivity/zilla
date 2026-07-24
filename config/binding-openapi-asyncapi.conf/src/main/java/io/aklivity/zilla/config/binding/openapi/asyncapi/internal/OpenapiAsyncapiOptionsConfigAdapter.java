@@ -283,9 +283,13 @@ public final class OpenapiAsyncapiOptionsConfigAdapter implements JsonbAdapter<O
             }
         }
 
-        OpenapiAsyncapiSpecConfig specConfig = new OpenapiAsyncapiSpecConfig(
-            unmodifiableSet(openapis), unmodifiableSet(asyncapis));
+        OpenapiAsyncapiSpecConfig specConfig = OpenapiAsyncapiSpecConfig.builder()
+            .openapi(unmodifiableSet(openapis))
+            .asyncapi(unmodifiableSet(asyncapis))
+            .build();
 
-        return new OpenapiAsyncapiOptionsConfig(specConfig);
+        return OpenapiAsyncapiOptionsConfig.builder()
+            .specs(specConfig)
+            .build();
     }
 }

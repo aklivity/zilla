@@ -78,6 +78,10 @@ public class OpenapiAsyncapiWithConfigAdapter implements WithConfigAdapterSpi, J
             ? object.getString(TAG_NAME)
             : null;
 
-        return new OpenapiAsyncapiWithConfig(spec, operation, tag);
+        return OpenapiAsyncapiWithConfig.builder()
+            .spec(spec)
+            .operation(operation)
+            .tag(tag)
+            .build();
     }
 }

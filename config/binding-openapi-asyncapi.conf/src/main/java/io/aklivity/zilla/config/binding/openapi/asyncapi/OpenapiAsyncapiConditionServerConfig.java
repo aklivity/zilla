@@ -14,13 +14,26 @@
  */
 package io.aklivity.zilla.config.binding.openapi.asyncapi;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 
 public final class OpenapiAsyncapiConditionServerConfig
 {
     public final String url;
 
-    public OpenapiAsyncapiConditionServerConfig(
+    public static OpenapiAsyncapiConditionServerConfigBuilder<OpenapiAsyncapiConditionServerConfig> builder()
+    {
+        return new OpenapiAsyncapiConditionServerConfigBuilder<>(OpenapiAsyncapiConditionServerConfig.class::cast);
+    }
+
+    public static <T> OpenapiAsyncapiConditionServerConfigBuilder<T> builder(
+        Function<OpenapiAsyncapiConditionServerConfig, T> mapper)
+    {
+        return new OpenapiAsyncapiConditionServerConfigBuilder<>(mapper);
+    }
+
+    OpenapiAsyncapiConditionServerConfig(
         String url)
     {
         this.url = url;

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.openapi;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
@@ -29,15 +30,18 @@ public class OpenapiConditionConfig extends ConditionConfig
 
     private final Pattern operationGlob;
 
-    public OpenapiConditionConfig(
-        String spec,
-        String operation,
-        String tag)
+    public static OpenapiConditionConfigBuilder<OpenapiConditionConfig> builder()
     {
-        this(spec, operation, tag, null);
+        return new OpenapiConditionConfigBuilder<>(OpenapiConditionConfig.class::cast);
     }
 
-    public OpenapiConditionConfig(
+    public static <T> OpenapiConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new OpenapiConditionConfigBuilder<>(mapper);
+    }
+
+    OpenapiConditionConfig(
         String spec,
         String operation,
         String tag,

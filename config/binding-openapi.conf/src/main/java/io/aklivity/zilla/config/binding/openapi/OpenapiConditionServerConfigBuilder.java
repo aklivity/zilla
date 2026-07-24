@@ -16,32 +16,37 @@ package io.aklivity.zilla.config.binding.openapi;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
-public class OpenapiConditionServerConfig
+public final class OpenapiConditionServerConfigBuilder<T> extends ConfigBuilder<T, OpenapiConditionServerConfigBuilder<T>>
 {
-    public final String url;
+    private final Function<OpenapiConditionServerConfig, T> mapper;
 
-    public static OpenapiConditionServerConfigBuilder<OpenapiConditionServerConfig> builder()
-    {
-        return new OpenapiConditionServerConfigBuilder<>(OpenapiConditionServerConfig.class::cast);
-    }
+    private String url;
 
-    public static <T> OpenapiConditionServerConfigBuilder<T> builder(
+    OpenapiConditionServerConfigBuilder(
         Function<OpenapiConditionServerConfig, T> mapper)
     {
-        return new OpenapiConditionServerConfigBuilder<>(mapper);
+        this.mapper = mapper;
     }
 
-    OpenapiConditionServerConfig(
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<OpenapiConditionServerConfigBuilder<T>> thisType()
+    {
+        return (Class<OpenapiConditionServerConfigBuilder<T>>) getClass();
+    }
+
+    public OpenapiConditionServerConfigBuilder<T> url(
         String url)
     {
         this.url = url;
+        return this;
     }
 
-    boolean matches(
-        OpenapiServerView server)
+    @Override
+    public T build()
     {
-        return url == null || url.equals(server.url.toString());
+        return mapper.apply(new OpenapiConditionServerConfig(url));
     }
 }

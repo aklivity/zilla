@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.openapi.asyncapi;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.WithConfig;
 
 public class OpenapiAsyncapiWithConfig extends WithConfig
@@ -22,7 +24,18 @@ public class OpenapiAsyncapiWithConfig extends WithConfig
     public final String operation;
     public final String tag;
 
-    public OpenapiAsyncapiWithConfig(
+    public static OpenapiAsyncapiWithConfigBuilder<OpenapiAsyncapiWithConfig> builder()
+    {
+        return new OpenapiAsyncapiWithConfigBuilder<>(OpenapiAsyncapiWithConfig.class::cast);
+    }
+
+    public static <T> OpenapiAsyncapiWithConfigBuilder<T> builder(
+        Function<WithConfig, T> mapper)
+    {
+        return new OpenapiAsyncapiWithConfigBuilder<>(mapper);
+    }
+
+    OpenapiAsyncapiWithConfig(
         String spec,
         String operation,
         String tag)

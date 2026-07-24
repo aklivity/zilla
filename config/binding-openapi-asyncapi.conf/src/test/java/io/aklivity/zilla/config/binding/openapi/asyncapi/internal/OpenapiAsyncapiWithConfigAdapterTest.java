@@ -67,7 +67,10 @@ public class OpenapiAsyncapiWithConfigAdapterTest
     @Test
     public void shouldWriteWith()
     {
-        OpenapiAsyncapiWithConfig with = new OpenapiAsyncapiWithConfig("test", "o-id", null);
+        OpenapiAsyncapiWithConfig with = OpenapiAsyncapiWithConfig.builder()
+            .spec("test")
+            .operation("o-id")
+            .build();
 
         String text = jsonb.toJson(with);
 

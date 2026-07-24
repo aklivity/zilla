@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.openapi.asyncapi;
 
 import java.util.Set;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
@@ -24,7 +25,18 @@ public class OpenapiAsyncapiSpecConfig
     public final Set<OpenapiSpecificationConfig> openapi;
     public final Set<AsyncapiSpecificationConfig> asyncapi;
 
-    public OpenapiAsyncapiSpecConfig(
+    public static OpenapiAsyncapiSpecConfigBuilder<OpenapiAsyncapiSpecConfig> builder()
+    {
+        return new OpenapiAsyncapiSpecConfigBuilder<>(OpenapiAsyncapiSpecConfig.class::cast);
+    }
+
+    public static <T> OpenapiAsyncapiSpecConfigBuilder<T> builder(
+        Function<OpenapiAsyncapiSpecConfig, T> mapper)
+    {
+        return new OpenapiAsyncapiSpecConfigBuilder<>(mapper);
+    }
+
+    OpenapiAsyncapiSpecConfig(
         Set<OpenapiSpecificationConfig> openapi,
         Set<AsyncapiSpecificationConfig> asyncapi)
     {

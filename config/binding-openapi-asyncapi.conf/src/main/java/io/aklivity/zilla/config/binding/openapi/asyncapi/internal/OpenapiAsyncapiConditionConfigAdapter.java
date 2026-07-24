@@ -99,10 +99,17 @@ public final class OpenapiAsyncapiConditionConfigAdapter implements JsonbAdapter
                 String url = serverJson.containsKey(SERVER_URL_NAME)
                     ? serverJson.getString(SERVER_URL_NAME)
                     : null;
-                servers.add(new OpenapiAsyncapiConditionServerConfig(url));
+                servers.add(OpenapiAsyncapiConditionServerConfig.builder()
+                    .url(url)
+                    .build());
             }
         }
 
-        return new OpenapiAsyncapiConditionConfig(spec, operation, tag, servers);
+        return OpenapiAsyncapiConditionConfig.builder()
+            .spec(spec)
+            .operation(operation)
+            .tag(tag)
+            .servers(servers)
+            .build();
     }
 }

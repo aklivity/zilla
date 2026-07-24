@@ -14,13 +14,26 @@
  */
 package io.aklivity.zilla.config.binding.openapi.asyncapi;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class OpenapiAsyncapiOptionsConfig extends OptionsConfig
 {
     public final OpenapiAsyncapiSpecConfig specs;
 
-    public OpenapiAsyncapiOptionsConfig(
+    public static OpenapiAsyncapiOptionsConfigBuilder<OpenapiAsyncapiOptionsConfig> builder()
+    {
+        return new OpenapiAsyncapiOptionsConfigBuilder<>(OpenapiAsyncapiOptionsConfig.class::cast);
+    }
+
+    public static <T> OpenapiAsyncapiOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new OpenapiAsyncapiOptionsConfigBuilder<>(mapper);
+    }
+
+    OpenapiAsyncapiOptionsConfig(
         OpenapiAsyncapiSpecConfig specs)
     {
         this.specs = specs;

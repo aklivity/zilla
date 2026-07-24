@@ -41,7 +41,6 @@ import io.aklivity.zilla.config.binding.http.HttpAuthorizationConfig;
 import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
 import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiConditionConfig;
-import io.aklivity.zilla.config.binding.openapi.OpenapiConditionServerConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
 import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
@@ -533,8 +532,11 @@ public class OpenapiServerGeneratorTest
     @Test
     public void shouldIncludeOperationWhenServersMatchWhenClause()
     {
-        ConditionConfig when = new OpenapiConditionConfig(null, null, null,
-            List.of(new OpenapiConditionServerConfig("http://localhost:9090/prod")));
+        ConditionConfig when = OpenapiConditionConfig.builder()
+            .server()
+                .url("http://localhost:9090/prod")
+                .build()
+            .build();
         BindingConfig binding = bindingMultiServers(when);
 
         OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding));
@@ -545,8 +547,11 @@ public class OpenapiServerGeneratorTest
     @Test
     public void shouldExcludeOperationViaWhenServers()
     {
-        ConditionConfig when = new OpenapiConditionConfig(null, null, null,
-            List.of(new OpenapiConditionServerConfig("http://localhost:9090/prod")));
+        ConditionConfig when = OpenapiConditionConfig.builder()
+            .server()
+                .url("http://localhost:9090/prod")
+                .build()
+            .build();
         BindingConfig binding = bindingMultiServers(when);
 
         OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding));

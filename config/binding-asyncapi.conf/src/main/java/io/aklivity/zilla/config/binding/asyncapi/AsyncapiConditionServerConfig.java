@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.asyncapi;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 
 public final class AsyncapiConditionServerConfig
@@ -21,7 +23,18 @@ public final class AsyncapiConditionServerConfig
     public final String name;
     public final String url;
 
-    public AsyncapiConditionServerConfig(
+    public static AsyncapiConditionServerConfigBuilder<AsyncapiConditionServerConfig> builder()
+    {
+        return new AsyncapiConditionServerConfigBuilder<>(AsyncapiConditionServerConfig.class::cast);
+    }
+
+    public static <T> AsyncapiConditionServerConfigBuilder<T> builder(
+        Function<AsyncapiConditionServerConfig, T> mapper)
+    {
+        return new AsyncapiConditionServerConfigBuilder<>(mapper);
+    }
+
+    AsyncapiConditionServerConfig(
         String name,
         String url)
     {

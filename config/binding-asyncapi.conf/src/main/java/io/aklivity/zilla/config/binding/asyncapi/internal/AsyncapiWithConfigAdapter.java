@@ -68,6 +68,9 @@ public class AsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAda
             ? object.getString(OPERATION_NAME)
             : null;
 
-        return new AsyncapiWithConfig(spec, operation);
+        return AsyncapiWithConfig.builder()
+            .spec(spec)
+            .operation(operation)
+            .build();
     }
 }

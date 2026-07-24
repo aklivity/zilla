@@ -173,8 +173,12 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
                 .build()
             .build());
 
-        final OpenapiAsyncapiOptionsConfig options = new OpenapiAsyncapiOptionsConfig(
-            new OpenapiAsyncapiSpecConfig(openapiConfigs, asyncapiConfigs));
+        final OpenapiAsyncapiOptionsConfig options = OpenapiAsyncapiOptionsConfig.builder()
+            .specs(OpenapiAsyncapiSpecConfig.builder()
+                .openapi(openapiConfigs)
+                .asyncapi(asyncapiConfigs)
+                .build())
+            .build();
 
         String text = jsonb.toJson(options);
 
@@ -216,8 +220,12 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
                 .build()
             .build());
 
-        final OpenapiAsyncapiOptionsConfig options = new OpenapiAsyncapiOptionsConfig(
-            new OpenapiAsyncapiSpecConfig(openapiConfigs, asyncapiConfigs));
+        final OpenapiAsyncapiOptionsConfig options = OpenapiAsyncapiOptionsConfig.builder()
+            .specs(OpenapiAsyncapiSpecConfig.builder()
+                .openapi(openapiConfigs)
+                .asyncapi(asyncapiConfigs)
+                .build())
+            .build();
 
         String text = jsonb.toJson(options);
 
