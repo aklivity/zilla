@@ -234,11 +234,17 @@ scope kafka
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
         {
+            case 248: kafka::stream::KafkaApiFlushEx apiFlush;
             case 252: kafka::stream::KafkaConsumerFlushEx consumer;
             case 253: kafka::stream::KafkaGroupFlushEx group;
             case 255: kafka::stream::KafkaMergedFlushEx merged;
             case 1: kafka::stream::KafkaFetchFlushEx fetch;
             case 0: kafka::stream::KafkaProduceFlushEx produce;
+        }
+
+        union KafkaChallengeEx switch (uint8) extends core::stream::Extension
+        {
+            case 248: kafka::stream::KafkaApiChallengeEx apiChallenge;
         }
 
         struct KafkaResetEx extends core::stream::Extension
@@ -268,6 +274,22 @@ scope kafka
             int32 length;
             int16 version;
             KafkaTaggedField[] tags;
+        }
+
+        struct KafkaApiVersionRange
+        {
+            int16 min;
+            int16 max;
+        }
+
+        struct KafkaApiChallengeEx
+        {
+            KafkaApiVersionRange versions;
+        }
+
+        struct KafkaApiFlushEx
+        {
+            int16 version;
         }
 
         struct KafkaEndEx extends core::stream::Extension

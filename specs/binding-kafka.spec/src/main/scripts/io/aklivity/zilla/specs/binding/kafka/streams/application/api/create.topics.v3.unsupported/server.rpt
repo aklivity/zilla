@@ -21,7 +21,37 @@ accept ${serverAddress}
     option zilla:transmission "half-duplex"
     option zilla:byteorder "network"
 
-rejected zilla:reset.ext ${kafka:resetEx()
-                                 .typeId(zilla:id("kafka"))
-                                 .error(35)
-                                 .build()}
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiRequest()
+                                 .length(129)
+                                 .api(19)
+                                 .version(3)
+                                 .clientId("zilla")
+                                 .build()
+                                .build()}
+
+connected
+
+write advised zilla:challenge ${kafka:matchChallengeEx()
+                                    .typeId(zilla:id("kafka"))
+                                    .apiChallenge()
+                                        .versions(0, 2)
+                                        .build()
+                                    .build()}
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiFlush()
+                                   .version(3)
+                                   .build()
+                               .build()}
+
+write zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(35)
+                           .build()}
+
+read abort
