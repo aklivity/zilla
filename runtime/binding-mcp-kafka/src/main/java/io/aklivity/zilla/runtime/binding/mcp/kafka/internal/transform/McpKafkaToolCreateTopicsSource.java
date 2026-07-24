@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  *         "configs": { "cleanup.policy": "delete" }
  *       }
  *     ],
- *     "timeout": 0,
+ *     "timeout": 30000,
  *     "validateOnly": false
  *   }
  * }
@@ -58,6 +58,8 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  */
 public final class McpKafkaToolCreateTopicsSource implements JsonSink
 {
+    private static final int DEFAULT_TIMEOUT_MS = 30_000;
+
     private enum Context
     {
         ROOT,
@@ -102,7 +104,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         topics.clear();
         text.setLength(0);
         key = null;
-        timeoutMs = 0;
+        timeoutMs = DEFAULT_TIMEOUT_MS;
         validateOnly = false;
         request = null;
     }
@@ -317,7 +319,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         switch (key)
         {
         case "timeout":
-            timeoutMs = parseInt(value, 0);
+            timeoutMs = parseInt(value, DEFAULT_TIMEOUT_MS);
             break;
         case "validateOnly":
             validateOnly = Boolean.parseBoolean(value);
