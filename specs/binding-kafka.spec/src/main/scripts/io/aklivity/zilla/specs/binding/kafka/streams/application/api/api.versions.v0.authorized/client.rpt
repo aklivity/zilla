@@ -1,0 +1,56 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:byteorder "network"
+    option zilla:affinity 0
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiRequest()
+                                 .length(0)
+                                 .api(18)
+                                 .version(0)
+                                 .clientId("zilla")
+                                 .build()
+                                .build()}
+
+connected
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiResponse()
+                                 .length(24)
+                                 .version(0)
+                                 .build()
+                                .build()}
+
+read  0s                                 # error code
+      3                                  # api key count
+        19s                              # create topics
+        0s                               # min version
+        7s                               # max version
+        17s                              # sasl handshake
+        0s                               # min version
+        1s                               # max version
+        36s                              # sasl authenticate
+        0s                               # min version
+        1s                               # max version
+
+write close
+read closed

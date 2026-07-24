@@ -1,0 +1,57 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:byteorder "network"
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiRequest()
+                                 .length(129)
+                                 .api(19)
+                                 .version(3)
+                                 .clientId("zilla")
+                                 .build()
+                                .build()}
+
+connected
+
+read advise zilla:challenge ${kafka:challengeEx()
+                                    .typeId(zilla:id("kafka"))
+                                    .apiChallenge()
+                                        .versions(0, 2)
+                                        .build()
+                                    .build()}
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiFlush()
+                                   .version(3)
+                                   .build()
+                               .build()}
+
+write zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(35)
+                           .build()}
+
+read abort

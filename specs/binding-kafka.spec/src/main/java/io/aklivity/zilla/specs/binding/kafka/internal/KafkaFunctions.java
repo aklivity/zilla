@@ -66,8 +66,13 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssig
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaAlterConfigsRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaAlterConfigsResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiChallengeExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiRequestBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaChallengeExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaClusterBrokerFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
@@ -85,6 +90,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribe
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeClusterRequestBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeClusterResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaEndExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlushExFW;
@@ -117,6 +123,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExF
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResourceFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResourceStatusFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResponseBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaTaggedFieldFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
 
 public final class KafkaFunctions
@@ -161,6 +168,36 @@ public final class KafkaFunctions
     public static KafkaResetExBuilder resetEx()
     {
         return new KafkaResetExBuilder();
+    }
+
+    @Function
+    public static KafkaResetExMatcherBuilder matchResetEx()
+    {
+        return new KafkaResetExMatcherBuilder();
+    }
+
+    @Function
+    public static KafkaChallengeExBuilder challengeEx()
+    {
+        return new KafkaChallengeExBuilder();
+    }
+
+    @Function
+    public static KafkaChallengeExMatcherBuilder matchChallengeEx()
+    {
+        return new KafkaChallengeExMatcherBuilder();
+    }
+
+    @Function
+    public static KafkaEndExBuilder endEx()
+    {
+        return new KafkaEndExBuilder();
+    }
+
+    @Function
+    public static KafkaEndExMatcherBuilder matchEndEx()
+    {
+        return new KafkaEndExMatcherBuilder();
     }
 
     @Function
@@ -993,6 +1030,20 @@ public final class KafkaFunctions
             return new KafkaResponseBeginExBuilder();
         }
 
+        public KafkaApiRequestBeginExBuilder apiRequest()
+        {
+            beginExRW.kind(KafkaApi.API_REQUEST.value());
+
+            return new KafkaApiRequestBeginExBuilder();
+        }
+
+        public KafkaApiResponseBeginExBuilder apiResponse()
+        {
+            beginExRW.kind(KafkaApi.API_RESPONSE.value());
+
+            return new KafkaApiResponseBeginExBuilder();
+        }
+
         public KafkaBootstrapBeginExBuilder bootstrap()
         {
             beginExRW.kind(KafkaApi.BOOTSTRAP.value());
@@ -1753,6 +1804,98 @@ public final class KafkaFunctions
                         return KafkaDescribeClusterResponseBeginExBuilder.this;
                     }
                 }
+            }
+        }
+
+        public final class KafkaApiRequestBeginExBuilder
+        {
+            private final KafkaApiRequestBeginExFW.Builder apiRequestBeginExRW = new KafkaApiRequestBeginExFW.Builder();
+
+            private KafkaApiRequestBeginExBuilder()
+            {
+                apiRequestBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_API_REQUEST, writeBuffer.capacity());
+            }
+
+            public KafkaApiRequestBeginExBuilder length(
+                int length)
+            {
+                apiRequestBeginExRW.length(length);
+                return this;
+            }
+
+            public KafkaApiRequestBeginExBuilder api(
+                int api)
+            {
+                apiRequestBeginExRW.api((short) api);
+                return this;
+            }
+
+            public KafkaApiRequestBeginExBuilder version(
+                int version)
+            {
+                apiRequestBeginExRW.version((short) version);
+                return this;
+            }
+
+            public KafkaApiRequestBeginExBuilder clientId(
+                String clientId)
+            {
+                apiRequestBeginExRW.clientId(clientId);
+                return this;
+            }
+
+            public KafkaApiRequestBeginExBuilder tag(
+                int tag,
+                byte[] value)
+            {
+                apiRequestBeginExRW.tagsItem(t -> t.tag(tag).length(value.length).value(v -> v.set(value)));
+                return this;
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                final KafkaApiRequestBeginExFW apiRequestBeginEx = apiRequestBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, apiRequestBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+        }
+
+        public final class KafkaApiResponseBeginExBuilder
+        {
+            private final KafkaApiResponseBeginExFW.Builder apiResponseBeginExRW = new KafkaApiResponseBeginExFW.Builder();
+
+            private KafkaApiResponseBeginExBuilder()
+            {
+                apiResponseBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_API_RESPONSE, writeBuffer.capacity());
+            }
+
+            public KafkaApiResponseBeginExBuilder length(
+                int length)
+            {
+                apiResponseBeginExRW.length(length);
+                return this;
+            }
+
+            public KafkaApiResponseBeginExBuilder version(
+                int version)
+            {
+                apiResponseBeginExRW.version((short) version);
+                return this;
+            }
+
+            public KafkaApiResponseBeginExBuilder tag(
+                int tag,
+                byte[] value)
+            {
+                apiResponseBeginExRW.tagsItem(t -> t.tag(tag).length(value.length).value(v -> v.set(value)));
+                return this;
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                final KafkaApiResponseBeginExFW apiResponseBeginEx = apiResponseBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, apiResponseBeginEx.limit());
+                return KafkaBeginExBuilder.this;
             }
         }
 
@@ -3461,6 +3604,13 @@ public final class KafkaFunctions
             return this;
         }
 
+        public KafkaApiFlushExBuilder apiFlush()
+        {
+            flushExRW.kind(KafkaApi.API_REQUEST.value());
+
+            return new KafkaApiFlushExBuilder();
+        }
+
         public KafkaMergedFlushExBuilder merged()
         {
             flushExRW.kind(KafkaApi.MERGED.value());
@@ -3502,6 +3652,30 @@ public final class KafkaFunctions
             final byte[] array = new byte[flushEx.sizeof()];
             flushEx.buffer().getBytes(flushEx.offset(), array);
             return array;
+        }
+
+        public final class KafkaApiFlushExBuilder
+        {
+            private final KafkaApiFlushExFW.Builder apiFlushExRW = new KafkaApiFlushExFW.Builder();
+
+            private KafkaApiFlushExBuilder()
+            {
+                apiFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_API_FLUSH, writeBuffer.capacity());
+            }
+
+            public KafkaApiFlushExBuilder version(
+                int version)
+            {
+                apiFlushExRW.version((short) version);
+                return this;
+            }
+
+            public KafkaFlushExBuilder build()
+            {
+                final KafkaApiFlushExFW apiFlushEx = apiFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, apiFlushEx.limit());
+                return KafkaFlushExBuilder.this;
+            }
         }
 
         public final class KafkaMergedFlushExBuilder
@@ -4043,6 +4217,365 @@ public final class KafkaFunctions
             final byte[] array = new byte[resetEx.sizeof()];
             resetEx.buffer().getBytes(resetExRO.offset(), array);
             return array;
+        }
+    }
+
+    public static final class KafkaResetExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final KafkaResetExFW resetExRO = new KafkaResetExFW();
+
+        private Integer typeId;
+        private Integer error;
+        private String16FW consumerId;
+
+        public KafkaResetExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public KafkaResetExMatcherBuilder error(
+            int error)
+        {
+            this.error = error;
+            return this;
+        }
+
+        public KafkaResetExMatcherBuilder consumerId(
+            String consumerId)
+        {
+            this.consumerId = new String16FW(consumerId);
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null ? this::match : buf -> null;
+        }
+
+        private KafkaResetExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final KafkaResetExFW resetEx = resetExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (resetEx != null &&
+                matchTypeId(resetEx) &&
+                matchError(resetEx) &&
+                matchConsumerId(resetEx))
+            {
+                byteBuf.position(byteBuf.position() + resetEx.sizeof());
+                return resetEx;
+            }
+
+            throw new Exception(resetEx.toString());
+        }
+
+        private boolean matchTypeId(
+            KafkaResetExFW resetEx)
+        {
+            return typeId == resetEx.typeId();
+        }
+
+        private boolean matchError(
+            KafkaResetExFW resetEx)
+        {
+            return error == null || error == resetEx.error();
+        }
+
+        private boolean matchConsumerId(
+            KafkaResetExFW resetEx)
+        {
+            return consumerId == null || consumerId.equals(resetEx.consumerId());
+        }
+    }
+
+    public static final class KafkaChallengeExBuilder
+    {
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+
+        private final KafkaChallengeExFW challengeExRO = new KafkaChallengeExFW();
+
+        private final KafkaChallengeExFW.Builder challengeExRW = new KafkaChallengeExFW.Builder();
+
+        private KafkaChallengeExBuilder()
+        {
+            challengeExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public KafkaChallengeExBuilder typeId(
+            int typeId)
+        {
+            challengeExRW.typeId(typeId);
+            return this;
+        }
+
+        public KafkaApiChallengeExBuilder apiChallenge()
+        {
+            challengeExRW.kind(KafkaApi.API_REQUEST.value());
+
+            return new KafkaApiChallengeExBuilder();
+        }
+
+        public byte[] build()
+        {
+            final KafkaChallengeExFW challengeEx = challengeExRO;
+            final byte[] array = new byte[challengeEx.sizeof()];
+            challengeEx.buffer().getBytes(challengeEx.offset(), array);
+            return array;
+        }
+
+        public final class KafkaApiChallengeExBuilder
+        {
+            private final KafkaApiChallengeExFW.Builder apiChallengeExRW = new KafkaApiChallengeExFW.Builder();
+
+            private KafkaApiChallengeExBuilder()
+            {
+                apiChallengeExRW.wrap(writeBuffer, KafkaChallengeExFW.FIELD_OFFSET_API_CHALLENGE, writeBuffer.capacity());
+            }
+
+            public KafkaApiChallengeExBuilder versions(
+                int min,
+                int max)
+            {
+                apiChallengeExRW.versions(v -> v.min((short) min).max((short) max));
+                return this;
+            }
+
+            public KafkaChallengeExBuilder build()
+            {
+                final KafkaApiChallengeExFW apiChallengeEx = apiChallengeExRW.build();
+                challengeExRO.wrap(writeBuffer, 0, apiChallengeEx.limit());
+                return KafkaChallengeExBuilder.this;
+            }
+        }
+    }
+
+    public static final class KafkaChallengeExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final KafkaChallengeExFW challengeExRO = new KafkaChallengeExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<KafkaChallengeExFW> caseMatcher;
+
+        public KafkaApiChallengeExMatcherBuilder apiChallenge()
+        {
+            final KafkaApiChallengeExMatcherBuilder matcherBuilder = new KafkaApiChallengeExMatcherBuilder();
+
+            this.kind = KafkaApi.API_REQUEST.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaChallengeExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private KafkaChallengeExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final KafkaChallengeExFW challengeEx = challengeExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (challengeEx != null &&
+                matchTypeId(challengeEx) &&
+                matchKind(challengeEx) &&
+                matchCase(challengeEx))
+            {
+                byteBuf.position(byteBuf.position() + challengeEx.sizeof());
+                return challengeEx;
+            }
+
+            throw new Exception(challengeEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final KafkaChallengeExFW challengeEx)
+        {
+            return typeId == null || typeId == challengeEx.typeId();
+        }
+
+        private boolean matchKind(
+            final KafkaChallengeExFW challengeEx)
+        {
+            return kind == null || kind == challengeEx.kind();
+        }
+
+        private boolean matchCase(
+            final KafkaChallengeExFW challengeEx) throws Exception
+        {
+            return caseMatcher == null || caseMatcher.test(challengeEx);
+        }
+
+        public final class KafkaApiChallengeExMatcherBuilder
+        {
+            private Short min;
+            private Short max;
+
+            private KafkaApiChallengeExMatcherBuilder()
+            {
+            }
+
+            public KafkaApiChallengeExMatcherBuilder versions(
+                int min,
+                int max)
+            {
+                this.min = (short) min;
+                this.max = (short) max;
+                return this;
+            }
+
+            public KafkaChallengeExMatcherBuilder build()
+            {
+                return KafkaChallengeExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaChallengeExFW challengeEx)
+            {
+                final KafkaApiChallengeExFW apiChallengeEx = challengeEx.apiChallenge();
+                return matchVersions(apiChallengeEx);
+            }
+
+            private boolean matchVersions(
+                final KafkaApiChallengeExFW apiChallengeEx)
+            {
+                return (min == null || min == apiChallengeEx.versions().min()) &&
+                    (max == null || max == apiChallengeEx.versions().max());
+            }
+        }
+    }
+
+    public static final class KafkaEndExBuilder
+    {
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+
+        private final KafkaEndExFW.Builder endExRW = new KafkaEndExFW.Builder();
+
+        private KafkaEndExBuilder()
+        {
+            endExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public KafkaEndExBuilder typeId(
+            int typeId)
+        {
+            endExRW.typeId(typeId);
+            return this;
+        }
+
+        public KafkaEndExBuilder tag(
+            int tag,
+            byte[] value)
+        {
+            endExRW.tagsItem(t -> t.tag(tag).length(value.length).value(v -> v.set(value)));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final KafkaEndExFW endEx = endExRW.build();
+            final byte[] array = new byte[endEx.sizeof()];
+            endEx.buffer().getBytes(endEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class KafkaEndExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final KafkaEndExFW endExRO = new KafkaEndExFW();
+
+        private Integer typeId;
+        private Array32FW.Builder<KafkaTaggedFieldFW.Builder, KafkaTaggedFieldFW> tagsRW;
+
+        private KafkaEndExMatcherBuilder()
+        {
+        }
+
+        public KafkaEndExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public KafkaEndExMatcherBuilder tag(
+            int tag,
+            byte[] value)
+        {
+            if (tagsRW == null)
+            {
+                tagsRW = new Array32FW.Builder<>(new KafkaTaggedFieldFW.Builder(), new KafkaTaggedFieldFW())
+                        .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+            }
+
+            tagsRW.item(t -> t.tag(tag).length(value.length).value(v -> v.set(value)));
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || tagsRW != null ? this::match : buf -> null;
+        }
+
+        private KafkaEndExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final KafkaEndExFW endEx = endExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (endEx != null &&
+                matchTypeId(endEx) &&
+                matchTags(endEx))
+            {
+                byteBuf.position(byteBuf.position() + endEx.sizeof());
+                return endEx;
+            }
+
+            throw new Exception(endEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final KafkaEndExFW endEx)
+        {
+            return typeId == null || typeId == endEx.typeId();
+        }
+
+        private boolean matchTags(
+            final KafkaEndExFW endEx)
+        {
+            return tagsRW == null || tagsRW.build().equals(endEx.tags());
         }
     }
 
@@ -5286,6 +5819,15 @@ public final class KafkaFunctions
         private Integer kind;
         private Predicate<KafkaFlushExFW> caseMatcher;
 
+        public KafkaApiFlushExMatcherBuilder apiFlush()
+        {
+            final KafkaApiFlushExMatcherBuilder matcherBuilder = new KafkaApiFlushExMatcherBuilder();
+
+            this.kind = KafkaApi.API_REQUEST.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public KafkaMergedFlushExMatcherBuilder merged()
         {
             final KafkaMergedFlushExMatcherBuilder matcherBuilder = new KafkaMergedFlushExMatcherBuilder();
@@ -5382,6 +5924,40 @@ public final class KafkaFunctions
             final KafkaFlushExFW flushEx) throws Exception
         {
             return caseMatcher == null || caseMatcher.test(flushEx);
+        }
+
+        public final class KafkaApiFlushExMatcherBuilder
+        {
+            private Short version;
+
+            private KafkaApiFlushExMatcherBuilder()
+            {
+            }
+
+            public KafkaApiFlushExMatcherBuilder version(
+                int version)
+            {
+                this.version = (short) version;
+                return this;
+            }
+
+            public KafkaFlushExMatcherBuilder build()
+            {
+                return KafkaFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaFlushExFW flushEx)
+            {
+                final KafkaApiFlushExFW apiFlushEx = flushEx.apiFlush();
+                return matchVersion(apiFlushEx);
+            }
+
+            private boolean matchVersion(
+                final KafkaApiFlushExFW apiFlushEx)
+            {
+                return version == null || version == apiFlushEx.version();
+            }
         }
 
         public final class KafkaFetchFlushExMatcherBuilder
@@ -6065,6 +6641,24 @@ public final class KafkaFunctions
             return matcherBuilder;
         }
 
+        public KafkaApiRequestBeginExMatcherBuilder apiRequest()
+        {
+            final KafkaApiRequestBeginExMatcherBuilder matcherBuilder = new KafkaApiRequestBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.API_REQUEST.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaApiResponseBeginExMatcherBuilder apiResponse()
+        {
+            final KafkaApiResponseBeginExMatcherBuilder matcherBuilder = new KafkaApiResponseBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.API_RESPONSE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public KafkaMergedBeginExMatcherBuilder merged()
         {
             final KafkaMergedBeginExMatcherBuilder matcherBuilder = new KafkaMergedBeginExMatcherBuilder();
@@ -6166,6 +6760,178 @@ public final class KafkaFunctions
             final KafkaBeginExFW beginEx) throws Exception
         {
             return caseMatcher == null || caseMatcher.test(beginEx);
+        }
+
+        public final class KafkaApiRequestBeginExMatcherBuilder
+        {
+            private Integer length;
+            private Short api;
+            private Short version;
+            private String16FW clientId;
+            private Array32FW.Builder<KafkaTaggedFieldFW.Builder, KafkaTaggedFieldFW> tagsRW;
+
+            private KafkaApiRequestBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaApiRequestBeginExMatcherBuilder length(
+                int length)
+            {
+                this.length = length;
+                return this;
+            }
+
+            public KafkaApiRequestBeginExMatcherBuilder api(
+                int api)
+            {
+                this.api = (short) api;
+                return this;
+            }
+
+            public KafkaApiRequestBeginExMatcherBuilder version(
+                int version)
+            {
+                this.version = (short) version;
+                return this;
+            }
+
+            public KafkaApiRequestBeginExMatcherBuilder clientId(
+                String clientId)
+            {
+                this.clientId = new String16FW(clientId);
+                return this;
+            }
+
+            public KafkaApiRequestBeginExMatcherBuilder tag(
+                int tag,
+                byte[] value)
+            {
+                if (tagsRW == null)
+                {
+                    tagsRW = new Array32FW.Builder<>(new KafkaTaggedFieldFW.Builder(), new KafkaTaggedFieldFW())
+                            .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+                }
+
+                tagsRW.item(t -> t.tag(tag).length(value.length).value(v -> v.set(value)));
+                return this;
+            }
+
+            public KafkaBeginExMatcherBuilder build()
+            {
+                return KafkaBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaBeginExFW beginEx)
+            {
+                final KafkaApiRequestBeginExFW apiRequestBeginEx = beginEx.apiRequest();
+                return matchLength(apiRequestBeginEx) &&
+                    matchApi(apiRequestBeginEx) &&
+                    matchVersion(apiRequestBeginEx) &&
+                    matchClientId(apiRequestBeginEx) &&
+                    matchTags(apiRequestBeginEx);
+            }
+
+            private boolean matchLength(
+                final KafkaApiRequestBeginExFW apiRequestBeginEx)
+            {
+                return length == null || length == apiRequestBeginEx.length();
+            }
+
+            private boolean matchApi(
+                final KafkaApiRequestBeginExFW apiRequestBeginEx)
+            {
+                return api == null || api == apiRequestBeginEx.api();
+            }
+
+            private boolean matchVersion(
+                final KafkaApiRequestBeginExFW apiRequestBeginEx)
+            {
+                return version == null || version == apiRequestBeginEx.version();
+            }
+
+            private boolean matchClientId(
+                final KafkaApiRequestBeginExFW apiRequestBeginEx)
+            {
+                return clientId == null || clientId.equals(apiRequestBeginEx.clientId());
+            }
+
+            private boolean matchTags(
+                final KafkaApiRequestBeginExFW apiRequestBeginEx)
+            {
+                return tagsRW == null || tagsRW.build().equals(apiRequestBeginEx.tags());
+            }
+        }
+
+        public final class KafkaApiResponseBeginExMatcherBuilder
+        {
+            private Integer length;
+            private Short version;
+            private Array32FW.Builder<KafkaTaggedFieldFW.Builder, KafkaTaggedFieldFW> tagsRW;
+
+            private KafkaApiResponseBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaApiResponseBeginExMatcherBuilder length(
+                int length)
+            {
+                this.length = length;
+                return this;
+            }
+
+            public KafkaApiResponseBeginExMatcherBuilder version(
+                int version)
+            {
+                this.version = (short) version;
+                return this;
+            }
+
+            public KafkaApiResponseBeginExMatcherBuilder tag(
+                int tag,
+                byte[] value)
+            {
+                if (tagsRW == null)
+                {
+                    tagsRW = new Array32FW.Builder<>(new KafkaTaggedFieldFW.Builder(), new KafkaTaggedFieldFW())
+                            .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+                }
+
+                tagsRW.item(t -> t.tag(tag).length(value.length).value(v -> v.set(value)));
+                return this;
+            }
+
+            public KafkaBeginExMatcherBuilder build()
+            {
+                return KafkaBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaBeginExFW beginEx)
+            {
+                final KafkaApiResponseBeginExFW apiResponseBeginEx = beginEx.apiResponse();
+                return matchLength(apiResponseBeginEx) &&
+                    matchVersion(apiResponseBeginEx) &&
+                    matchTags(apiResponseBeginEx);
+            }
+
+            private boolean matchLength(
+                final KafkaApiResponseBeginExFW apiResponseBeginEx)
+            {
+                return length == null || length == apiResponseBeginEx.length();
+            }
+
+            private boolean matchVersion(
+                final KafkaApiResponseBeginExFW apiResponseBeginEx)
+            {
+                return version == null || version == apiResponseBeginEx.version();
+            }
+
+            private boolean matchTags(
+                final KafkaApiResponseBeginExFW apiResponseBeginEx)
+            {
+                return tagsRW == null || tagsRW.build().equals(apiResponseBeginEx.tags());
+            }
         }
 
         public final class KafkaFetchBeginExMatcherBuilder

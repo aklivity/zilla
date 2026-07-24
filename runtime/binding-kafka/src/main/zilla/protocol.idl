@@ -33,6 +33,11 @@ scope protocol
             int32 length;
         }
 
+        struct ResponseErrorCode
+        {
+            int16 errorCode;
+        }
+
         scope message
         {
             struct RecordSet
@@ -762,6 +767,22 @@ scope protocol
                 string16 message = null;
                 uint8 type;
                 string16 name;
+            }
+        }
+
+        scope api_versions
+        {
+            struct ApiVersionsResponse // v0
+            {
+                int16 errorCode;
+                int32 apiKeyCount;
+            }
+
+            struct ApiVersionsResponseKey
+            {
+                int16 apiKey;
+                int16 minVersion;
+                int16 maxVersion;
             }
         }
 
