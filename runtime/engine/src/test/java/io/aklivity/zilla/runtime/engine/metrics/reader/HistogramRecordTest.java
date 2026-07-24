@@ -25,6 +25,8 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public class HistogramRecordTest
@@ -63,7 +65,8 @@ public class HistogramRecordTest
         when(labelResolver.apply(77L)).thenReturn("namespace1");
         when(labelResolver.apply(bindingId)).thenReturn("binding1");
         when(labelResolver.apply((long) metricId)).thenReturn("metric1");
-        HistogramRecord histogram = new HistogramRecord(bindingId, metricId, attributesId, READER_HISTOGRAM, labelResolver);
+        HistogramRecord histogram = new HistogramRecord(
+            bindingId, metricId, attributesId, MetricsLayout.NO_KIND, READER_HISTOGRAM, labelResolver);
 
         // WHEN
         histogram.update();
@@ -95,7 +98,8 @@ public class HistogramRecordTest
         long bindingId = NamespacedId.id(77, 7);
         int metricId = 8;
         int attributesId = 0;
-        HistogramRecord histogram = new HistogramRecord(bindingId, metricId, attributesId, READER_HISTOGRAM_MS, labelResolver);
+        HistogramRecord histogram = new HistogramRecord(
+            bindingId, metricId, attributesId, MetricsLayout.NO_KIND, READER_HISTOGRAM_MS, labelResolver);
 
         // WHEN
         histogram.update();
@@ -121,7 +125,7 @@ public class HistogramRecordTest
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{};
-        HistogramRecord histogram = new HistogramRecord(0L, 0, 0, readers, null);
+        HistogramRecord histogram = new HistogramRecord(0L, 0, 0, MetricsLayout.NO_KIND, readers, null);
 
         // WHEN
         long[] stats = histogram.stats();
@@ -132,5 +136,33 @@ public class HistogramRecordTest
         assertThat(stats[2], equalTo(0L)); // sum
         assertThat(stats[3], equalTo(0L)); // cnt
         assertThat(stats[4], equalTo(0L)); // avg
+    }
+
+    @Test
+    public void shouldResolveBindingKind()
+    {
+        // GIVEN
+        LongSupplier[] readers = new LongSupplier[]{};
+        HistogramRecord histogram = new HistogramRecord(0L, 0, 0, KindConfig.CLIENT.ordinal(), readers, null);
+
+        // WHEN
+        KindConfig bindingKind = histogram.bindingKind();
+
+        // THEN
+        assertThat(bindingKind, equalTo(KindConfig.CLIENT));
+    }
+
+    @Test
+    public void shouldResolveNullBindingKindWhenNotCaptured()
+    {
+        // GIVEN
+        LongSupplier[] readers = new LongSupplier[]{};
+        HistogramRecord histogram = new HistogramRecord(0L, 0, 0, MetricsLayout.NO_KIND, readers, null);
+
+        // WHEN
+        KindConfig bindingKind = histogram.bindingKind();
+
+        // THEN
+        assertThat(bindingKind, equalTo(null));
     }
 }

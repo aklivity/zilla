@@ -20,12 +20,15 @@ public final class InlineOptionsConfig extends OptionsConfig
 {
     public final String identity;
     public final String credentials;
+    public final String format;
 
     public InlineOptionsConfig(
         String identity,
-        String credentials)
+        String credentials,
+        String format)
     {
         this.identity = identity;
         this.credentials = credentials;
+        this.format = format;
     }
 }

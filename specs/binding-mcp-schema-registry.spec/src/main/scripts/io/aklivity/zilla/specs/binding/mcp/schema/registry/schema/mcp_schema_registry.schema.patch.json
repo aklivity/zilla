@@ -1,0 +1,111 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mcp_schema_registry"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp_schema_registry"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp_schema_registry"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "client" ]
+                    },
+                    "catalog": false,
+                    "vault": false,
+                    "entry": false,
+                    "exit": false,
+                    "routes":
+                    {
+                        "title": "Routes",
+                        "type": "array",
+                        "minItems": 1,
+                        "items":
+                        {
+                            "type": "object",
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "title": "When",
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "tool":
+                                            {
+                                                "title": "Tool name or glob pattern",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [ "tool" ],
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "guarded":
+                                {
+                                    "title": "Guarded",
+                                    "type": "object",
+                                    "patternProperties":
+                                    {
+                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                        {
+                                            "title": "Roles",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "title": "Role",
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [ "when" ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "options":
+                    {
+                        "title": "Options",
+                        "type": "object",
+                        "properties":
+                        {
+                            "server":
+                            {
+                                "title": "Server",
+                                "type": "string"
+                            }
+                        },
+                        "required": [ "server" ],
+                        "additionalProperties": false
+                    }
+                },
+                "required": [ "options" ]
+            }
+        }
+    }
+]

@@ -32,9 +32,10 @@ public final class GaugesLayout extends ScalarsLayout
     public LongConsumer supplyWriter(
         long bindingId,
         int metricId,
-        int attributesId)
+        int attributesId,
+        int kind)
     {
-        int index = findOrSetPosition(bindingId, metricId, attributesId);
+        int index = findOrSetPosition(bindingId, metricId, attributesId, kind);
         return value -> buffer.getAndSetLong(index + VALUE_OFFSET, value);
     }
 

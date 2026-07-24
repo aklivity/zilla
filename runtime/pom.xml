@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>2.0.0-alpha-36</version>
+    <version>2.0.0-alpha-37</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -32,7 +32,9 @@
     <module>binding-mqtt</module>
     <module>binding-mcp</module>
     <module>binding-mcp-http</module>
+    <module>binding-mcp-kafka</module>
     <module>binding-mcp-openapi</module>
+    <module>binding-mcp-schema-registry</module>
     <module>binding-mqtt-kafka</module>
     <module>binding-openapi</module>
     <module>binding-openapi-asyncapi</module>
@@ -155,7 +157,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-mcp-openapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-schema-registry</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

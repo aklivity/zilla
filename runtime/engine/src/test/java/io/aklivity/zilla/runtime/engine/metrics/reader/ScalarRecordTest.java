@@ -25,6 +25,8 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public class ScalarRecordTest
@@ -43,7 +45,8 @@ public class ScalarRecordTest
         when(labelResolver.apply(77L)).thenReturn("namespace1");
         when(labelResolver.apply(bindingId)).thenReturn("binding1");
         when(labelResolver.apply((long) metricId)).thenReturn("metric1");
-        ScalarRecord scalar = new ScalarRecord(bindingId, metricId, attributesId, READER_42, labelResolver);
+        ScalarRecord scalar = new ScalarRecord(
+            bindingId, metricId, attributesId, MetricsLayout.NO_KIND, READER_42, labelResolver);
 
         // WHEN
         String namespaceName = scalar.namespace();
@@ -66,12 +69,49 @@ public class ScalarRecordTest
         long bindingId = NamespacedId.id(77, 7);
         int metricId = 8;
         int attributesId = 0;
-        ScalarRecord scalar = new ScalarRecord(bindingId, metricId, attributesId, READER_42_M, labelResolver);
+        ScalarRecord scalar = new ScalarRecord(
+            bindingId, metricId, attributesId, MetricsLayout.NO_KIND, READER_42_M, labelResolver);
 
         // WHEN
         double millisecondsValue = scalar.millisecondsValueReader().getAsDouble();
 
         // THEN
         assertThat(millisecondsValue, equalTo(42.005));
+    }
+
+    @Test
+    public void shouldResolveBindingKind()
+    {
+        // GIVEN
+        LongFunction<String> labelResolver = mock(LongFunction.class);
+        long bindingId = NamespacedId.id(77, 7);
+        int metricId = 8;
+        int attributesId = 0;
+        ScalarRecord scalar = new ScalarRecord(
+            bindingId, metricId, attributesId, KindConfig.SERVER.ordinal(), READER_42, labelResolver);
+
+        // WHEN
+        KindConfig bindingKind = scalar.bindingKind();
+
+        // THEN
+        assertThat(bindingKind, equalTo(KindConfig.SERVER));
+    }
+
+    @Test
+    public void shouldResolveNullBindingKindWhenNotCaptured()
+    {
+        // GIVEN
+        LongFunction<String> labelResolver = mock(LongFunction.class);
+        long bindingId = NamespacedId.id(77, 7);
+        int metricId = 8;
+        int attributesId = 0;
+        ScalarRecord scalar = new ScalarRecord(
+            bindingId, metricId, attributesId, MetricsLayout.NO_KIND, READER_42, labelResolver);
+
+        // WHEN
+        KindConfig bindingKind = scalar.bindingKind();
+
+        // THEN
+        assertThat(bindingKind, equalTo(null));
     }
 }

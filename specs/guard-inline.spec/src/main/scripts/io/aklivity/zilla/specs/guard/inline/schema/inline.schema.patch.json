@@ -46,6 +46,11 @@
                             {
                                 "title": "Credentials",
                                 "type": "string"
+                            },
+                            "format":
+                            {
+                                "title": "Format",
+                                "type": "string"
                             }
                         },
                         "additionalProperties": false

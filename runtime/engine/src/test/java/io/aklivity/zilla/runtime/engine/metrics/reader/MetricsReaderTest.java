@@ -26,6 +26,7 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
@@ -55,13 +56,14 @@ public class MetricsReaderTest
         long bindingId = NamespacedId.id(4, 7);
         int counterId = 8;
         int attributesId = 0;
-        when(collector.counterIds()).thenReturn(new long[][]{{bindingId, counterId, attributesId}});
+        int kind = KindConfig.SERVER.ordinal();
+        when(collector.counterIds()).thenReturn(new long[][]{{bindingId, counterId, attributesId, kind}});
         when(collector.counter(bindingId, counterId, attributesId)).thenReturn(READER_42);
         int gaugeId = 9;
-        when(collector.gaugeIds()).thenReturn(new long[][]{{bindingId, gaugeId, attributesId}});
+        when(collector.gaugeIds()).thenReturn(new long[][]{{bindingId, gaugeId, attributesId, kind}});
         when(collector.gauge(bindingId, gaugeId, attributesId)).thenReturn(READER_84);
         int histogramId = 10;
-        when(collector.histogramIds()).thenReturn(new long[][]{{bindingId, histogramId, attributesId}});
+        when(collector.histogramIds()).thenReturn(new long[][]{{bindingId, histogramId, attributesId, kind}});
         when(collector.histogram(bindingId, histogramId, attributesId)).thenReturn(READER_HISTOGRAM);
         MetricsReader metrics = new MetricsReader(collector, labelResolver);
 
@@ -75,8 +77,10 @@ public class MetricsReaderTest
         HistogramRecord histogram = (HistogramRecord) records.get(2);
         histogram.update();
         assertThat(counter.valueReader().getAsLong(), equalTo(42L));
+        assertThat(counter.bindingKind(), equalTo(KindConfig.SERVER));
         assertThat(gauge.valueReader().getAsLong(), equalTo(84L));
         assertThat(histogram.bucketValues()[7], equalTo(77L));
+        assertThat(histogram.bindingKind(), equalTo(KindConfig.SERVER));
     }
 
     @Test

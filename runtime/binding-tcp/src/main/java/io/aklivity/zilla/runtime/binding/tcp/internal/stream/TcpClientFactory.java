@@ -974,12 +974,20 @@ public class TcpClientFactory implements TcpStreamFactory
         InetSocketAddress localAddress,
         InetSocketAddress remoteAddress)
     {
-        return (buffer, offset, limit) -> localAddress != null || remoteAddress != null
-                ? beginExRW.wrap(buffer, offset, limit)
-                         .typeId(proxyTypeId)
-                         .address(a -> proxyAddress(a, localAddress, remoteAddress))
-                         .build()
-                         .sizeof()
-                : 0;
+        return (buffer, offset, limit) -> beginExRW.wrap(buffer, offset, limit)
+                .typeId(proxyTypeId)
+                .address(a ->
+                {
+                    if (localAddress != null || remoteAddress != null)
+                    {
+                        proxyAddress(a, localAddress, remoteAddress);
+                    }
+                    else
+                    {
+                        a.none(n -> {});
+                    }
+                })
+                .build()
+                .sizeof();
     }
 }
