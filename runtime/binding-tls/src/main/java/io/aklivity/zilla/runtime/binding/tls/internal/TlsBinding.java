@@ -17,13 +17,14 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.binding.tls.TlsBindingInfo;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class TlsBinding implements Binding
 {
-    public static final String NAME = "tls";
+    public static final String NAME = TlsBindingInfo.TYPE;
 
     private final TlsConfiguration config;
 
@@ -37,12 +38,6 @@ public final class TlsBinding implements Binding
     public String name()
     {
         return TlsBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/tls.schema.patch.json");
     }
 
     @Override

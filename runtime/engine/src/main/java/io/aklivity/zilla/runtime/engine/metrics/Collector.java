@@ -78,7 +78,7 @@ public interface Collector
      * <p>
      * Each element of the outer array is a four-element {@code long[]} containing
      * {@code {bindingId, (long)metricId, (long)attributesId, (long)kind}}, where {@code kind}
-     * is the {@link io.aklivity.zilla.runtime.engine.config.KindConfig} ordinal captured when
+     * is the {@link io.aklivity.zilla.config.engine.KindConfig} ordinal captured when
      * the metric record was created, or {@code -1} when not tied to a binding.
      * </p>
      *

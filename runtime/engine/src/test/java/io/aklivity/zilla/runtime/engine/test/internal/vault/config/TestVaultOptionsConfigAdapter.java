@@ -21,29 +21,17 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class TestVaultOptionsConfigAdapter implements OptionsConfigAdapterSpi
+public final class TestVaultOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String KEY_NAME = "key";
     private static final String SIGNER_NAME = "signer";
     private static final String TRUST_NAME = "trust";
 
     private final TestVaultEntryConfigAdapter entry = new TestVaultEntryConfigAdapter();
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.VAULT;
-    }
-
-    @Override
-    public String type()
-    {
-        return "test";
-    }
 
     @Override
     public JsonObject adaptToJson(

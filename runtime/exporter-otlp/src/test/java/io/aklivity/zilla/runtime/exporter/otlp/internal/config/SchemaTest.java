@@ -29,7 +29,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/exporter/otlp/schema/otlp.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/exporter/otlp/internal/schema/otlp.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/metrics/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/exporter/otlp/config");

@@ -14,23 +14,23 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CACHE_CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CACHE_SERVER;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CACHE_CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CACHE_SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
-import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
+import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaCompositeConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
 
 public final class McpKafkaClientGenerator
 {

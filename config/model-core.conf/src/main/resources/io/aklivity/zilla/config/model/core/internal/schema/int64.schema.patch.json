@@ -1,0 +1,54 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/models/types/enum/-",
+        "value": "int64"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/models/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int64"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "int64"
+                    },
+                    "format":
+                    {
+                        "type": "string",
+                        "enum": [ "binary", "text" ],
+                        "default": "text"
+                    },
+                    "range":
+                    {
+                        "type": "string",
+                        "pattern": "((?:\\(|\\[))(-?\\d+)?,(-?\\d+)?((?:\\)|\\]))"
+                    },
+                    "multiple":
+                    {
+                        "type": "number"
+                    },
+                    "validate":
+                    {
+                        "$ref": "#/$defs/validate"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

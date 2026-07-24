@@ -19,8 +19,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 
 public class MqttKafkaConditionMatcherTest
 {

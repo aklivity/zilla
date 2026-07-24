@@ -22,7 +22,7 @@ public final class GrpcKafkaBindingFactorySpi implements BindingFactorySpi
     @Override
     public String type()
     {
-        return GrpcKafkaBinding.NAME;
+        return GrpcKafkaBinding.TYPE;
     }
 
 

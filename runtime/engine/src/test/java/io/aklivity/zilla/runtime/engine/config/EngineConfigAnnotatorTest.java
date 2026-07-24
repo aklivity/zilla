@@ -26,6 +26,8 @@ import jakarta.json.JsonReader;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.EngineConfigAnnotator;
+
 public class EngineConfigAnnotatorTest
 {
     @Test

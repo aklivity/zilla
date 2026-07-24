@@ -19,11 +19,11 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.Predicate;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class HttpFileSystemBindingConfig
 {

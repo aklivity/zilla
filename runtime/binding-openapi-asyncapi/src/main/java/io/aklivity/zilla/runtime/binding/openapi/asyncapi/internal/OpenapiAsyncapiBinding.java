@@ -14,15 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal;
 
-import java.net.URL;
-
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiBindingInfo;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class OpenapiAsyncapiBinding implements Binding
 {
-    public static final String NAME = "openapi-asyncapi";
+    public static final String NAME = OpenapiAsyncapiBindingInfo.TYPE;
 
     private final OpenapiAsyncapiConfiguration config;
 
@@ -36,12 +35,6 @@ public final class OpenapiAsyncapiBinding implements Binding
     public String name()
     {
         return NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/openapi.asyncapi.schema.patch.json");
     }
 
     @Override

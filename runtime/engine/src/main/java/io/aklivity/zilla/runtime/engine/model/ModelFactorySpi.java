@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.engine.model;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.engine.factory.FactorySpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
 /**
  * Service provider interface for creating {@link Model} instances.

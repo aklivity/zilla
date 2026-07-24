@@ -15,16 +15,15 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
-import java.net.URL;
 import java.util.function.LongFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.factory.Aliasable;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.factory.Aliasable;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 /**
  * Entry point for an authorization guard plugin.
@@ -104,11 +103,4 @@ public interface Guard extends Aliasable
     LongObjectBiFunction<String, String> attributor(
         LongToIntFunction indexOf,
         GuardedConfig config);
-
-    /**
-     * Returns a URL pointing to the JSON schema for this guard's configuration options.
-     *
-     * @return the configuration schema URL
-     */
-    URL type();
 }

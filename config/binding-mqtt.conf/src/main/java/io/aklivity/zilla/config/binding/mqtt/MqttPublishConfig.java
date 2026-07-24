@@ -1,0 +1,46 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.binding.mqtt;
+
+import static java.util.function.Function.identity;
+
+import java.util.List;
+import java.util.function.Function;
+
+public class MqttPublishConfig
+{
+    public final String topic;
+
+    public final List<MqttTopicParamConfig> params;
+
+    public static MqttPublishConfigBuilder<MqttPublishConfig> builder()
+    {
+        return new MqttPublishConfigBuilder<>(identity());
+    }
+
+    public static <T> MqttPublishConfigBuilder<T> builder(
+        Function<MqttPublishConfig, T> mapper)
+    {
+        return new MqttPublishConfigBuilder<>(mapper);
+    }
+
+    MqttPublishConfig(
+        String topic,
+        List<MqttTopicParamConfig> params)
+    {
+        this.topic = topic;
+        this.params = params;
+    }
+}

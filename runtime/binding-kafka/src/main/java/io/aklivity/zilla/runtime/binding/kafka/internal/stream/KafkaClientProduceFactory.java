@@ -34,8 +34,8 @@ import java.util.zip.CRC32C;
 
 import org.agrona.collections.LongLongConsumer;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaSaslConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;

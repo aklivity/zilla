@@ -18,10 +18,7 @@ module io.aklivity.zilla.runtime.model.json
 
     requires io.aklivity.zilla.runtime.common.json;
 
-    exports io.aklivity.zilla.runtime.model.json.config;
-
-    provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
-        with io.aklivity.zilla.runtime.model.json.internal.config.JsonModelConfigAdapter;
+    requires io.aklivity.zilla.config.model.json;
 
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.json.internal.JsonModelFactorySpi;

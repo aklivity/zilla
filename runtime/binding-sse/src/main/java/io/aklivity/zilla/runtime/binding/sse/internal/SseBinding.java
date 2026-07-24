@@ -15,14 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal;
 
-import java.net.URL;
-
+import io.aklivity.zilla.config.binding.sse.SseBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class SseBinding implements Binding
 {
-    public static final String NAME = "sse";
+    public static final String NAME = SseBindingInfo.TYPE;
 
     private final SseConfiguration config;
 
@@ -36,12 +35,6 @@ public final class SseBinding implements Binding
     public String name()
     {
         return SseBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/sse.schema.patch.json");
     }
 
     @Override

@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -37,12 +35,6 @@ public class PrometheusExporter implements Exporter
     public String name()
     {
         return NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/prometheus.schema.patch.json");
     }
 
     @Override

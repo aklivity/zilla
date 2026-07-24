@@ -15,16 +15,9 @@
  */
 module io.aklivity.zilla.runtime.binding.sse
 {
+    requires io.aklivity.zilla.config.binding.sse;
     requires io.aklivity.zilla.runtime.engine;
-
-    exports io.aklivity.zilla.runtime.binding.sse.config;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.sse.internal.SseBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.sse.internal.config.SseOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.sse.internal.config.SseConditionConfigAdapter;
 }

@@ -19,8 +19,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.net.URL;
-
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -45,7 +43,6 @@ public class OtlpExporterFactoryTest
         // THEN
         assertThat(exporter, instanceOf(OtlpExporter.class));
         assertThat(exporter.name(), equalTo("otlp"));
-        assertThat(exporter.type(), instanceOf(URL.class));
         assertThat(context, instanceOf(ExporterContext.class));
     }
 }

@@ -1,0 +1,145 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.binding.kafka.internal;
+
+import static jakarta.json.JsonValue.ValueType.OBJECT;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
+import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
+
+public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicConfig, JsonObject>
+{
+    private static final String NAME_NAME = "name";
+    private static final String DEFAULT_OFFSET_NAME = "defaultOffset";
+    private static final String DELTA_TYPE_NAME = "deltaType";
+    private static final String EVENT_KEY = "key";
+    private static final String EVENT_VALUE = "value";
+    private static final String SUBJECT = "subject";
+    private static final String TRANSFORMS_NAME = "transforms";
+
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
+    private final KafkaTopicTransformsConfigAdapter transforms = new KafkaTopicTransformsConfigAdapter();
+
+    @Override
+    public JsonObject adaptToJson(
+        KafkaTopicConfig topic)
+    {
+        JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (topic.name != null)
+        {
+            object.add(NAME_NAME, topic.name);
+        }
+        if (topic.defaultOffset != null)
+        {
+            object.add(DEFAULT_OFFSET_NAME, topic.defaultOffset);
+        }
+        if (topic.deltaType != null)
+        {
+            object.add(DELTA_TYPE_NAME, topic.deltaType);
+        }
+
+        if (topic.key != null)
+        {
+            model.adaptType(topic.key.model);
+
+            object.add(EVENT_KEY, model.adaptToJson(topic.key));
+        }
+
+        if (topic.value != null)
+        {
+            model.adaptType(topic.value.model);
+
+            object.add(EVENT_VALUE, model.adaptToJson(topic.value));
+        }
+
+        if (topic.transforms != null)
+        {
+            object.add(TRANSFORMS_NAME, transforms.adaptToJson(topic.transforms));
+        }
+
+        return object.build();
+    }
+
+    @Override
+    public KafkaTopicConfig adaptFromJson(
+        JsonObject object)
+    {
+        KafkaTopicConfigBuilder<KafkaTopicConfig> topicBuilder = KafkaTopicConfig.builder();
+        String name = object.containsKey(NAME_NAME)
+            ? object.getString(NAME_NAME)
+            : null;
+        topicBuilder.name(name);
+
+        topicBuilder.defaultOffset(object.containsKey(DEFAULT_OFFSET_NAME)
+                ? object.getString(DEFAULT_OFFSET_NAME)
+                : null);
+
+        topicBuilder.deltaType(object.containsKey(DELTA_TYPE_NAME)
+                ? object.getString(DELTA_TYPE_NAME)
+                : null);
+
+        JsonObject key = object.containsKey(EVENT_KEY)
+                ? object.getJsonObject(EVENT_KEY)
+                : null;
+
+        if (key != null)
+        {
+            JsonObjectBuilder keyObject = Json.createObjectBuilder();
+
+            key.forEach(keyObject::add);
+            keyObject.add(SUBJECT, name + "-key");
+
+            topicBuilder.key(model.adaptFromJson(keyObject.build()));
+        }
+
+        JsonValue value = object.containsKey(EVENT_VALUE)
+                ? object.get(EVENT_VALUE)
+                : null;
+
+        if (value != null && value.getValueType() == OBJECT)
+        {
+            JsonObjectBuilder valueObject = Json.createObjectBuilder();
+            JsonObject model = (JsonObject) value;
+
+            model.forEach(valueObject::add);
+            valueObject.add(SUBJECT, name + "-value");
+
+            topicBuilder.value(this.model.adaptFromJson(valueObject.build()));
+        }
+
+        if (object.containsKey(TRANSFORMS_NAME))
+        {
+            JsonObject transformsObject = object.getJsonArray(TRANSFORMS_NAME).stream()
+                .map(JsonValue::asJsonObject)
+                .reduce(Json.createObjectBuilder().build(), (obj1, obj2) ->
+                {
+                    JsonObjectBuilder builder = Json.createObjectBuilder(obj1);
+                    obj2.forEach(builder::add);
+                    return builder.build();
+                });
+            topicBuilder.transforms(transforms.adaptFromJson(transformsObject));
+        }
+
+        return topicBuilder.build();
+    }
+}

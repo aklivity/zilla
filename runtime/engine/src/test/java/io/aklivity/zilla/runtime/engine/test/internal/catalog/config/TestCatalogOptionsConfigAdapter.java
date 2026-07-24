@@ -18,11 +18,11 @@ package io.aklivity.zilla.runtime.engine.test.internal.catalog.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
+public class TestCatalogOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SUBJECT_NAME = "subject";
     private static final String SCHEMA_NAME = "schema";
@@ -31,18 +31,6 @@ public class TestCatalogOptionsConfigAdapter implements OptionsConfigAdapterSpi
     private static final String URL_NAME = "url";
 
     private static final int ID_DEFAULT = 0;
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.CATALOG;
-    }
-
-    @Override
-    public String type()
-    {
-        return "test";
-    }
 
     @Override
     public JsonObject adaptToJson(

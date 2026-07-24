@@ -1,0 +1,64 @@
+<?xml version="1.0" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.aklivity.zilla</groupId>
+    <artifactId>zilla</artifactId>
+    <version>develop-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>config</artifactId>
+  <packaging>pom</packaging>
+  <name>zilla::config</name>
+
+  <modules>
+    <module>engine.conf</module>
+    <module>binding-asyncapi.conf</module>
+    <module>binding-echo.conf</module>
+    <module>binding-fan.conf</module>
+    <module>binding-filesystem.conf</module>
+    <module>binding-grpc.conf</module>
+    <module>binding-grpc-kafka.conf</module>
+    <module>binding-http.conf</module>
+    <module>binding-http-filesystem.conf</module>
+    <module>binding-http-kafka.conf</module>
+    <module>binding-kafka.conf</module>
+    <module>binding-kafka-grpc.conf</module>
+    <module>binding-tcp.conf</module>
+    <module>binding-tls.conf</module>
+    <module>binding-mcp.conf</module>
+    <module>binding-mcp-http.conf</module>
+    <module>binding-mcp-kafka.conf</module>
+    <module>binding-mcp-openapi.conf</module>
+    <module>binding-mcp-schema-registry.conf</module>
+    <module>binding-mqtt.conf</module>
+    <module>binding-mqtt-kafka.conf</module>
+    <module>binding-openapi-asyncapi.conf</module>
+    <module>binding-openapi.conf</module>
+    <module>binding-proxy.conf</module>
+    <module>binding-sse.conf</module>
+    <module>binding-sse-kafka.conf</module>
+    <module>binding-ws.conf</module>
+    <module>catalog-apicurio.conf</module>
+    <module>catalog-filesystem.conf</module>
+    <module>catalog-schema-registry.conf</module>
+    <module>catalog-karapace.conf</module>
+    <module>catalog-inline.conf</module>
+    <module>exporter-otlp.conf</module>
+    <module>exporter-prometheus.conf</module>
+    <module>exporter-stdout.conf</module>
+    <module>guard-inline.conf</module>
+    <module>guard-jwt.conf</module>
+    <module>model-avro.conf</module>
+    <module>model-core.conf</module>
+    <module>model-json.conf</module>
+    <module>model-protobuf.conf</module>
+    <module>store-memory.conf</module>
+    <module>vault-filesystem.conf</module>
+  </modules>
+</project>

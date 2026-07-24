@@ -18,6 +18,20 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires io.aklivity.zilla.runtime.common.yaml;
     requires io.aklivity.zilla.runtime.common.json;
 
+    requires io.aklivity.zilla.config.binding.asyncapi;
+    requires io.aklivity.zilla.config.binding.http;
+    requires io.aklivity.zilla.config.binding.http.kafka;
+    requires io.aklivity.zilla.config.binding.kafka;
+    requires io.aklivity.zilla.config.binding.mqtt;
+    requires io.aklivity.zilla.config.binding.mqtt.kafka;
+    requires io.aklivity.zilla.config.binding.sse;
+    requires io.aklivity.zilla.config.binding.sse.kafka;
+    requires io.aklivity.zilla.config.binding.tcp;
+    requires io.aklivity.zilla.config.binding.tls;
+    requires io.aklivity.zilla.config.catalog.apicurio;
+    requires io.aklivity.zilla.config.catalog.inline;
+    requires io.aklivity.zilla.config.catalog.karapace;
+    requires io.aklivity.zilla.config.catalog.schema.registry;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.mqtt;
     requires io.aklivity.zilla.runtime.binding.http;
@@ -34,12 +48,10 @@ module io.aklivity.zilla.runtime.binding.asyncapi
     requires io.aklivity.zilla.runtime.catalog.schema.registry;
     requires io.aklivity.zilla.runtime.guard.jwt;
     requires io.aklivity.zilla.runtime.vault.filesystem;
-    requires io.aklivity.zilla.runtime.model.core;
-    requires io.aklivity.zilla.runtime.model.json;
-    requires io.aklivity.zilla.runtime.model.avro;
-    requires io.aklivity.zilla.runtime.model.protobuf;
-
-    exports io.aklivity.zilla.runtime.binding.asyncapi.config;
+    requires io.aklivity.zilla.config.model.core;
+    requires io.aklivity.zilla.config.model.json;
+    requires io.aklivity.zilla.config.model.avro;
+    requires io.aklivity.zilla.config.model.protobuf;
 
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http;
     opens io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.kafka;
@@ -50,15 +62,6 @@ module io.aklivity.zilla.runtime.binding.asyncapi
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiWithConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.asyncapi.internal.event.AsyncapiEventFormatterFactory;

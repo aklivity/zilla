@@ -37,7 +37,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaConditionConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.AbortFW;
@@ -59,9 +63,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class McpKafkaProxyFactoryTest
 {
@@ -162,11 +163,13 @@ public class McpKafkaProxyFactoryTest
     {
         final RouteConfig route = RouteConfig.builder()
             .exit("kafka0")
-            .when(new McpKafkaConditionConfig(tool, null, null))
+            .when(McpKafkaConditionConfig.builder()
+                .tool(tool)
+                .build())
             .build();
         route.id = ROUTE_ID;
 
-        final BindingConfig binding = BindingConfig.builder()
+        final BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")

@@ -19,25 +19,13 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class TestStoreOptionsConfigAdapter implements OptionsConfigAdapterSpi
+public final class TestStoreOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String ENTRIES_NAME = "entries";
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.STORE;
-    }
-
-    @Override
-    public String type()
-    {
-        return "test";
-    }
 
     @Override
     public JsonObject adaptToJson(

@@ -36,11 +36,24 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.model.core.BooleanModelConfig;
+import io.aklivity.zilla.config.model.core.DoubleModelConfig;
+import io.aklivity.zilla.config.model.core.FloatModelConfig;
+import io.aklivity.zilla.config.model.core.Int32ModelConfig;
+import io.aklivity.zilla.config.model.core.Int64ModelConfig;
+import io.aklivity.zilla.config.model.core.StringModelConfig;
+import io.aklivity.zilla.config.model.core.StringModelConfigBuilder;
+import io.aklivity.zilla.config.model.core.StringPattern;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
@@ -56,20 +69,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSecuritySchemeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.BooleanModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfigBuilder;
-import io.aklivity.zilla.runtime.model.core.config.StringPattern;
-import io.aklivity.zilla.runtime.model.core.internal.StringModel;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public abstract class OpenapiCompositeGenerator
 {
@@ -518,8 +517,8 @@ public abstract class OpenapiCompositeGenerator
                 injector.accept(model);
             }
 
-            protected final <C> BindingConfigBuilder<C> injectMetrics(
-                BindingConfigBuilder<C> binding)
+            protected final <C, B extends BindingConfigBuilder<C, B>> B injectMetrics(
+                B binding)
             {
                 if (config.metricRefs.stream()
                         .anyMatch(m -> m.name.startsWith("stream.")))
@@ -644,7 +643,7 @@ public abstract class OpenapiCompositeGenerator
                 String type,
                 String format)
             {
-                return StringModel.NAME.equals(type)
+                return "string".equals(type)
                     ? StringModelConfig.builder()
                         .inject(s -> injectStringPattern(s, format))
                         .build()

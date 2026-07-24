@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.binding.http.HttpPolicyConfig.CROSS_ORIGIN;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
@@ -24,19 +24,26 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig.Method;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
+import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpParamConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfig.Method;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpWithConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpConditionConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
+import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.engine.RouteConfigBuilder;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedResolution;
@@ -44,13 +51,6 @@ import io.aklivity.zilla.runtime.common.openapi.security.OpenapiGuardResolver;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
 {
@@ -165,8 +165,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return namespace;
             }
 
-            private <C>BindingConfigBuilder<C> injectTcpRoutes(
-                BindingConfigBuilder<C> binding)
+            private <C, B extends BindingConfigBuilder<C, B>> B injectTcpRoutes(
+                B binding)
             {
                 resolveServers().stream()
                     .collect(toMap(URI::getPort, identity(), (first, second) -> first, LinkedHashMap::new))
@@ -216,8 +216,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return namespace;
             }
 
-            private <C>BindingConfigBuilder<C> injectTlsRoutes(
-                BindingConfigBuilder<C> binding)
+            private <C, B extends BindingConfigBuilder<C, B>> B injectTlsRoutes(
+                B binding)
             {
                 resolveServers().stream()
                     .filter(server -> secure.contains(server.getScheme()))
@@ -365,8 +365,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return cataloged;
             }
 
-            private <C>BindingConfigBuilder<C> injectHttpRoutes(
-                BindingConfigBuilder<C> binding)
+            private <C, B extends BindingConfigBuilder<C, B>> B injectHttpRoutes(
+                B binding)
             {
                 final List<URI> servers = resolveServers();
 
@@ -378,7 +378,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                     .filter(config::included)
                     .forEach(operation ->
                         servers.forEach(server ->
-                            binding
+                        {
+                            RouteConfigBuilder<?, ?> route = binding
                                 .route()
                                 .exit(config.qname)
                                 .when(HttpConditionConfig::builder)
@@ -389,9 +390,10 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                                     .build()
                                 .with(HttpWithConfig::builder)
                                     .compositeId(operation.compositeId)
-                                    .build()
-                                .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                                .build()));
+                                    .build();
+                            injectHttpServerRouteGuarded(route, operation);
+                            route.build();
+                        }));
 
                 return binding;
             }
@@ -418,8 +420,8 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                 return allowed;
             }
 
-            private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
-                RouteConfigBuilder<C> route,
+            private void injectHttpServerRouteGuarded(
+                RouteConfigBuilder<?, ?> route,
                 OpenapiOperationView operation)
             {
                 for (GuardedRef ref : resolveGuarded(operation).guarded)
@@ -430,8 +432,6 @@ public final class OpenapiServerGenerator extends OpenapiCompositeGenerator
                             .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                             .build();
                 }
-
-                return route;
             }
         }
     }

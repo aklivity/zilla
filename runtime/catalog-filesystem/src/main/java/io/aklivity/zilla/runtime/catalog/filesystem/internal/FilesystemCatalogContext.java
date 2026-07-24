@@ -14,11 +14,11 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
+import io.aklivity.zilla.config.catalog.filesystem.FilesystemOptionsConfig;
+import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class FilesystemCatalogContext implements CatalogContext
 {

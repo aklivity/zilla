@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.apicurio.internal;
 
-import java.net.URL;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -54,11 +53,5 @@ public class ApicurioCatalog implements Catalog
         EngineContext context)
     {
         return new ApicurioCatalogContext(context, cache);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/apicurio.schema.patch.json");
     }
 }

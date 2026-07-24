@@ -27,12 +27,13 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 
 public class McpHttpBindingConfigTest
 {
@@ -43,10 +44,13 @@ public class McpHttpBindingConfigTest
         boolean withMapping,
         boolean authorized)
     {
-        RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder().order(order);
+        GenericRouteConfigBuilder<RouteConfig> builder = RouteConfig.builder().order(order);
         if (tool != null || resource != null)
         {
-            builder = builder.when(new McpHttpConditionConfig(tool, resource));
+            builder = builder.when(McpHttpConditionConfig.builder()
+                .tool(tool)
+                .resource(resource)
+                .build());
         }
         if (withMapping)
         {
@@ -63,7 +67,7 @@ public class McpHttpBindingConfigTest
     private static McpHttpBindingConfig binding(
         List<RouteConfig> routes)
     {
-        BindingConfig config = BindingConfig.builder()
+        BindingConfig config = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_http")
@@ -114,7 +118,9 @@ public class McpHttpBindingConfigTest
 
         RouteConfig mapping = RouteConfig.builder()
             .order(1)
-            .when(new McpHttpConditionConfig("create_pr", null))
+            .when(McpHttpConditionConfig.builder()
+                .tool("create_pr")
+                .build())
             .guarded().name("test1").roles(List.of("write")).build()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/items")
@@ -134,14 +140,18 @@ public class McpHttpBindingConfigTest
     {
         RouteConfig scoped = RouteConfig.builder()
             .order(0)
-            .when(new McpHttpConditionConfig(null, "order"))
+            .when(McpHttpConditionConfig.builder()
+                .resource("order")
+                .build())
             .guarded().name("test0").roles(List.of("read")).build()
             .build();
         scoped.authorized = (auth, identity) -> true;
 
         RouteConfig mapping = RouteConfig.builder()
             .order(1)
-            .when(new McpHttpConditionConfig(null, "order"))
+            .when(McpHttpConditionConfig.builder()
+                .resource("order")
+                .build())
             .guarded().name("test1").roles(List.of("write")).build()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/items")

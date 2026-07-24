@@ -1,0 +1,67 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.binding.sse.internal;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
+import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.config.binding.sse.SsePathConfigBuilder;
+import io.aklivity.zilla.config.binding.sse.SseRequestConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
+
+public class SseRequestConfigAdapter implements JsonbAdapter<SseRequestConfig, JsonObject>
+{
+    private static final String PATH_NAME = "path";
+    private static final String CONTENT_NAME = "content";
+
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
+
+    public JsonObject adaptToJson(
+        SseRequestConfig path)
+    {
+        JsonObjectBuilder object = Json.createObjectBuilder();
+        if (path.path != null)
+        {
+            object.add(PATH_NAME, path.path);
+        }
+        if (path.content != null)
+        {
+            model.adaptType(path.content.model);
+            JsonValue content = model.adaptToJson(path.content);
+            object.add(CONTENT_NAME, content);
+        }
+        return object.build();
+    }
+
+    @Override
+    public SseRequestConfig adaptFromJson(
+        JsonObject object)
+    {
+        SsePathConfigBuilder<SseRequestConfig> builder = SseRequestConfig.builder();
+        if (object.containsKey(PATH_NAME))
+        {
+            builder.path(object.getString(PATH_NAME));
+        }
+        if (object.containsKey(CONTENT_NAME))
+        {
+            JsonValue contentJson = object.get(CONTENT_NAME);
+            builder.content(model.adaptFromJson(contentJson));
+        }
+        return builder.build();
+    }
+}

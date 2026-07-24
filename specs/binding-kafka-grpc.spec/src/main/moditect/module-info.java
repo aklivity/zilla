@@ -19,6 +19,6 @@ module io.aklivity.zilla.runtime.binding.kafka.grpc
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcBindingFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+    provides io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcConditionConfigAdapter;
 }

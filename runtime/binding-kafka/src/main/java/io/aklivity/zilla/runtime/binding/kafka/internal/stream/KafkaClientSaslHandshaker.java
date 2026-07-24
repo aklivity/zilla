@@ -36,8 +36,8 @@ import org.agrona.LangUtil;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaSaslConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplier;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaScramMechanism;

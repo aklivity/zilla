@@ -18,9 +18,13 @@
 
   <modules>
     <module>binding-amqp.spec</module>
+    <module>binding-amqp.conf</module>
     <module>binding-pgsql.spec</module>
+    <module>binding-pgsql.conf</module>
     <module>binding-pgsql-kafka.spec</module>
+    <module>binding-pgsql-kafka.conf</module>
     <module>binding-risingwave.spec</module>
+    <module>binding-risingwave.conf</module>
 
     <module>binding-amqp</module>
     <module>binding-pgsql</module>
@@ -46,7 +50,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-amqp.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-pgsql</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-pgsql.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -56,7 +70,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-pgsql-kafka.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-risingwave</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-risingwave.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

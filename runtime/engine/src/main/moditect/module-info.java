@@ -16,7 +16,6 @@
 module io.aklivity.zilla.runtime.engine
 {
     exports io.aklivity.zilla.runtime.engine;
-    exports io.aklivity.zilla.runtime.engine.config;
 
     exports io.aklivity.zilla.runtime.engine.binding;
     exports io.aklivity.zilla.runtime.engine.binding.function;
@@ -25,7 +24,6 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.model.function;
     exports io.aklivity.zilla.runtime.engine.event;
     exports io.aklivity.zilla.runtime.engine.exporter;
-    exports io.aklivity.zilla.runtime.engine.factory;
     exports io.aklivity.zilla.runtime.engine.guard;
     exports io.aklivity.zilla.runtime.engine.store;
     exports io.aklivity.zilla.runtime.engine.namespace;
@@ -48,6 +46,7 @@ module io.aklivity.zilla.runtime.engine
     requires transitive jakarta.json;
     requires transitive jakarta.json.bind;
     requires transitive org.agrona;
+    requires transitive io.aklivity.zilla.config.engine;
     requires jdk.management;
     requires java.management;
     requires java.net.http;
@@ -63,11 +62,11 @@ module io.aklivity.zilla.runtime.engine
     provides io.aklivity.zilla.runtime.engine.router.RouterFactorySpi
         with io.aklivity.zilla.runtime.engine.internal.registry.EngineRouterFactorySpi;
 
-    uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
-    uses io.aklivity.zilla.runtime.engine.config.CompositeBindingAdapterSpi;
-    uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-    uses io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi;
-    uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
+    uses io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
+    uses io.aklivity.zilla.config.engine.CompositeBindingAdapterSpi;
+    uses io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
+    uses io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
+    uses io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
     uses io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;

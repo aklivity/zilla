@@ -17,10 +17,10 @@ package io.aklivity.zilla.runtime.exporter.stdout.internal;
 import java.util.List;
 import java.util.SortedSet;
 
+import io.aklivity.zilla.config.engine.AttributeConfig;
+import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;

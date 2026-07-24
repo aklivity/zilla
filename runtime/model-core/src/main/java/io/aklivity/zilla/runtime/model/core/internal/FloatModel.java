@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
@@ -35,11 +33,5 @@ public class FloatModel implements Model
         EngineContext context)
     {
         return new FloatModelContext(context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/float.schema.patch.json");
     }
 }

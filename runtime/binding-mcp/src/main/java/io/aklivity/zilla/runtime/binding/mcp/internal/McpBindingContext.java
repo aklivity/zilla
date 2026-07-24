@@ -14,13 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpClientFactory;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyFactory;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpServerFactory;
@@ -28,8 +30,6 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class McpBindingContext implements BindingContext
 {

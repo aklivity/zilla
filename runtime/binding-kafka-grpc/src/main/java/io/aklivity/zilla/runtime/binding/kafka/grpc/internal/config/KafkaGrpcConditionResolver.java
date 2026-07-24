@@ -17,15 +17,17 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcConditionConfig;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcConditionConfig;
+import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcWithConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class KafkaGrpcConditionResolver
 {
-    private static final String16FW WILDCARD = new String16FW("*");
+    private static final String WILDCARD = "*";
 
     private final KafkaGrpcOptionsConfig options;
     private final KafkaGrpcConditionConfig condition;
@@ -44,14 +46,14 @@ public final class KafkaGrpcConditionResolver
 
     public KafkaGrpcConditionResult resolve()
     {
-        String16FW topic = condition.topic;
-        KafkaAckMode acks = options.acks;
+        String16FW topic = new String16FW(condition.topic);
+        KafkaAckMode acks = KafkaAckMode.valueOf(options.acks.toUpperCase());
 
         List<KafkaGrpcFetchFilterResult> filters = null;
         DirectBufferEx key = null;
         if (condition.key.isPresent())
         {
-            key = condition.key.get().value();
+            key = new String16FW(condition.key.get()).value();
         }
 
         final List<KafkaGrpcFetchFilterHeaderResult> headers = new ArrayList<>();
@@ -59,8 +61,8 @@ public final class KafkaGrpcConditionResolver
         {
             condition.headers.get().forEach((k, v) ->
             {
-                DirectBufferEx name = k.value();
-                DirectBufferEx value = v.value();
+                DirectBufferEx name = new String8FW(k).value();
+                DirectBufferEx value = new String16FW(v).value();
 
                 headers.add(new KafkaGrpcFetchFilterHeaderResult(name, value));
             });
@@ -68,22 +70,22 @@ public final class KafkaGrpcConditionResolver
 
         if (condition.service.isPresent())
         {
-            String16FW service = condition.service.get();
-            headers.add(new KafkaGrpcFetchFilterHeaderResult(options.correlation.service.value(),
+            String16FW service = new String16FW(condition.service.get());
+            headers.add(new KafkaGrpcFetchFilterHeaderResult(new String16FW(options.correlation.service).value(),
                 service.value()));
         }
 
-        if (condition.method.isPresent() && WILDCARD.value().compareTo(condition.method.get().value()) != 0)
+        if (condition.method.isPresent() && !WILDCARD.equals(condition.method.get()))
         {
-            String16FW method = condition.method.get();
-            headers.add(new KafkaGrpcFetchFilterHeaderResult(options.correlation.method.value(),
+            String16FW method = new String16FW(condition.method.get());
+            headers.add(new KafkaGrpcFetchFilterHeaderResult(new String16FW(options.correlation.method).value(),
                 method.value()));
         }
 
         if (condition.replyTo.isPresent())
         {
-            headers.add(new KafkaGrpcFetchFilterHeaderResult(options.correlation.replyTo.value(),
-                condition.replyTo.get().value()));
+            headers.add(new KafkaGrpcFetchFilterHeaderResult(new String16FW(options.correlation.replyTo).value(),
+                new String16FW(condition.replyTo.get()).value()));
         }
 
         if (key != null || !headers.isEmpty())
@@ -92,7 +94,7 @@ public final class KafkaGrpcConditionResolver
             filters.add(new KafkaGrpcFetchFilterResult(key, headers));
         }
 
-        return new KafkaGrpcConditionResult(with.scheme, with.authority, topic, acks,
+        return new KafkaGrpcConditionResult(new String16FW(with.scheme), new String16FW(with.authority), topic, acks,
             filters, options.correlation);
     }
 }

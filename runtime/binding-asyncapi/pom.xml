@@ -64,8 +64,20 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-asyncapi.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-http.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-http-kafka.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
@@ -79,8 +91,16 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-mqtt.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-mqtt</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-mqtt-kafka.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
@@ -89,8 +109,16 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-sse.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-sse</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-sse-kafka.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
@@ -99,53 +127,93 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tcp.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tcp</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tls.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tls</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-apicurio.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-apicurio</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-inline.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-inline</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-karapace.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-karapace</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-schema-registry.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-schema-registry</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-core.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-core</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-json.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-json</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-avro.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-avro</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-protobuf.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-protobuf</artifactId>
-      <scope>provided</scope>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
@@ -242,35 +310,6 @@
             <goals>
               <goal>generate</goal>
             </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-asyncapi.spec</artifactId>
-                  <fileMappers>
-                    <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                      <pattern>^\Qio/aklivity/zilla/specs/binding/asyncapi/\E</pattern>
-                      <replacement>io/aklivity/zilla/runtime/binding/asyncapi/internal/</replacement>
-                    </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
-                </artifactItem>
-              </artifactItems>
-              <includes>
-                io/aklivity/zilla/specs/binding/asyncapi/schema/asyncapi.schema.patch.json
-              </includes>
-              <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
           </execution>
         </executions>
       </plugin>

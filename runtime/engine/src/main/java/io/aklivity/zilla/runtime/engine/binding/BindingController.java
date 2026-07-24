@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.binding;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
 
 /**
  * Control-plane interface for a protocol binding.

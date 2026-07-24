@@ -21,11 +21,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaWithConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaConditionMatcher;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaWithResolver;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public class MqttKafkaRouteConfig
 {
@@ -49,7 +53,7 @@ public class MqttKafkaRouteConfig
             .map(MqttKafkaWithConfig.class::cast)
             .map(c -> new MqttKafkaWithResolver(options, c))
             .orElse(new MqttKafkaWithResolver(options, null));
-        this.retained = options.topics.retained;
+        this.retained = new String16FW(options.topics.retained);
         this.when = route.when.stream()
             .map(MqttKafkaConditionConfig.class::cast)
             .map(MqttKafkaConditionMatcher::new)

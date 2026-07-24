@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import java.util.function.DoublePredicate;
 import java.util.function.Supplier;
 
+import io.aklivity.zilla.config.model.core.FloatModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
 
 final class FloatModelValidator implements CoreModelValidator
 {

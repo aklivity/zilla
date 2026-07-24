@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.http.config.HttpVersion.HTTP_1_1;
-import static io.aklivity.zilla.runtime.binding.http.config.HttpVersion.HTTP_2;
+import static io.aklivity.zilla.config.binding.http.HttpVersion.HTTP_1_1;
+import static io.aklivity.zilla.config.binding.http.HttpVersion.HTTP_2;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TRAILERS;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType.UNKNOWN;
@@ -61,7 +61,8 @@ import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
+import io.aklivity.zilla.config.binding.http.HttpVersion;
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ContinuationFW;
@@ -118,7 +119,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class HttpClientFactory implements HttpStreamFactory
@@ -454,7 +454,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final long resolvedId = route.id;
             final Map<String8FW, String16FW> overrides =
-                binding.options != null && binding.options.overrides != null ? binding.options.overrides : EMPTY_OVERRIDES;
+                binding.overrides != null ? binding.overrides : EMPTY_OVERRIDES;
 
             // TODO: store client pools on HttpBindingConfig ?
             final HttpClientPool clientPool =

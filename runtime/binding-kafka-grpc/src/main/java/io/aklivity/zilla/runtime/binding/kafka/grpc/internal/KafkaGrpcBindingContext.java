@@ -14,19 +14,19 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.REMOTE_SERVER;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
 import java.util.function.LongConsumer;
 import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream.KafkaGrpcRemoteServerFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class KafkaGrpcBindingContext implements BindingContext
 {

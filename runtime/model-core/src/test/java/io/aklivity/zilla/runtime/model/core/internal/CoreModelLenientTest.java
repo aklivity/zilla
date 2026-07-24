@@ -23,30 +23,30 @@ import java.time.Clock;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.ValidateConfig;
+import io.aklivity.zilla.config.engine.ValidateMode;
+import io.aklivity.zilla.config.model.core.Int32ModelConfig;
+import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 public class CoreModelLenientTest
 {
     private static final int FLAGS_COMPLETE = 0x03;
 
     private static final ValidateConfig LENIENT =
-        new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT);
+        ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build();
     private static final ValidateConfig STRICT =
-        new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT);
+        ValidateConfig.builder().decode(ValidateMode.STRICT).encode(ValidateMode.STRICT).build();
     private static final ValidateConfig DECODE_LENIENT_ENCODE_STRICT =
-        new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT);
+        ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.STRICT).build();
 
     private EngineContext context;
 

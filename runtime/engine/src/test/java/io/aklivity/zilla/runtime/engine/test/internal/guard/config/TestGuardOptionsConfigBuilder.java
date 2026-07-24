@@ -24,8 +24,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.config.ConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, TestGuardOptionsConfigBuilder<T>>
 {

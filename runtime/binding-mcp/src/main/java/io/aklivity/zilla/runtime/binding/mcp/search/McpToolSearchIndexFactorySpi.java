@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.search;
 import java.util.List;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfig;
+import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
 
 /**
  * Service provider interface for a pluggable {@link McpToolSearchIndex} implementation.

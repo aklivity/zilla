@@ -16,8 +16,8 @@
 module io.aklivity.zilla.runtime.binding.fan
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.binding.fan;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.fan.internal.FanBindingFactorySpi;
-
 }

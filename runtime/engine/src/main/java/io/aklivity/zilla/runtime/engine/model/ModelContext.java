@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.model;
 
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 
 /**
  * Per-thread context for a data model.

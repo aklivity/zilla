@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.serializer.OtlpMetricsSerializer.OtlpMetricsDescriptor;
 
 public class OtlpMetricsSerializerTest

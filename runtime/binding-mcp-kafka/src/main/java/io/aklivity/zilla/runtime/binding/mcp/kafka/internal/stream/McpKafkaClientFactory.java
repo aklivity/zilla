@@ -16,13 +16,13 @@ package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.stream;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.composite.McpKafkaClientGenerator;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpKafkaClientFactory extends McpKafkaProxyFactory
 {

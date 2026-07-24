@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 import java.util.List;
 import java.util.function.Supplier;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
@@ -58,7 +57,7 @@ public class HttpKafkaWithProduceResult
                 .build();
 
     private final long compositeId;
-    private final HttpKafkaCorrelationConfig correlation;
+    private final HttpKafkaCorrelationResolver correlation;
     private final String16FW topic;
     private final KafkaAckMode acks;
     private final Supplier<DirectBufferEx> keyRef;
@@ -73,7 +72,7 @@ public class HttpKafkaWithProduceResult
 
     HttpKafkaWithProduceResult(
         long compositeId,
-        HttpKafkaCorrelationConfig correlation,
+        HttpKafkaCorrelationResolver correlation,
         String16FW topic,
         KafkaAckMode acks,
         Supplier<DirectBufferEx> keyRef,

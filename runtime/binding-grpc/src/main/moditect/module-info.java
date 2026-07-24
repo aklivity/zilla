@@ -16,12 +16,10 @@ module io.aklivity.zilla.runtime.binding.grpc
 {
     requires org.antlr.antlr4.runtime;
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.binding.grpc;
 
     exports io.aklivity.zilla.runtime.binding.grpc.config;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcConditionConfigAdapter;
 }

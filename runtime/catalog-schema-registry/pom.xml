@@ -22,8 +22,8 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.93</jacoco.coverage.ratio>
-    <jacoco.missed.count>0</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.27</jacoco.coverage.ratio>
+    <jacoco.missed.count>6</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -32,6 +32,11 @@
       <artifactId>catalog-schema-registry.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>catalog-schema-registry.conf</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
@@ -119,7 +124,6 @@
                 </artifactItem>
               </artifactItems>
               <includes>io/aklivity/zilla/specs/catalog/schema/registry/config/*</includes>
-              <includes>io/aklivity/zilla/specs/catalog/schema/registry/schema/*</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

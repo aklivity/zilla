@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 
 import java.net.URI;
 import java.util.LinkedList;
@@ -22,12 +22,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpParamConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfig;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpResponseConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.engine.SchemaConfigBuilder;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
@@ -38,11 +43,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.SchemaConfigBuilder;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class OpenapiClientGenerator extends OpenapiCompositeGenerator
 {

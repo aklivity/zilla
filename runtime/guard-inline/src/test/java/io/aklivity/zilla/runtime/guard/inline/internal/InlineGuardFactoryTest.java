@@ -19,7 +19,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.net.URL;
 import java.util.Set;
 
 import org.junit.Test;
@@ -47,7 +46,6 @@ public class InlineGuardFactoryTest
         assertThat(guard, instanceOf(InlineGuard.class));
         assertThat(guard.name(), equalTo("inline"));
         assertThat(guard.aliases(), equalTo(Set.of("identity")));
-        assertThat(guard.type(), instanceOf(URL.class));
         assertThat(context, instanceOf(GuardContext.class));
     }
 }

@@ -37,7 +37,7 @@ import javax.net.ssl.X509TrustManager;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
+import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
 
 public class FileSystemVaultTest
 {

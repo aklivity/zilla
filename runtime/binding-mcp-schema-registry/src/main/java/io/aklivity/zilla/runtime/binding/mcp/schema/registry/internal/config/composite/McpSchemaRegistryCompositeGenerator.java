@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,19 +23,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryRouteConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public final class McpSchemaRegistryCompositeGenerator
 {
@@ -98,8 +98,8 @@ public final class McpSchemaRegistryCompositeGenerator
             List.of(new McpSchemaRegistryCompositeRouteConfig(routeId)));
     }
 
-    private <C> BindingConfigBuilder<C> injectRoutes(
-        BindingConfigBuilder<C> mcpOpenapi,
+    private <C, B extends BindingConfigBuilder<C, B>> B injectRoutes(
+        B mcpOpenapi,
         McpSchemaRegistryBindingConfig binding)
     {
         for (String tool : TOOLS)
@@ -108,11 +108,11 @@ public final class McpSchemaRegistryCompositeGenerator
             if (binding.routes.isEmpty() || matched != null)
             {
                 List<GuardedConfig> guarded = matched != null ? matched.guarded : List.of();
-                mcpOpenapi.route()
+                RouteConfigBuilder<?, ?> route = mcpOpenapi.route()
                     .when(McpOpenapiConditionConfig.builder().tool(tool).build())
-                    .with(McpOpenapiWithConfig.builder().spec(SUBJECT_NAME).operation(tool).build())
-                    .inject(r -> injectGuarded(r, binding, guarded))
-                    .build();
+                    .with(McpOpenapiWithConfig.builder().spec(SUBJECT_NAME).operation(tool).build());
+                injectGuarded(route, binding, guarded);
+                route.build();
             }
         }
         return mcpOpenapi;
@@ -135,8 +135,8 @@ public final class McpSchemaRegistryCompositeGenerator
         return compileGlob(pattern).matcher(tool).matches();
     }
 
-    private <C> RouteConfigBuilder<C> injectGuarded(
-        RouteConfigBuilder<C> route,
+    private void injectGuarded(
+        RouteConfigBuilder<?, ?> route,
         McpSchemaRegistryBindingConfig binding,
         List<GuardedConfig> guarded)
     {
@@ -148,7 +148,6 @@ public final class McpSchemaRegistryCompositeGenerator
                 .inject(g -> injectRoles(g, guard.roles))
                 .build();
         }
-        return route;
     }
 
     private <C> GuardedConfigBuilder<C> injectRoles(

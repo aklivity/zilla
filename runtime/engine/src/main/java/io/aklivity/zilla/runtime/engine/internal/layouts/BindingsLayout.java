@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
 
 public final class BindingsLayout implements AutoCloseable
 {

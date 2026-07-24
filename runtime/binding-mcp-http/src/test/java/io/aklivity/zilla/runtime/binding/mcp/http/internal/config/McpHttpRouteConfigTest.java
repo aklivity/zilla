@@ -25,10 +25,10 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
+import io.aklivity.zilla.config.engine.RouteConfig;
 
 public class McpHttpRouteConfigTest
 {
@@ -37,10 +37,13 @@ public class McpHttpRouteConfigTest
         String resource,
         boolean withMapping)
     {
-        RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder();
+        GenericRouteConfigBuilder<RouteConfig> builder = RouteConfig.builder();
         if (tool != null || resource != null)
         {
-            builder = builder.when(new McpHttpConditionConfig(tool, resource));
+            builder = builder.when(McpHttpConditionConfig.builder()
+                .tool(tool)
+                .resource(resource)
+                .build());
         }
         if (withMapping)
         {

@@ -16,14 +16,10 @@ module io.aklivity.zilla.runtime.catalog.apicurio
 {
     requires java.net.http;
     requires io.aklivity.zilla.runtime.engine;
-
-    exports io.aklivity.zilla.runtime.catalog.apicurio.config;
+    requires io.aklivity.zilla.config.catalog.apicurio;
 
     provides io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi
         with io.aklivity.zilla.runtime.catalog.apicurio.internal.ApicurioCatalogFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.catalog.apicurio.internal.config.ApicurioOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.catalog.apicurio.internal.ApicurioEventFormatterFactory;

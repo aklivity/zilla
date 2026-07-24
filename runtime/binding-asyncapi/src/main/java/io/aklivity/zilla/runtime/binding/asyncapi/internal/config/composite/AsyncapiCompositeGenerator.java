@@ -41,6 +41,30 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.mqtt.MqttCredentialsConfigBuilder;
+import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig.MqttConnectProperty;
+import io.aklivity.zilla.config.catalog.apicurio.ApicurioOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
+import io.aklivity.zilla.config.catalog.karapace.KarapaceOptionsConfig;
+import io.aklivity.zilla.config.catalog.schema.registry.SchemaRegistryOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.model.avro.AvroModelConfig;
+import io.aklivity.zilla.config.model.core.BooleanModelConfig;
+import io.aklivity.zilla.config.model.core.DoubleModelConfig;
+import io.aklivity.zilla.config.model.core.FloatModelConfig;
+import io.aklivity.zilla.config.model.core.Int32ModelConfig;
+import io.aklivity.zilla.config.model.core.Int64ModelConfig;
+import io.aklivity.zilla.config.model.core.StringModelConfig;
+import io.aklivity.zilla.config.model.core.StringPattern;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
+import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.AsyncapiHttpOperationBindingEx;
@@ -50,16 +74,6 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.AsyncapiSseOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka.AsyncapiMqttKafkaChannelEx;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
-import io.aklivity.zilla.runtime.catalog.apicurio.config.ApicurioOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.catalog.karapace.config.KarapaceOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.schema.registry.config.SchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
@@ -79,20 +93,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiView;
 import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.BooleanModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.FloatModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
-import io.aklivity.zilla.runtime.model.core.config.StringPattern;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
-import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 public abstract class AsyncapiCompositeGenerator
 {
@@ -660,8 +660,8 @@ public abstract class AsyncapiCompositeGenerator
                 injector.accept(model);
             }
 
-            protected final <C> BindingConfigBuilder<C> injectMetrics(
-                BindingConfigBuilder<C> binding)
+            protected final <C, B extends BindingConfigBuilder<C, B>> B injectMetrics(
+                B binding)
             {
                 if (config.metricRefs.stream()
                         .anyMatch(m -> m.name.startsWith("stream.")))

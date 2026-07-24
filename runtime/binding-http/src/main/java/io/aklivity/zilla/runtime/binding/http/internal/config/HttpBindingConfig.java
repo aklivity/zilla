@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.SAME_ORIGIN;
+import static io.aklivity.zilla.config.binding.http.HttpPolicyConfig.SAME_ORIGIN;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
@@ -36,23 +36,24 @@ import java.util.regex.Pattern;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpParamConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpPatternConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpResponseConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
+import io.aklivity.zilla.config.binding.http.HttpAccessControlConfig;
+import io.aklivity.zilla.config.binding.http.HttpAuthorizationConfig;
+import io.aklivity.zilla.config.binding.http.HttpCredentialsConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
+import io.aklivity.zilla.config.binding.http.HttpParamConfig;
+import io.aklivity.zilla.config.binding.http.HttpPatternConfig;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfig;
+import io.aklivity.zilla.config.binding.http.HttpResponseConfig;
+import io.aklivity.zilla.config.binding.http.HttpVersion;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
@@ -65,6 +66,8 @@ public final class HttpBindingConfig
     private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
     private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL =
         HttpAccessControlConfig.builder().policy(SAME_ORIGIN).build();
+    private static final HttpAccessControlResolver DEFAULT_ACCESS_CONTROL_RESOLVER =
+        new HttpAccessControlResolver(DEFAULT_ACCESS_CONTROL);
     private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
@@ -84,6 +87,8 @@ public final class HttpBindingConfig
     public final Function<String, String> injectCookie;
     public final Function<String, String> injectQuery;
     public final List<HttpRequestType> requests;
+    public final Map<String8FW, String16FW> overrides;
+    private final HttpAccessControlResolver accessResolver;
 
     public HttpBindingConfig(
         EngineContext context,
@@ -94,9 +99,13 @@ public final class HttpBindingConfig
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = HttpOptionsConfig.class.cast(binding.options);
+        this.overrides = new HttpOverridesResolver(options != null ? options.overrides : null).overrides;
         this.routes = binding.routes.stream().map(route ->
-            new HttpRouteConfig(context, route, options != null ? options.overrides : null))
+            new HttpRouteConfig(context, route, overrides))
             .collect(toList());
+        this.accessResolver = options != null && options.access != null
+            ? new HttpAccessControlResolver(options.access)
+            : DEFAULT_ACCESS_CONTROL_RESOLVER;
         this.resolveId = binding.resolveId;
         final HttpAuthorizationConfig authorization = options != null ? options.authorization : null;
         this.credentials = authorization != null ? asAccessor(authorization.credentials) : DEFAULT_CREDENTIALS;
@@ -126,6 +135,11 @@ public final class HttpBindingConfig
     public HttpAccessControlConfig access()
     {
         return options != null && options.access != null ? options.access : DEFAULT_ACCESS_CONTROL;
+    }
+
+    public HttpAccessControlResolver accessResolver()
+    {
+        return accessResolver;
     }
 
     public Function<Function<String, String>, String> credentials()

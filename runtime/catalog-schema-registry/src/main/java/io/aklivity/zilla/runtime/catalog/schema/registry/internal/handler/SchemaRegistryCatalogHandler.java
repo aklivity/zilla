@@ -41,7 +41,7 @@ import org.agrona.BitUtil;
 import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectCache;
 
-import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
+import io.aklivity.zilla.config.catalog.schema.registry.AbstractSchemaRegistryOptionsConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.config.SchemaRegistryCatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaRegistryEventContext;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.serializer.RegisterSchemaRequest;

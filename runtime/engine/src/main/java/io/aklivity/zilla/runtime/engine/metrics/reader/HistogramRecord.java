@@ -26,7 +26,7 @@ import java.util.function.LongSupplier;
 
 import org.agrona.collections.Int2IntHashMap;
 
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 
 public class HistogramRecord implements MetricRecord

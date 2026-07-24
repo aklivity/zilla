@@ -47,9 +47,12 @@ import jakarta.json.JsonWriter;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpRouteConfig;
@@ -88,9 +91,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
 public final class McpHttpProxyFactory implements BindingHandler

@@ -23,11 +23,11 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdapterSpi
+public final class TestExporterOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String MODE_NAME = "mode";
     private static final String EVENTS_NAME = "events";
@@ -35,18 +35,6 @@ public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdap
     private static final String ID_NAME = "id";
     private static final String NAME_NAME = "name";
     private static final String MESSAGE_NAME = "message";
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.EXPORTER;
-    }
-
-    @Override
-    public String type()
-    {
-        return "test";
-    }
 
     @Override
     public JsonObject adaptToJson(

@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.binding.amqp.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.amqp.config.AmqpConditionConfig;
+import io.aklivity.zilla.config.binding.amqp.AmqpConditionConfig;
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.AmqpCapabilities;
 
 public final class AmqpConditionMatcher
@@ -30,7 +30,9 @@ public final class AmqpConditionMatcher
         AmqpConditionConfig condition)
     {
         this.addressMatch = condition.address != null ? asMatcher(condition.address) : null;
-        this.capabilitiesMatch = condition.capabilities;
+        this.capabilitiesMatch = condition.capabilities != null
+                ? AmqpCapabilities.valueOf(condition.capabilities.toUpperCase())
+                : null;
     }
 
     public boolean matches(

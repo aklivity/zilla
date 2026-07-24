@@ -31,10 +31,6 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.JsonbConfig;
-
 import org.agrona.collections.Long2ObjectHashMap;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jws.JsonWebSignature;
@@ -44,12 +40,12 @@ import org.jose4j.jwt.NumericDate;
 import org.jose4j.jwt.consumer.InvalidJwtException;
 import org.jose4j.lang.JoseException;
 
+import io.aklivity.zilla.config.guard.jwt.JwtKeyConfig;
+import io.aklivity.zilla.config.guard.jwt.JwtKeySetConfig;
+import io.aklivity.zilla.config.guard.jwt.JwtKeySetConfigReader;
+import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeyConfig;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtKeySetConfig;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeySetConfigAdapter;
 
 public class JwtGuardHandler implements GuardHandler
 {
@@ -84,13 +80,10 @@ public class JwtGuardHandler implements GuardHandler
         List<JwtKeyConfig> keysConfig = options.keys;
         if ((keysConfig == null || keysConfig.isEmpty()) && options.keysURL.isPresent())
         {
-            Jsonb jsonb = JsonbBuilder.newBuilder()
-                    .withConfig(new JsonbConfig()
-                        .withAdapters(new JwtKeySetConfigAdapter()))
-                    .build();
+            JwtKeySetConfigReader reader = new JwtKeySetConfigReader();
             Path keysPath = context.resolvePath(options.keysURL.get());
             String keysText = readKeys(keysPath);
-            JwtKeySetConfig jwks = jsonb.fromJson(keysText, JwtKeySetConfig.class);
+            JwtKeySetConfig jwks = reader.read(keysText);
             keysConfig = jwks.keys;
         }
 

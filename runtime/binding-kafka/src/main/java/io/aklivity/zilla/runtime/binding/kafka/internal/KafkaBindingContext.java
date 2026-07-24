@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CACHE_CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CACHE_SERVER;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CACHE_CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CACHE_SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -25,6 +25,8 @@ import java.util.function.Function;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheClientFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheRoute;
@@ -35,8 +37,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaStreamFactor
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class KafkaBindingContext implements BindingContext
 {

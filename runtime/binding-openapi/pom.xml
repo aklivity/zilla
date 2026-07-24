@@ -37,6 +37,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-openapi.conf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -58,27 +63,56 @@
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-http.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-http</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tcp.conf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tcp</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>binding-tls.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>binding-tls</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>catalog-inline.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>catalog-inline</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-core.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-core</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.zilla</groupId>
+      <artifactId>model-json.conf</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>model-json</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -184,8 +218,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/openapi/schema/openapi.schema.patch.json,
-                io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json,
+              <includes>io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json,
                 io/aklivity/zilla/specs/binding/tcp/schema/tcp.schema.patch.json,
                 io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json
               </includes>

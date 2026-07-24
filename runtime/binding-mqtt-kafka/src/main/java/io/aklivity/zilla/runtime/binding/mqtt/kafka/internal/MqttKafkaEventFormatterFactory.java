@@ -29,6 +29,6 @@ public final class MqttKafkaEventFormatterFactory implements EventFormatterFacto
     @Override
     public String type()
     {
-        return MqttKafkaBinding.NAME;
+        return MqttKafkaBinding.TYPE;
     }
 }

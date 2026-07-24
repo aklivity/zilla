@@ -15,20 +15,10 @@
 module io.aklivity.zilla.runtime.binding.mqtt.kafka
 {
     requires io.aklivity.zilla.runtime.engine;
-
-    exports io.aklivity.zilla.runtime.binding.mqtt.kafka.config;
+    requires io.aklivity.zilla.config.binding.mqtt.kafka;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaWithConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaEventFormatterFactory;

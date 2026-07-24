@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.util.Objects.requireNonNull;
 
-import io.aklivity.zilla.runtime.engine.config.StoreConfig;
+import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 

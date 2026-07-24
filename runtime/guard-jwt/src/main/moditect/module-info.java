@@ -15,15 +15,11 @@
 module io.aklivity.zilla.runtime.guard.jwt
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.guard.jwt;
     requires org.slf4j;
-
-    exports io.aklivity.zilla.runtime.guard.jwt.config;
 
     provides io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi
         with io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.guard.jwt.internal.JwtEventFormatterFactory;

@@ -14,14 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public class MqttKafkaBinding implements Binding
 {
-    public static final String NAME = "mqtt-kafka";
+    public static final String TYPE = "mqtt-kafka";
 
     private final MqttKafkaConfiguration config;
     private final InstanceId instanceId;
@@ -36,13 +34,7 @@ public class MqttKafkaBinding implements Binding
     @Override
     public String name()
     {
-        return MqttKafkaBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/mqtt.kafka.schema.patch.json");
+        return MqttKafkaBinding.TYPE;
     }
 
     @Override

@@ -19,6 +19,7 @@ import java.net.URL;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
+import io.aklivity.zilla.config.binding.tcp.TcpBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.EngineController;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -27,7 +28,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingController;
 
 public final class TcpBinding implements Binding
 {
-    public static final String NAME = "tcp";
+    public static final String NAME = TcpBindingInfo.TYPE;
 
     public static final int WRITE_SPIN_COUNT = 16;
 
@@ -45,12 +46,6 @@ public final class TcpBinding implements Binding
     public String name()
     {
         return TcpBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/tcp.schema.patch.json");
     }
 
     @Override

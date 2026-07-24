@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -37,23 +37,23 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.config.AsyncapiOptionsConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiWithConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiConditionServerConfig;
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiWithConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaConditionConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.config.SseKafkaWithConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 /**
  * Kept as a unit test rather than converted to a k3po IT (AsyncapiProxyIT). Two distinct blockers apply:
@@ -327,7 +327,7 @@ public class AsyncapiProxyGeneratorTest
             security.forEach(sseSpec::security);
         }
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -341,8 +341,12 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("sse-id", null, null))
-                .with(new AsyncapiWithConfig("kafka-id", null))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("sse-id")
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-id")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -421,7 +425,7 @@ public class AsyncapiProxyGeneratorTest
     @Test
     public void shouldResolveMqttKafkaTopicsFromChannelRoles()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -446,8 +450,14 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -460,15 +470,15 @@ public class AsyncapiProxyGeneratorTest
             .orElseThrow();
         MqttKafkaOptionsConfig options = (MqttKafkaOptionsConfig) mqttKafka.options;
 
-        assertThat(options.topics.sessions.asString(), equalTo("mqtt-sessions"));
-        assertThat(options.topics.messages.asString(), equalTo("mqtt-messages"));
-        assertThat(options.topics.retained.asString(), equalTo("mqtt-retained"));
+        assertThat(options.topics.sessions, equalTo("mqtt-sessions"));
+        assertThat(options.topics.messages, equalTo("mqtt-messages"));
+        assertThat(options.topics.retained, equalTo("mqtt-retained"));
     }
 
     @Test
     public void shouldIncludeMqttKafkaRouteWhenServerNameMatches()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -493,9 +503,17 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
-                    List.of(new AsyncapiConditionServerConfig("broker", null))))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .server()
+                        .name("broker")
+                        .build()
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -513,7 +531,7 @@ public class AsyncapiProxyGeneratorTest
     @Test
     public void shouldExcludeMqttKafkaRouteWhenServerNameDoesNotMatch()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -538,9 +556,17 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
-                    List.of(new AsyncapiConditionServerConfig("other", null))))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .server()
+                        .name("other")
+                        .build()
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -558,7 +584,7 @@ public class AsyncapiProxyGeneratorTest
     @Test
     public void shouldExcludeMqttKafkaRouteWhenOperationNotScopedToRouteServer()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -583,9 +609,17 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null,
-                    List.of(new AsyncapiConditionServerConfig("otherBroker", null))))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .server()
+                        .name("otherBroker")
+                        .build()
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;
@@ -603,7 +637,7 @@ public class AsyncapiProxyGeneratorTest
     @Test
     public void shouldReportClearErrorWhenMqttKafkaChannelRoleMissing()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("asyncapi")
@@ -628,8 +662,14 @@ public class AsyncapiProxyGeneratorTest
                 .build())
             .route()
                 .exit("kafka_client0")
-                .when(new AsyncapiConditionConfig("mqtt-id", "sendEvents", null))
-                .with(new AsyncapiWithConfig("kafka-mqtt-id", "toSensorData"))
+                .when(AsyncapiConditionConfig.builder()
+                    .spec("mqtt-id")
+                    .operation("sendEvents")
+                    .build())
+                .with(AsyncapiWithConfig.builder()
+                    .spec("kafka-mqtt-id")
+                    .operation("toSensorData")
+                    .build())
                 .build()
             .build();
         binding.resolveId = resolveId;

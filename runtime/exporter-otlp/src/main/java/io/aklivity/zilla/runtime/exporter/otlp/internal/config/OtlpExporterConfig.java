@@ -28,14 +28,14 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.exporter.otlp.OtlpEndpointConfig;
+import io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig;
+import io.aklivity.zilla.config.exporter.otlp.OtlpOverridesConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpEndpointConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOverridesConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.OltpConfiguration;
 
 public class OtlpExporterConfig

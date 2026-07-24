@@ -23,6 +23,7 @@ import java.time.Clock;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.model.core.DoubleModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -32,7 +33,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
-import io.aklivity.zilla.runtime.model.core.config.DoubleModelConfig;
 
 public class DoubleModelPipelineTest
 {

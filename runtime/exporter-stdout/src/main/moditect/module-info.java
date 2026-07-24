@@ -15,10 +15,8 @@
 module io.aklivity.zilla.runtime.exporter.stdout
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.exporter.stdout;
 
     provides io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi
         with io.aklivity.zilla.runtime.exporter.stdout.internal.StdoutExporterFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.exporter.stdout.internal.config.StdoutOptionsConfigAdapter;
 }

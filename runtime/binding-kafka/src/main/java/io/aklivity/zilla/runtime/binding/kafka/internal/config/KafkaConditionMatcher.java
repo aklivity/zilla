@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaConditionConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaConditionConfig;
 
 public final class KafkaConditionMatcher
 {

@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.util.Objects.requireNonNull;
 
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 

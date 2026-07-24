@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.asyncapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.binding.http.HttpPolicyConfig.CROSS_ORIGIN;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 
 import java.net.URI;
 import java.util.List;
@@ -23,29 +23,36 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfig.Method;
+import io.aklivity.zilla.config.binding.http.HttpRequestConfigBuilder;
+import io.aklivity.zilla.config.binding.http.HttpWithConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttConditionConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.mqtt.MqttTopicConfigBuilder;
+import io.aklivity.zilla.config.binding.mqtt.MqttWithConfig;
+import io.aklivity.zilla.config.binding.sse.SseConditionConfig;
+import io.aklivity.zilla.config.binding.sse.SseOptionsConfig;
+import io.aklivity.zilla.config.binding.sse.SseOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.sse.SsePathConfigBuilder;
+import io.aklivity.zilla.config.binding.sse.SseWithConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpConditionConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
+import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.engine.RouteConfigBuilder;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.http.AsyncapiHttpOperationBindingEx;
-import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfig.Method;
-import io.aklivity.zilla.runtime.binding.http.config.HttpRequestConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttTopicConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttWithConfig;
-import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
-import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfig;
-import io.aklivity.zilla.runtime.binding.sse.config.SseOptionsConfigBuilder;
-import io.aklivity.zilla.runtime.binding.sse.config.SsePathConfigBuilder;
-import io.aklivity.zilla.runtime.binding.sse.config.SseWithConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpConditionConfig;
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
 import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedRef;
@@ -55,13 +62,6 @@ import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiMessageView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiOperationView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiParameterView;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiSchemaView;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
 {
@@ -169,8 +169,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return namespace;
             }
 
-            private <C>BindingConfigBuilder<C> injectTcpRoutes(
-                BindingConfigBuilder<C> binding)
+            private <C, B extends BindingConfigBuilder<C, B>> B injectTcpRoutes(
+                B binding)
             {
                 resolveServers().stream()
                     .filter(s -> plain.contains(s.getScheme()))
@@ -221,8 +221,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                     : null;
             }
 
-            private <C>BindingConfigBuilder<C> injectTlsRoutes(
-                BindingConfigBuilder<C> binding)
+            private <C, B extends BindingConfigBuilder<C, B>> B injectTlsRoutes(
+                B binding)
             {
                 resolveServers().stream()
                     .filter(s -> secure.contains(s.getScheme()))
@@ -399,8 +399,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return request;
             }
 
-            private <C>BindingConfigBuilder<C> injectHttpRoutes(
-                BindingConfigBuilder<C> binding)
+            private <C, B extends BindingConfigBuilder<C, B>> B injectHttpRoutes(
+                B binding)
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
@@ -412,7 +412,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                         if (operation.hasBinding("http") && allowed(operation))
                         {
                             resolvePaths(operation).forEach(path ->
-                                binding
+                            {
+                                RouteConfigBuilder<?, ?> route = binding
                                     .route()
                                     .exit(config.qname)
                                     .when(HttpConditionConfig::builder)
@@ -422,9 +423,10 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                                         .build()
                                     .with(HttpWithConfig::builder)
                                         .compositeId(operation.compositeId)
-                                        .build()
-                                    .inject(route -> injectHttpServerRouteGuarded(route, operation))
-                                    .build());
+                                        .build();
+                                injectHttpServerRouteGuarded(route, operation);
+                                route.build();
+                            });
                         }
                         else if (operation.hasBinding("x-zilla-sse"))
                         {
@@ -465,8 +467,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return allowed;
             }
 
-            private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
-                RouteConfigBuilder<C> route,
+            private void injectHttpServerRouteGuarded(
+                RouteConfigBuilder<?, ?> route,
                 AsyncapiOperationView operation)
             {
                 for (GuardedRef ref : resolveGuarded(operation).guarded)
@@ -477,8 +479,6 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                             .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                             .build();
                 }
-
-                return route;
             }
 
             private <C> NamespaceConfigBuilder<C> injectSseServer(
@@ -538,8 +538,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return request;
             }
 
-            private <C>BindingConfigBuilder<C> injectSseRoutes(
-                BindingConfigBuilder<C> binding)
+            private <C, B extends BindingConfigBuilder<C, B>> B injectSseRoutes(
+                B binding)
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
@@ -658,8 +658,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return topic;
             }
 
-            private <C> BindingConfigBuilder<C> injectMqttRoutes(
-                BindingConfigBuilder<C> binding)
+            private <C, B extends BindingConfigBuilder<C, B>> B injectMqttRoutes(
+                B binding)
             {
                 Stream.of(schema)
                     .map(s -> s.asyncapi)
@@ -682,8 +682,8 @@ public final class AsyncapiServerGenerator extends AsyncapiCompositeGenerator
                 return binding;
             }
 
-            private <C> BindingConfigBuilder<C> injectMqttRoute(
-                BindingConfigBuilder<C> binding,
+            private <C, B extends BindingConfigBuilder<C, B>> B injectMqttRoute(
+                B binding,
                 AsyncapiOperationView operation)
             {
                 String topic = operation.channel.address.replaceAll(REGEX_ADDRESS_PARAMETER, "#");

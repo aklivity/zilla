@@ -1,0 +1,117 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.exporter.otlp.internal;
+
+import static io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.net.URI;
+import java.time.Duration;
+import java.util.Set;
+
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
+
+public class OtlpOptionsConfigAdapterTest
+{
+    private Jsonb jsonb;
+
+    @Before
+    public void initJson()
+    {
+        JsonbConfig config = new JsonbConfig()
+            .withAdapters(new OtlpOptionsConfigAdapter());
+        jsonb = JsonbBuilder.newBuilder()
+            .withProvider(YamlJson.provider())
+            .withConfig(config)
+            .build();
+    }
+
+    @Test
+    public void shouldReadOptions()
+    {
+        // GIVEN
+        String yaml =
+            """
+            interval: 30
+            signals:
+              - metrics
+            endpoint:
+              location: "http://localhost:4317"
+              overrides:
+                metrics: /v1/metricsOverride
+                logs: /v1/logsOverride
+            """;
+
+        // WHEN
+        OtlpOptionsConfig options = jsonb.fromJson(yaml, OtlpOptionsConfig.class);
+
+        // THEN
+        assertThat(options, not(nullValue()));
+        assertThat(options.interval, equalTo(Duration.parse("PT30S")));
+        assertThat(options.signals, containsInAnyOrder(METRICS));
+        assertThat(options.endpoint.location, equalTo(URI.create("http://localhost:4317")));
+        assertThat(options.endpoint.overrides.metrics, equalTo(URI.create("/v1/metricsOverride")));
+        assertThat(options.endpoint.overrides.logs, equalTo(URI.create("/v1/logsOverride")));
+    }
+
+    @Test
+    public void shouldWriteOptions()
+    {
+        // GIVEN
+        String expected =
+            """
+            interval: 30
+            signals:
+              - metrics
+            endpoint:
+              location: "http://localhost:4317"
+              overrides:
+                metrics: /v1/metrics
+                logs: /v1/logs
+            """;
+
+        OtlpOptionsConfig config = OtlpOptionsConfig.builder()
+            .interval(Duration.ofSeconds(30))
+            .signals(Set.of(METRICS))
+            .endpoint()
+                .protocol("http")
+                .location(URI.create("http://localhost:4317"))
+                .overrides()
+                    .metrics(URI.create("/v1/metrics"))
+                    .logs(URI.create("/v1/logs"))
+                    .build()
+                .build()
+            .build();
+
+        // WHEN
+        String yaml = jsonb.toJson(config);
+
+        // THEN
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(expected));
+    }
+}

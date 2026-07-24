@@ -29,8 +29,8 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/catalog/schema/registry/schema/schema.registry.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/catalog/karapace/schema/karapace.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/catalog/schema/registry/internal/schema/schema.registry.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/catalog/karapace/internal/schema/karapace.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/catalog/karapace/config");
 
     @Test

@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfig;
+import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
+import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi;
 

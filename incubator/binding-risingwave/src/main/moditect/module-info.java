@@ -16,15 +16,8 @@ module io.aklivity.zilla.runtime.binding.risingwave
 {
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.pgsql;
-
-    exports io.aklivity.zilla.runtime.binding.risingwave.config;
+    requires io.aklivity.zilla.config.binding.risingwave;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.risingwave.internal.RisingwaveBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.risingwave.internal.config.RisingwaveConditionConfigAdapter;
 }

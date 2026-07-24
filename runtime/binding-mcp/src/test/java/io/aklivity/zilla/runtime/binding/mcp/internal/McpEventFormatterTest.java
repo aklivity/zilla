@@ -52,7 +52,7 @@ public class McpEventFormatterTest
     private String format()
     {
         McpEventFormatterFactory factory = new McpEventFormatterFactory();
-        assertEquals(McpBinding.NAME, factory.type());
+        assertEquals(McpBinding.TYPE, factory.type());
         McpEventFormatter formatter = factory.create(new Configuration());
 
         DirectBufferEx event = captured.get();

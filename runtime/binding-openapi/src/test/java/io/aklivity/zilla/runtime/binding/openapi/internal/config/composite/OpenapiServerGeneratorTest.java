@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -37,27 +37,27 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.openapi.config.OpenapiOptionsConfig;
+import io.aklivity.zilla.config.binding.http.HttpAuthorizationConfig;
+import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
+import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
+import io.aklivity.zilla.config.binding.openapi.OpenapiConditionConfig;
+import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
+import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfigBuilder;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditionConfig;
-import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiConditionServerConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class OpenapiServerGeneratorTest
 {
@@ -201,7 +201,7 @@ public class OpenapiServerGeneratorTest
     private BindingConfig binding(
         Map<String, String> security)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")
@@ -222,7 +222,7 @@ public class OpenapiServerGeneratorTest
     private BindingConfig bindingWithOverlay(
         Map<String, String> security)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")
@@ -243,7 +243,7 @@ public class OpenapiServerGeneratorTest
 
     private BindingConfig bindingSecure()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")
@@ -264,7 +264,7 @@ public class OpenapiServerGeneratorTest
     private BindingConfig bindingMultiServers(
         ConditionConfig when)
     {
-        BindingConfigBuilder<BindingConfig> builder = BindingConfig.builder()
+        GenericBindingConfigBuilder<GenericBindingConfig> builder = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
             .type("openapi")
@@ -533,8 +533,11 @@ public class OpenapiServerGeneratorTest
     @Test
     public void shouldIncludeOperationWhenServersMatchWhenClause()
     {
-        ConditionConfig when = new OpenapiConditionConfig(null, null, null,
-            List.of(new OpenapiConditionServerConfig("http://localhost:9090/prod")));
+        ConditionConfig when = OpenapiConditionConfig.builder()
+            .server()
+                .url("http://localhost:9090/prod")
+                .build()
+            .build();
         BindingConfig binding = bindingMultiServers(when);
 
         OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding));
@@ -545,8 +548,11 @@ public class OpenapiServerGeneratorTest
     @Test
     public void shouldExcludeOperationViaWhenServers()
     {
-        ConditionConfig when = new OpenapiConditionConfig(null, null, null,
-            List.of(new OpenapiConditionServerConfig("http://localhost:9090/prod")));
+        ConditionConfig when = OpenapiConditionConfig.builder()
+            .server()
+                .url("http://localhost:9090/prod")
+                .build()
+            .build();
         BindingConfig binding = bindingMultiServers(when);
 
         OpenapiCompositeConfig composite = generator.generate(newBindingConfig(binding));

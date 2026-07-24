@@ -34,14 +34,15 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpKeywordToolSearchIndexConfig;
+import io.aklivity.zilla.config.binding.mcp.McpCacheConfig;
+import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache.McpListCache;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -59,7 +60,7 @@ public class McpProxyCacheTest
         when(context.supplyStore(anyLong())).thenReturn(mock(StoreHandler.class));
         when(context.supplyGuard(anyLong())).thenReturn(guard);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp")
@@ -181,7 +182,7 @@ public class McpProxyCacheTest
         when(context.supplyStore(anyLong())).thenReturn(mock(StoreHandler.class));
         when(context.supplyGuard(anyLong())).thenReturn(guard);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp")
@@ -196,7 +197,7 @@ public class McpProxyCacheTest
                 .search()
                     .toolkit("zilla")
                     .fields(of("name", "description"))
-                    .index(new McpKeywordToolSearchIndexConfig())
+                    .index(McpKeywordToolSearchIndexConfig.builder().build())
                     .build()
                 .build()
             .build();
@@ -239,7 +240,7 @@ public class McpProxyCacheTest
         when(context.supplyStore(anyLong())).thenReturn(mock(StoreHandler.class));
         when(context.supplyGuard(anyLong())).thenReturn(guard);
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp")
@@ -254,7 +255,7 @@ public class McpProxyCacheTest
                 .search()
                     .toolkit("zilla")
                     .fields(of("name", "description"))
-                    .index(new McpKeywordToolSearchIndexConfig())
+                    .index(McpKeywordToolSearchIndexConfig.builder().build())
                     .build()
                 .build()
             .build();

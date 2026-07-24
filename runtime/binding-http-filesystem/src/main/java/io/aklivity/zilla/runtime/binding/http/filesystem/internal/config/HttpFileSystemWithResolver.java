@@ -29,6 +29,7 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemWithConfig;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.String8FW;

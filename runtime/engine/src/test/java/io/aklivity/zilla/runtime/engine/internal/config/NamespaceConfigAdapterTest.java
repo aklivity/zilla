@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyCollectionOf;
@@ -33,9 +33,16 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.BindingInfoRegistry;
+import io.aklivity.zilla.config.engine.CatalogInfoRegistry;
+import io.aklivity.zilla.config.engine.ExporterInfoRegistry;
+import io.aklivity.zilla.config.engine.GuardInfoRegistry;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.StoreInfoRegistry;
+import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.config.engine.VaultInfoRegistry;
+import io.aklivity.zilla.config.engine.internal.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfig;
@@ -190,8 +197,15 @@ public class NamespaceConfigAdapterTest
     @Before
     public void initJson()
     {
+        BindingInfoRegistry bindingInfos = BindingInfoRegistry.instantiate();
+        CatalogInfoRegistry catalogInfos = CatalogInfoRegistry.instantiate();
+        GuardInfoRegistry guardInfos = GuardInfoRegistry.instantiate();
+        VaultInfoRegistry vaultInfos = VaultInfoRegistry.instantiate();
+        ExporterInfoRegistry exporterInfos = ExporterInfoRegistry.instantiate();
+        StoreInfoRegistry storeInfos = StoreInfoRegistry.instantiate();
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter());
+                .withAdapters(new NamespaceAdapter(
+                    bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos, storeInfos));
         jsonb = JsonbBuilder.create(config);
     }
 

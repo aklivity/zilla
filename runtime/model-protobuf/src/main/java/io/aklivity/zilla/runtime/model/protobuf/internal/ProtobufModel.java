@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
@@ -44,11 +42,5 @@ public class ProtobufModel implements Model
         EngineContext context)
     {
         return new ProtobufModelContext(config, context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/protobuf.schema.patch.json");
     }
 }

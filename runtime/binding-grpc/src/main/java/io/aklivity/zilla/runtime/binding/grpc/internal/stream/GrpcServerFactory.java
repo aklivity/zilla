@@ -30,6 +30,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcBindingConfig;
@@ -68,7 +69,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class GrpcServerFactory implements GrpcStreamFactory
 {
@@ -258,7 +258,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.grpcTypeId = context.supplyTypeId(GrpcBinding.NAME);
+        this.grpcTypeId = context.supplyTypeId(GrpcBinding.TYPE);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
     }
 

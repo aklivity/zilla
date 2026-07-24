@@ -15,15 +15,8 @@
 module io.aklivity.zilla.runtime.binding.sse.kafka
 {
     requires io.aklivity.zilla.runtime.engine;
-
-    exports io.aklivity.zilla.runtime.binding.sse.kafka.config;
+    requires io.aklivity.zilla.config.binding.sse.kafka;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfigAdapter;
 }

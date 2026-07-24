@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static java.util.function.Function.identity;
 
 import java.util.ArrayList;
@@ -27,20 +27,24 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfigBuilder;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfigBuilder;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchConfigBuilder;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterConfigBuilder;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchMergeConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceAsyncHeaderConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceConfigBuilder;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiConditionConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiWithConfig;
+import io.aklivity.zilla.config.engine.BindingConfigBuilder;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeRouteConfig;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiConditionConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiRouteConfig;
-import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiWithConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaFilter;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.model.extensions.http.kafka.OpenapiHttpKafkaOperationEx;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
@@ -55,10 +59,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiResponseView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiSchemaView;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiCompositeGenerator
 {
@@ -270,8 +270,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                         .build();
                 }
 
-                private <C> BindingConfigBuilder<C> injectHttpKafkaRoutes(
-                    BindingConfigBuilder<C> binding)
+                private <C, B extends BindingConfigBuilder<C, B>> B injectHttpKafkaRoutes(
+                    B binding)
                 {
                     for (ProxyRouteHelper route : httpKafkaRoutes)
                     {
@@ -377,8 +377,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     return Pattern.compile(regex.toString());
                 }
 
-                private <C> BindingConfigBuilder<C> injectHttpKafkaRoute(
-                    BindingConfigBuilder<C> binding,
+                private <C, B extends BindingConfigBuilder<C, B>> B injectHttpKafkaRoute(
+                    B binding,
                     OpenapiSchemaConfig schema,
                     OpenapiOperationView httpOp,
                     AsyncapiOperationView kafkaOp)
@@ -387,23 +387,23 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                     {
                         final GuardedResolution resolution = resolveGuarded(schema, httpOp);
 
-                        binding
+                        RouteConfigBuilder<?, ?> route = binding
                             .route()
                                 .exit(config.qname)
                                 .when(HttpKafkaConditionConfig::builder)
                                     .method(httpOp.method)
                                     .path(httpOp.path)
-                                    .build()
-                                .inject(r -> injectHttpKafkaRouteWith(r, httpOp, kafkaOp, guardQname(resolution)))
-                                .inject(r -> injectHttpServerRouteGuarded(r, resolution))
-                                .build();
+                                    .build();
+                        injectHttpKafkaRouteWith(route, httpOp, kafkaOp, guardQname(resolution));
+                        injectHttpServerRouteGuarded(route, resolution);
+                        route.build();
                     }
 
                     return binding;
                 }
 
-                private <C> RouteConfigBuilder<C> injectHttpKafkaRouteWith(
-                    RouteConfigBuilder<C> route,
+                private void injectHttpKafkaRouteWith(
+                    RouteConfigBuilder<?, ?> route,
                     OpenapiOperationView httpOperation,
                     AsyncapiOperationView kafkaOperation,
                     String guardQname)
@@ -431,8 +431,6 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                             .build();
                         break;
                     }
-
-                    return route;
                 }
 
                 private <C> HttpKafkaWithFetchConfigBuilder<C> injectHttpKafkaRouteFetchWith(
@@ -598,8 +596,8 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                 }
 
 
-                private <C> RouteConfigBuilder<C> injectHttpServerRouteGuarded(
-                    RouteConfigBuilder<C> route,
+                private void injectHttpServerRouteGuarded(
+                    RouteConfigBuilder<?, ?> route,
                     GuardedResolution resolution)
                 {
                     for (GuardedRef ref : resolution.guarded)
@@ -610,8 +608,6 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                                 .inject(guarded -> injectGuardedRoles(guarded, ref.roles))
                                 .build();
                     }
-
-                    return route;
                 }
 
                 private GuardedResolution resolveGuarded(

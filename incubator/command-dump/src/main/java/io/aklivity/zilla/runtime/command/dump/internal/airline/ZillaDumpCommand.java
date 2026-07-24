@@ -54,6 +54,7 @@ import org.agrona.concurrent.IdleStrategy;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.Info;
@@ -82,7 +83,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.reader.BindingsLayoutReader;
 
 @Command(name = "dump", description = "Dump stream content")

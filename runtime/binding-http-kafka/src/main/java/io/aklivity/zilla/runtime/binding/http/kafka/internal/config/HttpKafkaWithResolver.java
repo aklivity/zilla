@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 import java.util.ArrayList;
@@ -28,15 +29,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchFilterHeaderConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithFetchMergeConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceAsyncHeaderConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceConfig;
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaWithProduceOverrideConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCapability;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterHeaderConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchMergeConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceAsyncHeaderConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceOverrideConfig;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.stream.HttpKafkaEtagHelper;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
@@ -48,7 +50,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 
 public final class HttpKafkaWithResolver
 {
@@ -167,7 +169,8 @@ public final class HttpKafkaWithResolver
 
     private final byte[] hashBytesRW = new byte[8192];
 
-    private final HttpKafkaOptionsConfig options;
+    private final HttpKafkaCorrelationResolver correlation;
+    private final String8FW idempotencyHeader;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final LongObjectBiFunction<MatchResult, String> attributeReplacer;
     private final HttpKafkaWithConfig with;
@@ -179,6 +182,7 @@ public final class HttpKafkaWithResolver
     private final Matcher preferWaitMatcher;
     private final Matcher preferAsyncMatcher;
     private final Matcher etagMatcher;
+    private final List<Matcher> asyncMatchers;
 
     private Function<MatchResult, String> replacer = r -> null;
 
@@ -188,7 +192,8 @@ public final class HttpKafkaWithResolver
         LongObjectBiFunction<MatchResult, String> attributeReplacer,
         HttpKafkaWithConfig with)
     {
-        this.options = options;
+        this.correlation = new HttpKafkaCorrelationResolver(options.correlation);
+        this.idempotencyHeader = new String8FW(options.idempotency.header);
         this.identityReplacer = identityReplacer;
         this.attributeReplacer = attributeReplacer;
         this.with = with;
@@ -200,6 +205,37 @@ public final class HttpKafkaWithResolver
         this.preferWaitMatcher = HEADER_VALUE_PREFER_WAIT_PATTERN.matcher("");
         this.preferAsyncMatcher = HEADER_VALUE_PREFER_ASYNC_PATTERN.matcher("");
         this.etagMatcher = HEADER_VALUE_ETAG_PATTERN.matcher("");
+        this.asyncMatchers = with.produce
+            .filter(p -> p.async.isPresent())
+            .map(p -> p.async.get().stream()
+                .map(h -> h.value)
+                .filter(v -> v.contains("${correlationId}"))
+                .map(HttpKafkaWithResolver::asMatcher)
+                .collect(toList()))
+            .orElse(null);
+    }
+
+    private static Matcher asMatcher(
+        String wildcard)
+    {
+        return Pattern
+                .compile(wildcard.replaceAll("\\$\\{(?:params\\.)?([a-zA-Z_]+)\\}", "(?<$1>.+)"))
+                .matcher("");
+    }
+
+    private String16FW resolveAsyncCorrelationId(
+        HttpHeaderFW path)
+    {
+        final String httpPath = path.value().asString();
+
+        return asyncMatchers != null
+            ? asyncMatchers.stream()
+                .filter(m -> m.reset(httpPath).matches())
+                .map(m -> m.group("correlationId"))
+                .map(String16FW::new)
+                .findFirst()
+                .orElse(null)
+            : null;
     }
 
     public void onConditionMatched(
@@ -331,7 +367,7 @@ public final class HttpKafkaWithResolver
             if (HEADER_VALUE_METHOD_GET.equals(httpMethod.value()))
             {
                 final HttpHeaderFW httpPath = httpHeaders.matchFirst(h -> HEADER_NAME_PATH.equals(h.name()));
-                correlationId = produce.correlationId(httpPath);
+                correlationId = resolveAsyncCorrelationId(httpPath);
 
                 if (preferValue != null && preferWaitMatcher.reset(preferValue).find())
                 {
@@ -342,7 +378,7 @@ public final class HttpKafkaWithResolver
 
         final String16FW asyncId = correlationId;
 
-        final HttpHeaderFW httpIdempotencyKey = httpHeaders.matchFirst(h -> options.idempotency.header.equals(h.name()));
+        final HttpHeaderFW httpIdempotencyKey = httpHeaders.matchFirst(h -> idempotencyHeader.equals(h.name()));
         final String16FW idempotencyKey = correlationId == null && httpIdempotencyKey != null
                 ? new String16FW(httpIdempotencyKey.value().asString())
                 : correlationId == null
@@ -389,7 +425,7 @@ public final class HttpKafkaWithResolver
         // TODO: hoist to constructor if constant
         String16FW topic = resolveTopic(authorization, produce.topic);
 
-        KafkaAckMode acks = produce.acks;
+        KafkaAckMode acks = KafkaAckMode.valueOf(produce.acks.toUpperCase());
 
         Supplier<DirectBufferEx> keyRef = () -> null;
         if (produce.key.isPresent())
@@ -464,9 +500,13 @@ public final class HttpKafkaWithResolver
             }
         }
 
+        final String16FW produceCorrelationId = produce.correlationId != null
+            ? new String16FW(produce.correlationId)
+            : null;
+
         return new HttpKafkaWithProduceResult(
-                compositeId, options.correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
-                produce.correlationId, idempotencyKey, async, hash, timeout);
+                compositeId, correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
+                produceCorrelationId, idempotencyKey, async, hash, timeout);
     }
 
     private String16FW resolveTopic(

@@ -28,14 +28,15 @@ import java.time.Clock;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.ValidateConfig;
+import io.aklivity.zilla.config.engine.ValidateMode;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidateConfig;
-import io.aklivity.zilla.runtime.engine.config.ValidateMode;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
@@ -43,7 +44,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonModelLenientTest
 {
@@ -73,7 +73,7 @@ public class JsonModelLenientTest
     public void shouldRelaxDecodeOnlyWhenEncodeStrict()
     {
         JsonModelHandlerImpl handler = newHandler(
-            new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT));
+            ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.STRICT).build());
 
         byte[] in = "{\"id\":123}".getBytes(UTF_8);
 
@@ -108,12 +108,12 @@ public class JsonModelLenientTest
 
     private static ValidateConfig strict()
     {
-        return new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT);
+        return ValidateConfig.builder().decode(ValidateMode.STRICT).encode(ValidateMode.STRICT).build();
     }
 
     private static ValidateConfig lenient()
     {
-        return new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT);
+        return ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build();
     }
 
     private JsonModelHandlerImpl newHandler(

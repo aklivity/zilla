@@ -22,7 +22,14 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCapability;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterHeaderConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceConfig;
+import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceOverrideConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream.GrpcKafkaIdHelper;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
@@ -35,7 +42,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBe
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 
 public final class GrpcKafkaWithResolver
 {
@@ -54,6 +61,9 @@ public final class GrpcKafkaWithResolver
     private final byte[] hashBytesRW = new byte[8192];
 
     private final Varuint32FW fieldId;
+    private final String8FW reliabilityMetadata;
+    private final String8FW idempotencyMetadata;
+    private final GrpcKafkaCorrelationResolver correlation;
     private final GrpcKafkaOptionsConfig options;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final LongObjectBiFunction<MatchResult, String> attributeReplacer;
@@ -75,6 +85,9 @@ public final class GrpcKafkaWithResolver
         this.attributeMatcher = ATTRIBUTE_PATTERN.matcher("");
         this.fieldId = new Varuint32FW.Builder() .wrap(new UnsafeBufferEx(new byte[8]), 0, 8)
             .set(options.reliability.field << 3 | BYTES_WIRE_TYPE).build();
+        this.reliabilityMetadata = new String8FW(options.reliability.metadata);
+        this.idempotencyMetadata = new String8FW(options.idempotency.metadata);
+        this.correlation = new GrpcKafkaCorrelationResolver(options.correlation);
     }
 
     public GrpcKafkaCapability capability()
@@ -91,7 +104,7 @@ public final class GrpcKafkaWithResolver
         String16FW topic = new String16FW(fetch.topic);
 
         final Array32FW<GrpcMetadataFW> metadata = grpcBeginExFW.metadata();
-        final DirectBufferEx metadataName = options.reliability.metadata.value();
+        final DirectBufferEx metadataName = reliabilityMetadata.value();
         GrpcMetadataFW lastMessageIdMetadata = metadata
             .matchFirst(m -> metadataName.compareTo(m.name().value()) == 0);
         Array32FW<KafkaOffsetFW> partitions = null;
@@ -164,7 +177,7 @@ public final class GrpcKafkaWithResolver
         GrpcKafkaWithProduceConfig produce = with.produce.get();
 
         String16FW topic = new String16FW(produce.topic);
-        KafkaAckMode acks = produce.acks;
+        KafkaAckMode acks = KafkaAckMode.valueOf(produce.acks.toUpperCase());
 
         Array32FW<GrpcMetadataFW> metadata = beginEx.metadata();
 
@@ -181,14 +194,14 @@ public final class GrpcKafkaWithResolver
         String16FW replyTo = new String16FW(produce.replyTo);
 
         return new GrpcKafkaWithProduceResult(service, method, metadata, topic, acks, keyRef, overrides, replyTo,
-            options.correlation, hash);
+            correlation, hash);
     }
 
     private OctetsFW resolveCorrelationId(
         Array32FW<GrpcMetadataFW> metadata)
     {
         final GrpcMetadataFW idempotencyKey = metadata.matchFirst(m ->
-            options.idempotency.metadata.value().compareTo(m.name().value()) == 0);
+            idempotencyMetadata.value().compareTo(m.name().value()) == 0);
         OctetsFW correlationId = null;
         if (idempotencyKey != null)
         {

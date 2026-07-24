@@ -1,0 +1,64 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.binding.mqtt.kafka.internal;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaWithConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
+import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
+
+public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+{
+    private static final String MESSAGES_NAME = "messages";
+
+    @Override
+    public String type()
+    {
+        return MqttKafkaBindingInfo.TYPE;
+    }
+
+    @Override
+    public JsonObject adaptToJson(
+        WithConfig with)
+    {
+        MqttKafkaWithConfig config = (MqttKafkaWithConfig) with;
+
+        JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (config.messages != null)
+        {
+            object.add(MESSAGES_NAME, config.messages);
+        }
+
+        return object.build();
+    }
+
+    @Override
+    public WithConfig adaptFromJson(
+        JsonObject object)
+    {
+        String topic = object.containsKey(MESSAGES_NAME)
+            ? object.getString(MESSAGES_NAME)
+            : null;
+
+        return MqttKafkaWithConfig.builder()
+            .messages(topic)
+            .build();
+    }
+}

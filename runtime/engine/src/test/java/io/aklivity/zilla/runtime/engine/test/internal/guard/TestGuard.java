@@ -17,19 +17,18 @@ package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 
-import java.net.URL;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class TestGuard implements Guard
 {
@@ -47,12 +46,6 @@ public final class TestGuard implements Guard
     public String name()
     {
         return NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("test.schema.patch.json");
     }
 
     @Override

@@ -20,10 +20,52 @@ This project includes:
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   jose4j under The Apache Software License, Version 2.0
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  zilla::config::binding-asyncapi.conf under Aklivity Community License Agreement
+  zilla::config::binding-echo.conf under Aklivity Community License Agreement
+  zilla::config::binding-fan.conf under Aklivity Community License Agreement
+  zilla::config::binding-filesystem.conf under Aklivity Community License Agreement
+  zilla::config::binding-grpc-kafka.conf under Aklivity Community License Agreement
+  zilla::config::binding-grpc.conf under Aklivity Community License Agreement
+  zilla::config::binding-http-filesystem.conf under Aklivity Community License Agreement
+  zilla::config::binding-http-kafka.conf under Aklivity Community License Agreement
+  zilla::config::binding-http.conf under Aklivity Community License Agreement
+  zilla::config::binding-kafka-grpc.conf under Aklivity Community License Agreement
+  zilla::config::binding-mcp-http.conf under Aklivity Community License Agreement
+  zilla::config::binding-mcp-kafka.conf under Aklivity Community License Agreement
+  zilla::config::binding-mcp-openapi.conf under Aklivity Community License Agreement
+  zilla::config::binding-mcp-schema-registry.conf under Aklivity Community License Agreement
+  zilla::config::binding-mcp.conf under Aklivity Community License Agreement
+  zilla::config::binding-mqtt-kafka.conf under Aklivity Community License Agreement
+  zilla::config::binding-mqtt.conf under Aklivity Community License Agreement
+  zilla::config::binding-openapi-asyncapi.conf under Aklivity Community License Agreement
+  zilla::config::binding-openapi.conf under Aklivity Community License Agreement
+  zilla::config::binding-proxy.conf under Aklivity Community License Agreement
+  zilla::config::binding-sse-kafka.conf under Aklivity Community License Agreement
+  zilla::config::binding-sse.conf under Aklivity Community License Agreement
+  zilla::config::binding-tcp.conf under Aklivity Community License Agreement
+  zilla::config::binding-tls.conf under Aklivity Community License Agreement
+  zilla::config::binding-ws.conf under Aklivity Community License Agreement
+  zilla::config::catalog-apicurio.conf under Aklivity Community License Agreement
+  zilla::config::catalog-filesystem.conf under Aklivity Community License Agreement
+  zilla::config::catalog-inline.conf under Aklivity Community License Agreement
+  zilla::config::catalog-karapace.conf under Aklivity Community License Agreement
+  zilla::config::catalog-schema-registry.conf under Aklivity Community License Agreement
+  zilla::config::engine.conf under Aklivity Community License Agreement
+  zilla::config::exporter-otlp.conf under Aklivity Community License Agreement
+  zilla::config::exporter-prometheus.conf under Aklivity Community License Agreement
+  zilla::config::exporter-stdout.conf under Aklivity Community License Agreement
+  zilla::config::guard-inline.conf under Aklivity Community License Agreement
+  zilla::config::guard-jwt.conf under Aklivity Community License Agreement
+  zilla::config::model-avro.conf under Aklivity Community License Agreement
+  zilla::config::model-core.conf under Aklivity Community License Agreement
+  zilla::config::model-json.conf under Aklivity Community License Agreement
+  zilla::config::model-protobuf.conf under Aklivity Community License Agreement
+  zilla::config::vault-filesystem.conf under Aklivity Community License Agreement
   zilla::runtime::common-agrona under The Apache Software License, Version 2.0
   zilla::runtime::common-asyncapi under Aklivity Community License Agreement
   zilla::runtime::common-feature under The Apache Software License, Version 2.0
   zilla::runtime::common-json under Aklivity Community License Agreement
+  zilla::runtime::common-lang under Aklivity Community License Agreement
   zilla::runtime::common-openapi under Aklivity Community License Agreement
   zilla::runtime::common-yaml under Aklivity Community License Agreement
 

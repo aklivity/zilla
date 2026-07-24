@@ -26,7 +26,6 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableInteger;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -162,11 +161,8 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
         if (binding != null)
         {
-            final KafkaTopicConfig topic = binding.topic(topicName);
             final long resolvedId = routedId;
-            final long defaultOffset = topic != null && topic.defaultOffset != null
-                    ? topic.defaultOffset.value()
-                    : OFFSET_HISTORICAL;
+            final long defaultOffset = binding.supplyDefaultOffset(topicName).value();
 
             newStream = new KafkaBootstrapStream(
                     sender,

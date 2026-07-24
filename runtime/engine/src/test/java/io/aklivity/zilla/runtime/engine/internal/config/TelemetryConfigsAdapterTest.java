@@ -29,7 +29,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
+import io.aklivity.zilla.config.engine.ExporterInfoRegistry;
+import io.aklivity.zilla.config.engine.TelemetryConfig;
+import io.aklivity.zilla.config.engine.internal.TelemetryAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
 public class TelemetryConfigsAdapterTest
@@ -39,8 +41,9 @@ public class TelemetryConfigsAdapterTest
     @Before
     public void initJson()
     {
+        ExporterInfoRegistry exporterInfos = ExporterInfoRegistry.instantiate();
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new TelemetryAdapter().adaptNamespace("test"));
+                .withAdapters(new TelemetryAdapter(exporterInfos).adaptNamespace("test"));
         jsonb = JsonbBuilder.create(config);
     }
 

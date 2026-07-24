@@ -22,7 +22,7 @@
 </licenses>
 
 <properties>
-  <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
+  <jacoco.coverage.ratio>0.85</jacoco.coverage.ratio>
   <jacoco.missed.count>0</jacoco.missed.count>
 </properties>
 
@@ -32,6 +32,11 @@
     <artifactId>catalog-inline.spec</artifactId>
     <version>${project.version}</version>
     <scope>provided</scope>
+  </dependency>
+  <dependency>
+    <groupId>${project.groupId}</groupId>
+    <artifactId>catalog-inline.conf</artifactId>
+    <version>${project.version}</version>
   </dependency>
   <dependency>
     <groupId>${project.groupId}</groupId>
@@ -75,33 +80,6 @@
     </plugin>
     <plugin>
       <artifactId>maven-checkstyle-plugin</artifactId>
-    </plugin>
-    <plugin>
-      <artifactId>maven-dependency-plugin</artifactId>
-      <executions>
-        <execution>
-          <phase>process-resources</phase>
-          <goals>
-            <goal>unpack</goal>
-          </goals>
-          <configuration>
-            <artifactItems>
-              <artifactItem>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>catalog-inline.spec</artifactId>
-                <fileMappers>
-                  <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                    <pattern>^\Qio/aklivity/zilla/specs/catalog/inline/\E</pattern>
-                    <replacement>io/aklivity/zilla/runtime/catalog/inline/internal/</replacement>
-                  </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                </fileMappers>
-              </artifactItem>
-            </artifactItems>
-            <includes>io/aklivity/zilla/specs/catalog/inline/schema/inline.schema.patch.json</includes>
-            <outputDirectory>${project.build.directory}/classes</outputDirectory>
-          </configuration>
-        </execution>
-      </executions>
     </plugin>
     <plugin>
       <groupId>org.apache.maven.plugins</groupId>

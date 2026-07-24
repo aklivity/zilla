@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.router;
 
+import io.aklivity.zilla.config.engine.RouterConfig;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
 import io.aklivity.zilla.runtime.engine.router.RouterContext;
 

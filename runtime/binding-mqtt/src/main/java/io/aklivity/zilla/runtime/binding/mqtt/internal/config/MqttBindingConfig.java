@@ -31,15 +31,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttPatternConfig.MqttConnectProperty;
+import io.aklivity.zilla.config.binding.mqtt.MqttCredentialsConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig.MqttConnectProperty;
+import io.aklivity.zilla.config.binding.mqtt.MqttVersion;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 

@@ -26,8 +26,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpKeywordToolSearchIndexConfig;
+import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
+import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchDocument;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchMatch;
@@ -59,7 +59,7 @@ public class McpToolSearchIndexFactoryTest
         McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
             .toolkit("zilla")
             .fields(List.of("name", "description"))
-            .index(new McpKeywordToolSearchIndexConfig())
+            .index(McpKeywordToolSearchIndexConfig.builder().build())
             .build();
 
         McpToolSearchIndex index = factory.create(search);
@@ -79,8 +79,8 @@ public class McpToolSearchIndexFactoryTest
         McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
             .toolkit("zilla")
             .fields(List.of("name", "description"))
-            .index(new McpKeywordToolSearchIndexConfig())
-            .index(new McpKeywordToolSearchIndexConfig())
+            .index(McpKeywordToolSearchIndexConfig.builder().build())
+            .index(McpKeywordToolSearchIndexConfig.builder().build())
             .build();
 
         McpToolSearchIndex index = factory.create(search);

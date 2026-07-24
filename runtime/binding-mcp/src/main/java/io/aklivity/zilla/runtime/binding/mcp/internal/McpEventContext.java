@@ -49,7 +49,7 @@ public final class McpEventContext
     public McpEventContext(
         EngineContext context)
     {
-        this.mcpTypeId = context.supplyTypeId(McpBinding.NAME);
+        this.mcpTypeId = context.supplyTypeId(McpBinding.TYPE);
         this.sessionEstablishedEventId = context.supplyEventId("binding.mcp.session.established");
         this.sessionClosedEventId = context.supplyEventId("binding.mcp.session.closed");
         this.authorizationFailedEventId = context.supplyEventId("binding.mcp.authorization.failed");
