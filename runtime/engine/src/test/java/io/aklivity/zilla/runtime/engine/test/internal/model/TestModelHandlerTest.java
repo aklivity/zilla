@@ -90,7 +90,7 @@ public class TestModelHandlerTest
     {
         TestModelConfig config = TestModelConfig.builder()
             .length(4)
-            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.STRICT).build())
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
 
@@ -223,7 +223,7 @@ public class TestModelHandlerTest
     {
         TestModelConfig config = TestModelConfig.builder()
             .length(length)
-            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
         return handler.supplyDecoder(ModelVisitor.NONE);

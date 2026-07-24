@@ -21,7 +21,7 @@ public final class HttpKafkaWithProduceOverrideConfig
     public final String name;
     public final String value;
 
-    public HttpKafkaWithProduceOverrideConfig(
+    HttpKafkaWithProduceOverrideConfig(
         String name,
         String value)
     {

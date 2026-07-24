@@ -64,7 +64,10 @@ public class WsOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        WsOptionsConfig options = new WsOptionsConfig("echo", null, "example.net:443", null);
+        WsOptionsConfig options = WsOptionsConfig.builder()
+                .protocol("echo")
+                .authority("example.net:443")
+                .build();
 
         String yaml = jsonb.toJson(options);
 

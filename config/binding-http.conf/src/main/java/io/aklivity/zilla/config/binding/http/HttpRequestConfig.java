@@ -43,7 +43,7 @@ public class HttpRequestConfig
     public final ModelConfig content;
     public final List<HttpResponseConfig> responses;
 
-    public HttpRequestConfig(
+    HttpRequestConfig(
         String path,
         Method method,
         List<String> contentType,

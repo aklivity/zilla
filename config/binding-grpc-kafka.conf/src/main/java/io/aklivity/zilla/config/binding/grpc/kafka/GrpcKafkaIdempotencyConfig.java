@@ -14,11 +14,24 @@
  */
 package io.aklivity.zilla.config.binding.grpc.kafka;
 
+import java.util.function.Function;
+
 public final class GrpcKafkaIdempotencyConfig
 {
     public final String metadata;
 
-    public GrpcKafkaIdempotencyConfig(
+    public static GrpcKafkaIdempotencyConfigBuilder<GrpcKafkaIdempotencyConfig> builder()
+    {
+        return new GrpcKafkaIdempotencyConfigBuilder<>(GrpcKafkaIdempotencyConfig.class::cast);
+    }
+
+    public static <T> GrpcKafkaIdempotencyConfigBuilder<T> builder(
+        Function<GrpcKafkaIdempotencyConfig, T> mapper)
+    {
+        return new GrpcKafkaIdempotencyConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaIdempotencyConfig(
         String metadata)
     {
         this.metadata = metadata;

@@ -126,7 +126,9 @@ public final class KafkaGrpcOptionsConfigAdapter implements JsonbAdapter<Options
                 newMetadata = idempotency.getString(IDEMPOTENCY_METADATA_NAME);
             }
 
-            newIdempotency = new KafkaGrpcIdempotencyConfig(newMetadata);
+            newIdempotency = KafkaGrpcIdempotencyConfig.builder()
+                .metadata(newMetadata)
+                .build();
         }
 
         KafkaGrpcCorrelationConfig newCorrelation = CORRELATION_DEFAULT;
@@ -161,10 +163,19 @@ public final class KafkaGrpcOptionsConfigAdapter implements JsonbAdapter<Options
                     newReplyTo = headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME);
                 }
 
-                newCorrelation = new KafkaGrpcCorrelationConfig(newCorrelationId, newService, newMethod, newReplyTo);
+                newCorrelation = KafkaGrpcCorrelationConfig.builder()
+                    .correlationId(newCorrelationId)
+                    .service(newService)
+                    .method(newMethod)
+                    .replyTo(newReplyTo)
+                    .build();
             }
         }
 
-        return new KafkaGrpcOptionsConfig(newProduceAcks, newIdempotency, newCorrelation);
+        return KafkaGrpcOptionsConfig.builder()
+            .acks(newProduceAcks)
+            .idempotency(newIdempotency)
+            .correlation(newCorrelation)
+            .build();
     }
 }

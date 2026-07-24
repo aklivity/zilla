@@ -14,14 +14,27 @@
  */
 package io.aklivity.zilla.config.model.core;
 
+import java.util.function.Function;
+
 public class RangeConfig
 {
-    public String max;
-    public String min;
-    public boolean exclusiveMax;
-    public boolean exclusiveMin;
+    public final String max;
+    public final String min;
+    public final boolean exclusiveMax;
+    public final boolean exclusiveMin;
 
-    public RangeConfig(
+    public static RangeConfigBuilder<RangeConfig> builder()
+    {
+        return new RangeConfigBuilder<>(RangeConfig.class::cast);
+    }
+
+    public static <T> RangeConfigBuilder<T> builder(
+        Function<RangeConfig, T> mapper)
+    {
+        return new RangeConfigBuilder<>(mapper);
+    }
+
+    RangeConfig(
         String max,
         String min,
         boolean exclusiveMax,

@@ -73,7 +73,10 @@ public final class KafkaTopicTransformsConfigBuilder<T> extends ConfigBuilder<T,
             this.extractHeaders = new ArrayList<>();
         }
 
-        this.extractHeaders.add(new KafkaTopicHeaderConfig(name, path));
+        this.extractHeaders.add(KafkaTopicHeaderConfig.builder()
+            .name(name)
+            .path(path)
+            .build());
 
         return this;
     }

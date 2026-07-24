@@ -73,7 +73,7 @@ public class JsonModelLenientTest
     public void shouldRelaxDecodeOnlyWhenEncodeStrict()
     {
         JsonModelHandlerImpl handler = newHandler(
-            new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT));
+            ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.STRICT).build());
 
         byte[] in = "{\"id\":123}".getBytes(UTF_8);
 
@@ -108,12 +108,12 @@ public class JsonModelLenientTest
 
     private static ValidateConfig strict()
     {
-        return new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT);
+        return ValidateConfig.builder().decode(ValidateMode.STRICT).encode(ValidateMode.STRICT).build();
     }
 
     private static ValidateConfig lenient()
     {
-        return new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT);
+        return ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build();
     }
 
     private JsonModelHandlerImpl newHandler(

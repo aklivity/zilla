@@ -14,17 +14,22 @@
  */
 package io.aklivity.zilla.config.binding.http;
 
-import static java.util.function.Function.identity;
-
 import java.util.Set;
+import java.util.function.Function;
 
 public final class HttpExposeConfig
 {
     public final Set<String> headers;
 
-    public HttpExposeConfigBuilder<HttpExposeConfig> builder()
+    public static HttpExposeConfigBuilder<HttpExposeConfig> builder()
     {
-        return new HttpExposeConfigBuilder<>(identity());
+        return new HttpExposeConfigBuilder<>(HttpExposeConfig.class::cast);
+    }
+
+    public static <T> HttpExposeConfigBuilder<T> builder(
+        Function<HttpExposeConfig, T> mapper)
+    {
+        return new HttpExposeConfigBuilder<>(mapper);
     }
 
     HttpExposeConfig(

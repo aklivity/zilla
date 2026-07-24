@@ -100,7 +100,10 @@ public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<Grp
             {
                 String value = overrides.getString(name);
 
-                newOverrides.add(new GrpcKafkaWithProduceOverrideConfig(name, value));
+                newOverrides.add(GrpcKafkaWithProduceOverrideConfig.builder()
+                    .name(name)
+                    .value(value)
+                    .build());
             }
         }
 
@@ -110,7 +113,14 @@ public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<Grp
             newReplyTo = object.getString(REPLY_TO_NAME);
         }
 
-        return new GrpcKafkaWithConfig(
-            new GrpcKafkaWithProduceConfig(newTopic, newProduceAcks, newProduceKey, newOverrides, newReplyTo));
+        return GrpcKafkaWithConfig.builder()
+            .produce(GrpcKafkaWithProduceConfig.builder()
+                .topic(newTopic)
+                .acks(newProduceAcks)
+                .key(newProduceKey)
+                .overrides(newOverrides)
+                .replyTo(newReplyTo)
+                .build())
+            .build();
     }
 }

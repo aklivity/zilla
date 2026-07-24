@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.proxy;
 
+import java.util.function.Function;
+
 public class ProxySecureInfoConfig
 {
     public final String version;
@@ -26,7 +28,18 @@ public class ProxySecureInfoConfig
 
     public final String signature;
 
-    public ProxySecureInfoConfig(
+    public static ProxySecureInfoConfigBuilder<ProxySecureInfoConfig> builder()
+    {
+        return new ProxySecureInfoConfigBuilder<>(ProxySecureInfoConfig.class::cast);
+    }
+
+    public static <T> ProxySecureInfoConfigBuilder<T> builder(
+        Function<ProxySecureInfoConfig, T> mapper)
+    {
+        return new ProxySecureInfoConfigBuilder<>(mapper);
+    }
+
+    ProxySecureInfoConfig(
         String version,
         String cipher,
         String key,

@@ -153,7 +153,10 @@ public final class GrpcKafkaOptionsConfigAdapter implements JsonbAdapter<Options
                 newMetadata = reliability.getString(RELIABILITY_METADATA_NAME);
             }
 
-            newReliability = new GrpcKafkaReliabilityConfig(newField, newMetadata);
+            newReliability = GrpcKafkaReliabilityConfig.builder()
+                .field(newField)
+                .metadata(newMetadata)
+                .build();
         }
 
         GrpcKafkaIdempotencyConfig newIdempotency = IDEMPOTENCY_DEFAULT;
@@ -167,7 +170,9 @@ public final class GrpcKafkaOptionsConfigAdapter implements JsonbAdapter<Options
                 newMetadata = idempotency.getString(IDEMPOTENCY_METADATA_NAME);
             }
 
-            newIdempotency = new GrpcKafkaIdempotencyConfig(newMetadata);
+            newIdempotency = GrpcKafkaIdempotencyConfig.builder()
+                .metadata(newMetadata)
+                .build();
         }
 
         GrpcKafkaCorrelationConfig newCorrelation = CORRELATION_DEFAULT;
@@ -202,10 +207,19 @@ public final class GrpcKafkaOptionsConfigAdapter implements JsonbAdapter<Options
                     newReplyTo = headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME);
                 }
 
-                newCorrelation = new GrpcKafkaCorrelationConfig(newCorrelationId, newService, newMethod, newReplyTo);
+                newCorrelation = GrpcKafkaCorrelationConfig.builder()
+                    .correlationId(newCorrelationId)
+                    .service(newService)
+                    .method(newMethod)
+                    .replyTo(newReplyTo)
+                    .build();
             }
         }
 
-        return new GrpcKafkaOptionsConfig(newReliability, newIdempotency, newCorrelation);
+        return GrpcKafkaOptionsConfig.builder()
+            .reliability(newReliability)
+            .idempotency(newIdempotency)
+            .correlation(newCorrelation)
+            .build();
     }
 }

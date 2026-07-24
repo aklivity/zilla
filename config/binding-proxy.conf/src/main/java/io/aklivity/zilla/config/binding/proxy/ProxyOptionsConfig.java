@@ -14,11 +14,24 @@
  */
 package io.aklivity.zilla.config.binding.proxy;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class ProxyOptionsConfig extends OptionsConfig
 {
-    public ProxyOptionsConfig()
+    public static ProxyOptionsConfigBuilder<ProxyOptionsConfig> builder()
+    {
+        return new ProxyOptionsConfigBuilder<>(ProxyOptionsConfig.class::cast);
+    }
+
+    public static <T> ProxyOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new ProxyOptionsConfigBuilder<>(mapper);
+    }
+
+    ProxyOptionsConfig()
     {
     }
 }

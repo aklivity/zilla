@@ -107,6 +107,11 @@ public final class WsOptionsConfigAdapter implements JsonbAdapter<OptionsConfig,
             }
         }
 
-        return new WsOptionsConfig(protocol, scheme, authority, path);
+        return WsOptionsConfig.builder()
+            .protocol(protocol)
+            .scheme(scheme)
+            .authority(authority)
+            .path(path)
+            .build();
     }
 }

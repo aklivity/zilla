@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.ws;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class WsConditionConfig extends ConditionConfig
@@ -23,7 +25,18 @@ public final class WsConditionConfig extends ConditionConfig
     public final String authority;
     public final String path;
 
-    public WsConditionConfig(
+    public static WsConditionConfigBuilder<WsConditionConfig> builder()
+    {
+        return new WsConditionConfigBuilder<>(WsConditionConfig.class::cast);
+    }
+
+    public static <T> WsConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new WsConditionConfigBuilder<>(mapper);
+    }
+
+    WsConditionConfig(
         String protocol,
         String scheme,
         String authority,

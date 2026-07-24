@@ -144,7 +144,7 @@ public class BooleanModelConfigAdapterTest
                 "\"validate\":\"lenient\"" +
             "}";
         BooleanModelConfig model = BooleanModelConfig.builder()
-            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .build();
 
         // WHEN
@@ -160,7 +160,7 @@ public class BooleanModelConfigAdapterTest
         // GIVEN
         String expected = "\"boolean\"";
         BooleanModelConfig model = BooleanModelConfig.builder()
-            .validate(new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.STRICT).encode(ValidateMode.STRICT).build())
             .build();
 
         // WHEN

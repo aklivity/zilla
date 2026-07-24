@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.grpc.kafka;
 
+import java.util.function.Function;
+
 public final class GrpcKafkaCorrelationConfig
 {
     public final String correlationId;
@@ -21,8 +23,18 @@ public final class GrpcKafkaCorrelationConfig
     public final String method;
     public final String replyTo;
 
+    public static GrpcKafkaCorrelationConfigBuilder<GrpcKafkaCorrelationConfig> builder()
+    {
+        return new GrpcKafkaCorrelationConfigBuilder<>(GrpcKafkaCorrelationConfig.class::cast);
+    }
 
-    public GrpcKafkaCorrelationConfig(
+    public static <T> GrpcKafkaCorrelationConfigBuilder<T> builder(
+        Function<GrpcKafkaCorrelationConfig, T> mapper)
+    {
+        return new GrpcKafkaCorrelationConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaCorrelationConfig(
         String correlationId,
         String service,
         String method,

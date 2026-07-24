@@ -24,7 +24,7 @@ public class CatalogedConfig
     public final String name;
     public final List<SchemaConfig> schemas;
 
-    public CatalogedConfig(
+    CatalogedConfig(
         String name,
         List<SchemaConfig> schemas)
     {

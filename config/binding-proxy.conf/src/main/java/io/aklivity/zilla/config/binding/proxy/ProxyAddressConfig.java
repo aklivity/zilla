@@ -14,13 +14,26 @@
  */
 package io.aklivity.zilla.config.binding.proxy;
 
+import java.util.function.Function;
+
 public class ProxyAddressConfig
 {
     public final String host;
 
     public final Integer port;
 
-    public ProxyAddressConfig(
+    public static ProxyAddressConfigBuilder<ProxyAddressConfig> builder()
+    {
+        return new ProxyAddressConfigBuilder<>(ProxyAddressConfig.class::cast);
+    }
+
+    public static <T> ProxyAddressConfigBuilder<T> builder(
+        Function<ProxyAddressConfig, T> mapper)
+    {
+        return new ProxyAddressConfigBuilder<>(mapper);
+    }
+
+    ProxyAddressConfig(
         String host,
         Integer port)
     {

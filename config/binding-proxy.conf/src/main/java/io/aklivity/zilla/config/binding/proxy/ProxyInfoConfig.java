@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.proxy;
 
+import java.util.function.Function;
+
 public class ProxyInfoConfig
 {
     public final String alpn;
@@ -26,7 +28,18 @@ public class ProxyInfoConfig
 
     public final ProxySecureInfoConfig secure;
 
-    public ProxyInfoConfig(
+    public static ProxyInfoConfigBuilder<ProxyInfoConfig> builder()
+    {
+        return new ProxyInfoConfigBuilder<>(ProxyInfoConfig.class::cast);
+    }
+
+    public static <T> ProxyInfoConfigBuilder<T> builder(
+        Function<ProxyInfoConfig, T> mapper)
+    {
+        return new ProxyInfoConfigBuilder<>(mapper);
+    }
+
+    ProxyInfoConfig(
         String alpn,
         String authority,
         byte[] identity,

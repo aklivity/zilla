@@ -19,9 +19,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.binding.proxy.ProxyAddressConfig;
 import io.aklivity.zilla.config.binding.proxy.ProxyConditionConfig;
-import io.aklivity.zilla.config.binding.proxy.ProxyInfoConfig;
+import io.aklivity.zilla.config.binding.proxy.ProxyConditionConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class ProxyConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
@@ -75,15 +74,33 @@ public final class ProxyConditionConfigAdapter implements JsonbAdapter<Condition
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String transport = object.containsKey(TRANSPORT_NAME) ? object.getString(TRANSPORT_NAME) : null;
-        String family = object.containsKey(FAMILY_NAME) ? object.getString(FAMILY_NAME) : null;
-        ProxyAddressConfig source =
-                object.containsKey(SOURCE_NAME) ? address.adaptFromJson(object.getJsonObject(SOURCE_NAME)) : null;
-        ProxyAddressConfig destination =
-                object.containsKey(DESTINATION_NAME) ? address.adaptFromJson(object.getJsonObject(DESTINATION_NAME)) : null;
-        ProxyInfoConfig info =
-                object.containsKey(INFO_NAME) ? this.info.adaptFromJson(object.getJsonObject(INFO_NAME)) : null;
+        ProxyConditionConfigBuilder<ProxyConditionConfig> condition = ProxyConditionConfig.builder();
 
-        return new ProxyConditionConfig(transport, family, source, destination, info);
+        if (object.containsKey(TRANSPORT_NAME))
+        {
+            condition.transport(object.getString(TRANSPORT_NAME));
+        }
+
+        if (object.containsKey(FAMILY_NAME))
+        {
+            condition.family(object.getString(FAMILY_NAME));
+        }
+
+        if (object.containsKey(SOURCE_NAME))
+        {
+            condition.source(address.adaptFromJson(object.getJsonObject(SOURCE_NAME)));
+        }
+
+        if (object.containsKey(DESTINATION_NAME))
+        {
+            condition.destination(address.adaptFromJson(object.getJsonObject(DESTINATION_NAME)));
+        }
+
+        if (object.containsKey(INFO_NAME))
+        {
+            condition.info(info.adaptFromJson(object.getJsonObject(INFO_NAME)));
+        }
+
+        return condition.build();
     }
 }

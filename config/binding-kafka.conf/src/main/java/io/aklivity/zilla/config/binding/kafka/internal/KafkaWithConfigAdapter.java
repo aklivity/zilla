@@ -80,6 +80,10 @@ public final class KafkaWithConfigAdapter implements WithConfigAdapterSpi, Jsonb
                 ? object.getString(ACKS_NAME)
                 : ACKS_DEFAULT;
 
-        return new KafkaWithConfig(defaultOffset, deltaType, ackMode);
+        return KafkaWithConfig.builder()
+            .defaultOffset(defaultOffset)
+            .deltaType(deltaType)
+            .ackMode(ackMode)
+            .build();
     }
 }

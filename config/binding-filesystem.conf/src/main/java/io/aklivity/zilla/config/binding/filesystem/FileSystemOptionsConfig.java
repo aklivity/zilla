@@ -17,6 +17,7 @@ package io.aklivity.zilla.config.binding.filesystem;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
+import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
@@ -27,7 +28,18 @@ public final class FileSystemOptionsConfig extends OptionsConfig
 
     private transient FileSystem fileSystem;
 
-    public FileSystemOptionsConfig(
+    public static FileSystemOptionsConfigBuilder<FileSystemOptionsConfig> builder()
+    {
+        return new FileSystemOptionsConfigBuilder<>(FileSystemOptionsConfig.class::cast);
+    }
+
+    public static <T> FileSystemOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new FileSystemOptionsConfigBuilder<>(mapper);
+    }
+
+    FileSystemOptionsConfig(
         URI location,
         FileSystemSymbolicLinksConfig symlinks)
     {

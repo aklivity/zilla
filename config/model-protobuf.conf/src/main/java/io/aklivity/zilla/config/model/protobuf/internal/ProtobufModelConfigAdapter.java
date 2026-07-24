@@ -110,7 +110,7 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
                 SchemaConfig schemaElement = schema.adaptFromJson(schemaJson);
                 schemas.add(schemaElement);
             }
-            catalogs.add(new CatalogedConfig(catalogName, schemas));
+            catalogs.add(CatalogedConfig.builder().name(catalogName).schemas(schemas).build());
         }
 
         String subject = object.containsKey(SUBJECT_NAME)

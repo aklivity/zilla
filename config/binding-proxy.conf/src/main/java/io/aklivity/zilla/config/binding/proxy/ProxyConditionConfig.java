@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.proxy;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class ProxyConditionConfig extends ConditionConfig
@@ -24,7 +26,18 @@ public final class ProxyConditionConfig extends ConditionConfig
     public final ProxyAddressConfig destination;
     public final ProxyInfoConfig info;
 
-    public ProxyConditionConfig(
+    public static ProxyConditionConfigBuilder<ProxyConditionConfig> builder()
+    {
+        return new ProxyConditionConfigBuilder<>(ProxyConditionConfig.class::cast);
+    }
+
+    public static <T> ProxyConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new ProxyConditionConfigBuilder<>(mapper);
+    }
+
+    ProxyConditionConfig(
         String transport,
         String family,
         ProxyAddressConfig source,

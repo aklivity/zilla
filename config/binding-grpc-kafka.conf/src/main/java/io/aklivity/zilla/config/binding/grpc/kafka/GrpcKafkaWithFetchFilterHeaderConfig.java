@@ -14,12 +14,25 @@
  */
 package io.aklivity.zilla.config.binding.grpc.kafka;
 
+import java.util.function.Function;
+
 public final class GrpcKafkaWithFetchFilterHeaderConfig
 {
     public final String name;
     public final String value;
 
-    public GrpcKafkaWithFetchFilterHeaderConfig(
+    public static GrpcKafkaWithFetchFilterHeaderConfigBuilder<GrpcKafkaWithFetchFilterHeaderConfig> builder()
+    {
+        return new GrpcKafkaWithFetchFilterHeaderConfigBuilder<>(GrpcKafkaWithFetchFilterHeaderConfig.class::cast);
+    }
+
+    public static <T> GrpcKafkaWithFetchFilterHeaderConfigBuilder<T> builder(
+        Function<GrpcKafkaWithFetchFilterHeaderConfig, T> mapper)
+    {
+        return new GrpcKafkaWithFetchFilterHeaderConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaWithFetchFilterHeaderConfig(
         String name,
         String value)
     {

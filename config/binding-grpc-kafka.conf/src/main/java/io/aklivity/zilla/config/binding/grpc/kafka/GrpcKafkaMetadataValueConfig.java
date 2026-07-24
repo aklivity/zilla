@@ -14,12 +14,25 @@
  */
 package io.aklivity.zilla.config.binding.grpc.kafka;
 
+import java.util.function.Function;
+
 public class GrpcKafkaMetadataValueConfig
 {
     public final String textValue;
     public final String base64Value;
 
-    public GrpcKafkaMetadataValueConfig(
+    public static GrpcKafkaMetadataValueConfigBuilder<GrpcKafkaMetadataValueConfig> builder()
+    {
+        return new GrpcKafkaMetadataValueConfigBuilder<>(GrpcKafkaMetadataValueConfig.class::cast);
+    }
+
+    public static <T> GrpcKafkaMetadataValueConfigBuilder<T> builder(
+        Function<GrpcKafkaMetadataValueConfig, T> mapper)
+    {
+        return new GrpcKafkaMetadataValueConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaMetadataValueConfig(
         String textValue,
         String base64Value)
     {

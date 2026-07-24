@@ -66,9 +66,10 @@ public class FileSystemOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        FileSystemOptionsConfig options = new FileSystemOptionsConfig(
-                URI.create("target/files"),
-                FileSystemSymbolicLinksConfig.FOLLOW);
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+                .location(URI.create("target/files"))
+                .symlinks(FileSystemSymbolicLinksConfig.FOLLOW)
+                .build();
 
         String yaml = jsonb.toJson(options);
 

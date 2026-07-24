@@ -37,6 +37,6 @@ public final class ProxyOptionsConfigAdapter implements JsonbAdapter<OptionsConf
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        return new ProxyOptionsConfig();
+        return ProxyOptionsConfig.builder().build();
     }
 }

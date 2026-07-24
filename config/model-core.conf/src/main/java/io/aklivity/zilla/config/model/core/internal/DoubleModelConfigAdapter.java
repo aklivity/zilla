@@ -79,7 +79,12 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
             String min = config.min != Double.NEGATIVE_INFINITY ? String.valueOf(config.min) : null;
             boolean exclusiveMax = config.exclusiveMax;
             boolean exclusiveMin = config.exclusiveMin;
-            RangeConfig range = new RangeConfig(max, min, exclusiveMax, exclusiveMin);
+            RangeConfig range = RangeConfig.builder()
+                .max(max)
+                .min(min)
+                .exclusiveMax(exclusiveMax)
+                .exclusiveMin(exclusiveMin)
+                .build();
             builder.add(RANGE_NAME, adapter.adaptToString(range));
 
             if (config.multiple != null)

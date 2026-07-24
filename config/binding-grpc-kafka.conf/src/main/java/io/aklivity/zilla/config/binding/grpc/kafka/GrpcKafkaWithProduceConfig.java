@@ -16,6 +16,7 @@ package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 public final class GrpcKafkaWithProduceConfig
 {
@@ -25,8 +26,18 @@ public final class GrpcKafkaWithProduceConfig
     public final Optional<List<GrpcKafkaWithProduceOverrideConfig>> overrides;
     public final String replyTo;
 
+    public static GrpcKafkaWithProduceConfigBuilder<GrpcKafkaWithProduceConfig> builder()
+    {
+        return new GrpcKafkaWithProduceConfigBuilder<>(GrpcKafkaWithProduceConfig.class::cast);
+    }
 
-    public GrpcKafkaWithProduceConfig(
+    public static <T> GrpcKafkaWithProduceConfigBuilder<T> builder(
+        Function<GrpcKafkaWithProduceConfig, T> mapper)
+    {
+        return new GrpcKafkaWithProduceConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaWithProduceConfig(
         String topic,
         String acks,
         String key,

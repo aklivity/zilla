@@ -14,13 +14,25 @@
  */
 package io.aklivity.zilla.config.binding.grpc.kafka;
 
+import java.util.function.Function;
+
 public final class GrpcKafkaReliabilityConfig
 {
     public final int field;
     public final String metadata;
 
+    public static GrpcKafkaReliabilityConfigBuilder<GrpcKafkaReliabilityConfig> builder()
+    {
+        return new GrpcKafkaReliabilityConfigBuilder<>(GrpcKafkaReliabilityConfig.class::cast);
+    }
 
-    public GrpcKafkaReliabilityConfig(
+    public static <T> GrpcKafkaReliabilityConfigBuilder<T> builder(
+        Function<GrpcKafkaReliabilityConfig, T> mapper)
+    {
+        return new GrpcKafkaReliabilityConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaReliabilityConfig(
         int field,
         String metadata)
     {

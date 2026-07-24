@@ -23,7 +23,7 @@ public final class HttpKafkaWithFetchFilterConfig
     public final Optional<String> key;
     public final Optional<List<HttpKafkaWithFetchFilterHeaderConfig>> headers;
 
-    public HttpKafkaWithFetchFilterConfig(
+    HttpKafkaWithFetchFilterConfig(
         String key,
         List<HttpKafkaWithFetchFilterHeaderConfig> headers)
     {

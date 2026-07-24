@@ -257,7 +257,7 @@ public class ProtobufModelConfigAdapterTest
         String expectedJson = """
                 {"model":"protobuf","catalog":{"test0":[{"subject":"user","version":"latest"}]},"validate":"lenient"}""";
         ProtobufModelConfig model = ProtobufModelConfig.builder()
-                .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+                .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
                 .catalog()
                     .name("test0")
                     .schema()

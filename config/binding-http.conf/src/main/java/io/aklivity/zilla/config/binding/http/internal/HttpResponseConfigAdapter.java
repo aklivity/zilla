@@ -30,6 +30,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.HttpParamConfig;
 import io.aklivity.zilla.config.binding.http.HttpResponseConfig;
+import io.aklivity.zilla.config.binding.http.HttpResponseConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 
@@ -134,6 +135,17 @@ public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfi
             JsonValue contentJson = object.get(CONTENT_NAME);
             content = model.adaptFromJson(contentJson);
         }
-        return new HttpResponseConfig(status, contentType, headers, content);
+        HttpResponseConfigBuilder<HttpResponseConfig> builder = HttpResponseConfig.builder()
+            .headers(headers)
+            .content(content);
+        if (status != null)
+        {
+            status.forEach(s -> builder.status(Integer.parseInt(s)));
+        }
+        if (contentType != null)
+        {
+            contentType.forEach(builder::contentType);
+        }
+        return builder.build();
     }
 }

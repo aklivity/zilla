@@ -23,7 +23,7 @@ public final class HttpKafkaConditionConfig extends ConditionConfig
     public final String method;
     public final String path;
 
-    public HttpKafkaConditionConfig(
+    HttpKafkaConditionConfig(
         String method,
         String path)
     {

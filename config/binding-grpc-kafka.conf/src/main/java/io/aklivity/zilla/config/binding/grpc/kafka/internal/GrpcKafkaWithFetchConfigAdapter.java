@@ -113,14 +113,25 @@ public final class GrpcKafkaWithFetchConfigAdapter implements JsonbAdapter<GrpcK
                     for (String newHeaderName : headers.keySet())
                     {
                         String newHeaderValue = headers.getString(newHeaderName);
-                        newHeaders.add(new GrpcKafkaWithFetchFilterHeaderConfig(newHeaderName, newHeaderValue));
+                        newHeaders.add(GrpcKafkaWithFetchFilterHeaderConfig.builder()
+                            .name(newHeaderName)
+                            .value(newHeaderValue)
+                            .build());
                     }
                 }
 
-                newFilters.add(new GrpcKafkaWithFetchFilterConfig(newKey, newHeaders));
+                newFilters.add(GrpcKafkaWithFetchFilterConfig.builder()
+                    .key(newKey)
+                    .headers(newHeaders)
+                    .build());
             }
         }
 
-        return new GrpcKafkaWithConfig(new GrpcKafkaWithFetchConfig(newTopic, newFilters));
+        return GrpcKafkaWithConfig.builder()
+            .fetch(GrpcKafkaWithFetchConfig.builder()
+                .topic(newTopic)
+                .filters(newFilters)
+                .build())
+            .build();
     }
 }

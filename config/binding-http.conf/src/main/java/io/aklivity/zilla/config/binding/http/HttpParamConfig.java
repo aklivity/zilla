@@ -23,7 +23,7 @@ public class HttpParamConfig
     public String name;
     public ModelConfig model;
 
-    public HttpParamConfig(
+    HttpParamConfig(
         String name,
         ModelConfig model)
     {

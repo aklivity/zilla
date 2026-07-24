@@ -35,7 +35,7 @@ public final class KafkaWithConfig extends WithConfig
         return new KafkaWithConfigBuilder<>(mapper);
     }
 
-    public KafkaWithConfig(
+    KafkaWithConfig(
         String defaultOffset,
         String deltaType,
         String ackMode)

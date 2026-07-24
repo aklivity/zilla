@@ -55,6 +55,9 @@ public class KafkaGrpcWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
         String newScheme = object.getString(SCHEME_NAME);
         String newAuthority = object.getString(AUTHORITY_NAME);
 
-        return new KafkaGrpcWithConfig(newScheme, newAuthority);
+        return KafkaGrpcWithConfig.builder()
+            .scheme(newScheme)
+            .authority(newAuthority)
+            .build();
     }
 }

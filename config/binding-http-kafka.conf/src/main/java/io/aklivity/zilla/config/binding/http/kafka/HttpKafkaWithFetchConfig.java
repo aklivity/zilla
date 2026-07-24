@@ -24,7 +24,7 @@ public final class HttpKafkaWithFetchConfig
     public final Optional<List<HttpKafkaWithFetchFilterConfig>> filters;
     public final Optional<HttpKafkaWithFetchMergeConfig> merge;
 
-    public HttpKafkaWithFetchConfig(
+    HttpKafkaWithFetchConfig(
         String topic,
         List<HttpKafkaWithFetchFilterConfig> filters,
         HttpKafkaWithFetchMergeConfig merged)

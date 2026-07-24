@@ -59,7 +59,10 @@ public class KafkaGrpcWithConfigAdapterTest
     @Test
     public void shouldWriteWith()
     {
-        KafkaGrpcWithConfig options = new KafkaGrpcWithConfig("http", "localhost:8080");
+        KafkaGrpcWithConfig options = KafkaGrpcWithConfig.builder()
+                .scheme("http")
+                .authority("localhost:8080")
+                .build();
 
         String text = jsonb.toJson(options);
 

@@ -23,7 +23,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.proxy.ProxyInfoConfig;
-import io.aklivity.zilla.config.binding.proxy.ProxySecureInfoConfig;
+import io.aklivity.zilla.config.binding.proxy.ProxyInfoConfigBuilder;
 
 public final class ProxyInfoConfigAdapter implements JsonbAdapter<ProxyInfoConfig, JsonObject>
 {
@@ -73,13 +73,33 @@ public final class ProxyInfoConfigAdapter implements JsonbAdapter<ProxyInfoConfi
     public ProxyInfoConfig adaptFromJson(
         JsonObject object)
     {
-        String alpn = object.containsKey(ALPN_NAME) ? object.getString(ALPN_NAME) : null;
-        String authority = object.containsKey(AUTHORITY_NAME) ? object.getString(AUTHORITY_NAME) : null;
-        byte[] identity = object.containsKey(IDENTITY_NAME) ? fromHex(object.getString(IDENTITY_NAME)) : null;
-        String namespace = object.containsKey(NAMESPACE_NAME) ? object.getString(NAMESPACE_NAME) : null;
-        ProxySecureInfoConfig secure =
-                object.containsKey(SECURE_NAME) ? secureInfo.adaptFromJson(object.getJsonObject(SECURE_NAME)) : null;
+        ProxyInfoConfigBuilder<ProxyInfoConfig> info = ProxyInfoConfig.builder();
 
-        return new ProxyInfoConfig(alpn, authority, identity, namespace, secure);
+        if (object.containsKey(ALPN_NAME))
+        {
+            info.alpn(object.getString(ALPN_NAME));
+        }
+
+        if (object.containsKey(AUTHORITY_NAME))
+        {
+            info.authority(object.getString(AUTHORITY_NAME));
+        }
+
+        if (object.containsKey(IDENTITY_NAME))
+        {
+            info.identity(fromHex(object.getString(IDENTITY_NAME)));
+        }
+
+        if (object.containsKey(NAMESPACE_NAME))
+        {
+            info.namespace(object.getString(NAMESPACE_NAME));
+        }
+
+        if (object.containsKey(SECURE_NAME))
+        {
+            info.secure(secureInfo.adaptFromJson(object.getJsonObject(SECURE_NAME)));
+        }
+
+        return info.build();
     }
 }

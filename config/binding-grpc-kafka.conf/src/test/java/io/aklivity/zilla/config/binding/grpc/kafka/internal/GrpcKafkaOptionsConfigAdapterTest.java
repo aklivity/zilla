@@ -76,15 +76,21 @@ public class GrpcKafkaOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        GrpcKafkaOptionsConfig options = new GrpcKafkaOptionsConfig(
-                new GrpcKafkaReliabilityConfig(255,
-                    "x-last-message-id"),
-                new GrpcKafkaIdempotencyConfig("x-idempotency-key"),
-                new GrpcKafkaCorrelationConfig(
-                    "zilla:x-correlation-id",
-                    "zilla:x-service",
-                    "zilla:x-method",
-                    "zilla:x-reply-to"));
+        GrpcKafkaOptionsConfig options = GrpcKafkaOptionsConfig.builder()
+                .reliability(GrpcKafkaReliabilityConfig.builder()
+                    .field(255)
+                    .metadata("x-last-message-id")
+                    .build())
+                .idempotency(GrpcKafkaIdempotencyConfig.builder()
+                    .metadata("x-idempotency-key")
+                    .build())
+                .correlation(GrpcKafkaCorrelationConfig.builder()
+                    .correlationId("zilla:x-correlation-id")
+                    .service("zilla:x-service")
+                    .method("zilla:x-method")
+                    .replyTo("zilla:x-reply-to")
+                    .build())
+                .build();
 
         String yaml = jsonb.toJson(options);
 

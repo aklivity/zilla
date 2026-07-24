@@ -52,7 +52,12 @@ public final class RangeConfigAdapter
                 exclusiveMax = true;
             }
         }
-        return new RangeConfig(max, min, exclusiveMax, exclusiveMin);
+        return RangeConfig.builder()
+            .max(max)
+            .min(min)
+            .exclusiveMax(exclusiveMax)
+            .exclusiveMin(exclusiveMin)
+            .build();
     }
 
     public String adaptToString(

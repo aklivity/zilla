@@ -14,12 +14,25 @@
  */
 package io.aklivity.zilla.config.binding.mqtt;
 
+import java.util.function.Function;
+
 public final class MqttPatternConfig
 {
     public final MqttConnectProperty property;
     public final String pattern;
 
-    public MqttPatternConfig(
+    public static MqttPatternConfigBuilder<MqttPatternConfig> builder()
+    {
+        return new MqttPatternConfigBuilder<>(MqttPatternConfig.class::cast);
+    }
+
+    public static <T> MqttPatternConfigBuilder<T> builder(
+        Function<MqttPatternConfig, T> mapper)
+    {
+        return new MqttPatternConfigBuilder<>(mapper);
+    }
+
+    MqttPatternConfig(
         MqttConnectProperty property,
         String pattern)
     {

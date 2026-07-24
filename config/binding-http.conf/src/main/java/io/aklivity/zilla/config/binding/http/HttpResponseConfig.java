@@ -27,7 +27,7 @@ public class HttpResponseConfig
     public final List<HttpParamConfig> headers;
     public final ModelConfig content;
 
-    public HttpResponseConfig(
+    HttpResponseConfig(
         List<String> status,
         List<String> contentType,
         List<HttpParamConfig> headers,

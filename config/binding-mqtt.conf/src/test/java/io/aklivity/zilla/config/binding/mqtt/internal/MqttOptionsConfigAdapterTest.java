@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.config.binding.mqtt.internal;
 
-import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -33,8 +32,6 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.binding.mqtt.MqttAuthorizationConfig;
-import io.aklivity.zilla.config.binding.mqtt.MqttCredentialsConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttTopicConfig;
@@ -125,14 +122,21 @@ public class MqttOptionsConfigAdapterTest
         versions.add(MqttVersion.V3_1_1);
         versions.add(MqttVersion.V_5);
 
-        MqttOptionsConfig options = new MqttOptionsConfig(
-                new MqttAuthorizationConfig(
-                    "test0",
-                    new MqttCredentialsConfig(
-                        singletonList(new MqttPatternConfig(
-                            MqttPatternConfig.MqttConnectProperty.USERNAME,
-                            "Bearer {credentials}")))),
-                    topics, versions, "memory0", "mqtt://mosquitto:1883");
+        MqttOptionsConfig options = MqttOptionsConfig.builder()
+            .authorization()
+                .name("test0")
+                .credentials()
+                    .connect()
+                        .property(MqttPatternConfig.MqttConnectProperty.USERNAME)
+                        .pattern("Bearer {credentials}")
+                        .build()
+                    .build()
+                .build()
+            .topics(topics)
+            .versions(versions)
+            .store("memory0")
+            .server("mqtt://mosquitto:1883")
+            .build();
 
         String text = jsonb.toJson(options);
 

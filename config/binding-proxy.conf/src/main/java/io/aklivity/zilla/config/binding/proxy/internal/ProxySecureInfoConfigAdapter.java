@@ -20,6 +20,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.proxy.ProxySecureInfoConfig;
+import io.aklivity.zilla.config.binding.proxy.ProxySecureInfoConfigBuilder;
 
 public final class ProxySecureInfoConfigAdapter implements JsonbAdapter<ProxySecureInfoConfig, JsonObject>
 {
@@ -67,12 +68,33 @@ public final class ProxySecureInfoConfigAdapter implements JsonbAdapter<ProxySec
     public ProxySecureInfoConfig adaptFromJson(
         JsonObject object)
     {
-        String version = object.containsKey(VERSION_NAME) ? object.getString(VERSION_NAME) : null;
-        String cipher = object.containsKey(CIPHER_NAME) ? object.getString(CIPHER_NAME) : null;
-        String key = object.containsKey(KEY_NAME) ? object.getString(KEY_NAME) : null;
-        String name = object.containsKey(NAME_NAME) ? object.getString(NAME_NAME) : null;
-        String signature = object.containsKey(SIGNATURE_NAME) ? object.getString(SIGNATURE_NAME) : null;
+        ProxySecureInfoConfigBuilder<ProxySecureInfoConfig> secureInfo = ProxySecureInfoConfig.builder();
 
-        return new ProxySecureInfoConfig(version, cipher, key, name, signature);
+        if (object.containsKey(VERSION_NAME))
+        {
+            secureInfo.version(object.getString(VERSION_NAME));
+        }
+
+        if (object.containsKey(CIPHER_NAME))
+        {
+            secureInfo.cipher(object.getString(CIPHER_NAME));
+        }
+
+        if (object.containsKey(KEY_NAME))
+        {
+            secureInfo.key(object.getString(KEY_NAME));
+        }
+
+        if (object.containsKey(NAME_NAME))
+        {
+            secureInfo.name(object.getString(NAME_NAME));
+        }
+
+        if (object.containsKey(SIGNATURE_NAME))
+        {
+            secureInfo.signature(object.getString(SIGNATURE_NAME));
+        }
+
+        return secureInfo.build();
     }
 }

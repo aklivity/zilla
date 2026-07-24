@@ -61,7 +61,11 @@ public class KafkaWithConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        KafkaWithConfig with = new KafkaWithConfig("historical", "json_patch", "leader_only");
+        KafkaWithConfig with = KafkaWithConfig.builder()
+                .defaultOffset("historical")
+                .deltaType("json_patch")
+                .ackMode("leader_only")
+                .build();
 
         String text = jsonb.toJson(with);
 

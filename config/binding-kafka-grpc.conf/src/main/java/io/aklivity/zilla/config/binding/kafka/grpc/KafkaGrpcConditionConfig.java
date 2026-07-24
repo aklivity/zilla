@@ -16,6 +16,7 @@ package io.aklivity.zilla.config.binding.kafka.grpc;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
 
@@ -28,7 +29,18 @@ public final class KafkaGrpcConditionConfig extends ConditionConfig
     public final Optional<String> service;
     public final Optional<String> method;
 
-    public KafkaGrpcConditionConfig(
+    public static KafkaGrpcConditionConfigBuilder<KafkaGrpcConditionConfig> builder()
+    {
+        return new KafkaGrpcConditionConfigBuilder<>(KafkaGrpcConditionConfig.class::cast);
+    }
+
+    public static <T> KafkaGrpcConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new KafkaGrpcConditionConfigBuilder<>(mapper);
+    }
+
+    KafkaGrpcConditionConfig(
         String topic,
         String replyTo,
         String key,

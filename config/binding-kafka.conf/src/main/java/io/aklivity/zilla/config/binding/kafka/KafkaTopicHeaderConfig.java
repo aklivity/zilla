@@ -14,12 +14,25 @@
  */
 package io.aklivity.zilla.config.binding.kafka;
 
+import java.util.function.Function;
+
 public class KafkaTopicHeaderConfig
 {
     public final String name;
     public final String path;
 
-    public KafkaTopicHeaderConfig(
+    public static KafkaTopicHeaderConfigBuilder<KafkaTopicHeaderConfig> builder()
+    {
+        return new KafkaTopicHeaderConfigBuilder<>(KafkaTopicHeaderConfig.class::cast);
+    }
+
+    public static <T> KafkaTopicHeaderConfigBuilder<T> builder(
+        Function<KafkaTopicHeaderConfig, T> mapper)
+    {
+        return new KafkaTopicHeaderConfigBuilder<>(mapper);
+    }
+
+    KafkaTopicHeaderConfig(
         String name,
         String path)
     {

@@ -14,16 +14,29 @@
  */
 package io.aklivity.zilla.config.binding.ws;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class WsOptionsConfig extends OptionsConfig
 {
-    public String protocol;
-    public String scheme;
-    public String authority;
-    public String path;
+    public final String protocol;
+    public final String scheme;
+    public final String authority;
+    public final String path;
 
-    public WsOptionsConfig(
+    public static WsOptionsConfigBuilder<WsOptionsConfig> builder()
+    {
+        return new WsOptionsConfigBuilder<>(WsOptionsConfig.class::cast);
+    }
+
+    public static <T> WsOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new WsOptionsConfigBuilder<>(mapper);
+    }
+
+    WsOptionsConfig(
         String protocol,
         String scheme,
         String authority,

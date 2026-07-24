@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.grpc.kafka;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class GrpcKafkaOptionsConfig extends OptionsConfig
@@ -28,7 +30,18 @@ public final class GrpcKafkaOptionsConfig extends OptionsConfig
     public final GrpcKafkaIdempotencyConfig idempotency;
     public final GrpcKafkaCorrelationConfig correlation;
 
-    public GrpcKafkaOptionsConfig(
+    public static GrpcKafkaOptionsConfigBuilder<GrpcKafkaOptionsConfig> builder()
+    {
+        return new GrpcKafkaOptionsConfigBuilder<>(GrpcKafkaOptionsConfig.class::cast);
+    }
+
+    public static <T> GrpcKafkaOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new GrpcKafkaOptionsConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaOptionsConfig(
         GrpcKafkaReliabilityConfig reliability,
         GrpcKafkaIdempotencyConfig idempotency,
         GrpcKafkaCorrelationConfig correlation)

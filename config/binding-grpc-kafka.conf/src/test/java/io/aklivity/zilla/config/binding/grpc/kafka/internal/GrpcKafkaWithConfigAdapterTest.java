@@ -69,8 +69,11 @@ public class GrpcKafkaWithConfigAdapterTest
     @Test
     public void shouldWriteWithFetchTopic()
     {
-        GrpcKafkaWithConfig with = new GrpcKafkaWithConfig(
-            new GrpcKafkaWithFetchConfig("test", null));
+        GrpcKafkaWithConfig with = GrpcKafkaWithConfig.builder()
+            .fetch(GrpcKafkaWithFetchConfig.builder()
+                .topic("test")
+                .build())
+            .build();
 
         String text = jsonb.toJson(with);
 
@@ -114,14 +117,18 @@ public class GrpcKafkaWithConfigAdapterTest
     @Test
     public void shouldWriteWithFetchTopicAndFilters()
     {
-        GrpcKafkaWithConfig with = new GrpcKafkaWithConfig(
-            new GrpcKafkaWithFetchConfig(
-                "test",
-                singletonList(new GrpcKafkaWithFetchFilterConfig(
-                    "fixed-key",
-                    singletonList(new GrpcKafkaWithFetchFilterHeaderConfig(
-                        "tag",
-                        "fixed-tag"))))));
+        GrpcKafkaWithConfig with = GrpcKafkaWithConfig.builder()
+            .fetch(GrpcKafkaWithFetchConfig.builder()
+                .topic("test")
+                .filters(singletonList(GrpcKafkaWithFetchFilterConfig.builder()
+                    .key("fixed-key")
+                    .headers(singletonList(GrpcKafkaWithFetchFilterHeaderConfig.builder()
+                        .name("tag")
+                        .value("fixed-tag")
+                        .build()))
+                    .build()))
+                .build())
+            .build();
 
         String text = jsonb.toJson(with);
 
@@ -174,14 +181,18 @@ public class GrpcKafkaWithConfigAdapterTest
     @Test
     public void shouldWriteWithProduce()
     {
-        GrpcKafkaWithConfig with = new GrpcKafkaWithConfig(
-            new GrpcKafkaWithProduceConfig(
-                "items",
-                "leader_only",
-                "test",
-                singletonList(new GrpcKafkaWithProduceOverrideConfig("header-test", "test")),
-                "items-replies"
-            ));
+        GrpcKafkaWithConfig with = GrpcKafkaWithConfig.builder()
+            .produce(GrpcKafkaWithProduceConfig.builder()
+                .topic("items")
+                .acks("leader_only")
+                .key("test")
+                .overrides(singletonList(GrpcKafkaWithProduceOverrideConfig.builder()
+                    .name("header-test")
+                    .value("test")
+                    .build()))
+                .replyTo("items-replies")
+                .build())
+            .build();
 
         String text = jsonb.toJson(with);
 

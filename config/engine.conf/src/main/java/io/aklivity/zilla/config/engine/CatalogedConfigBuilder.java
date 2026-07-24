@@ -62,6 +62,13 @@ public final class CatalogedConfigBuilder<T> extends ConfigBuilder<T, CatalogedC
         return this;
     }
 
+    public CatalogedConfigBuilder<T> schemas(
+        List<SchemaConfig> schemas)
+    {
+        this.schemas = schemas;
+        return this;
+    }
+
     @Override
     public T build()
     {

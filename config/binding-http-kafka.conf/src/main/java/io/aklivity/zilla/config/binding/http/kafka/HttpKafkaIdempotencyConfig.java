@@ -20,7 +20,7 @@ public final class HttpKafkaIdempotencyConfig
 {
     public final String header;
 
-    public HttpKafkaIdempotencyConfig(
+    HttpKafkaIdempotencyConfig(
         String header)
     {
         this.header = header;

@@ -21,7 +21,7 @@ public final class HttpKafkaCorrelationConfig
     public final String replyTo;
     public final String correlationId;
 
-    public HttpKafkaCorrelationConfig(
+    HttpKafkaCorrelationConfig(
         String replyTo,
         String correlationId)
     {

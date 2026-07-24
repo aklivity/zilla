@@ -70,14 +70,14 @@ public class KafkaGrpcConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        KafkaGrpcConditionConfig condition = new KafkaGrpcConditionConfig(
-            "responses",
-            "requests",
-            "test",
-            singletonMap("custom", "test"),
-            "test",
-            "*"
-        );
+        KafkaGrpcConditionConfig condition = KafkaGrpcConditionConfig.builder()
+            .topic("responses")
+            .replyTo("requests")
+            .key("test")
+            .headers(singletonMap("custom", "test"))
+            .service("test")
+            .method("*")
+            .build();
 
         String text = jsonb.toJson(condition);
 

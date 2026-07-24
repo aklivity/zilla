@@ -21,7 +21,7 @@ public final class HttpKafkaWithProduceAsyncHeaderConfig
     public final String name;
     public final String value;
 
-    public HttpKafkaWithProduceAsyncHeaderConfig(
+    HttpKafkaWithProduceAsyncHeaderConfig(
         String name,
         String value)
     {

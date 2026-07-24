@@ -22,7 +22,7 @@ public final class HttpKafkaWithFetchMergeConfig
     public final String initial;
     public final String path;
 
-    public HttpKafkaWithFetchMergeConfig(
+    HttpKafkaWithFetchMergeConfig(
         String contentType,
         String initial,
         String path)

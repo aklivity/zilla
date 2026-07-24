@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.kafka.grpc;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class KafkaGrpcWithConfig extends WithConfig
@@ -21,7 +23,18 @@ public final class KafkaGrpcWithConfig extends WithConfig
     public final String scheme;
     public final String authority;
 
-    public KafkaGrpcWithConfig(
+    public static KafkaGrpcWithConfigBuilder<KafkaGrpcWithConfig> builder()
+    {
+        return new KafkaGrpcWithConfigBuilder<>(KafkaGrpcWithConfig.class::cast);
+    }
+
+    public static <T> KafkaGrpcWithConfigBuilder<T> builder(
+        Function<WithConfig, T> mapper)
+    {
+        return new KafkaGrpcWithConfigBuilder<>(mapper);
+    }
+
+    KafkaGrpcWithConfig(
         String scheme,
         String authority)
     {

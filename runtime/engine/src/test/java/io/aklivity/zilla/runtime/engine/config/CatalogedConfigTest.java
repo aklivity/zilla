@@ -36,7 +36,10 @@ public class CatalogedConfigTest
                     .version("version")
                     .id(42)
                     .build();
-        CatalogedConfig cataloged = new CatalogedConfig("test", List.of(schema));
+        CatalogedConfig cataloged = CatalogedConfig.builder()
+                    .name("test")
+                    .schemas(List.of(schema))
+                    .build();
 
         assertThat(cataloged.name, equalTo("test"));
         assertThat(cataloged.schemas.get(0).strategy, equalTo("strategy"));

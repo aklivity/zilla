@@ -26,8 +26,6 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcCorrelationConfig;
-import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcIdempotencyConfig;
 import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcOptionsConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
@@ -74,14 +72,18 @@ public class KafkaGrpcOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        KafkaGrpcOptionsConfig options = new KafkaGrpcOptionsConfig(
-                "leader_only",
-                new KafkaGrpcIdempotencyConfig("zilla:x-idempotency-key"),
-                new KafkaGrpcCorrelationConfig(
-                    "zilla:x-correlation-id",
-                    "zilla:x-service",
-                    "zilla:x-method",
-                    "zilla:x-reply-to"));
+        KafkaGrpcOptionsConfig options = KafkaGrpcOptionsConfig.builder()
+                .acks("leader_only")
+                .idempotency()
+                    .metadata("zilla:x-idempotency-key")
+                    .build()
+                .correlation()
+                    .correlationId("zilla:x-correlation-id")
+                    .service("zilla:x-service")
+                    .method("zilla:x-method")
+                    .replyTo("zilla:x-reply-to")
+                    .build()
+                .build();
 
         String yaml = jsonb.toJson(options);
 

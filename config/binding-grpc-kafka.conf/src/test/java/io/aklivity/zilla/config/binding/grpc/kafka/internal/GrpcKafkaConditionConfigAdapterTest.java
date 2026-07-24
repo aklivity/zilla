@@ -68,9 +68,14 @@ public class GrpcKafkaConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        GrpcKafkaConditionConfig condition = new GrpcKafkaConditionConfig("test", "*",
-            singletonMap("custom", new GrpcKafkaMetadataValueConfig("test",
-                Base64.getUrlEncoder().encodeToString("test".getBytes()))));
+        GrpcKafkaConditionConfig condition = GrpcKafkaConditionConfig.builder()
+            .service("test")
+            .method("*")
+            .metadata(singletonMap("custom", GrpcKafkaMetadataValueConfig.builder()
+                .textValue("test")
+                .base64Value(Base64.getUrlEncoder().encodeToString("test".getBytes()))
+                .build()))
+            .build();
 
         String text = jsonb.toJson(condition);
 

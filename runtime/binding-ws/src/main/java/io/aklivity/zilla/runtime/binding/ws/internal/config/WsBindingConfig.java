@@ -25,7 +25,7 @@ import io.aklivity.zilla.config.engine.KindConfig;
 
 public final class WsBindingConfig
 {
-    private static final WsOptionsConfig DEFAULT_OPTIONS = new WsOptionsConfig(null, null, null, null);
+    private static final WsOptionsConfig DEFAULT_OPTIONS = WsOptionsConfig.builder().build();
 
     public final long id;
     public final String name;

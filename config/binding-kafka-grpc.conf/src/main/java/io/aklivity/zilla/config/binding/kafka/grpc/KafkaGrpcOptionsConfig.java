@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.kafka.grpc;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class KafkaGrpcOptionsConfig extends OptionsConfig
@@ -28,7 +30,18 @@ public final class KafkaGrpcOptionsConfig extends OptionsConfig
     public final KafkaGrpcIdempotencyConfig idempotency;
     public final KafkaGrpcCorrelationConfig correlation;
 
-    public KafkaGrpcOptionsConfig(
+    public static KafkaGrpcOptionsConfigBuilder<KafkaGrpcOptionsConfig> builder()
+    {
+        return new KafkaGrpcOptionsConfigBuilder<>(KafkaGrpcOptionsConfig.class::cast);
+    }
+
+    public static <T> KafkaGrpcOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new KafkaGrpcOptionsConfigBuilder<>(mapper);
+    }
+
+    KafkaGrpcOptionsConfig(
         String acks,
         KafkaGrpcIdempotencyConfig idempotency,
         KafkaGrpcCorrelationConfig correlation)

@@ -59,7 +59,10 @@ public class WsConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        WsConditionConfig condition = new WsConditionConfig("echo", null, "example.net:443", null);
+        WsConditionConfig condition = WsConditionConfig.builder()
+                .protocol("echo")
+                .authority("example.net:443")
+                .build();
 
         String text = jsonb.toJson(condition);
 

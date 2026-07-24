@@ -246,7 +246,7 @@ public class JsonModelConfigAdapterTest
                 "\"validate\":\"lenient\"" +
             "}";
         JsonModelConfig config = JsonModelConfig.builder()
-            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .catalog()
                 .name("test0")
                     .schema()

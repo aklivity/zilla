@@ -23,7 +23,7 @@ public final class ValidateConfig
     public final ValidateMode decode;
     public final ValidateMode encode;
 
-    public ValidateConfig(
+    ValidateConfig(
         ValidateMode decode,
         ValidateMode encode)
     {
@@ -33,6 +33,12 @@ public final class ValidateConfig
 
     public static ValidateConfigBuilder<ValidateConfig> builder()
     {
-        return new ValidateConfigBuilder<>(Function.identity());
+        return new ValidateConfigBuilder<>(ValidateConfig.class::cast);
+    }
+
+    public static <T> ValidateConfigBuilder<T> builder(
+        Function<ValidateConfig, T> mapper)
+    {
+        return new ValidateConfigBuilder<>(mapper);
     }
 }

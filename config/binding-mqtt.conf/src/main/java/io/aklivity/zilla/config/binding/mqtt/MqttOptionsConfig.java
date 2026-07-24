@@ -46,7 +46,7 @@ public class MqttOptionsConfig extends OptionsConfig
         return new MqttOptionsConfigBuilder<>(mapper);
     }
 
-    public MqttOptionsConfig(
+    MqttOptionsConfig(
         MqttAuthorizationConfig authorization,
         List<MqttTopicConfig> topics,
         List<MqttVersion> versions,

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.mqtt;
 
+import java.util.function.Function;
+
 public final class MqttAuthorizationConfig
 {
     public final String name;
@@ -21,7 +23,18 @@ public final class MqttAuthorizationConfig
 
     public transient String qname;
 
-    public MqttAuthorizationConfig(
+    public static MqttAuthorizationConfigBuilder<MqttAuthorizationConfig> builder()
+    {
+        return new MqttAuthorizationConfigBuilder<>(MqttAuthorizationConfig.class::cast);
+    }
+
+    public static <T> MqttAuthorizationConfigBuilder<T> builder(
+        Function<MqttAuthorizationConfig, T> mapper)
+    {
+        return new MqttAuthorizationConfigBuilder<>(mapper);
+    }
+
+    MqttAuthorizationConfig(
         String name,
         MqttCredentialsConfig credentials)
     {

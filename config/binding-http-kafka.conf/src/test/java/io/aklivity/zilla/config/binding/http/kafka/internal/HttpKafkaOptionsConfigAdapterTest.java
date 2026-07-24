@@ -26,8 +26,6 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCorrelationConfig;
-import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaIdempotencyConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
@@ -72,12 +70,15 @@ public class HttpKafkaOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        HttpKafkaOptionsConfig options = new HttpKafkaOptionsConfig(
-                new HttpKafkaIdempotencyConfig(
-                    "x-idempotency-key"),
-                new HttpKafkaCorrelationConfig(
-                    "zilla:x-reply-to",
-                    "zilla:x-correlation-id"));
+        HttpKafkaOptionsConfig options = HttpKafkaOptionsConfig.builder()
+                .idempotency()
+                    .header("x-idempotency-key")
+                    .build()
+                .correlation()
+                    .replyTo("zilla:x-reply-to")
+                    .correlationId("zilla:x-correlation-id")
+                    .build()
+                .build();
 
         String yaml = jsonb.toJson(options);
 

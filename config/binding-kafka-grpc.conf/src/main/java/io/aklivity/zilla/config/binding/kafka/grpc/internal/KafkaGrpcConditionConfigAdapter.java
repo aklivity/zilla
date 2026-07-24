@@ -116,6 +116,13 @@ public final class KafkaGrpcConditionConfigAdapter implements JsonbAdapter<Condi
             }
         }
 
-        return new KafkaGrpcConditionConfig(topic, replyTo, key, newHeaders, newService, newMethod);
+        return KafkaGrpcConditionConfig.builder()
+            .topic(topic)
+            .replyTo(replyTo)
+            .key(key)
+            .headers(newHeaders)
+            .service(newService)
+            .method(newMethod)
+            .build();
     }
 }

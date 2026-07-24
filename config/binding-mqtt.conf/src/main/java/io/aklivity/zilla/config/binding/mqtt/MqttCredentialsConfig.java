@@ -15,12 +15,24 @@
 package io.aklivity.zilla.config.binding.mqtt;
 
 import java.util.List;
+import java.util.function.Function;
 
 public final class MqttCredentialsConfig
 {
     public final List<MqttPatternConfig> connect;
 
-    public MqttCredentialsConfig(
+    public static MqttCredentialsConfigBuilder<MqttCredentialsConfig> builder()
+    {
+        return new MqttCredentialsConfigBuilder<>(MqttCredentialsConfig.class::cast);
+    }
+
+    public static <T> MqttCredentialsConfigBuilder<T> builder(
+        Function<MqttCredentialsConfig, T> mapper)
+    {
+        return new MqttCredentialsConfigBuilder<>(mapper);
+    }
+
+    MqttCredentialsConfig(
         List<MqttPatternConfig> connect)
     {
         this.connect = connect;

@@ -16,6 +16,7 @@ package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.WithConfig;
 
@@ -24,8 +25,18 @@ public final class GrpcKafkaWithFetchConfig extends WithConfig
     public final String topic;
     public final Optional<List<GrpcKafkaWithFetchFilterConfig>> filters;
 
+    public static GrpcKafkaWithFetchConfigBuilder<GrpcKafkaWithFetchConfig> builder()
+    {
+        return new GrpcKafkaWithFetchConfigBuilder<>(GrpcKafkaWithFetchConfig.class::cast);
+    }
 
-    public GrpcKafkaWithFetchConfig(
+    public static <T> GrpcKafkaWithFetchConfigBuilder<T> builder(
+        Function<GrpcKafkaWithFetchConfig, T> mapper)
+    {
+        return new GrpcKafkaWithFetchConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaWithFetchConfig(
         String topic,
         List<GrpcKafkaWithFetchFilterConfig> filters)
     {

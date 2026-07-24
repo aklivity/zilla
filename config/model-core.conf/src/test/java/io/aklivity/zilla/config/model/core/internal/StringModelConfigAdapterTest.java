@@ -193,7 +193,7 @@ public class StringModelConfigAdapterTest
                 "\"validate\":\"lenient\"" +
             "}";
         StringModelConfig model = StringModelConfig.builder()
-            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .build();
 
         // WHEN
@@ -217,7 +217,7 @@ public class StringModelConfigAdapterTest
                 "}" +
             "}";
         StringModelConfig model = StringModelConfig.builder()
-            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.STRICT).build())
             .build();
 
         // WHEN
@@ -233,7 +233,7 @@ public class StringModelConfigAdapterTest
         // GIVEN
         String expectedJson = "\"string\"";
         StringModelConfig model = StringModelConfig.builder()
-            .validate(new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.STRICT).encode(ValidateMode.STRICT).build())
             .build();
 
         // WHEN

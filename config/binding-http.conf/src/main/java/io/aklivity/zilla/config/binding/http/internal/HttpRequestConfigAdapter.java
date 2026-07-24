@@ -200,7 +200,15 @@ public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig,
                 .map(response::adaptFromJson)
                 .collect(Collectors.toList());
         }
-        return new HttpRequestConfig(path, method, contentType, headers, pathParams, queryParams, content,
-            responses);
+        return HttpRequestConfig.builder()
+            .path(path)
+            .method(method)
+            .contentTypes(contentType)
+            .headers(headers)
+            .pathParams(pathParams)
+            .queryParams(queryParams)
+            .content(content)
+            .responses(responses)
+            .build();
     }
 }

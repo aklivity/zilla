@@ -42,11 +42,11 @@ public class CoreModelLenientTest
     private static final int FLAGS_COMPLETE = 0x03;
 
     private static final ValidateConfig LENIENT =
-        new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT);
+        ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build();
     private static final ValidateConfig STRICT =
-        new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT);
+        ValidateConfig.builder().decode(ValidateMode.STRICT).encode(ValidateMode.STRICT).build();
     private static final ValidateConfig DECODE_LENIENT_ENCODE_STRICT =
-        new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT);
+        ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.STRICT).build();
 
     private EngineContext context;
 

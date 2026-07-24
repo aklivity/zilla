@@ -57,7 +57,7 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, null);
+        ProxyConditionConfig condition = ProxyConditionConfig.builder().build();
 
         String text = jsonb.toJson(condition);
 
@@ -82,7 +82,9 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithTransport()
     {
-        ProxyConditionConfig condition = new ProxyConditionConfig("stream", null, null, null, null);
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .transport("stream")
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -107,7 +109,9 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithFamily()
     {
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, "inet", null, null, null);
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .family("inet")
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -138,8 +142,12 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithSource()
     {
-        ProxyConditionConfig condition =
-                new ProxyConditionConfig(null, null, new ProxyAddressConfig("127.0.0.0/24", 443), null, null);
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .source(ProxyAddressConfig.builder()
+                    .host("127.0.0.0/24")
+                    .port(443)
+                    .build())
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -170,8 +178,12 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithDestination()
     {
-        ProxyConditionConfig condition =
-                new ProxyConditionConfig(null, null, null, new ProxyAddressConfig("127.0.0.0/24", 443), null);
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .destination(ProxyAddressConfig.builder()
+                    .host("127.0.0.0/24")
+                    .port(443)
+                    .build())
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -200,8 +212,12 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithAlpn()
     {
-        ProxyInfoConfig info = new ProxyInfoConfig("echo", null, null, null, null);
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyInfoConfig info = ProxyInfoConfig.builder()
+                .alpn("echo")
+                .build();
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .info(info)
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -230,8 +246,12 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithAuthority()
     {
-        ProxyInfoConfig info = new ProxyInfoConfig(null, "example.com", null, null, null);
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyInfoConfig info = ProxyInfoConfig.builder()
+                .authority("example.com")
+                .build();
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .info(info)
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -260,8 +280,12 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithIdentity()
     {
-        ProxyInfoConfig info = new ProxyInfoConfig(null, null, fromHex("12345678"), null, null);
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyInfoConfig info = ProxyInfoConfig.builder()
+                .identity(fromHex("12345678"))
+                .build();
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .info(info)
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -290,8 +314,12 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithNamespace()
     {
-        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, "example", null);
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyInfoConfig info = ProxyInfoConfig.builder()
+                .namespace("example")
+                .build();
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .info(info)
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -324,9 +352,15 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithSecureVersion()
     {
-        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig("TLSv1.3", null, null, null, null);
-        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder()
+                .version("TLSv1.3")
+                .build();
+        ProxyInfoConfig info = ProxyInfoConfig.builder()
+                .secure(secureInfo)
+                .build();
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .info(info)
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -359,9 +393,15 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithSecureCipher()
     {
-        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, "ECDHE-RSA-AES128-GCM-SHA256", null, null, null);
-        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder()
+                .cipher("ECDHE-RSA-AES128-GCM-SHA256")
+                .build();
+        ProxyInfoConfig info = ProxyInfoConfig.builder()
+                .secure(secureInfo)
+                .build();
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .info(info)
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -394,9 +434,15 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithSecureKey()
     {
-        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, null, "RSA2048", null, null);
-        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder()
+                .key("RSA2048")
+                .build();
+        ProxyInfoConfig info = ProxyInfoConfig.builder()
+                .secure(secureInfo)
+                .build();
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .info(info)
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -429,9 +475,15 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithSecureName()
     {
-        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, null, null, "name@domain", null);
-        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder()
+                .name("name@domain")
+                .build();
+        ProxyInfoConfig info = ProxyInfoConfig.builder()
+                .secure(secureInfo)
+                .build();
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .info(info)
+                .build();
 
         String text = jsonb.toJson(condition);
 
@@ -464,9 +516,15 @@ public class ProxyConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithSecureSignature()
     {
-        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, null, null, null, "SHA256");
-        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
-        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder()
+                .signature("SHA256")
+                .build();
+        ProxyInfoConfig info = ProxyInfoConfig.builder()
+                .secure(secureInfo)
+                .build();
+        ProxyConditionConfig condition = ProxyConditionConfig.builder()
+                .info(info)
+                .build();
 
         String text = jsonb.toJson(condition);
 

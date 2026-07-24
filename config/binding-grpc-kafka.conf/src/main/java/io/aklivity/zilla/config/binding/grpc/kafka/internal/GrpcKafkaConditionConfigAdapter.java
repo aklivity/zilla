@@ -119,12 +119,19 @@ public final class GrpcKafkaConditionConfigAdapter implements JsonbAdapter<Condi
                     break;
                 }
 
-                GrpcKafkaMetadataValueConfig metadataValue = new GrpcKafkaMetadataValueConfig(textValue, base64Value);
+                GrpcKafkaMetadataValueConfig metadataValue = GrpcKafkaMetadataValueConfig.builder()
+                    .textValue(textValue)
+                    .base64Value(base64Value)
+                    .build();
                 newMetadata.put(k, metadataValue);
             });
         }
 
-        return new GrpcKafkaConditionConfig(newService, newMethod, newMetadata);
+        return GrpcKafkaConditionConfig.builder()
+            .service(newService)
+            .method(newMethod)
+            .metadata(newMetadata)
+            .build();
     }
 
 }

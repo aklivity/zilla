@@ -67,6 +67,9 @@ public class FileSystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfi
                 ? FileSystemSymbolicLinksConfig.valueOf(object.getString(SYMLINKS_NAME).toUpperCase())
                 : SYMLINKS_DEFAULT;
 
-        return new FileSystemOptionsConfig(location, symlinks);
+        return FileSystemOptionsConfig.builder()
+            .location(location)
+            .symlinks(symlinks)
+            .build();
     }
 }

@@ -251,7 +251,7 @@ public class AvroModelConfigAdapterTest
                 "\"validate\":\"lenient\"" +
             "}";
         AvroModelConfig model = AvroModelConfig.builder()
-            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.LENIENT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .catalog()
                 .name("test0")
                     .schema()
@@ -292,7 +292,7 @@ public class AvroModelConfigAdapterTest
                 "}" +
             "}";
         AvroModelConfig model = AvroModelConfig.builder()
-            .validate(new ValidateConfig(ValidateMode.LENIENT, ValidateMode.STRICT))
+            .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.STRICT).build())
             .catalog()
                 .name("test0")
                     .schema()

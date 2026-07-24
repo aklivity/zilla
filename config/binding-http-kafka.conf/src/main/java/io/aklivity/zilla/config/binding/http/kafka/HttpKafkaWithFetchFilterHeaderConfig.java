@@ -21,7 +21,7 @@ public final class HttpKafkaWithFetchFilterHeaderConfig
     public final String name;
     public final String value;
 
-    public HttpKafkaWithFetchFilterHeaderConfig(
+    HttpKafkaWithFetchFilterHeaderConfig(
         String name,
         String value)
     {

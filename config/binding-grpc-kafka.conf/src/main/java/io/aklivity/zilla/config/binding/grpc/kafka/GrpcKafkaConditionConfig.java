@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
 
@@ -24,7 +25,18 @@ public final class GrpcKafkaConditionConfig extends ConditionConfig
     public final String method;
     public final Map<String, GrpcKafkaMetadataValueConfig> metadata;
 
-    public GrpcKafkaConditionConfig(
+    public static GrpcKafkaConditionConfigBuilder<GrpcKafkaConditionConfig> builder()
+    {
+        return new GrpcKafkaConditionConfigBuilder<>(GrpcKafkaConditionConfig.class::cast);
+    }
+
+    public static <T> GrpcKafkaConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new GrpcKafkaConditionConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaConditionConfig(
         String service,
         String method,
         Map<String, GrpcKafkaMetadataValueConfig> metadata)

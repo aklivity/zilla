@@ -14,12 +14,25 @@
  */
 package io.aklivity.zilla.config.binding.grpc.kafka;
 
+import java.util.function.Function;
+
 public final class GrpcKafkaWithProduceOverrideConfig
 {
     public final String name;
     public final String value;
 
-    public GrpcKafkaWithProduceOverrideConfig(
+    public static GrpcKafkaWithProduceOverrideConfigBuilder<GrpcKafkaWithProduceOverrideConfig> builder()
+    {
+        return new GrpcKafkaWithProduceOverrideConfigBuilder<>(GrpcKafkaWithProduceOverrideConfig.class::cast);
+    }
+
+    public static <T> GrpcKafkaWithProduceOverrideConfigBuilder<T> builder(
+        Function<GrpcKafkaWithProduceOverrideConfig, T> mapper)
+    {
+        return new GrpcKafkaWithProduceOverrideConfigBuilder<>(mapper);
+    }
+
+    GrpcKafkaWithProduceOverrideConfig(
         String name,
         String value)
     {

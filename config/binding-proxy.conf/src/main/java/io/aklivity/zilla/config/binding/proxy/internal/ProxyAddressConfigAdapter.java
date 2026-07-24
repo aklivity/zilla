@@ -20,6 +20,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.proxy.ProxyAddressConfig;
+import io.aklivity.zilla.config.binding.proxy.ProxyAddressConfigBuilder;
 
 public final class ProxyAddressConfigAdapter implements JsonbAdapter<ProxyAddressConfig, JsonObject>
 {
@@ -49,9 +50,18 @@ public final class ProxyAddressConfigAdapter implements JsonbAdapter<ProxyAddres
     public ProxyAddressConfig adaptFromJson(
         JsonObject object)
     {
-        String host = object.containsKey(HOST_NAME) ? object.getString(HOST_NAME) : null;
-        Integer port = object.containsKey(PORT_NAME) ? object.getInt(PORT_NAME) : null;
+        ProxyAddressConfigBuilder<ProxyAddressConfig> address = ProxyAddressConfig.builder();
 
-        return new ProxyAddressConfig(host, port);
+        if (object.containsKey(HOST_NAME))
+        {
+            address.host(object.getString(HOST_NAME));
+        }
+
+        if (object.containsKey(PORT_NAME))
+        {
+            address.port(object.getInt(PORT_NAME));
+        }
+
+        return address.build();
     }
 }

@@ -57,7 +57,7 @@ public class ProxyOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        ProxyOptionsConfig options = new ProxyOptionsConfig();
+        ProxyOptionsConfig options = ProxyOptionsConfig.builder().build();
 
         String text = jsonb.toJson(options);
 

@@ -80,6 +80,11 @@ public final class WsConditionConfigAdapter implements JsonbAdapter<ConditionCon
                 ? object.getString(PATH_NAME)
                 : null;
 
-        return new WsConditionConfig(protocol, scheme, authority, path);
+        return WsConditionConfig.builder()
+            .protocol(protocol)
+            .scheme(scheme)
+            .authority(authority)
+            .path(path)
+            .build();
     }
 }
