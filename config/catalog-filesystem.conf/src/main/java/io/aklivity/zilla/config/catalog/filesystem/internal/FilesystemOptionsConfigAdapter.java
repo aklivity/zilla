@@ -68,7 +68,10 @@ public class FilesystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfi
 
                     String url = schemaJson.getString(PATH_NAME);
 
-                    options.subjects(new FilesystemSchemaConfig(subject, url));
+                    options.subjects(FilesystemSchemaConfig.builder()
+                        .subject(subject)
+                        .path(url)
+                        .build());
                 }
             }
         }

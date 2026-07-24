@@ -12,30 +12,33 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.exporter.stdout.internal;
+package io.aklivity.zilla.config.exporter.stdout;
 
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.exporter.stdout.StdoutOptionsConfig;
 
-public class StdoutOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class StdoutOptionsConfigBuilder<T> extends ConfigBuilder<T, StdoutOptionsConfigBuilder<T>>
 {
-    @Override
-    public JsonObject adaptToJson(
-        OptionsConfig options)
+    private final Function<OptionsConfig, T> mapper;
+
+    StdoutOptionsConfigBuilder(
+        Function<OptionsConfig, T> mapper)
     {
-        JsonObjectBuilder object = Json.createObjectBuilder();
-        return object.build();
+        this.mapper = mapper;
     }
 
     @Override
-    public OptionsConfig adaptFromJson(
-        JsonObject object)
+    @SuppressWarnings("unchecked")
+    protected Class<StdoutOptionsConfigBuilder<T>> thisType()
     {
-        return StdoutOptionsConfig.builder().build();
+        return (Class<StdoutOptionsConfigBuilder<T>>) getClass();
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new StdoutOptionsConfig());
     }
 }

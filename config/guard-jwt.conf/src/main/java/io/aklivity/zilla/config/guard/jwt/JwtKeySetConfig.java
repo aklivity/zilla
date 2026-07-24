@@ -15,12 +15,24 @@
 package io.aklivity.zilla.config.guard.jwt;
 
 import java.util.List;
+import java.util.function.Function;
 
 public class JwtKeySetConfig
 {
     public final List<JwtKeyConfig> keys;
 
-    public JwtKeySetConfig(
+    public static JwtKeySetConfigBuilder<JwtKeySetConfig> builder()
+    {
+        return new JwtKeySetConfigBuilder<>(JwtKeySetConfig.class::cast);
+    }
+
+    public static <T> JwtKeySetConfigBuilder<T> builder(
+        Function<JwtKeySetConfig, T> mapper)
+    {
+        return new JwtKeySetConfigBuilder<>(mapper);
+    }
+
+    JwtKeySetConfig(
         List<JwtKeyConfig> keys)
     {
         this.keys = keys;

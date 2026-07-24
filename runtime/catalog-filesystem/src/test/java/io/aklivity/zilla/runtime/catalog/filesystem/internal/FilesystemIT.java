@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.catalog.filesystem.internal;
 
-import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -44,8 +43,12 @@ public class FilesystemIT
     @Before
     public void setup() throws Exception
     {
-        config = new FilesystemOptionsConfig(singletonList(
-            new FilesystemSchemaConfig("subject1", "asyncapi/mqtt.yaml")));
+        config = FilesystemOptionsConfig.builder()
+            .subjects(FilesystemSchemaConfig.builder()
+                .subject("subject1")
+                .path("asyncapi/mqtt.yaml")
+                .build())
+            .build();
 
         URL url = FilesystemIT.class.getResource("../../../../specs/catalog/filesystem/config/asyncapi/mqtt.yaml");
         Path path = Path.of(url.toURI());

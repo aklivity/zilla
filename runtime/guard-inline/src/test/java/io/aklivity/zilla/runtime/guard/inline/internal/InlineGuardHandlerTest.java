@@ -44,7 +44,9 @@ public class InlineGuardHandlerTest
     @Test
     public void shouldSplitIdentityAndCredentialsWhenFormatConfigured()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig(null, null, "{identity}:{credentials}");
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .format("{identity}:{credentials}")
+            .build();
         InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options);
 
         long sessionId = handler.reauthorize(0L, 0L, 0L, "alice:secret");
@@ -56,7 +58,10 @@ public class InlineGuardHandlerTest
     @Test
     public void shouldFallBackToWholeValueAsIdentityWhenFormatConfiguredButInputDoesNotMatch()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig(null, "default-credentials", "{identity}:{credentials}");
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .credentials("default-credentials")
+            .format("{identity}:{credentials}")
+            .build();
         InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options);
 
         long sessionId = handler.reauthorize(0L, 0L, 0L, "malformed-input-without-separator");
@@ -68,7 +73,9 @@ public class InlineGuardHandlerTest
     @Test
     public void shouldFallBackToNullCredentialsWhenFormatConfiguredButInputDoesNotMatchAndNoStaticDefault()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig(null, null, "{identity}:{credentials}");
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .format("{identity}:{credentials}")
+            .build();
         InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options);
 
         long sessionId = handler.reauthorize(0L, 0L, 0L, "malformed-input-without-separator");

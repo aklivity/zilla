@@ -12,40 +12,48 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.catalog.filesystem;
+package io.aklivity.zilla.config.exporter.prometheus;
 
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 
-public final class FilesystemSchemaConfigBuilder<T> extends ConfigBuilder<T, FilesystemSchemaConfigBuilder<T>>
+public final class PrometheusEndpointConfigBuilder<T> extends ConfigBuilder<T, PrometheusEndpointConfigBuilder<T>>
 {
-    private final Function<FilesystemSchemaConfig, T> mapper;
+    private final Function<PrometheusEndpointConfig, T> mapper;
 
-    private String subject;
+    private String scheme;
+    private int port;
     private String path;
 
-    FilesystemSchemaConfigBuilder(
-        Function<FilesystemSchemaConfig, T> mapper)
+    PrometheusEndpointConfigBuilder(
+        Function<PrometheusEndpointConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<FilesystemSchemaConfigBuilder<T>> thisType()
+    protected Class<PrometheusEndpointConfigBuilder<T>> thisType()
     {
-        return (Class<FilesystemSchemaConfigBuilder<T>>) getClass();
+        return (Class<PrometheusEndpointConfigBuilder<T>>) getClass();
     }
 
-    public FilesystemSchemaConfigBuilder<T> subject(
-        String subject)
+    public PrometheusEndpointConfigBuilder<T> scheme(
+        String scheme)
     {
-        this.subject = subject;
+        this.scheme = scheme;
         return this;
     }
 
-    public FilesystemSchemaConfigBuilder<T> path(
+    public PrometheusEndpointConfigBuilder<T> port(
+        int port)
+    {
+        this.port = port;
+        return this;
+    }
+
+    public PrometheusEndpointConfigBuilder<T> path(
         String path)
     {
         this.path = path;
@@ -55,6 +63,6 @@ public final class FilesystemSchemaConfigBuilder<T> extends ConfigBuilder<T, Fil
     @Override
     public T build()
     {
-        return mapper.apply(new FilesystemSchemaConfig(subject, path));
+        return mapper.apply(new PrometheusEndpointConfig(scheme, port, path));
     }
 }

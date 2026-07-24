@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.guard.inline;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class InlineOptionsConfig extends OptionsConfig
@@ -22,7 +24,18 @@ public final class InlineOptionsConfig extends OptionsConfig
     public final String credentials;
     public final String format;
 
-    public InlineOptionsConfig(
+    public static InlineOptionsConfigBuilder<InlineOptionsConfig> builder()
+    {
+        return new InlineOptionsConfigBuilder<>(InlineOptionsConfig.class::cast);
+    }
+
+    public static <T> InlineOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new InlineOptionsConfigBuilder<>(mapper);
+    }
+
+    InlineOptionsConfig(
         String identity,
         String credentials,
         String format)

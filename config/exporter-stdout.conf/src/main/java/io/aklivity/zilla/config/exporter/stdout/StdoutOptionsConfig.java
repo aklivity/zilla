@@ -14,8 +14,24 @@
  */
 package io.aklivity.zilla.config.exporter.stdout;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class StdoutOptionsConfig extends OptionsConfig
 {
+    public static StdoutOptionsConfigBuilder<StdoutOptionsConfig> builder()
+    {
+        return new StdoutOptionsConfigBuilder<>(StdoutOptionsConfig.class::cast);
+    }
+
+    public static <T> StdoutOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new StdoutOptionsConfigBuilder<>(mapper);
+    }
+
+    StdoutOptionsConfig()
+    {
+    }
 }

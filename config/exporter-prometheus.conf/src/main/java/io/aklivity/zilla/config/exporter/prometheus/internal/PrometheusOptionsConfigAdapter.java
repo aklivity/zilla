@@ -64,6 +64,8 @@ public class PrometheusOptionsConfigAdapter implements JsonbAdapter<OptionsConfi
                 .collect(Collectors.toList())
                 .toArray(PrometheusEndpointConfig[]::new)
             : null;
-        return new PrometheusOptionsConfig(e);
+        return PrometheusOptionsConfig.builder()
+            .endpoints(e)
+            .build();
     }
 }

@@ -18,7 +18,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 
-public class InlineSchemaConfigBuilder<T> extends ConfigBuilder<T, InlineSchemaConfigBuilder<T>>
+public final class InlineSchemaConfigBuilder<T> extends ConfigBuilder<T, InlineSchemaConfigBuilder<T>>
 {
     private final Function<InlineSchemaConfig, T> mapper;
 
@@ -26,7 +26,7 @@ public class InlineSchemaConfigBuilder<T> extends ConfigBuilder<T, InlineSchemaC
     private String version;
     private String schema;
 
-    public InlineSchemaConfigBuilder(
+    InlineSchemaConfigBuilder(
         Function<InlineSchemaConfig, T> mapper)
     {
         this.mapper = mapper;

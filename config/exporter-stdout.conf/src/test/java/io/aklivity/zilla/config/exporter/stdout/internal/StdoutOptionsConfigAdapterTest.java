@@ -62,7 +62,7 @@ public class StdoutOptionsConfigAdapterTest
     {
         // GIVEN
         String expectedYaml = "{}\n";
-        StdoutOptionsConfig config = new StdoutOptionsConfig();
+        StdoutOptionsConfig config = StdoutOptionsConfig.builder().build();
 
         // WHEN
         String yaml = jsonb.toJson(config);

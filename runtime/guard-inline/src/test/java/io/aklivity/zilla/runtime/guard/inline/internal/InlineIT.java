@@ -81,7 +81,9 @@ public class InlineIT
     @Test
     public void shouldSplitIdentityAndCredentialsWhenFormatConfigured() throws Exception
     {
-        InlineOptionsConfig options = new InlineOptionsConfig(null, null, "{identity}:{credentials}");
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .format("{identity}:{credentials}")
+            .build();
         InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, options);
 
         long sessionId = guard.reauthorize(0L, 0L, 101L, "alice:secret");

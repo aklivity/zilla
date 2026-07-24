@@ -33,7 +33,7 @@ public class OtlpOverridesConfig
         return new OtlpOverridesConfigBuilder<>(mapper);
     }
 
-    protected OtlpOverridesConfig(
+    OtlpOverridesConfig(
         URI metrics,
         URI logs)
     {

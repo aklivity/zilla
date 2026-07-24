@@ -14,12 +14,25 @@
  */
 package io.aklivity.zilla.config.catalog.filesystem;
 
+import java.util.function.Function;
+
 public class FilesystemSchemaConfig
 {
     public final String subject;
     public final String path;
 
-    public FilesystemSchemaConfig(
+    public static FilesystemSchemaConfigBuilder<FilesystemSchemaConfig> builder()
+    {
+        return new FilesystemSchemaConfigBuilder<>(FilesystemSchemaConfig.class::cast);
+    }
+
+    public static <T> FilesystemSchemaConfigBuilder<T> builder(
+        Function<FilesystemSchemaConfig, T> mapper)
+    {
+        return new FilesystemSchemaConfigBuilder<>(mapper);
+    }
+
+    FilesystemSchemaConfig(
         String subject,
         String path)
     {

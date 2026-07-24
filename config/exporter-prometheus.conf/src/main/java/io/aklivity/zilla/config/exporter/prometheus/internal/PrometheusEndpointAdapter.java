@@ -54,6 +54,10 @@ public class PrometheusEndpointAdapter implements JsonbAdapter<PrometheusEndpoin
         String path = object.containsKey(PATH_NAME)
             ? object.getString(PATH_NAME)
             : DEFAULT_PATH;
-        return new PrometheusEndpointConfig(scheme, port, path);
+        return PrometheusEndpointConfig.builder()
+            .scheme(scheme)
+            .port(port)
+            .path(path)
+            .build();
     }
 }

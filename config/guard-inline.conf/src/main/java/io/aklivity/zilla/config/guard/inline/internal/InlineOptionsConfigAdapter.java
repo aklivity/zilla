@@ -70,6 +70,10 @@ public final class InlineOptionsConfigAdapter implements JsonbAdapter<OptionsCon
             ? object.getString(FORMAT_NAME)
             : null;
 
-        return new InlineOptionsConfig(identity, credentials, format);
+        return InlineOptionsConfig.builder()
+            .identity(identity)
+            .credentials(credentials)
+            .format(format)
+            .build();
     }
 }

@@ -62,6 +62,8 @@ public final class JwtKeySetConfigAdapter implements JsonbAdapter<JwtKeySetConfi
                 .toList()
             : null;
 
-        return new JwtKeySetConfig(keysConfig);
+        return JwtKeySetConfig.builder()
+            .keys(keysConfig)
+            .build();
     }
 }

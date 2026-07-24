@@ -49,8 +49,14 @@ public class PrometheusExporterHandlerTest
         Files.createDirectory(tmp.resolve("metrics"));
         when(config.directory()).thenReturn(tmp);
         EngineContext context = mock(EngineContext.class);
-        PrometheusEndpointConfig endpoint = new PrometheusEndpointConfig("http", 4242, "/metrics");
-        PrometheusOptionsConfig options = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
+        PrometheusEndpointConfig endpoint = PrometheusEndpointConfig.builder()
+            .scheme("http")
+            .port(4242)
+            .path("/metrics")
+            .build();
+        PrometheusOptionsConfig options = PrometheusOptionsConfig.builder()
+            .endpoints(new PrometheusEndpointConfig[]{endpoint})
+            .build();
         ExporterConfig exporter = ExporterConfig.builder()
                 .namespace("test")
                 .name("test0")

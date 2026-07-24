@@ -34,7 +34,7 @@ public class OtlpEndpointConfig
         return new OtlpEndpointConfigBuilder<>(mapper);
     }
 
-    protected OtlpEndpointConfig(
+    OtlpEndpointConfig(
         String protocol,
         URI location,
         OtlpOverridesConfig overrides)

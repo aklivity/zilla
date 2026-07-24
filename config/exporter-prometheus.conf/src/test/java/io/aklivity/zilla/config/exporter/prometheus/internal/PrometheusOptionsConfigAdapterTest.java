@@ -92,8 +92,14 @@ public class PrometheusOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         // GIVEN
-        PrometheusEndpointConfig endpoint = new PrometheusEndpointConfig("http", 9090, "/metrics");
-        PrometheusOptionsConfig config = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
+        PrometheusEndpointConfig endpoint = PrometheusEndpointConfig.builder()
+            .scheme("http")
+            .port(9090)
+            .path("/metrics")
+            .build();
+        PrometheusOptionsConfig config = PrometheusOptionsConfig.builder()
+            .endpoints(new PrometheusEndpointConfig[]{endpoint})
+            .build();
 
         // WHEN
         String yaml = jsonb.toJson(config);

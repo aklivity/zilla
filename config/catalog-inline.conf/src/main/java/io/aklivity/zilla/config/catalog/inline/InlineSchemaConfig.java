@@ -14,13 +14,26 @@
  */
 package io.aklivity.zilla.config.catalog.inline;
 
+import java.util.function.Function;
+
 public class InlineSchemaConfig
 {
     public final String subject;
     public final String version;
     public final String schema;
 
-    public InlineSchemaConfig(
+    public static InlineSchemaConfigBuilder<InlineSchemaConfig> builder()
+    {
+        return new InlineSchemaConfigBuilder<>(InlineSchemaConfig.class::cast);
+    }
+
+    public static <T> InlineSchemaConfigBuilder<T> builder(
+        Function<InlineSchemaConfig, T> mapper)
+    {
+        return new InlineSchemaConfigBuilder<>(mapper);
+    }
+
+    InlineSchemaConfig(
         String subject,
         String version,
         String schema)

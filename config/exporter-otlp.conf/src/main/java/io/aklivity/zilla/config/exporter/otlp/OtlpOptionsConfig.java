@@ -48,7 +48,7 @@ public class OtlpOptionsConfig extends OptionsConfig
         return new OtlpOptionsConfigBuilder<>(mapper);
     }
 
-    protected OtlpOptionsConfig(
+    OtlpOptionsConfig(
         Duration interval,
         Set<OtlpSignalsConfig> signals,
         OtlpEndpointConfig endpoint,

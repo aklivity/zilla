@@ -14,13 +14,26 @@
  */
 package io.aklivity.zilla.config.exporter.prometheus;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class PrometheusOptionsConfig extends OptionsConfig
 {
-    public PrometheusEndpointConfig[] endpoints;
+    public final PrometheusEndpointConfig[] endpoints;
 
-    public PrometheusOptionsConfig(
+    public static PrometheusOptionsConfigBuilder<PrometheusOptionsConfig> builder()
+    {
+        return new PrometheusOptionsConfigBuilder<>(PrometheusOptionsConfig.class::cast);
+    }
+
+    public static <T> PrometheusOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new PrometheusOptionsConfigBuilder<>(mapper);
+    }
+
+    PrometheusOptionsConfig(
         PrometheusEndpointConfig[] endpoints)
     {
         this.endpoints = endpoints;

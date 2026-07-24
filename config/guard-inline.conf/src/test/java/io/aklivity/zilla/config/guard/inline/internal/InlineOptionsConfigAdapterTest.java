@@ -69,7 +69,9 @@ public class InlineOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithCredentials()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig(null, "token", null);
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .credentials("token")
+            .build();
 
         String yaml = jsonb.toJson(options);
 
@@ -80,7 +82,9 @@ public class InlineOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithIdentity()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig("alice", null, null);
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .identity("alice")
+            .build();
 
         String yaml = jsonb.toJson(options);
 
@@ -91,7 +95,8 @@ public class InlineOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithNullFields()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig(null, null, null);
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .build();
 
         String yaml = jsonb.toJson(options);
 
@@ -113,7 +118,9 @@ public class InlineOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptionsWithFormat()
     {
-        InlineOptionsConfig options = new InlineOptionsConfig(null, null, "{identity}:{credentials}");
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .format("{identity}:{credentials}")
+            .build();
 
         String yaml = jsonb.toJson(options);
 

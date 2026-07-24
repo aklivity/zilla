@@ -12,49 +12,42 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.catalog.filesystem;
+package io.aklivity.zilla.config.exporter.prometheus;
 
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class FilesystemSchemaConfigBuilder<T> extends ConfigBuilder<T, FilesystemSchemaConfigBuilder<T>>
+public final class PrometheusOptionsConfigBuilder<T> extends ConfigBuilder<T, PrometheusOptionsConfigBuilder<T>>
 {
-    private final Function<FilesystemSchemaConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
-    private String subject;
-    private String path;
+    private PrometheusEndpointConfig[] endpoints;
 
-    FilesystemSchemaConfigBuilder(
-        Function<FilesystemSchemaConfig, T> mapper)
+    PrometheusOptionsConfigBuilder(
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<FilesystemSchemaConfigBuilder<T>> thisType()
+    protected Class<PrometheusOptionsConfigBuilder<T>> thisType()
     {
-        return (Class<FilesystemSchemaConfigBuilder<T>>) getClass();
+        return (Class<PrometheusOptionsConfigBuilder<T>>) getClass();
     }
 
-    public FilesystemSchemaConfigBuilder<T> subject(
-        String subject)
+    public PrometheusOptionsConfigBuilder<T> endpoints(
+        PrometheusEndpointConfig[] endpoints)
     {
-        this.subject = subject;
-        return this;
-    }
-
-    public FilesystemSchemaConfigBuilder<T> path(
-        String path)
-    {
-        this.path = path;
+        this.endpoints = endpoints;
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new FilesystemSchemaConfig(subject, path));
+        return mapper.apply(new PrometheusOptionsConfig(endpoints));
     }
 }

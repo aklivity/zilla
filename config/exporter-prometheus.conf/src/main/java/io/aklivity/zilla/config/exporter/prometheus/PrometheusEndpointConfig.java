@@ -14,13 +14,26 @@
  */
 package io.aklivity.zilla.config.exporter.prometheus;
 
+import java.util.function.Function;
+
 public class PrometheusEndpointConfig
 {
-    public String scheme;
-    public int port;
-    public String path;
+    public final String scheme;
+    public final int port;
+    public final String path;
 
-    public PrometheusEndpointConfig(
+    public static PrometheusEndpointConfigBuilder<PrometheusEndpointConfig> builder()
+    {
+        return new PrometheusEndpointConfigBuilder<>(PrometheusEndpointConfig.class::cast);
+    }
+
+    public static <T> PrometheusEndpointConfigBuilder<T> builder(
+        Function<PrometheusEndpointConfig, T> mapper)
+    {
+        return new PrometheusEndpointConfigBuilder<>(mapper);
+    }
+
+    PrometheusEndpointConfig(
         String scheme,
         int port,
         String path)

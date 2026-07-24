@@ -35,7 +35,7 @@ public class FilesystemOptionsConfig extends OptionsConfig
         return new FilesystemOptionsConfigBuilder<>(mapper);
     }
 
-    public FilesystemOptionsConfig(
+    FilesystemOptionsConfig(
         List<FilesystemSchemaConfig> subjects)
     {
         super(List.of(), resolveResources(subjects));
