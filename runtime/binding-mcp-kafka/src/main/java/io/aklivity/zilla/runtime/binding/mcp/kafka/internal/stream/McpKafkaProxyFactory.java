@@ -55,10 +55,13 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW;
@@ -134,6 +137,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
     private final SignalFW signalRO = new SignalFW();
+    private final ChallengeFW challengeRO = new ChallengeFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
@@ -150,6 +154,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
+    private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
@@ -437,6 +443,32 @@ public class McpKafkaProxyFactory implements BindingHandler
             .build();
 
         receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(0L)
+            .reserved(0)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doReset(
@@ -2156,9 +2188,32 @@ public class McpKafkaProxyFactory implements BindingHandler
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onKafkaReset(reset);
                 break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onKafkaChallenge(challenge);
+                break;
             default:
                 break;
             }
+        }
+
+        private void onKafkaChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+
+            doKafkaFlush(traceId);
+        }
+
+        private void doKafkaFlush(
+            long traceId)
+        {
+            final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiFlush(f -> f.version(CREATE_TOPICS_API_VERSION))
+                .build();
+
+            doFlush(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization, kafkaFlushEx);
         }
 
         private void onKafkaBegin(
@@ -2344,8 +2399,23 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .clientId("zilla"))
                 .build();
 
-            kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
-                traceId, authorization, affinity, kafkaBeginEx);
+            final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(resolvedId)
+                .streamId(kafkaInitialId)
+                .sequence(0)
+                .acknowledge(0)
+                .maximum(0)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(kafkaBeginEx.buffer(), kafkaBeginEx.offset(), kafkaBeginEx.sizeof())
+                .build();
+
+            // assign kafka before dispatching BEGIN -- a synchronously-reentrant CHALLENGE
+            // must see a non-null receiver when it turns around and sends FLUSH
+            kafka = streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), this::onKafkaMessage);
+            kafka.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
         }
 
         @Override
