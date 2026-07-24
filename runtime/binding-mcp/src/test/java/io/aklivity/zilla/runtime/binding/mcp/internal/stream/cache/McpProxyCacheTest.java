@@ -196,7 +196,7 @@ public class McpProxyCacheTest
                 .search()
                     .toolkit("zilla")
                     .fields(of("name", "description"))
-                    .index(new McpKeywordToolSearchIndexConfig())
+                    .index(McpKeywordToolSearchIndexConfig.builder().build())
                     .build()
                 .build()
             .build();
@@ -254,7 +254,7 @@ public class McpProxyCacheTest
                 .search()
                     .toolkit("zilla")
                     .fields(of("name", "description"))
-                    .index(new McpKeywordToolSearchIndexConfig())
+                    .index(McpKeywordToolSearchIndexConfig.builder().build())
                     .build()
                 .build()
             .build();

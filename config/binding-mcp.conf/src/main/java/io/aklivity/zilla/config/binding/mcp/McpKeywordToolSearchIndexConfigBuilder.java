@@ -16,26 +16,29 @@ package io.aklivity.zilla.config.binding.mcp;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.WithConfig;
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 
-public final class McpWithConfig extends WithConfig
+public final class McpKeywordToolSearchIndexConfigBuilder<T> extends
+    ConfigBuilder<T, McpKeywordToolSearchIndexConfigBuilder<T>>
 {
-    public final McpWithCacheConfig cache;
+    private final Function<McpKeywordToolSearchIndexConfig, T> mapper;
 
-    McpWithConfig(
-        McpWithCacheConfig cache)
+    McpKeywordToolSearchIndexConfigBuilder(
+        Function<McpKeywordToolSearchIndexConfig, T> mapper)
     {
-        this.cache = cache;
+        this.mapper = mapper;
     }
 
-    public static McpWithConfigBuilder<McpWithConfig> builder()
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<McpKeywordToolSearchIndexConfigBuilder<T>> thisType()
     {
-        return new McpWithConfigBuilder<>(McpWithConfig.class::cast);
+        return (Class<McpKeywordToolSearchIndexConfigBuilder<T>>) getClass();
     }
 
-    public static <T> McpWithConfigBuilder<T> builder(
-        Function<WithConfig, T> mapper)
+    @Override
+    public T build()
     {
-        return new McpWithConfigBuilder<>(mapper);
+        return mapper.apply(new McpKeywordToolSearchIndexConfig());
     }
 }

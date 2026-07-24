@@ -40,7 +40,10 @@ public class McpHttpRouteConfigTest
         RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder();
         if (tool != null || resource != null)
         {
-            builder = builder.when(new McpHttpConditionConfig(tool, resource));
+            builder = builder.when(McpHttpConditionConfig.builder()
+                .tool(tool)
+                .resource(resource)
+                .build());
         }
         if (withMapping)
         {

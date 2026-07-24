@@ -73,7 +73,9 @@ public class McpHttpConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithTool()
     {
-        McpHttpConditionConfig condition = new McpHttpConditionConfig("create_pr", null);
+        McpHttpConditionConfig condition = McpHttpConditionConfig.builder()
+            .tool("create_pr")
+            .build();
 
         String text = jsonb.toJson(condition);
 
@@ -84,7 +86,9 @@ public class McpHttpConditionConfigAdapterTest
     @Test
     public void shouldWriteConditionWithResource()
     {
-        McpHttpConditionConfig condition = new McpHttpConditionConfig(null, "order");
+        McpHttpConditionConfig condition = McpHttpConditionConfig.builder()
+            .resource("order")
+            .build();
 
         String text = jsonb.toJson(condition);
 

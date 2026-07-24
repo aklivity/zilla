@@ -57,7 +57,9 @@ public class McpSchemaRegistryOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        McpSchemaRegistryOptionsConfig options = new McpSchemaRegistryOptionsConfig("http://localhost:8080");
+        McpSchemaRegistryOptionsConfig options = McpSchemaRegistryOptionsConfig.builder()
+            .server("http://localhost:8080")
+            .build();
 
         String text = jsonb.toJson(options);
 

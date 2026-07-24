@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.mcp.http;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.ModelConfig;
 
 public final class McpHttpToolConfig
@@ -25,14 +27,15 @@ public final class McpHttpToolConfig
     public final ModelConfig output;
     public final boolean outputMaybeWrapped;
 
-    public McpHttpToolConfig(
-        String name,
-        String summary,
-        String description,
-        ModelConfig input,
-        ModelConfig output)
+    public static McpHttpToolConfigBuilder<McpHttpToolConfig> builder()
     {
-        this(name, summary, description, input, output, false);
+        return new McpHttpToolConfigBuilder<>(McpHttpToolConfig.class::cast);
+    }
+
+    public static <T> McpHttpToolConfigBuilder<T> builder(
+        Function<McpHttpToolConfig, T> mapper)
+    {
+        return new McpHttpToolConfigBuilder<>(mapper);
     }
 
     // outputMaybeWrapped is true when nothing proves the real response body is already a JSON object --
@@ -41,7 +44,7 @@ public final class McpHttpToolConfig
     // needs wrapping into {"result": <value>} before validation/projection against output; a declared
     // object schema skips the transform entirely (never needed), a declared array/scalar schema always
     // wraps (never possible to be an object)
-    public McpHttpToolConfig(
+    McpHttpToolConfig(
         String name,
         String summary,
         String description,

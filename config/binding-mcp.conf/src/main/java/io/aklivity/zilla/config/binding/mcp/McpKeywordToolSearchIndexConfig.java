@@ -14,11 +14,24 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
+import java.util.function.Function;
+
 public final class McpKeywordToolSearchIndexConfig extends McpToolSearchIndexConfig
 {
     public static final String NAME = "keyword";
 
-    public McpKeywordToolSearchIndexConfig()
+    public static McpKeywordToolSearchIndexConfigBuilder<McpKeywordToolSearchIndexConfig> builder()
+    {
+        return new McpKeywordToolSearchIndexConfigBuilder<>(McpKeywordToolSearchIndexConfig.class::cast);
+    }
+
+    public static <T> McpKeywordToolSearchIndexConfigBuilder<T> builder(
+        Function<McpKeywordToolSearchIndexConfig, T> mapper)
+    {
+        return new McpKeywordToolSearchIndexConfigBuilder<>(mapper);
+    }
+
+    McpKeywordToolSearchIndexConfig()
     {
         super(NAME);
     }

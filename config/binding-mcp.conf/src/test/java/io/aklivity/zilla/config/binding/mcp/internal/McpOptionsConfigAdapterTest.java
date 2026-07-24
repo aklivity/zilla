@@ -240,7 +240,7 @@ public class McpOptionsConfigAdapterTest
                             .toolkit("zilla")
                             .limit(5)
                             .fields(List.of("name", "description"))
-                            .index(new McpKeywordToolSearchIndexConfig())
+                            .index(McpKeywordToolSearchIndexConfig.builder().build())
                             .build()
                         .build()
                     .build()

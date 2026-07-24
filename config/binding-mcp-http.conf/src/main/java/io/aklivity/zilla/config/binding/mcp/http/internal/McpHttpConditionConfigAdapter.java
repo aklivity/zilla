@@ -60,6 +60,9 @@ public final class McpHttpConditionConfigAdapter implements JsonbAdapter<Conditi
             ? object.getString(RESOURCE_NAME)
             : null;
 
-        return new McpHttpConditionConfig(tool, resource);
+        return McpHttpConditionConfig.builder()
+            .tool(tool)
+            .resource(resource)
+            .build();
     }
 }

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.mcp.http;
 
 import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
@@ -24,7 +25,18 @@ public final class McpHttpOptionsConfig extends OptionsConfig
     public final List<McpHttpToolConfig> tools;
     public final List<McpHttpResourceConfig> resources;
 
-    public McpHttpOptionsConfig(
+    public static McpHttpOptionsConfigBuilder<McpHttpOptionsConfig> builder()
+    {
+        return new McpHttpOptionsConfigBuilder<>(McpHttpOptionsConfig.class::cast);
+    }
+
+    public static <T> McpHttpOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new McpHttpOptionsConfigBuilder<>(mapper);
+    }
+
+    McpHttpOptionsConfig(
         McpHttpAuthorizationConfig authorization,
         List<McpHttpToolConfig> tools,
         List<McpHttpResourceConfig> resources)

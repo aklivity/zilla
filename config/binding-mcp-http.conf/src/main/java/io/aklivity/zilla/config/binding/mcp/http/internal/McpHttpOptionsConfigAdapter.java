@@ -161,7 +161,10 @@ public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsCo
                         }
                     }
                 }
-                authorization = new McpHttpAuthorizationConfig(name, headers);
+                authorization = McpHttpAuthorizationConfig.builder()
+                    .name(name)
+                    .headers(headers)
+                    .build();
             }
         }
 
@@ -196,7 +199,13 @@ public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsCo
                     }
                 }
 
-                tools.add(new McpHttpToolConfig(name, summary, description, input, output));
+                tools.add(McpHttpToolConfig.builder()
+                    .name(name)
+                    .summary(summary)
+                    .description(description)
+                    .input(input)
+                    .output(output)
+                    .build());
             }
         }
 
@@ -242,6 +251,10 @@ public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsCo
             }
         }
 
-        return new McpHttpOptionsConfig(authorization, tools, resources);
+        return McpHttpOptionsConfig.builder()
+            .authorization(authorization)
+            .tools(tools)
+            .resources(resources)
+            .build();
     }
 }

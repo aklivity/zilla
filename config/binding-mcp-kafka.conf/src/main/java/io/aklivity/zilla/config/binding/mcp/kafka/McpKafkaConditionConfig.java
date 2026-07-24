@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.mcp.kafka;
 
 import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
 
@@ -24,7 +25,18 @@ public final class McpKafkaConditionConfig extends ConditionConfig
     public final String resource;
     public final List<String> topics;
 
-    public McpKafkaConditionConfig(
+    public static McpKafkaConditionConfigBuilder<McpKafkaConditionConfig> builder()
+    {
+        return new McpKafkaConditionConfigBuilder<>(McpKafkaConditionConfig.class::cast);
+    }
+
+    public static <T> McpKafkaConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new McpKafkaConditionConfigBuilder<>(mapper);
+    }
+
+    McpKafkaConditionConfig(
         String tool,
         String resource,
         List<String> topics)

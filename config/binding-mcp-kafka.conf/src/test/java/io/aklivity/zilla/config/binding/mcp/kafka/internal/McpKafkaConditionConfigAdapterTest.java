@@ -63,7 +63,11 @@ public class McpKafkaConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        McpKafkaConditionConfig condition = new McpKafkaConditionConfig("produce", "orders", asList("orders", "shipments"));
+        McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
+            .tool("produce")
+            .resource("orders")
+            .topics(asList("orders", "shipments"))
+            .build();
 
         String text = jsonb.toJson(condition);
 

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.mcp.http;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class McpHttpConditionConfig extends ConditionConfig
@@ -21,7 +23,18 @@ public final class McpHttpConditionConfig extends ConditionConfig
     public final String tool;
     public final String resource;
 
-    public McpHttpConditionConfig(
+    public static McpHttpConditionConfigBuilder<McpHttpConditionConfig> builder()
+    {
+        return new McpHttpConditionConfigBuilder<>(McpHttpConditionConfig.class::cast);
+    }
+
+    public static <T> McpHttpConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new McpHttpConditionConfigBuilder<>(mapper);
+    }
+
+    McpHttpConditionConfig(
         String tool,
         String resource)
     {

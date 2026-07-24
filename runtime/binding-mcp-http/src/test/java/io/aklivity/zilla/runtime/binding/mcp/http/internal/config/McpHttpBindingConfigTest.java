@@ -46,7 +46,10 @@ public class McpHttpBindingConfigTest
         RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder().order(order);
         if (tool != null || resource != null)
         {
-            builder = builder.when(new McpHttpConditionConfig(tool, resource));
+            builder = builder.when(McpHttpConditionConfig.builder()
+                .tool(tool)
+                .resource(resource)
+                .build());
         }
         if (withMapping)
         {
@@ -114,7 +117,9 @@ public class McpHttpBindingConfigTest
 
         RouteConfig mapping = RouteConfig.builder()
             .order(1)
-            .when(new McpHttpConditionConfig("create_pr", null))
+            .when(McpHttpConditionConfig.builder()
+                .tool("create_pr")
+                .build())
             .guarded().name("test1").roles(List.of("write")).build()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/items")
@@ -134,14 +139,18 @@ public class McpHttpBindingConfigTest
     {
         RouteConfig scoped = RouteConfig.builder()
             .order(0)
-            .when(new McpHttpConditionConfig(null, "order"))
+            .when(McpHttpConditionConfig.builder()
+                .resource("order")
+                .build())
             .guarded().name("test0").roles(List.of("read")).build()
             .build();
         scoped.authorized = (auth, identity) -> true;
 
         RouteConfig mapping = RouteConfig.builder()
             .order(1)
-            .when(new McpHttpConditionConfig(null, "order"))
+            .when(McpHttpConditionConfig.builder()
+                .resource("order")
+                .build())
             .guarded().name("test1").roles(List.of("write")).build()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/items")

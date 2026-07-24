@@ -59,7 +59,7 @@ public class McpToolSearchIndexFactoryTest
         McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
             .toolkit("zilla")
             .fields(List.of("name", "description"))
-            .index(new McpKeywordToolSearchIndexConfig())
+            .index(McpKeywordToolSearchIndexConfig.builder().build())
             .build();
 
         McpToolSearchIndex index = factory.create(search);
@@ -79,8 +79,8 @@ public class McpToolSearchIndexFactoryTest
         McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
             .toolkit("zilla")
             .fields(List.of("name", "description"))
-            .index(new McpKeywordToolSearchIndexConfig())
-            .index(new McpKeywordToolSearchIndexConfig())
+            .index(McpKeywordToolSearchIndexConfig.builder().build())
+            .index(McpKeywordToolSearchIndexConfig.builder().build())
             .build();
 
         McpToolSearchIndex index = factory.create(search);

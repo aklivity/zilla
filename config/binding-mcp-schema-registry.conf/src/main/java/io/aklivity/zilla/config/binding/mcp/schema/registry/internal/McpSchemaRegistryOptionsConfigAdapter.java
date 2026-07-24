@@ -43,6 +43,8 @@ public final class McpSchemaRegistryOptionsConfigAdapter implements JsonbAdapter
     {
         String server = object.getString(SERVER_NAME);
 
-        return new McpSchemaRegistryOptionsConfig(server);
+        return McpSchemaRegistryOptionsConfig.builder()
+            .server(server)
+            .build();
     }
 }

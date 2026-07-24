@@ -15,13 +15,25 @@
 package io.aklivity.zilla.config.binding.mcp.http;
 
 import java.util.Map;
+import java.util.function.Function;
 
 public final class McpHttpAuthorizationConfig
 {
     public final String name;
     public final Map<String, String> headers;
 
-    public McpHttpAuthorizationConfig(
+    public static McpHttpAuthorizationConfigBuilder<McpHttpAuthorizationConfig> builder()
+    {
+        return new McpHttpAuthorizationConfigBuilder<>(McpHttpAuthorizationConfig.class::cast);
+    }
+
+    public static <T> McpHttpAuthorizationConfigBuilder<T> builder(
+        Function<McpHttpAuthorizationConfig, T> mapper)
+    {
+        return new McpHttpAuthorizationConfigBuilder<>(mapper);
+    }
+
+    McpHttpAuthorizationConfig(
         String name,
         Map<String, String> headers)
     {

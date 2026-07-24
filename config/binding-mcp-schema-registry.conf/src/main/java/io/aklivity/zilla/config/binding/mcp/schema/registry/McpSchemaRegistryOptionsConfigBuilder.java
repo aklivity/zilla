@@ -16,26 +16,39 @@ package io.aklivity.zilla.config.binding.mcp.schema.registry;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class McpSchemaRegistryOptionsConfig extends OptionsConfig
+public final class McpSchemaRegistryOptionsConfigBuilder<T> extends
+    ConfigBuilder<T, McpSchemaRegistryOptionsConfigBuilder<T>>
 {
-    public final String server;
+    private final Function<OptionsConfig, T> mapper;
 
-    public static McpSchemaRegistryOptionsConfigBuilder<McpSchemaRegistryOptionsConfig> builder()
-    {
-        return new McpSchemaRegistryOptionsConfigBuilder<>(McpSchemaRegistryOptionsConfig.class::cast);
-    }
+    private String server;
 
-    public static <T> McpSchemaRegistryOptionsConfigBuilder<T> builder(
+    McpSchemaRegistryOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
-        return new McpSchemaRegistryOptionsConfigBuilder<>(mapper);
+        this.mapper = mapper;
     }
 
-    McpSchemaRegistryOptionsConfig(
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<McpSchemaRegistryOptionsConfigBuilder<T>> thisType()
+    {
+        return (Class<McpSchemaRegistryOptionsConfigBuilder<T>>) getClass();
+    }
+
+    public McpSchemaRegistryOptionsConfigBuilder<T> server(
         String server)
     {
         this.server = server;
+        return this;
+    }
+
+    @Override
+    public T build()
+    {
+        return mapper.apply(new McpSchemaRegistryOptionsConfig(server));
     }
 }

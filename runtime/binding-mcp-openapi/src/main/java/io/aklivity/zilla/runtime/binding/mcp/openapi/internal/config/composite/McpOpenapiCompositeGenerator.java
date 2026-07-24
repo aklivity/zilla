@@ -440,7 +440,14 @@ public final class McpOpenapiCompositeGenerator
                     : entry.operation.summary != null
                         ? entry.operation.summary
                         : "Call %s".formatted(entry.operation.id);
-                tools.add(new McpHttpToolConfig(entry.tool.name, summary, description, input, output, outputMaybeWrapped));
+                tools.add(McpHttpToolConfig.builder()
+                    .name(entry.tool.name)
+                    .summary(summary)
+                    .description(description)
+                    .input(input)
+                    .output(output)
+                    .outputMaybeWrapped(outputMaybeWrapped)
+                    .build());
             }
             else
             {
@@ -460,9 +467,11 @@ public final class McpOpenapiCompositeGenerator
             }
         }
 
-        return new McpHttpOptionsConfig(mcpHttpAuthorization(binding),
-            tools.isEmpty() ? null : tools,
-            resources.isEmpty() ? null : resources);
+        return McpHttpOptionsConfig.builder()
+            .authorization(mcpHttpAuthorization(binding))
+            .tools(tools.isEmpty() ? null : tools)
+            .resources(resources.isEmpty() ? null : resources)
+            .build();
     }
 
     private McpHttpAuthorizationConfig mcpHttpAuthorization(
@@ -472,7 +481,10 @@ public final class McpOpenapiCompositeGenerator
             binding.options != null ? binding.options.authorization : null;
 
         return authorization != null
-            ? new McpHttpAuthorizationConfig(authorization.qname, authorization.headers)
+            ? McpHttpAuthorizationConfig.builder()
+                .name(authorization.qname)
+                .headers(authorization.headers)
+                .build()
             : null;
     }
 
@@ -482,9 +494,10 @@ public final class McpOpenapiCompositeGenerator
     {
         for (RoutedOperation entry : routed)
         {
-            final McpHttpConditionConfig when = new McpHttpConditionConfig(
-                entry.tool != null ? entry.tool.name : null,
-                entry.resource != null ? entry.resource.uri : null);
+            final McpHttpConditionConfig when = McpHttpConditionConfig.builder()
+                .tool(entry.tool != null ? entry.tool.name : null)
+                .resource(entry.resource != null ? entry.resource.uri : null)
+                .build();
             final McpHttpWithConfig with = withConfig(entry);
 
             binding.route()

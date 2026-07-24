@@ -81,6 +81,10 @@ public final class McpKafkaConditionConfigAdapter implements JsonbAdapter<Condit
                 .collect(toList())
             : null;
 
-        return new McpKafkaConditionConfig(tool, resource, topics);
+        return McpKafkaConditionConfig.builder()
+            .tool(tool)
+            .resource(resource)
+            .topics(topics)
+            .build();
     }
 }

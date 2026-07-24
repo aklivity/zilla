@@ -44,6 +44,6 @@ public final class McpKeywordToolSearchIndexConfigAdapterSpi implements McpToolS
     public McpToolSearchIndexConfig adaptFromJson(
         JsonObject object)
     {
-        return new McpKeywordToolSearchIndexConfig();
+        return McpKeywordToolSearchIndexConfig.builder().build();
     }
 }
