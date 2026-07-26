@@ -221,27 +221,13 @@ public final class EngineConfigReader
         return valid;
     }
 
+    // one shared parser drives every document in the stream: JsonSchema.validate() stops exactly at
+    // each document boundary (top-level structural depth returning to zero), so the next document's
+    // starting offset is simply wherever the parser is positioned once that call returns
     private IntArrayList validateDocuments(
         String readable,
         JsonSchema schema,
         List<Exception> errors)
-    {
-        IntArrayList documentsAt = documentOffsets(readable);
-
-        for (int index = 0; index < documentsAt.size(); index++)
-        {
-            int documentAt = documentsAt.getInt(index);
-            try (JsonParser parser = CONFIG_PROVIDER.createParser(new StringReader(readable.substring(documentAt))))
-            {
-                schema.validate(parser, problem -> errors.add(new ConfigException(problem.toString())));
-            }
-        }
-
-        return documentsAt;
-    }
-
-    private IntArrayList documentOffsets(
-        String readable)
     {
         IntArrayList documentsAt = new IntArrayList();
 
@@ -252,54 +238,17 @@ public final class EngineConfigReader
 
         try (JsonParser parser = CONFIG_PROVIDER.createParser(new StringReader(readable)))
         {
-            int depth = 0;
-            int documentAt = 0;
             while (parser.hasNext())
             {
-                JsonParser.Event event = parser.next();
-                switch (event)
+                schema.validate(parser, problem -> errors.add(new ConfigException(problem.toString())));
+
+                if (parser.hasNext())
                 {
-                case START_OBJECT, START_ARRAY ->
-                    depth++;
-                case END_OBJECT, END_ARRAY ->
-                {
-                    depth--;
-                    if (depth == 0)
-                    {
-                        documentAt = nextDocumentAt(parser, documentsAt, documentAt);
-                    }
-                }
-                case VALUE_STRING, VALUE_NUMBER, VALUE_TRUE, VALUE_FALSE, VALUE_NULL ->
-                {
-                    if (depth == 0)
-                    {
-                        documentAt = nextDocumentAt(parser, documentsAt, documentAt);
-                    }
-                }
-                default ->
-                {
-                }
+                    documentsAt.addInt((int) parser.getLocation().getStreamOffset());
                 }
             }
         }
 
         return documentsAt;
-    }
-
-    private int nextDocumentAt(
-        JsonParser parser,
-        IntArrayList documentsAt,
-        int documentAt)
-    {
-        int nextDocumentAt = (int) parser.getLocation().getStreamOffset();
-        if (nextDocumentAt <= documentAt)
-        {
-            throw new ConfigException("YAML parser did not advance to next document");
-        }
-        if (parser.hasNext())
-        {
-            documentsAt.addInt(nextDocumentAt);
-        }
-        return nextDocumentAt;
     }
 }
