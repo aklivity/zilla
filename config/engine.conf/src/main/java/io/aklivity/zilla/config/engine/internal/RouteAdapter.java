@@ -32,6 +32,7 @@ import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 {
@@ -54,7 +55,7 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
         EngineInfo info)
     {
         condition = new ConditionAdapter(info);
-        with = new WithAdapter();
+        with = new WithAdapter(info);
     }
 
     public RouteAdapter adaptType(
@@ -91,7 +92,7 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 
         if (route.with != null)
         {
-            final JsonObject withObject = with.adaptToJson(route.with);
+            final JsonObject withObject = adaptWithToJson(route.with);
             if (withObject != null)
             {
                 object.add(WITH_NAME, withObject);
@@ -138,7 +139,7 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 
         if (object.containsKey(WITH_NAME))
         {
-            route.with(with.adaptFromJson(object.getJsonObject(WITH_NAME)));
+            route.with(adaptWithFromJson(object.getJsonObject(WITH_NAME)));
         }
 
         if (object.containsKey(GUARDED_NAME))
@@ -190,5 +191,35 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
             rethrowUnchecked(ex);
         }
         return condition0;
+    }
+
+    private JsonObject adaptWithToJson(
+        WithConfig with0)
+    {
+        JsonObject object = null;
+        try
+        {
+            object = with.adaptToJson(with0);
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return object;
+    }
+
+    private WithConfig adaptWithFromJson(
+        JsonObject object)
+    {
+        WithConfig with0 = null;
+        try
+        {
+            with0 = with.adaptFromJson(object);
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return with0;
     }
 }
