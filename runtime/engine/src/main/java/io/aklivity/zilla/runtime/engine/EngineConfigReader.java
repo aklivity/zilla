@@ -36,8 +36,6 @@ import jakarta.json.JsonReader;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.collections.IntArrayList;
-
 import io.aklivity.zilla.config.engine.BindingInfoRegistry;
 import io.aklivity.zilla.config.engine.CatalogInfoRegistry;
 import io.aklivity.zilla.config.engine.ConfigException;
@@ -136,26 +134,16 @@ public final class EngineConfigReader
 
             JsonSchema schema = JsonSchema.of(schemaObject.toString());
 
-            IntArrayList configsAt = validateDocuments(readable, schema, errors);
-            if (!errors.isEmpty())
-            {
-                break read;
-            }
-
             NamespaceConfigReader namespaces =
                 new NamespaceConfigReader(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos, storeInfos);
 
             EngineConfigBuilder<EngineConfig> builder = EngineConfig.builder();
-            for (int configAt : configsAt)
-            {
-                NamespaceConfig namespace = namespaces.read(readable.substring(configAt));
-                namespace.configAt = configAt;
-                builder.namespace(namespace);
 
-                if (!errors.isEmpty())
-                {
-                    break read;
-                }
+            readDocuments(readable, schema, namespaces, builder, errors);
+
+            if (!errors.isEmpty())
+            {
+                break read;
             }
             engine = builder.build();
         }
@@ -221,34 +209,48 @@ public final class EngineConfigReader
         return valid;
     }
 
-    // one shared parser drives every document in the stream: JsonSchema.validate() stops exactly at
-    // each document boundary (top-level structural depth returning to zero), so the next document's
-    // starting offset is simply wherever the parser is positioned once that call returns
-    private IntArrayList validateDocuments(
+    // JsonSchema.validate() stops exactly at each document boundary (top-level structural depth
+    // returning to zero), so one shared parser can validate every document in the stream in turn
+    private void validateDocuments(
         String readable,
         JsonSchema schema,
         List<Exception> errors)
     {
-        IntArrayList documentsAt = new IntArrayList();
-
-        if (!readable.isEmpty())
-        {
-            documentsAt.addInt(0);
-        }
-
         try (JsonParser parser = CONFIG_PROVIDER.createParser(new StringReader(readable)))
         {
             while (parser.hasNext())
             {
                 schema.validate(parser, problem -> errors.add(new ConfigException(problem.toString())));
-
-                if (parser.hasNext())
-                {
-                    documentsAt.addInt((int) parser.getLocation().getStreamOffset());
-                }
             }
         }
+    }
 
-        return documentsAt;
+    // same per-document stopping as validateDocuments, but each namespace is parsed from its own
+    // document text as soon as that document validates clean, instead of pre-computing every
+    // document's offset before parsing any of them
+    private void readDocuments(
+        String readable,
+        JsonSchema schema,
+        NamespaceConfigReader namespaces,
+        EngineConfigBuilder<EngineConfig> builder,
+        List<Exception> errors)
+    {
+        try (JsonParser parser = CONFIG_PROVIDER.createParser(new StringReader(readable)))
+        {
+            int documentAt = 0;
+            while (parser.hasNext())
+            {
+                schema.validate(parser, problem -> errors.add(new ConfigException(problem.toString())));
+
+                if (errors.isEmpty())
+                {
+                    NamespaceConfig namespace = namespaces.read(readable.substring(documentAt));
+                    namespace.configAt = documentAt;
+                    builder.namespace(namespace);
+                }
+
+                documentAt = parser.hasNext() ? (int) parser.getLocation().getStreamOffset() : readable.length();
+            }
+        }
     }
 }
