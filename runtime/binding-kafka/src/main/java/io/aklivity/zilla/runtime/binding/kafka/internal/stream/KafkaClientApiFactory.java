@@ -577,7 +577,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit()) : null;
 
         assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_API_REQUEST;
-        final KafkaApiRequestBeginExFW kafkaApiRequestBeginEx = kafkaBeginEx.apiRequest();
+        final KafkaApiRequestBeginExFW kafkaApiBeginEx = kafkaBeginEx.apiRequest();
 
         MessageConsumer newStream = null;
 
@@ -589,12 +589,10 @@ public final class KafkaClientApiFactory implements BindingHandler
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
-            final short api = kafkaApiRequestBeginEx.api();
-            final short version = kafkaApiRequestBeginEx.version();
-            final int requestLength = kafkaApiRequestBeginEx.length();
-            final String16FW clientId = kafkaApiRequestBeginEx.clientId().length() != -1
-                ? new String16FW(kafkaApiRequestBeginEx.clientId().asString())
-                : null;
+            final short api = kafkaApiBeginEx.api();
+            final short version = kafkaApiBeginEx.version();
+            final int requestLength = kafkaApiBeginEx.length();
+            final String16FW clientId = new String16FW(kafkaApiBeginEx.clientId().asString());
 
             final KafkaApiClient client = clientsByAffinity.computeIfAbsent(affinity,
                 a -> new KafkaApiClient(routedId, resolvedId, a, binding.servers(), binding.guard, binding.sasl()));
