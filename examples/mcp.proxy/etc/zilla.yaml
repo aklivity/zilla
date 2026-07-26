@@ -611,19 +611,23 @@ bindings:
     # produce/consume call naming any other topic has no matching route
     # and is rejected. create_topics has no topics allow-list -- it takes an
     # array of topics to create as call arguments, not a single routed topic
-    # -- so its route matches on tool name alone, gated by its own
-    # tool-specific kafka:write scope layered under the toolkit-level
-    # kafka:tools guard above (the same layering register_schema demonstrates
-    # for the kafka_sr toolkit)
+    # -- so its route matches on tool name alone. Both create_topics and
+    # produce layer a tool-specific scope under the toolkit-level kafka:tools
+    # guard above (the same layering register_schema demonstrates for the
+    # kafka_sr toolkit): kafka:admin for the admin-risk topic creation,
+    # kafka:write for writing data -- consume needs neither, only kafka:tools
     routes:
       - when:
           - tool: create_topics
         guarded:
           authn_jwt:
-            - kafka:write
+            - kafka:admin
       - when:
           - tool: produce
             topics: [orders]
+        guarded:
+          authn_jwt:
+            - kafka:write
       - when:
           - tool: consume
             topics: [orders]

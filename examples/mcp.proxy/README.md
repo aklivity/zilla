@@ -56,7 +56,8 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp(proxy)` route for `kafka_sr` toolkit | `routes[].guarded` on the toolkit route | `kafka_sr:tools` |
 | `mcp_schema_registry(client)` route for `register_schema` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka_sr:tools` **and** `kafka_sr:write` |
 | `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
-| `mcp_kafka(client)` route for `create_topics` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
+| `mcp_kafka(client)` route for `produce` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
+| `mcp_kafka(client)` route for `create_topics` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
 
 `list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
 of their own, so they need only the toolkit-level `petstore:tools` scope --
@@ -73,10 +74,12 @@ other read-only tool need only the toolkit-level `kafka_sr:tools`
 scope, while `register_schema` additionally requires `kafka_sr:write`.
 
 `mcp_kafka` demonstrates the identical layering a third way, on its own
-`when.tool` route: `produce` and `consume` need only the toolkit-level
-`kafka:tools` scope, while the admin-risk `create_topics` route additionally
-requires `kafka:write` -- same mechanism as `register_schema`, different
-toolkit.
+`when.tool` route, and splits it further into read/write/admin: `consume`
+needs only the toolkit-level `kafka:tools` scope, `produce` additionally
+requires `kafka:write` since it mutates topic data, and the admin-risk
+`create_topics` route requires `kafka:admin` instead -- same mechanism as
+`register_schema`, different toolkit, with a third tier for structural
+(not just data) mutation.
 
 The `everything` toolkit has no `guarded:` route at all, so it is reachable by
 any session that can complete `initialize` -- including one with no token.
@@ -136,7 +139,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --aud "https://api.example.com" \
     --exp=+1d \
     --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin" \
     --secret @/private.pem | tr -d '\r\n')
 ```
 
@@ -169,7 +172,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 ```
@@ -503,7 +506,7 @@ value or a full result set happens to be.
 
 Unlike `produce`/`consume`, `create_topics` has no `topics` allow-list on its
 route -- it takes an array of topics to create as call arguments, not a single
-routed topic, and is gated instead by its own `kafka:write` scope (see
+routed topic, and is gated instead by its own `kafka:admin` scope (see
 "Authorization model" above). Create a new topic with the full-scope
 `$JWT_TOKEN` from above:
 

@@ -59,7 +59,7 @@
 #      security scheme is involved, unlike petstore's create_pet
 #  23. kafka__create_topics creates a real topic on the same broker
 #      (mcp_kafka kind:client's own generated pipeline, not the engine's
-#      test double), gated by its own tool-specific kafka:write scope
+#      test double), gated by its own tool-specific kafka:admin scope
 #      layered under the toolkit-level kafka:tools scope -- the same
 #      layering mechanism as register_schema/kafka_sr:write, demonstrated
 #      on a different toolkit
@@ -95,7 +95,7 @@ encode_jwt() {
 JWT_NONE=""
 JWT_URLELICIT=$(encode_jwt "urlelicit:authorize")
 JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools kafka_sr:tools")
-JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write")
+JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin")
 
 # WHEN: a url-elicitation-capable client initializes against the gateway
 # THEN: the gateway negotiates protocol version 2025-11-25 in the response
@@ -632,7 +632,7 @@ else
   EXIT=1
 fi
 
-# WHEN: a kafka:tools-scoped caller calls kafka__produce
+# WHEN: a kafka:write-scoped caller calls kafka__produce
 # THEN: the record reaches the real, single-node KRaft Kafka broker started by
 #       this example -- not the engine's `type: test` double specs/ITs use --
 #       proving mcp_kafka's kind:client composite generator (kafka_cache_client
@@ -676,9 +676,9 @@ else
   EXIT=1
 fi
 
-# WHEN: a kafka:write-scoped caller calls kafka__create_topics
+# WHEN: a kafka:admin-scoped caller calls kafka__create_topics
 # THEN: a new topic is created on the real Kafka broker -- proving the
-#       tool-specific kafka:write scope (layered under the toolkit-level
+#       tool-specific kafka:admin scope (layered under the toolkit-level
 #       kafka:tools guard already exercised above by produce/consume) is
 #       sufficient to actually invoke the tool, not just see it listed
 call_kafka_create_topics() {
