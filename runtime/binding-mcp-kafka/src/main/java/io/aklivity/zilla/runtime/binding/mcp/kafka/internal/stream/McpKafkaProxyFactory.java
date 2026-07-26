@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -103,7 +104,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
     /**
      * Tools that bypass the local Kafka cache and talk directly to the plain Kafka client
-     * (routed via {@code composite.directExitId}, see {@link McpKafkaClientFactory#attach}),
+     * (routed via {@code composite.clientExitId}, see {@link McpKafkaClientFactory#attach}),
      * using {@code KafkaApiClient} instead of the merged-capability {@code KafkaProxy}. A
      * {@code Set} so future tools (e.g. {@code delete_topics}, {@code alter_configs}) are a
      * one-line addition.
@@ -571,10 +572,18 @@ public class McpKafkaProxyFactory implements BindingHandler
         final JsonArrayBuilder tools = Json.createArrayBuilder();
         for (String tool : TOOL_NAMES)
         {
+            final JsonObjectBuilder item = Json.createObjectBuilder().add("name", tool);
             final JsonObject inputSchema = buildToolInputSchema(tool);
-            tools.add(inputSchema == null
-                ? Json.createObjectBuilder().add("name", tool)
-                : Json.createObjectBuilder().add("name", tool).add("inputSchema", inputSchema));
+            if (inputSchema != null)
+            {
+                item.add("inputSchema", inputSchema);
+            }
+            final JsonObject outputSchema = buildToolOutputSchema(tool);
+            if (outputSchema != null)
+            {
+                item.add("outputSchema", outputSchema);
+            }
+            tools.add(item);
         }
         final JsonObject toolsList = Json.createObjectBuilder()
             .add("tools", tools)
@@ -626,7 +635,39 @@ public class McpKafkaProxyFactory implements BindingHandler
                                 .add("replicas", Json.createObjectBuilder().add("type", "integer"))
                                 .add("assignments", Json.createObjectBuilder().add("type", "array"))
                                 .add("configs", Json.createObjectBuilder().add("type", "object")))
-                            .add("required", Json.createArrayBuilder().add("name").add("partitions").add("replicas")))))
+                            .add("required", Json.createArrayBuilder().add("name").add("partitions").add("replicas"))))
+                    .add("timeout", Json.createObjectBuilder().add("type", "integer"))
+                    .add("validateOnly", Json.createObjectBuilder().add("type", "boolean")))
+                .add("required", Json.createArrayBuilder().add("topics"))
+                .build();
+            break;
+        default:
+            break;
+        }
+
+        return schema;
+    }
+
+    private JsonObject buildToolOutputSchema(
+        String tool)
+    {
+        JsonObject schema = null;
+
+        switch (tool)
+        {
+        case TOOL_CREATE_TOPICS:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("topics", Json.createObjectBuilder()
+                        .add("type", "array")
+                        .add("items", Json.createObjectBuilder()
+                            .add("type", "object")
+                            .add("properties", Json.createObjectBuilder()
+                                .add("name", Json.createObjectBuilder().add("type", "string"))
+                                .add("error", Json.createObjectBuilder().add("type", "integer"))
+                                .add("errorMessage", Json.createObjectBuilder().add("type", "string")))
+                            .add("required", Json.createArrayBuilder().add("name").add("error")))))
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
             break;
@@ -721,8 +762,20 @@ public class McpKafkaProxyFactory implements BindingHandler
         String text,
         boolean isError)
     {
-        final StringBuilder result = new StringBuilder()
-            .append("{\"content\":[{\"type\": \"text\",\"text\": \"")
+        return buildToolResult(text, null, isError);
+    }
+
+    private byte[] buildToolResult(
+        String text,
+        JsonObject structuredContent,
+        boolean isError)
+    {
+        final StringBuilder result = new StringBuilder().append('{');
+        if (structuredContent != null)
+        {
+            result.append("\"structuredContent\": ").append(structuredContent).append(',');
+        }
+        result.append("\"content\":[{\"type\": \"text\",\"text\": \"")
             .append(escapeJson(text))
             .append("\"}],\"isError\": ")
             .append(isError)
@@ -1446,7 +1499,16 @@ public class McpKafkaProxyFactory implements BindingHandler
             String text,
             boolean isError)
         {
-            final byte[] bytes = buildToolResult(text, isError);
+            doMcpResult(traceId, text, null, isError);
+        }
+
+        private void doMcpResult(
+            long traceId,
+            String text,
+            JsonObject structuredContent,
+            boolean isError)
+        {
+            final byte[] bytes = buildToolResult(text, structuredContent, isError);
             final UnsafeBufferEx result = new UnsafeBufferEx(bytes);
 
             doMcpData(traceId, 0L, FLAGS_COMPLETE, bytes.length, result, 0, bytes.length);
@@ -2287,8 +2349,28 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             final boolean isError = response.topics().stream().anyMatch(t -> t.error() != 0);
             final String text = buildCreateTopicsResultText(response, isError);
+            final JsonObject structuredContent = buildCreateTopicsStructuredContent(response);
 
-            peer.doMcpResult(traceId, text, isError);
+            peer.doMcpResult(traceId, text, structuredContent, isError);
+        }
+
+        private JsonObject buildCreateTopicsStructuredContent(
+            Response response)
+        {
+            final JsonArrayBuilder topics = Json.createArrayBuilder();
+            for (TopicResult topic : response.topics())
+            {
+                final JsonObjectBuilder item = Json.createObjectBuilder()
+                    .add("name", topic.name())
+                    .add("error", topic.error());
+                if (topic.message() != null)
+                {
+                    item.add("errorMessage", topic.message());
+                }
+                topics.add(item);
+            }
+
+            return Json.createObjectBuilder().add("topics", topics).build();
         }
 
         private String buildCreateTopicsResultText(

@@ -62,7 +62,12 @@ write  '{"tools":[{"name":"produce","inputSchema":{"type":"object","properties":
         '{"topics":{"type":"array","items":{"type":"object","properties":'
         '{"name":{"type":"string"},"partitions":{"type":"integer"},"replicas":{"type":"integer"},'
         '"assignments":{"type":"array"},"configs":{"type":"object"}},"required":'
-        '["name","partitions","replicas"]}}},"required":["topics"]}}]}'
+        '["name","partitions","replicas"]}},"timeout":{"type":"integer"},'
+        '"validateOnly":{"type":"boolean"}},"required":["topics"]},'
+        '"outputSchema":{"type":"object","properties":{"topics":{"type":"array",'
+        '"items":{"type":"object","properties":{"name":{"type":"string"},'
+        '"error":{"type":"integer"},"errorMessage":{"type":"string"}},'
+        '"required":["name","error"]}}},"required":["topics"]}}]}'
 write flush
 
 write close
