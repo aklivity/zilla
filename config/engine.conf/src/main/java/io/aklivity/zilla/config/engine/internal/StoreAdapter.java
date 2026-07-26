@@ -18,12 +18,12 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericStoreConfig;
 import io.aklivity.zilla.config.engine.GenericStoreConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.StoreConfig;
-import io.aklivity.zilla.config.engine.StoreInfoRegistry;
 
 public class StoreAdapter
 {
@@ -40,10 +40,10 @@ public class StoreAdapter
     }
 
     public StoreAdapter(
-        StoreInfoRegistry storeInfos)
+        EngineInfo info)
     {
         this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.STORE,
-            storeInfos != null ? storeInfos::lookup : null);
+            info != null ? info::store : null);
     }
 
     public void adaptNamespace(

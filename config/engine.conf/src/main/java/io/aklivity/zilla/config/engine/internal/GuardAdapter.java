@@ -18,10 +18,10 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericGuardConfig;
 import io.aklivity.zilla.config.engine.GenericGuardConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardConfig;
-import io.aklivity.zilla.config.engine.GuardInfoRegistry;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
@@ -42,10 +42,10 @@ public class GuardAdapter
     }
 
     public GuardAdapter(
-        GuardInfoRegistry guardInfos)
+        EngineInfo info)
     {
         this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.GUARD,
-            guardInfos != null ? guardInfos::lookup : null);
+            info != null ? info::guard : null);
     }
 
     public void adaptNamespace(

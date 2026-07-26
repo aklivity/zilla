@@ -27,7 +27,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.BindingInfoRegistry;
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
@@ -42,8 +42,8 @@ public class OptionsConfigAdapterTest
     @Before
     public void initJson()
     {
-        BindingInfoRegistry bindingInfos = BindingInfoRegistry.instantiate();
-        adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, bindingInfos::lookup);
+        EngineInfo info = new EngineInfo();
+        adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, info::binding);
         adapter.adaptType("test");
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(adapter);

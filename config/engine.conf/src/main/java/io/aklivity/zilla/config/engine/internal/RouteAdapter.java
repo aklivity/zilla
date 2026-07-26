@@ -26,8 +26,8 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.engine.BindingInfoRegistry;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
@@ -51,9 +51,9 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     }
 
     public RouteAdapter(
-        BindingInfoRegistry bindingInfos)
+        EngineInfo info)
     {
-        condition = new ConditionAdapter(bindingInfos);
+        condition = new ConditionAdapter(info);
         with = new WithAdapter();
     }
 

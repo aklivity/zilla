@@ -32,9 +32,9 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
 
-import io.aklivity.zilla.config.engine.BindingInfoRegistry;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigWriter;
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
@@ -48,7 +48,7 @@ public class EngineConfigWriterTest
     @Before
     public void initYaml()
     {
-        yaml = new EngineConfigWriter(BindingInfoRegistry.instantiate());
+        yaml = new EngineConfigWriter(new EngineInfo());
     }
 
     @Test

@@ -37,38 +37,17 @@ public final class EngineConfigWriter
 {
     private static final JsonPatch NOOP_PATCH = YamlJson.provider().createPatch(JsonValue.EMPTY_JSON_ARRAY);
 
-    private final BindingInfoRegistry bindingInfos;
-    private final CatalogInfoRegistry catalogInfos;
-    private final GuardInfoRegistry guardInfos;
-    private final VaultInfoRegistry vaultInfos;
-    private final ExporterInfoRegistry exporterInfos;
-    private final StoreInfoRegistry storeInfos;
+    private final EngineInfo info;
 
     public EngineConfigWriter()
     {
-        this(null, null, null, null, null, null);
+        this(null);
     }
 
     public EngineConfigWriter(
-        BindingInfoRegistry bindingInfos)
+        EngineInfo info)
     {
-        this(bindingInfos, null, null, null, null, null);
-    }
-
-    public EngineConfigWriter(
-        BindingInfoRegistry bindingInfos,
-        CatalogInfoRegistry catalogInfos,
-        GuardInfoRegistry guardInfos,
-        VaultInfoRegistry vaultInfos,
-        ExporterInfoRegistry exporterInfos,
-        StoreInfoRegistry storeInfos)
-    {
-        this.bindingInfos = bindingInfos;
-        this.catalogInfos = catalogInfos;
-        this.guardInfos = guardInfos;
-        this.vaultInfos = vaultInfos;
-        this.exporterInfos = exporterInfos;
-        this.storeInfos = storeInfos;
+        this.info = info;
     }
 
     public void write(
@@ -124,7 +103,7 @@ public final class EngineConfigWriter
             JsonProvider provider = YamlJson.provider();
 
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos, storeInfos))
+                .withAdapters(new NamespaceAdapter(info))
                 .withFormatting(true);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(provider)
@@ -167,7 +146,7 @@ public final class EngineConfigWriter
             JsonProvider provider = YamlJson.provider();
 
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos, storeInfos))
+                .withAdapters(new NamespaceAdapter(info))
                 .withFormatting(true);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(provider)

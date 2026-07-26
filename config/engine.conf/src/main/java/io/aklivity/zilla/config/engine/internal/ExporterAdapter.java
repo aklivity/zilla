@@ -22,8 +22,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.ExporterConfig;
-import io.aklivity.zilla.config.engine.ExporterInfoRegistry;
 import io.aklivity.zilla.config.engine.GenericExporterConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
@@ -44,10 +44,10 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
     }
 
     public ExporterAdapter(
-        ExporterInfoRegistry exporterInfos)
+        EngineInfo info)
     {
         this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.EXPORTER,
-            exporterInfos != null ? exporterInfos::lookup : null);
+            info != null ? info::exporter : null);
     }
 
     public void adaptNamespace(

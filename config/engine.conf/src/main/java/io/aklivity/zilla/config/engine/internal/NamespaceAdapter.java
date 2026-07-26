@@ -31,18 +31,13 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.config.engine.BindingInfoRegistry;
 import io.aklivity.zilla.config.engine.CatalogConfig;
-import io.aklivity.zilla.config.engine.CatalogInfoRegistry;
-import io.aklivity.zilla.config.engine.ExporterInfoRegistry;
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GuardConfig;
-import io.aklivity.zilla.config.engine.GuardInfoRegistry;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
 import io.aklivity.zilla.config.engine.StoreConfig;
-import io.aklivity.zilla.config.engine.StoreInfoRegistry;
 import io.aklivity.zilla.config.engine.VaultConfig;
-import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 
 public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObject>
 {
@@ -63,29 +58,18 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
 
     public NamespaceAdapter()
     {
-        this(null, null, null, null, null, null);
+        this(null);
     }
 
     public NamespaceAdapter(
-        BindingInfoRegistry bindingInfos)
+        EngineInfo info)
     {
-        this(bindingInfos, null, null, null, null, null);
-    }
-
-    public NamespaceAdapter(
-        BindingInfoRegistry bindingInfos,
-        CatalogInfoRegistry catalogInfos,
-        GuardInfoRegistry guardInfos,
-        VaultInfoRegistry vaultInfos,
-        ExporterInfoRegistry exporterInfos,
-        StoreInfoRegistry storeInfos)
-    {
-        telemetry = new TelemetryAdapter(exporterInfos);
-        binding = new BindingConfigsAdapter(bindingInfos);
-        guard = new GuardAdapter(guardInfos);
-        vault = new VaultAdapter(vaultInfos);
-        catalog = new CatalogAdapter(catalogInfos);
-        store = new StoreAdapter(storeInfos);
+        telemetry = new TelemetryAdapter(info);
+        binding = new BindingConfigsAdapter(info);
+        guard = new GuardAdapter(info);
+        vault = new VaultAdapter(info);
+        catalog = new CatalogAdapter(info);
+        store = new StoreAdapter(info);
     }
 
     @Override

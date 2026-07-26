@@ -18,12 +18,12 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericVaultConfig;
 import io.aklivity.zilla.config.engine.GenericVaultConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.VaultConfig;
-import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 
 public class VaultAdapter
 {
@@ -40,10 +40,10 @@ public class VaultAdapter
     }
 
     public VaultAdapter(
-        VaultInfoRegistry vaultInfos)
+        EngineInfo info)
     {
         this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.VAULT,
-            vaultInfos != null ? vaultInfos::lookup : null);
+            info != null ? info::vault : null);
     }
 
     public void adaptNamespace(

@@ -25,13 +25,13 @@ import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingInfo;
-import io.aklivity.zilla.config.engine.BindingInfoRegistry;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.EngineInfo;
 
 public class ConditionAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
-    private final BindingInfoRegistry bindingInfos;
+    private final EngineInfo info;
     private final Map<String, ConditionConfigAdapterSpi> delegatesByName;
 
     private JsonbAdapter<ConditionConfig, JsonObject> delegate;
@@ -42,9 +42,9 @@ public class ConditionAdapter implements JsonbAdapter<ConditionConfig, JsonObjec
     }
 
     public ConditionAdapter(
-        BindingInfoRegistry bindingInfos)
+        EngineInfo info)
     {
-        this.bindingInfos = bindingInfos;
+        this.info = info;
         this.delegatesByName = ServiceLoader
             .load(ConditionConfigAdapterSpi.class)
             .stream()
@@ -55,8 +55,8 @@ public class ConditionAdapter implements JsonbAdapter<ConditionConfig, JsonObjec
     public void adaptType(
         String type)
     {
-        BindingInfo info = bindingInfos != null ? bindingInfos.lookup(type) : null;
-        delegate = info != null ? info.condition() : delegatesByName.get(type);
+        BindingInfo binding = info != null ? info.binding(type) : null;
+        delegate = binding != null ? binding.condition() : delegatesByName.get(type);
     }
 
     @Override

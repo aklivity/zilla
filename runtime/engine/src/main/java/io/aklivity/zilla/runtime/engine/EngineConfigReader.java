@@ -36,18 +36,13 @@ import jakarta.json.JsonReader;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
-import io.aklivity.zilla.config.engine.BindingInfoRegistry;
-import io.aklivity.zilla.config.engine.CatalogInfoRegistry;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigAnnotator;
 import io.aklivity.zilla.config.engine.EngineConfigBuilder;
-import io.aklivity.zilla.config.engine.ExporterInfoRegistry;
-import io.aklivity.zilla.config.engine.GuardInfoRegistry;
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigReader;
-import io.aklivity.zilla.config.engine.StoreInfoRegistry;
-import io.aklivity.zilla.config.engine.VaultInfoRegistry;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -61,35 +56,20 @@ public final class EngineConfigReader
     private final EngineConfiguration config;
     private final Resolver expressions;
     private final Collection<URL> schemaTypes;
-    private final BindingInfoRegistry bindingInfos;
-    private final CatalogInfoRegistry catalogInfos;
-    private final GuardInfoRegistry guardInfos;
-    private final VaultInfoRegistry vaultInfos;
-    private final ExporterInfoRegistry exporterInfos;
-    private final StoreInfoRegistry storeInfos;
+    private final EngineInfo info;
     private final Consumer<String> logger;
 
     public EngineConfigReader(
         EngineConfiguration config,
         Resolver expressions,
         Collection<URL> schemaTypes,
-        BindingInfoRegistry bindingInfos,
-        CatalogInfoRegistry catalogInfos,
-        GuardInfoRegistry guardInfos,
-        VaultInfoRegistry vaultInfos,
-        ExporterInfoRegistry exporterInfos,
-        StoreInfoRegistry storeInfos,
+        EngineInfo info,
         Consumer<String> logger)
     {
         this.config = config;
         this.expressions = expressions;
         this.schemaTypes = schemaTypes;
-        this.bindingInfos = bindingInfos;
-        this.catalogInfos = catalogInfos;
-        this.guardInfos = guardInfos;
-        this.vaultInfos = vaultInfos;
-        this.exporterInfos = exporterInfos;
-        this.storeInfos = storeInfos;
+        this.info = info;
         this.logger = logger;
     }
 
@@ -134,8 +114,7 @@ public final class EngineConfigReader
 
             JsonSchema schema = JsonSchema.of(schemaObject.toString());
 
-            NamespaceConfigReader namespaces =
-                new NamespaceConfigReader(bindingInfos, catalogInfos, guardInfos, vaultInfos, exporterInfos, storeInfos);
+            NamespaceConfigReader namespaces = new NamespaceConfigReader(info);
 
             EngineConfigBuilder<EngineConfig> builder = EngineConfig.builder();
 

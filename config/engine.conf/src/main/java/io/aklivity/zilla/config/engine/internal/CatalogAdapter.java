@@ -19,7 +19,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.config.engine.CatalogConfig;
-import io.aklivity.zilla.config.engine.CatalogInfoRegistry;
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.GenericCatalogConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
@@ -41,10 +41,10 @@ public class CatalogAdapter
     }
 
     public CatalogAdapter(
-        CatalogInfoRegistry catalogInfos)
+        EngineInfo info)
     {
         this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.CATALOG,
-            catalogInfos != null ? catalogInfos::lookup : null);
+            info != null ? info::catalog : null);
     }
 
     public void adaptNamespace(

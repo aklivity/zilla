@@ -31,7 +31,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.config.engine.BindingInfoRegistry;
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfigBuilder;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
@@ -65,12 +65,12 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     }
 
     public BindingConfigsAdapter(
-        BindingInfoRegistry bindingInfos)
+        EngineInfo info)
     {
         this.kind = new KindAdapter();
-        this.route = new RouteAdapter(bindingInfos);
+        this.route = new RouteAdapter(info);
         this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING,
-            bindingInfos != null ? bindingInfos::lookup : null);
+            info != null ? info::binding : null);
         this.cataloged = new CatalogedAdapter();
         this.telemetryRef = new TelemetryRefAdapter();
     }
