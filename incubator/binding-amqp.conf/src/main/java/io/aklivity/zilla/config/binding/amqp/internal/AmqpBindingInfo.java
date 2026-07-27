@@ -22,7 +22,9 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 
+@Incubating
 public final class AmqpBindingInfo implements BindingInfo
 {
     public static final String TYPE = "amqp";

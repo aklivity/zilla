@@ -15,6 +15,7 @@
 module io.aklivity.zilla.config.binding.pgsql.kafka
 {
     requires io.aklivity.zilla.config.engine;
+    requires io.aklivity.zilla.runtime.common.feature;
 
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.pgsql.kafka.internal.PgsqlKafkaBindingInfo;

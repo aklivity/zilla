@@ -21,7 +21,9 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 
+@Incubating
 public final class PgsqlKafkaBindingInfo implements BindingInfo
 {
     public static final String TYPE = "pgsql-kafka";
