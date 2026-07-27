@@ -234,9 +234,6 @@ public final class Engine implements Collector, AutoCloseable
 
         final EngineInfo engineInfo = new EngineInfo();
 
-        final Collection<URL> schemaTypes = new ArrayList<>(engineInfo.patches());
-        schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
-
         final Collection<URL> systemConfigs = new ArrayList<>();
         bindings.stream()
             .map(Binding::system)
@@ -255,7 +252,6 @@ public final class Engine implements Collector, AutoCloseable
         EngineEventContext events = new EngineEventContext(this);
 
         EngineManager manager = new EngineManager(
-            schemaTypes,
             systemConfigs,
             engineInfo,
             bindingsByType::get,

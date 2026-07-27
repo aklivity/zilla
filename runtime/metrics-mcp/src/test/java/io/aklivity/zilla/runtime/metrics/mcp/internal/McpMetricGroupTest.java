@@ -18,7 +18,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -81,7 +80,6 @@ public class McpMetricGroupTest
 
         assertThat(metricGroup.supply("mcp.unknown"), equalTo(null));
         assertThat(metricGroup.name(), equalTo("mcp"));
-        assertThat(metricGroup.type(), notNullValue());
     }
 
     @Test

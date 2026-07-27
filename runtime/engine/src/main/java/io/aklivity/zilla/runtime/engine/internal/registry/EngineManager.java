@@ -84,7 +84,6 @@ public class EngineManager
 {
     private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
 
-    private final Collection<URL> schemaTypes;
     private final Collection<URL> systemConfigs;
     private final EngineInfo info;
     private final Function<String, Binding> bindingByType;
@@ -109,7 +108,6 @@ public class EngineManager
     private EngineConfig current;
 
     public EngineManager(
-        Collection<URL> schemaTypes,
         Collection<URL> systemConfigs,
         EngineInfo info,
         Function<String, Binding> bindingByType,
@@ -126,7 +124,6 @@ public class EngineManager
         EngineEventContext events,
         List<EngineExtSpi> extensions)
     {
-        this.schemaTypes = schemaTypes;
         this.systemConfigs = systemConfigs;
         this.info = info;
         this.bindingByType = bindingByType;
@@ -324,8 +321,7 @@ public class EngineManager
         {
             EngineConfigReader reader = new EngineConfigReader(
                 config,
-                expressions,
-                schemaTypes,
+                expressions::resolve,
                 info,
                 logger);
 

@@ -23,11 +23,11 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -46,7 +46,6 @@ import io.aklivity.zilla.config.engine.NamespaceConfigReader;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 
 public final class EngineConfigReader
 {
@@ -54,21 +53,18 @@ public final class EngineConfigReader
         YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true));
 
     private final EngineConfiguration config;
-    private final Resolver expressions;
-    private final Collection<URL> schemaTypes;
+    private final UnaryOperator<String> resolver;
     private final EngineInfo info;
     private final Consumer<String> logger;
 
     public EngineConfigReader(
         EngineConfiguration config,
-        Resolver expressions,
-        Collection<URL> schemaTypes,
+        UnaryOperator<String> resolver,
         EngineInfo info,
         Consumer<String> logger)
     {
         this.config = config;
-        this.expressions = expressions;
-        this.schemaTypes = schemaTypes;
+        this.resolver = resolver;
         this.info = info;
         this.logger = logger;
     }
@@ -89,7 +85,7 @@ public final class EngineConfigReader
             JsonReader schemaReader = schemaProvider.createReader(schemaInput);
             JsonObject schemaObject = schemaReader.readObject();
 
-            for (URL schemaType : schemaTypes)
+            for (URL schemaType : info.patches())
             {
                 InputStream schemaPatchInput = schemaType.openStream();
                 JsonReader schemaPatchReader = schemaProvider.createReader(schemaPatchInput);
@@ -109,7 +105,7 @@ public final class EngineConfigReader
                 break read;
             }
 
-            configText = expressions.resolve(configText);
+            configText = resolver.apply(configText);
             String readable = configText.stripTrailing();
 
             JsonSchema schema = JsonSchema.of(schemaObject.toString());

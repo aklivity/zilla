@@ -35,6 +35,7 @@ public final class EngineInfo
     private final Map<String, ExporterInfo> exporters;
     private final Map<String, StoreInfo> stores;
     private final Map<String, ModelInfo> models;
+    private final Map<String, MetricGroupInfo> metrics;
 
     public EngineInfo()
     {
@@ -45,6 +46,7 @@ public final class EngineInfo
         this.exporters = TypedInfoFactory.exporters();
         this.stores = TypedInfoFactory.stores();
         this.models = TypedInfoFactory.models();
+        this.metrics = TypedInfoFactory.metrics();
     }
 
     public URL schema()
@@ -62,6 +64,7 @@ public final class EngineInfo
         patches.addAll(exporters.values().stream().map(ExporterInfo::schema).filter(Objects::nonNull).collect(toList()));
         patches.addAll(stores.values().stream().map(StoreInfo::schema).filter(Objects::nonNull).collect(toList()));
         patches.addAll(models.values().stream().map(ModelInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(metrics.values().stream().map(MetricGroupInfo::schema).filter(Objects::nonNull).collect(toList()));
         return patches;
     }
 
@@ -142,6 +145,11 @@ public final class EngineInfo
         private static Map<String, ModelInfo> models()
         {
             return instantiate(load(ModelInfo.class), map -> map);
+        }
+
+        private static Map<String, MetricGroupInfo> metrics()
+        {
+            return instantiate(load(MetricGroupInfo.class), map -> map);
         }
     }
 }
