@@ -22,7 +22,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.factory.FactorySpi;
 
-public interface BindingInfo extends FactorySpi, OptionsInfo
+public interface BindingInfo extends FactorySpi
 {
     default List<String> aliases()
     {
