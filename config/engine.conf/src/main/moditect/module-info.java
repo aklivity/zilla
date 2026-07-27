@@ -19,6 +19,7 @@ module io.aklivity.zilla.config.engine
     requires transitive io.aklivity.zilla.runtime.common.lang;
     requires org.agrona;
     requires io.aklivity.zilla.runtime.common.feature;
+    requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.yaml;
 
     exports io.aklivity.zilla.config.engine;

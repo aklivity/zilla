@@ -13,9 +13,9 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics;
+package io.aklivity.zilla.runtime.engine.test.internal.metrics;
 
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.COUNT;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
 
@@ -23,12 +23,14 @@ import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 
-public class TestCounterMetric implements Metric
+public class TestGaugeMetric implements Metric
 {
     private static final String GROUP = "test";
-    private static final String NAME = GROUP + ".counter";
-    private static final String DESCRIPTION = "Description for test.counter";
+    private static final String NAME = GROUP + ".gauge";
+    private static final String DESCRIPTION = "Description for test.gauge";
 
     @Override
     public String name()
@@ -39,7 +41,7 @@ public class TestCounterMetric implements Metric
     @Override
     public Kind kind()
     {
-        return COUNTER;
+        return GAUGE;
     }
 
     @Override
@@ -69,7 +71,7 @@ public class TestCounterMetric implements Metric
             @Override
             public Kind kind()
             {
-                return COUNTER;
+                return GAUGE;
             }
 
             @Override

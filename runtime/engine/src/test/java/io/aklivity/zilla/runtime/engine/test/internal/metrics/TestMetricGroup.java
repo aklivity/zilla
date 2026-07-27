@@ -22,9 +22,6 @@ import java.util.function.Supplier;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.TestCounterMetric;
-import io.aklivity.zilla.runtime.engine.metrics.TestGaugeMetric;
-import io.aklivity.zilla.runtime.engine.metrics.TestHistogramMetric;
 
 public final class TestMetricGroup implements MetricGroup
 {

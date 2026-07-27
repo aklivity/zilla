@@ -50,6 +50,7 @@ import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.EngineConfig;
+import io.aklivity.zilla.config.engine.EngineConfigReader;
 import io.aklivity.zilla.config.engine.EngineConfigWriter;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.ExporterConfig;
@@ -68,7 +69,6 @@ import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.EngineConfigReader;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -83,6 +83,9 @@ import io.aklivity.zilla.runtime.engine.resolver.Resolver;
 public class EngineManager
 {
     private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
+    private static final Consumer<String> NOOP_LOGGER = text ->
+    {
+    };
 
     private final Collection<URL> systemConfigs;
     private final EngineInfo info;
@@ -320,10 +323,10 @@ public class EngineManager
         try
         {
             EngineConfigReader reader = new EngineConfigReader(
-                config,
                 expressions::resolve,
                 info,
-                logger);
+                config.verboseSchemaPlain() ? logger : NOOP_LOGGER,
+                config.verboseSchema() ? logger : NOOP_LOGGER);
 
             engine = reader.read(configText);
 

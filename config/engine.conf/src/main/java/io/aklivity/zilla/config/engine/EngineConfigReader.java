@@ -1,19 +1,18 @@
 /*
- * Copyright 2021-2026 Aklivity Inc.
+ * Copyright 2021-2026 Aklivity Inc
  *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.aklivity.io/aklivity-community-license/
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.engine;
+package io.aklivity.zilla.config.engine;
 
 import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
 import static java.util.Collections.singletonMap;
@@ -36,13 +35,6 @@ import jakarta.json.JsonReader;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
-import io.aklivity.zilla.config.engine.ConfigException;
-import io.aklivity.zilla.config.engine.EngineConfig;
-import io.aklivity.zilla.config.engine.EngineConfigAnnotator;
-import io.aklivity.zilla.config.engine.EngineConfigBuilder;
-import io.aklivity.zilla.config.engine.EngineInfo;
-import io.aklivity.zilla.config.engine.NamespaceConfig;
-import io.aklivity.zilla.config.engine.NamespaceConfigReader;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -52,21 +44,21 @@ public final class EngineConfigReader
     private static final JsonProvider CONFIG_PROVIDER =
         YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true));
 
-    private final EngineConfiguration config;
     private final UnaryOperator<String> resolver;
     private final EngineInfo info;
-    private final Consumer<String> logger;
+    private final Consumer<String> schemaLogger;
+    private final Consumer<String> annotatedSchemaLogger;
 
     public EngineConfigReader(
-        EngineConfiguration config,
         UnaryOperator<String> resolver,
         EngineInfo info,
-        Consumer<String> logger)
+        Consumer<String> schemaLogger,
+        Consumer<String> annotatedSchemaLogger)
     {
-        this.config = config;
         this.resolver = resolver;
         this.info = info;
-        this.logger = logger;
+        this.schemaLogger = schemaLogger;
+        this.annotatedSchemaLogger = annotatedSchemaLogger;
     }
 
     public EngineConfig read(
@@ -95,10 +87,7 @@ public final class EngineConfigReader
                 schemaObject = schemaPatch.apply(schemaObject);
             }
 
-            if (config.verboseSchemaPlain())
-            {
-                logSchema(schemaObject);
-            }
+            logSchema(schemaObject, schemaLogger);
 
             if (!validateAnnotatedSchema(schemaObject, errors, configText))
             {
@@ -138,7 +127,8 @@ public final class EngineConfigReader
     }
 
     private void logSchema(
-        JsonObject schemaObject)
+        JsonObject schemaObject,
+        Consumer<String> logger)
     {
         final StringWriter out = new StringWriter();
         YamlJson.provider()
@@ -163,10 +153,7 @@ public final class EngineConfigReader
             final EngineConfigAnnotator annotator = new EngineConfigAnnotator();
             final JsonObject annotatedSchemaObject = annotator.annotate(schemaObject);
 
-            if (config.verboseSchema())
-            {
-                logSchema(annotatedSchemaObject);
-            }
+            logSchema(annotatedSchemaObject, annotatedSchemaLogger);
 
             final JsonSchema schema = JsonSchema.of(annotatedSchemaObject.toString());
 
