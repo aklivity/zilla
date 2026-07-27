@@ -32,6 +32,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.internal.RouteAdapter;
 import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfig;
@@ -44,7 +45,7 @@ public class RouteConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new RouteAdapter().adaptType("test"));
+                .withAdapters(new RouteAdapter(new EngineInfo()).adaptType("test"));
         jsonb = JsonbBuilder.create(config);
     }
 

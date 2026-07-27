@@ -14,25 +14,16 @@
  */
 package io.aklivity.zilla.config.engine.internal;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
-
-import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.function.Supplier;
-
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
 public class WithAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private final EngineInfo info;
-    private final Map<String, WithConfigAdapterSpi> delegatesByName;
 
     private JsonbAdapter<WithConfig, JsonObject> delegate;
 
@@ -45,19 +36,13 @@ public class WithAdapter implements JsonbAdapter<WithConfig, JsonObject>
         EngineInfo info)
     {
         this.info = info;
-        this.delegatesByName = ServiceLoader
-            .load(WithConfigAdapterSpi.class)
-            .stream()
-            .map(Supplier::get)
-            .collect(toMap(WithConfigAdapterSpi::type, identity()));
     }
 
     public void adaptType(
         String type)
     {
-        BindingInfo binding = info != null ? info.binding(type) : null;
-        JsonbAdapter<WithConfig, JsonObject> resolved = binding != null ? binding.with() : null;
-        delegate = resolved != null ? resolved : delegatesByName.get(type);
+        BindingInfo binding = info != null && type != null ? info.binding(type) : null;
+        delegate = binding != null ? binding.with() : null;
     }
 
     @Override

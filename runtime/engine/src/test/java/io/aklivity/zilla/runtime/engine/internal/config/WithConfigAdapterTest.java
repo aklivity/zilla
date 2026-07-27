@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.internal.WithAdapter;
@@ -44,7 +45,7 @@ public class WithConfigAdapterTest
     @Before
     public void initJson()
     {
-        adapter = new WithAdapter();
+        adapter = new WithAdapter(new EngineInfo());
         adapter.adaptType("test");
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(adapter);

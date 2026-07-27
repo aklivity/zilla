@@ -62,11 +62,8 @@ module io.aklivity.zilla.runtime.engine
     provides io.aklivity.zilla.runtime.engine.router.RouterFactorySpi
         with io.aklivity.zilla.runtime.engine.internal.registry.EngineRouterFactorySpi;
 
-    uses io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.config.engine.CompositeBindingAdapterSpi;
-    uses io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
     uses io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
-    uses io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
     uses io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;

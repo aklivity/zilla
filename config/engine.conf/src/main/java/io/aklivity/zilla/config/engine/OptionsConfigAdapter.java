@@ -14,15 +14,7 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static java.util.Collections.unmodifiableMap;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -30,7 +22,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private final Function<String, ? extends OptionsInfo> infoLookup;
-    private final Map<String, OptionsConfigAdapterSpi> delegatesByType;
 
     private JsonbAdapter<OptionsConfig, JsonObject> delegate;
 
@@ -45,19 +36,13 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
         Function<String, ? extends OptionsInfo> infoLookup)
     {
         this.infoLookup = infoLookup;
-        this.delegatesByType = toMap(ServiceLoader
-            .load(OptionsConfigAdapterSpi.class)
-            .stream()
-            .map(Supplier::get)
-            .filter(s -> s.kind() == kind)
-            .toList());
     }
 
     public void adaptType(
         String type)
     {
         OptionsInfo info = infoLookup != null && type != null ? infoLookup.apply(type) : null;
-        delegate = info != null ? info.options() : delegatesByType.get(type);
+        delegate = info != null ? info.options() : null;
     }
 
     @Override
@@ -72,23 +57,5 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
         JsonObject object) throws Exception
     {
         return delegate != null ? delegate.adaptFromJson(object) : null;
-    }
-
-    private static Map<String, OptionsConfigAdapterSpi> toMap(
-        List<OptionsConfigAdapterSpi> adapters)
-    {
-        Map<String, OptionsConfigAdapterSpi> adaptersByType = new HashMap<>();
-        for (OptionsConfigAdapterSpi adapter : adapters)
-        {
-            String type = adapter.type();
-            Set<String> aliases = adapter.aliases();
-
-            adaptersByType.put(type, adapter);
-            for (String alias : aliases)
-            {
-                adaptersByType.put(alias, adapter);
-            }
-        }
-        return unmodifiableMap(adaptersByType);
     }
 }

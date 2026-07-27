@@ -14,25 +14,16 @@
  */
 package io.aklivity.zilla.config.engine.internal;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
-
-import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.function.Supplier;
-
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.EngineInfo;
 
 public class ConditionAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private final EngineInfo info;
-    private final Map<String, ConditionConfigAdapterSpi> delegatesByName;
 
     private JsonbAdapter<ConditionConfig, JsonObject> delegate;
 
@@ -45,18 +36,13 @@ public class ConditionAdapter implements JsonbAdapter<ConditionConfig, JsonObjec
         EngineInfo info)
     {
         this.info = info;
-        this.delegatesByName = ServiceLoader
-            .load(ConditionConfigAdapterSpi.class)
-            .stream()
-            .map(Supplier::get)
-            .collect(toMap(ConditionConfigAdapterSpi::type, identity()));
     }
 
     public void adaptType(
         String type)
     {
-        BindingInfo binding = info != null ? info.binding(type) : null;
-        delegate = binding != null ? binding.condition() : delegatesByName.get(type);
+        BindingInfo binding = info != null && type != null ? info.binding(type) : null;
+        delegate = binding != null ? binding.condition() : null;
     }
 
     @Override
