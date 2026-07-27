@@ -37,16 +37,10 @@ public class ExporterConfigAdapter implements JsonbAdapter<ExporterConfig[], Jso
 
     private String namespace;
 
-    public ExporterConfigAdapter()
-    {
-        this(null);
-    }
-
     public ExporterConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.EXPORTER,
-            info != null ? info::exporter : null);
+        this.options = new OptionsConfigAdapter(info::exporter);
     }
 
     public void adaptNamespace(

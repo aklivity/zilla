@@ -26,13 +26,6 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
     private JsonbAdapter<OptionsConfig, JsonObject> delegate;
 
     public OptionsConfigAdapter(
-        Kind kind)
-    {
-        this(kind, null);
-    }
-
-    public OptionsConfigAdapter(
-        Kind kind,
         Function<String, ? extends OptionsInfo> infoLookup)
     {
         this.infoLookup = infoLookup;
@@ -41,7 +34,7 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
     public void adaptType(
         String type)
     {
-        OptionsInfo info = infoLookup != null && type != null ? infoLookup.apply(type) : null;
+        OptionsInfo info = type != null ? infoLookup.apply(type) : null;
         delegate = info != null ? info.options() : null;
     }
 
@@ -57,25 +50,5 @@ public class OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObj
         JsonObject object) throws Exception
     {
         return delegate != null ? delegate.adaptFromJson(object) : null;
-    }
-
-    /**
-     * The plugin category an options adapter belongs to, used to select the correct
-     * adapter when multiple plugins share the same type name across different categories.
-     */
-    public enum Kind
-    {
-        /** Options adapter for a protocol binding (e.g., {@code binding-http}). */
-        BINDING,
-        /** Options adapter for a metrics exporter (e.g., {@code exporter-prometheus}). */
-        EXPORTER,
-        /** Options adapter for a cryptographic vault (e.g., {@code vault-filesystem}). */
-        VAULT,
-        /** Options adapter for an authorization guard (e.g., {@code guard-jwt}). */
-        GUARD,
-        /** Options adapter for a schema catalog (e.g., {@code catalog-schema-registry}). */
-        CATALOG,
-        /** Options adapter for a mutable runtime state store (e.g., {@code store-memory}). */
-        STORE
     }
 }

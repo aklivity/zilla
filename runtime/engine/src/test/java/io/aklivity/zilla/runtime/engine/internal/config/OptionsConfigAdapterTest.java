@@ -42,7 +42,7 @@ public class OptionsConfigAdapterTest
     public void initJson()
     {
         EngineInfo info = new EngineInfo();
-        adapter = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.BINDING, info::binding);
+        adapter = new OptionsConfigAdapter(info::binding);
         adapter.adaptType("test");
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(adapter);

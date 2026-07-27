@@ -33,16 +33,10 @@ public class VaultConfigAdapter
 
     private String namespace;
 
-    public VaultConfigAdapter()
-    {
-        this(null);
-    }
-
     public VaultConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.VAULT,
-            info != null ? info::vault : null);
+        this.options = new OptionsConfigAdapter(info::vault);
     }
 
     public void adaptNamespace(

@@ -55,18 +55,12 @@ public class BindingConfigAdapter
 
     private String namespace;
 
-    public BindingConfigAdapter()
-    {
-        this(null);
-    }
-
     public BindingConfigAdapter(
         EngineInfo info)
     {
         this.kind = new KindConfigAdapter();
         this.route = new RouteConfigAdapter(info);
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.BINDING,
-            info != null ? info::binding : null);
+        this.options = new OptionsConfigAdapter(info::binding);
         this.cataloged = new CatalogedConfigAdapter();
         this.telemetryRef = new TelemetryRefConfigAdapter();
     }

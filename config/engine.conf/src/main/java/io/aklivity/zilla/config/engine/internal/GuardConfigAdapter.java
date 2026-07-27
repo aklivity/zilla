@@ -35,16 +35,10 @@ public class GuardConfigAdapter
 
     private String namespace;
 
-    public GuardConfigAdapter()
-    {
-        this(null);
-    }
-
     public GuardConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.GUARD,
-            info != null ? info::guard : null);
+        this.options = new OptionsConfigAdapter(info::guard);
     }
 
     public void adaptNamespace(

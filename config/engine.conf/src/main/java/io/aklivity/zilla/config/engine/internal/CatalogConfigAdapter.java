@@ -34,16 +34,10 @@ public class CatalogConfigAdapter
 
     private String namespace;
 
-    public CatalogConfigAdapter()
-    {
-        this(null);
-    }
-
     public CatalogConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.CATALOG,
-            info != null ? info::catalog : null);
+        this.options = new OptionsConfigAdapter(info::catalog);
     }
 
     public void adaptNamespace(

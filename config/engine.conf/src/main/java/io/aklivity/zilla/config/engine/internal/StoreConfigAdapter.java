@@ -33,16 +33,10 @@ public class StoreConfigAdapter
 
     private String namespace;
 
-    public StoreConfigAdapter()
-    {
-        this(null);
-    }
-
     public StoreConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.STORE,
-            info != null ? info::store : null);
+        this.options = new OptionsConfigAdapter(info::store);
     }
 
     public void adaptNamespace(
