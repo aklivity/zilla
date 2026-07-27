@@ -16,13 +16,13 @@
 package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 
 import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
-import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
 class TestExporterHandler implements ExporterHandler
 {

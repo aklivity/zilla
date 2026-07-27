@@ -39,8 +39,8 @@ import org.junit.Test;
 import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
 import io.aklivity.zilla.config.binding.http.HttpRequestConfig;
 import io.aklivity.zilla.config.binding.http.HttpVersion;
+import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class HttpOptionsConfigAdapterTest
 {

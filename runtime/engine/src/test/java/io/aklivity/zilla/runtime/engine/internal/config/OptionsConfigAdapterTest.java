@@ -30,8 +30,8 @@ import org.junit.Test;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class OptionsConfigAdapterTest
 {

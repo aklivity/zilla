@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
+import static io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfigAdapter.DEFAULT_ASSERTION_SCHEMA;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NEEDS_PREAUTHORIZE;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
-import static io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfigAdapter.DEFAULT_ASSERTION_SCHEMA;
 import static java.util.Collections.emptyList;
 
 import java.net.URLEncoder;
@@ -36,6 +36,13 @@ import org.agrona.collections.MutableBoolean;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig.CatalogAssertion;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig.Event;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig.StoreAssertion;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestRouteConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -54,13 +61,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.CatalogAssertion;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.Event;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.StoreAssertion;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestRouteConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;

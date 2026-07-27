@@ -35,7 +35,7 @@ import org.junit.Test;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.internal.RouteConfigAdapter;
-import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestConditionConfig;
 
 public class RouteConfigAdapterTest
 {

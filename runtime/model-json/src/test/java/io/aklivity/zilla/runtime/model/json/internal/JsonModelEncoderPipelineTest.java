@@ -25,6 +25,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.GenericCatalogConfig;
+import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogConfig;
+import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -32,8 +34,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 
 public class JsonModelEncoderPipelineTest
 {

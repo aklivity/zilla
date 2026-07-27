@@ -41,7 +41,7 @@ import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.internal.BindingConfigAdapter;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class BindingConfigAdapterTest
 {

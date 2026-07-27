@@ -32,7 +32,7 @@ import org.junit.Test;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.TelemetryConfig;
 import io.aklivity.zilla.config.engine.internal.TelemetryConfigAdapter;
-import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
+import io.aklivity.zilla.config.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
 public class TelemetryConfigAdapterTest
 {

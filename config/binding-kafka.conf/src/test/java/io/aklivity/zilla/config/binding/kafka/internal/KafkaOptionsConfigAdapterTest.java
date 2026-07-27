@@ -30,8 +30,8 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfig;
+import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
-import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class KafkaOptionsConfigAdapterTest
 {

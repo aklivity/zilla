@@ -129,6 +129,38 @@
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>
+          <execution>
+            <id>unpack-test-resources</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>engine.spec</artifactId>
+                  <fileMappers>
+                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                       <pattern>^\Qio/aklivity/zilla/specs/engine/schema/\E</pattern>
+                       <replacement>io/aklivity/zilla/config/engine/test/internal/</replacement>
+                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                  </fileMappers>
+                </artifactItem>
+              </artifactItems>
+              <includes>
+                io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/exporter/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/metrics/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json
+              </includes>
+              <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -146,6 +178,34 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>META-INF/**/*</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/**/*.schema.patch.json</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/binding/**/*.class</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/catalog/**/*.class</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/exporter/**/*.class</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/guard/**/*.class</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/metrics/**/*.class</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/model/**/*.class</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/store/**/*.class</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/vault/**/*.class</include>
+              </includes>
+              <excludes>
+                <exclude>**/*Test.class</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
