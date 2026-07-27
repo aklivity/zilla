@@ -12,24 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.kafka;
+package io.aklivity.zilla.config.binding.openapi.asyncapi.internal;
 
 import java.net.URL;
 
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.binding.kafka.internal.KafkaConditionConfigAdapter;
-import io.aklivity.zilla.config.binding.kafka.internal.KafkaOptionsConfigAdapter;
-import io.aklivity.zilla.config.binding.kafka.internal.KafkaWithConfigAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public final class KafkaBindingInfo implements BindingInfo
+public final class OpenapiAsyncapiBindingInfo implements BindingInfo
 {
-    public static final String TYPE = "kafka";
+    public static final String TYPE = "openapi-asyncapi";
 
     @Override
     public String type()
@@ -40,24 +37,24 @@ public final class KafkaBindingInfo implements BindingInfo
     @Override
     public URL schema()
     {
-        return getClass().getResource("schema/kafka.schema.patch.json");
+        return getClass().getResource("schema/openapi.asyncapi.schema.patch.json");
     }
 
     @Override
     public JsonbAdapter<OptionsConfig, JsonObject> options()
     {
-        return new KafkaOptionsConfigAdapter();
+        return new OpenapiAsyncapiOptionsConfigAdapter();
     }
 
     @Override
     public JsonbAdapter<ConditionConfig, JsonObject> condition()
     {
-        return new KafkaConditionConfigAdapter();
+        return new OpenapiAsyncapiConditionConfigAdapter();
     }
 
     @Override
     public JsonbAdapter<WithConfig, JsonObject> with()
     {
-        return new KafkaWithConfigAdapter();
+        return new OpenapiAsyncapiWithConfigAdapter();
     }
 }

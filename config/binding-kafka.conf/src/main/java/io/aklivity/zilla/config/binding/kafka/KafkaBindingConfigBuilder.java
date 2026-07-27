@@ -17,6 +17,7 @@ package io.aklivity.zilla.config.binding.kafka;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.binding.kafka.internal.KafkaBindingInfo;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
 import io.aklivity.zilla.config.engine.CatalogedConfig;

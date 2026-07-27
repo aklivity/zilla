@@ -14,14 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal;
 
-import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiBindingInfo;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class OpenapiAsyncapiBinding implements Binding
 {
-    public static final String NAME = OpenapiAsyncapiBindingInfo.TYPE;
+    public static final String NAME = "openapi-asyncapi";
 
     private final OpenapiAsyncapiConfiguration config;
 

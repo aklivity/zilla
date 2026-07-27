@@ -1,1 +1,1 @@
-io.aklivity.zilla.config.binding.kafka.KafkaBindingInfo
+io.aklivity.zilla.config.binding.kafka.internal.KafkaBindingInfo

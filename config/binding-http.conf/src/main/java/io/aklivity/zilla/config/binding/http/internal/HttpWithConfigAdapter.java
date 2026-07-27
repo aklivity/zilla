@@ -20,7 +20,6 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.binding.http.HttpBindingInfo;
 import io.aklivity.zilla.config.binding.http.HttpWithConfig;
 import io.aklivity.zilla.config.binding.http.HttpWithConfigBuilder;
 import io.aklivity.zilla.config.engine.WithConfig;

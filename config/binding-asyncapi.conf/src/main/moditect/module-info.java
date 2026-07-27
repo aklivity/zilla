@@ -22,5 +22,5 @@ module io.aklivity.zilla.config.binding.asyncapi
     exports io.aklivity.zilla.config.binding.asyncapi;
 
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.asyncapi.AsyncapiBindingInfo;
+        with io.aklivity.zilla.config.binding.asyncapi.internal.AsyncapiBindingInfo;
 }

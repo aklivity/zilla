@@ -12,16 +12,13 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.asyncapi;
+package io.aklivity.zilla.config.binding.asyncapi.internal;
 
 import java.net.URL;
 
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.binding.asyncapi.internal.AsyncapiConditionConfigAdapter;
-import io.aklivity.zilla.config.binding.asyncapi.internal.AsyncapiOptionsConfigAdapter;
-import io.aklivity.zilla.config.binding.asyncapi.internal.AsyncapiWithConfigAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;

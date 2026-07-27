@@ -117,7 +117,7 @@
                   <fileMappers>
                      <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                        <pattern>^\Qio/aklivity/zilla/specs/binding/asyncapi/schema/\E</pattern>
-                       <replacement>io/aklivity/zilla/config/binding/asyncapi/schema/</replacement>
+                       <replacement>io/aklivity/zilla/config/binding/asyncapi/internal/schema/</replacement>
                      </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>

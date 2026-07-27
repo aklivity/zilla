@@ -118,7 +118,7 @@
                   <fileMappers>
                      <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                        <pattern>^\Qio/aklivity/zilla/specs/binding/kafka/schema/\E</pattern>
-                       <replacement>io/aklivity/zilla/config/binding/kafka/schema/</replacement>
+                       <replacement>io/aklivity/zilla/config/binding/kafka/internal/schema/</replacement>
                      </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>

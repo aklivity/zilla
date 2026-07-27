@@ -21,5 +21,5 @@ module io.aklivity.zilla.config.binding.http
     exports io.aklivity.zilla.config.binding.http;
 
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.http.HttpBindingInfo;
+        with io.aklivity.zilla.config.binding.http.internal.HttpBindingInfo;
 }

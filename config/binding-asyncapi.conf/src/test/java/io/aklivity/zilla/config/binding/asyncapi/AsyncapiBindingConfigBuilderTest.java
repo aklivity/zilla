@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.instanceOf;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.asyncapi.internal.AsyncapiBindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.WithConfig;

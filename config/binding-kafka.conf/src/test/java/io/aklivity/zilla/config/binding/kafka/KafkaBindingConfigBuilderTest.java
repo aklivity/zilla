@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.kafka.internal.KafkaBindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 

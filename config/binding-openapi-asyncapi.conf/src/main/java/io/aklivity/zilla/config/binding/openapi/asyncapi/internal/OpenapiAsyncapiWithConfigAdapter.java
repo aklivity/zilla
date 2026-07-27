@@ -19,7 +19,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiBindingInfo;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;

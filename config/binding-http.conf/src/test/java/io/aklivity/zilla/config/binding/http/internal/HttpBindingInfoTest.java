@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.http;
+package io.aklivity.zilla.config.binding.http.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -21,9 +21,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
-
-import io.aklivity.zilla.config.binding.http.internal.HttpConditionConfigAdapter;
-import io.aklivity.zilla.config.binding.http.internal.HttpOptionsConfigAdapter;
 
 public class HttpBindingInfoTest
 {

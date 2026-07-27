@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.openapi.asyncapi;
+package io.aklivity.zilla.config.binding.kafka.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -22,17 +22,14 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.config.binding.openapi.asyncapi.internal.OpenapiAsyncapiConditionConfigAdapter;
-import io.aklivity.zilla.config.binding.openapi.asyncapi.internal.OpenapiAsyncapiOptionsConfigAdapter;
-
-public class OpenapiAsyncapiBindingInfoTest
+public class KafkaBindingInfoTest
 {
-    private final OpenapiAsyncapiBindingInfo info = new OpenapiAsyncapiBindingInfo();
+    private final KafkaBindingInfo info = new KafkaBindingInfo();
 
     @Test
     public void shouldResolveType()
     {
-        assertThat(info.type(), equalTo("openapi-asyncapi"));
+        assertThat(info.type(), equalTo("kafka"));
     }
 
     @Test
@@ -44,12 +41,12 @@ public class OpenapiAsyncapiBindingInfoTest
     @Test
     public void shouldResolveOptionsAdapter()
     {
-        assertThat(info.options(), instanceOf(OpenapiAsyncapiOptionsConfigAdapter.class));
+        assertThat(info.options(), instanceOf(KafkaOptionsConfigAdapter.class));
     }
 
     @Test
     public void shouldResolveConditionAdapter()
     {
-        assertThat(info.condition(), instanceOf(OpenapiAsyncapiConditionConfigAdapter.class));
+        assertThat(info.condition(), instanceOf(KafkaConditionConfigAdapter.class));
     }
 }

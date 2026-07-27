@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.kafka;
+package io.aklivity.zilla.config.binding.asyncapi.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -22,17 +22,14 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.config.binding.kafka.internal.KafkaConditionConfigAdapter;
-import io.aklivity.zilla.config.binding.kafka.internal.KafkaOptionsConfigAdapter;
-
-public class KafkaBindingInfoTest
+public class AsyncapiBindingInfoTest
 {
-    private final KafkaBindingInfo info = new KafkaBindingInfo();
+    private final AsyncapiBindingInfo info = new AsyncapiBindingInfo();
 
     @Test
     public void shouldResolveType()
     {
-        assertThat(info.type(), equalTo("kafka"));
+        assertThat(info.type(), equalTo("asyncapi"));
     }
 
     @Test
@@ -44,12 +41,12 @@ public class KafkaBindingInfoTest
     @Test
     public void shouldResolveOptionsAdapter()
     {
-        assertThat(info.options(), instanceOf(KafkaOptionsConfigAdapter.class));
+        assertThat(info.options(), instanceOf(AsyncapiOptionsConfigAdapter.class));
     }
 
     @Test
     public void shouldResolveConditionAdapter()
     {
-        assertThat(info.condition(), instanceOf(KafkaConditionConfigAdapter.class));
+        assertThat(info.condition(), instanceOf(AsyncapiConditionConfigAdapter.class));
     }
 }

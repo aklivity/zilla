@@ -21,5 +21,5 @@ module io.aklivity.zilla.config.binding.kafka
     exports io.aklivity.zilla.config.binding.kafka;
 
     provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.kafka.KafkaBindingInfo;
+        with io.aklivity.zilla.config.binding.kafka.internal.KafkaBindingInfo;
 }

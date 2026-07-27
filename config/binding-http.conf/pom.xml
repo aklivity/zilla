@@ -112,7 +112,7 @@
                   <fileMappers>
                      <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                        <pattern>^\Qio/aklivity/zilla/specs/binding/http/schema/\E</pattern>
-                       <replacement>io/aklivity/zilla/config/binding/http/schema/</replacement>
+                       <replacement>io/aklivity/zilla/config/binding/http/internal/schema/</replacement>
                      </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>

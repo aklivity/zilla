@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.openapi.asyncapi.internal.OpenapiAsyncapiBindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;

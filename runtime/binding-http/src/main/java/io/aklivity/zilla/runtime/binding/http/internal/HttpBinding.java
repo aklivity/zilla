@@ -17,14 +17,13 @@ package io.aklivity.zilla.runtime.binding.http.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.config.binding.http.HttpBindingInfo;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class HttpBinding implements Binding
 {
-    public static final String NAME = HttpBindingInfo.TYPE;
+    public static final String NAME = "http";
 
     private final HttpConfiguration config;
 
