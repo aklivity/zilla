@@ -30,6 +30,6 @@ public final class McpOpenapiEventFormatterFactory implements EventFormatterFact
     @Override
     public String type()
     {
-        return McpOpenapiBinding.NAME;
+        return McpOpenapiBinding.TYPE;
     }
 }

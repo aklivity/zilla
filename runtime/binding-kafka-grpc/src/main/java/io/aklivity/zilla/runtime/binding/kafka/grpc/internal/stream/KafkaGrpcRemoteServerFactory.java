@@ -34,6 +34,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcConditionResult;
@@ -70,7 +71,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactory
 {

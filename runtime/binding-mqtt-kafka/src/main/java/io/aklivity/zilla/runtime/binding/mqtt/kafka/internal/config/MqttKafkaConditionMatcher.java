@@ -19,8 +19,8 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaConditionKind;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 
 public class MqttKafkaConditionMatcher
 {

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaConditionConfig;
 
 final class McpKafkaConditionMatcher
 {

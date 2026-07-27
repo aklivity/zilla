@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>specs</artifactId>
-    <version>2.0.0-alpha-37</version>
+    <version>2.0.0-alpha-38</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -53,6 +53,24 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-tcp.spec</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-tcp.conf</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-tls.conf</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-http.conf</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

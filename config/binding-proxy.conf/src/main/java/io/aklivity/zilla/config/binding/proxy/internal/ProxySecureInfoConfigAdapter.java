@@ -1,0 +1,100 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.binding.proxy.internal;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.config.binding.proxy.ProxySecureInfoConfig;
+import io.aklivity.zilla.config.binding.proxy.ProxySecureInfoConfigBuilder;
+
+public final class ProxySecureInfoConfigAdapter implements JsonbAdapter<ProxySecureInfoConfig, JsonObject>
+{
+    private static final String VERSION_NAME = "version";
+    private static final String CIPHER_NAME = "cipher";
+    private static final String KEY_NAME = "key";
+    private static final String NAME_NAME = "name";
+    private static final String SIGNATURE_NAME = "signature";
+
+    @Override
+    public JsonObject adaptToJson(
+        ProxySecureInfoConfig secureInfo)
+    {
+        JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (secureInfo.version != null)
+        {
+            object.add(VERSION_NAME, secureInfo.version);
+        }
+
+        if (secureInfo.cipher != null)
+        {
+            object.add(CIPHER_NAME, secureInfo.cipher);
+        }
+
+        if (secureInfo.key != null)
+        {
+            object.add(KEY_NAME, secureInfo.key);
+        }
+
+        if (secureInfo.name != null)
+        {
+            object.add(NAME_NAME, secureInfo.name);
+        }
+
+        if (secureInfo.signature != null)
+        {
+            object.add(SIGNATURE_NAME, secureInfo.signature);
+        }
+
+        return object.build();
+    }
+
+    @Override
+    public ProxySecureInfoConfig adaptFromJson(
+        JsonObject object)
+    {
+        ProxySecureInfoConfigBuilder<ProxySecureInfoConfig> secureInfo = ProxySecureInfoConfig.builder();
+
+        if (object.containsKey(VERSION_NAME))
+        {
+            secureInfo.version(object.getString(VERSION_NAME));
+        }
+
+        if (object.containsKey(CIPHER_NAME))
+        {
+            secureInfo.cipher(object.getString(CIPHER_NAME));
+        }
+
+        if (object.containsKey(KEY_NAME))
+        {
+            secureInfo.key(object.getString(KEY_NAME));
+        }
+
+        if (object.containsKey(NAME_NAME))
+        {
+            secureInfo.name(object.getString(NAME_NAME));
+        }
+
+        if (object.containsKey(SIGNATURE_NAME))
+        {
+            secureInfo.signature(object.getString(SIGNATURE_NAME));
+        }
+
+        return secureInfo.build();
+    }
+}

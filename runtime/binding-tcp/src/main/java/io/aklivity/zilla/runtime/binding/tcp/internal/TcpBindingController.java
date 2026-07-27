@@ -34,10 +34,10 @@ import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineController;
 import io.aklivity.zilla.runtime.engine.binding.BindingController;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 final class TcpBindingController implements BindingController

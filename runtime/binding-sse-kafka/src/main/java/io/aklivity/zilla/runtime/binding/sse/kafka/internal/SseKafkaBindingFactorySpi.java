@@ -22,7 +22,7 @@ public final class SseKafkaBindingFactorySpi implements BindingFactorySpi
     @Override
     public String type()
     {
-        return SseKafkaBinding.NAME;
+        return SseKafkaBinding.TYPE;
     }
 
 

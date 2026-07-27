@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.store;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 /**
@@ -63,11 +61,4 @@ public interface Store
      */
     StoreContext supply(
         EngineContext context);
-
-    /**
-     * Returns a URL pointing to the JSON schema for this store's configuration options.
-     *
-     * @return the configuration schema URL
-     */
-    URL type();
 }

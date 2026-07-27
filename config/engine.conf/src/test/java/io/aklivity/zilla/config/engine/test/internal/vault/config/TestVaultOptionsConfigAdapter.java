@@ -1,0 +1,114 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.engine.test.internal.vault.config;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
+import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.config.engine.OptionsConfig;
+
+public final class TestVaultOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+{
+    private static final String KEY_NAME = "key";
+    private static final String SIGNER_NAME = "signer";
+    private static final String TRUST_NAME = "trust";
+
+    private final TestVaultEntryConfigAdapter entry = new TestVaultEntryConfigAdapter();
+
+    @Override
+    public JsonObject adaptToJson(
+        OptionsConfig adaptable)
+    {
+        TestVaultOptionsConfig options = (TestVaultOptionsConfig) adaptable;
+
+        JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (options.key != null)
+        {
+            object.add(KEY_NAME, entry.adaptToJson(options.key));
+        }
+
+        if (options.signer != null)
+        {
+            object.add(SIGNER_NAME, entry.adaptToJson(options.signer));
+        }
+
+        if (options.trust != null)
+        {
+            if (options.trust.size() == 1)
+            {
+                object.add(TRUST_NAME, entry.adaptToJson(options.trust.get(0)));
+            }
+            else
+            {
+                JsonArrayBuilder trustArray = Json.createArrayBuilder();
+                options.trust.forEach(t -> trustArray.add(entry.adaptToJson(t)));
+                object.add(TRUST_NAME, trustArray);
+            }
+        }
+
+        return object.build();
+    }
+
+    @Override
+    public OptionsConfig adaptFromJson(
+        JsonObject object)
+    {
+        TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> options = TestVaultOptionsConfig.builder();
+
+        if (object != null)
+        {
+            if (object.containsKey(KEY_NAME))
+            {
+                JsonObject key = object.getJsonObject(KEY_NAME);
+                TestVaultEntryConfig config = entry.adaptFromJson(key);
+                options.key(config.alias, config.entry);
+            }
+
+            if (object.containsKey(SIGNER_NAME))
+            {
+                JsonObject signer = object.getJsonObject(SIGNER_NAME);
+                TestVaultEntryConfig config = entry.adaptFromJson(signer);
+                options.signer(config.alias, config.entry);
+            }
+
+            if (object.containsKey(TRUST_NAME))
+            {
+                JsonValue trustValue = object.get(TRUST_NAME);
+                if (trustValue.getValueType() == JsonValue.ValueType.ARRAY)
+                {
+                    JsonArray trustArray = trustValue.asJsonArray();
+                    for (JsonValue value : trustArray)
+                    {
+                        TestVaultEntryConfig config = entry.adaptFromJson(value.asJsonObject());
+                        options.trust(config.alias, config.entry);
+                    }
+                }
+                else
+                {
+                    TestVaultEntryConfig config = entry.adaptFromJson(trustValue.asJsonObject());
+                    options.trust(config.alias, config.entry);
+                }
+            }
+        }
+
+        return options.build();
+    }
+}

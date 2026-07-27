@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
@@ -43,29 +43,39 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpBodyConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiAuthorizationConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiResourceConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiToolConfigBuilder;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpAuthorizationConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpBindingConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpBindingConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpBodyConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpRouteConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiAuthorizationConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiCatalogConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiResourceConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiResourceConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiRouteConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
@@ -80,15 +90,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiView;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public final class McpOpenapiCompositeGenerator
 {
@@ -398,9 +399,8 @@ public final class McpOpenapiCompositeGenerator
         List<RoutedOperation> routed)
     {
         return namespace
-            .binding()
+            .binding(McpHttpBindingConfig::builder)
                 .name(BINDING_NAME)
-                .type("mcp_http")
                 .kind(PROXY)
                 .options(mcpHttpOptions(binding, routed))
                 .inject(b -> injectRoutes(b, routed))
@@ -440,7 +440,14 @@ public final class McpOpenapiCompositeGenerator
                     : entry.operation.summary != null
                         ? entry.operation.summary
                         : "Call %s".formatted(entry.operation.id);
-                tools.add(new McpHttpToolConfig(entry.tool.name, summary, description, input, output, outputMaybeWrapped));
+                tools.add(McpHttpToolConfig.builder()
+                    .name(entry.tool.name)
+                    .summary(summary)
+                    .description(description)
+                    .input(input)
+                    .output(output)
+                    .outputMaybeWrapped(outputMaybeWrapped)
+                    .build());
             }
             else
             {
@@ -460,9 +467,11 @@ public final class McpOpenapiCompositeGenerator
             }
         }
 
-        return new McpHttpOptionsConfig(mcpHttpAuthorization(binding),
-            tools.isEmpty() ? null : tools,
-            resources.isEmpty() ? null : resources);
+        return McpHttpOptionsConfig.builder()
+            .authorization(mcpHttpAuthorization(binding))
+            .tools(tools.isEmpty() ? null : tools)
+            .resources(resources.isEmpty() ? null : resources)
+            .build();
     }
 
     private McpHttpAuthorizationConfig mcpHttpAuthorization(
@@ -472,34 +481,38 @@ public final class McpOpenapiCompositeGenerator
             binding.options != null ? binding.options.authorization : null;
 
         return authorization != null
-            ? new McpHttpAuthorizationConfig(authorization.qname, authorization.headers)
+            ? McpHttpAuthorizationConfig.builder()
+                .name(authorization.qname)
+                .headers(authorization.headers)
+                .build()
             : null;
     }
 
-    private <C> BindingConfigBuilder<C> injectRoutes(
-        BindingConfigBuilder<C> binding,
+    private <C> McpHttpBindingConfigBuilder<C> injectRoutes(
+        McpHttpBindingConfigBuilder<C> binding,
         List<RoutedOperation> routed)
     {
         for (RoutedOperation entry : routed)
         {
-            final McpHttpConditionConfig when = new McpHttpConditionConfig(
-                entry.tool != null ? entry.tool.name : null,
-                entry.resource != null ? entry.resource.uri : null);
+            final McpHttpConditionConfig when = McpHttpConditionConfig.builder()
+                .tool(entry.tool != null ? entry.tool.name : null)
+                .resource(entry.resource != null ? entry.resource.uri : null)
+                .build();
             final McpHttpWithConfig with = withConfig(entry);
 
             binding.route()
                 .when(when)
                 .with(with)
                 .exit(httpClientExit)
-                .inject(r -> injectGuarded(r, entry))
+                .inject(route -> injectGuarded(route, entry))
                 .build();
         }
 
         return binding;
     }
 
-    private <C> RouteConfigBuilder<C> injectGuarded(
-        RouteConfigBuilder<C> route,
+    private <C> McpHttpRouteConfigBuilder<C> injectGuarded(
+        McpHttpRouteConfigBuilder<C> route,
         RoutedOperation entry)
     {
         for (GuardedRef ref : entry.guarded)

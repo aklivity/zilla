@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.store;
 
-import io.aklivity.zilla.runtime.engine.config.StoreConfig;
+import io.aklivity.zilla.config.engine.StoreConfig;
 
 /**
  * Per-thread context for a mutable runtime state store.

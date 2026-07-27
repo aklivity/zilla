@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.reader;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -25,7 +25,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
 
 public class BindingsLayoutReaderTest
@@ -38,7 +39,7 @@ public class BindingsLayoutReaderTest
         BindingsLayout layout = BindingsLayout.builder()
             .path(directory.resolve("bindings0"))
             .build();
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("test0")
             .type("test")

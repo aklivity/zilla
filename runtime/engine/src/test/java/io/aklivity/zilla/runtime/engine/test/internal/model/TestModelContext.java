@@ -15,11 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class TestModelContext implements ModelContext
 {

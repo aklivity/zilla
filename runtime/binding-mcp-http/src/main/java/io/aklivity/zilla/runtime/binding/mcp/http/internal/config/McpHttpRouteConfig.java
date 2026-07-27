@@ -25,12 +25,12 @@ import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class McpHttpRouteConfig
 {

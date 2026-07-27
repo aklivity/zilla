@@ -21,7 +21,7 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
+import io.aklivity.zilla.config.engine.AttributeConfig;
 
 public class OtlpLogsSerializer
 {

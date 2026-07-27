@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.engine.AttributeConfig;
+import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;

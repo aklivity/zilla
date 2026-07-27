@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>incubator</artifactId>
-    <version>2.0.0-alpha-37</version>
+    <version>2.0.0-alpha-38</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -51,7 +51,19 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-pgsql-kafka.conf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
+      <type>test-jar</type>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>engine.conf</artifactId>
       <type>test-jar</type>
       <version>${project.version}</version>
       <scope>test</scope>
@@ -121,33 +133,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-pgsql-kafka.spec</artifactId>
-                  <fileMappers>
-                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                       <pattern>^\Qio/aklivity/zilla/specs/binding/pgsql/kafka/\E</pattern>
-                       <replacement>io/aklivity/zilla/runtime/binding/pgsql/kafka/internal/</replacement>
-                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                  </fileMappers>
-                </artifactItem>
-              </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/pgsql/kafka/schema/pgsql.kafka.schema.patch.json</includes>
-              <outputDirectory>${project.build.directory}/classes</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

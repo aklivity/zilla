@@ -23,7 +23,7 @@ public class MqttKafkaBindingFactorySpi  implements BindingFactorySpi
     @Override
     public String type()
     {
-        return MqttKafkaBinding.NAME;
+        return MqttKafkaBinding.TYPE;
     }
 
     @Override

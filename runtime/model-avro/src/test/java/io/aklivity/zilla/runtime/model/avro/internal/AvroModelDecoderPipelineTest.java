@@ -28,19 +28,19 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.GenericCatalogConfig;
+import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogConfig;
+import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
+import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
-import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroModelDecoderPipelineTest
 {
@@ -224,7 +224,7 @@ public class AvroModelDecoderPipelineTest
         String schema,
         String view)
     {
-        TestCatalogConfig catalog = CatalogConfig.builder(TestCatalogConfig::new)
+        TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")

@@ -1,0 +1,53 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.binding.tcp;
+
+import java.util.function.Function;
+
+import io.aklivity.zilla.config.engine.OptionsConfig;
+
+public final class TcpOptionsConfig extends OptionsConfig
+{
+    public final String host;
+    public final int[] ports;
+    public final int backlog;
+    public final boolean nodelay;
+    public final boolean keepalive;
+
+    public static TcpOptionsConfigBuilder<TcpOptionsConfig> builder()
+    {
+        return new TcpOptionsConfigBuilder<>(TcpOptionsConfig.class::cast);
+    }
+
+    public static <T> TcpOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new TcpOptionsConfigBuilder<>(mapper);
+    }
+
+    TcpOptionsConfig(
+        String host,
+        int[] ports,
+        int backlog,
+        boolean nodelay,
+        boolean keepalive)
+    {
+        this.host = host;
+        this.ports = ports;
+        this.backlog = backlog;
+        this.nodelay = nodelay;
+        this.keepalive = keepalive;
+    }
+}

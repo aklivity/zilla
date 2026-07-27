@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 import static java.util.stream.Collectors.toList;
 
 import java.util.LinkedHashMap;
@@ -25,13 +25,13 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
+import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
+import io.aklivity.zilla.config.binding.http.HttpWithConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public final class HttpRouteConfig
 {

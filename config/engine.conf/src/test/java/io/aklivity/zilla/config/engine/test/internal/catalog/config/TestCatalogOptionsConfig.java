@@ -1,0 +1,53 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.engine.test.internal.catalog.config;
+
+import java.util.function.Function;
+
+import io.aklivity.zilla.config.engine.OptionsConfig;
+
+public class TestCatalogOptionsConfig extends OptionsConfig
+{
+    public final String subject;
+    public final String schema;
+    public final int id;
+    public final String prefix;
+    public final String url;
+
+    public static TestCatalogOptionsConfigBuilder<TestCatalogOptionsConfig> builder()
+    {
+        return new TestCatalogOptionsConfigBuilder<>(TestCatalogOptionsConfig.class::cast);
+    }
+
+    public static <T> TestCatalogOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
+    {
+        return new TestCatalogOptionsConfigBuilder<>(mapper);
+    }
+
+    public TestCatalogOptionsConfig(
+        int id,
+        String subject,
+        String schema,
+        String prefix,
+        String url)
+    {
+        this.subject = subject;
+        this.schema = schema;
+        this.id = id;
+        this.prefix = prefix;
+        this.url = url;
+    }
+}

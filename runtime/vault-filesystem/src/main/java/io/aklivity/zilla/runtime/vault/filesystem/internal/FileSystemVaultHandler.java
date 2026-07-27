@@ -44,10 +44,10 @@ import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
+import io.aklivity.zilla.config.vault.filesystem.FileSystemStoreConfig;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemOptionsConfig;
-import io.aklivity.zilla.runtime.vault.filesystem.config.FileSystemStoreConfig;
 
 public class FileSystemVaultHandler implements VaultHandler
 {
@@ -84,7 +84,9 @@ public class FileSystemVaultHandler implements VaultHandler
             ? aliases -> newSignersFactory(aliases, signers, keys)
             : aliases -> null;
 
-        this.revocation = options.revocation != null ? options.revocation : revocation;
+        this.revocation = options.revocation != null
+            ? RevocationStrategy.valueOf(options.revocation.toUpperCase())
+            : revocation;
         this.trust = supplyStoreInfo(resolvePath, options.trust);
         supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
     }

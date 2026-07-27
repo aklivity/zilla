@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.util.Objects.requireNonNull;
 
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 

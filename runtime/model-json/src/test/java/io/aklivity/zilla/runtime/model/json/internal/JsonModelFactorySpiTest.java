@@ -21,13 +21,13 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelFactory;
-import io.aklivity.zilla.runtime.model.json.config.JsonModelConfig;
 
 public class JsonModelFactorySpiTest
 {

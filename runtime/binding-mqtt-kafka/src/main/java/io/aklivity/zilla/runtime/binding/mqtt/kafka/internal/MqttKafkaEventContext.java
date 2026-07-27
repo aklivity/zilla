@@ -43,7 +43,7 @@ public class MqttKafkaEventContext
     public MqttKafkaEventContext(
         EngineContext context)
     {
-        this.mqttTypeId = context.supplyTypeId(MqttKafkaBinding.NAME);
+        this.mqttTypeId = context.supplyTypeId(MqttKafkaBinding.TYPE);
         this.nonCompactSessionsTopicEventId = context.supplyEventId("binding.mqtt.kafka.non.compact.sessions.topic");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();

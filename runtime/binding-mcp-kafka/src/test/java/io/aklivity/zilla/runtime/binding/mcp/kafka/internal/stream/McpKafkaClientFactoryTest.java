@@ -30,18 +30,19 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.kafka.config.McpKafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class McpKafkaClientFactoryTest
 {
@@ -109,10 +110,12 @@ public class McpKafkaClientFactoryTest
             .build();
 
         RouteConfig route = RouteConfig.builder()
-            .when(new McpKafkaConditionConfig("produce", null, null))
+            .when(McpKafkaConditionConfig.builder()
+                .tool("produce")
+                .build())
             .build();
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
             .type("mcp_kafka")

@@ -15,10 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.vault;
 
-import java.net.URL;
-
+import io.aklivity.zilla.config.engine.factory.Aliasable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.factory.Aliasable;
 
 /**
  * Entry point for a cryptographic material vault plugin.
@@ -53,11 +51,4 @@ public interface Vault extends Aliasable
      */
     VaultContext supply(
         EngineContext context);
-
-    /**
-     * Returns a URL pointing to the JSON schema for this vault's configuration options.
-     *
-     * @return the configuration schema URL
-     */
-    URL type();
 }

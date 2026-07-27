@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -33,12 +31,6 @@ public class TestExporter implements Exporter
     public String name()
     {
         return "test";
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("test.schema.patch.json");
     }
 
     @Override

@@ -14,22 +14,12 @@
  */
 module io.aklivity.zilla.runtime.binding.mcp.http
 {
+    requires io.aklivity.zilla.config.binding.mcp.http;
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.engine;
 
-    exports io.aklivity.zilla.runtime.binding.mcp.http.config;
-
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpWithConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.http.internal.events.McpHttpEventFormatterFactory;

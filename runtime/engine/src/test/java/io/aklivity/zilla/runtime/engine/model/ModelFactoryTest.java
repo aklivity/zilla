@@ -21,12 +21,12 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModel;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelContext;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
-import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class ModelFactoryTest
 {

@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,19 +23,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiRouteConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryRouteConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfigBuilder;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 
 public final class McpSchemaRegistryCompositeGenerator
 {
@@ -72,11 +72,10 @@ public final class McpSchemaRegistryCompositeGenerator
                         .build()
                     .build()
                 .build()
-            .binding()
+            .binding(McpOpenapiBindingConfig::builder)
                 .name(BINDING_NAME)
-                .type("mcp_openapi")
                 .kind(CLIENT)
-                .options(McpOpenapiOptionsConfig::builder)
+                .options()
                     .spec()
                         .label(SUBJECT_NAME)
                         .server(binding.options.server)
@@ -98,8 +97,8 @@ public final class McpSchemaRegistryCompositeGenerator
             List.of(new McpSchemaRegistryCompositeRouteConfig(routeId)));
     }
 
-    private <C> BindingConfigBuilder<C> injectRoutes(
-        BindingConfigBuilder<C> mcpOpenapi,
+    private <C> McpOpenapiBindingConfigBuilder<C> injectRoutes(
+        McpOpenapiBindingConfigBuilder<C> mcpOpenapi,
         McpSchemaRegistryBindingConfig binding)
     {
         for (String tool : TOOLS)
@@ -111,7 +110,7 @@ public final class McpSchemaRegistryCompositeGenerator
                 mcpOpenapi.route()
                     .when(McpOpenapiConditionConfig.builder().tool(tool).build())
                     .with(McpOpenapiWithConfig.builder().spec(SUBJECT_NAME).operation(tool).build())
-                    .inject(r -> injectGuarded(r, binding, guarded))
+                    .inject(route -> injectGuarded(route, binding, guarded))
                     .build();
             }
         }
@@ -135,8 +134,8 @@ public final class McpSchemaRegistryCompositeGenerator
         return compileGlob(pattern).matcher(tool).matches();
     }
 
-    private <C> RouteConfigBuilder<C> injectGuarded(
-        RouteConfigBuilder<C> route,
+    private <C> McpOpenapiRouteConfigBuilder<C> injectGuarded(
+        McpOpenapiRouteConfigBuilder<C> route,
         McpSchemaRegistryBindingConfig binding,
         List<GuardedConfig> guarded)
     {
@@ -148,6 +147,7 @@ public final class McpSchemaRegistryCompositeGenerator
                 .inject(g -> injectRoles(g, guard.roles))
                 .build();
         }
+
         return route;
     }
 

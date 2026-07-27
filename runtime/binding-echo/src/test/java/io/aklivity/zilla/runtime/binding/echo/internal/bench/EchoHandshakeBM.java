@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.echo.internal.bench;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
@@ -38,6 +38,8 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -47,8 +49,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)

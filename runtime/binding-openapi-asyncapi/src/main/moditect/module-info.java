@@ -14,30 +14,17 @@
  */
 module io.aklivity.zilla.runtime.binding.openapi.asyncapi
 {
+    requires io.aklivity.zilla.config.binding.http.kafka;
+    requires io.aklivity.zilla.config.binding.openapi.asyncapi;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.yaml;
     requires io.aklivity.zilla.runtime.common.openapi;
     requires io.aklivity.zilla.runtime.common.asyncapi;
-    requires io.aklivity.zilla.runtime.binding.asyncapi;
-    requires io.aklivity.zilla.runtime.binding.openapi;
-    requires io.aklivity.zilla.runtime.binding.http;
-    requires io.aklivity.zilla.runtime.binding.kafka;
     requires io.aklivity.zilla.runtime.binding.http.kafka;
-
-    exports io.aklivity.zilla.runtime.binding.openapi.asyncapi.config;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiWithConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.event.OpenapiAsyncapiEventFormatterFactory;

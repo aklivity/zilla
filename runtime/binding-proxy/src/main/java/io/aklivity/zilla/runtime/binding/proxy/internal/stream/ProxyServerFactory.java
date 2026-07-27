@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.proxy.internal.stream;
 
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.function.LongUnaryOperator;
 import java.util.zip.CRC32C;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBinding;
 import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyConfiguration;
 import io.aklivity.zilla.runtime.binding.proxy.internal.config.ProxyBindingConfig;
@@ -57,7 +58,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class ProxyServerFactory implements ProxyStreamFactory
 {

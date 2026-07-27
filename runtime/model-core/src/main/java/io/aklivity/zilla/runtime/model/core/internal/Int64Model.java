@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
@@ -35,11 +33,5 @@ public class Int64Model implements Model
         EngineContext context)
     {
         return new Int64ModelContext(context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/int64.schema.patch.json");
     }
 }

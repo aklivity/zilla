@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
-import static io.aklivity.zilla.runtime.guard.jwt.internal.keys.JwtKeyConfigs.RFC7515_RS256_CONFIG;
+import static io.aklivity.zilla.config.guard.jwt.internal.keys.JwtKeyConfigs.RFC7515_RS256_CONFIG;
 import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
 import static java.time.Duration.ofSeconds;
 import static java.util.Arrays.asList;
@@ -42,9 +42,9 @@ import org.jose4j.lang.JoseException;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.guard.jwt.config.JwtOptionsConfig;
 
 public class JwtGuardHandlerTest
 {

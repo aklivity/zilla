@@ -39,9 +39,9 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.vault.config.TestVaultEntryConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.vault.config.TestVaultOptionsConfig;
+import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultEntryConfig;
+import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TestVaultHandler implements VaultHandler

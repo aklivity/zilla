@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
 
 public final class McpOpenapiCompositeConfig
 {

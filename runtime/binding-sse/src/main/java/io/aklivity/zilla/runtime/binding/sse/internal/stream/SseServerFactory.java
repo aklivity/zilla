@@ -40,6 +40,8 @@ import jakarta.json.JsonObjectBuilder;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration;
 import io.aklivity.zilla.runtime.binding.sse.internal.config.SseBindingConfig;
@@ -77,8 +79,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
 public final class SseServerFactory implements SseStreamFactory

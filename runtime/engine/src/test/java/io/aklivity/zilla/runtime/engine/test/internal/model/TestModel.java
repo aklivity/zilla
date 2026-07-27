@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
@@ -36,11 +34,5 @@ public class TestModel implements Model
         EngineContext context)
     {
         return new TestModelContext(context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("test.schema.patch.json");
     }
 }

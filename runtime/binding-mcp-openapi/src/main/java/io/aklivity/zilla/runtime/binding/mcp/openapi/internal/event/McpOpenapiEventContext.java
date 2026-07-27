@@ -43,7 +43,7 @@ public class McpOpenapiEventContext
     public McpOpenapiEventContext(
         EngineContext context)
     {
-        this.mcpOpenapiTypeId = context.supplyTypeId(McpOpenapiBinding.NAME);
+        this.mcpOpenapiTypeId = context.supplyTypeId(McpOpenapiBinding.TYPE);
         this.operationDeniedId = context.supplyEventId("binding.mcp.openapi.operation.denied");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();

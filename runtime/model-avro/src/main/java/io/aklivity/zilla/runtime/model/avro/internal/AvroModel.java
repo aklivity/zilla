@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
@@ -44,11 +42,5 @@ public class AvroModel implements Model
         EngineContext context)
     {
         return new AvroModelContext(config, context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/avro.schema.patch.json");
     }
 }

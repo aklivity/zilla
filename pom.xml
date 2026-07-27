@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>2.0.0-alpha-37</version>
+  <version>2.0.0-alpha-38</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -70,6 +70,7 @@
     <module>conf</module>
     <module>build</module>
     <module>specs</module>
+    <module>config</module>
     <module>runtime</module>
     <module>manager</module>
     <module>cloud</module>

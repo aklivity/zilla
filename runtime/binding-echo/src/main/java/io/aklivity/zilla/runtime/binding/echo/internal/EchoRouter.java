@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.echo.internal;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
 
 public final class EchoRouter
 {

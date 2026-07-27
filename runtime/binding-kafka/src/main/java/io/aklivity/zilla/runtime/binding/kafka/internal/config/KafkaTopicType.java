@@ -25,8 +25,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicTransformsConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicTransformsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 

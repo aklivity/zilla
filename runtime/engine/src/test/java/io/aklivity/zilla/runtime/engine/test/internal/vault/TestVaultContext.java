@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.vault;
 
+import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public final class TestVaultContext implements VaultContext

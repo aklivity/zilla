@@ -16,17 +16,10 @@
 module io.aklivity.zilla.runtime.binding.tcp
 {
     requires io.aklivity.zilla.runtime.engine;
-
-    exports io.aklivity.zilla.runtime.binding.tcp.config;
+    requires io.aklivity.zilla.config.binding.tcp;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.tcp.internal.TcpBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpConditionConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventFormatterFactory;

@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 
 /**
  * A resolved metric identity, combining the namespaced binding address with the metric name.

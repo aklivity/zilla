@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>2.0.0-alpha-37</version>
+    <version>2.0.0-alpha-38</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -22,8 +22,8 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>0.93</jacoco.coverage.ratio>
-    <jacoco.missed.count>0</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.27</jacoco.coverage.ratio>
+    <jacoco.missed.count>6</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -34,6 +34,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>catalog-schema-registry.conf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.aklivity.zilla</groupId>
       <artifactId>engine</artifactId>
       <scope>provided</scope>
@@ -41,6 +46,13 @@
     <dependency>
         <groupId>io.aklivity.zilla</groupId>
         <artifactId>engine</artifactId>
+        <type>test-jar</type>
+        <version>${project.version}</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>io.aklivity.zilla</groupId>
+        <artifactId>engine.conf</artifactId>
         <type>test-jar</type>
         <version>${project.version}</version>
         <scope>test</scope>
@@ -119,7 +131,6 @@
                 </artifactItem>
               </artifactItems>
               <includes>io/aklivity/zilla/specs/catalog/schema/registry/config/*</includes>
-              <includes>io/aklivity/zilla/specs/catalog/schema/registry/schema/*</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

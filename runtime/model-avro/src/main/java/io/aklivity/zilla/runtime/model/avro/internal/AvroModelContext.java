@@ -14,12 +14,12 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.model.avro.config.AvroModelConfig;
 
 public class AvroModelContext implements ModelContext
 {

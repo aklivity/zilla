@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.composite;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -33,23 +33,24 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiSpecificationConfig;
-import io.aklivity.zilla.runtime.binding.mcp.openapi.config.McpOpenapiWithConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiCatalogConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
+import io.aklivity.zilla.config.binding.mcp.schema.registry.McpSchemaRegistryConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.schema.registry.McpSchemaRegistryOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineSchemaConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeConfig;
-import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineSchemaConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class McpSchemaRegistryCompositeGeneratorTest
 {
@@ -76,12 +77,14 @@ public class McpSchemaRegistryCompositeGeneratorTest
     @Test
     public void shouldGenerateComposite()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_schema_registry")
             .kind(CLIENT)
-            .options(new McpSchemaRegistryOptionsConfig("http://localhost:8080"))
+            .options(McpSchemaRegistryOptionsConfig.builder()
+                .server("http://localhost:8080")
+                .build())
             .build();
 
         McpSchemaRegistryBindingConfig attached = new McpSchemaRegistryBindingConfig(context, binding);
@@ -145,12 +148,14 @@ public class McpSchemaRegistryCompositeGeneratorTest
     @Test
     public void shouldReduceScopeToDeclaredTools()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_schema_registry")
             .kind(CLIENT)
-            .options(new McpSchemaRegistryOptionsConfig("http://localhost:8080"))
+            .options(McpSchemaRegistryOptionsConfig.builder()
+                .server("http://localhost:8080")
+                .build())
             .route()
                 .when(McpSchemaRegistryConditionConfig.builder()
                     .tool("list_*")
@@ -181,12 +186,14 @@ public class McpSchemaRegistryCompositeGeneratorTest
     {
         when(context.supplyQName(eq(3L))).thenReturn("test:jwt0");
 
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_schema_registry")
             .kind(CLIENT)
-            .options(new McpSchemaRegistryOptionsConfig("http://localhost:8080"))
+            .options(McpSchemaRegistryOptionsConfig.builder()
+                .server("http://localhost:8080")
+                .build())
             .route()
                 .when(McpSchemaRegistryConditionConfig.builder()
                     .tool("register_schema")
@@ -218,12 +225,14 @@ public class McpSchemaRegistryCompositeGeneratorTest
     @Test
     public void shouldExposeNoRoutesWhenNoToolMatches()
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp_schema_registry")
             .kind(CLIENT)
-            .options(new McpSchemaRegistryOptionsConfig("http://localhost:8080"))
+            .options(McpSchemaRegistryOptionsConfig.builder()
+                .server("http://localhost:8080")
+                .build())
             .route()
                 .when(McpSchemaRegistryConditionConfig.builder()
                     .tool("nonexistent_tool")

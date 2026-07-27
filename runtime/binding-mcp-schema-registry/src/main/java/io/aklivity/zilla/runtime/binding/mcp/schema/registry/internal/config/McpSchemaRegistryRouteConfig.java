@@ -18,8 +18,9 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.config.binding.mcp.schema.registry.McpSchemaRegistryConditionConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 
 public final class McpSchemaRegistryRouteConfig
 {

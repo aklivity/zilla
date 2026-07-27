@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheToolsSearchConfig;
+import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;

@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import java.util.function.LongPredicate;
 import java.util.function.Supplier;
 
+import io.aklivity.zilla.config.model.core.Int64ModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.model.core.config.Int64ModelConfig;
 
 final class Int64ModelValidator implements CoreModelValidator
 {

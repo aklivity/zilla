@@ -41,7 +41,8 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.CloseHelper;
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpUsageTracker;
@@ -62,7 +63,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public class TcpClientFactory implements TcpStreamFactory
