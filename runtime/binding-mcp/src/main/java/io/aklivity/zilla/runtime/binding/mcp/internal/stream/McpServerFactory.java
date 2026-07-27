@@ -1836,6 +1836,7 @@ public final class McpServerFactory implements McpStreamFactory
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .inject(this::injectAltSvc)
                     .build(),
                     id, error.code(), error.message().asString());
@@ -2421,6 +2422,7 @@ public final class McpServerFactory implements McpStreamFactory
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .inject(this::injectAltSvc)
                     .build(),
                 -32700,
@@ -2435,6 +2437,7 @@ public final class McpServerFactory implements McpStreamFactory
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .inject(this::injectAltSvc)
                     .build(),
                 -32600,
