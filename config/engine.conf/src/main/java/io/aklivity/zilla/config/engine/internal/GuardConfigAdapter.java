@@ -23,7 +23,6 @@ import io.aklivity.zilla.config.engine.GenericGuardConfig;
 import io.aklivity.zilla.config.engine.GenericGuardConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
 public class GuardConfigAdapter
 {
@@ -44,7 +43,7 @@ public class GuardConfigAdapter
     public GuardConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.GUARD,
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.GUARD,
             info != null ? info::guard : null);
     }
 

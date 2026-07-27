@@ -21,19 +21,12 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public class OpenapiAsyncapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public class OpenapiAsyncapiWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
     private static final String TAG_NAME = "tag";
-
-    @Override
-    public String type()
-    {
-        return OpenapiAsyncapiBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

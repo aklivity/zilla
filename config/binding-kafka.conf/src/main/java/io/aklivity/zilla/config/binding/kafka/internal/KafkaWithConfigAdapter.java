@@ -21,21 +21,14 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public final class KafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public final class KafkaWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String DEFAULT_OFFSET_NAME = "defaultOffset";
     private static final String DELTA_TYPE_NAME = "deltaType";
     private static final String ACKS_NAME = "acks";
 
     private static final String ACKS_DEFAULT = "in_sync_replicas";
-
-    @Override
-    public String type()
-    {
-        return KafkaBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

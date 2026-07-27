@@ -45,8 +45,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
  * {@link jakarta.json.JsonValue} rather than a {@link jakarta.json.JsonObject}, allowing
  * model configurations that may be expressed as either a string shorthand or a full object.
  * </p>
- *
- * @see OptionsConfigAdapterSpi
  */
 public interface ModelConfigAdapterSpi extends JsonbAdapter<ModelConfig, JsonValue>
 {

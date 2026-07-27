@@ -23,18 +23,11 @@ import io.aklivity.zilla.config.binding.mcp.McpWithCacheConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.McpWithConfig;
 import io.aklivity.zilla.config.binding.mcp.McpWithConfigBuilder;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public final class McpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public final class McpWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String CACHE_NAME = "cache";
     private static final String CACHE_CREDENTIALS_NAME = "credentials";
-
-    @Override
-    public String type()
-    {
-        return McpBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

@@ -29,9 +29,8 @@ import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterConfig;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterHeaderConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public final class SseKafkaWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String TOPIC_NAME = "topic";
     private static final String FILTERS_NAME = "filters";
@@ -39,12 +38,6 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
     private static final String FILTERS_HEADERS_NAME = "headers";
     private static final String EVENT_NAME = "event";
     private static final String EVENT_ID_NAME = "id";
-
-    @Override
-    public String type()
-    {
-        return SseKafkaBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

@@ -21,17 +21,10 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public class MqttKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public class MqttKafkaWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String MESSAGES_NAME = "messages";
-
-    @Override
-    public String type()
-    {
-        return MqttKafkaBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

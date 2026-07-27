@@ -22,7 +22,6 @@ import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericVaultConfig;
 import io.aklivity.zilla.config.engine.GenericVaultConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.VaultConfig;
 
 public class VaultConfigAdapter
@@ -42,7 +41,7 @@ public class VaultConfigAdapter
     public VaultConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.VAULT,
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.VAULT,
             info != null ? info::vault : null);
     }
 

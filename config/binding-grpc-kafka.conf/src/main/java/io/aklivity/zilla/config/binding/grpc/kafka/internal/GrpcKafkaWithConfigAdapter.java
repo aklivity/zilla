@@ -20,20 +20,13 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCapability;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public final class GrpcKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public final class GrpcKafkaWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String CAPABILITY_NAME = "capability";
 
     private final GrpcKafkaWithFetchConfigAdapter fetch = new GrpcKafkaWithFetchConfigAdapter();
     private final GrpcKafkaWithProduceConfigAdapter produce = new GrpcKafkaWithProduceConfigAdapter();
-
-    @Override
-    public String type()
-    {
-        return GrpcKafkaBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

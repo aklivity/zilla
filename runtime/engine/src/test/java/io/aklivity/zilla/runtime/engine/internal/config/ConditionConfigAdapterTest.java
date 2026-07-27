@@ -28,12 +28,12 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.internal.ConditionConfigAdapter;
@@ -159,15 +159,9 @@ public class ConditionConfigAdapterTest
         }
     }
 
-    public static final class TestConditionConfigAdapter implements ConditionConfigAdapterSpi
+    public static final class TestConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
     {
         private static final String MATCH_NAME = "match";
-
-        @Override
-        public String type()
-        {
-            return "test";
-        }
 
         @Override
         public JsonObject adaptToJson(

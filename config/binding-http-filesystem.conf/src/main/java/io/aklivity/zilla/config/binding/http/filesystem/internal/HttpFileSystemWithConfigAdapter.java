@@ -21,18 +21,11 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public final class HttpFileSystemWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public final class HttpFileSystemWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String PATH_NAME = "path";
     private static final String DIRECTORY_NAME = "directory";
-
-    @Override
-    public String type()
-    {
-        return HttpFileSystemBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

@@ -23,18 +23,11 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.config.binding.http.HttpWithConfig;
 import io.aklivity.zilla.config.binding.http.HttpWithConfigBuilder;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public class HttpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public class HttpWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String HEADERS_NAME = "headers";
     private static final String OVERRIDES_NAME = "overrides";
-
-    @Override
-    public String type()
-    {
-        return HttpBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

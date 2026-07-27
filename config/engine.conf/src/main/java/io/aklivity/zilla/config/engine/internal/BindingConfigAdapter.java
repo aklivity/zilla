@@ -33,7 +33,6 @@ import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfigBuilder;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.RouteConfig;
 
 public class BindingConfigAdapter
@@ -66,7 +65,7 @@ public class BindingConfigAdapter
     {
         this.kind = new KindConfigAdapter();
         this.route = new RouteConfigAdapter(info);
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING,
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.BINDING,
             info != null ? info::binding : null);
         this.cataloged = new CatalogedConfigAdapter();
         this.telemetryRef = new TelemetryRefConfigAdapter();

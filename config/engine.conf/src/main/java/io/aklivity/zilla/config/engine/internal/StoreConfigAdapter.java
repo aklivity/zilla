@@ -22,7 +22,6 @@ import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericStoreConfig;
 import io.aklivity.zilla.config.engine.GenericStoreConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.StoreConfig;
 
 public class StoreConfigAdapter
@@ -42,7 +41,7 @@ public class StoreConfigAdapter
     public StoreConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.STORE,
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.STORE,
             info != null ? info::store : null);
     }
 

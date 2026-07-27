@@ -26,7 +26,6 @@ import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.config.engine.GenericExporterConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
 public class ExporterConfigAdapter implements JsonbAdapter<ExporterConfig[], JsonObject>
 {
@@ -46,7 +45,7 @@ public class ExporterConfigAdapter implements JsonbAdapter<ExporterConfig[], Jso
     public ExporterConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.EXPORTER,
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.EXPORTER,
             info != null ? info::exporter : null);
     }
 

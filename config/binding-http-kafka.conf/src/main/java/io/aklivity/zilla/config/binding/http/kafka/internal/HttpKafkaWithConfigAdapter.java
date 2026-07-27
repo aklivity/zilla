@@ -20,20 +20,13 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCapability;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public final class HttpKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public final class HttpKafkaWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String CAPABILITY_NAME = "capability";
 
     private final HttpKafkaWithFetchConfigAdapter fetch = new HttpKafkaWithFetchConfigAdapter();
     private final HttpKafkaWithProduceConfigAdapter produce = new HttpKafkaWithProduceConfigAdapter();
-
-    @Override
-    public String type()
-    {
-        return HttpKafkaBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

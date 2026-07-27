@@ -25,21 +25,14 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public final class McpOpenapiWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public final class McpOpenapiWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";
     private static final String TAG_NAME = "tag";
     private static final String PARAMS_NAME = "params";
     private static final String BODY_NAME = "body";
-
-    @Override
-    public String type()
-    {
-        return McpOpenapiBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

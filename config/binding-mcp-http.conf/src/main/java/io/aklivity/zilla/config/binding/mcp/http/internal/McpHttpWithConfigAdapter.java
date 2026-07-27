@@ -27,9 +27,8 @@ import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 
-public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
+public final class McpHttpWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String HEADERS_NAME = "headers";
     private static final String COOKIES_NAME = "cookies";
@@ -38,12 +37,6 @@ public final class McpHttpWithConfigAdapter implements WithConfigAdapterSpi, Jso
     private static final String TEMPLATE_NAME = "template";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
-
-    @Override
-    public String type()
-    {
-        return McpHttpBindingInfo.TYPE;
-    }
 
     @Override
     public JsonObject adaptToJson(

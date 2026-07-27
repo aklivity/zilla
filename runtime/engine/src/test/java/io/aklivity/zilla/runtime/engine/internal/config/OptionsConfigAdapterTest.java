@@ -30,7 +30,6 @@ import org.junit.Test;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
@@ -43,7 +42,7 @@ public class OptionsConfigAdapterTest
     public void initJson()
     {
         EngineInfo info = new EngineInfo();
-        adapter = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.BINDING, info::binding);
+        adapter = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.BINDING, info::binding);
         adapter.adaptType("test");
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(adapter);

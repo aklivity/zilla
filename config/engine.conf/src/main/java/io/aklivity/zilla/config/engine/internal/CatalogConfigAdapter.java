@@ -23,7 +23,6 @@ import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.GenericCatalogConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
 public class CatalogConfigAdapter
 {
@@ -43,7 +42,7 @@ public class CatalogConfigAdapter
     public CatalogConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.CATALOG,
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapter.Kind.CATALOG,
             info != null ? info::catalog : null);
     }
 

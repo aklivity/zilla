@@ -26,15 +26,14 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.internal.WithConfigAdapter;
 
 public class WithConfigAdapterTest
@@ -114,39 +113,6 @@ public class WithConfigAdapterTest
         }
     }
 
-    public static final class TestConditionAdapter implements ConditionConfigAdapterSpi
-    {
-        private static final String MATCH_NAME = "match";
-
-        @Override
-        public String type()
-        {
-            return "test";
-        }
-
-        @Override
-        public JsonObject adaptToJson(
-            ConditionConfig condition)
-        {
-            TestCondition testCondition = (TestCondition) condition;
-
-            JsonObjectBuilder object = Json.createObjectBuilder();
-
-            object.add(MATCH_NAME, testCondition.match);
-
-            return object.build();
-        }
-
-        @Override
-        public ConditionConfig adaptFromJson(
-            JsonObject object)
-        {
-            String match = object.getString(MATCH_NAME);
-
-            return new TestCondition(match);
-        }
-    }
-
     public static final class TestWithConfig extends WithConfig
     {
         public final String name;
@@ -158,15 +124,9 @@ public class WithConfigAdapterTest
         }
     }
 
-    public static final class TestWithConfigAdapter implements WithConfigAdapterSpi
+    public static final class TestWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
     {
         private static final String NAME_NAME = "name";
-
-        @Override
-        public String type()
-        {
-            return "test";
-        }
 
         @Override
         public JsonObject adaptToJson(
