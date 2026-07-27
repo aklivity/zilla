@@ -15,6 +15,7 @@
 module io.aklivity.zilla.runtime.metrics.mcp
 {
     requires io.aklivity.zilla.runtime.engine;
+    requires io.aklivity.zilla.config.metrics.mcp;
 
     provides io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi
         with io.aklivity.zilla.runtime.metrics.mcp.internal.McpMetricGroupFactorySpi;
