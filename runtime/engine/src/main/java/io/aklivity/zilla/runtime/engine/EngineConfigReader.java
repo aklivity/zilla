@@ -83,7 +83,7 @@ public final class EngineConfigReader
         read:
         try
         {
-            InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/engine.schema.json");
+            InputStream schemaInput = info.schema().openStream();
 
             JsonProvider schemaProvider = YamlJson.provider();
             JsonReader schemaReader = schemaProvider.createReader(schemaInput);

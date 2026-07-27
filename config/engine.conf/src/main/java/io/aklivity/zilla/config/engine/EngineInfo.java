@@ -15,9 +15,14 @@
 package io.aklivity.zilla.config.engine;
 
 import static java.util.ServiceLoader.load;
+import static java.util.stream.Collectors.toList;
 
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
+import java.util.Objects;
 
 import io.aklivity.zilla.config.engine.factory.Factory;
 
@@ -42,9 +47,22 @@ public final class EngineInfo
         this.models = TypedInfoFactory.models();
     }
 
-    public Stream<BindingInfo> bindings()
+    public URL schema()
     {
-        return bindings.values().stream();
+        return getClass().getResource("schema/engine.schema.json");
+    }
+
+    public Collection<URL> patches()
+    {
+        List<URL> patches = new ArrayList<>();
+        patches.addAll(bindings.values().stream().map(BindingInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(catalogs.values().stream().map(CatalogInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(guards.values().stream().map(GuardInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(vaults.values().stream().map(VaultInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(exporters.values().stream().map(ExporterInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(stores.values().stream().map(StoreInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(models.values().stream().map(ModelInfo::schema).filter(Objects::nonNull).collect(toList()));
+        return patches;
     }
 
     public BindingInfo binding(
@@ -53,20 +71,10 @@ public final class EngineInfo
         return bindings.get(type);
     }
 
-    public Stream<CatalogInfo> catalogs()
-    {
-        return catalogs.values().stream();
-    }
-
     public CatalogInfo catalog(
         String type)
     {
         return catalogs.get(type);
-    }
-
-    public Stream<GuardInfo> guards()
-    {
-        return guards.values().stream();
     }
 
     public GuardInfo guard(
@@ -75,20 +83,10 @@ public final class EngineInfo
         return guards.get(type);
     }
 
-    public Stream<VaultInfo> vaults()
-    {
-        return vaults.values().stream();
-    }
-
     public VaultInfo vault(
         String type)
     {
         return vaults.get(type);
-    }
-
-    public Stream<ExporterInfo> exporters()
-    {
-        return exporters.values().stream();
     }
 
     public ExporterInfo exporter(
@@ -97,20 +95,10 @@ public final class EngineInfo
         return exporters.get(type);
     }
 
-    public Stream<StoreInfo> stores()
-    {
-        return stores.values().stream();
-    }
-
     public StoreInfo store(
         String type)
     {
         return stores.get(type);
-    }
-
-    public Stream<ModelInfo> models()
-    {
-        return models.values().stream();
     }
 
     public ModelInfo model(

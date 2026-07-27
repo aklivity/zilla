@@ -52,17 +52,10 @@ import java.util.stream.Collectors;
 import org.agrona.ErrorHandler;
 import org.agrona.collections.Int2ObjectHashMap;
 
-import io.aklivity.zilla.config.engine.BindingInfo;
-import io.aklivity.zilla.config.engine.CatalogInfo;
 import io.aklivity.zilla.config.engine.EngineInfo;
-import io.aklivity.zilla.config.engine.ExporterInfo;
-import io.aklivity.zilla.config.engine.GuardInfo;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.config.engine.ModelInfo;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.RouterConfig;
-import io.aklivity.zilla.config.engine.StoreInfo;
-import io.aklivity.zilla.config.engine.VaultInfo;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
@@ -241,15 +234,8 @@ public final class Engine implements Collector, AutoCloseable
 
         final EngineInfo engineInfo = new EngineInfo();
 
-        final Collection<URL> schemaTypes = new ArrayList<>();
-        schemaTypes.addAll(engineInfo.bindings().map(BindingInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(engineInfo.exporters().map(ExporterInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(engineInfo.guards().map(GuardInfo::schema).filter(Objects::nonNull).collect(toList()));
+        final Collection<URL> schemaTypes = new ArrayList<>(engineInfo.patches());
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(engineInfo.vaults().map(VaultInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(engineInfo.catalogs().map(CatalogInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(engineInfo.models().map(ModelInfo::schema).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(engineInfo.stores().map(StoreInfo::schema).filter(Objects::nonNull).collect(toList()));
 
         final Collection<URL> systemConfigs = new ArrayList<>();
         bindings.stream()
