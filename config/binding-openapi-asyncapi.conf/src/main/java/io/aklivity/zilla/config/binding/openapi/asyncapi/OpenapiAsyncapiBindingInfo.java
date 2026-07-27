@@ -21,9 +21,11 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.openapi.asyncapi.internal.OpenapiAsyncapiConditionConfigAdapter;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.internal.OpenapiAsyncapiOptionsConfigAdapter;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.internal.OpenapiAsyncapiWithConfigAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class OpenapiAsyncapiBindingInfo implements BindingInfo
 {
@@ -51,5 +53,11 @@ public final class OpenapiAsyncapiBindingInfo implements BindingInfo
     public JsonbAdapter<ConditionConfig, JsonObject> condition()
     {
         return new OpenapiAsyncapiConditionConfigAdapter();
+    }
+
+    @Override
+    public JsonbAdapter<WithConfig, JsonObject> with()
+    {
+        return new OpenapiAsyncapiWithConfigAdapter();
     }
 }

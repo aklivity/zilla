@@ -21,9 +21,11 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.internal.HttpConditionConfigAdapter;
 import io.aklivity.zilla.config.binding.http.internal.HttpOptionsConfigAdapter;
+import io.aklivity.zilla.config.binding.http.internal.HttpWithConfigAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class HttpBindingInfo implements BindingInfo
 {
@@ -51,5 +53,11 @@ public final class HttpBindingInfo implements BindingInfo
     public JsonbAdapter<ConditionConfig, JsonObject> condition()
     {
         return new HttpConditionConfigAdapter();
+    }
+
+    @Override
+    public JsonbAdapter<WithConfig, JsonObject> with()
+    {
+        return new HttpWithConfigAdapter();
     }
 }

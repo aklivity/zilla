@@ -22,6 +22,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class McpOpenapiBindingInfo implements BindingInfo
 {
@@ -49,5 +50,11 @@ public final class McpOpenapiBindingInfo implements BindingInfo
     public JsonbAdapter<ConditionConfig, JsonObject> condition()
     {
         return new McpOpenapiConditionConfigAdapter();
+    }
+
+    @Override
+    public JsonbAdapter<WithConfig, JsonObject> with()
+    {
+        return new McpOpenapiWithConfigAdapter();
     }
 }

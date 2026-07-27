@@ -21,9 +21,11 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.kafka.internal.KafkaConditionConfigAdapter;
 import io.aklivity.zilla.config.binding.kafka.internal.KafkaOptionsConfigAdapter;
+import io.aklivity.zilla.config.binding.kafka.internal.KafkaWithConfigAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class KafkaBindingInfo implements BindingInfo
 {
@@ -51,5 +53,11 @@ public final class KafkaBindingInfo implements BindingInfo
     public JsonbAdapter<ConditionConfig, JsonObject> condition()
     {
         return new KafkaConditionConfigAdapter();
+    }
+
+    @Override
+    public JsonbAdapter<WithConfig, JsonObject> with()
+    {
+        return new KafkaWithConfigAdapter();
     }
 }
