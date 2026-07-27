@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.engine.config.StoreConfig;
+import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.store.memory.internal.MemoryStoreHandler.LockEntry;

@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream
 import java.util.List;
 import java.util.function.Supplier;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.config.GrpcKafkaCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckModeFW;
@@ -52,7 +51,7 @@ public class GrpcKafkaWithProduceResult
             .build();
 
     private final List<GrpcKafkaWithProduceOverrideResult> overrides;
-    private final GrpcKafkaCorrelationConfig correlation;
+    private final GrpcKafkaCorrelationResolver correlation;
     private final String16FW topic;
     private final String16FW replyTo;
     private final KafkaAckMode acks;
@@ -72,7 +71,7 @@ public class GrpcKafkaWithProduceResult
         Supplier<DirectBufferEx> keyRef,
         List<GrpcKafkaWithProduceOverrideResult> overrides,
         String16FW replyTo,
-        GrpcKafkaCorrelationConfig correlation,
+        GrpcKafkaCorrelationResolver correlation,
         GrpcKafkaWithProduceHash hash)
     {
         this.service = service;

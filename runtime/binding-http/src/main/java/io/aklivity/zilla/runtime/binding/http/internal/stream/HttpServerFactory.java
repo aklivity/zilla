@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig.CROSS_ORIGIN;
+import static io.aklivity.zilla.config.binding.http.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONNECTION;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.KEEP_ALIVE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.PROXY_CONNECTION;
@@ -74,9 +74,10 @@ import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableReference;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpAccessControlConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpPolicyConfig;
-import io.aklivity.zilla.runtime.binding.http.config.HttpVersion;
+import io.aklivity.zilla.config.binding.http.HttpAccessControlConfig;
+import io.aklivity.zilla.config.binding.http.HttpPolicyConfig;
+import io.aklivity.zilla.config.binding.http.HttpVersion;
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpEventContext;
@@ -95,6 +96,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlResolver;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpModel;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRequestType;
@@ -142,7 +144,6 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class HttpServerFactory implements HttpStreamFactory
@@ -2288,6 +2289,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             Map<String, String> headers)
         {
             final HttpAccessControlConfig access = binding.access();
+            final HttpAccessControlResolver accessResolver = binding.accessResolver();
 
             if (!access.allowPreflight(headers))
             {
@@ -2309,7 +2311,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     responseHeaders.item(h -> h.name(HEADER_SERVER).value(server));
                 }
 
-                final HttpHeaderFW allowOrigin = access.allowOriginHeader(CROSS_ORIGIN, origin);
+                final HttpHeaderFW allowOrigin = accessResolver.allowOriginHeader(CROSS_ORIGIN, origin);
                 responseHeaders.item(h -> h.set(allowOrigin));
 
                 if (requestMethod != null)
@@ -2338,7 +2340,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (requestMethod != null || requestHeaders != null)
                 {
-                    HttpHeaderFW maxAgeHeader = access.maxAgeHeader();
+                    HttpHeaderFW maxAgeHeader = accessResolver.maxAgeHeader();
                     if (maxAgeHeader != null)
                     {
                         responseHeaders.item(h -> h.set(maxAgeHeader));
@@ -2514,20 +2516,21 @@ public final class HttpServerFactory implements HttpStreamFactory
             final String origin = exchange.origin;
             final HttpPolicyConfig policy = exchange.policy;
             final HttpAccessControlConfig access = binding.access();
+            final HttpAccessControlResolver accessResolver = binding.accessResolver();
 
             final HttpHeaderFW allowCrossOrigin = headers.matchFirst(h ->
                 HEADER_ACCESS_CONTROL_ALLOW_ORIGIN.equals(h.name()));
 
             if (allowCrossOrigin == null)
             {
-                HttpHeaderFW allowOrigin = access.allowOriginHeader(policy, origin);
+                HttpHeaderFW allowOrigin = accessResolver.allowOriginHeader(policy, origin);
 
                 if (allowOrigin != null)
                 {
                     codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowOrigin);
                 }
 
-                HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
+                HttpHeaderFW allowCredentials = accessResolver.allowCredentialsHeader();
                 if (allowCredentials != null)
                 {
                     codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowCredentials);
@@ -5365,6 +5368,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             Map<String, String> headers)
         {
             final HttpAccessControlConfig access = binding.access();
+            final HttpAccessControlResolver accessResolver = binding.accessResolver();
 
             if (!access.allowPreflight(headers))
             {
@@ -5386,7 +5390,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     responseHeaders.item(h -> h.name(HEADER_SERVER).value(server));
                 }
 
-                final HttpHeaderFW allowOrigin = access.allowOriginHeader(CROSS_ORIGIN, origin);
+                final HttpHeaderFW allowOrigin = accessResolver.allowOriginHeader(CROSS_ORIGIN, origin);
                 responseHeaders.item(h -> h.set(allowOrigin));
 
                 if (requestMethod != null)
@@ -5415,7 +5419,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (requestMethod != null || requestHeaders != null)
                 {
-                    HttpHeaderFW maxAgeHeader = access.maxAgeHeader();
+                    HttpHeaderFW maxAgeHeader = accessResolver.maxAgeHeader();
                     if (maxAgeHeader != null)
                     {
                         responseHeaders.item(h -> h.set(maxAgeHeader));
@@ -5806,8 +5810,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             final Http2HeadersFW http2Headers = http2HeadersRW
                     .wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
-                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, binding.access(), policy, origin,
-                            outboundHeaders, hb))
+                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, binding.access(), binding.accessResolver(),
+                            policy, origin, outboundHeaders, hb))
                     .endHeaders()
                     .endStream(endResponse)
                     .build();
@@ -5825,7 +5829,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             final Http2HeadersFW http2Headers = http2HeadersRW
                     .wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
-                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, null, null, null, headers, hb))
+                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, null, null, null, null, headers, hb))
                     .endHeaders()
                     .endStream(endResponse)
                     .build();
@@ -7142,6 +7146,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         void encodeHeaders(
             HpackContext encodeContext,
             HttpAccessControlConfig access,
+            HttpAccessControlResolver accessResolver,
             HttpPolicyConfig policy,
             String origin,
             Array32FW<HttpHeaderFW> headers,
@@ -7176,14 +7181,14 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (allowCrossOrigin == null && access != null)
             {
-                HttpHeaderFW allowOrigin = access.allowOriginHeader(policy, origin);
+                HttpHeaderFW allowOrigin = accessResolver.allowOriginHeader(policy, origin);
 
                 if (allowOrigin != null)
                 {
                     headerBlock.header(b -> encodeHeader(allowOrigin, b));
                 }
 
-                HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
+                HttpHeaderFW allowCredentials = accessResolver.allowCredentialsHeader();
                 if (allowCredentials != null)
                 {
                     headerBlock.header(b -> encodeHeader(allowCredentials, b));

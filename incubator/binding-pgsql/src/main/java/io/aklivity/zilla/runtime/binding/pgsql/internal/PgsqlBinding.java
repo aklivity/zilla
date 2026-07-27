@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
@@ -35,12 +33,6 @@ public final class PgsqlBinding implements Binding
     public String name()
     {
         return PgsqlBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/pgsql.schema.patch.json");
     }
 
     @Override

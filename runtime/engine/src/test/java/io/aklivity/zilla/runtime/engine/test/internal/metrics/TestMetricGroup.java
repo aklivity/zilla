@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.metrics;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -23,9 +22,6 @@ import java.util.function.Supplier;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.TestCounterMetric;
-import io.aklivity.zilla.runtime.engine.metrics.TestGaugeMetric;
-import io.aklivity.zilla.runtime.engine.metrics.TestHistogramMetric;
 
 public final class TestMetricGroup implements MetricGroup
 {
@@ -46,12 +42,6 @@ public final class TestMetricGroup implements MetricGroup
     public String name()
     {
         return NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("test.schema.patch.json");
     }
 
     @Override

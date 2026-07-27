@@ -31,8 +31,8 @@ import jakarta.json.JsonObjectBuilder;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.config.engine.AttributeConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.reader.HistogramRecord;
 import io.aklivity.zilla.runtime.engine.metrics.reader.MetricRecord;

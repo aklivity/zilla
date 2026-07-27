@@ -24,9 +24,9 @@ import java.util.function.Function;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.metrics.TestCounterMetric;
-import io.aklivity.zilla.runtime.engine.metrics.TestGaugeMetric;
-import io.aklivity.zilla.runtime.engine.metrics.TestHistogramMetric;
+import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestCounterMetric;
+import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestGaugeMetric;
+import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestHistogramMetric;
 
 public class PrometheusMetricDescriptorTest
 {

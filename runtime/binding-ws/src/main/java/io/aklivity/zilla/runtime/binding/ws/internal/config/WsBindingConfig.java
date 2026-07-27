@@ -19,13 +19,13 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.ws.config.WsOptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.config.binding.ws.WsOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 
 public final class WsBindingConfig
 {
-    private static final WsOptionsConfig DEFAULT_OPTIONS = new WsOptionsConfig(null, null, null, null);
+    private static final WsOptionsConfig DEFAULT_OPTIONS = WsOptionsConfig.builder().build();
 
     public final long id;
     public final String name;

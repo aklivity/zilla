@@ -12,13 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.kafka.grpc
+open module io.aklivity.zilla.specs.binding.kafka.grpc
 {
-    requires io.aklivity.zilla.runtime.engine;
-
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcConditionConfigAdapter;
+    requires transitive io.aklivity.zilla.specs.engine;
 }

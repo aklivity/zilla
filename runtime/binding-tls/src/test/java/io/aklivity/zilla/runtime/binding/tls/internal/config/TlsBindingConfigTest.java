@@ -35,12 +35,13 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsOptionsConfig;
+import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
+import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class TlsBindingConfigTest
@@ -52,7 +53,7 @@ public class TlsBindingConfigTest
         KindConfig kind,
         TlsOptionsConfig options)
     {
-        BindingConfig binding = BindingConfig.builder()
+        BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("tls0")
             .type("tls")

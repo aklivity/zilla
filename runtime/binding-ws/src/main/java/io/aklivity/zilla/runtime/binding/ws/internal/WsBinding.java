@@ -15,14 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.ws.internal;
 
-import java.net.URL;
-
+import io.aklivity.zilla.config.binding.ws.WsBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class WsBinding implements Binding
 {
-    public static final String NAME = "ws";
+    public static final String NAME = WsBindingInfo.TYPE;
 
     private final WsConfiguration config;
 
@@ -36,12 +35,6 @@ public final class WsBinding implements Binding
     public String name()
     {
         return WsBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/ws.schema.patch.json");
     }
 
     @Override

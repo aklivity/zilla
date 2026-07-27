@@ -23,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.McpConditionConfig;
 
 public class McpConditionMatcherTest
 {

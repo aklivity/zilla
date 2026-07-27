@@ -22,7 +22,7 @@ public final class McpSchemaRegistryBindingFactorySpi implements BindingFactoryS
     @Override
     public String type()
     {
-        return McpSchemaRegistryBinding.NAME;
+        return McpSchemaRegistryBinding.TYPE;
     }
 
     @Override

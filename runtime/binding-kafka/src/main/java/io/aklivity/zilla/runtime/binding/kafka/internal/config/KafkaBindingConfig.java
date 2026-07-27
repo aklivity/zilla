@@ -23,16 +23,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.ToLongFunction;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaOptionsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslCredentialsConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaTopicConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaSaslConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaSaslCredentialsConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaBindingConfig
@@ -128,14 +128,18 @@ public final class KafkaBindingConfig
         KafkaDeltaType deltaType)
     {
         KafkaTopicConfig config = topic(topic);
-        return config != null && config.deltaType != null ? config.deltaType : deltaType;
+        return config != null && config.deltaType != null
+            ? KafkaDeltaType.valueOf(config.deltaType.toUpperCase())
+            : deltaType;
     }
 
     public KafkaOffsetType supplyDefaultOffset(
         String topic)
     {
         KafkaTopicConfig config = topic(topic);
-        return config != null && config.defaultOffset != null ? config.defaultOffset : HISTORICAL;
+        return config != null && config.defaultOffset != null
+            ? KafkaOffsetType.valueOf(config.defaultOffset.toUpperCase())
+            : HISTORICAL;
     }
 
     public KafkaTopicType resolveTopicType(

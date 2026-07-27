@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
@@ -35,11 +33,5 @@ public class JsonModel implements Model
         EngineContext context)
     {
         return new JsonModelContext(context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/json.schema.patch.json");
     }
 }

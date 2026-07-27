@@ -14,12 +14,12 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry.internal.config;
 
-import io.aklivity.zilla.runtime.catalog.schema.registry.config.AbstractSchemaRegistryOptionsConfig;
+import io.aklivity.zilla.config.catalog.schema.registry.AbstractSchemaRegistryOptionsConfig;
+import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.SchemaRegistryCatalogFactorySpi;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.events.SchemaRegistryEventContext;
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.handler.SchemaRegistryCache;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public final class SchemaRegistryCatalogConfig
 {

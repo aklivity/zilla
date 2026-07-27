@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.otlp.internal.config;
 
-import static io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
+import static io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig.OtlpSignalsConfig.METRICS;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -26,10 +26,11 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.engine.GenericExporterConfig;
+import io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
-import io.aklivity.zilla.runtime.exporter.otlp.config.OtlpOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.otlp.internal.OltpConfiguration;
 
 public class OtlpExporterConfigTest
@@ -56,7 +57,7 @@ public class OtlpExporterConfigTest
                 .location(URI.create("http://example.com"))
                 .build()
             .build();
-        ExporterConfig exporter = ExporterConfig.builder()
+        ExporterConfig exporter = GenericExporterConfig.builder()
                 .namespace("test")
                 .name("oltp0")
                 .type("oltp")
@@ -89,7 +90,7 @@ public class OtlpExporterConfigTest
                     .build()
                 .build()
             .build();
-        ExporterConfig exporter = ExporterConfig.builder()
+        ExporterConfig exporter = GenericExporterConfig.builder()
                 .namespace("test")
                 .name("oltp0")
                 .type("oltp")
@@ -122,7 +123,7 @@ public class OtlpExporterConfigTest
                     .build()
                 .build()
             .build();
-        ExporterConfig exporter = ExporterConfig.builder()
+        ExporterConfig exporter = GenericExporterConfig.builder()
                 .namespace("test")
                 .name("oltp0")
                 .type("oltp")

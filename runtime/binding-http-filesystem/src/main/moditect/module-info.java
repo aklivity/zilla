@@ -15,15 +15,8 @@
 module io.aklivity.zilla.runtime.binding.http.filesystem
 {
     requires io.aklivity.zilla.runtime.engine;
-
-    exports io.aklivity.zilla.runtime.binding.http.filesystem.config;
+    requires io.aklivity.zilla.config.binding.http.filesystem;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.http.filesystem.internal.HttpFileSystemBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFileSystemConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFileSystemWithConfigAdapter;
 }

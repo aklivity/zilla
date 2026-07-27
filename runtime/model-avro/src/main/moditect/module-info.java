@@ -18,10 +18,7 @@ module io.aklivity.zilla.runtime.model.avro
     requires io.aklivity.zilla.runtime.common.avro;
     requires io.aklivity.zilla.runtime.common.json;
 
-    exports io.aklivity.zilla.runtime.model.avro.config;
-
-    provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
-        with io.aklivity.zilla.runtime.model.avro.internal.config.AvroModelConfigAdapter;
+    requires io.aklivity.zilla.config.model.avro;
 
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.avro.internal.AvroModelFactorySpi;

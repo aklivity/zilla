@@ -22,7 +22,7 @@ public final class McpKafkaBindingFactorySpi implements BindingFactorySpi
     @Override
     public String type()
     {
-        return McpKafkaBinding.NAME;
+        return McpKafkaBinding.TYPE;
     }
 
     @Override

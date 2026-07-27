@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
+import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.OctetsFW;

@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.binding.sse.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
+import io.aklivity.zilla.config.binding.sse.SseConditionConfig;
 
 public final class SseConditionMatcher
 {

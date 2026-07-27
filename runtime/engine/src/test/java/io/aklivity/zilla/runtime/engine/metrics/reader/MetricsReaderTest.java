@@ -26,7 +26,7 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 

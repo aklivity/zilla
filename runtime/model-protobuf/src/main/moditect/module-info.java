@@ -19,10 +19,7 @@ module io.aklivity.zilla.runtime.model.protobuf
     requires io.aklivity.zilla.runtime.engine;
     requires java.logging;
 
-    exports io.aklivity.zilla.runtime.model.protobuf.config;
-
-    provides io.aklivity.zilla.runtime.engine.config.ModelConfigAdapterSpi
-        with io.aklivity.zilla.runtime.model.protobuf.internal.config.ProtobufModelConfigAdapter;
+    requires io.aklivity.zilla.config.model.protobuf;
 
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.protobuf.internal.ProtobufModelFactorySpi;

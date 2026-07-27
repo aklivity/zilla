@@ -16,6 +16,7 @@ module io.aklivity.zilla.runtime.binding.pgsql.kafka
 {
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.pgsql;
+    requires io.aklivity.zilla.config.binding.pgsql.kafka;
 
     opens io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.schema;
 

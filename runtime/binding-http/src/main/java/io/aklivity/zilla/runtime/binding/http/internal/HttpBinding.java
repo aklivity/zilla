@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.binding.http.internal;
 
 import java.net.URL;
 
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class HttpBinding implements Binding
 {
@@ -37,12 +37,6 @@ public final class HttpBinding implements Binding
     public String name()
     {
         return HttpBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/http.schema.patch.json");
     }
 
     @Override

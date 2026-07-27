@@ -16,7 +16,8 @@ package io.aklivity.zilla.runtime.binding.risingwave.internal.config;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.risingwave.config.RisingwaveConditionConfig;
+import io.aklivity.zilla.config.binding.risingwave.RisingwaveCommandType;
+import io.aklivity.zilla.config.binding.risingwave.RisingwaveConditionConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 

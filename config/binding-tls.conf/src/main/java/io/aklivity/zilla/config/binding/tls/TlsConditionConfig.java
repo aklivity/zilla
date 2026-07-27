@@ -1,0 +1,54 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.binding.tls;
+
+import java.util.List;
+import java.util.function.Function;
+
+import io.aklivity.zilla.config.engine.ConditionConfig;
+
+public final class TlsConditionConfig extends ConditionConfig
+{
+    public final String authority;
+    public final String alpn;
+    public final int[] ports;
+    public final List<String> trust;
+    public final TlsMutualConfig mutual;
+
+    public static TlsConditionConfigBuilder<TlsConditionConfig> builder()
+    {
+        return new TlsConditionConfigBuilder<>(TlsConditionConfig.class::cast);
+    }
+
+    public static <T> TlsConditionConfigBuilder<T> builder(
+        Function<ConditionConfig, T> mapper)
+    {
+        return new TlsConditionConfigBuilder<>(mapper);
+    }
+
+    TlsConditionConfig(
+        String authority,
+        String alpn,
+        int[] ports,
+        List<String> trust,
+        TlsMutualConfig mutual)
+    {
+        this.authority = authority;
+        this.alpn = alpn;
+        this.ports = ports;
+        this.trust = trust;
+        this.mutual = mutual;
+    }
+}

@@ -22,7 +22,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpConditionConfig;
+import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
 
 public final class HttpConditionMatcher
 {

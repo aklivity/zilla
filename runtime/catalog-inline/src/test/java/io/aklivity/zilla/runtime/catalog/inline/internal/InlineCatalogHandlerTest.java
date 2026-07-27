@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.catalog.inline.config.InlineOptionsConfig;
+import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 
 public class InlineCatalogHandlerTest
 {

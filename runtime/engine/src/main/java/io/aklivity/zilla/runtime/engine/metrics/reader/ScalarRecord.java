@@ -23,7 +23,7 @@ import java.util.function.DoubleSupplier;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 

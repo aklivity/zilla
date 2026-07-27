@@ -28,7 +28,10 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import io.aklivity.zilla.runtime.binding.tcp.config.TcpOptionsConfig;
+import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.OctetsFW;
@@ -38,9 +41,6 @@ import io.aklivity.zilla.runtime.binding.tcp.internal.types.ProxyAddressInet6FW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.ProxyAddressInetFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ProxyBeginExFW;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public final class TcpBindingConfig

@@ -17,13 +17,10 @@ module io.aklivity.zilla.runtime.binding.mcp.schema.registry
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.binding.mcp.openapi;
     requires io.aklivity.zilla.runtime.catalog.inline;
+    requires io.aklivity.zilla.config.binding.mcp.schema.registry;
+    requires io.aklivity.zilla.config.binding.mcp.openapi;
+    requires io.aklivity.zilla.config.catalog.inline;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.McpSchemaRegistryBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryConditionConfigAdapter;
 }

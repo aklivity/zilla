@@ -16,13 +16,15 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType.BASE64;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcConditionConfig;
-import io.aklivity.zilla.runtime.binding.grpc.config.GrpcMetadataValueConfig;
+import io.aklivity.zilla.config.binding.grpc.GrpcConditionConfig;
+import io.aklivity.zilla.config.binding.grpc.GrpcMetadataValueConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -30,13 +32,13 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 public final class GrpcConditionMatcher
 {
     private final Matcher method;
-    private final Map<String8FW, GrpcMetadataValueConfig> metadataMatch;
+    private final Map<String8FW, GrpcMetadataValueMatcher> metadataMatch;
 
     public GrpcConditionMatcher(
         GrpcConditionConfig condition)
     {
         this.method = condition.method != null ? asMatcher(condition.method) : null;
-        this.metadataMatch = condition.metadata;
+        this.metadataMatch = asMetadataMatch(condition.metadata);
     }
 
     public boolean matches(
@@ -48,12 +50,12 @@ public final class GrpcConditionMatcher
 
         if (metadataMatch != null)
         {
-            for (Map.Entry<String8FW, GrpcMetadataValueConfig> entry : metadataMatch.entrySet())
+            for (Map.Entry<String8FW, GrpcMetadataValueMatcher> entry : metadataMatch.entrySet())
             {
                 final DirectBufferEx name = entry.getKey().value();
                 final GrpcMetadataFW metadata = metadataHeaders.matchFirst(h -> name.compareTo(h.name().value()) == 0);
 
-                final GrpcMetadataValueConfig value = entry.getValue();
+                final GrpcMetadataValueMatcher value = entry.getValue();
                 final DirectBufferEx matcher = metadata != null && metadata.type().get() == BASE64 ?
                     value.base64Value.value() : value.textValue.value();
 
@@ -70,6 +72,21 @@ public final class GrpcConditionMatcher
         return this.method == null || this.method.reset(path).matches();
     }
 
+    private static Map<String8FW, GrpcMetadataValueMatcher> asMetadataMatch(
+        Map<String, GrpcMetadataValueConfig> metadata)
+    {
+        Map<String8FW, GrpcMetadataValueMatcher> metadataMatch = null;
+        if (metadata != null)
+        {
+            metadataMatch = new HashMap<>();
+            for (Map.Entry<String, GrpcMetadataValueConfig> entry : metadata.entrySet())
+            {
+                metadataMatch.put(new String8FW(entry.getKey()), new GrpcMetadataValueMatcher(entry.getValue()));
+            }
+        }
+        return metadataMatch;
+    }
+
     private static Matcher asMatcher(
         String wildcard)
     {
@@ -77,5 +94,18 @@ public final class GrpcConditionMatcher
                     .replace("*", ".*")
                     .replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+)"))
             .matcher("");
+    }
+
+    private static final class GrpcMetadataValueMatcher
+    {
+        private final String16FW textValue;
+        private final String16FW base64Value;
+
+        private GrpcMetadataValueMatcher(
+            GrpcMetadataValueConfig config)
+        {
+            this.textValue = config.textValue != null ? new String16FW(config.textValue) : null;
+            this.base64Value = config.base64Value != null ? new String16FW(config.base64Value) : null;
+        }
     }
 }

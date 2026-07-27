@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
@@ -25,11 +25,11 @@ import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttConditionConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.config.MqttWithConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
+import io.aklivity.zilla.config.binding.mqtt.MqttConditionConfig;
+import io.aklivity.zilla.config.binding.mqtt.MqttWithConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class MqttRouteConfig
 {

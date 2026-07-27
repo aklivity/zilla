@@ -22,7 +22,7 @@ public final class GrpcBindingFactorySpi implements BindingFactorySpi
     @Override
     public String type()
     {
-        return GrpcBinding.NAME;
+        return GrpcBinding.TYPE;
     }
 
 

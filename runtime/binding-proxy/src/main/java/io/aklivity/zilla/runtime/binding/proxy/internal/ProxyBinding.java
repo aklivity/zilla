@@ -15,14 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.proxy.internal;
 
-import java.net.URL;
-
+import io.aklivity.zilla.config.binding.proxy.ProxyBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class ProxyBinding implements Binding
 {
-    public static final String NAME = "proxy";
+    public static final String NAME = ProxyBindingInfo.TYPE;
 
     private final ProxyConfiguration config;
 
@@ -36,12 +35,6 @@ public final class ProxyBinding implements Binding
     public String name()
     {
         return ProxyBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/proxy.schema.patch.json");
     }
 
     @Override
