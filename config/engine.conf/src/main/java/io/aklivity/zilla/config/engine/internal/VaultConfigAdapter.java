@@ -17,39 +17,32 @@ package io.aklivity.zilla.config.engine.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericVaultConfig;
 import io.aklivity.zilla.config.engine.GenericVaultConfigBuilder;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.config.engine.VaultInfo;
 
 public class VaultConfigAdapter
 {
     private static final String TYPE_NAME = "type";
     private static final String OPTIONS_NAME = "options";
 
-    private final OptionsConfigAdapter options;
-
-    private String namespace;
+    private final String type;
+    private final JsonbAdapter<OptionsConfig, JsonObject> options;
 
     public VaultConfigAdapter(
-        EngineInfo info)
+        VaultInfo info)
     {
-        this.options = new OptionsConfigAdapter(info::vault);
-    }
-
-    public void adaptNamespace(
-        String namespace)
-    {
-        this.namespace = namespace;
+        this.type = info.type();
+        this.options = info.options();
     }
 
     public JsonObject adaptToJson(
         VaultConfig vault) throws Exception
     {
-        options.adaptType(vault.type);
-
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         object.add(TYPE_NAME, vault.type);
@@ -63,12 +56,10 @@ public class VaultConfigAdapter
     }
 
     public VaultConfig adaptFromJson(
+        String namespace,
         String name,
         JsonObject object) throws Exception
     {
-        String type = object.getString(TYPE_NAME);
-        options.adaptType(type);
-
         GenericVaultConfigBuilder<GenericVaultConfig> vault = GenericVaultConfig.builder()
             .namespace(namespace)
             .name(name)

@@ -20,6 +20,7 @@ import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.GUARDS_DEFA
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.STORES_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.TELEMETRY_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.VAULTS_DEFAULT;
+import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
 
@@ -30,17 +31,23 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.CatalogInfo;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GuardConfig;
+import io.aklivity.zilla.config.engine.GuardInfo;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
 import io.aklivity.zilla.config.engine.StoreConfig;
+import io.aklivity.zilla.config.engine.StoreInfo;
 import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.config.engine.VaultInfo;
 
 public class NamespaceConfigAdapter implements JsonbAdapter<NamespaceConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
+    private static final String TYPE_NAME = "type";
     private static final String TELEMETRY_NAME = "telemetry";
     private static final String BINDINGS_NAME = "bindings";
     private static final String CATALOGS_NAME = "catalogs";
@@ -49,26 +56,21 @@ public class NamespaceConfigAdapter implements JsonbAdapter<NamespaceConfig, Jso
     private static final String STORES_NAME = "stores";
 
     private final TelemetryConfigAdapter telemetry;
-    private final BindingConfigAdapter binding;
-    private final VaultConfigAdapter vault;
-    private final GuardConfigAdapter guard;
-    private final CatalogConfigAdapter catalog;
-    private final StoreConfigAdapter store;
-
-    public NamespaceConfigAdapter()
-    {
-        this(null);
-    }
+    private final Map<String, BindingConfigAdapter> bindingsByType;
+    private final Map<String, VaultConfigAdapter> vaultsByType;
+    private final Map<String, GuardConfigAdapter> guardsByType;
+    private final Map<String, CatalogConfigAdapter> catalogsByType;
+    private final Map<String, StoreConfigAdapter> storesByType;
 
     public NamespaceConfigAdapter(
         EngineInfo info)
     {
         telemetry = new TelemetryConfigAdapter(info);
-        binding = new BindingConfigAdapter(info);
-        guard = new GuardConfigAdapter(info);
-        vault = new VaultConfigAdapter(info);
-        catalog = new CatalogConfigAdapter(info);
-        store = new StoreConfigAdapter(info);
+        bindingsByType = info.bindings().stream().collect(toMap(BindingInfo::type, BindingConfigAdapter::new));
+        guardsByType = info.guards().stream().collect(toMap(GuardInfo::type, GuardConfigAdapter::new));
+        vaultsByType = info.vaults().stream().collect(toMap(VaultInfo::type, VaultConfigAdapter::new));
+        catalogsByType = info.catalogs().stream().collect(toMap(CatalogInfo::type, CatalogConfigAdapter::new));
+        storesByType = info.stores().stream().collect(toMap(StoreInfo::type, StoreConfigAdapter::new));
     }
 
     @Override
@@ -81,62 +83,66 @@ public class NamespaceConfigAdapter implements JsonbAdapter<NamespaceConfig, Jso
 
         if (!BINDINGS_DEFAULT.equals(config.bindings))
         {
-            binding.adaptNamespace(config.name);
             JsonObjectBuilder bindings = Json.createObjectBuilder();
-            for (BindingConfig b : config.bindings)
+            for (BindingConfig binding : config.bindings)
             {
-                bindings.add(b.name, binding.adaptToJson(b));
+                BindingConfigAdapter adapter = bindingsByType.get(binding.type);
+                assert adapter != null : "unrecognized binding type: " + binding.type;
+                bindings.add(binding.name, adapter.adaptToJson(binding));
             }
             object.add(BINDINGS_NAME, bindings);
         }
 
         if (!GUARDS_DEFAULT.equals(config.guards))
         {
-            guard.adaptNamespace(config.name);
             JsonObjectBuilder guards = Json.createObjectBuilder();
             for (GuardConfig g : config.guards)
             {
-                guards.add(g.name, guard.adaptToJson(g));
+                GuardConfigAdapter adapter = guardsByType.get(g.type);
+                assert adapter != null : "unrecognized guard type: " + g.type;
+                guards.add(g.name, adapter.adaptToJson(g));
             }
             object.add(GUARDS_NAME, guards);
         }
 
         if (!VAULTS_DEFAULT.equals(config.vaults))
         {
-            vault.adaptNamespace(config.name);
             JsonObjectBuilder vaults = Json.createObjectBuilder();
             for (VaultConfig v : config.vaults)
             {
-                vaults.add(v.name, vault.adaptToJson(v));
+                VaultConfigAdapter adapter = vaultsByType.get(v.type);
+                assert adapter != null : "unrecognized vault type: " + v.type;
+                vaults.add(v.name, adapter.adaptToJson(v));
             }
             object.add(VAULTS_NAME, vaults);
         }
 
         if (!CATALOGS_DEFAULT.equals(config.catalogs))
         {
-            catalog.adaptNamespace(config.name);
             JsonObjectBuilder catalogs = Json.createObjectBuilder();
             for (CatalogConfig c : config.catalogs)
             {
-                catalogs.add(c.name, catalog.adaptToJson(c));
+                CatalogConfigAdapter adapter = catalogsByType.get(c.type);
+                assert adapter != null : "unrecognized catalog type: " + c.type;
+                catalogs.add(c.name, adapter.adaptToJson(c));
             }
             object.add(CATALOGS_NAME, catalogs);
         }
 
         if (!STORES_DEFAULT.equals(config.stores))
         {
-            store.adaptNamespace(config.name);
             JsonObjectBuilder stores = Json.createObjectBuilder();
             for (StoreConfig s : config.stores)
             {
-                stores.add(s.name, store.adaptToJson(s));
+                StoreConfigAdapter adapter = storesByType.get(s.type);
+                assert adapter != null : "unrecognized store type: " + s.type;
+                stores.add(s.name, adapter.adaptToJson(s));
             }
             object.add(STORES_NAME, stores);
         }
 
         if (!TELEMETRY_DEFAULT.equals(config.telemetry))
         {
-            telemetry.adaptNamespace(config.name);
             JsonObject telemetry0 = telemetry.adaptToJson(config.telemetry);
             object.add(TELEMETRY_NAME, telemetry0);
         }
@@ -148,62 +154,92 @@ public class NamespaceConfigAdapter implements JsonbAdapter<NamespaceConfig, Jso
     public NamespaceConfig adaptFromJson(
         JsonObject object) throws Exception
     {
-        NamespaceConfigBuilder<NamespaceConfig> namespace = NamespaceConfig.builder();
-        String name = object.getString(NAME_NAME);
+        NamespaceConfigBuilder<NamespaceConfig> builder = NamespaceConfig.builder();
+        String namespace = object.getString(NAME_NAME);
 
-        namespace.name(name);
+        builder.name(namespace);
 
         if (object.containsKey(TELEMETRY_NAME))
         {
-            telemetry.adaptNamespace(name);
-            namespace.telemetry(telemetry.adaptFromJson(object.getJsonObject(TELEMETRY_NAME)));
+            JsonObject value = object.getJsonObject(TELEMETRY_NAME);
+            builder.telemetry(telemetry.adaptFromJson(namespace, value));
         }
 
         if (object.containsKey(BINDINGS_NAME))
         {
-            binding.adaptNamespace(name);
             for (Map.Entry<String, JsonValue> entry : object.getJsonObject(BINDINGS_NAME).entrySet())
             {
-                namespace.binding(binding.adaptFromJson(entry.getKey(), entry.getValue().asJsonObject()));
+                String name = entry.getKey();
+                JsonObject value = entry.getValue().asJsonObject();
+
+                String type = value.getString(TYPE_NAME);
+                BindingConfigAdapter adapter = bindingsByType.get(type);
+                assert adapter != null : "unrecognized binding type: " + type;
+
+                builder.binding(adapter.adaptFromJson(namespace, name, value));
             }
         }
 
         if (object.containsKey(GUARDS_NAME))
         {
-            guard.adaptNamespace(name);
             for (Map.Entry<String, JsonValue> entry : object.getJsonObject(GUARDS_NAME).entrySet())
             {
-                namespace.guard(guard.adaptFromJson(entry.getKey(), entry.getValue().asJsonObject()));
+                String name = entry.getKey();
+                JsonObject value = entry.getValue().asJsonObject();
+
+                String type = value.getString(TYPE_NAME);
+                GuardConfigAdapter adapter = guardsByType.get(type);
+                assert adapter != null : "unrecognized guard type: " + type;
+
+                builder.guard(adapter.adaptFromJson(namespace, name, value));
             }
         }
 
         if (object.containsKey(VAULTS_NAME))
         {
-            vault.adaptNamespace(name);
             for (Map.Entry<String, JsonValue> entry : object.getJsonObject(VAULTS_NAME).entrySet())
             {
-                namespace.vault(vault.adaptFromJson(entry.getKey(), entry.getValue().asJsonObject()));
+                String name = entry.getKey();
+                JsonObject value = entry.getValue().asJsonObject();
+
+                String type = value.getString(TYPE_NAME);
+                VaultConfigAdapter adapter = vaultsByType.get(type);
+                assert adapter != null : "unrecognized vault type: " + type;
+
+                builder.vault(adapter.adaptFromJson(namespace, name, value));
             }
         }
 
         if (object.containsKey(CATALOGS_NAME))
         {
-            catalog.adaptNamespace(name);
             for (Map.Entry<String, JsonValue> entry : object.getJsonObject(CATALOGS_NAME).entrySet())
             {
-                namespace.catalog(catalog.adaptFromJson(entry.getKey(), entry.getValue().asJsonObject()));
+                String name = entry.getKey();
+                JsonObject value = entry.getValue().asJsonObject();
+
+                String type = value.getString(TYPE_NAME);
+                CatalogConfigAdapter adapter = catalogsByType.get(type);
+                assert adapter != null : "unrecognized catalog type: " + type;
+
+                builder.catalog(adapter.adaptFromJson(namespace, name, value));
             }
         }
 
         if (object.containsKey(STORES_NAME))
         {
-            store.adaptNamespace(name);
             for (Map.Entry<String, JsonValue> entry : object.getJsonObject(STORES_NAME).entrySet())
             {
-                namespace.store(store.adaptFromJson(entry.getKey(), entry.getValue().asJsonObject()));
+                String name = entry.getKey();
+                JsonObject value = entry.getValue().asJsonObject();
+
+                String type = value.getString(TYPE_NAME);
+                StoreConfigAdapter adapter = storesByType.get(type);
+                assert adapter != null : "unrecognized store type: " + type;
+
+                builder.store(adapter.adaptFromJson(namespace, name, value));
             }
         }
 
-        return namespace.build();
+        return builder.build();
     }
 }

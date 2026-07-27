@@ -16,7 +16,6 @@ package io.aklivity.zilla.config.engine.internal;
 
 import static io.aklivity.zilla.config.engine.RouteConfigBuilder.GUARDED_DEFAULT;
 import static io.aklivity.zilla.config.engine.RouteConfigBuilder.WHEN_DEFAULT;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -26,55 +25,33 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public class RouteConfigAdapter implements JsonbAdapter<RouteConfig, JsonObject>
+public class RouteConfigAdapter
 {
     private static final String EXIT_NAME = "exit";
     private static final String WHEN_NAME = "when";
     private static final String WITH_NAME = "with";
     private static final String GUARDED_NAME = "guarded";
 
-    private final ConditionConfigAdapter condition;
-    private final WithConfigAdapter with;
-
-    private int index;
-
-    public RouteConfigAdapter()
-    {
-        this(null);
-    }
+    private final JsonbAdapter<ConditionConfig, JsonObject> condition;
+    private final JsonbAdapter<WithConfig, JsonObject> with;
 
     public RouteConfigAdapter(
-        EngineInfo info)
+        BindingInfo info)
     {
-        condition = new ConditionConfigAdapter(info);
-        with = new WithConfigAdapter(info);
+        this.condition = info.condition();
+        this.with = info.with();
     }
 
-    public RouteConfigAdapter adaptType(
-        String type)
-    {
-        condition.adaptType(type);
-        with.adaptType(type);
-        return this;
-    }
-
-    public void adaptFromJsonIndex(
-        int index)
-    {
-        this.index = index;
-    }
-
-    @Override
     public JsonObject adaptToJson(
-        RouteConfig route)
+        RouteConfig route) throws Exception
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -86,13 +63,16 @@ public class RouteConfigAdapter implements JsonbAdapter<RouteConfig, JsonObject>
         if (!WHEN_DEFAULT.equals(route.when))
         {
             JsonArrayBuilder when = Json.createArrayBuilder();
-            route.when.forEach(r -> when.add(adaptConditionToJson(r)));
+            for (ConditionConfig config : route.when)
+            {
+                when.add(condition.adaptToJson(config));
+            }
             object.add(WHEN_NAME, when);
         }
 
         if (route.with != null)
         {
-            final JsonObject withObject = adaptWithToJson(route.with);
+            final JsonObject withObject = with.adaptToJson(route.with);
             if (withObject != null)
             {
                 object.add(WITH_NAME, withObject);
@@ -116,9 +96,9 @@ public class RouteConfigAdapter implements JsonbAdapter<RouteConfig, JsonObject>
         return object.build();
     }
 
-    @Override
     public RouteConfig adaptFromJson(
-        JsonObject object)
+        int index,
+        JsonObject object) throws Exception
     {
         GenericRouteConfigBuilder<RouteConfig> route = RouteConfig.builder()
             .order(index);
@@ -130,16 +110,15 @@ public class RouteConfigAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 
         if (object.containsKey(WHEN_NAME))
         {
-            object.getJsonArray(WHEN_NAME)
-                .stream()
-                .map(JsonValue::asJsonObject)
-                .map(this::adaptConditionFromJson)
-                .forEach(route::when);
+            for (JsonValue when : object.getJsonArray(WHEN_NAME))
+            {
+                route.when(condition.adaptFromJson(when.asJsonObject()));
+            }
         }
 
         if (object.containsKey(WITH_NAME))
         {
-            route.with(adaptWithFromJson(object.getJsonObject(WITH_NAME)));
+            route.with(with.adaptFromJson(object.getJsonObject(WITH_NAME)));
         }
 
         if (object.containsKey(GUARDED_NAME))
@@ -161,65 +140,5 @@ public class RouteConfigAdapter implements JsonbAdapter<RouteConfig, JsonObject>
         }
 
         return route.build();
-    }
-
-    private JsonObject adaptConditionToJson(
-        ConditionConfig condition0)
-    {
-        JsonObject object = null;
-        try
-        {
-            object = condition.adaptToJson(condition0);
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return object;
-    }
-
-    private ConditionConfig adaptConditionFromJson(
-        JsonObject object)
-    {
-        ConditionConfig condition0 = null;
-        try
-        {
-            condition0 = condition.adaptFromJson(object);
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return condition0;
-    }
-
-    private JsonObject adaptWithToJson(
-        WithConfig with0)
-    {
-        JsonObject object = null;
-        try
-        {
-            object = with.adaptToJson(with0);
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return object;
-    }
-
-    private WithConfig adaptWithFromJson(
-        JsonObject object)
-    {
-        WithConfig with0 = null;
-        try
-        {
-            with0 = with.adaptFromJson(object);
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return with0;
     }
 }

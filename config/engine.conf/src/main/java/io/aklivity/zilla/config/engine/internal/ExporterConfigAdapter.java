@@ -14,92 +14,66 @@
  */
 package io.aklivity.zilla.config.engine.internal;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.engine.ExporterInfo;
 import io.aklivity.zilla.config.engine.GenericExporterConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class ExporterConfigAdapter implements JsonbAdapter<ExporterConfig[], JsonObject>
+public class ExporterConfigAdapter
 {
     private static final String TYPE_NAME = "type";
     private static final String VAULT_NAME = "vault";
     private static final String OPTIONS_NAME = "options";
 
-    private final OptionsConfigAdapter options;
-
-    private String namespace;
+    private final String type;
+    private final JsonbAdapter<OptionsConfig, JsonObject> options;
 
     public ExporterConfigAdapter(
-        EngineInfo info)
+        ExporterInfo info)
     {
-        this.options = new OptionsConfigAdapter(info::exporter);
+        this.type = info.type();
+        this.options = info.options();
     }
 
-    public void adaptNamespace(
-        String namespace)
-    {
-        this.namespace = namespace;
-    }
-
-    @Override
     public JsonObject adaptToJson(
-        ExporterConfig[] exporters) throws Exception
+        ExporterConfig exporter) throws Exception
     {
-        JsonObjectBuilder object = Json.createObjectBuilder();
-        for (ExporterConfig exporter: exporters)
+        JsonObjectBuilder item = Json.createObjectBuilder();
+        item.add(TYPE_NAME, exporter.type);
+        if (exporter.vault != null)
         {
-            options.adaptType(exporter.type);
-
-            JsonObjectBuilder item = Json.createObjectBuilder();
-            item.add(TYPE_NAME, exporter.type);
-            if (exporter.vault != null)
-            {
-                item.add(VAULT_NAME, exporter.vault);
-            }
-            if (exporter.options != null)
-            {
-                item.add(OPTIONS_NAME, options.adaptToJson(exporter.options));
-            }
-
-            assert namespace.equals(exporter.namespace);
-            object.add(exporter.name, item);
+            item.add(VAULT_NAME, exporter.vault);
         }
-        return object.build();
+        if (exporter.options != null)
+        {
+            item.add(OPTIONS_NAME, options.adaptToJson(exporter.options));
+        }
+
+        return item.build();
     }
 
-    @Override
-    public ExporterConfig[] adaptFromJson(
-        JsonObject jsonObject) throws Exception
+    public ExporterConfig adaptFromJson(
+        String namespace,
+        String name,
+        JsonObject object) throws Exception
     {
-        List<ExporterConfig> exporters = new LinkedList<>();
-        for (String name : jsonObject.keySet())
+        String vault = null;
+        if (object.containsKey(VAULT_NAME))
         {
-            JsonObject item = jsonObject.getJsonObject(name);
-
-            String type = item.getString(TYPE_NAME);
-            options.adaptType(type);
-            String vault = null;
-            if (item.containsKey(VAULT_NAME))
-            {
-                vault = item.getString(VAULT_NAME);
-            }
-
-            exporters.add(GenericExporterConfig.builder()
-                .namespace(namespace)
-                .name(name)
-                .type(type)
-                .vault(vault)
-                .options(options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)))
-                .build());
+            vault = object.getString(VAULT_NAME);
         }
-        return exporters.toArray(ExporterConfig[]::new);
+
+        return GenericExporterConfig.builder()
+            .namespace(namespace)
+            .name(name)
+            .type(type)
+            .vault(vault)
+            .options(options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)))
+            .build();
     }
 }

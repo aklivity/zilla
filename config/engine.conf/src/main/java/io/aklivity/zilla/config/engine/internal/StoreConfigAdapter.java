@@ -17,39 +17,32 @@ package io.aklivity.zilla.config.engine.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericStoreConfig;
 import io.aklivity.zilla.config.engine.GenericStoreConfigBuilder;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.StoreConfig;
+import io.aklivity.zilla.config.engine.StoreInfo;
 
 public class StoreConfigAdapter
 {
     private static final String TYPE_NAME = "type";
     private static final String OPTIONS_NAME = "options";
 
-    private final OptionsConfigAdapter options;
-
-    private String namespace;
+    private final String type;
+    private final JsonbAdapter<OptionsConfig, JsonObject> options;
 
     public StoreConfigAdapter(
-        EngineInfo info)
+        StoreInfo info)
     {
-        this.options = new OptionsConfigAdapter(info::store);
-    }
-
-    public void adaptNamespace(
-        String namespace)
-    {
-        this.namespace = namespace;
+        this.type = info.type();
+        this.options = info.options();
     }
 
     public JsonObject adaptToJson(
         StoreConfig store) throws Exception
     {
-        options.adaptType(store.type);
-
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         object.add(TYPE_NAME, store.type);
@@ -63,13 +56,10 @@ public class StoreConfigAdapter
     }
 
     public StoreConfig adaptFromJson(
+        String namespace,
         String name,
         JsonObject object) throws Exception
     {
-        String type = object.getString(TYPE_NAME);
-
-        options.adaptType(type);
-
         GenericStoreConfigBuilder<GenericStoreConfig> store = GenericStoreConfig.builder()
             .namespace(namespace)
             .name(name)

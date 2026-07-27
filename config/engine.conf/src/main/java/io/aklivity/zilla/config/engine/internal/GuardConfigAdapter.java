@@ -17,12 +17,13 @@ package io.aklivity.zilla.config.engine.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericGuardConfig;
 import io.aklivity.zilla.config.engine.GenericGuardConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.GuardInfo;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class GuardConfigAdapter
 {
@@ -31,27 +32,19 @@ public class GuardConfigAdapter
     private static final String STORE_NAME = "store";
     private static final String OPTIONS_NAME = "options";
 
-    private final OptionsConfigAdapter options;
-
-    private String namespace;
+    private final String type;
+    private final JsonbAdapter<OptionsConfig, JsonObject> options;
 
     public GuardConfigAdapter(
-        EngineInfo info)
+        GuardInfo info)
     {
-        this.options = new OptionsConfigAdapter(info::guard);
-    }
-
-    public void adaptNamespace(
-        String namespace)
-    {
-        this.namespace = namespace;
+        this.type = info.type();
+        this.options = info.options();
     }
 
     public JsonObject adaptToJson(
         GuardConfig guard) throws Exception
     {
-        options.adaptType(guard.type);
-
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         object.add(TYPE_NAME, guard.type);
@@ -75,13 +68,10 @@ public class GuardConfigAdapter
     }
 
     public GuardConfig adaptFromJson(
+        String namespace,
         String name,
         JsonObject object) throws Exception
     {
-        String type = object.getString(TYPE_NAME);
-
-        options.adaptType(type);
-
         GenericGuardConfigBuilder<GenericGuardConfig> guard = GenericGuardConfig.builder()
             .namespace(namespace)
             .name(name)

@@ -1,19 +1,18 @@
 /*
- * Copyright 2021-2026 Aklivity Inc.
+ * Copyright 2021-2026 Aklivity Inc
  *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.aklivity.io/aklivity-community-license/
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.config;
+package io.aklivity.zilla.config.engine.internal;
 
 import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,33 +21,31 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.JsonbConfig;
+import java.io.StringReader;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.TelemetryConfig;
-import io.aklivity.zilla.config.engine.internal.TelemetryConfigAdapter;
 import io.aklivity.zilla.config.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
 public class TelemetryConfigAdapterTest
 {
-    private Jsonb jsonb;
+    private TelemetryConfigAdapter adapter;
 
     @Before
     public void initJson()
     {
         EngineInfo info = new EngineInfo();
-        JsonbConfig config = new JsonbConfig()
-                .withAdapters(new TelemetryConfigAdapter(info).adaptNamespace("test"));
-        jsonb = JsonbBuilder.create(config);
+        adapter = new TelemetryConfigAdapter(info);
     }
 
     @Test
-    public void shouldReadTelemetry()
+    public void shouldReadTelemetry() throws Exception
     {
         // GIVEN
         String text =
@@ -71,9 +68,10 @@ public class TelemetryConfigAdapterTest
                         "}" +
                     "}" +
                 "}";
+        JsonObject object = Json.createReader(new StringReader(text)).readObject();
 
         // WHEN
-        TelemetryConfig telemetry = jsonb.fromJson(text, TelemetryConfig.class);
+        TelemetryConfig telemetry = adapter.adaptFromJson("test", object);
 
         // THEN
         assertThat(telemetry, not(nullValue()));
@@ -90,7 +88,7 @@ public class TelemetryConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteTelemetry()
+    public void shouldWriteTelemetry() throws Exception
     {
         // GIVEN
         TelemetryConfig telemetry = TelemetryConfig.builder()
@@ -114,18 +112,18 @@ public class TelemetryConfigAdapterTest
                 .build();
 
         // WHEN
-        String text = jsonb.toJson(telemetry);
+        JsonObject object = adapter.adaptToJson(telemetry);
 
         // THEN
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
+        assertThat(object, not(nullValue()));
+        assertThat(object.toString(), equalTo(
                 "{\"attributes\":{\"test.attribute\":\"example\"}," +
                 "\"metrics\":[\"test.counter\"]," +
                 "\"exporters\":{\"test0\":{\"type\":\"test\"}}}"));
     }
 
     @Test
-    public void shouldReadTelemetryWithExporterOptions()
+    public void shouldReadTelemetryWithExporterOptions() throws Exception
     {
         // GIVEN
         String text =
@@ -152,9 +150,10 @@ public class TelemetryConfigAdapterTest
                         "}" +
                     "}" +
                 "}";
+        JsonObject object = Json.createReader(new StringReader(text)).readObject();
 
         // WHEN
-        TelemetryConfig telemetry = jsonb.fromJson(text, TelemetryConfig.class);
+        TelemetryConfig telemetry = adapter.adaptFromJson("test", object);
 
         // THEN
         assertThat(telemetry, not(nullValue()));
@@ -172,7 +171,7 @@ public class TelemetryConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteTelemetryWithExporterOptions()
+    public void shouldWriteTelemetryWithExporterOptions() throws Exception
     {
         // GIVEN
         TelemetryConfig telemetry = TelemetryConfig.builder()
@@ -201,11 +200,11 @@ public class TelemetryConfigAdapterTest
                 .build();
 
         // WHEN
-        String text = jsonb.toJson(telemetry);
+        JsonObject object = adapter.adaptToJson(telemetry);
 
         // THEN
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
+        assertThat(object, not(nullValue()));
+        assertThat(object.toString(), equalTo(
                 "{\"attributes\":{\"test.attribute\":\"example\"}," +
                 "\"metrics\":[\"test.counter\"]," +
                 "\"exporters\":{\"test0\":{\"type\":\"test\",\"vault\":\"vault0\",\"options\":{\"mode\":\"test42\"}}}}"));

@@ -16,23 +16,20 @@ package io.aklivity.zilla.config.engine.internal;
 
 import static io.aklivity.zilla.config.engine.BindingConfigBuilder.ROUTES_DEFAULT;
 
-import java.util.Optional;
-import java.util.regex.Matcher;
-
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.config.engine.EngineInfo;
+import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfigBuilder;
-import io.aklivity.zilla.config.engine.NamespaceConfig;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 
 public class BindingConfigAdapter
@@ -47,36 +44,27 @@ public class BindingConfigAdapter
     private static final String ROUTES_NAME = "routes";
     private static final String TELEMETRY_NAME = "telemetry";
 
+    private final String type;
+    private final JsonbAdapter<OptionsConfig, JsonObject> options;
     private final KindConfigAdapter kind;
     private final RouteConfigAdapter route;
-    private final OptionsConfigAdapter options;
     private final CatalogedConfigAdapter cataloged;
     private final TelemetryRefConfigAdapter telemetryRef;
 
-    private String namespace;
-
     public BindingConfigAdapter(
-        EngineInfo info)
+        BindingInfo info)
     {
+        this.type = info.type();
+        this.options = info.options();
         this.kind = new KindConfigAdapter();
         this.route = new RouteConfigAdapter(info);
-        this.options = new OptionsConfigAdapter(info::binding);
         this.cataloged = new CatalogedConfigAdapter();
         this.telemetryRef = new TelemetryRefConfigAdapter();
-    }
-
-    public void adaptNamespace(
-        String namespace)
-    {
-        this.namespace = namespace;
     }
 
     public JsonObject adaptToJson(
         BindingConfig binding) throws Exception
     {
-        route.adaptType(binding.type);
-        options.adaptType(binding.type);
-
         JsonObjectBuilder item = Json.createObjectBuilder();
 
         item.add(TYPE_NAME, binding.type);
@@ -124,9 +112,13 @@ public class BindingConfigAdapter
             if (exitRoute == null || binding.routes.size() > 1)
             {
                 JsonArrayBuilder routes = Json.createArrayBuilder();
-                binding.routes.stream()
-                    .filter(r -> r != exitRoute)
-                    .forEach(r -> routes.add(route.adaptToJson(r)));
+                for (RouteConfig config : binding.routes)
+                {
+                    if (config != exitRoute)
+                    {
+                        routes.add(route.adaptToJson(config));
+                    }
+                }
                 item.add(ROUTES_NAME, routes);
             }
         }
@@ -137,73 +129,60 @@ public class BindingConfigAdapter
             item.add(TELEMETRY_NAME, telemetryRef0);
         }
 
-        assert namespace.equals(binding.namespace);
-
         return item.build();
     }
 
     public BindingConfig adaptFromJson(
+        String namespace,
         String name,
-        JsonObject item) throws Exception
+        JsonObject value) throws Exception
     {
-        Matcher matcher = NamespaceConfig.PATTERN_NAME.matcher(name);
-        if (!matcher.matches())
-        {
-            throw new IllegalStateException(String.format("%s does not match pattern", name));
-        }
-
-        String type = item.getString(TYPE_NAME);
-        route.adaptType(type);
-        options.adaptType(type);
-
-        GenericBindingConfigBuilder<GenericBindingConfig> binding = GenericBindingConfig.builder()
-            .namespace(Optional.ofNullable(matcher.group("namespace")).orElse(namespace))
-            .name(matcher.group("name"))
+        GenericBindingConfigBuilder<GenericBindingConfig> builder = GenericBindingConfig.builder()
+            .namespace(namespace)
+            .name(name)
             .type(type)
-            .kind(kind.adaptFromJson(item.getJsonString(KIND_NAME)));
+            .kind(kind.adaptFromJson(value.getJsonString(KIND_NAME)));
 
-        if (item.containsKey(ENTRY_NAME))
+        if (value.containsKey(ENTRY_NAME))
         {
-            binding.entry(item.getString(ENTRY_NAME));
+            builder.entry(value.getString(ENTRY_NAME));
         }
 
-        if (item.containsKey(VAULT_NAME))
+        if (value.containsKey(VAULT_NAME))
         {
-            binding.vault(item.getString(VAULT_NAME));
+            builder.vault(value.getString(VAULT_NAME));
         }
 
-        if (item.containsKey(CATALOG_NAME))
+        if (value.containsKey(CATALOG_NAME))
         {
-            binding.catalogs(cataloged.adaptFromJson(item.getJsonObject(CATALOG_NAME)));
+            builder.catalogs(cataloged.adaptFromJson(value.getJsonObject(CATALOG_NAME)));
         }
 
-        if (item.containsKey(OPTIONS_NAME))
+        if (value.containsKey(OPTIONS_NAME))
         {
-            binding.options(options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)));
+            builder.options(options.adaptFromJson(value.getJsonObject(OPTIONS_NAME)));
         }
 
-        if (item.containsKey(ROUTES_NAME))
+        if (value.containsKey(ROUTES_NAME))
         {
             MutableInteger order = new MutableInteger();
 
-            item.getJsonArray(ROUTES_NAME)
-                .stream()
-                .map(JsonValue::asJsonObject)
-                .peek(o -> route.adaptFromJsonIndex(order.value++))
-                .map(route::adaptFromJson)
-                .forEach(binding::route);
+            for (JsonValue object : value.getJsonArray(ROUTES_NAME))
+            {
+                builder.route(route.adaptFromJson(order.value++, object.asJsonObject()));
+            }
         }
 
-        if (item.containsKey(EXIT_NAME))
+        if (value.containsKey(EXIT_NAME))
         {
-            binding.exit(item.getString(EXIT_NAME));
+            builder.exit(value.getString(EXIT_NAME));
         }
 
-        if (item.containsKey(TELEMETRY_NAME))
+        if (value.containsKey(TELEMETRY_NAME))
         {
-            binding.telemetry(telemetryRef.adaptFromJson(item.getJsonObject(TELEMETRY_NAME)));
+            builder.telemetry(telemetryRef.adaptFromJson(value.getJsonObject(TELEMETRY_NAME)));
         }
 
-        return binding.build();
+        return builder.build();
     }
 }

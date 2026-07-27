@@ -14,7 +14,8 @@
  */
 package io.aklivity.zilla.config.engine.internal;
 
-import java.util.Arrays;
+import static java.util.stream.Collectors.toMap;
+
 import java.util.Map;
 
 import jakarta.json.Json;
@@ -22,55 +23,45 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.engine.ExporterInfo;
 import io.aklivity.zilla.config.engine.TelemetryConfig;
 import io.aklivity.zilla.config.engine.TelemetryConfigBuilder;
 
-public class TelemetryConfigAdapter implements JsonbAdapter<TelemetryConfig, JsonObject>
+public class TelemetryConfigAdapter
 {
     private static final String ATTRIBUTES_NAME = "attributes";
     private static final String METRICS_NAME = "metrics";
     private static final String EXPORTERS_NAME = "exporters";
+    private static final String TYPE_NAME = "type";
 
     private final AttributeConfigAdapter attribute;
     private final MetricConfigAdapter metric;
-    private final ExporterConfigAdapter exporter;
-
-    public TelemetryConfigAdapter()
-    {
-        this(null);
-    }
+    private final Map<String, ExporterConfigAdapter> exportersByType;
 
     public TelemetryConfigAdapter(
         EngineInfo info)
     {
         this.attribute = new AttributeConfigAdapter();
         this.metric = new MetricConfigAdapter();
-        this.exporter = new ExporterConfigAdapter(info);
+        this.exportersByType = info.exporters().stream().collect(toMap(ExporterInfo::type, ExporterConfigAdapter::new));
     }
 
-    public TelemetryConfigAdapter adaptNamespace(
-        String namespace)
-    {
-        exporter.adaptNamespace(namespace);
-        return this;
-    }
-
-    @Override
     public JsonObject adaptToJson(
         TelemetryConfig telemetry) throws Exception
     {
         JsonObjectBuilder item = Json.createObjectBuilder();
 
         JsonObjectBuilder attributes = Json.createObjectBuilder();
-        for (AttributeConfig a: telemetry.attributes)
+        for (AttributeConfig config : telemetry.attributes)
         {
-            Map.Entry<String, JsonValue> entry = attribute.adaptToJson(a);
-            attributes.add(entry.getKey(), entry.getValue());
+            Map.Entry<String, JsonValue> entry = attribute.adaptToJson(config);
+            String name = entry.getKey();
+            JsonValue value = entry.getValue();
+            attributes.add(name, value);
         }
         item.add(ATTRIBUTES_NAME, attributes);
 
@@ -78,17 +69,24 @@ public class TelemetryConfigAdapter implements JsonbAdapter<TelemetryConfig, Jso
         telemetry.metrics.stream().forEach(m -> metricRefs.add(metric.adaptToJson(m)));
         item.add(METRICS_NAME, metricRefs);
 
-        JsonObject exporters = exporter.adaptToJson(telemetry.exporters.toArray(ExporterConfig[]::new));
+        JsonObjectBuilder exporters = Json.createObjectBuilder();
+        for (ExporterConfig config : telemetry.exporters)
+        {
+            ExporterConfigAdapter adapter = exportersByType.get(config.type);
+            assert adapter != null : "unrecognized exporter type: " + config.type;
+            exporters.add(config.name, adapter.adaptToJson(config));
+        }
         item.add(EXPORTERS_NAME, exporters);
 
         return item.build();
     }
 
-    @Override
     public TelemetryConfig adaptFromJson(
+        String namespace,
         JsonObject object) throws Exception
     {
-        TelemetryConfigBuilder<TelemetryConfig> telemetry = TelemetryConfig.builder();
+        TelemetryConfigBuilder<TelemetryConfig> telemetry = TelemetryConfig.builder()
+            .namespace(namespace);
 
         if (object.containsKey(ATTRIBUTES_NAME))
         {
@@ -106,8 +104,14 @@ public class TelemetryConfigAdapter implements JsonbAdapter<TelemetryConfig, Jso
 
         if (object.containsKey(EXPORTERS_NAME))
         {
-            Arrays.stream(exporter.adaptFromJson(object.getJsonObject(EXPORTERS_NAME)))
-                .forEach(telemetry::exporter);
+            for (Map.Entry<String, JsonValue> entry : object.getJsonObject(EXPORTERS_NAME).entrySet())
+            {
+                JsonObject item = entry.getValue().asJsonObject();
+                String type = item.getString(TYPE_NAME);
+                ExporterConfigAdapter adapter = exportersByType.get(type);
+                assert adapter != null : "unrecognized exporter type: " + type;
+                telemetry.exporter(adapter.adaptFromJson(namespace, entry.getKey(), item));
+            }
         }
 
         return telemetry.build();

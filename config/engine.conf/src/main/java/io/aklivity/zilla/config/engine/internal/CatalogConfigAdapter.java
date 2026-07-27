@@ -17,12 +17,13 @@ package io.aklivity.zilla.config.engine.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.CatalogConfig;
-import io.aklivity.zilla.config.engine.EngineInfo;
+import io.aklivity.zilla.config.engine.CatalogInfo;
 import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.GenericCatalogConfigBuilder;
-import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class CatalogConfigAdapter
 {
@@ -30,27 +31,19 @@ public class CatalogConfigAdapter
     private static final String VAULT_NAME = "vault";
     private static final String OPTIONS_NAME = "options";
 
-    private final OptionsConfigAdapter options;
-
-    private String namespace;
+    private final String type;
+    private final JsonbAdapter<OptionsConfig, JsonObject> options;
 
     public CatalogConfigAdapter(
-        EngineInfo info)
+        CatalogInfo info)
     {
-        this.options = new OptionsConfigAdapter(info::catalog);
-    }
-
-    public void adaptNamespace(
-        String namespace)
-    {
-        this.namespace = namespace;
+        this.type = info.type();
+        this.options = info.options();
     }
 
     public JsonObject adaptToJson(
         CatalogConfig catalog) throws Exception
     {
-        options.adaptType(catalog.type);
-
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         object.add(TYPE_NAME, catalog.type);
@@ -64,22 +57,19 @@ public class CatalogConfigAdapter
     }
 
     public CatalogConfig adaptFromJson(
+        String namespace,
         String name,
         JsonObject object) throws Exception
     {
         GenericCatalogConfigBuilder<GenericCatalogConfig> builder = GenericCatalogConfig.builder()
             .namespace(namespace)
-            .name(name);
-
-        String type = object.getString(TYPE_NAME);
-        builder.type(type);
+            .name(name)
+            .type(type);
 
         if (object.containsKey(VAULT_NAME))
         {
             builder.vault(object.getString(VAULT_NAME));
         }
-
-        options.adaptType(type);
 
         if (object.containsKey(OPTIONS_NAME))
         {

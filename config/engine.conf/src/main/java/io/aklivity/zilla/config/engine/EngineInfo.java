@@ -68,40 +68,34 @@ public final class EngineInfo
         return patches;
     }
 
-    public BindingInfo binding(
-        String type)
+    public Collection<BindingInfo> bindings()
     {
-        return bindings.get(type);
+        return bindings.values();
     }
 
-    public CatalogInfo catalog(
-        String type)
+    public Collection<CatalogInfo> catalogs()
     {
-        return catalogs.get(type);
+        return catalogs.values();
     }
 
-    public GuardInfo guard(
-        String type)
+    public Collection<GuardInfo> guards()
     {
-        return guards.get(type);
+        return guards.values();
     }
 
-    public VaultInfo vault(
-        String type)
+    public Collection<VaultInfo> vaults()
     {
-        return vaults.get(type);
+        return vaults.values();
     }
 
-    public ExporterInfo exporter(
-        String type)
+    public Collection<ExporterInfo> exporters()
     {
-        return exporters.get(type);
+        return exporters.values();
     }
 
-    public StoreInfo store(
-        String type)
+    public Collection<StoreInfo> stores()
     {
-        return stores.get(type);
+        return stores.values();
     }
 
     public ModelInfo model(

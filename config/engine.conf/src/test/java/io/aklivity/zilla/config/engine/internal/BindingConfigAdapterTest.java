@@ -1,19 +1,18 @@
 /*
- * Copyright 2021-2026 Aklivity Inc.
+ * Copyright 2021-2026 Aklivity Inc
  *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.aklivity.io/aklivity-community-license/
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.config;
+package io.aklivity.zilla.config.engine.internal;
 
 import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static io.aklivity.zilla.config.engine.KindConfig.REMOTE_SERVER;
@@ -37,10 +36,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.config.engine.internal.BindingConfigAdapter;
+import io.aklivity.zilla.config.engine.test.internal.binding.TestBindingInfo;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class BindingConfigAdapterTest
@@ -50,9 +48,7 @@ public class BindingConfigAdapterTest
     @Before
     public void initJson()
     {
-        EngineInfo info = new EngineInfo();
-        adapter = new BindingConfigAdapter(info);
-        adapter.adaptNamespace("test");
+        adapter = new BindingConfigAdapter(new TestBindingInfo());
     }
 
     @Test
@@ -68,7 +64,7 @@ public class BindingConfigAdapterTest
                 "}";
 
         JsonObject object = Json.createReader(new StringReader(text)).readObject();
-        BindingConfig binding = adapter.adaptFromJson("test", object);
+        BindingConfig binding = adapter.adaptFromJson("test", "test", object);
 
         assertThat(binding, not(nullValue()));
         assertThat(binding.kind, equalTo(PROXY));
@@ -106,7 +102,7 @@ public class BindingConfigAdapterTest
                 "}";
 
         JsonObject object = Json.createReader(new StringReader(text)).readObject();
-        BindingConfig binding = adapter.adaptFromJson("test", object);
+        BindingConfig binding = adapter.adaptFromJson("test", "test", object);
 
         assertThat(binding, not(nullValue()));
         assertThat(binding.vault, not(nullValue()));
@@ -147,7 +143,7 @@ public class BindingConfigAdapterTest
                 "}";
 
         JsonObject object = Json.createReader(new StringReader(text)).readObject();
-        BindingConfig binding = adapter.adaptFromJson("test", object);
+        BindingConfig binding = adapter.adaptFromJson("test", "test", object);
 
         assertThat(binding, not(nullValue()));
         assertThat(binding.name, equalTo("test"));
@@ -192,7 +188,7 @@ public class BindingConfigAdapterTest
                 "}";
 
         JsonObject object = Json.createReader(new StringReader(text)).readObject();
-        BindingConfig binding = adapter.adaptFromJson("test", object);
+        BindingConfig binding = adapter.adaptFromJson("test", "test", object);
 
         assertThat(binding, not(nullValue()));
         assertThat(binding.name, equalTo("test"));
@@ -262,7 +258,7 @@ public class BindingConfigAdapterTest
                 "}";
 
         JsonObject object = Json.createReader(new StringReader(text)).readObject();
-        BindingConfig binding = adapter.adaptFromJson("test", object);
+        BindingConfig binding = adapter.adaptFromJson("test", "test", object);
 
         assertThat(binding, not(nullValue()));
         assertThat(binding.name, equalTo("test"));
@@ -288,7 +284,7 @@ public class BindingConfigAdapterTest
             "}";
 
         JsonObject object = Json.createReader(new StringReader(text)).readObject();
-        BindingConfig binding = adapter.adaptFromJson("test", object);
+        BindingConfig binding = adapter.adaptFromJson("test", "test", object);
 
         assertThat(binding, not(nullValue()));
         assertThat(binding.name, equalTo("test"));
@@ -343,7 +339,7 @@ public class BindingConfigAdapterTest
                 "}";
 
         JsonObject object = Json.createReader(new StringReader(text)).readObject();
-        BindingConfig binding = adapter.adaptFromJson("test", object);
+        BindingConfig binding = adapter.adaptFromJson("test", "test", object);
 
         assertThat(binding, not(nullValue()));
         assertThat(binding.name, equalTo("test"));
@@ -421,7 +417,7 @@ public class BindingConfigAdapterTest
             "}";
 
         JsonObject object = Json.createReader(new StringReader(text)).readObject();
-        BindingConfig binding = adapter.adaptFromJson("test", object);
+        BindingConfig binding = adapter.adaptFromJson("test", "test", object);
 
         assertThat(binding, not(nullValue()));
         assertThat(binding.name, equalTo("test"));
