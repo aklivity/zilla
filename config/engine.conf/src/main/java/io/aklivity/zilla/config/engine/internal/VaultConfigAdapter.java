@@ -25,7 +25,7 @@ import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.VaultConfig;
 
-public class VaultAdapter
+public class VaultConfigAdapter
 {
     private static final String TYPE_NAME = "type";
     private static final String OPTIONS_NAME = "options";
@@ -34,12 +34,12 @@ public class VaultAdapter
 
     private String namespace;
 
-    public VaultAdapter()
+    public VaultConfigAdapter()
     {
         this(null);
     }
 
-    public VaultAdapter(
+    public VaultConfigAdapter(
         EngineInfo info)
     {
         this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.VAULT,

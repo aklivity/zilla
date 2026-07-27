@@ -21,7 +21,7 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
-import io.aklivity.zilla.config.engine.internal.NamespaceAdapter;
+import io.aklivity.zilla.config.engine.internal.NamespaceConfigAdapter;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
@@ -33,7 +33,7 @@ public final class NamespaceConfigReader
         EngineInfo info)
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new NamespaceAdapter(info));
+            .withAdapters(new NamespaceConfigAdapter(info));
         this.jsonb = JsonbBuilder.newBuilder()
             .withProvider(YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true)))
             .withConfig(config)

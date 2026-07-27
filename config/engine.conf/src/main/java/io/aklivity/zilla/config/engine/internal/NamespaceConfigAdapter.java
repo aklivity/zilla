@@ -21,7 +21,6 @@ import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.STORES_DEFA
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.TELEMETRY_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.VAULTS_DEFAULT;
 
-import java.util.Arrays;
 import java.util.Map;
 
 import jakarta.json.Json;
@@ -39,7 +38,7 @@ import io.aklivity.zilla.config.engine.NamespaceConfigBuilder;
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
 
-public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObject>
+public class NamespaceConfigAdapter implements JsonbAdapter<NamespaceConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String TELEMETRY_NAME = "telemetry";
@@ -49,27 +48,27 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     private static final String VAULTS_NAME = "vaults";
     private static final String STORES_NAME = "stores";
 
-    private final TelemetryAdapter telemetry;
-    private final BindingConfigsAdapter binding;
-    private final VaultAdapter vault;
-    private final GuardAdapter guard;
-    private final CatalogAdapter catalog;
-    private final StoreAdapter store;
+    private final TelemetryConfigAdapter telemetry;
+    private final BindingConfigAdapter binding;
+    private final VaultConfigAdapter vault;
+    private final GuardConfigAdapter guard;
+    private final CatalogConfigAdapter catalog;
+    private final StoreConfigAdapter store;
 
-    public NamespaceAdapter()
+    public NamespaceConfigAdapter()
     {
         this(null);
     }
 
-    public NamespaceAdapter(
+    public NamespaceConfigAdapter(
         EngineInfo info)
     {
-        telemetry = new TelemetryAdapter(info);
-        binding = new BindingConfigsAdapter(info);
-        guard = new GuardAdapter(info);
-        vault = new VaultAdapter(info);
-        catalog = new CatalogAdapter(info);
-        store = new StoreAdapter(info);
+        telemetry = new TelemetryConfigAdapter(info);
+        binding = new BindingConfigAdapter(info);
+        guard = new GuardConfigAdapter(info);
+        vault = new VaultConfigAdapter(info);
+        catalog = new CatalogConfigAdapter(info);
+        store = new StoreConfigAdapter(info);
     }
 
     @Override
@@ -83,7 +82,12 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
         if (!BINDINGS_DEFAULT.equals(config.bindings))
         {
             binding.adaptNamespace(config.name);
-            object.add(BINDINGS_NAME, binding.adaptToJson(config.bindings.toArray(BindingConfig[]::new)));
+            JsonObjectBuilder bindings = Json.createObjectBuilder();
+            for (BindingConfig b : config.bindings)
+            {
+                bindings.add(b.name, binding.adaptToJson(b));
+            }
+            object.add(BINDINGS_NAME, bindings);
         }
 
         if (!GUARDS_DEFAULT.equals(config.guards))
@@ -158,7 +162,10 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
         if (object.containsKey(BINDINGS_NAME))
         {
             binding.adaptNamespace(name);
-            namespace.bindings(Arrays.asList(binding.adaptFromJson(object.getJsonObject(BINDINGS_NAME))));
+            for (Map.Entry<String, JsonValue> entry : object.getJsonObject(BINDINGS_NAME).entrySet())
+            {
+                namespace.binding(binding.adaptFromJson(entry.getKey(), entry.getValue().asJsonObject()));
+            }
         }
 
         if (object.containsKey(GUARDS_NAME))

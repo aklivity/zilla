@@ -31,10 +31,10 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.TelemetryConfig;
-import io.aklivity.zilla.config.engine.internal.TelemetryAdapter;
+import io.aklivity.zilla.config.engine.internal.TelemetryConfigAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
-public class TelemetryConfigsAdapterTest
+public class TelemetryConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -43,7 +43,7 @@ public class TelemetryConfigsAdapterTest
     {
         EngineInfo info = new EngineInfo();
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new TelemetryAdapter(info).adaptNamespace("test"));
+                .withAdapters(new TelemetryConfigAdapter(info).adaptNamespace("test"));
         jsonb = JsonbBuilder.create(config);
     }
 

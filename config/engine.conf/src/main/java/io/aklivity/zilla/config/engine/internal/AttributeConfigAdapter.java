@@ -24,7 +24,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
 
-public class AttributeAdapter implements JsonbAdapter<AttributeConfig, Map.Entry<String, JsonValue>>
+public class AttributeConfigAdapter implements JsonbAdapter<AttributeConfig, Map.Entry<String, JsonValue>>
 {
     @Override
     public Map.Entry<String, JsonValue> adaptToJson(

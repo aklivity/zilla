@@ -35,17 +35,17 @@ import io.aklivity.zilla.config.engine.ConditionConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.WithConfigAdapterSpi;
-import io.aklivity.zilla.config.engine.internal.WithAdapter;
+import io.aklivity.zilla.config.engine.internal.WithConfigAdapter;
 
 public class WithConfigAdapterTest
 {
-    private WithAdapter adapter;
+    private WithConfigAdapter adapter;
     private Jsonb jsonb;
 
     @Before
     public void initJson()
     {
-        adapter = new WithAdapter(new EngineInfo());
+        adapter = new WithConfigAdapter(new EngineInfo());
         adapter.adaptType("test");
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(adapter);

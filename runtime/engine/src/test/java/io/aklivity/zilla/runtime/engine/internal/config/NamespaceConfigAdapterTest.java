@@ -37,7 +37,7 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
-import io.aklivity.zilla.config.engine.internal.NamespaceAdapter;
+import io.aklivity.zilla.config.engine.internal.NamespaceConfigAdapter;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.config.TestGuardOptionsConfig;
@@ -194,7 +194,7 @@ public class NamespaceConfigAdapterTest
     {
         EngineInfo info = new EngineInfo();
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(info));
+                .withAdapters(new NamespaceConfigAdapter(info));
         jsonb = JsonbBuilder.create(config);
     }
 

@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.config.engine.internal.KindAdapter;
+import io.aklivity.zilla.config.engine.internal.KindConfigAdapter;
 
 public class KindConfigAdapterTest
 {
@@ -39,7 +39,7 @@ public class KindConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new KindAdapter());
+            .withAdapters(new KindConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 

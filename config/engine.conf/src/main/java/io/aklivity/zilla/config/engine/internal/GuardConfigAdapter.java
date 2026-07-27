@@ -18,33 +18,34 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
-import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.EngineInfo;
-import io.aklivity.zilla.config.engine.GenericCatalogConfig;
-import io.aklivity.zilla.config.engine.GenericCatalogConfigBuilder;
+import io.aklivity.zilla.config.engine.GenericGuardConfig;
+import io.aklivity.zilla.config.engine.GenericGuardConfigBuilder;
+import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
-public class CatalogAdapter
+public class GuardConfigAdapter
 {
     private static final String TYPE_NAME = "type";
-    private static final String VAULT_NAME = "vault";
+    private static final String KIND_NAME = "kind";
+    private static final String STORE_NAME = "store";
     private static final String OPTIONS_NAME = "options";
 
     private final OptionsConfigAdapter options;
 
     private String namespace;
 
-    public CatalogAdapter()
+    public GuardConfigAdapter()
     {
         this(null);
     }
 
-    public CatalogAdapter(
+    public GuardConfigAdapter(
         EngineInfo info)
     {
-        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.CATALOG,
-            info != null ? info::catalog : null);
+        this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.GUARD,
+            info != null ? info::guard : null);
     }
 
     public void adaptNamespace(
@@ -54,45 +55,60 @@ public class CatalogAdapter
     }
 
     public JsonObject adaptToJson(
-        CatalogConfig catalog) throws Exception
+        GuardConfig guard) throws Exception
     {
-        options.adaptType(catalog.type);
+        options.adaptType(guard.type);
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(TYPE_NAME, catalog.type);
+        object.add(TYPE_NAME, guard.type);
 
-        if (catalog.options != null)
+        if (guard.kind != null)
         {
-            object.add(OPTIONS_NAME, options.adaptToJson(catalog.options));
+            object.add(KIND_NAME, guard.kind);
+        }
+
+        if (guard.store != null)
+        {
+            object.add(STORE_NAME, guard.store);
+        }
+
+        if (guard.options != null)
+        {
+            object.add(OPTIONS_NAME, options.adaptToJson(guard.options));
         }
 
         return object.build();
     }
 
-    public CatalogConfig adaptFromJson(
+    public GuardConfig adaptFromJson(
         String name,
         JsonObject object) throws Exception
     {
-        GenericCatalogConfigBuilder<GenericCatalogConfig> builder = GenericCatalogConfig.builder()
-            .namespace(namespace)
-            .name(name);
-
         String type = object.getString(TYPE_NAME);
-        builder.type(type);
-
-        if (object.containsKey(VAULT_NAME))
-        {
-            builder.vault(object.getString(VAULT_NAME));
-        }
 
         options.adaptType(type);
 
-        if (object.containsKey(OPTIONS_NAME))
+        GenericGuardConfigBuilder<GenericGuardConfig> guard = GenericGuardConfig.builder()
+            .namespace(namespace)
+            .name(name)
+            .type(type);
+
+        if (object.containsKey(KIND_NAME))
         {
-            builder.options(options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)));
+            guard.kind(object.getString(KIND_NAME));
         }
 
-        return builder.build();
+        if (object.containsKey(STORE_NAME))
+        {
+            guard.store(object.getString(STORE_NAME));
+        }
+
+        if (object.containsKey(OPTIONS_NAME))
+        {
+            guard.options(options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)));
+        }
+
+        return guard.build();
     }
 }

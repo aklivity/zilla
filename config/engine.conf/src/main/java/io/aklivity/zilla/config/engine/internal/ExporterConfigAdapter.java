@@ -28,7 +28,7 @@ import io.aklivity.zilla.config.engine.GenericExporterConfig;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfigAdapterSpi;
 
-public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObject>
+public class ExporterConfigAdapter implements JsonbAdapter<ExporterConfig[], JsonObject>
 {
     private static final String TYPE_NAME = "type";
     private static final String VAULT_NAME = "vault";
@@ -38,12 +38,12 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
 
     private String namespace;
 
-    public ExporterAdapter()
+    public ExporterConfigAdapter()
     {
         this(null);
     }
 
-    public ExporterAdapter(
+    public ExporterConfigAdapter(
         EngineInfo info)
     {
         this.options = new OptionsConfigAdapter(OptionsConfigAdapterSpi.Kind.EXPORTER,

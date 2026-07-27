@@ -19,28 +19,23 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.engine.MetricConfig;
+import io.aklivity.zilla.config.engine.MetricRefConfig;
 
-public class MetricAdapter implements JsonbAdapter<MetricConfig, JsonValue>
+public class MetricRefConfigAdapter implements JsonbAdapter<MetricRefConfig, JsonValue>
 {
     @Override
     public JsonValue adaptToJson(
-        MetricConfig metric)
+        MetricRefConfig metricRef)
     {
-        return Json.createValue(metric.name);
+        return Json.createValue(metricRef.name);
     }
 
     @Override
-    public MetricConfig adaptFromJson(
+    public MetricRefConfig adaptFromJson(
         JsonValue value)
     {
-        String name = JsonString.class.cast(value).getString();
-        String[] parts = name.split("\\.");
-        String group = parts[0];
-
-        return MetricConfig.builder()
-            .group(group)
-            .name(name)
+        return MetricRefConfig.builder()
+            .name(JsonString.class.cast(value).getString())
             .build();
     }
 }

@@ -16,23 +16,31 @@ package io.aklivity.zilla.config.engine.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.MetricConfig;
 
-public class KindAdapter implements JsonbAdapter<KindConfig, JsonString>
+public class MetricConfigAdapter implements JsonbAdapter<MetricConfig, JsonValue>
 {
     @Override
-    public JsonString adaptToJson(
-        KindConfig role)
+    public JsonValue adaptToJson(
+        MetricConfig metric)
     {
-        return Json.createValue(role.name().toLowerCase());
+        return Json.createValue(metric.name);
     }
 
     @Override
-    public KindConfig adaptFromJson(
-        JsonString object)
+    public MetricConfig adaptFromJson(
+        JsonValue value)
     {
-        return KindConfig.valueOf(object.getString().toUpperCase());
+        String name = JsonString.class.cast(value).getString();
+        String[] parts = name.split("\\.");
+        String group = parts[0];
+
+        return MetricConfig.builder()
+            .group(group)
+            .name(name)
+            .build();
     }
 }

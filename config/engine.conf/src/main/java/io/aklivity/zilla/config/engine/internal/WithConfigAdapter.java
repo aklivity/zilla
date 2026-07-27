@@ -21,18 +21,18 @@ import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public class WithAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public class WithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
     private final EngineInfo info;
 
     private JsonbAdapter<WithConfig, JsonObject> delegate;
 
-    public WithAdapter()
+    public WithConfigAdapter()
     {
         this(null);
     }
 
-    public WithAdapter(
+    public WithConfigAdapter(
         EngineInfo info)
     {
         this.info = info;

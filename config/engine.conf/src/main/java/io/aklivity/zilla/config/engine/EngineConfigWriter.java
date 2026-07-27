@@ -30,7 +30,7 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 
-import io.aklivity.zilla.config.engine.internal.NamespaceAdapter;
+import io.aklivity.zilla.config.engine.internal.NamespaceConfigAdapter;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public final class EngineConfigWriter
@@ -103,7 +103,7 @@ public final class EngineConfigWriter
             JsonProvider provider = YamlJson.provider();
 
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(info))
+                .withAdapters(new NamespaceConfigAdapter(info))
                 .withFormatting(true);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(provider)
@@ -146,7 +146,7 @@ public final class EngineConfigWriter
             JsonProvider provider = YamlJson.provider();
 
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(info))
+                .withAdapters(new NamespaceConfigAdapter(info))
                 .withFormatting(true);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(provider)

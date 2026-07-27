@@ -30,30 +30,30 @@ import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.config.engine.TelemetryConfig;
 import io.aklivity.zilla.config.engine.TelemetryConfigBuilder;
 
-public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObject>
+public class TelemetryConfigAdapter implements JsonbAdapter<TelemetryConfig, JsonObject>
 {
     private static final String ATTRIBUTES_NAME = "attributes";
     private static final String METRICS_NAME = "metrics";
     private static final String EXPORTERS_NAME = "exporters";
 
-    private final AttributeAdapter attribute;
-    private final MetricAdapter metric;
-    private final ExporterAdapter exporter;
+    private final AttributeConfigAdapter attribute;
+    private final MetricConfigAdapter metric;
+    private final ExporterConfigAdapter exporter;
 
-    public TelemetryAdapter()
+    public TelemetryConfigAdapter()
     {
         this(null);
     }
 
-    public TelemetryAdapter(
+    public TelemetryConfigAdapter(
         EngineInfo info)
     {
-        this.attribute = new AttributeAdapter();
-        this.metric = new MetricAdapter();
-        this.exporter = new ExporterAdapter(info);
+        this.attribute = new AttributeConfigAdapter();
+        this.metric = new MetricConfigAdapter();
+        this.exporter = new ExporterConfigAdapter(info);
     }
 
-    public TelemetryAdapter adaptNamespace(
+    public TelemetryConfigAdapter adaptNamespace(
         String namespace)
     {
         exporter.adaptNamespace(namespace);

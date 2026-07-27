@@ -29,11 +29,11 @@ import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 
-public class CatalogedAdapter implements JsonbAdapter<List<CatalogedConfig>, JsonObject>
+public class CatalogedConfigAdapter implements JsonbAdapter<List<CatalogedConfig>, JsonObject>
 {
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
-    public CatalogedAdapter()
+    public CatalogedConfigAdapter()
     {
     }
 

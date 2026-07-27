@@ -34,31 +34,31 @@ import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
+public class RouteConfigAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 {
     private static final String EXIT_NAME = "exit";
     private static final String WHEN_NAME = "when";
     private static final String WITH_NAME = "with";
     private static final String GUARDED_NAME = "guarded";
 
-    private final ConditionAdapter condition;
-    private final WithAdapter with;
+    private final ConditionConfigAdapter condition;
+    private final WithConfigAdapter with;
 
     private int index;
 
-    public RouteAdapter()
+    public RouteConfigAdapter()
     {
         this(null);
     }
 
-    public RouteAdapter(
+    public RouteConfigAdapter(
         EngineInfo info)
     {
-        condition = new ConditionAdapter(info);
-        with = new WithAdapter(info);
+        condition = new ConditionConfigAdapter(info);
+        with = new WithConfigAdapter(info);
     }
 
-    public RouteAdapter adaptType(
+    public RouteConfigAdapter adaptType(
         String type)
     {
         condition.adaptType(type);

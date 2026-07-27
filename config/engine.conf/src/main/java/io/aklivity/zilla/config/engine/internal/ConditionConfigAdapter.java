@@ -21,18 +21,18 @@ import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.EngineInfo;
 
-public class ConditionAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public class ConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private final EngineInfo info;
 
     private JsonbAdapter<ConditionConfig, JsonObject> delegate;
 
-    public ConditionAdapter()
+    public ConditionConfigAdapter()
     {
         this(null);
     }
 
-    public ConditionAdapter(
+    public ConditionConfigAdapter(
         EngineInfo info)
     {
         this.info = info;

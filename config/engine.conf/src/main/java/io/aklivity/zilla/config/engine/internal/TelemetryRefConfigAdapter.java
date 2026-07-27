@@ -27,18 +27,18 @@ import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfigBuilder;
 
-public class TelemetryRefAdapter implements JsonbAdapter<TelemetryRefConfig, JsonObject>
+public class TelemetryRefConfigAdapter implements JsonbAdapter<TelemetryRefConfig, JsonObject>
 {
     private static final String METRICS_NAME = "metrics";
     private static final String ATTRIBUTES_NAME = "attributes";
 
-    private final MetricRefAdapter metricRef;
-    private final AttributeAdapter attribute;
+    private final MetricRefConfigAdapter metricRef;
+    private final AttributeConfigAdapter attribute;
 
-    public TelemetryRefAdapter()
+    public TelemetryRefConfigAdapter()
     {
-        this.metricRef = new MetricRefAdapter();
-        this.attribute = new AttributeAdapter();
+        this.metricRef = new MetricRefConfigAdapter();
+        this.attribute = new AttributeConfigAdapter();
     }
 
     @Override
