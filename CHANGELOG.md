@@ -352,7 +352,9 @@
 - fix\(binding-kafka\): remove when.topic route matching for client kind [\#2200](https://github.com/aklivity/zilla/pull/2200) ([jfallows](https://github.com/jfallows))
 - feat\(guard-inline\): support format-based splitting of identity and credentials [\#2202](https://github.com/aklivity/zilla/pull/2202) ([jfallows](https://github.com/jfallows))
 - test\(binding-mcp-kafka\): add IT coverage for tools/list [\#2209](https://github.com/aklivity/zilla/pull/2209) ([jfallows](https://github.com/jfallows))
+- feat\(config\): modularize binding/catalog/guard/vault/exporter/model config into standalone modules [\#2210](https://github.com/aklivity/zilla/pull/2210) ([jfallows](https://github.com/jfallows))
 - fix\(binding-tcp,binding-tls,engine,exporter-otlp\): unify phantom-reply address signaling + stale-binding metrics [\#2213](https://github.com/aklivity/zilla/pull/2213) ([akrambek](https://github.com/akrambek))
+- fix\(binding-mcp\): set content-type on deferred JSON-RPC error responses [\#2214](https://github.com/aklivity/zilla/pull/2214) ([jfallows](https://github.com/jfallows))
 
 ## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
 
