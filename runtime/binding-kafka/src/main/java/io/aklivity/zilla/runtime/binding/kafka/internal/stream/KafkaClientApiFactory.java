@@ -1126,7 +1126,6 @@ public final class KafkaClientApiFactory implements BindingHandler
         private long reconnectAt = NO_CANCEL_ID;
         private int reconnectAttempt;
 
-        private boolean apiVersionsResolved;
         private boolean apiVersionsRequestExplicit;
         private boolean apiVersionsExplicit;
         private final Int2IntHashMap apiVersionRangeByApiKey;
@@ -1194,7 +1193,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 return;
             }
 
-            if (!apiVersionsResolved)
+            if (apiVersionRangeByApiKey.isEmpty())
             {
                 final KafkaApiStream head = pending.peek();
                 if (head != null)
@@ -1711,7 +1710,6 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             if (!apiVersionsExplicit)
             {
-                apiVersionsResolved = false;
                 apiVersionRangeByApiKey.clear();
             }
             saslResolved = false;
@@ -2098,8 +2096,6 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (apiVersionKeysRemaining == 0)
             {
-                apiVersionsResolved = true;
-
                 if (apiVersionsRequestExplicit)
                 {
                     apiVersionsRequestExplicit = false;
@@ -2190,7 +2186,6 @@ public final class KafkaClientApiFactory implements BindingHandler
                 if (errorCode == ERROR_UNSUPPORTED_VERSION)
                 {
                     event.apiVersionRejected(traceId, routedId, head.api, head.version);
-                    apiVersionsResolved = false;
                     apiVersionRangeByApiKey.clear();
                 }
 
@@ -2312,7 +2307,6 @@ public final class KafkaClientApiFactory implements BindingHandler
             doNetReset(traceId);
             doNetAbort(traceId);
 
-            apiVersionsResolved = false;
             apiVersionRangeByApiKey.clear();
             apiVersionsRequestExplicit = false;
             saslResolved = false;
@@ -2337,7 +2331,6 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             if (!apiVersionsExplicit)
             {
-                apiVersionsResolved = false;
                 apiVersionRangeByApiKey.clear();
             }
             saslResolved = false;
