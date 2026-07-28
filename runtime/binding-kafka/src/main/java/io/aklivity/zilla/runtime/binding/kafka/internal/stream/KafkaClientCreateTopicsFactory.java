@@ -30,10 +30,14 @@ import org.agrona.collections.LongLongConsumer;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaSaslConfig;
 import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
+import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Kind;
+import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponseV7FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
@@ -58,6 +62,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaCreateTopicStatusFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaCreateTopicsRequestBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
@@ -124,6 +129,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
     private final TopicResponsePart2FW topicResponsePart2RO = new TopicResponsePart2FW();
     private final CreateTopicsResponsePart2FW createTopicsResponsePart2RO = new CreateTopicsResponsePart2FW();
+    private final CreateTopicsResponseV7FW createTopicsResponseV7RO = new CreateTopicsResponseV7FW();
 
     private final KafkaCreateTopicsClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaCreateTopicsClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -146,7 +152,6 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private final UnaryOperator<KafkaSaslConfig> resolveSasl;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
-    private final List<CreateTopicsResponseInfo> responseTopics;
 
     public KafkaClientCreateTopicsFactory(
         KafkaConfiguration config,
@@ -169,7 +174,6 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
-        this.responseTopics = new ArrayList<>();
     }
 
     @Override
@@ -532,8 +536,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
             final int topicCount = createTopicsResponse.topicCount();
             final int throttle = createTopicsResponse.throttleTimeMillis();
+            final int topicsOffset = progress;
 
-            responseTopics.clear();
             for (int topicIndex = 0; topicIndex < topicCount; topicIndex++)
             {
                 final TopicResponseFW topic = topicResponseRO.tryWrap(buffer, progress, limit);
@@ -566,9 +570,6 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                 }
 
                 progress = topicPart2.limit();
-
-                responseTopics.add(new CreateTopicsResponseInfo(
-                    topic.name().asString(), topic.error(), topic.message().asString()));
             }
 
             final CreateTopicsResponsePart2FW createTopicsResponsePart2 =
@@ -581,7 +582,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
             progress = createTopicsResponsePart2.limit();
 
-            client.onDecodeCreateTopicsResponse(traceId, authorization, throttle, responseTopics);
+            client.onDecodeCreateTopicsResponse(traceId, authorization, throttle, buffer, topicsOffset, limit, topicCount);
         }
 
         return progress;
@@ -781,11 +782,17 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long traceId,
             long authorization,
             int throttle,
-            List<CreateTopicsResponseInfo> topics)
+            DirectBufferEx buffer,
+            int topicsOffset,
+            int topicsLimit,
+            int topicCount)
         {
             if (!KafkaState.replyOpening(state))
             {
                 state = KafkaState.openingReply(state);
+
+                final CreateTopicsResponseV7FW response =
+                    createTopicsResponseV7RO.wrapTopics(buffer, topicsOffset, topicsLimit, throttle, topicCount);
 
                 doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity,
@@ -795,14 +802,32 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                                                                 .createTopics(
                                                                     ct -> ct
                                                                         .throttle(throttle)
-                                                                        .topics(t ->
-                                                                            topics.forEach(ts ->
-                                                                                t.item(i -> i
-                                                                                    .name(ts.name)
-                                                                                    .error(ts.error)
-                                                                                    .message(ts.message))))))
+                                                                        .topics(t -> encodeTopics(t, response)))
+                                                            )
                                                             .build()
                                                             .sizeof()));
+            }
+        }
+
+        private void encodeTopics(
+            Array32FW.Builder<KafkaCreateTopicStatusFW.Builder, KafkaCreateTopicStatusFW> topics,
+            CreateTopicsResponseV7FW response)
+        {
+            while (response.hasNext())
+            {
+                if (response.next() == Kind.TOPIC)
+                {
+                    final Topic topic = response.topic();
+                    topics.item(i ->
+                    {
+                        i.name(topic.buffer(), topic.nameOffset(), topic.nameLength())
+                            .error(topic.error());
+                        if (topic.messageLength() != -1)
+                        {
+                            i.message(topic.buffer(), topic.messageOffset(), topic.messageLength());
+                        }
+                    });
+                }
             }
         }
 
@@ -1593,9 +1618,12 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long traceId,
             long authorization,
             int throttle,
-            List<CreateTopicsResponseInfo> topics)
+            DirectBufferEx buffer,
+            int topicsOffset,
+            int topicsLimit,
+            int topicCount)
         {
-            delegate.doApplicationBegin(traceId, authorization, throttle, topics);
+            delegate.doApplicationBegin(traceId, authorization, throttle, buffer, topicsOffset, topicsLimit, topicCount);
         }
 
         private void cleanupNetwork(
@@ -1664,13 +1692,6 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private record ConfigInfo(
         String name,
         String value)
-    {
-    }
-
-    private record CreateTopicsResponseInfo(
-        String name,
-        short error,
-        String message)
     {
     }
 }

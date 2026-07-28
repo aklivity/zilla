@@ -40,11 +40,11 @@ import jakarta.json.JsonObjectBuilder;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Kind;
+import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponseV7FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Request;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponsePipeline;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponsePipeline.Response;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponsePipeline.TopicResult;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
@@ -172,7 +172,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final KafkaCreateTopicsRequestGenerator createTopicsRequestGenerator;
-    private final KafkaCreateTopicsResponsePipeline createTopicsResponsePipeline;
+    private final CreateTopicsResponseV7FW createTopicsResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
@@ -196,7 +196,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.createTopicsRequestGenerator = new KafkaCreateTopicsRequestGenerator();
-        this.createTopicsResponsePipeline = new KafkaCreateTopicsResponsePipeline();
+        this.createTopicsResponseRO = new CreateTopicsResponseV7FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
 
@@ -2343,58 +2343,50 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final Response response = createTopicsResponsePipeline.decode(slot, 0, responseLength);
+            final CreateTopicsResponseV7FW response = createTopicsResponseRO.wrap(slot, 0, responseLength);
+
+            final StringBuilder text = new StringBuilder();
+            final JsonArrayBuilder topics = Json.createArrayBuilder();
+            boolean isError = false;
+
+            while (response.hasNext())
+            {
+                if (response.next() == Kind.TOPIC)
+                {
+                    final Topic topic = response.topic();
+                    final String name = topic.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
+                    final short error = topic.error();
+
+                    if (text.length() != 0)
+                    {
+                        text.append(", ");
+                    }
+                    text.append(name);
+
+                    final JsonObjectBuilder item = Json.createObjectBuilder()
+                        .add("name", name)
+                        .add("error", error);
+                    if (error != 0)
+                    {
+                        text.append(" (error ").append(error).append(')');
+                        isError = true;
+                    }
+                    if (topic.messageLength() != -1)
+                    {
+                        final String message = topic.buffer()
+                            .getStringWithoutLengthUtf8(topic.messageOffset(), topic.messageLength());
+                        item.add("errorMessage", message);
+                    }
+                    topics.add(item);
+                }
+            }
 
             cleanupDecodeSlot();
 
-            final boolean isError = response.topics().stream().anyMatch(t -> t.error() != 0);
-            final String text = buildCreateTopicsResultText(response, isError);
-            final JsonObject structuredContent = buildCreateTopicsStructuredContent(response);
+            final String prefix = isError ? "Failed to create topic(s): " : "Created topic(s): ";
+            final JsonObject structuredContent = Json.createObjectBuilder().add("topics", topics).build();
 
-            peer.doMcpResult(traceId, text, structuredContent, isError);
-        }
-
-        private JsonObject buildCreateTopicsStructuredContent(
-            Response response)
-        {
-            final JsonArrayBuilder topics = Json.createArrayBuilder();
-            for (TopicResult topic : response.topics())
-            {
-                final JsonObjectBuilder item = Json.createObjectBuilder()
-                    .add("name", topic.name())
-                    .add("error", topic.error());
-                if (topic.message() != null)
-                {
-                    item.add("errorMessage", topic.message());
-                }
-                topics.add(item);
-            }
-
-            return Json.createObjectBuilder().add("topics", topics).build();
-        }
-
-        private String buildCreateTopicsResultText(
-            Response response,
-            boolean isError)
-        {
-            final StringBuilder text = new StringBuilder(isError ? "Failed to create topic(s): " : "Created topic(s): ");
-
-            boolean first = true;
-            for (TopicResult topic : response.topics())
-            {
-                if (!first)
-                {
-                    text.append(", ");
-                }
-                first = false;
-                text.append(topic.name());
-                if (topic.error() != 0)
-                {
-                    text.append(" (error ").append(topic.error()).append(')');
-                }
-            }
-
-            return text.toString();
+            peer.doMcpResult(traceId, prefix + text, structuredContent, isError);
         }
 
         private void onKafkaEnd(

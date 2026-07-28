@@ -16,18 +16,18 @@
 package io.aklivity.zilla.runtime.binding.kafka.api;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponsePipeline.ConfigResult;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponsePipeline.Response;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponsePipeline.TopicResult;
+import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Config;
+import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Kind;
+import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class KafkaCreateTopicsResponsePipelineTest
+public class CreateTopicsResponseV7FWTest
 {
     // body bytes only, as verified against the real KafkaClientCreateTopicsFactory v7 wire decoder input
     // (the response header's correlationId is decoded separately and excluded here)
@@ -61,38 +61,58 @@ public class KafkaCreateTopicsResponsePipelineTest
         0x00
     };
 
+    private static String asString(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        return length == -1 ? null : buffer.getStringWithoutLengthUtf8(offset, length);
+    }
+
     @Test
     public void shouldDecodeCreateTopicsV7Response()
     {
-        KafkaCreateTopicsResponsePipeline pipeline = new KafkaCreateTopicsResponsePipeline();
+        CreateTopicsResponseV7FW response = new CreateTopicsResponseV7FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(BODY);
-        Response response = pipeline.decode(buffer, 0, buffer.capacity());
+        response.wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, response.throttleTimeMillis());
-        assertEquals(2, response.topics().size());
+        assertEquals(2, response.topicCount());
 
-        TopicResult events = response.topics().get(0);
-        assertEquals("events", events.name());
+        assertTrue(response.hasNext());
+        assertEquals(Kind.TOPIC, response.next());
+
+        Topic events = response.topic();
+        assertEquals("events", asString(events.buffer(), events.nameOffset(), events.nameLength()));
         assertEquals(0L, events.topicIdMostSigBits());
         assertEquals(0L, events.topicIdLeastSigBits());
         assertEquals(0, events.error());
-        assertNull(events.message());
+        assertEquals(-1, events.messageLength());
         assertEquals(1, events.numPartitions());
         assertEquals(1, events.replicationFactor());
-        assertEquals(1, events.configs().size());
+        assertEquals(1, events.configCount());
 
-        ConfigResult cleanupPolicy = events.configs().get(0);
-        assertEquals("cleanup.policy", cleanupPolicy.name());
-        assertEquals("delete", cleanupPolicy.value());
-        assertEquals(false, cleanupPolicy.readOnly());
+        assertTrue(response.hasNext());
+        assertEquals(Kind.CONFIG, response.next());
+
+        Config cleanupPolicy = response.config();
+        assertEquals("cleanup.policy", asString(cleanupPolicy.buffer(), cleanupPolicy.nameOffset(), cleanupPolicy.nameLength()));
+        assertEquals("delete", asString(cleanupPolicy.buffer(), cleanupPolicy.valueOffset(), cleanupPolicy.valueLength()));
+        assertFalse(cleanupPolicy.readOnly());
         assertEquals(1, cleanupPolicy.configSource());
-        assertEquals(false, cleanupPolicy.isSensitive());
+        assertFalse(cleanupPolicy.isSensitive());
 
-        TopicResult snapshots = response.topics().get(1);
-        assertEquals("snapshots", snapshots.name());
+        assertTrue(response.hasNext());
+        assertEquals(Kind.TOPIC, response.next());
+
+        Topic snapshots = response.topic();
+        assertEquals("snapshots", asString(snapshots.buffer(), snapshots.nameOffset(), snapshots.nameLength()));
         assertEquals(1, snapshots.numPartitions());
         assertEquals(1, snapshots.replicationFactor());
-        assertTrue(snapshots.configs().isEmpty());
+        assertEquals(0, snapshots.configCount());
+
+        assertFalse(response.hasNext());
+        assertEquals(BODY.length, response.limit());
     }
 }
