@@ -32,6 +32,7 @@ public final class AsyncapiChannelView
     public final List<AsyncapiParameterView> parameters;
     public final List<AsyncapiServerView> servers;
 
+    private final Map<String, Object> bindings;
     private final Map<String, Object> extensions;
 
     public boolean hasMessages()
@@ -42,6 +43,19 @@ public final class AsyncapiChannelView
     public boolean hasParameters()
     {
         return parameters != null && !parameters.isEmpty();
+    }
+
+    public boolean hasBinding(
+        String name)
+    {
+        return bindings != null && bindings.containsKey(name);
+    }
+
+    public <T> Optional<T> binding(
+        String name,
+        Class<T> type)
+    {
+        return Optional.ofNullable(bindings != null ? type.cast(bindings.get(name)) : null);
     }
 
     public boolean hasExtension(
@@ -97,6 +111,7 @@ public final class AsyncapiChannelView
                 .flatMap(n -> allServers.stream().filter(s -> n.equals(s.name)))
                 .toList()
             : allServers;
+        this.bindings = resolved.bindings;
         this.extensions = resolved.extensions;
     }
 }

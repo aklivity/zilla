@@ -43,46 +43,63 @@ public final class AsyncapiDeserializers
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> channelBindingTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         return List.of(
             new AsyncapiDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiServerDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiServerVariableDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiChannelDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiOperationDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiMessageDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiTraitDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiParameterDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiComponentsDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiSchemaDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiMultiFormatSchemaDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiSchemaItemDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiSecuritySchemeDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiCorrelationIdDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiReplyDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes));
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes));
     }
 
     static Supplier<Jsonb> plain(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> channelBindingTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes,
         Class<?>... excludes)
@@ -95,7 +112,8 @@ public final class AsyncapiDeserializers
             if (cache[0] == null)
             {
                 JsonbDeserializer<?>[] others = all(
-                    operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes)
+                    operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                    prefixExtensionTypes)
                         .stream()
                         .filter(deserializer -> !excluded.contains(deserializer.getClass()))
                         .toArray(JsonbDeserializer[]::new);

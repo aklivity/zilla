@@ -24,6 +24,7 @@ public class AsyncapiChannel extends AbstractAsyncapiResolvable
     public LinkedHashMap<String, AsyncapiMessage> messages;
     public LinkedHashMap<String, AsyncapiParameter> parameters;
     public List<AsyncapiServer> servers;
+    public Map<String, Object> bindings;
 
     public Map<String, Object> extensions;
 }
