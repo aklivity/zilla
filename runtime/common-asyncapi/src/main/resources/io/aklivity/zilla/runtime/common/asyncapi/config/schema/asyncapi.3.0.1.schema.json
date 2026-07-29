@@ -1244,6 +1244,7 @@
           "properties": {
             "bindingVersion": {
               "enum": [
+                "0.5.0",
                 "0.4.0",
                 "0.3.0"
               ]
@@ -1260,7 +1261,22 @@
                 }
               },
               "then": {
-                "$ref": "http://asyncapi.com/bindings/kafka/0.4.0/server.json"
+                "$ref": "http://asyncapi.com/bindings/kafka/0.5.0/server.json"
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "bindingVersion"
+                ],
+                "properties": {
+                  "bindingVersion": {
+                    "const": "0.5.0"
+                  }
+                }
+              },
+              "then": {
+                "$ref": "http://asyncapi.com/bindings/kafka/0.5.0/server.json"
               }
             },
             {
@@ -1949,6 +1965,42 @@
         }
       },
       "default": true
+    },
+    "http://asyncapi.com/bindings/kafka/0.5.0/server.json": {
+      "$id": "http://asyncapi.com/bindings/kafka/0.5.0/server.json",
+      "title": "Server Schema",
+      "description": "This object contains server connection information to a Kafka broker. This object contains additional information not possible to represent within the core AsyncAPI specification.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-[\\w\\d\\.\\x2d_]+$": {
+          "$ref": "http://asyncapi.com/definitions/3.0.0/specificationExtension.json"
+        }
+      },
+      "properties": {
+        "schemaRegistryUrl": {
+          "type": "string",
+          "description": "API URL for the Schema Registry used when producing Kafka messages (if a Schema Registry was used)."
+        },
+        "schemaRegistryVendor": {
+          "type": "string",
+          "description": "The vendor of the Schema Registry and Kafka serdes library that should be used."
+        },
+        "bindingVersion": {
+          "type": "string",
+          "enum": [
+            "0.5.0"
+          ],
+          "description": "The version of this binding."
+        }
+      },
+      "examples": [
+        {
+          "schemaRegistryUrl": "https://my-schema-registry.com",
+          "schemaRegistryVendor": "confluent",
+          "bindingVersion": "0.5.0"
+        }
+      ]
     },
     "http://asyncapi.com/bindings/kafka/0.4.0/server.json": {
       "$id": "http://asyncapi.com/bindings/kafka/0.4.0/server.json",
@@ -3705,6 +3757,7 @@
           "properties": {
             "bindingVersion": {
               "enum": [
+                "0.5.0",
                 "0.4.0",
                 "0.3.0"
               ]
@@ -3721,7 +3774,22 @@
                 }
               },
               "then": {
-                "$ref": "http://asyncapi.com/bindings/kafka/0.4.0/message.json"
+                "$ref": "http://asyncapi.com/bindings/kafka/0.5.0/message.json"
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "bindingVersion"
+                ],
+                "properties": {
+                  "bindingVersion": {
+                    "const": "0.5.0"
+                  }
+                }
+              },
+              "then": {
+                "$ref": "http://asyncapi.com/bindings/kafka/0.5.0/message.json"
               }
             },
             {
@@ -4114,6 +4182,75 @@
           },
           "responseTopic": "application/responses",
           "bindingVersion": "0.2.0"
+        }
+      ]
+    },
+    "http://asyncapi.com/bindings/kafka/0.5.0/message.json": {
+      "$id": "http://asyncapi.com/bindings/kafka/0.5.0/message.json",
+      "title": "Message Schema",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-[\\w\\d\\.\\x2d_]+$": {
+          "$ref": "http://asyncapi.com/definitions/3.0.0/specificationExtension.json"
+        }
+      },
+      "properties": {
+        "key": {
+          "oneOf": [
+            {
+              "$ref": "http://asyncapi.com/definitions/3.0.0/Reference.json"
+            },
+            {
+              "$ref": "http://asyncapi.com/definitions/3.0.0/schema.json"
+            }
+          ],
+          "description": "The message key."
+        },
+        "schemaIdLocation": {
+          "type": "string",
+          "description": "If a Schema Registry is used when performing this operation, tells where the id of schema is stored.",
+          "enum": [
+            "header",
+            "payload"
+          ]
+        },
+        "schemaIdPayloadEncoding": {
+          "type": "string",
+          "description": "Number of bytes or vendor specific values when schema id is encoded in payload."
+        },
+        "schemaLookupStrategy": {
+          "type": "string",
+          "description": "Freeform string for any naming strategy class to use. Clients should default to the vendor default if not supplied."
+        },
+        "bindingVersion": {
+          "type": "string",
+          "enum": [
+            "0.5.0"
+          ],
+          "description": "The version of this binding. If omitted, 'latest' MUST be assumed."
+        }
+      },
+      "examples": [
+        {
+          "key": {
+            "type": "string",
+            "enum": [
+              "myKey"
+            ]
+          },
+          "schemaIdLocation": "payload",
+          "schemaIdPayloadEncoding": "apicurio-new",
+          "schemaLookupStrategy": "TopicIdStrategy",
+          "bindingVersion": "0.5.0"
+        },
+        {
+          "key": {
+            "$ref": "path/to/user-create.avsc#/UserCreate"
+          },
+          "schemaIdLocation": "payload",
+          "schemaIdPayloadEncoding": "4",
+          "bindingVersion": "0.5.0"
         }
       ]
     },
@@ -4788,6 +4925,7 @@
           "properties": {
             "bindingVersion": {
               "enum": [
+                "0.5.0",
                 "0.4.0",
                 "0.3.0"
               ]
@@ -4804,7 +4942,22 @@
                 }
               },
               "then": {
-                "$ref": "http://asyncapi.com/bindings/kafka/0.4.0/channel.json"
+                "$ref": "http://asyncapi.com/bindings/kafka/0.5.0/channel.json"
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "bindingVersion"
+                ],
+                "properties": {
+                  "bindingVersion": {
+                    "const": "0.5.0"
+                  }
+                }
+              },
+              "then": {
+                "$ref": "http://asyncapi.com/bindings/kafka/0.5.0/channel.json"
               }
             },
             {
@@ -5320,6 +5473,103 @@
             "vhost": "/"
           },
           "bindingVersion": "0.3.0"
+        }
+      ]
+    },
+    "http://asyncapi.com/bindings/kafka/0.5.0/channel.json": {
+      "$id": "http://asyncapi.com/bindings/kafka/0.5.0/channel.json",
+      "title": "Channel Schema",
+      "description": "This object contains information about the channel representation in Kafka.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-[\\w\\d\\.\\x2d_]+$": {
+          "$ref": "http://asyncapi.com/definitions/3.0.0/specificationExtension.json"
+        }
+      },
+      "properties": {
+        "topic": {
+          "type": "string",
+          "description": "Kafka topic name if different from channel name."
+        },
+        "partitions": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of partitions configured on this topic."
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of replicas configured on this topic."
+        },
+        "topicConfiguration": {
+          "description": "Topic configuration properties that are relevant for the API.",
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "cleanup.policy": {
+              "description": "The [`cleanup.policy`](https://kafka.apache.org/documentation/#topicconfigs_cleanup.policy) configuration option.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "compact",
+                  "delete"
+                ]
+              }
+            },
+            "retention.ms": {
+              "description": "The [`retention.ms`](https://kafka.apache.org/documentation/#topicconfigs_retention.ms) configuration option.",
+              "type": "integer",
+              "minimum": -1
+            },
+            "retention.bytes": {
+              "description": "The [`retention.bytes`](https://kafka.apache.org/documentation/#topicconfigs_retention.bytes) configuration option.",
+              "type": "integer",
+              "minimum": -1
+            },
+            "delete.retention.ms": {
+              "description": "The [`delete.retention.ms`](https://kafka.apache.org/documentation/#topicconfigs_delete.retention.ms) configuration option.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "max.message.bytes": {
+              "description": "The [`max.message.bytes`](https://kafka.apache.org/documentation/#topicconfigs_max.message.bytes) configuration option.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "confluent.key.schema.validation": {
+              "description": "It shows whether the schema validation for the message key is enabled. Vendor specific config.",
+              "type": "boolean"
+            },
+            "confluent.key.subject.name.strategy": {
+              "description": "The name of the schema lookup strategy for the message key. Vendor specific config.",
+              "type": "string"
+            },
+            "confluent.value.schema.validation": {
+              "description": "It shows whether the schema validation for the message value is enabled. Vendor specific config.",
+              "type": "boolean"
+            },
+            "confluent.value.subject.name.strategy": {
+              "description": "The name of the schema lookup strategy for the message value. Vendor specific config.",
+              "type": "string"
+            }
+          }
+        },
+        "bindingVersion": {
+          "type": "string",
+          "enum": [
+            "0.5.0"
+          ],
+          "description": "The version of this binding. If omitted, 'latest' MUST be assumed."
+        }
+      },
+      "examples": [
+        {
+          "topic": "my-specific-topic",
+          "partitions": 20,
+          "replicas": 3,
+          "bindingVersion": "0.5.0"
         }
       ]
     },
@@ -6741,6 +6991,7 @@
           "properties": {
             "bindingVersion": {
               "enum": [
+                "0.5.0",
                 "0.4.0",
                 "0.3.0"
               ]
@@ -6757,7 +7008,22 @@
                 }
               },
               "then": {
-                "$ref": "http://asyncapi.com/bindings/kafka/0.4.0/operation.json"
+                "$ref": "http://asyncapi.com/bindings/kafka/0.5.0/operation.json"
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "bindingVersion"
+                ],
+                "properties": {
+                  "bindingVersion": {
+                    "const": "0.5.0"
+                  }
+                }
+              },
+              "then": {
+                "$ref": "http://asyncapi.com/bindings/kafka/0.5.0/operation.json"
               }
             },
             {
@@ -7283,6 +7549,52 @@
           "retain": true,
           "messageExpiryInterval": 60,
           "bindingVersion": "0.2.0"
+        }
+      ]
+    },
+    "http://asyncapi.com/bindings/kafka/0.5.0/operation.json": {
+      "$id": "http://asyncapi.com/bindings/kafka/0.5.0/operation.json",
+      "title": "Operation Schema",
+      "description": "This object contains information about the operation representation in Kafka.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-[\\w\\d\\.\\x2d_]+$": {
+          "$ref": "http://asyncapi.com/definitions/3.0.0/specificationExtension.json"
+        }
+      },
+      "properties": {
+        "groupId": {
+          "$ref": "http://asyncapi.com/definitions/3.0.0/schema.json",
+          "description": "Id of the consumer group."
+        },
+        "clientId": {
+          "$ref": "http://asyncapi.com/definitions/3.0.0/schema.json",
+          "description": "Id of the consumer inside a consumer group."
+        },
+        "bindingVersion": {
+          "type": "string",
+          "enum": [
+            "0.5.0"
+          ],
+          "description": "The version of this binding. If omitted, 'latest' MUST be assumed."
+        }
+      },
+      "examples": [
+        {
+          "groupId": {
+            "type": "string",
+            "enum": [
+              "myGroupId"
+            ]
+          },
+          "clientId": {
+            "type": "string",
+            "enum": [
+              "myClientId"
+            ]
+          },
+          "bindingVersion": "0.5.0"
         }
       ]
     },

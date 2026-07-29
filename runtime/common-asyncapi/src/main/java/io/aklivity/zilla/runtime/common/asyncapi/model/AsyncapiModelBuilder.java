@@ -14,29 +14,17 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
-import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
-public class AsyncapiMessage extends AbstractAsyncapiResolvable
+public abstract class AsyncapiModelBuilder<T, B extends AsyncapiModelBuilder<T, B>>
 {
-    public AsyncapiSchema headers;
-    public String contentType;
-    public AsyncapiSchemaItem payload;
-    public List<AsyncapiTrait> traits;
-    public AsyncapiCorrelationId correlationId;
-    public Map<String, Object> bindings;
+    protected abstract Class<B> thisType();
 
-    public Map<String, Object> extensions;
-
-    public static AsyncapiMessageBuilder<AsyncapiMessage> builder()
+    public final <R> R inject(
+        Function<B, R> visitor)
     {
-        return new AsyncapiMessageBuilder<>(AsyncapiMessage.class::cast);
+        return visitor.apply(thisType().cast(this));
     }
 
-    public static <T> AsyncapiMessageBuilder<T> builder(
-        Function<AsyncapiMessage, T> mapper)
-    {
-        return new AsyncapiMessageBuilder<>(mapper);
-    }
+    public abstract T build();
 }

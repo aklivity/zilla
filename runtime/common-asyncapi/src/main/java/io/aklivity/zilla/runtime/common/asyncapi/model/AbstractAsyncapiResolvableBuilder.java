@@ -14,21 +14,16 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
-import java.util.function.Function;
-
-public class AsyncapiMultiFormatSchema extends AsyncapiSchemaItem
+public abstract class AbstractAsyncapiResolvableBuilder<T, B extends AbstractAsyncapiResolvableBuilder<T, B>>
+    extends AsyncapiModelBuilder<T, B>
 {
-    public String schemaFormat;
-    public Object schema;
+    protected String ref;
 
-    public static AsyncapiMultiFormatSchemaBuilder<AsyncapiMultiFormatSchema> builder()
+    @SuppressWarnings("unchecked")
+    public B ref(
+        String ref)
     {
-        return new AsyncapiMultiFormatSchemaBuilder<>(AsyncapiMultiFormatSchema.class::cast);
-    }
-
-    public static <T> AsyncapiMultiFormatSchemaBuilder<T> builder(
-        Function<AsyncapiMultiFormatSchema, T> mapper)
-    {
-        return new AsyncapiMultiFormatSchemaBuilder<>(mapper);
+        this.ref = ref;
+        return (B) this;
     }
 }
