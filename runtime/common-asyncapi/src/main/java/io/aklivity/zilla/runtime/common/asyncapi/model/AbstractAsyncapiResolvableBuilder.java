@@ -14,22 +14,16 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
-import java.util.function.Function;
-
-public class AsyncapiInfo
+public abstract class AbstractAsyncapiResolvableBuilder<T, B extends AbstractAsyncapiResolvableBuilder<T, B>>
+    extends AsyncapiModelBuilder<T, B>
 {
-    public String title;
-    public String version;
-    public String description;
+    protected String ref;
 
-    public static AsyncapiInfoBuilder<AsyncapiInfo> builder()
+    @SuppressWarnings("unchecked")
+    public B ref(
+        String ref)
     {
-        return new AsyncapiInfoBuilder<>(AsyncapiInfo.class::cast);
-    }
-
-    public static <T> AsyncapiInfoBuilder<T> builder(
-        Function<AsyncapiInfo, T> mapper)
-    {
-        return new AsyncapiInfoBuilder<>(mapper);
+        this.ref = ref;
+        return (B) this;
     }
 }

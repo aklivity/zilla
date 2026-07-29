@@ -16,20 +16,15 @@ package io.aklivity.zilla.runtime.common.asyncapi.model;
 
 import java.util.function.Function;
 
-public class AsyncapiInfo
+public abstract class AsyncapiModelBuilder<T, B extends AsyncapiModelBuilder<T, B>>
 {
-    public String title;
-    public String version;
-    public String description;
+    protected abstract Class<B> thisType();
 
-    public static AsyncapiInfoBuilder<AsyncapiInfo> builder()
+    public final <R> R inject(
+        Function<B, R> visitor)
     {
-        return new AsyncapiInfoBuilder<>(AsyncapiInfo.class::cast);
+        return visitor.apply(thisType().cast(this));
     }
 
-    public static <T> AsyncapiInfoBuilder<T> builder(
-        Function<AsyncapiInfo, T> mapper)
-    {
-        return new AsyncapiInfoBuilder<>(mapper);
-    }
+    public abstract T build();
 }

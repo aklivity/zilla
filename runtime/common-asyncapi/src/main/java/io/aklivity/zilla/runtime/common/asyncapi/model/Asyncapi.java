@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
 import java.util.Map;
+import java.util.function.Function;
 
 public class Asyncapi
 {
@@ -27,4 +28,15 @@ public class Asyncapi
     public String defaultContentType;
 
     public Map<String, Object> extensions;
+
+    public static AsyncapiBuilder<Asyncapi> builder()
+    {
+        return new AsyncapiBuilder<>(Asyncapi.class::cast);
+    }
+
+    public static <T> AsyncapiBuilder<T> builder(
+        Function<Asyncapi, T> mapper)
+    {
+        return new AsyncapiBuilder<>(mapper);
+    }
 }
