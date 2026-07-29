@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.asyncapi.view;
 
 import static java.util.stream.Collectors.toMap;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -60,7 +61,8 @@ public final class AsyncapiSchemaView extends AsyncapiSchemaItemView
             : null;
         this.properties = resolved.properties != null
             ? resolved.properties.entrySet().stream()
-                .collect(toMap(Map.Entry::getKey, e -> new AsyncapiSchemaView(resolver, e.getValue())))
+                .collect(toMap(Map.Entry::getKey, e -> new AsyncapiSchemaView(resolver, e.getValue()),
+                    (l, r) -> l, LinkedHashMap::new))
             : null;
         this.required = resolved.required;
         this.format = resolved.format;

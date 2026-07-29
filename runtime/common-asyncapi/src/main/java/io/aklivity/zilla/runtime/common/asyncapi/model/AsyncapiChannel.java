@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.asyncapi.model;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class AsyncapiChannel extends AbstractAsyncapiResolvable
 {
@@ -24,6 +25,18 @@ public class AsyncapiChannel extends AbstractAsyncapiResolvable
     public LinkedHashMap<String, AsyncapiMessage> messages;
     public LinkedHashMap<String, AsyncapiParameter> parameters;
     public List<AsyncapiServer> servers;
+    public Map<String, Object> bindings;
 
     public Map<String, Object> extensions;
+
+    public static AsyncapiChannelBuilder<AsyncapiChannel> builder()
+    {
+        return new AsyncapiChannelBuilder<>(AsyncapiChannel.class::cast);
+    }
+
+    public static <T> AsyncapiChannelBuilder<T> builder(
+        Function<AsyncapiChannel, T> mapper)
+    {
+        return new AsyncapiChannelBuilder<>(mapper);
+    }
 }

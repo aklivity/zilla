@@ -36,14 +36,15 @@ public final class AsyncapiMultiFormatSchemaDeserializer implements JsonbDeseria
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> channelBindingTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         this.extensionTypes = extensionTypes;
         this.prefixExtensionTypes = prefixExtensionTypes;
         this.plain = AsyncapiDeserializers.plain(
-            operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes,
-            AsyncapiMultiFormatSchemaDeserializer.class);
+            operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+            prefixExtensionTypes, AsyncapiMultiFormatSchemaDeserializer.class);
     }
 
     @Override
@@ -62,6 +63,10 @@ public final class AsyncapiMultiFormatSchemaDeserializer implements JsonbDeseria
         Supplier<Jsonb> plain)
     {
         AsyncapiMultiFormatSchema model = plain.get().fromJson(object.toString(), AsyncapiMultiFormatSchema.class);
+        if (object.containsKey("schema"))
+        {
+            model.schema = AsyncapiDeserializers.toPlainValue(object.get("schema"));
+        }
         model.extensions = AsyncapiDeserializers.extensions(
             object, AsyncapiExtension.Scope.SCHEMA, extensionTypes, prefixExtensionTypes, plain);
 
