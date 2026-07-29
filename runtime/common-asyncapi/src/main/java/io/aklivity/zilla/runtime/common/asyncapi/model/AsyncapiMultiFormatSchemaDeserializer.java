@@ -63,6 +63,10 @@ public final class AsyncapiMultiFormatSchemaDeserializer implements JsonbDeseria
         Supplier<Jsonb> plain)
     {
         AsyncapiMultiFormatSchema model = plain.get().fromJson(object.toString(), AsyncapiMultiFormatSchema.class);
+        if (object.containsKey("schema"))
+        {
+            model.schema = AsyncapiDeserializers.toPlainValue(object.get("schema"));
+        }
         model.extensions = AsyncapiDeserializers.extensions(
             object, AsyncapiExtension.Scope.SCHEMA, extensionTypes, prefixExtensionTypes, plain);
 

@@ -55,6 +55,10 @@ public final class AsyncapiSecuritySchemeDeserializer implements JsonbDeserializ
     {
         JsonObject object = parser.getObject();
         AsyncapiSecurityScheme model = plain.get().fromJson(object.toString(), AsyncapiSecurityScheme.class);
+        if (object.containsKey("flows"))
+        {
+            model.flows = AsyncapiDeserializers.toPlainValue(object.get("flows"));
+        }
         model.extensions = AsyncapiDeserializers.extensions(
             object, AsyncapiExtension.Scope.SECURITY_SCHEME, extensionTypes, prefixExtensionTypes, plain);
 

@@ -107,6 +107,7 @@ public class AsyncapiParser
             Jsonb jsonb = JsonbBuilder.newBuilder()
                     .withConfig(new JsonbConfig()
                         .withDeserializers(deserializers.toArray(JsonbDeserializer[]::new)))
+                    .withProvider(provider)
                     .build();
 
             asyncapi = jsonb.fromJson(asyncapiObject.toString(), Asyncapi.class);

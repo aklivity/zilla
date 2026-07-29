@@ -18,7 +18,6 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Map;
 
-import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
@@ -43,6 +42,7 @@ public class AsyncapiWriter
     {
         this.jsonb = JsonbBuilder.newBuilder()
             .withConfig(new JsonbConfig().withNullValues(false))
+            .withProvider(YamlJson.provider())
             .build();
     }
 
@@ -75,7 +75,7 @@ public class AsyncapiWriter
 
         if (value instanceof JsonObject object)
         {
-            JsonObjectBuilder builder = Json.createObjectBuilder();
+            JsonObjectBuilder builder = YamlJson.provider().createObjectBuilder();
 
             for (Map.Entry<String, JsonValue> entry : object.entrySet())
             {
@@ -96,7 +96,7 @@ public class AsyncapiWriter
         }
         else if (value instanceof JsonArray array)
         {
-            JsonArrayBuilder builder = Json.createArrayBuilder();
+            JsonArrayBuilder builder = YamlJson.provider().createArrayBuilder();
 
             for (JsonValue element : array)
             {
