@@ -16,9 +16,15 @@ package io.aklivity.zilla.runtime.common.asyncapi.config;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.Map;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -29,6 +35,8 @@ import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class AsyncapiWriter
 {
+    private static final String EXTENSIONS_FIELD = "extensions";
+
     private final Jsonb jsonb;
 
     public AsyncapiWriter()
@@ -49,12 +57,55 @@ public class AsyncapiWriter
             object = reader.readObject();
         }
 
+        JsonObject flattened = (JsonObject) flattenExtensions(object);
+
         StringWriter writer = new StringWriter();
         try (JsonWriter yaml = YamlJson.createWriter(writer))
         {
-            yaml.writeObject(object);
+            yaml.writeObject(flattened);
         }
 
         return writer.toString();
+    }
+
+    private static JsonValue flattenExtensions(
+        JsonValue value)
+    {
+        JsonValue result = value;
+
+        if (value instanceof JsonObject object)
+        {
+            JsonObjectBuilder builder = Json.createObjectBuilder();
+
+            for (Map.Entry<String, JsonValue> entry : object.entrySet())
+            {
+                if (EXTENSIONS_FIELD.equals(entry.getKey()) && entry.getValue() instanceof JsonObject extensions)
+                {
+                    for (Map.Entry<String, JsonValue> extension : extensions.entrySet())
+                    {
+                        builder.add(extension.getKey(), flattenExtensions(extension.getValue()));
+                    }
+                }
+                else
+                {
+                    builder.add(entry.getKey(), flattenExtensions(entry.getValue()));
+                }
+            }
+
+            result = builder.build();
+        }
+        else if (value instanceof JsonArray array)
+        {
+            JsonArrayBuilder builder = Json.createArrayBuilder();
+
+            for (JsonValue element : array)
+            {
+                builder.add(flattenExtensions(element));
+            }
+
+            result = builder.build();
+        }
+
+        return result;
     }
 }

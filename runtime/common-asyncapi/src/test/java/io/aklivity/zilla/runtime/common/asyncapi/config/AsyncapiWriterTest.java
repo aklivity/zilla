@@ -36,6 +36,11 @@ public class AsyncapiWriterTest
         public String key;
     }
 
+    public static final class SampleExtension
+    {
+        public String key;
+    }
+
     @Test
     public void shouldRoundTripAsyncapiVersionAndInfo()
     {
@@ -111,5 +116,42 @@ public class AsyncapiWriterTest
 
         assertEquals(1, reparsed.channels.size());
         assertEquals("events", reparsed.channels.get("events").address);
+    }
+
+    @Test
+    public void shouldFlattenExtensionsToSiblingXKeysNotWrapperField()
+    {
+        Asyncapi asyncapi = new Asyncapi();
+        asyncapi.asyncapi = "3.0.0";
+        asyncapi.info = new AsyncapiInfo();
+        asyncapi.info.title = "Test API";
+        asyncapi.info.version = "1.0.0";
+
+        Map<String, Object> extensionValue = new LinkedHashMap<>();
+        extensionValue.put("key", "server-value");
+
+        AsyncapiServer server = new AsyncapiServer();
+        server.host = "localhost:9092";
+        server.protocol = "kafka";
+        server.extensions = new LinkedHashMap<>();
+        server.extensions.put("x-zilla-sample", extensionValue);
+
+        asyncapi.servers = new LinkedHashMap<>();
+        asyncapi.servers.put("local", server);
+
+        String yaml = new AsyncapiWriter().write(asyncapi);
+
+        assertTrue(yaml.contains("x-zilla-sample"));
+        assertTrue(!yaml.contains("extensions:"));
+
+        AsyncapiParser parser = new AsyncapiParserFactory()
+            .withExtension(AsyncapiExtension.of(AsyncapiExtension.Scope.SERVER, "x-zilla-sample", SampleExtension.class))
+            .createParser();
+        Asyncapi reparsed = parser.parse(yaml);
+        AsyncapiView view = AsyncapiView.of(reparsed);
+        AsyncapiServerView reparsedServer = view.servers.get(0);
+
+        assertTrue(reparsedServer.hasExtension("x-zilla-sample"));
+        assertEquals("server-value", reparsedServer.extension("x-zilla-sample", SampleExtension.class).get().key);
     }
 }
