@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_I
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -101,6 +100,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private final SignalFW signalRO = new SignalFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
+    private final KafkaCreateTopicsRequestBeginExFW createTopicsRequestBeginExRO = new KafkaCreateTopicsRequestBeginExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -210,23 +210,10 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             final long resolvedId = resolved.id;
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
-            List<TopicInfo> topics = new ArrayList<>();
-            kafkaCreateTopicsBeginEx.topics().forEach(t ->
-            {
-                String name = t.name().asString();
-                int partitionCount = t.partitionCount();
-                short replicas = t.replicas();
-                List<AssignmentInfo> assignments = new ArrayList<>();
-                t.assignments().forEach(a -> assignments.add(new AssignmentInfo(a.partitionId(), List.of(a.leaderId()))));
-                List<ConfigInfo> configs = new ArrayList<>();
-                t.configs().forEach(c -> configs.add(new ConfigInfo(c.name().asString(), c.value().asString())));
-
-                topics.add(new TopicInfo(name, partitionCount, replicas, assignments, configs));
-            });
-            int timeout = kafkaCreateTopicsBeginEx.timeout();
-            byte validateOnly = (byte) kafkaCreateTopicsBeginEx.validateOnly();
-
-            final CreateTopicsRequestInfo request = new CreateTopicsRequestInfo(topics, timeout, validateOnly);
+            final int requestOffset = kafkaCreateTopicsBeginEx.offset();
+            final int requestLength = kafkaCreateTopicsBeginEx.limit() - requestOffset;
+            final MutableDirectBufferEx requestBuffer = new UnsafeBufferEx(new byte[requestLength]);
+            requestBuffer.putBytes(0, kafkaCreateTopicsBeginEx.buffer(), requestOffset, requestLength);
 
             newStream = new KafkaCreateTopicsStream(
                     application,
@@ -235,7 +222,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                     initialId,
                     affinity,
                     resolvedId,
-                    request,
+                    requestBuffer,
+                    requestLength,
                     binding.servers(),
                     sasl,
                     binding.guard)::onApplication;
@@ -648,7 +636,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long initialId,
             long affinity,
             long resolvedId,
-            CreateTopicsRequestInfo request,
+            DirectBufferEx requestBuffer,
+            int requestLength,
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
             GuardHandler guard)
@@ -659,7 +648,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaCreateTopicsClient(this, routedId, resolvedId, request, servers, sasl, guard);
+            this.client = new KafkaCreateTopicsClient(
+                this, routedId, resolvedId, requestBuffer, requestLength, servers, sasl, guard);
         }
 
         private void onApplication(
@@ -914,7 +904,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         private final LongLongConsumer encodeCreateTopicsRequest = this::doEncodeCreateTopicsRequest;
 
         private final KafkaCreateTopicsStream delegate;
-        private final CreateTopicsRequestInfo request;
+        private final DirectBufferEx requestBuffer;
+        private final int requestLength;
 
         private MessageConsumer network;
         private int state;
@@ -950,14 +941,16 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             KafkaCreateTopicsStream delegate,
             long originId,
             long routedId,
-            CreateTopicsRequestInfo request,
+            DirectBufferEx requestBuffer,
+            int requestLength,
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
             GuardHandler guard)
         {
             super(servers, sasl, guard, originId, routedId);
             this.delegate = delegate;
-            this.request = request;
+            this.requestBuffer = requestBuffer;
+            this.requestLength = requestLength;
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeCreateTopicsRequest;
 
             this.decoder = decodeReject;
@@ -1313,80 +1306,87 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
             encodeProgress = requestHeader.limit();
 
+            final KafkaCreateTopicsRequestBeginExFW requestEx =
+                createTopicsRequestBeginExRO.wrap(requestBuffer, 0, requestLength);
+
             final CreateTopicsRequestFW createTopicsRequest =
                 createTopicsRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .taggedFields(0)
-                    .topicCount(request.topics.size())
+                    .topicCount(requestEx.topics().fieldCount())
                     .build();
 
             encodeProgress = createTopicsRequest.limit();
 
-            for (TopicInfo topic : request.topics)
+            final int[] progress = { encodeProgress };
+
+            requestEx.topics().forEach(topic ->
             {
-                final TopicRequestFW topicRequest = topicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .name(topic.name)
-                    .partitions(topic.partitions)
-                    .replicas(topic.replicas)
-                    .assignmentCount(topic.assignments.size())
+                final DirectBufferEx topicName = topic.name().value();
+                final TopicRequestFW topicRequest = topicRequestRW.wrap(encodeBuffer, progress[0], encodeLimit)
+                    .name(topicName, 0, topicName.capacity())
+                    .partitions(topic.partitionCount())
+                    .replicas(topic.replicas())
+                    .assignmentCount(topic.assignments().fieldCount())
                     .build();
 
-                encodeProgress = topicRequest.limit();
+                progress[0] = topicRequest.limit();
 
-                for (AssignmentInfo assignment : topic.assignments)
+                topic.assignments().forEach(assignment ->
                 {
-                    AssignmentRequestFW assignmentRequest = assignmentRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                        .partitionIndex(assignment.partitionIndex)
-                        .brokerCount(assignment.brokerIds.size())
+                    AssignmentRequestFW assignmentRequest = assignmentRequestRW.wrap(encodeBuffer, progress[0], encodeLimit)
+                        .partitionIndex(assignment.partitionId())
+                        .brokerCount(1)
                         .build();
 
-                    encodeProgress = assignmentRequest.limit();
+                    progress[0] = assignmentRequest.limit();
 
-                    for (int brokerId : assignment.brokerIds)
-                    {
-                        BrokerRequestFW brokerRequest = brokerRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                            .brokerId(brokerId)
-                            .build();
+                    BrokerRequestFW brokerRequest = brokerRequestRW.wrap(encodeBuffer, progress[0], encodeLimit)
+                        .brokerId(assignment.leaderId())
+                        .build();
 
-                        encodeProgress = brokerRequest.limit();
-                    }
+                    progress[0] = brokerRequest.limit();
 
                     AssignmentRequestPart2FW assignmentRequestPart2 = assignmentRequestPart2RW
-                        .wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .wrap(encodeBuffer, progress[0], encodeLimit)
                         .taggedFields(0)
                         .build();
 
-                    encodeProgress = assignmentRequestPart2.limit();
-                }
+                    progress[0] = assignmentRequestPart2.limit();
+                });
 
-                ConfigsRequestFW configsRequest = configsRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .configCount(topic.configs.size())
+                ConfigsRequestFW configsRequest = configsRequestRW.wrap(encodeBuffer, progress[0], encodeLimit)
+                    .configCount(topic.configs().fieldCount())
                     .build();
 
-                encodeProgress = configsRequest.limit();
+                progress[0] = configsRequest.limit();
 
-                for (ConfigInfo config : topic.configs)
+                topic.configs().forEach(config ->
                 {
-                    ConfigRequestFW configRequest = configRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                        .name(config.name)
-                        .value(config.value)
+                    final DirectBufferEx configName = config.name().value();
+                    final DirectBufferEx configValue = config.value().value();
+                    ConfigRequestFW configRequest = configRequestRW.wrap(encodeBuffer, progress[0], encodeLimit)
+                        .name(configName, 0, configName.capacity())
+                        .value(configValue, 0, configValue.capacity())
                         .taggedFields(0)
                         .build();
 
-                    encodeProgress = configRequest.limit();
-                }
+                    progress[0] = configRequest.limit();
+                });
 
                 TopicRequestPart2FW topicRequestPart2 = topicRequestPart2RW
-                    .wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .wrap(encodeBuffer, progress[0], encodeLimit)
                     .taggedFields(0)
                     .build();
 
-                encodeProgress = topicRequestPart2.limit();
-            }
+                progress[0] = topicRequestPart2.limit();
+            });
+
+            encodeProgress = progress[0];
 
             CreateTopicsRequestPart2FW createTopicsRequestPart2 = createTopicsRequestPart2RW
                 .wrap(encodeBuffer, encodeProgress, encodeLimit)
-                .timeout(request.timeoutMs)
-                .validate_only(request.validateOnly)
+                .timeout(requestEx.timeout())
+                .validate_only((byte) requestEx.validateOnly())
                 .taggedFields(0)
                 .build();
 
@@ -1665,33 +1665,5 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                 initialDebIndex = NO_DEBITOR_INDEX;
             }
         }
-    }
-
-    private record CreateTopicsRequestInfo(
-        List<TopicInfo> topics,
-        int timeoutMs,
-        byte validateOnly)
-    {
-    }
-
-    private record TopicInfo(
-        String name,
-        int partitions,
-        short replicas,
-        List<AssignmentInfo> assignments,
-        List<ConfigInfo> configs)
-    {
-    }
-
-    private record AssignmentInfo(
-        int partitionIndex,
-        List<Integer> brokerIds)
-    {
-    }
-
-    private record ConfigInfo(
-        String name,
-        String value)
-    {
     }
 }
