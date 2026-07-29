@@ -355,6 +355,7 @@
 - feat\(config\): modularize binding/catalog/guard/vault/exporter/model config into standalone modules [\#2210](https://github.com/aklivity/zilla/pull/2210) ([jfallows](https://github.com/jfallows))
 - fix\(binding-tcp,binding-tls,engine,exporter-otlp\): unify phantom-reply address signaling + stale-binding metrics [\#2213](https://github.com/aklivity/zilla/pull/2213) ([akrambek](https://github.com/akrambek))
 - fix\(binding-mcp\): set content-type on deferred JSON-RPC error responses [\#2214](https://github.com/aklivity/zilla/pull/2214) ([jfallows](https://github.com/jfallows))
+- Add AsyncAPI channel-binding SPI, writer, and typed document builders [\#2215](https://github.com/aklivity/zilla/pull/2215) ([akrambek](https://github.com/akrambek))
 
 ## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
 
