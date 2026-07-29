@@ -14,17 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.asyncapi.model;
 
-import java.util.Map;
-
-public class Asyncapi
+public class AsyncapiInfo
 {
-    public String asyncapi;
-    public AsyncapiInfo info;
-    public Map<String, AsyncapiServer> servers;
-    public Map<String, AsyncapiChannel> channels;
-    public Map<String, AsyncapiOperation> operations;
-    public AsyncapiComponents components;
-    public String defaultContentType;
-
-    public Map<String, Object> extensions;
+    public String title;
+    public String version;
+    public String description;
 }
