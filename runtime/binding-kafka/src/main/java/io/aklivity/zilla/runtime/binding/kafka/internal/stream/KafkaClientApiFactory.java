@@ -1123,7 +1123,9 @@ public final class KafkaClientApiFactory implements BindingHandler
 
         private int nextCorrelationId;
         private int responseBytesRemaining;
-        private boolean attached;
+        // not derived from decoder + pending state: distinguishes a real caller
+        // request in flight from an internal ApiVersions-probe/SASL exchange,
+        // which share the same decoder states but must not poll pending on completion
         private boolean requestInFlight;
 
         private long reconnectAt = NO_CANCEL_ID;
@@ -1189,7 +1191,6 @@ public final class KafkaClientApiFactory implements BindingHandler
                 final KafkaApiStream head = pending.peek();
                 if (head != null)
                 {
-                    attached = true;
                     head.doAppWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
                     doEncodeRequestHeader(head, traceId, initialBudgetId);
                 }
@@ -1201,7 +1202,6 @@ public final class KafkaClientApiFactory implements BindingHandler
                 final KafkaApiStream head = pending.peek();
                 if (head != null)
                 {
-                    attached = true;
                     if (head.api == API_VERSIONS_API_KEY && head.version == API_VERSIONS_API_VERSION)
                     {
                         apiVersionsRequestExplicit = true;
@@ -1230,7 +1230,6 @@ public final class KafkaClientApiFactory implements BindingHandler
 
                 if (head != null)
                 {
-                    attached = true;
                     doEncodeSaslHandshakeRequest(traceId, initialBudgetId, head.authorization);
                 }
                 return;
@@ -1264,7 +1263,6 @@ public final class KafkaClientApiFactory implements BindingHandler
 
                 if (apiVersionSupported(head.api, head.version))
                 {
-                    attached = true;
                     head.doAppWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
                     doEncodeRequestHeader(head, traceId, initialBudgetId);
                     break;
@@ -1767,7 +1765,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             this.authorization = window.authorization();
 
-            final boolean notYetAttached = !attached;
+            final boolean notYetAttached = nextCorrelationId == 0;
 
             state = KafkaState.openedInitial(state);
 
@@ -1822,7 +1820,6 @@ public final class KafkaClientApiFactory implements BindingHandler
                 apiVersionKeysRemaining = 0;
                 saslMechanismsRemaining = 0;
 
-                attached = false;
                 requestInFlight = false;
                 apiVersionsRequestExplicit = false;
 
