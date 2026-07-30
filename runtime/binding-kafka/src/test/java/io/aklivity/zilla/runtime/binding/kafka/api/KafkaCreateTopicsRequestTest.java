@@ -17,19 +17,18 @@ package io.aklivity.zilla.runtime.binding.kafka.api;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-
-import java.util.List;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Assignment;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Config;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Request;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Assignment;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Generator;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Topic;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class KafkaCreateTopicsRequestGeneratorTest
+public class KafkaCreateTopicsRequestTest
 {
     // body bytes only, as verified against the real KafkaClientCreateTopicsFactory v7 wire encoder output
     // (RequestHeader apiKey/apiVersion/correlationId/clientId are encoded separately and excluded here)
@@ -70,26 +69,132 @@ public class KafkaCreateTopicsRequestGeneratorTest
     @Test
     public void shouldGenerateCreateTopicsV7Request()
     {
-        KafkaCreateTopicsRequestGenerator generator = new KafkaCreateTopicsRequestGenerator();
-
-        Request request = new Request(
-            List.of(
-                new Topic("events", 1, (short) 1,
-                    List.of(new Assignment(0, List.of(0))),
-                    List.of(new Config("cleanup.policy", "delete"))),
-                new Topic("snapshots", 1, (short) 1,
-                    List.of(new Assignment(0, List.of(0))),
-                    List.of(new Config("cleanup.policy", "compact")))),
-            0,
-            false);
-
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
-        int limit = generator.generate(buffer, 0, buffer.capacity(), request);
+        Generator generator = new Generator().wrap(buffer, 0, buffer.capacity());
 
+        generator.topics(2);
+
+        Topic events = generator.topic()
+            .name("events")
+            .partitions(1)
+            .replicas((short) 1)
+            .assignments(1);
+        Assignment eventsAssignment = events.assignment()
+            .partitionIndex(0)
+            .brokers(1)
+            .broker(0);
+        events = eventsAssignment.build();
+        events.configs(1);
+        events = events.config()
+            .name("cleanup.policy")
+            .value("delete")
+            .build();
+        assertTrue(events.build());
+
+        Topic snapshots = generator.topic()
+            .name("snapshots")
+            .partitions(1)
+            .replicas((short) 1)
+            .assignments(1);
+        Assignment snapshotsAssignment = snapshots.assignment()
+            .partitionIndex(0)
+            .brokers(1)
+            .broker(0);
+        snapshots = snapshotsAssignment.build();
+        snapshots.configs(1);
+        snapshots = snapshots.config()
+            .name("cleanup.policy")
+            .value("compact")
+            .build();
+        assertTrue(snapshots.build());
+
+        assertTrue(generator.build(0, false));
+
+        int limit = generator.limit();
         assertEquals(EXPECTED.length, limit);
 
         byte[] actual = new byte[limit];
         buffer.getBytes(0, actual);
         assertArrayEquals(EXPECTED, actual);
+    }
+
+    @Test
+    public void shouldGenerateTopicWithNoAssignmentsOrConfigs()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+        Generator generator = new Generator().wrap(buffer, 0, buffer.capacity());
+
+        generator.topics(1);
+
+        Topic topic = generator.topic()
+            .name("events")
+            .partitions(1)
+            .replicas((short) 1);
+
+        assertTrue(topic.build());
+        assertTrue(generator.build(0, false));
+    }
+
+    @Test
+    public void shouldRejectAssignmentCountMismatch()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+        Generator generator = new Generator().wrap(buffer, 0, buffer.capacity());
+
+        generator.topics(1);
+
+        Topic topic = generator.topic()
+            .name("events")
+            .partitions(1)
+            .replicas((short) 1)
+            .assignments(2);
+
+        Assignment assignment = topic.assignment()
+            .partitionIndex(0)
+            .brokers(1)
+            .broker(0);
+        topic = assignment.build();
+
+        assertFalse(topic.build());
+    }
+
+    @Test
+    public void shouldRejectBrokerCountMismatch()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+        Generator generator = new Generator().wrap(buffer, 0, buffer.capacity());
+
+        generator.topics(1);
+
+        Topic topic = generator.topic()
+            .name("events")
+            .partitions(1)
+            .replicas((short) 1)
+            .assignments(1);
+
+        Assignment assignment = topic.assignment()
+            .partitionIndex(0)
+            .brokers(2);
+        assignment.broker(0);
+        topic = assignment.build();
+
+        assertFalse(topic.build());
+    }
+
+    @Test
+    public void shouldRejectWhenBufferTooSmall()
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[8]);
+        Generator generator = new Generator().wrap(buffer, 0, buffer.capacity());
+
+        generator.topics(1);
+
+        Topic topic = generator.topic()
+            .name("events-topic-name-too-long-to-fit")
+            .partitions(1)
+            .replicas((short) 1)
+            .assignments(0);
+
+        assertFalse(topic.build());
     }
 }
