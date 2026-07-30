@@ -715,7 +715,8 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/reject.request.method.unknown/client"})
+        "${net}/reject.request.method.unknown/client",
+        "${app}/reject.request.method.unknown/server"})
     public void shouldRejectRequestMethodUnknown() throws Exception
     {
         k3po.finish();
