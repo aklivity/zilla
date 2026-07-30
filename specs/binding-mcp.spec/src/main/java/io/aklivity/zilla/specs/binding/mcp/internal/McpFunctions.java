@@ -50,7 +50,10 @@ import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesReadBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesSubscribeBeginExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesTemplatesListBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesUnsubscribeBeginExFW;
+import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResourcesUpdatedFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResumableFlushExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpResumeChallengeExFW;
 import io.aklivity.zilla.specs.binding.mcp.internal.types.stream.McpSuspendFlushExFW;
@@ -138,6 +141,16 @@ public final class McpFunctions
         public McpResourcesTemplatesListBeginExBuilder resourcesTemplatesList()
         {
             return new McpResourcesTemplatesListBeginExBuilder();
+        }
+
+        public McpResourcesSubscribeBeginExBuilder resourcesSubscribe()
+        {
+            return new McpResourcesSubscribeBeginExBuilder();
+        }
+
+        public McpResourcesUnsubscribeBeginExBuilder resourcesUnsubscribe()
+        {
+            return new McpResourcesUnsubscribeBeginExBuilder();
         }
 
         public byte[] build()
@@ -410,6 +423,94 @@ public final class McpFunctions
                 return McpBeginExBuilder.this;
             }
         }
+
+        public final class McpResourcesSubscribeBeginExBuilder
+        {
+            private String sessionId;
+            private String uri;
+            private int contentLength = -1;
+            private long timeout;
+
+            public McpResourcesSubscribeBeginExBuilder sessionId(
+                String sessionId)
+            {
+                this.sessionId = sessionId;
+                return this;
+            }
+
+            public McpResourcesSubscribeBeginExBuilder uri(
+                String uri)
+            {
+                this.uri = uri;
+                return this;
+            }
+
+            public McpResourcesSubscribeBeginExBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpResourcesSubscribeBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
+            public McpBeginExBuilder build()
+            {
+                beginExRW.resourcesSubscribe(b -> b.sessionId(sessionId).uri(uri).contentLength(contentLength).timeout(timeout));
+                return McpBeginExBuilder.this;
+            }
+        }
+
+        public final class McpResourcesUnsubscribeBeginExBuilder
+        {
+            private String sessionId;
+            private String uri;
+            private int contentLength = -1;
+            private long timeout;
+
+            public McpResourcesUnsubscribeBeginExBuilder sessionId(
+                String sessionId)
+            {
+                this.sessionId = sessionId;
+                return this;
+            }
+
+            public McpResourcesUnsubscribeBeginExBuilder uri(
+                String uri)
+            {
+                this.uri = uri;
+                return this;
+            }
+
+            public McpResourcesUnsubscribeBeginExBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpResourcesUnsubscribeBeginExBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
+            public McpBeginExBuilder build()
+            {
+                beginExRW.resourcesUnsubscribe(b -> b
+                    .sessionId(sessionId)
+                    .uri(uri)
+                    .contentLength(contentLength)
+                    .timeout(timeout));
+                return McpBeginExBuilder.this;
+            }
+        }
     }
 
     public static final class McpBeginExMatcherBuilder
@@ -488,6 +589,22 @@ public final class McpFunctions
         {
             this.kind = McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
             final McpResourcesTemplatesListBeginExMatcherBuilder matcher = new McpResourcesTemplatesListBeginExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpResourcesSubscribeBeginExMatcherBuilder resourcesSubscribe()
+        {
+            this.kind = McpBeginExFW.KIND_RESOURCES_SUBSCRIBE;
+            final McpResourcesSubscribeBeginExMatcherBuilder matcher = new McpResourcesSubscribeBeginExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpResourcesUnsubscribeBeginExMatcherBuilder resourcesUnsubscribe()
+        {
+            this.kind = McpBeginExFW.KIND_RESOURCES_UNSUBSCRIBE;
+            final McpResourcesUnsubscribeBeginExMatcherBuilder matcher = new McpResourcesUnsubscribeBeginExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -990,6 +1107,152 @@ public final class McpFunctions
                 return timeout == null || timeout == resourcesTemplatesList.timeout();
             }
         }
+
+        public final class McpResourcesSubscribeBeginExMatcherBuilder
+        {
+            private String16FW sessionId;
+            private String16FW uri;
+            private Integer contentLength;
+            private Long timeout;
+
+            public McpResourcesSubscribeBeginExMatcherBuilder sessionId(
+                String sessionId)
+            {
+                this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpResourcesSubscribeBeginExMatcherBuilder uri(
+                String uri)
+            {
+                this.uri = new String16FW(uri);
+                return this;
+            }
+
+            public McpResourcesSubscribeBeginExMatcherBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpResourcesSubscribeBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
+            public McpBeginExMatcherBuilder build()
+            {
+                return McpBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpBeginExFW beginEx)
+            {
+                final McpResourcesSubscribeBeginExFW resourcesSubscribe = beginEx.resourcesSubscribe();
+                return matchSessionId(resourcesSubscribe) && matchUri(resourcesSubscribe) &&
+                    matchContentLength(resourcesSubscribe) && matchTimeout(resourcesSubscribe);
+            }
+
+            private boolean matchSessionId(
+                McpResourcesSubscribeBeginExFW resourcesSubscribe)
+            {
+                return sessionId == null || sessionId.equals(resourcesSubscribe.sessionId());
+            }
+
+            private boolean matchUri(
+                McpResourcesSubscribeBeginExFW resourcesSubscribe)
+            {
+                return uri == null || uri.equals(resourcesSubscribe.uri());
+            }
+
+            private boolean matchContentLength(
+                McpResourcesSubscribeBeginExFW resourcesSubscribe)
+            {
+                return contentLength == null || contentLength == resourcesSubscribe.contentLength();
+            }
+
+            private boolean matchTimeout(
+                McpResourcesSubscribeBeginExFW resourcesSubscribe)
+            {
+                return timeout == null || timeout == resourcesSubscribe.timeout();
+            }
+        }
+
+        public final class McpResourcesUnsubscribeBeginExMatcherBuilder
+        {
+            private String16FW sessionId;
+            private String16FW uri;
+            private Integer contentLength;
+            private Long timeout;
+
+            public McpResourcesUnsubscribeBeginExMatcherBuilder sessionId(
+                String sessionId)
+            {
+                this.sessionId = new String16FW(sessionId);
+                return this;
+            }
+
+            public McpResourcesUnsubscribeBeginExMatcherBuilder uri(
+                String uri)
+            {
+                this.uri = new String16FW(uri);
+                return this;
+            }
+
+            public McpResourcesUnsubscribeBeginExMatcherBuilder contentLength(
+                int contentLength)
+            {
+                this.contentLength = contentLength;
+                return this;
+            }
+
+            public McpResourcesUnsubscribeBeginExMatcherBuilder timeout(
+                long timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
+            public McpBeginExMatcherBuilder build()
+            {
+                return McpBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpBeginExFW beginEx)
+            {
+                final McpResourcesUnsubscribeBeginExFW resourcesUnsubscribe = beginEx.resourcesUnsubscribe();
+                return matchSessionId(resourcesUnsubscribe) && matchUri(resourcesUnsubscribe) &&
+                    matchContentLength(resourcesUnsubscribe) && matchTimeout(resourcesUnsubscribe);
+            }
+
+            private boolean matchSessionId(
+                McpResourcesUnsubscribeBeginExFW resourcesUnsubscribe)
+            {
+                return sessionId == null || sessionId.equals(resourcesUnsubscribe.sessionId());
+            }
+
+            private boolean matchUri(
+                McpResourcesUnsubscribeBeginExFW resourcesUnsubscribe)
+            {
+                return uri == null || uri.equals(resourcesUnsubscribe.uri());
+            }
+
+            private boolean matchContentLength(
+                McpResourcesUnsubscribeBeginExFW resourcesUnsubscribe)
+            {
+                return contentLength == null || contentLength == resourcesUnsubscribe.contentLength();
+            }
+
+            private boolean matchTimeout(
+                McpResourcesUnsubscribeBeginExFW resourcesUnsubscribe)
+            {
+                return timeout == null || timeout == resourcesUnsubscribe.timeout();
+            }
+        }
     }
 
     @Function
@@ -1088,6 +1351,11 @@ public final class McpFunctions
         public McpElicitResponseFlushExBuilder elicitResponse()
         {
             return new McpElicitResponseFlushExBuilder();
+        }
+
+        public McpResourcesUpdatedFlushExBuilder resourcesUpdated()
+        {
+            return new McpResourcesUpdatedFlushExBuilder();
         }
 
         public byte[] build()
@@ -1318,6 +1586,32 @@ public final class McpFunctions
                 return McpFlushExBuilder.this;
             }
         }
+
+        public final class McpResourcesUpdatedFlushExBuilder
+        {
+            private String id;
+            private String uri;
+
+            public McpResourcesUpdatedFlushExBuilder id(
+                String id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public McpResourcesUpdatedFlushExBuilder uri(
+                String uri)
+            {
+                this.uri = uri;
+                return this;
+            }
+
+            public McpFlushExBuilder build()
+            {
+                flushExRW.resourcesUpdated(b -> b.id(id).uri(uri));
+                return McpFlushExBuilder.this;
+            }
+        }
     }
 
     public static final class McpFlushExMatcherBuilder
@@ -1404,6 +1698,14 @@ public final class McpFunctions
         {
             this.kind = McpFlushExFW.KIND_ELICIT_RESPONSE;
             final McpElicitResponseFlushExMatcherBuilder matcher = new McpElicitResponseFlushExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public McpResourcesUpdatedFlushExMatcherBuilder resourcesUpdated()
+        {
+            this.kind = McpFlushExFW.KIND_RESOURCES_UPDATED;
+            final McpResourcesUpdatedFlushExMatcherBuilder matcher = new McpResourcesUpdatedFlushExMatcherBuilder();
             this.caseMatcher = matcher::match;
             return matcher;
         }
@@ -1801,6 +2103,50 @@ public final class McpFunctions
                 McpElicitResponseFlushExFW elicitResponse)
             {
                 return action == null || action == elicitResponse.action().get();
+            }
+        }
+
+        public final class McpResourcesUpdatedFlushExMatcherBuilder
+        {
+            private String16FW id;
+            private String16FW uri;
+
+            public McpResourcesUpdatedFlushExMatcherBuilder id(
+                String id)
+            {
+                this.id = new String16FW(id, UTF_8);
+                return this;
+            }
+
+            public McpResourcesUpdatedFlushExMatcherBuilder uri(
+                String uri)
+            {
+                this.uri = new String16FW(uri);
+                return this;
+            }
+
+            public McpFlushExMatcherBuilder build()
+            {
+                return McpFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                McpFlushExFW flushEx)
+            {
+                final McpResourcesUpdatedFlushExFW resourcesUpdated = flushEx.resourcesUpdated();
+                return matchId(resourcesUpdated) && matchUri(resourcesUpdated);
+            }
+
+            private boolean matchId(
+                McpResourcesUpdatedFlushExFW resourcesUpdated)
+            {
+                return id == null || id.equals(resourcesUpdated.id());
+            }
+
+            private boolean matchUri(
+                McpResourcesUpdatedFlushExFW resourcesUpdated)
+            {
+                return uri == null || uri.equals(resourcesUpdated.uri());
             }
         }
     }

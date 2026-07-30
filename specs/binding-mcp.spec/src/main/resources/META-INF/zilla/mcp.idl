@@ -26,7 +26,8 @@ scope mcp
         CLIENT_SAMPLING(128),
         CLIENT_ELICITATION(256),
         CLIENT_ELICITATION_FORM(512),
-        CLIENT_ELICITATION_URL(1024)
+        CLIENT_ELICITATION_URL(1024),
+        SERVER_RESOURCES_SUBSCRIBE(2048)
     }
 
     scope stream
@@ -41,6 +42,8 @@ scope mcp
             case 5: mcp::stream::McpResourcesListBeginEx resourcesList;
             case 6: mcp::stream::McpResourcesReadBeginEx resourcesRead;
             case 7: mcp::stream::McpResourcesTemplatesListBeginEx resourcesTemplatesList;
+            case 8: mcp::stream::McpResourcesSubscribeBeginEx resourcesSubscribe;
+            case 9: mcp::stream::McpResourcesUnsubscribeBeginEx resourcesUnsubscribe;
         }
 
         union McpFlushEx switch (uint8) extends core::stream::Extension
@@ -54,6 +57,7 @@ scope mcp
             case 6: mcp::stream::McpElicitCallbackFlushEx elicitCallback;
             case 7: mcp::stream::McpElicitCompleteFlushEx elicitComplete;
             case 8: mcp::stream::McpElicitResponseFlushEx elicitResponse;
+            case 9: mcp::stream::McpResourcesUpdatedFlushEx resourcesUpdated;
         }
 
         union McpChallengeEx switch (uint8) extends core::stream::Extension
@@ -87,6 +91,12 @@ scope mcp
         struct McpResourcesListChangedFlushEx
         {
             string16 id = null;
+        }
+
+        struct McpResourcesUpdatedFlushEx
+        {
+            string16 id = null;
+            string16 uri;
         }
 
         struct McpProgressFlushEx
@@ -185,6 +195,22 @@ scope mcp
         struct McpResourcesTemplatesListBeginEx
         {
             string16 sessionId;
+            int64 timeout = 0;
+        }
+
+        struct McpResourcesSubscribeBeginEx
+        {
+            string16 sessionId;
+            string16 uri;
+            int32 contentLength = -1;
+            int64 timeout = 0;
+        }
+
+        struct McpResourcesUnsubscribeBeginEx
+        {
+            string16 sessionId;
+            string16 uri;
+            int32 contentLength = -1;
             int64 timeout = 0;
         }
 

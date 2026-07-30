@@ -337,6 +337,28 @@ public class McpProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.subscribe/client",
+        "${app}/resources.subscribe/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSubscribeToResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.unsubscribe/client",
+        "${app}/resources.unsubscribe/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldUnsubscribeFromResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.toolkit.yaml")
     @Specification({
         "${app}/resources.read.toolkit.prefixed/client",

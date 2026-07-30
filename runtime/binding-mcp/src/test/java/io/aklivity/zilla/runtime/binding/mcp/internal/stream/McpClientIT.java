@@ -531,6 +531,26 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.subscribe/client",
+        "${net}/resources.subscribe/server"})
+    public void shouldSubscribeToResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.unsubscribe/client",
+        "${net}/resources.unsubscribe/server"})
+    public void shouldUnsubscribeFromResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.identity.yaml")
     @Specification({
         "${app}/resources.read/client",
@@ -647,6 +667,16 @@ public class McpClientIT
         "${app}/lifecycle.notify.resources.list.changed/client",
         "${net}/lifecycle.notify.resources.list.changed/server"})
     public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated/client",
+        "${net}/lifecycle.notify.resources.updated/server"})
+    public void shouldNotifyResourcesUpdated() throws Exception
     {
         k3po.finish();
     }

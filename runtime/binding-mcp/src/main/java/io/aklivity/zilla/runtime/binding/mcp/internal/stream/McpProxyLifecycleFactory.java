@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpPromptsListChangedFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResourcesListChangedFlushExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResourcesUpdatedFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResumableFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResumeChallengeExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpToolsListChangedFlushExFW;
@@ -1113,18 +1114,48 @@ final class McpProxyLifecycleFactory implements BindingHandler
             final OctetsFW extension = flush.extension();
             final boolean aggregating = server.aggregating();
             final boolean deferring = server.binding.cache != null && !server.hydration;
-            final McpFlushExFW flushEx = aggregating || deferring
+            final McpFlushExFW flushEx = extension.sizeof() > 0
                 ? mcpFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit())
                 : null;
             if (aggregating)
             {
                 server.onDecodeEventId(routedId, extractEventId(flushEx));
             }
-            if (!(deferring && isListChangedKind(flushEx.kind())))
+            if (!(deferring && flushEx != null && isListChangedKind(flushEx.kind())))
             {
+                final OctetsFW relayed = prefixResourcesUpdated(flushEx, extension);
                 server.doServerFlush(flush.traceId(), flush.authorization(),
-                    flush.budgetId(), flush.reserved(), extension);
+                    flush.budgetId(), flush.reserved(), relayed);
             }
+        }
+
+        private OctetsFW prefixResourcesUpdated(
+            McpFlushExFW flushEx,
+            OctetsFW extension)
+        {
+            OctetsFW relayed = extension;
+
+            if (prefix != null && flushEx != null && flushEx.kind() == McpFlushExFW.KIND_RESOURCES_UPDATED)
+            {
+                final McpResourcesUpdatedFlushExFW resourcesUpdated = flushEx.resourcesUpdated();
+                final String id = resourcesUpdated.id().asString();
+                final String uri = prefix + resourcesUpdated.uri().asString();
+                final McpFlushExFW rewritten = mcpFlushExRW
+                    .wrap(flushExBuffer, 0, flushExBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .resourcesUpdated(b ->
+                    {
+                        if (id != null)
+                        {
+                            b.id(id);
+                        }
+                        b.uri(uri);
+                    })
+                    .build();
+                relayed = rewrittenExRO.wrap(rewritten.buffer(), rewritten.offset(), rewritten.limit());
+            }
+
+            return relayed;
         }
 
         private void onClientChallenge(
@@ -1204,6 +1235,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (beginEx != null && beginEx.kind() == KIND_LIFECYCLE)
             {
                 sessionId = beginEx.lifecycle().sessionId().asString();
+                server.binding.recordServerCapabilities(routedId, beginEx.lifecycle().capabilities());
             }
 
             doClientWindow(traceId, 0L, 0);
