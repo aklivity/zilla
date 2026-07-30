@@ -92,6 +92,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/consume.without.limit/client",
+        "${kafka}/consume.without.limit/server"})
+    public void shouldConsumeWithoutLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/produce.args.fragmented/client",
         "${kafka}/produce.args.fragmented/server"})
     public void shouldProduceArgsFragmented() throws Exception

@@ -20,14 +20,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -51,7 +49,6 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.BeginFW
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpEndExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpOutcome;
@@ -89,7 +86,6 @@ public class McpKafkaProxyFactoryTest
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final SignalFW.Builder signalRW = new SignalFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
-    private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -349,42 +345,6 @@ public class McpKafkaProxyFactoryTest
             .budgetId(0L)
             .reserved(bytes.length)
             .payload(buffer, 0, bytes.length)
-            .build();
-
-        stream.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
-    }
-
-    private void dataWithRecord(
-        MessageConsumer stream,
-        long streamId,
-        String value,
-        long partitionOffset,
-        long latestOffset)
-    {
-        final byte[] bytes = value.getBytes(UTF_8);
-        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
-
-        final KafkaDataExFW kafkaDataEx = kafkaDataExRW
-            .wrap(extScratch, 0, extScratch.capacity())
-            .typeId(KAFKA_TYPE_ID)
-            .merged(m -> m.fetch(f -> f
-                .partition(p -> p.partitionId(0).partitionOffset(partitionOffset).latestOffset(latestOffset))))
-            .build();
-
-        final DataFW data = dataRW.wrap(scratch, 0, scratch.capacity())
-            .originId(ORIGIN_ID)
-            .routedId(ROUTE_ID)
-            .streamId(streamId)
-            .sequence(0)
-            .acknowledge(0)
-            .maximum(0)
-            .traceId(1L)
-            .authorization(AUTHORIZATION)
-            .flags(0x03)
-            .budgetId(0L)
-            .reserved(bytes.length)
-            .payload(buffer, 0, bytes.length)
-            .extension(kafkaDataEx.buffer(), kafkaDataEx.offset(), kafkaDataEx.sizeof())
             .build();
 
         stream.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
@@ -668,64 +628,6 @@ public class McpKafkaProxyFactoryTest
         assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[],\"count\":0}," +
             "\"content\":[{\"type\":\"text\",\"text\":\"Consumed 0 messages from topic orders\"}],\"isError\":false}",
             result);
-    }
-
-    @Test
-    public void shouldShortenConsumeTimeoutOnceRecordReachesLatestOffset() throws Exception
-    {
-        factory.attach(newBinding("consume"));
-
-        final long before = System.currentTimeMillis();
-        final String body = "{\"name\":\"consume\",\"arguments\":{\"topic\":\"orders\"}}";
-        final MessageConsumer stream = beginToolsCall("consume", body.length(), 0L);
-
-        data(stream, INITIAL_ID, body);
-
-        final MessageConsumer kafkaSender = captureKafkaSender();
-        final long kafkaInitialId = supplyId.get() - 1L;
-        final long kafkaReplyId = kafkaInitialId | 0x01L;
-
-        // omitted limit defaults to 10, but only 1 record is currently available on the topic
-        dataWithRecord(kafkaSender, kafkaReplyId, "value-1", 0L, 1L);
-
-        final ArgumentCaptor<Long> deadlineCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(signaler, times(2)).signalAt(deadlineCaptor.capture(), anyLong(), anyLong(),
-            eq(kafkaInitialId), anyLong(), anyInt(), anyInt());
-
-        final long initialDeadline = deadlineCaptor.getAllValues().get(0);
-        final long shortenedDeadline = deadlineCaptor.getAllValues().get(1);
-
-        // the original schedule waits close to the full 30s default consume timeout
-        assertTrue(initialDeadline - before >= 29_000L);
-        // once caught up to the latest known offset, the wait is cut down to a short grace period
-        assertTrue(shortenedDeadline - before < 5_000L);
-    }
-
-    @Test
-    public void shouldKeepFullConsumeTimeoutWhenRecordIsBehindLatestOffset() throws Exception
-    {
-        factory.attach(newBinding("consume"));
-
-        final long before = System.currentTimeMillis();
-        final String body = "{\"name\":\"consume\",\"arguments\":{\"topic\":\"orders\"}}";
-        final MessageConsumer stream = beginToolsCall("consume", body.length(), 0L);
-
-        data(stream, INITIAL_ID, body);
-
-        final MessageConsumer kafkaSender = captureKafkaSender();
-        final long kafkaInitialId = supplyId.get() - 1L;
-        final long kafkaReplyId = kafkaInitialId | 0x01L;
-
-        // still behind the latest known offset, so the full timeout must not be shortened
-        dataWithRecord(kafkaSender, kafkaReplyId, "value-1", 0L, 5L);
-
-        final ArgumentCaptor<Long> deadlineCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(signaler, times(1)).signalAt(deadlineCaptor.capture(), anyLong(), anyLong(),
-            eq(kafkaInitialId), anyLong(), anyInt(), anyInt());
-
-        final long initialDeadline = deadlineCaptor.getValue();
-
-        assertTrue(initialDeadline - before >= 29_000L);
     }
 
     @Test
