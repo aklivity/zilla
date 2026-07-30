@@ -562,7 +562,12 @@ transition, every error path, every flow-control edge case — by k3po-based
 integration tests (`*IT.java`) driven by `.rpt` scripts against a live engine.
 This is the source of truth for protocol behaviour and the only place stream
 handler coverage should be exercised; see [../specs/AGENTS.md](../specs/AGENTS.md)
-for script conventions and required coverage.
+for script conventions and required coverage. Every new scenario's scripts
+must be authored as a paired `client.rpt` / `server.rpt` — never a lone
+script — and must have a spec-level IT (`NetworkIT`/`ApplicationIT`, or the
+per-protocol equivalent for cross-protocol proxies) that runs the pair against
+each other to verify they are self-consistent, in addition to the binding IT
+that runs them against the live engine.
 
 ---
 
