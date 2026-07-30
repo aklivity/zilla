@@ -545,7 +545,7 @@ public class McpHttpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${mcp}/list.issues.missing.path.arg/client"})
+        "${mcp}/update.issue.missing.path.arg/client"})
     public void shouldRejectToolWhenPathArgumentMissing() throws Exception
     {
         k3po.finish();

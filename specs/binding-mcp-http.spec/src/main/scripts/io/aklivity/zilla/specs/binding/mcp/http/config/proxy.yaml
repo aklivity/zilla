@@ -252,7 +252,7 @@ catalogs:
                 "manager": { "type": ["string", "null"] }
               }
             }
-        list_issues_params:
+        update_issue_params:
           version: latest
           schema: |
             {
@@ -454,18 +454,18 @@ bindings:
                 http_github0:
                   - subject: search_items_result
                     version: latest
-        list_issues:
+        update_issue:
           description: >
-            List issues for a repository. Models a tool whose derived input
-            schema marks only query args as required, leaving path args
-            (owner, repo) present in properties but absent from required.
+            Update an issue's state. Models a tool whose derived input schema
+            marks only the body arg as required, leaving path args (owner,
+            repo) present in properties but absent from required.
           summary: "done"
           schemas:
             input:
               model: json
               catalog:
                 http_github0:
-                  - subject: list_issues_params
+                  - subject: update_issue_params
                     version: latest
       resources:
         order:
@@ -616,17 +616,17 @@ bindings:
             ":authority": api.github.com:443
             ":path": /items?q=${args.q}&${?args.limit=limit}
       - when:
-          - tool: list_issues
+          - tool: update_issue
         exit: http0
         with:
           headers:
-            ":method": GET
+            ":method": PATCH
             ":scheme": https
             ":authority": api.github.com:443
             ":path": /repos/${args.owner}/${args.repo}/issues
-          query:
+          body:
             model: json
             catalog:
               http_github0:
-                - subject: list_issues_params
+                - subject: update_issue_params
                   version: latest
