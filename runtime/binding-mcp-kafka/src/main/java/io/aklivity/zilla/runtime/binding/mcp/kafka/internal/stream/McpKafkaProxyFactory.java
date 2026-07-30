@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaAr
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaConsumeResult;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaKeyFW;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.BeginFW;
@@ -99,6 +100,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
     private static final int CONSUME_TIMEOUT_SIGNAL_ID = 1;
     private static final long DEFAULT_CONSUME_TIMEOUT_MILLIS = 30_000L;
+    private static final long CONSUME_CAUGHT_UP_GRACE_MILLIS = 250L;
 
     private static final int KAFKA_ERROR_INVALID_RECORD = 87;
 
@@ -1387,6 +1389,8 @@ public class McpKafkaProxyFactory implements BindingHandler
         private boolean consumeIsError;
         private boolean consumeStarted;
         private long consumeTimeoutId = Signaler.NO_CANCEL_ID;
+        private long consumeDeadlineMillis;
+        private long consumeScheduledMillis;
 
         private KafkaProxy(
             McpProxy peer,
@@ -1524,6 +1528,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 }
                 else
                 {
+                    rescheduleConsumeTimeout(traceId, fetchDataEx);
                     pumpConsume(traceId);
                 }
             }
@@ -1676,6 +1681,33 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 signaler.cancel(consumeTimeoutId);
                 consumeTimeoutId = Signaler.NO_CANCEL_ID;
+            }
+        }
+
+        private void scheduleConsumeTimeout(
+            long traceId,
+            long deadlineMillis)
+        {
+            cancelConsumeTimeout();
+            consumeTimeoutId = signaler.signalAt(deadlineMillis,
+                originId, resolvedId, kafkaInitialId, traceId, CONSUME_TIMEOUT_SIGNAL_ID, 0);
+            consumeScheduledMillis = deadlineMillis;
+        }
+
+        private void rescheduleConsumeTimeout(
+            long traceId,
+            KafkaMergedFetchDataExFW fetchDataEx)
+        {
+            final KafkaOffsetFW partition = fetchDataEx != null ? fetchDataEx.partition() : null;
+            final boolean caughtUp = partition != null && partition.latestOffset() >= 0 &&
+                partition.partitionOffset() + 1 >= partition.latestOffset();
+            final long deadlineMillis = caughtUp
+                ? Math.min(consumeDeadlineMillis, System.currentTimeMillis() + CONSUME_CAUGHT_UP_GRACE_MILLIS)
+                : consumeDeadlineMillis;
+
+            if (deadlineMillis != consumeScheduledMillis)
+            {
+                scheduleConsumeTimeout(traceId, deadlineMillis);
             }
         }
 
@@ -1853,8 +1885,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                 }
                 applyConsumeStatus(traceId, status);
                 pumpConsume(traceId);
-                consumeTimeoutId = signaler.signalAt(System.currentTimeMillis() + consumeTimeoutMillis,
-                    originId, resolvedId, kafkaInitialId, traceId, CONSUME_TIMEOUT_SIGNAL_ID, 0);
+                consumeDeadlineMillis = System.currentTimeMillis() + consumeTimeoutMillis;
+                scheduleConsumeTimeout(traceId, consumeDeadlineMillis);
             }
         }
 

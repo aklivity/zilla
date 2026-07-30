@@ -92,6 +92,15 @@ public class McpIT
 
     @Test
     @Specification({
+        "${mcp}/consume.without.limit/client",
+        "${mcp}/consume.without.limit/server"})
+    public void shouldConsumeWithoutLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/reject.invalid.args/client",
         "${mcp}/reject.invalid.args/server"})
     public void shouldRejectInvalidArgs() throws Exception
