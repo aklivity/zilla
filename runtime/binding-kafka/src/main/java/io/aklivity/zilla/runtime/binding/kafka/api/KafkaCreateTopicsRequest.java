@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.api;
 
-import java.nio.charset.StandardCharsets;
 import java.util.function.IntConsumer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.AssignmentRequestFW;
@@ -28,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topic
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.TopicRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.TopicRequestPart2FW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.lang.Strings;
 
 public final class KafkaCreateTopicsRequest
 {
@@ -156,7 +156,7 @@ public final class KafkaCreateTopicsRequest
         }
         else
         {
-            final int length = value.getBytes(StandardCharsets.UTF_8).length;
+            final int length = Strings.utf8Length(value);
             sizeof = varintWidth(length + 1) + length;
         }
         return sizeof;

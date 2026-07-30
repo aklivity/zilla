@@ -269,6 +269,29 @@ public class KafkaCreateTopicsRequestTest
     }
 
     @Test
+    public void shouldComputeSizeofForMultiByteUtf8Names()
+    {
+        // "café" - trailing e-acute is a 2-byte UTF-8 sequence (U+00E9)
+        // "日本" - two 3-byte UTF-8 sequences (U+65E5, U+672C)
+        // "🎉" - a surrogate pair encoding one 4-byte UTF-8 code point (U+1F389)
+        FakeSource source = new FakeSource(
+            List.of(
+                new FakeTopic("café", 1, (short) 1,
+                    List.of(),
+                    List.of(new FakeConfig("日本", "🎉"))),
+                new FakeTopic("🎉-日本-café", 1, (short) 1,
+                    List.of(), List.of())),
+            0,
+            false);
+
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+        Generator generator = new Generator().wrap(buffer, 0, buffer.capacity());
+
+        assertTrue(generator.generate(source));
+        assertEquals(generator.limit(), KafkaCreateTopicsRequest.sizeof(source, (short) 7));
+    }
+
+    @Test
     public void shouldComputeSizeofAcrossVarintWidthBoundary()
     {
         // a 127-byte name pushes the compact-string length prefix from 1 byte (N+1 <= 127) to 2 bytes
