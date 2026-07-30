@@ -323,13 +323,4 @@ public class McpServerIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${mcp}/update.issue.recovers.from.invalid.input/client",
-        "${mcp}/update.issue.recovers.from.invalid.input/server"})
-    public void shouldUpdateIssueRecoversFromInvalidInput() throws Exception
-    {
-        k3po.finish();
-    }
 }

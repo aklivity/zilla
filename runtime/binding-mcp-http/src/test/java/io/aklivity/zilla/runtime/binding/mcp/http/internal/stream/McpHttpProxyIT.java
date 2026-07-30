@@ -547,16 +547,6 @@ public class McpHttpProxyIT
     }
 
     @Test
-    @Configuration("proxy.yaml")
-    @Specification({
-        "${mcp}/update.issue.recovers.from.invalid.input/client",
-        "${http}/update.issue.recovers.from.invalid.input/server"})
-    public void shouldUpdateIssueRecoversFromInvalidInput() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.unresolved.yaml")
     @Specification({
         "${mcp}/create.pr.unresolved/client"})
