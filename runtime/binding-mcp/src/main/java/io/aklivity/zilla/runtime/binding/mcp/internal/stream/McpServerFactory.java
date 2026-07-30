@@ -1020,7 +1020,7 @@ public final class McpServerFactory implements McpStreamFactory
                     server.decodedRequest = server::onDecodeNotifyCancelled;
                     break;
                 default:
-                    server.onDecodeParseError(traceId, authorization);
+                    server.onDecodeMethodNotFound(traceId, authorization);
                     server.decoder = decodeIgnore;
                     break decode;
                 }
@@ -2442,6 +2442,21 @@ public final class McpServerFactory implements McpStreamFactory
                     .build(),
                 -32600,
                 "Invalid request");
+        }
+
+        private void onDecodeMethodNotFound(
+            long traceId,
+            long authorization)
+        {
+            doEncodeResponseError(traceId, authorization,
+                httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                    .inject(this::injectAltSvc)
+                    .build(),
+                -32601,
+                "Method not found");
         }
 
         private void onAppChallenge(

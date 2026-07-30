@@ -227,6 +227,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/reject.request.method.unknown/client",
+        "${net}/reject.request.method.unknown/server"})
+    public void shouldRejectRequestMethodUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.tools.call.without.content.length/client",
         "${net}/reject.tools.call.without.content.length/server"})
     public void shouldRejectToolsCallWithoutContentLength() throws Exception
