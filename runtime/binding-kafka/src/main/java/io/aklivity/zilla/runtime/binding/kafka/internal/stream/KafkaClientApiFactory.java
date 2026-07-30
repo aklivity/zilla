@@ -103,6 +103,7 @@ public final class KafkaClientApiFactory implements BindingHandler
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
+    private static final String16FW ABSENT_CLIENT_ID = new String16FW((String) null);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -592,7 +593,9 @@ public final class KafkaClientApiFactory implements BindingHandler
             final short api = kafkaApiBeginEx.api();
             final short version = kafkaApiBeginEx.version();
             final int requestLength = kafkaApiBeginEx.length();
-            final String16FW clientId = new String16FW(kafkaApiBeginEx.clientId().asString());
+            final String16FW clientId = kafkaApiBeginEx.clientId().length() != -1
+                ? new String16FW(kafkaApiBeginEx.clientId().asString())
+                : ABSENT_CLIENT_ID;
 
             final KafkaApiClient client = clientsByAffinity.computeIfAbsent(affinity,
                 a -> new KafkaApiClient(routedId, resolvedId, a, binding.servers(), binding.guard, binding.sasl()));
