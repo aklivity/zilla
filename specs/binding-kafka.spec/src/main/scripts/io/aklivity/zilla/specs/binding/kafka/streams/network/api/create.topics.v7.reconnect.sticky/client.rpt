@@ -32,16 +32,13 @@ write 15                                # size
       ${apiVersionsRequestId}
       5s "zilla"                        # client id
 
-read  22                                 # size
+read  16                                 # size
       (int:apiVersionsRequestId)
       0s                                 # error code
-      2                                  # api key count
+      1                                  # api key count
         19s                              # create topics
         0s                               # min version
         7s                               # max version
-        20s                              # delete topics
-        0s                               # min version
-        6s                               # max version
 
 write 125                               # size
       19s                               # create topics
@@ -82,7 +79,7 @@ write 125                               # size
 
 read abort
 
-property deleteTopicsRequestId ${kafka:newRequestId()}
+property createTopicsRequestId2 ${kafka:newRequestId()}
 
 connect "zilla://streams/net0"
   option zilla:window ${networkConnectWindow}
@@ -91,21 +88,62 @@ connect "zilla://streams/net0"
 
 connected
 
-write 42                                # size
-      20s                               # delete topics
-      3s                                # v3
-      ${deleteTopicsRequestId}
+write 125                               # size
+      19s                               # create topics
+      7s                                # v7
+      ${createTopicsRequestId2}
       5s "zilla"                        # client id
-      2                                 # topic count
-        6s "events"                     # name
-        9s "snapshots"                  # name
+      [0x00]                            # tagged fields
+      [0x03]                            # topic count
+        [0x07] "events"                 # name
+        1                               # number of partitions
+        1s                              # replication factor
+        [0x02]                          # assignments
+            0                           # partition index
+            [0x02]                      # broker ids
+                0                       # broker id
+            [0x00]                      # tagged fields
+        [0x02]                          # configs
+            [0x0f] "cleanup.policy"     # name
+            [0x07] "delete"             # value
+            [0x00]                      # tagged fields
+        [0x00]                          # tagged fields
+        [0x0a] "snapshots"              # name
+        1                               # number of partitions
+        1s                              # replication factor
+        [0x02]                          # assignments
+            0                           # partition index
+            [0x02]                      # broker ids
+                0                       # broker id
+            [0x00]                      # tagged fields
+        [0x02]                          # configs
+            [0x0f] "cleanup.policy"     # name
+            [0x08] "compact"            # value
+            [0x00]                      # tagged fields
+        [0x00]                          # tagged fields
       0                                 # timeout
+      [0x00]                            # validate only
+      [0x00]                            # tagged fields
 
-read  35                                 # size
-      (int:deleteTopicsRequestId)
+read  82                                 # size
+      (int:createTopicsRequestId2)
+      [0x00]                             # tagged fields
       0                                  # throttle time ms
-      2                                  # topics
-        6s "events"                      # name
+      [0x03]                             # topics
+        [0x07] "events"                  # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
         0s                               # error code
-        9s "snapshots"                   # name
+        [0x00]                           # error message
+        1                                # number of partitions
+        1s                               # replication factor
+        [0x01]                           # configs
+        [0x00]                           # tagged fields
+        [0x0a] "snapshots"                # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
         0s                               # error code
+        [0x00]                           # error message
+        1                                # number of partitions
+        1s                               # replication factor
+        [0x01]                           # configs
+        [0x00]                           # tagged fields
+      [0x00]                             # tagged fields
