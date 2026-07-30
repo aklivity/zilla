@@ -112,7 +112,6 @@ public class McpKafkaProxyFactory implements BindingHandler
 
     private static final short CREATE_TOPICS_API_KEY = 19;
     private static final short CREATE_TOPICS_API_VERSION = 7;
-    private static final int CREATE_TOPICS_REQUEST_CAPACITY = 16384;
 
     private static final int CAPABILITIES_TOOLS = 1;
     private static final int FLAGS_INIT = 0x01;
@@ -171,6 +170,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final KafkaCreateTopicsRequest.Generator createTopicsRequestGenerator;
+    private final JsonGeneratorEx createTopicsResultGenerator;
     private final CreateTopicsResponseV7FW createTopicsResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
@@ -195,6 +195,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.createTopicsRequestGenerator = new KafkaCreateTopicsRequest.Generator();
+        this.createTopicsResultGenerator = JsonEx.createGenerator();
         this.createTopicsResponseRO = new CreateTopicsResponseV7FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
@@ -761,19 +762,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         String text,
         boolean isError)
     {
-        return buildToolResult(text, null, isError);
-    }
-
-    private byte[] buildToolResult(
-        String text,
-        JsonObject structuredContent,
-        boolean isError)
-    {
         final StringBuilder result = new StringBuilder().append('{');
-        if (structuredContent != null)
-        {
-            result.append("\"structuredContent\": ").append(structuredContent).append(',');
-        }
         result.append("\"content\":[{\"type\": \"text\",\"text\": \"")
             .append(escapeJson(text))
             .append("\"}],\"isError\": ")
@@ -1496,19 +1485,19 @@ public class McpKafkaProxyFactory implements BindingHandler
             String text,
             boolean isError)
         {
-            doMcpResult(traceId, text, null, isError);
+            final byte[] bytes = buildToolResult(text, isError);
+            final UnsafeBufferEx result = new UnsafeBufferEx(bytes);
+
+            doMcpResult(traceId, bytes.length, result, isError);
         }
 
         private void doMcpResult(
             long traceId,
-            String text,
-            JsonObject structuredContent,
+            int length,
+            MutableDirectBufferEx buffer,
             boolean isError)
         {
-            final byte[] bytes = buildToolResult(text, structuredContent, isError);
-            final UnsafeBufferEx result = new UnsafeBufferEx(bytes);
-
-            doMcpData(traceId, 0L, FLAGS_COMPLETE, bytes.length, result, 0, bytes.length);
+            doMcpData(traceId, 0L, FLAGS_COMPLETE, length, buffer, 0, length);
 
             if (isError)
             {
@@ -2183,7 +2172,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final long authorization;
         private final long kafkaInitialId;
         private final long kafkaReplyId;
-        private final MutableDirectBufferEx requestBuffer;
+        private final McpKafkaToolCreateTopicsSource createTopicsSource;
         private final int requestLength;
 
         private MessageConsumer kafka;
@@ -2213,12 +2202,8 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.authorization = authorization;
             this.kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
             this.kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
-            this.requestBuffer = new UnsafeBufferEx(new byte[CREATE_TOPICS_REQUEST_CAPACITY]);
-            final int length = KafkaCreateTopicsRequest.sizeof(createTopicsSource, CREATE_TOPICS_API_VERSION);
-            final boolean fits = length <= requestBuffer.capacity();
-            createTopicsRequestGenerator.wrap(requestBuffer, 0, requestBuffer.capacity());
-            final boolean built = fits && createTopicsRequestGenerator.generate(createTopicsSource);
-            this.requestLength = built ? length : 0;
+            this.createTopicsSource = createTopicsSource;
+            this.requestLength = KafkaCreateTopicsRequest.sizeof(createTopicsSource, CREATE_TOPICS_API_VERSION);
         }
 
         private void onKafkaMessage(
@@ -2346,48 +2331,77 @@ public class McpKafkaProxyFactory implements BindingHandler
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
             final CreateTopicsResponseV7FW response = createTopicsResponseRO.wrap(slot, 0, responseLength);
 
-            final StringBuilder text = new StringBuilder();
-            final JsonArrayBuilder topics = Json.createArrayBuilder();
-            boolean isError = false;
-
-            while (response.hasNext())
+            final int encodeSlot = encodePool.acquire(kafkaReplyId);
+            if (encodeSlot == NO_SLOT)
             {
-                if (response.next() == Kind.TOPIC)
-                {
-                    final Topic topic = response.topic();
-                    final String name = topic.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
-                    final short error = topic.error();
-
-                    if (text.length() != 0)
-                    {
-                        text.append(", ");
-                    }
-                    text.append(name);
-
-                    final JsonObjectBuilder item = Json.createObjectBuilder()
-                        .add("name", name)
-                        .add("error", error);
-                    if (error != 0)
-                    {
-                        text.append(" (error ").append(error).append(')');
-                        isError = true;
-                    }
-                    if (topic.messageLength() != -1)
-                    {
-                        final String message = topic.buffer()
-                            .getStringWithoutLengthUtf8(topic.messageOffset(), topic.messageLength());
-                        item.add("errorMessage", message);
-                    }
-                    topics.add(item);
-                }
+                cleanupCreateTopics(traceId);
             }
+            else
+            {
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                createTopicsResultGenerator.reset();
+                createTopicsResultGenerator.wrap(encodeBuffer, 0, encodeBuffer.capacity());
 
-            cleanupDecodeSlot();
+                final StringBuilder text = new StringBuilder();
+                boolean isError = false;
 
-            final String prefix = isError ? "Failed to create topic(s): " : "Created topic(s): ";
-            final JsonObject structuredContent = Json.createObjectBuilder().add("topics", topics).build();
+                createTopicsResultGenerator.writeStartObject()
+                    .writeStartObject("structuredContent")
+                    .writeStartArray("topics");
 
-            peer.doMcpResult(traceId, prefix + text, structuredContent, isError);
+                while (response.hasNext())
+                {
+                    if (response.next() == Kind.TOPIC)
+                    {
+                        final Topic topic = response.topic();
+                        final String name = topic.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
+                        final short error = topic.error();
+
+                        if (text.length() != 0)
+                        {
+                            text.append(", ");
+                        }
+                        text.append(name);
+
+                        createTopicsResultGenerator.writeStartObject()
+                            .write("name", name)
+                            .write("error", error);
+
+                        if (error != 0)
+                        {
+                            text.append(" (error ").append(error).append(')');
+                            isError = true;
+                        }
+                        if (topic.messageLength() != -1)
+                        {
+                            final String message = topic.buffer()
+                                .getStringWithoutLengthUtf8(topic.messageOffset(), topic.messageLength());
+                            createTopicsResultGenerator.write("errorMessage", message);
+                        }
+                        createTopicsResultGenerator.writeEnd();
+                    }
+                }
+
+                cleanupDecodeSlot();
+
+                final String prefix = isError ? "Failed to create topic(s): " : "Created topic(s): ";
+
+                createTopicsResultGenerator
+                    .writeEnd()
+                    .writeEnd()
+                    .writeStartArray("content")
+                    .writeStartObject()
+                    .write("type", "text")
+                    .write("text", prefix + text)
+                    .writeEnd()
+                    .writeEnd()
+                    .write("isError", isError)
+                    .writeEnd();
+
+                peer.doMcpResult(traceId, createTopicsResultGenerator.length(), encodeBuffer, isError);
+
+                encodePool.release(encodeSlot);
+            }
         }
 
         private void onKafkaEnd(
@@ -2424,12 +2438,41 @@ public class McpKafkaProxyFactory implements BindingHandler
             if (!requestSent && credit > 0)
             {
                 requestSent = true;
-                doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                    budgetId, FLAGS_COMPLETE, requestLength, requestBuffer, 0, requestLength);
-                initialSeq += requestLength;
+                sendCreateTopicsRequest(traceId, budgetId);
             }
 
             initialMax = credit;
+        }
+
+        private void sendCreateTopicsRequest(
+            long traceId,
+            long budgetId)
+        {
+            final int encodeSlot = encodePool.acquire(kafkaInitialId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupCreateTopics(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                final boolean fits = requestLength <= slot.capacity();
+                createTopicsRequestGenerator.wrap(slot, 0, slot.capacity());
+                final boolean built = fits && createTopicsRequestGenerator.generate(createTopicsSource);
+
+                if (built)
+                {
+                    doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
+                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                    initialSeq += requestLength;
+                }
+                else
+                {
+                    cleanupCreateTopics(traceId);
+                }
+
+                encodePool.release(encodeSlot);
+            }
         }
 
         private void onKafkaReset(
