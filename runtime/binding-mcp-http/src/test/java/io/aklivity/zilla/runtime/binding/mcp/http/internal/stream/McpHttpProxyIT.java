@@ -538,6 +538,15 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/update.issue.invalid.input/client"})
+    public void shouldRejectToolWhenInputInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.unresolved.yaml")
     @Specification({
         "${mcp}/create.pr.unresolved/client"})
