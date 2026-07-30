@@ -63,6 +63,10 @@
 #      layered under the toolkit-level kafka:tools scope -- the same
 #      layering mechanism as register_schema/kafka_sr:write, demonstrated
 #      on a different toolkit
+#  24. kafka__delete_topics deletes that same topic on the same broker,
+#      sharing create_topics' route (one `when` list, two `tool` entries)
+#      and its kafka:admin scope -- both are structural, admin-risk
+#      mutations, so one route/guard covers both instead of duplicating it
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -247,7 +251,8 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$'
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -264,7 +269,8 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$'; then
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -696,6 +702,30 @@ if echo "$KAFKA_CREATE_TOPICS_OUT" | grep -q 'Created topic(s): widgets'; then
   echo "✅ kafka__create_topics created a new topic on the real Kafka broker"
 else
   echo "❌ kafka__create_topics did not succeed against the real broker"
+  EXIT=1
+fi
+
+# WHEN: that same kafka:admin-scoped caller calls kafka__delete_topics for
+#       the topic just created
+# THEN: the topic is deleted on the real Kafka broker -- proving
+#       delete_topics' coalesced route (sharing create_topics' `when` list
+#       and kafka:admin guard, rather than a duplicate route) is sufficient
+#       to actually invoke the tool, not just see it listed
+call_kafka_delete_topics() {
+  KAFKA_DELETE_TOPICS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__delete_topics" \
+      -e CALL_ARGS='{"topics":["widgets"]}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'
+}
+retry_until 10 3 call_kafka_delete_topics
+echo "KAFKA_DELETE_TOPICS_OUT=$KAFKA_DELETE_TOPICS_OUT"
+if echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'; then
+  echo "✅ kafka__delete_topics deleted the topic from the real Kafka broker"
+else
+  echo "❌ kafka__delete_topics did not succeed against the real broker"
   EXIT=1
 fi
 
