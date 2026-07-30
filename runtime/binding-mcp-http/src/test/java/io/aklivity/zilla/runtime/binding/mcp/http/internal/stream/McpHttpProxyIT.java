@@ -537,16 +537,11 @@ public class McpHttpProxyIT
         k3po.finish();
     }
 
-    // update_issue_params.required lists only "state", so a well-formed arguments object
-    // missing the path-referenced "repo" passes schema validation and the request
-    // pipeline reaches COMPLETED, yet the :path template's ${args.repo} is never
-    // satisfied and the upstream connection can never be opened; this must be rejected
-    // rather than left to stall indefinitely (issue #2216)
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${mcp}/update.issue.missing.path.arg/client"})
-    public void shouldRejectToolWhenPathArgumentMissing() throws Exception
+        "${mcp}/update.issue.invalid.input/client"})
+    public void shouldRejectToolWhenInputInvalid() throws Exception
     {
         k3po.finish();
     }

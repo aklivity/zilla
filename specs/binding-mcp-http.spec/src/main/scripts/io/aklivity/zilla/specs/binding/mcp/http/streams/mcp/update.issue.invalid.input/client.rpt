@@ -50,13 +50,14 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-# update_issue_params.required lists only "state" -- "owner" and "repo" are present in
-# properties but not required (modeling a tool whose derived input schema omits a
-# path-referenced arg from "required", e.g. an OpenAPI $ref path parameter that never
-# propagated its own required:true into the generated schema). "repo" is absent here,
-# so schema validation passes (nothing required is missing) and the arguments object
-# parses to completion, but the :path template's ${args.repo} is never satisfied: this
-# request can never open the upstream connection and must be rejected, not left to hang.
 write '{"name":"update_issue","arguments":{"owner":"acme","state":"open"}}'
 
-read abort
+read zilla:reset.ext ${mcp:matchResetEx()
+                          .typeId(zilla:id("mcp"))
+                          .error()
+                              .code(-32602)
+                              .message("Invalid params")
+                              .build()
+                          .build()}
+
+write abort
