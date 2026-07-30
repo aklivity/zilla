@@ -18,10 +18,15 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.function.IntConsumer;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Assignment;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Generator;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source.Assignment;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source.AssignmentConsumer;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source.Config;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source.ConfigConsumer;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source.TopicConsumer;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
@@ -29,12 +34,12 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
- * Terminal {@link JsonSink} that parses the {@code create_topics} tool call's JSON arguments
- * body into a small internal scratch representation, then drives {@link KafkaCreateTopicsRequest}'s
- * fluent {@link Generator} directly from it via {@link #generate(Generator)}, without materializing
- * a generic JSON tree. Follows {@link McpKafkaArguments}'s streaming-first approach, generalized
- * with an explicit context stack since {@code arguments.topics} is a variable-length array of
- * nested objects rather than a fixed set of scalar paths.
+ * Terminal {@link JsonSink} that parses the {@code create_topics} tool call's JSON arguments body
+ * into a small internal scratch representation, then exposes it as a {@link Source} that any
+ * consumer (a {@code Generator}, a size calculator, or a future transform) can drive, without
+ * materializing a generic JSON tree. Follows {@link McpKafkaArguments}'s streaming-first approach,
+ * generalized with an explicit context stack since {@code arguments.topics} is a variable-length
+ * array of nested objects rather than a fixed set of scalar paths.
  * <p>
  * Expected shape:
  * <pre>{@code
@@ -57,7 +62,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * {@code assignments}, {@code configs}, {@code timeout} and {@code validateOnly} are optional;
  * {@code timeout} defaults to {@code zilla.binding.mcp.kafka.request.timeout} (default {@code PT30S}).
  */
-public final class McpKafkaToolCreateTopicsSource implements JsonSink
+public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
 {
     private enum Context
     {
@@ -103,55 +108,29 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         return completed;
     }
 
-    /**
-     * Drives {@code generator} from the parsed topics, timeout and validateOnly flag,
-     * returning {@code false} if any struct failed to fit or a declared count mismatched
-     * the number of nested elements actually written.
-     */
-    public boolean generate(
-        Generator generator)
+    @Override
+    public int topicCount()
     {
-        generator.topics(topics.size());
+        return topics.size();
+    }
 
-        boolean built = true;
-        for (int i = 0; i < topics.size() && built; i++)
-        {
-            final ParsedTopic parsedTopic = topics.get(i);
+    @Override
+    public void forEach(
+        TopicConsumer consumer)
+    {
+        topics.forEach(consumer::accept);
+    }
 
-            Topic topicBuilder = generator.topic()
-                .name(parsedTopic.name())
-                .partitions(parsedTopic.partitions())
-                .replicas(parsedTopic.replicas())
-                .assignments(parsedTopic.assignments().size());
+    @Override
+    public int timeoutMs()
+    {
+        return timeoutMs;
+    }
 
-            for (ParsedAssignment parsedAssignment : parsedTopic.assignments())
-            {
-                Assignment assignmentBuilder = topicBuilder.assignment()
-                    .partitionIndex(parsedAssignment.partitionIndex())
-                    .brokers(parsedAssignment.brokerIds().size());
-
-                for (int brokerId : parsedAssignment.brokerIds())
-                {
-                    assignmentBuilder.broker(brokerId);
-                }
-
-                topicBuilder = assignmentBuilder.build();
-            }
-
-            topicBuilder.configs(parsedTopic.configs().size());
-
-            for (ParsedConfig parsedConfig : parsedTopic.configs())
-            {
-                topicBuilder = topicBuilder.config()
-                    .name(parsedConfig.name())
-                    .value(parsedConfig.value())
-                    .build();
-            }
-
-            built = topicBuilder.build();
-        }
-
-        return built && generator.build(timeoutMs, validateOnly);
+    @Override
+    public boolean validateOnly()
+    {
+        return validateOnly;
     }
 
     @Override
@@ -406,19 +385,56 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         int partitions,
         short replicas,
         List<ParsedAssignment> assignments,
-        List<ParsedConfig> configs)
+        List<ParsedConfig> configs) implements Topic
     {
+        @Override
+        public int assignmentCount()
+        {
+            return assignments.size();
+        }
+
+        @Override
+        public void forEachAssignment(
+            AssignmentConsumer consumer)
+        {
+            assignments.forEach(consumer::accept);
+        }
+
+        @Override
+        public int configCount()
+        {
+            return configs.size();
+        }
+
+        @Override
+        public void forEachConfig(
+            ConfigConsumer consumer)
+        {
+            configs.forEach(consumer::accept);
+        }
     }
 
     private record ParsedAssignment(
         int partitionIndex,
-        List<Integer> brokerIds)
+        List<Integer> brokerIds) implements Assignment
     {
+        @Override
+        public int brokerCount()
+        {
+            return brokerIds.size();
+        }
+
+        @Override
+        public void forEachBroker(
+            IntConsumer consumer)
+        {
+            brokerIds.forEach(consumer::accept);
+        }
     }
 
     private record ParsedConfig(
         String name,
-        String value)
+        String value) implements Config
     {
     }
 }

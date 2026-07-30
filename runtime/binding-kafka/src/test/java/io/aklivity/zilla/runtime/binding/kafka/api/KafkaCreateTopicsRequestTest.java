@@ -18,12 +18,20 @@ package io.aklivity.zilla.runtime.binding.kafka.api;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+import java.util.function.IntConsumer;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Assignment;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Generator;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source.AssignmentConsumer;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source.ConfigConsumer;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Source.TopicConsumer;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Topic;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -196,5 +204,169 @@ public class KafkaCreateTopicsRequestTest
             .assignments(0);
 
         assertFalse(topic.build());
+    }
+
+    @Test
+    public void shouldGenerateFromSourceMatchingGoldenBytes()
+    {
+        FakeSource source = new FakeSource(
+            List.of(
+                new FakeTopic("events", 1, (short) 1,
+                    List.of(new FakeAssignment(0, List.of(0))),
+                    List.of(new FakeConfig("cleanup.policy", "delete"))),
+                new FakeTopic("snapshots", 1, (short) 1,
+                    List.of(new FakeAssignment(0, List.of(0))),
+                    List.of(new FakeConfig("cleanup.policy", "compact")))),
+            0,
+            false);
+
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+        Generator generator = new Generator().wrap(buffer, 0, buffer.capacity());
+
+        assertTrue(generator.generate(source));
+
+        int limit = generator.limit();
+        assertEquals(EXPECTED.length, limit);
+
+        byte[] actual = new byte[limit];
+        buffer.getBytes(0, actual);
+        assertArrayEquals(EXPECTED, actual);
+    }
+
+    @Test
+    public void shouldComputeSizeofMatchingGoldenBytes()
+    {
+        FakeSource source = new FakeSource(
+            List.of(
+                new FakeTopic("events", 1, (short) 1,
+                    List.of(new FakeAssignment(0, List.of(0))),
+                    List.of(new FakeConfig("cleanup.policy", "delete"))),
+                new FakeTopic("snapshots", 1, (short) 1,
+                    List.of(new FakeAssignment(0, List.of(0))),
+                    List.of(new FakeConfig("cleanup.policy", "compact")))),
+            0,
+            false);
+
+        assertEquals(EXPECTED.length, KafkaCreateTopicsRequest.sizeof(source, (short) 7));
+    }
+
+    @Test
+    public void shouldComputeSizeofForNullConfigValue()
+    {
+        FakeSource source = new FakeSource(
+            List.of(
+                new FakeTopic("events", 1, (short) 1,
+                    List.of(),
+                    List.of(new FakeConfig("cleanup.policy", null)))),
+            0,
+            false);
+
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+        Generator generator = new Generator().wrap(buffer, 0, buffer.capacity());
+
+        assertTrue(generator.generate(source));
+        assertEquals(generator.limit(), KafkaCreateTopicsRequest.sizeof(source, (short) 7));
+    }
+
+    @Test
+    public void shouldComputeSizeofAcrossVarintWidthBoundary()
+    {
+        // a 127-byte name pushes the compact-string length prefix from 1 byte (N+1 <= 127) to 2 bytes
+        String longName = "a".repeat(127);
+        FakeSource source = new FakeSource(
+            List.of(new FakeTopic(longName, 1, (short) 1, List.of(), List.of())),
+            0,
+            false);
+
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[512]);
+        Generator generator = new Generator().wrap(buffer, 0, buffer.capacity());
+
+        assertTrue(generator.generate(source));
+        assertEquals(generator.limit(), KafkaCreateTopicsRequest.sizeof(source, (short) 7));
+    }
+
+    @Test
+    public void shouldRejectUnsupportedApiVersion()
+    {
+        FakeSource source = new FakeSource(List.of(), 0, false);
+
+        assertThrows(UnsupportedOperationException.class, () -> KafkaCreateTopicsRequest.sizeof(source, (short) 3));
+    }
+
+    private record FakeConfig(
+        String name,
+        String value) implements Source.Config
+    {
+    }
+
+    private record FakeAssignment(
+        int partitionIndex,
+        List<Integer> brokerIds) implements Source.Assignment
+    {
+        @Override
+        public int brokerCount()
+        {
+            return brokerIds.size();
+        }
+
+        @Override
+        public void forEachBroker(
+            IntConsumer consumer)
+        {
+            brokerIds.forEach(consumer::accept);
+        }
+    }
+
+    private record FakeTopic(
+        String name,
+        int partitions,
+        short replicas,
+        List<FakeAssignment> assignments,
+        List<FakeConfig> configs) implements Source.Topic
+    {
+        @Override
+        public int assignmentCount()
+        {
+            return assignments.size();
+        }
+
+        @Override
+        public void forEachAssignment(
+            AssignmentConsumer consumer)
+        {
+            assignments.forEach(consumer::accept);
+        }
+
+        @Override
+        public int configCount()
+        {
+            return configs.size();
+        }
+
+        @Override
+        public void forEachConfig(
+            ConfigConsumer consumer)
+        {
+            configs.forEach(consumer::accept);
+        }
+    }
+
+    private record FakeSource(
+        List<FakeTopic> topics,
+        int timeoutMs,
+        boolean validateOnly) implements Source
+    {
+        @Override
+        public int topicCount()
+        {
+            return topics.size();
+        }
+
+        @Override
+        public void forEach(
+            TopicConsumer consumer)
+        {
+            topics.forEach(consumer::accept);
+        }
     }
 }

@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.api;
 
+import java.nio.charset.StandardCharsets;
+import java.util.function.IntConsumer;
+
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.AssignmentRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.AssignmentRequestPart2FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.create_topics.BrokerRequestFW;
@@ -28,8 +31,148 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class KafkaCreateTopicsRequest
 {
+    private static final short CREATE_TOPICS_API_VERSION_V7 = 7;
+
     private KafkaCreateTopicsRequest()
     {
+    }
+
+    /**
+     * A fully-observed CreateTopics request, ready to drive {@link Generator#generate(Source)} or
+     * {@link #sizeof(Source, short)} directly, regardless of the input format that produced it
+     * (JSON tool-call arguments today; any format implements the same contract).
+     */
+    public interface Source
+    {
+        int topicCount();
+
+        void forEach(
+            TopicConsumer consumer);
+
+        int timeoutMs();
+
+        boolean validateOnly();
+
+        interface TopicConsumer
+        {
+            void accept(
+                Topic topic);
+        }
+
+        interface Topic
+        {
+            String name();
+
+            int partitions();
+
+            short replicas();
+
+            int assignmentCount();
+
+            void forEachAssignment(
+                AssignmentConsumer consumer);
+
+            int configCount();
+
+            void forEachConfig(
+                ConfigConsumer consumer);
+        }
+
+        interface AssignmentConsumer
+        {
+            void accept(
+                Assignment assignment);
+        }
+
+        interface Assignment
+        {
+            int partitionIndex();
+
+            int brokerCount();
+
+            void forEachBroker(
+                IntConsumer consumer);
+        }
+
+        interface ConfigConsumer
+        {
+            void accept(
+                Config config);
+        }
+
+        interface Config
+        {
+            String name();
+
+            String value();
+        }
+    }
+
+    /**
+     * The exact number of bytes {@link Generator#generate(Source)} will write for {@code source} at
+     * {@code apiVersion}, computed by arithmetic alone (string byte lengths, item counts, and this
+     * version's fixed field widths) with no buffer touched. Only version 7 is implemented today;
+     * a future version's formula would branch alongside it here rather than replacing it.
+     */
+    public static int sizeof(
+        Source source,
+        short apiVersion)
+    {
+        if (apiVersion != CREATE_TOPICS_API_VERSION_V7)
+        {
+            throw new UnsupportedOperationException("unsupported CreateTopics API version: " + apiVersion);
+        }
+
+        final int[] size = { 1 + varintWidth(source.topicCount() + 1) };
+
+        source.forEach(t ->
+        {
+            size[0] += stringSizeof(t.name()) + 4 + 2 + varintWidth(t.assignmentCount() + 1);
+
+            t.forEachAssignment(a ->
+            {
+                size[0] += 4 + varintWidth(a.brokerCount() + 1) + 4 * a.brokerCount() + 1;
+            });
+
+            size[0] += varintWidth(t.configCount() + 1);
+
+            t.forEachConfig(c -> size[0] += stringSizeof(c.name()) + stringSizeof(c.value()) + 1);
+
+            size[0] += 1;
+        });
+
+        size[0] += 4 + 1 + 1;
+
+        return size[0];
+    }
+
+    private static int stringSizeof(
+        String value)
+    {
+        int sizeof;
+        if (value == null)
+        {
+            sizeof = 1;
+        }
+        else
+        {
+            final int length = value.getBytes(StandardCharsets.UTF_8).length;
+            sizeof = varintWidth(length + 1) + length;
+        }
+        return sizeof;
+    }
+
+    private static int varintWidth(
+        int value)
+    {
+        int width = 1;
+        int remaining = value >>> 7;
+        while (remaining != 0)
+        {
+            width++;
+            remaining >>>= 7;
+        }
+        return width;
     }
 
     public static final class Generator
@@ -108,6 +251,46 @@ public final class KafkaCreateTopicsRequest
                 }
             }
             return built;
+        }
+
+        /**
+         * Drives this generator from {@code source}, writing every topic/assignment/config it
+         * yields, then finishing with {@code source}'s own timeout and validateOnly. Returns
+         * {@code false} if any struct failed to fit the buffer.
+         */
+        public boolean generate(
+            Source source)
+        {
+            topics(source.topicCount());
+
+            final boolean[] ok = { true };
+            source.forEach(t ->
+            {
+                Topic topicBuilder = topic()
+                    .name(t.name())
+                    .partitions(t.partitions())
+                    .replicas(t.replicas())
+                    .assignments(t.assignmentCount());
+
+                t.forEachAssignment(a ->
+                {
+                    Assignment assignmentBuilder = topicBuilder.assignment()
+                        .partitionIndex(a.partitionIndex())
+                        .brokers(a.brokerCount());
+                    a.forEachBroker(assignmentBuilder::broker);
+                    assignmentBuilder.build();
+                });
+
+                topicBuilder.configs(t.configCount());
+                t.forEachConfig(c -> topicBuilder.config().name(c.name()).value(c.value()).build());
+
+                if (!topicBuilder.build())
+                {
+                    ok[0] = false;
+                }
+            });
+
+            return ok[0] && build(source.timeoutMs(), source.validateOnly());
         }
 
         public int limit()

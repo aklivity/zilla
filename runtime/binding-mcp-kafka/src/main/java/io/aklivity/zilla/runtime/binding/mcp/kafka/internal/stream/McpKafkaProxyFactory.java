@@ -2214,9 +2214,11 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
             this.kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
             this.requestBuffer = new UnsafeBufferEx(new byte[CREATE_TOPICS_REQUEST_CAPACITY]);
+            final int length = KafkaCreateTopicsRequest.sizeof(createTopicsSource, CREATE_TOPICS_API_VERSION);
+            final boolean fits = length <= requestBuffer.capacity();
             createTopicsRequestGenerator.wrap(requestBuffer, 0, requestBuffer.capacity());
-            final boolean built = createTopicsSource.generate(createTopicsRequestGenerator);
-            this.requestLength = built ? createTopicsRequestGenerator.limit() : 0;
+            final boolean built = fits && createTopicsRequestGenerator.generate(createTopicsSource);
+            this.requestLength = built ? length : 0;
         }
 
         private void onKafkaMessage(
