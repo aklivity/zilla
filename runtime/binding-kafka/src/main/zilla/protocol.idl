@@ -738,32 +738,45 @@ scope protocol
 
         scope delete_topics
         {
-            struct DeleteTopicsRequest // v3
+            struct DeleteTopicsRequest // v6
             {
-                int32 topicCount;
+                varuint32 taggedFields;
+                varuint32n topicCount;
             }
 
-            struct TopicRequest // v3
+            struct TopicRequest
             {
-                string16 topic;
+                varstring name;
+                octets[16] topicId;
+                varuint32 taggedFields;
             }
 
             struct DeleteTopicsRequestPart2
             {
                 int32 timeout;
+                varuint32 taggedFields;
             }
 
             struct DeleteTopicsResponse
             {
                 int32 correlationId;
+                varuint32 taggedFields;
                 int32 throttleTimeMillis;
-                int32 topicCount;
+                varuint32n topicCount;
             }
 
             struct TopicResponse
             {
-                string16 name;
+                varstring name = null;
+                octets[16] topicId;
                 int16 error;
+                varstring message = null;
+                varuint32 taggedFields;
+            }
+
+            struct DeleteTopicsResponsePart2
+            {
+                varuint32 taggedFields;
             }
         }
 

@@ -26,34 +26,48 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .apiRequest()
-                                 .length(27)
+                                 .length(58)
                                  .api(20)
-                                 .version(3)
+                                 .version(6)
                                  .clientId("zilla")
                                  .build()
                                 .build()}
 
 connected
 
-read  2                                 # topic count
-        6s "events"                     # name
-        9s "snapshots"                  # name
+read  [0x00]                            # tagged fields
+      [0x03]                            # topic count
+        [0x07] "events"                 # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
+        [0x00]                          # tagged fields
+        [0x0a] "snapshots"              # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
+        [0x00]                          # tagged fields
       0                                 # timeout
+      [0x00]                            # tagged fields
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .apiResponse()
-                                 .length(31)
-                                 .version(3)
+                                 .length(64)
+                                 .version(6)
                                  .build()
                                 .build()}
 
-write 0                                  # throttle time ms
-      2                                  # topics
-        6s "events"                      # name
+write [0x00]                             # tagged fields
+      0                                  # throttle time ms
+      [0x03]                             # topics
+        [0x07] "events"                  # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
         0s                               # error code
-        9s "snapshots"                   # name
+        [0x00]                           # error message
+        [0x00]                           # tagged fields
+        [0x0a] "snapshots"                # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
         0s                               # error code
+        [0x00]                           # error message
+        [0x00]                           # tagged fields
+      [0x00]                             # tagged fields
 
 write flush
 

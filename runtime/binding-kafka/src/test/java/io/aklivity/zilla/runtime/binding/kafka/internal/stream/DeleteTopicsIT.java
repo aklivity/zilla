@@ -33,7 +33,7 @@ public class DeleteTopicsIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/delete.topics")
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/delete.topics.v3");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/delete.topics.v6");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 

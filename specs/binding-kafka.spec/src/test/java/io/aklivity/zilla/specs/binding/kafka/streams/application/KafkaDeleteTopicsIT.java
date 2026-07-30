@@ -39,9 +39,9 @@ public class KafkaDeleteTopicsIT
 
     @Test
     @Specification({
-        "${app}/delete.topics.v3/client",
-        "${app}/delete.topics.v3/server"})
-    public void shouldDeleteTopicsV3() throws Exception
+        "${app}/delete.topics.v6/client",
+        "${app}/delete.topics.v6/server"})
+    public void shouldDeleteTopicsV6() throws Exception
     {
         k3po.finish();
     }

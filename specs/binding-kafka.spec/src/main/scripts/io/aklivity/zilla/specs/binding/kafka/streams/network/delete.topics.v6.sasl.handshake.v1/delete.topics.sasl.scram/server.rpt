@@ -68,21 +68,35 @@ write 52                                # size
       30 "v=rmF9pqV8S7suAoZWja4dJRkFsKQ="  # authentication bytes
       0L                                # session lifetime
 
-read  42                                # size
+read  73                                # size
       20s                               # delete topics
-      3s                                # v3
+      6s                                # v6
       (int:newRequestId)
       5s "zilla"                        # client id
-      2                                 # topic count
-        6s "events"                     # name
-        9s "snapshots"                  # name
+      [0x00]                            # tagged fields
+      [0x03]                            # topic count
+        [0x07] "events"                 # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
+        [0x00]                          # tagged fields
+        [0x0a] "snapshots"              # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
+        [0x00]                          # tagged fields
       0                                 # timeout
+      [0x00]                            # tagged fields
 
-write 35                                 # size
+write 68                                 # size
       ${newRequestId}
+      [0x00]                             # tagged fields
       0                                  # throttle time ms
-      2                                  # topics
-        6s "events"                      # name
+      [0x03]                             # topics
+        [0x07] "events"                  # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
         0s                               # error code
-        9s "snapshots"                   # name
+        [0x00]                           # error message
+        [0x00]                           # tagged fields
+        [0x0a] "snapshots"                # name
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
         0s                               # error code
+        [0x00]                           # error message
+        [0x00]                           # tagged fields
+      [0x00]                             # tagged fields
