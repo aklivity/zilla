@@ -63,9 +63,9 @@ write 125                               # size
       7s                                # v7
       ${newRequestId}
       5s "zilla"                        # client id
-      [0x00]                            # tagged fields
-      [0x03]                            # topic count
-        [0x07] "events"                 # name
+      ${kafka:varuint32(0)}             # tagged fields
+      ${kafka:varuint32n(2)}            # topic count
+        ${kafka:varstring("events")}    # name
         1                               # number of partitions
         1s                              # replication factor
         [0x02]                          # assignments

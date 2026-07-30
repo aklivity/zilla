@@ -344,6 +344,74 @@ public final class KafkaFunctions
         }
     }
 
+    private static short apiKey(
+        String name)
+    {
+        final short key;
+        switch (name)
+        {
+        case "sasl_handshake":
+            key = 17;
+            break;
+        case "api_versions":
+            key = 18;
+            break;
+        case "create_topics":
+            key = 19;
+            break;
+        case "delete_topics":
+            key = 20;
+            break;
+        case "sasl_authenticate":
+            key = 36;
+            break;
+        default:
+            throw new IllegalArgumentException("Unrecognized Kafka api name: " + name);
+        }
+        return key;
+    }
+
+    @Function
+    public static byte[] varuint32(
+        long value)
+    {
+        assert value >= 0;
+
+        int size = 1;
+        for (long remaining = value >>> 7; remaining != 0; remaining >>>= 7)
+        {
+            size++;
+        }
+
+        final byte[] bytes = new byte[size];
+        long remaining = value;
+        for (int i = 0; i < size; i++)
+        {
+            bytes[i] = (byte) ((remaining & 0x7f) | (i < size - 1 ? 0x80 : 0x00));
+            remaining >>>= 7;
+        }
+        return bytes;
+    }
+
+    @Function
+    public static byte[] varuint32n(
+        int count)
+    {
+        return varuint32(count + 1L);
+    }
+
+    @Function
+    public static byte[] varstring(
+        String value)
+    {
+        final byte[] utf8 = value.getBytes(UTF_8);
+        final byte[] length = varuint32n(utf8.length);
+        final byte[] bytes = new byte[length.length + utf8.length];
+        System.arraycopy(length, 0, bytes, 0, length.length);
+        System.arraycopy(utf8, 0, bytes, length.length, utf8.length);
+        return bytes;
+    }
+
     @Function
     public static KafkaGroupMemberMetadataBuilder memberMetadata()
     {
@@ -1827,6 +1895,13 @@ public final class KafkaFunctions
                 int api)
             {
                 apiRequestBeginExRW.api((short) api);
+                return this;
+            }
+
+            public KafkaApiRequestBeginExBuilder apiName(
+                String api)
+            {
+                apiRequestBeginExRW.api(apiKey(api));
                 return this;
             }
 
@@ -6785,6 +6860,13 @@ public final class KafkaFunctions
                 int api)
             {
                 this.api = (short) api;
+                return this;
+            }
+
+            public KafkaApiRequestBeginExMatcherBuilder apiName(
+                String api)
+            {
+                this.api = apiKey(api);
                 return this;
             }
 
