@@ -252,6 +252,18 @@ catalogs:
                 "manager": { "type": ["string", "null"] }
               }
             }
+        list_issues_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["state"],
+              "properties": {
+                "owner": { "type": "string" },
+                "repo":  { "type": "string" },
+                "state": { "type": "string" }
+              }
+            }
 bindings:
   app0:
     type: mcp_http
@@ -442,6 +454,19 @@ bindings:
                 http_github0:
                   - subject: search_items_result
                     version: latest
+        list_issues:
+          description: >
+            List issues for a repository. Models a tool whose derived input
+            schema marks only query args as required, leaving path args
+            (owner, repo) present in properties but absent from required.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: list_issues_params
+                    version: latest
       resources:
         order:
           uri: "order://{orderId}"
@@ -590,3 +615,18 @@ bindings:
             ":scheme": https
             ":authority": api.github.com:443
             ":path": /items?q=${args.q}&${?args.limit=limit}
+      - when:
+          - tool: list_issues
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /repos/${args.owner}/${args.repo}/issues
+          query:
+            model: json
+            catalog:
+              http_github0:
+                - subject: list_issues_params
+                  version: latest

@@ -1228,6 +1228,15 @@ public final class McpHttpProxyFactory implements BindingHandler
                 case COMPLETED:
                     requestProjected = true;
                     progress = false;
+                    // requestPathReady() cannot become true after this point: the arguments object has
+                    // already been fully parsed, so a path arg still missing here never arrives — without
+                    // this check the request would stall forever waiting on a BEGIN that can never be sent
+                    // (see issue #2216)
+                    if (!requestPathReady())
+                    {
+                        delegate.doHttpAbort(traceId);
+                        doMcpReset(traceId, JSON_RPC_INVALID_PARAMS, "Invalid params");
+                    }
                     cleanupDecodeSlot();
                     break;
                 case REJECTED:
