@@ -537,7 +537,7 @@ public class McpHttpProxyIT
         k3po.finish();
     }
 
-    // list_issues_params.required lists only "state", so a well-formed arguments object
+    // update_issue_params.required lists only "state", so a well-formed arguments object
     // missing the path-referenced "repo" passes schema validation and the request
     // pipeline reaches COMPLETED, yet the :path template's ${args.repo} is never
     // satisfied and the upstream connection can never be opened; this must be rejected
