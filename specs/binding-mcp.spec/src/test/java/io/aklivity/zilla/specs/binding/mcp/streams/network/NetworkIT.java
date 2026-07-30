@@ -83,6 +83,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.version.unsupported/client",
+        "${net}/lifecycle.initialize.version.unsupported/server"})
+    public void shouldInitializeLifecycleWithUnsupportedVersionFallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.initialize.reject.bearer/client",
         "${net}/lifecycle.initialize.reject.bearer/server"})
     public void shouldRejectLifecycleInitializeOnUpstreamBearerChallenge() throws Exception

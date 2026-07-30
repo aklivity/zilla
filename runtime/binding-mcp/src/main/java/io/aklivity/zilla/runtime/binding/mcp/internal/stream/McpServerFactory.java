@@ -25,6 +25,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -95,6 +96,7 @@ import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 public final class McpServerFactory implements McpStreamFactory
 {
     private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
+    private static final Set<String> SUPPORTED_PROTOCOL_VERSIONS = Set.of("2025-06-18", MCP_PROTOCOL_VERSION);
 
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
@@ -2128,7 +2130,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .inject(this::injectAltSvc)
                 .build());
             final String negotiatedVersion = decodedProtocolVersion != null &&
-                decodedProtocolVersion.compareTo(MCP_PROTOCOL_VERSION) <= 0
+                SUPPORTED_PROTOCOL_VERSIONS.contains(decodedProtocolVersion)
                     ? decodedProtocolVersion
                     : MCP_PROTOCOL_VERSION;
             String8FW payload = new String8FW(INITIALIZE_RESPONSE_PROTOCOL_PREFIX + negotiatedVersion +
