@@ -43,13 +43,17 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Kind;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponseV7FW;
+import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponseV6FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsRequest;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaArguments;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaConsumeResult;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaToolCreateTopicsSource;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaToolDeleteTopicsSource;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.OctetsFW;
@@ -93,25 +97,29 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final String TOOL_PRODUCE = "produce";
     private static final String TOOL_CONSUME = "consume";
     private static final String TOOL_CREATE_TOPICS = "create_topics";
+    private static final String TOOL_DELETE_TOPICS = "delete_topics";
 
     private static final String[] TOOL_NAMES =
     {
         TOOL_PRODUCE,
         TOOL_CONSUME,
-        TOOL_CREATE_TOPICS
+        TOOL_CREATE_TOPICS,
+        TOOL_DELETE_TOPICS
     };
 
     /**
      * Tools that bypass the local Kafka cache and talk directly to the plain Kafka client
      * (routed via {@code composite.clientExitId}, see {@link McpKafkaClientFactory#attach}),
-     * using {@code KafkaApiClient} instead of the merged-capability {@code KafkaProxy}. A
-     * {@code Set} so future tools (e.g. {@code delete_topics}, {@code alter_configs}) are a
-     * one-line addition.
+     * using {@code KafkaApiClient}/{@code KafkaApiDeleteTopicsClient} instead of the
+     * merged-capability {@code KafkaProxy}. A {@code Set} so future tools (e.g.
+     * {@code alter_configs}) are a one-line addition.
      */
-    protected static final Set<String> API_TOOLS = Set.of(TOOL_CREATE_TOPICS);
+    protected static final Set<String> API_TOOLS = Set.of(TOOL_CREATE_TOPICS, TOOL_DELETE_TOPICS);
 
     private static final short CREATE_TOPICS_API_KEY = 19;
     private static final short CREATE_TOPICS_API_VERSION = 7;
+    private static final short DELETE_TOPICS_API_KEY = 20;
+    private static final short DELETE_TOPICS_API_VERSION = 6;
 
     private static final int CAPABILITIES_TOOLS = 1;
     private static final int FLAGS_INIT = 0x01;
@@ -170,8 +178,10 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final KafkaCreateTopicsRequest.Generator createTopicsRequestGenerator;
-    private final JsonGeneratorEx createTopicsResultGenerator;
+    private final KafkaDeleteTopicsRequest.Generator deleteTopicsRequestGenerator;
+    private final JsonGeneratorEx apiResultGenerator;
     private final CreateTopicsResponseV7FW createTopicsResponseRO;
+    private final DeleteTopicsResponseV6FW deleteTopicsResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
@@ -195,8 +205,10 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.createTopicsRequestGenerator = new KafkaCreateTopicsRequest.Generator();
-        this.createTopicsResultGenerator = JsonEx.createGenerator();
+        this.deleteTopicsRequestGenerator = new KafkaDeleteTopicsRequest.Generator();
+        this.apiResultGenerator = JsonEx.createGenerator();
         this.createTopicsResponseRO = new CreateTopicsResponseV7FW();
+        this.deleteTopicsResponseRO = new DeleteTopicsResponseV6FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
 
@@ -641,6 +653,17 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
             break;
+        case TOOL_DELETE_TOPICS:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("topics", Json.createObjectBuilder()
+                        .add("type", "array")
+                        .add("items", Json.createObjectBuilder().add("type", "string")))
+                    .add("timeout", Json.createObjectBuilder().add("type", "integer")))
+                .add("required", Json.createArrayBuilder().add("topics"))
+                .build();
+            break;
         default:
             break;
         }
@@ -656,6 +679,22 @@ public class McpKafkaProxyFactory implements BindingHandler
         switch (tool)
         {
         case TOOL_CREATE_TOPICS:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("topics", Json.createObjectBuilder()
+                        .add("type", "array")
+                        .add("items", Json.createObjectBuilder()
+                            .add("type", "object")
+                            .add("properties", Json.createObjectBuilder()
+                                .add("name", Json.createObjectBuilder().add("type", "string"))
+                                .add("error", Json.createObjectBuilder().add("type", "integer"))
+                                .add("errorMessage", Json.createObjectBuilder().add("type", "string")))
+                            .add("required", Json.createArrayBuilder().add("name").add("error")))))
+                .add("required", Json.createArrayBuilder().add("topics"))
+                .build();
+            break;
+        case TOOL_DELETE_TOPICS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
@@ -1118,6 +1157,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private JsonPipeline argsPipeline;
         private Map<String, String> capturedArgs;
         private McpKafkaToolCreateTopicsSource createTopicsSource;
+        private McpKafkaToolDeleteTopicsSource deleteTopicsSource;
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
 
@@ -1199,6 +1239,11 @@ public class McpKafkaProxyFactory implements BindingHandler
                 {
                     createTopicsSource = new McpKafkaToolCreateTopicsSource(createTopicsRequestTimeoutMs);
                     argsPipeline = JsonEx.stream(JsonEx.createParser()).into(createTopicsSource);
+                }
+                else if (TOOL_DELETE_TOPICS.equals(tool))
+                {
+                    deleteTopicsSource = new McpKafkaToolDeleteTopicsSource(createTopicsRequestTimeoutMs);
+                    argsPipeline = JsonEx.stream(JsonEx.createParser()).into(deleteTopicsSource);
                 }
                 else
                 {
@@ -1377,6 +1422,10 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 completeCreateTopicsArgs(traceId);
             }
+            else if (TOOL_DELETE_TOPICS.equals(tool))
+            {
+                completeDeleteTopicsArgs(traceId);
+            }
             else
             {
                 completeToolArgs(traceId);
@@ -1424,6 +1473,32 @@ public class McpKafkaProxyFactory implements BindingHandler
 
                     final KafkaApiClient client = new KafkaApiClient(
                         this, originId, resolvedId, affinity, authorization, createTopicsSource);
+                    client.doKafkaBegin(traceId);
+                    kafka = client;
+                }
+                else
+                {
+                    doMcpReset(traceId);
+                }
+            }
+            else
+            {
+                doMcpReset(traceId, buildInvalidParamsResetEx());
+            }
+        }
+
+        private void completeDeleteTopicsArgs(
+            long traceId)
+        {
+            if (deleteTopicsSource.completed())
+            {
+                final McpKafkaRouteConfig route = binding.resolve(authorization, tool, null);
+                if (route != null)
+                {
+                    resolvedId = route.id;
+
+                    final KafkaApiDeleteTopicsClient client = new KafkaApiDeleteTopicsClient(
+                        this, originId, resolvedId, affinity, authorization, deleteTopicsSource);
                     client.doKafkaBegin(traceId);
                     kafka = client;
                 }
@@ -2339,13 +2414,13 @@ public class McpKafkaProxyFactory implements BindingHandler
             else
             {
                 final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
-                createTopicsResultGenerator.reset();
-                createTopicsResultGenerator.wrap(encodeBuffer, 0, encodeBuffer.capacity());
+                apiResultGenerator.reset();
+                apiResultGenerator.wrap(encodeBuffer, 0, encodeBuffer.capacity());
 
                 final StringBuilder text = new StringBuilder();
                 boolean isError = false;
 
-                createTopicsResultGenerator.writeStartObject()
+                apiResultGenerator.writeStartObject()
                     .writeStartObject("structuredContent")
                     .writeStartArray("topics");
 
@@ -2363,7 +2438,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                         }
                         text.append(name);
 
-                        createTopicsResultGenerator.writeStartObject()
+                        apiResultGenerator.writeStartObject()
                             .write("name", name)
                             .write("error", error);
 
@@ -2376,9 +2451,9 @@ public class McpKafkaProxyFactory implements BindingHandler
                         {
                             final String message = topic.buffer()
                                 .getStringWithoutLengthUtf8(topic.messageOffset(), topic.messageLength());
-                            createTopicsResultGenerator.write("errorMessage", message);
+                            apiResultGenerator.write("errorMessage", message);
                         }
-                        createTopicsResultGenerator.writeEnd();
+                        apiResultGenerator.writeEnd();
                     }
                 }
 
@@ -2386,7 +2461,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
                 final String prefix = isError ? "Failed to create topic(s): " : "Created topic(s): ";
 
-                createTopicsResultGenerator
+                apiResultGenerator
                     .writeEnd()
                     .writeEnd()
                     .writeStartArray("content")
@@ -2398,7 +2473,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .write("isError", isError)
                     .writeEnd();
 
-                peer.doMcpResult(traceId, createTopicsResultGenerator.length(), encodeBuffer, isError);
+                peer.doMcpResult(traceId, apiResultGenerator.length(), encodeBuffer, isError);
 
                 encodePool.release(encodeSlot);
             }
@@ -2516,6 +2591,410 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .length(requestLength)
                     .api(CREATE_TOPICS_API_KEY)
                     .version(CREATE_TOPICS_API_VERSION)
+                    .clientId("zilla"))
+                .build();
+
+            kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
+                traceId, authorization, affinity, kafkaBeginEx);
+        }
+
+        @Override
+        public void doKafkaEnd(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.initialClosed(state))
+            {
+                state = McpKafkaState.closedInitial(state);
+                doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
+            }
+        }
+
+        @Override
+        public void doKafkaAbort(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.initialClosed(state))
+            {
+                state = McpKafkaState.closedInitial(state);
+                doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
+            }
+        }
+
+        @Override
+        public void doKafkaWindow(
+            long traceId,
+            long budgetId,
+            int credit,
+            int padding)
+        {
+            if (kafka != null)
+            {
+                doWindow(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization, budgetId, credit, padding);
+            }
+        }
+
+        @Override
+        public void doKafkaReset(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.replyClosed(state))
+            {
+                state = McpKafkaState.closedReply(state);
+                doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
+            }
+        }
+    }
+
+    private final class KafkaApiDeleteTopicsClient implements KafkaDownstream
+    {
+        private final McpProxy peer;
+        private final long originId;
+        private final long resolvedId;
+        private final long affinity;
+        private final long authorization;
+        private final long kafkaInitialId;
+        private final long kafkaReplyId;
+        private final McpKafkaToolDeleteTopicsSource deleteTopicsSource;
+        private final int requestLength;
+
+        private MessageConsumer kafka;
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private boolean requestSent;
+
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        private int responseLength = -1;
+
+        private KafkaApiDeleteTopicsClient(
+            McpProxy peer,
+            long originId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            McpKafkaToolDeleteTopicsSource deleteTopicsSource)
+        {
+            this.peer = peer;
+            this.originId = originId;
+            this.resolvedId = resolvedId;
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
+            this.kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
+            this.deleteTopicsSource = deleteTopicsSource;
+            this.requestLength = KafkaDeleteTopicsRequest.sizeof(deleteTopicsSource, DELETE_TOPICS_API_VERSION);
+        }
+
+        private void onKafkaMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onKafkaBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onKafkaData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onKafkaEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onKafkaAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onKafkaWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onKafkaReset(reset);
+                break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onKafkaChallenge(challenge);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onKafkaChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+
+            doKafkaFlush(traceId);
+        }
+
+        private void doKafkaFlush(
+            long traceId)
+        {
+            final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiFlush(f -> f.version(DELETE_TOPICS_API_VERSION))
+                .build();
+
+            doFlush(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization, kafkaFlushEx);
+        }
+
+        private void onKafkaBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+            final KafkaBeginExFW kafkaBeginEx = extension.sizeof() != 0
+                ? kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            responseLength = kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_API_RESPONSE
+                ? kafkaBeginEx.apiResponse().length()
+                : -1;
+
+            state = McpKafkaState.openedReply(state);
+
+            peer.doMcpBegin(traceId);
+            doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
+        }
+
+        private void onKafkaData(
+            DataFW data)
+        {
+            final long traceId = data.traceId();
+            final OctetsFW payload = data.payload();
+
+            if (payload != null)
+            {
+                appendResponse(traceId, payload.buffer(), payload.offset(), payload.sizeof());
+            }
+        }
+
+        private void appendResponse(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (decodeSlot == NO_SLOT)
+            {
+                decodeSlot = decodePool.acquire(kafkaReplyId);
+            }
+
+            if (decodeSlot == NO_SLOT)
+            {
+                cleanupDeleteTopics(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                slot.putBytes(decodeSlotOffset, buffer, offset, length);
+                decodeSlotOffset += length;
+
+                if (responseLength >= 0 && decodeSlotOffset >= responseLength)
+                {
+                    completeResponse(traceId);
+                }
+            }
+        }
+
+        private void completeResponse(
+            long traceId)
+        {
+            final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+            final DeleteTopicsResponseV6FW response = deleteTopicsResponseRO.wrap(slot, 0, responseLength);
+
+            final int encodeSlot = encodePool.acquire(kafkaReplyId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupDeleteTopics(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                apiResultGenerator.reset();
+                apiResultGenerator.wrap(encodeBuffer, 0, encodeBuffer.capacity());
+
+                final StringBuilder text = new StringBuilder();
+                boolean isError = false;
+
+                apiResultGenerator.writeStartObject()
+                    .writeStartObject("structuredContent")
+                    .writeStartArray("topics");
+
+                while (response.hasNext())
+                {
+                    final DeleteTopicsResponse.Topic topic = response.next();
+                    final String name = topic.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
+                    final short error = topic.error();
+
+                    if (text.length() != 0)
+                    {
+                        text.append(", ");
+                    }
+                    text.append(name);
+
+                    apiResultGenerator.writeStartObject()
+                        .write("name", name)
+                        .write("error", error);
+
+                    if (error != 0)
+                    {
+                        text.append(" (error ").append(error).append(')');
+                        isError = true;
+                    }
+                    if (topic.messageLength() != -1)
+                    {
+                        final String message = topic.buffer()
+                            .getStringWithoutLengthUtf8(topic.messageOffset(), topic.messageLength());
+                        apiResultGenerator.write("errorMessage", message);
+                    }
+                    apiResultGenerator.writeEnd();
+                }
+
+                cleanupDecodeSlot();
+
+                final String prefix = isError ? "Failed to delete topic(s): " : "Deleted topic(s): ";
+
+                apiResultGenerator
+                    .writeEnd()
+                    .writeEnd()
+                    .writeStartArray("content")
+                    .writeStartObject()
+                    .write("type", "text")
+                    .write("text", prefix + text)
+                    .writeEnd()
+                    .writeEnd()
+                    .write("isError", isError)
+                    .writeEnd();
+
+                peer.doMcpResult(traceId, apiResultGenerator.length(), encodeBuffer, isError);
+
+                encodePool.release(encodeSlot);
+            }
+        }
+
+        private void onKafkaEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            state = McpKafkaState.closedReply(state);
+
+            peer.doMcpEnd(traceId);
+        }
+
+        private void onKafkaAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = McpKafkaState.closedReply(state);
+
+            cleanupDecodeSlot();
+            peer.doMcpAbort(traceId);
+        }
+
+        private void onKafkaWindow(
+            WindowFW window)
+        {
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int credit = window.maximum();
+            final int padding = window.padding();
+
+            initialAck = window.acknowledge();
+
+            if (!requestSent && credit > 0)
+            {
+                requestSent = true;
+                sendDeleteTopicsRequest(traceId, budgetId);
+            }
+
+            initialMax = credit;
+        }
+
+        private void sendDeleteTopicsRequest(
+            long traceId,
+            long budgetId)
+        {
+            final int encodeSlot = encodePool.acquire(kafkaInitialId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupDeleteTopics(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                final boolean fits = requestLength <= slot.capacity();
+                deleteTopicsRequestGenerator.wrap(slot, 0, slot.capacity());
+                final boolean built = fits && deleteTopicsRequestGenerator.generate(deleteTopicsSource);
+
+                if (built)
+                {
+                    doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
+                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                    initialSeq += requestLength;
+                }
+                else
+                {
+                    cleanupDeleteTopics(traceId);
+                }
+
+                encodePool.release(encodeSlot);
+            }
+        }
+
+        private void onKafkaReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+
+            state = McpKafkaState.closedInitial(state);
+
+            cleanupDecodeSlot();
+            peer.doMcpReset(traceId);
+        }
+
+        private void cleanupDeleteTopics(
+            long traceId)
+        {
+            cleanupDecodeSlot();
+            doKafkaAbort(traceId);
+            doKafkaReset(traceId);
+            peer.doMcpAbort(traceId);
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
+        }
+
+        private void doKafkaBegin(
+            long traceId)
+        {
+            state = McpKafkaState.openingInitial(state);
+
+            final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiRequest(a -> a
+                    .length(requestLength)
+                    .api(DELETE_TOPICS_API_KEY)
+                    .version(DELETE_TOPICS_API_VERSION)
                     .clientId("zilla"))
                 .build();
 

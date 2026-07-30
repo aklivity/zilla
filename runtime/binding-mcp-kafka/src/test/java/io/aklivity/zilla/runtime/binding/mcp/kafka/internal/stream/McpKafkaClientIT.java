@@ -95,6 +95,26 @@ public class McpKafkaClientIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.delete.topics.yaml")
+    @Specification({
+        "${mcp}/delete.topics/client",
+        "${kafka}/delete.topics/server"})
+    public void shouldDeleteTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.delete.topics.yaml")
+    @Specification({
+        "${mcp}/delete.topics/client",
+        "${kafka}/delete.topics.negotiated/server"})
+    public void shouldDeleteTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
