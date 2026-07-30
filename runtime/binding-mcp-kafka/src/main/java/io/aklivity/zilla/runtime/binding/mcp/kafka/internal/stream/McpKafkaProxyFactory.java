@@ -43,8 +43,7 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Kind;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponseV7FW;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Request;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
@@ -171,7 +170,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final UnsafeBufferEx toolsListBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
-    private final KafkaCreateTopicsRequestGenerator createTopicsRequestGenerator;
+    private final KafkaCreateTopicsRequest.Generator createTopicsRequestGenerator;
     private final CreateTopicsResponseV7FW createTopicsResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
@@ -195,7 +194,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.toolsListBuffer = new UnsafeBufferEx(toolsListPayload);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
-        this.createTopicsRequestGenerator = new KafkaCreateTopicsRequestGenerator();
+        this.createTopicsRequestGenerator = new KafkaCreateTopicsRequest.Generator();
         this.createTopicsResponseRO = new CreateTopicsResponseV7FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
@@ -1427,9 +1426,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void completeCreateTopicsArgs(
             long traceId)
         {
-            final Request request = createTopicsSource.request();
-
-            if (request != null)
+            if (createTopicsSource.completed())
             {
                 final McpKafkaRouteConfig route = binding.resolve(authorization, tool, null);
                 if (route != null)
@@ -1437,7 +1434,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                     resolvedId = route.id;
 
                     final KafkaApiClient client = new KafkaApiClient(
-                        this, originId, resolvedId, affinity, authorization, request);
+                        this, originId, resolvedId, affinity, authorization, createTopicsSource);
                     client.doKafkaBegin(traceId);
                     kafka = client;
                 }
@@ -2207,7 +2204,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long resolvedId,
             long affinity,
             long authorization,
-            Request request)
+            McpKafkaToolCreateTopicsSource createTopicsSource)
         {
             this.peer = peer;
             this.originId = originId;
@@ -2217,7 +2214,9 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
             this.kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
             this.requestBuffer = new UnsafeBufferEx(new byte[CREATE_TOPICS_REQUEST_CAPACITY]);
-            this.requestLength = createTopicsRequestGenerator.generate(requestBuffer, 0, requestBuffer.capacity(), request);
+            createTopicsRequestGenerator.wrap(requestBuffer, 0, requestBuffer.capacity());
+            final boolean built = createTopicsSource.generate(createTopicsRequestGenerator);
+            this.requestLength = built ? createTopicsRequestGenerator.limit() : 0;
         }
 
         private void onKafkaMessage(

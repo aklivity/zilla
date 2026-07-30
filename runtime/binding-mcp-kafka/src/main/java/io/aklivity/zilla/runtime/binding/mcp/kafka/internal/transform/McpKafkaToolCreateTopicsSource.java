@@ -19,10 +19,9 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Assignment;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Config;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Request;
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequestGenerator.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Assignment;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Generator;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest.Topic;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
@@ -31,10 +30,11 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
  * Terminal {@link JsonSink} that parses the {@code create_topics} tool call's JSON arguments
- * body directly into a {@link Request} for {@code KafkaCreateTopicsRequestGenerator}, without
- * materializing a generic JSON tree. Follows {@link McpKafkaArguments}'s streaming-first
- * approach, generalized with an explicit context stack since {@code arguments.topics} is a
- * variable-length array of nested objects rather than a fixed set of scalar paths.
+ * body into a small internal scratch representation, then drives {@link KafkaCreateTopicsRequest}'s
+ * fluent {@link Generator} directly from it via {@link #generate(Generator)}, without materializing
+ * a generic JSON tree. Follows {@link McpKafkaArguments}'s streaming-first approach, generalized
+ * with an explicit context stack since {@code arguments.topics} is a variable-length array of
+ * nested objects rather than a fixed set of scalar paths.
  * <p>
  * Expected shape:
  * <pre>{@code
@@ -73,7 +73,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
 
     private final int defaultTimeoutMs;
     private final Deque<Context> stack = new ArrayDeque<>();
-    private final List<Topic> topics = new ArrayList<>();
+    private final List<ParsedTopic> topics = new ArrayList<>();
     private final StringBuilder text = new StringBuilder();
 
     private String key;
@@ -81,8 +81,8 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
     private String topicName;
     private int partitions;
     private short replicas;
-    private List<Assignment> assignments;
-    private List<Config> configs;
+    private List<ParsedAssignment> assignments;
+    private List<ParsedConfig> configs;
 
     private int partitionIndex;
     private List<Integer> brokerIds;
@@ -90,7 +90,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
     private int timeoutMs;
     private boolean validateOnly;
 
-    private Request request;
+    private boolean completed;
 
     public McpKafkaToolCreateTopicsSource(
         int defaultTimeoutMs)
@@ -98,9 +98,60 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         this.defaultTimeoutMs = defaultTimeoutMs;
     }
 
-    public Request request()
+    public boolean completed()
     {
-        return request;
+        return completed;
+    }
+
+    /**
+     * Drives {@code generator} from the parsed topics, timeout and validateOnly flag,
+     * returning {@code false} if any struct failed to fit or a declared count mismatched
+     * the number of nested elements actually written.
+     */
+    public boolean generate(
+        Generator generator)
+    {
+        generator.topics(topics.size());
+
+        boolean built = true;
+        for (int i = 0; i < topics.size() && built; i++)
+        {
+            final ParsedTopic parsedTopic = topics.get(i);
+
+            Topic topicBuilder = generator.topic()
+                .name(parsedTopic.name())
+                .partitions(parsedTopic.partitions())
+                .replicas(parsedTopic.replicas())
+                .assignments(parsedTopic.assignments().size());
+
+            for (ParsedAssignment parsedAssignment : parsedTopic.assignments())
+            {
+                Assignment assignmentBuilder = topicBuilder.assignment()
+                    .partitionIndex(parsedAssignment.partitionIndex())
+                    .brokers(parsedAssignment.brokerIds().size());
+
+                for (int brokerId : parsedAssignment.brokerIds())
+                {
+                    assignmentBuilder.broker(brokerId);
+                }
+
+                topicBuilder = assignmentBuilder.build();
+            }
+
+            topicBuilder.configs(parsedTopic.configs().size());
+
+            for (ParsedConfig parsedConfig : parsedTopic.configs())
+            {
+                topicBuilder = topicBuilder.config()
+                    .name(parsedConfig.name())
+                    .value(parsedConfig.value())
+                    .build();
+            }
+
+            built = topicBuilder.build();
+        }
+
+        return built && generator.build(timeoutMs, validateOnly);
     }
 
     @Override
@@ -112,7 +163,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         key = null;
         timeoutMs = defaultTimeoutMs;
         validateOnly = false;
-        request = null;
+        completed = false;
     }
 
     @Override
@@ -225,11 +276,11 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
             }
             else
             {
-                topics.add(new Topic(topicName, partitions, replicas, assignments, configs));
+                topics.add(new ParsedTopic(topicName, partitions, replicas, assignments, configs));
             }
             break;
         case ASSIGNMENT:
-            assignments.add(new Assignment(partitionIndex, brokerIds));
+            assignments.add(new ParsedAssignment(partitionIndex, brokerIds));
             break;
         case ROOT:
             if (topics.isEmpty())
@@ -238,7 +289,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
             }
             else
             {
-                request = new Request(topics, timeoutMs, validateOnly);
+                completed = true;
                 status = Status.COMPLETED;
             }
             break;
@@ -290,7 +341,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
             brokerIds.add(parseInt(value, 0));
             break;
         case CONFIGS:
-            configs.add(new Config(key, value));
+            configs.add(new ParsedConfig(key, value));
             break;
         case ARGUMENTS:
             onArgumentsScalar(value);
@@ -348,5 +399,26 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink
         {
         }
         return parsed;
+    }
+
+    private record ParsedTopic(
+        String name,
+        int partitions,
+        short replicas,
+        List<ParsedAssignment> assignments,
+        List<ParsedConfig> configs)
+    {
+    }
+
+    private record ParsedAssignment(
+        int partitionIndex,
+        List<Integer> brokerIds)
+    {
+    }
+
+    private record ParsedConfig(
+        String name,
+        String value)
+    {
     }
 }
