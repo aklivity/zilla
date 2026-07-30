@@ -1228,10 +1228,6 @@ public final class McpHttpProxyFactory implements BindingHandler
                 case COMPLETED:
                     requestProjected = true;
                     progress = false;
-                    // requestPathReady() cannot become true after this point: the arguments object has
-                    // already been fully parsed, so a path arg still missing here never arrives — without
-                    // this check the request would stall forever waiting on a BEGIN that can never be sent
-                    // (see issue #2216)
                     if (!requestPathReady())
                     {
                         delegate.doHttpAbort(traceId);
@@ -1774,6 +1770,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             // prefix to reach some threshold
             mcp.responseStarted = true;
             mcp.responseBegin(traceId, responseStatus, responseContentType);
+            mcp.flushHttpWindow(traceId);
         }
 
         private void onHttpData(
@@ -1929,15 +1926,18 @@ public final class McpHttpProxyFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            final long newReplyAck = Math.max(replyAck, replySeq - decodeSlotOffset);
-            final int newReplyMax = Math.max(replyMax, decodePool.slotCapacity());
-
-            if (newReplyAck > replyAck || newReplyMax > replyMax || !McpHttpState.replyOpened(state))
+            if (McpHttpState.replyOpening(state))
             {
-                replyAck = newReplyAck;
-                replyMax = newReplyMax;
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, mcp.authorization, budgetId, padding);
+                final long newReplyAck = Math.max(replyAck, replySeq - decodeSlotOffset);
+                final int newReplyMax = Math.max(replyMax, decodePool.slotCapacity());
+
+                if (newReplyAck > replyAck || newReplyMax > replyMax || !McpHttpState.replyOpened(state))
+                {
+                    replyAck = newReplyAck;
+                    replyMax = newReplyMax;
+                    doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, mcp.authorization, budgetId, padding);
+                }
             }
         }
 
