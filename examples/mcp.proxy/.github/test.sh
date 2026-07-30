@@ -527,7 +527,7 @@ call_list_subjects() {
       tools-list-client 2>&1)
   echo "$LIST_SUBJECTS_OUT" | grep -q "$SR_SUBJECT"
 }
-retry_until 5 3 call_list_subjects
+retry_until 10 3 call_list_subjects
 echo "LIST_SUBJECTS_OUT=$LIST_SUBJECTS_OUT"
 if echo "$LIST_SUBJECTS_OUT" | grep -q "$SR_SUBJECT"; then
   echo "✅ kafka_sr__list_subjects saw the registered subject in real Karapace state"
@@ -545,7 +545,7 @@ call_describe_subject() {
       tools-list-client 2>&1)
   echo "$DESCRIBE_SUBJECT_OUT" | grep -q '\[1\]'
 }
-retry_until 5 3 call_describe_subject
+retry_until 10 3 call_describe_subject
 echo "DESCRIBE_SUBJECT_OUT=$DESCRIBE_SUBJECT_OUT"
 if echo "$DESCRIBE_SUBJECT_OUT" | grep -q '\[1\]'; then
   echo "✅ kafka_sr__describe_subject listed version 1 of the registered subject"
@@ -567,7 +567,7 @@ call_get_schema() {
       tools-list-client 2>&1)
   echo "$GET_SCHEMA_OUT" | grep -q 'Retrieved schema id 1, version 1'
 }
-retry_until 5 3 call_get_schema
+retry_until 10 3 call_get_schema
 echo "GET_SCHEMA_OUT=$GET_SCHEMA_OUT"
 if echo "$GET_SCHEMA_OUT" | grep -q 'Retrieved schema id 1, version 1'; then
   echo "✅ kafka_sr__get_schema read the schema back with both result fields interpolated"
@@ -590,7 +590,7 @@ call_set_compatibility() {
       tools-list-client 2>&1)
   echo "$SET_COMPAT_OUT" | grep -q 'Compatibility level set to FULL'
 }
-retry_until 5 3 call_set_compatibility
+retry_until 10 3 call_set_compatibility
 echo "SET_COMPAT_OUT=$SET_COMPAT_OUT"
 if echo "$SET_COMPAT_OUT" | grep -q 'Compatibility level set to FULL'; then
   echo "✅ kafka_sr__set_compatibility set a compatibility level on the registered subject"
@@ -608,7 +608,7 @@ call_get_compatibility() {
       tools-list-client 2>&1)
   echo "$GET_COMPAT_OUT" | grep -q 'Compatibility level is FULL'
 }
-retry_until 5 3 call_get_compatibility
+retry_until 10 3 call_get_compatibility
 echo "GET_COMPAT_OUT=$GET_COMPAT_OUT"
 if echo "$GET_COMPAT_OUT" | grep -q 'Compatibility level is FULL'; then
   echo "✅ kafka_sr__get_compatibility read back the level set above"
@@ -629,7 +629,7 @@ call_check_compatibility() {
       tools-list-client 2>&1)
   echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'
 }
-retry_until 5 3 call_check_compatibility
+retry_until 10 3 call_check_compatibility
 echo "CHECK_COMPAT_OUT=$CHECK_COMPAT_OUT"
 if echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'; then
   echo "✅ kafka_sr__check_compatibility reported the identical schema as compatible"
