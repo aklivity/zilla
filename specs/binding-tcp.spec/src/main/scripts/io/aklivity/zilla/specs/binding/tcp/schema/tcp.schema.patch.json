@@ -129,6 +129,7 @@
                                 {
                                     "routes":
                                     {
+                                        "minItems": 1,
                                         "items":
                                         {
                                             "required":

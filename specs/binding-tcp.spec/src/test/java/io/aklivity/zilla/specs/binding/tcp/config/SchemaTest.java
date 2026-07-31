@@ -151,4 +151,10 @@ public class SchemaTest
     {
         schema.validate("server.routes.exit.missing.invalid.yaml");
     }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerRoutesEmpty()
+    {
+        schema.validate("server.routes.empty.invalid.yaml");
+    }
 }
