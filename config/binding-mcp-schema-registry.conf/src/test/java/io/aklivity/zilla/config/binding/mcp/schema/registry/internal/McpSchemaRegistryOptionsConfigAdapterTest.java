@@ -66,4 +66,26 @@ public class McpSchemaRegistryOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"server\":\"http://localhost:8080\"}"));
     }
+
+    @Test
+    public void shouldReadOptionsWithoutServer()
+    {
+        String text = "{}";
+
+        McpSchemaRegistryOptionsConfig options = jsonb.fromJson(text, McpSchemaRegistryOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithoutServer()
+    {
+        McpSchemaRegistryOptionsConfig options = McpSchemaRegistryOptionsConfig.builder()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{}"));
+    }
 }
