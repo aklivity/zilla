@@ -129,10 +129,14 @@
                                 {
                                     "routes":
                                     {
-                                        "required":
-                                        [
-                                            "exit"
-                                        ]
+                                        "minItems": 1,
+                                        "items":
+                                        {
+                                            "required":
+                                            [
+                                                "exit"
+                                            ]
+                                        }
                                     }
                                 },
                                 "required":
