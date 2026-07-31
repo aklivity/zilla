@@ -23,11 +23,11 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * The caller drives the cursor: {@code while (hasNext()) { Topic topic = next(); ... }}. Accessors
  * are valid only until the next {@link #next()} call. A version-specific implementation (e.g. a v6
  * wire decoder) returns a fixed default for any field its wire version does not carry, rather than
- * changing shape. Unlike {@link CreateTopicsResponse}, DeleteTopics has exactly one result shape per
+ * changing shape. Unlike {@link KafkaCreateTopicsResponse}, DeleteTopics has exactly one result shape per
  * entry, so there is no {@code Kind} discriminator.
  * </p>
  */
-public interface DeleteTopicsResponse
+public interface KafkaDeleteTopicsResponse
 {
     int throttleTimeMillis();
 

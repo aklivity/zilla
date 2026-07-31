@@ -43,6 +43,7 @@ import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -77,12 +78,20 @@ public final class McpHttpBindingConfig
 
     public McpHttpBindingConfig(
         BindingConfig binding,
-        EngineContext context)
+        EngineContext context,
+        String clientExit)
     {
         this.id = binding.id;
         this.context = context;
         this.resolveId = binding.resolveId;
         this.options = (McpHttpOptionsConfig) binding.options;
+
+        if (binding.kind == KindConfig.CLIENT)
+        {
+            final long clientExitId = resolveId.applyAsLong(clientExit);
+            binding.routes.forEach(route -> route.id = clientExitId);
+        }
+
         this.routes = binding.routes.stream()
             .map(McpHttpRouteConfig::new)
             .collect(toList());
