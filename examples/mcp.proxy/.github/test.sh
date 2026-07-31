@@ -67,6 +67,13 @@
 #      sharing create_topics' route (one `when` list, two `tool` entries)
 #      and its kafka:admin scope -- both are structural, admin-risk
 #      mutations, so one route/guard covers both instead of duplicating it
+#  25. kafka__list_topics lists the real topics on the same broker, gated
+#      by only the toolkit-level kafka:tools scope (no admin/write needed,
+#      same tier as consume)
+#  26. kafka__describe_topic describes the orders topic by name, reporting
+#      its partitions/leader/replicas/isr from the same real broker
+#  27. kafka__cluster_overview summarizes the same broker's topic/broker
+#      counts, sharing list_topics/describe_topic's read-only route
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -252,7 +259,10 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -270,7 +280,10 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'; then
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -726,6 +739,71 @@ if echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'; then
   echo "✅ kafka__delete_topics deleted the topic from the real Kafka broker"
 else
   echo "❌ kafka__delete_topics did not succeed against the real broker"
+  EXIT=1
+fi
+
+# WHEN: a kafka:tools-scoped caller calls kafka__list_topics
+# THEN: the real topics on the same broker come back (at least the seeded
+#       orders topic) -- gated by only the toolkit-level kafka:tools scope,
+#       the same tier as consume, no admin/write scope needed
+call_kafka_list_topics() {
+  KAFKA_LIST_TOPICS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__list_topics" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"name":"orders"'
+}
+retry_until 10 3 call_kafka_list_topics
+echo "KAFKA_LIST_TOPICS_OUT=$KAFKA_LIST_TOPICS_OUT"
+if echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"name":"orders"'; then
+  echo "✅ kafka__list_topics listed the real orders topic from the real Kafka broker"
+else
+  echo "❌ kafka__list_topics did not list the orders topic as expected"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__describe_topic for the orders topic
+# THEN: its real partition/leader/replica/isr metadata comes back from the
+#       same broker -- proving describe_topic's single-topic argument (not a
+#       route match) reaches the real Kafka Metadata API
+call_kafka_describe_topic() {
+  KAFKA_DESCRIBE_TOPIC_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_topic" \
+      -e CALL_ARGS='{"topic":"orders"}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q 'Described topic orders'
+}
+retry_until 10 3 call_kafka_describe_topic
+echo "KAFKA_DESCRIBE_TOPIC_OUT=$KAFKA_DESCRIBE_TOPIC_OUT"
+if echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q 'Described topic orders' &&
+    echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q '"partition_id":0'; then
+  echo "✅ kafka__describe_topic described the real orders topic from the real Kafka broker"
+else
+  echo "❌ kafka__describe_topic did not describe the orders topic as expected"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__cluster_overview
+# THEN: the same real broker's topic/broker counts come back -- sharing
+#       list_topics/describe_topic's read-only route (one `when` list, three
+#       `tool` entries, no guard beyond the toolkit-level kafka:tools)
+call_kafka_cluster_overview() {
+  KAFKA_CLUSTER_OVERVIEW_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__cluster_overview" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_CLUSTER_OVERVIEW_OUT" | grep -q 'Cluster overview:'
+}
+retry_until 10 3 call_kafka_cluster_overview
+echo "KAFKA_CLUSTER_OVERVIEW_OUT=$KAFKA_CLUSTER_OVERVIEW_OUT"
+if echo "$KAFKA_CLUSTER_OVERVIEW_OUT" | grep -q '"broker_count":1'; then
+  echo "✅ kafka__cluster_overview summarized the real Kafka broker"
+else
+  echo "❌ kafka__cluster_overview did not summarize the real broker as expected"
   EXIT=1
 fi
 
