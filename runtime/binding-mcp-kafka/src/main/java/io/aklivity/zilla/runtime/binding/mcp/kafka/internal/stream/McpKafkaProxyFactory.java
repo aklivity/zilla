@@ -3918,8 +3918,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .writeEnd();
 
                 final String text = isError
-                    ? "Failed to alter configs for " + resourceTypeName + " " + resourceName
-                        + (errorMessage != null ? " (" + errorMessage + ")" : " (error " + error + ")")
+                    ? "Failed to alter configs for " + resourceTypeName + " " + resourceName +
+                        (errorMessage != null ? " (" + errorMessage + ")" : " (error " + error + ")")
                     : "Updated configs for " + resourceTypeName + " " + resourceName;
 
                 apiResultGenerator
