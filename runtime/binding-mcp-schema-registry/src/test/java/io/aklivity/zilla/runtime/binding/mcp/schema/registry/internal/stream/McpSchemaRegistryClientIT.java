@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class McpSchemaRegistryClientIT
 {
-    private static final String HTTP_CLIENT_EXIT_NAME = "zilla.binding.mcp.openapi.http.client.exit";
+    private static final String HTTP_CLIENT_EXIT_NAME = "zilla.binding.mcp.http.client.exit";
     private static final String SESSION_ID_NAME = "zilla.binding.mcp.http.session.id";
 
     private final K3poRule k3po = new K3poRule()

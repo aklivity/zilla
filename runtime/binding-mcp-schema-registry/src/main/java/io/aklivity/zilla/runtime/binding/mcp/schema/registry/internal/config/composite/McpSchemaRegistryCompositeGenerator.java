@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.composite;
 
-import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
-import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -77,8 +74,8 @@ public final class McpSchemaRegistryCompositeGenerator
                 .build()
             .binding(McpOpenapiBindingConfig::builder)
                 .name(BINDING_NAME)
-                .kind(CLIENT)
-                .exit(binding.kind == PROXY ? binding.exit : null)
+                .kind(binding.kind)
+                .exit(binding.exit)
                 .options()
                     .spec()
                         .label(SUBJECT_NAME)

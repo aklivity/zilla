@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
@@ -26,6 +25,7 @@ import io.aklivity.zilla.config.binding.mcp.schema.registry.McpSchemaRegistryOpt
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public final class McpSchemaRegistryBindingConfig
@@ -65,11 +65,10 @@ public final class McpSchemaRegistryBindingConfig
         this.resolveId = binding.resolveId;
         this.supplyQName = context::supplyQName;
 
-        final String exit = binding.routes.stream()
-            .map(route -> route.exit)
-            .filter(Objects::nonNull)
+        final RouteConfig exitRoute = binding.routes.stream()
+            .filter(route -> route.exit != null)
             .findFirst()
             .orElse(null);
-        this.exit = exit != null ? this.supplyQName.apply(this.resolveId.applyAsLong(exit)) : null;
+        this.exit = exitRoute != null ? context.supplyQName(exitRoute.id) : null;
     }
 }

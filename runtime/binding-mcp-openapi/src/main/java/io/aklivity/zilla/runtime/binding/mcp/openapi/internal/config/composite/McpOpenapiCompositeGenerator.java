@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
@@ -109,14 +108,11 @@ public final class McpOpenapiCompositeGenerator
     private static final Pattern PATH_PARAM_PATTERN = Pattern.compile("\\{([^}]+)\\}");
     private static final Pattern JSON_CONTENT_TYPE_PATTERN = Pattern.compile("^application/(?:.+\\+)?json$");
 
-    private final String httpClientExit;
     private final List<String> denied;
     private final Matcher jsonContentType;
 
-    public McpOpenapiCompositeGenerator(
-        String httpClientExit)
+    public McpOpenapiCompositeGenerator()
     {
-        this.httpClientExit = httpClientExit;
         this.denied = new ArrayList<>();
         this.jsonContentType = JSON_CONTENT_TYPE_PATTERN.matcher("");
     }
@@ -414,7 +410,7 @@ public final class McpOpenapiCompositeGenerator
         return namespace
             .binding(McpHttpBindingConfig::builder)
                 .name(BINDING_NAME)
-                .kind(PROXY)
+                .kind(binding.kind)
                 .options(mcpHttpOptions(binding, routed))
                 .inject(b -> injectRoutes(b, binding, routed))
                 .build();
@@ -575,8 +571,6 @@ public final class McpOpenapiCompositeGenerator
         McpOpenapiBindingConfig binding,
         List<RoutedOperation> routed)
     {
-        final String exit = binding.exit != null ? binding.exit : httpClientExit;
-
         for (RoutedOperation entry : routed)
         {
             final McpHttpConditionConfig when = McpHttpConditionConfig.builder()
@@ -588,7 +582,7 @@ public final class McpOpenapiCompositeGenerator
             mcpHttp.route()
                 .when(when)
                 .with(with)
-                .exit(exit)
+                .exit(binding.exit)
                 .inject(route -> injectGuarded(route, entry))
                 .build();
         }

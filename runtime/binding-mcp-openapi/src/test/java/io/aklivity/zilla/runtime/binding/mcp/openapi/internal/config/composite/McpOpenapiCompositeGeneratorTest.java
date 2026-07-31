@@ -406,7 +406,7 @@ public class McpOpenapiCompositeGeneratorTest
     @Mock
     private CatalogHandler catalog;
 
-    private final McpOpenapiCompositeGenerator generator = new McpOpenapiCompositeGenerator("sys:http_client");
+    private final McpOpenapiCompositeGenerator generator = new McpOpenapiCompositeGenerator();
 
     private final ToLongFunction<String> resolveId = name -> switch (name)
     {
@@ -482,7 +482,7 @@ public class McpOpenapiCompositeGeneratorTest
 
         assertThat(mcpHttp, notNullValue());
         assertThat(mcpHttp.type, equalTo("mcp_http"));
-        assertThat(mcpHttp.kind, equalTo(PROXY));
+        assertThat(mcpHttp.kind, equalTo(CLIENT));
 
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
         assertThat(mcpHttpOptions.tools, notNullValue());
@@ -497,7 +497,7 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(mcpHttpOptions.resources, notNullValue());
         assertThat(mcpHttpOptions.resources.get(0).uri, equalTo("/repos/{owner}/{repo}"));
 
-        assertThat(mcpHttp.routes.get(0).exit, equalTo("sys:http_client"));
+        assertThat(mcpHttp.routes.get(0).exit, nullValue());
 
         McpHttpWithConfig toolWith = mcpHttp.routes.stream()
             .map(r -> (McpHttpWithConfig) r.with)
@@ -521,14 +521,16 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
-    public void shouldOverrideHttpClientExitFromBindingLevelExit()
+    public void shouldGenerateProxyKindMcpHttpFromProxyKindExit()
     {
+        lenient().when(context.supplyQName(eq(9L))).thenReturn("test:schema_registry0");
+
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
-            .kind(CLIENT)
-            .exit("test:schema_registry0")
+            .kind(PROXY)
+            .exit("schema_registry0")
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
                     .label("openapi_github0")
@@ -551,6 +553,11 @@ public class McpOpenapiCompositeGeneratorTest
                 .build()
             .build();
         binding.resolveId = resolveId;
+        binding.routes.stream()
+            .filter(route -> "schema_registry0".equals(route.exit))
+            .findFirst()
+            .orElseThrow()
+            .id = 9L;
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -561,6 +568,7 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
 
         assertThat(mcpHttp, notNullValue());
+        assertThat(mcpHttp.kind, equalTo(PROXY));
         assertThat(mcpHttp.routes, hasSize(1));
         assertThat(mcpHttp.routes.get(0).exit, equalTo("test:schema_registry0"));
     }

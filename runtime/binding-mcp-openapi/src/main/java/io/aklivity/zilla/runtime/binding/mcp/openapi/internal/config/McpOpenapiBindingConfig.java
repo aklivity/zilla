@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongBiFunction;
@@ -28,6 +27,7 @@ import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
@@ -61,11 +61,12 @@ public final class McpOpenapiBindingConfig
         this.routes = binding.routes.stream()
             .map(McpOpenapiRouteConfig::new)
             .collect(toList());
-        this.exit = binding.routes.stream()
-            .map(route -> route.exit)
-            .filter(Objects::nonNull)
+
+        final RouteConfig exitRoute = binding.routes.stream()
+            .filter(route -> route.exit != null)
             .findFirst()
             .orElse(null);
+        this.exit = exitRoute != null ? context.supplyQName(exitRoute.id) : null;
 
         this.resolveId = binding.resolveId;
         this.supplyBindingId = context::supplyBindingId;

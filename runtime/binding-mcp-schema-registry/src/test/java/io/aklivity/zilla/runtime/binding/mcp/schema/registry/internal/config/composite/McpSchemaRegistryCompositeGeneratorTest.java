@@ -237,14 +237,18 @@ public class McpSchemaRegistryCompositeGeneratorTest
             .kind(PROXY)
             .exit("http0")
             .build();
-        binding.resolveId = name -> "http0".equals(name) ? 5L : 4L;
+        binding.routes.stream()
+            .filter(route -> "http0".equals(route.exit))
+            .findFirst()
+            .orElseThrow()
+            .id = 5L;
 
         McpSchemaRegistryBindingConfig attached = new McpSchemaRegistryBindingConfig(context, binding);
 
         McpSchemaRegistryCompositeConfig composite = generator.generate(attached);
 
         BindingConfig mcpOpenapi = composite.namespaces.get(0).bindings.get(0);
-        assertThat(mcpOpenapi.kind, equalTo(CLIENT));
+        assertThat(mcpOpenapi.kind, equalTo(PROXY));
 
         McpOpenapiOptionsConfig mcpOpenapiOptions = (McpOpenapiOptionsConfig) mcpOpenapi.options;
         McpOpenapiSpecificationConfig spec = mcpOpenapiOptions.specs.get(0);

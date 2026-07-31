@@ -49,8 +49,30 @@ public class SchemaTest
         schema.validate("proxy.kind.invalid.yaml");
     }
 
+    @Test
+    public void shouldValidateProxyKind()
+    {
+        JsonObject config = schema.validate("kind.proxy.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyKindWithRouteExit()
+    {
+        JsonObject config = schema.validate("kind.proxy.route.exit.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
     @Test(expected = JsonException.class)
-    public void shouldRejectExit()
+    public void shouldRejectProxyKindWithoutExit()
+    {
+        schema.validate("kind.proxy.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientKindWithExit()
     {
         schema.validate("exit.invalid.yaml");
     }
