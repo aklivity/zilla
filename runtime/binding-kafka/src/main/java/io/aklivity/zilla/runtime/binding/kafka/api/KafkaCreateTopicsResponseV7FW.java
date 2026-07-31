@@ -30,10 +30,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 /**
  * Hand-crafted (not {@code .idl}-generated) CreateTopics v7 response cursor. Delegates the actual
  * byte decoding to the generated {@code protocol.idl} wire types, adding the version-tolerant
- * {@link CreateTopicsResponse} view on top - a fixed-default-on-read behavior the flyweight
+ * {@link KafkaCreateTopicsResponse} view on top - a fixed-default-on-read behavior the flyweight
  * generator cannot produce, since generated builders only default missing fields on write.
  */
-public final class CreateTopicsResponseV7FW implements CreateTopicsResponse
+public final class KafkaCreateTopicsResponseV7FW implements KafkaCreateTopicsResponse
 {
     private static final int FIELD_SIZE_THROTTLE_TIME_MILLIS = 4;
 
@@ -81,7 +81,7 @@ public final class CreateTopicsResponseV7FW implements CreateTopicsResponse
      * Wraps a complete CreateTopics v7 response body: tagged fields, throttle time, and topic count,
      * followed by the topics themselves.
      */
-    public CreateTopicsResponseV7FW wrap(
+    public KafkaCreateTopicsResponseV7FW wrap(
         DirectBufferEx buffer,
         int offset,
         int limit)
@@ -105,7 +105,7 @@ public final class CreateTopicsResponseV7FW implements CreateTopicsResponse
      * the throttle time and topic count itself (e.g. via a generated header flyweight covering a wider
      * response envelope, such as one that also carries a correlation id).
      */
-    public CreateTopicsResponseV7FW wrapTopics(
+    public KafkaCreateTopicsResponseV7FW wrapTopics(
         DirectBufferEx buffer,
         int offset,
         int limit,
