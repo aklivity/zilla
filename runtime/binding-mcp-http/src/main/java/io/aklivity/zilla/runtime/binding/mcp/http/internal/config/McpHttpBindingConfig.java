@@ -55,7 +55,6 @@ public final class McpHttpBindingConfig
 {
     private static final String CREDENTIALS_TOKEN = "{credentials}";
     private static final String IDENTITY_TOKEN = "{identity}";
-    private static final String SYS_HTTP_CLIENT = "sys:http_client";
 
     public final long id;
     public final McpHttpOptionsConfig options;
@@ -79,7 +78,8 @@ public final class McpHttpBindingConfig
 
     public McpHttpBindingConfig(
         BindingConfig binding,
-        EngineContext context)
+        EngineContext context,
+        String clientExit)
     {
         this.id = binding.id;
         this.context = context;
@@ -88,8 +88,8 @@ public final class McpHttpBindingConfig
 
         if (binding.kind == KindConfig.CLIENT)
         {
-            final long httpClientId = resolveId.applyAsLong(SYS_HTTP_CLIENT);
-            binding.routes.forEach(route -> route.id = httpClientId);
+            final long clientExitId = resolveId.applyAsLong(clientExit);
+            binding.routes.forEach(route -> route.id = clientExitId);
         }
 
         this.routes = binding.routes.stream()

@@ -368,27 +368,22 @@
                             "kind":
                             {
                                 "const": "proxy"
-                            }
-                        },
-                        "anyOf":
-                        [
-                            {
-                                "required": [ "exit" ]
                             },
+                            "routes":
                             {
-                                "properties":
+                                "items":
                                 {
-                                    "routes":
+                                    "if":
                                     {
-                                        "items":
-                                        {
-                                            "required": [ "exit" ]
-                                        }
+                                        "required": [ "with" ]
+                                    },
+                                    "then":
+                                    {
+                                        "required": [ "exit" ]
                                     }
-                                },
-                                "required": [ "routes" ]
+                                }
                             }
-                        ]
+                        }
                     },
                     {
                         "properties":

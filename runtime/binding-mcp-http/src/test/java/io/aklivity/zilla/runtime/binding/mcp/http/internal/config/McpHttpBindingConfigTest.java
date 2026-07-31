@@ -75,7 +75,7 @@ public class McpHttpBindingConfigTest
             .kind(KindConfig.PROXY)
             .routes(routes)
             .build();
-        return new McpHttpBindingConfig(config, null);
+        return new McpHttpBindingConfig(config, null, "sys:http_client");
     }
 
     @Test
@@ -168,7 +168,7 @@ public class McpHttpBindingConfigTest
     }
 
     @Test
-    public void shouldResolveClientRouteExitToSysHttpClient()
+    public void shouldResolveClientRouteExitToConfiguredDefault()
     {
         RouteConfig route = RouteConfig.builder()
             .order(0)
@@ -187,9 +187,34 @@ public class McpHttpBindingConfigTest
             .build();
         config.resolveId = name -> "sys:http_client".equals(name) ? 42L : 0L;
 
-        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null);
+        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null, "sys:http_client");
 
         assertThat(binding.routes.get(0).id, equalTo(42L));
+    }
+
+    @Test
+    public void shouldResolveClientRouteExitToConfiguredOverride()
+    {
+        RouteConfig route = RouteConfig.builder()
+            .order(0)
+            .with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build()
+            .exit("ignored")
+            .build();
+
+        BindingConfig config = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp_http")
+            .kind(KindConfig.CLIENT)
+            .routes(List.of(route))
+            .build();
+        config.resolveId = name -> "test:http0".equals(name) ? 24L : 0L;
+
+        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null, "test:http0");
+
+        assertThat(binding.routes.get(0).id, equalTo(24L));
     }
 
     @Test
@@ -213,7 +238,7 @@ public class McpHttpBindingConfigTest
             .build();
         config.resolveId = name -> "sys:http_client".equals(name) ? 42L : 0L;
 
-        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null);
+        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null, "sys:http_client");
 
         assertThat(binding.routes.get(0).id, equalTo(7L));
     }
