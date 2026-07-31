@@ -21,13 +21,13 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * A resumable, allocation-free cursor over a decoded DescribeCluster response.
  * <p>
  * The caller drives the cursor: {@code while (hasNext()) { Broker broker = next(); ... }}. Accessors
- * are valid only until the next {@link #next()} call. Like {@link DeleteTopicsResponse}, DescribeCluster
+ * are valid only until the next {@link #next()} call. Like {@link KafkaDeleteTopicsResponse}, DescribeCluster
  * has exactly one result shape per entry, so there is no {@code Kind} discriminator. {@link #authorizedOperations()}
  * is only valid once {@link #hasNext()} has returned {@code false} at least once, since it is decoded from the
  * response footer that follows the last broker entry.
  * </p>
  */
-public interface DescribeClusterResponse
+public interface KafkaDescribeClusterResponse
 {
     int throttleTimeMillis();
 

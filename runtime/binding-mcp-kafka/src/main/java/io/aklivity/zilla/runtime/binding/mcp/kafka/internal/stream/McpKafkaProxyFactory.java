@@ -45,11 +45,11 @@ import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponseV7FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponse;
 import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponseV6FW;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeClusterResponse.Broker;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeClusterResponseV0FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterResponse.Broker;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterResponseV0FW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
@@ -195,7 +195,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final JsonGeneratorEx apiResultGenerator;
     private final CreateTopicsResponseV7FW createTopicsResponseRO;
     private final DeleteTopicsResponseV6FW deleteTopicsResponseRO;
-    private final DescribeClusterResponseV0FW describeClusterResponseRO;
+    private final KafkaDescribeClusterResponseV0FW describeClusterResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
@@ -224,7 +224,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.apiResultGenerator = JsonEx.createGenerator();
         this.createTopicsResponseRO = new CreateTopicsResponseV7FW();
         this.deleteTopicsResponseRO = new DeleteTopicsResponseV6FW();
-        this.describeClusterResponseRO = new DescribeClusterResponseV0FW();
+        this.describeClusterResponseRO = new KafkaDescribeClusterResponseV0FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
 
@@ -3368,7 +3368,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final DescribeClusterResponseV0FW response = describeClusterResponseRO.wrap(slot, 0, responseLength);
+            final KafkaDescribeClusterResponseV0FW response = describeClusterResponseRO.wrap(slot, 0, responseLength);
 
             // captured up front, while `slot` is still held - cleanupDecodeSlot() below releases it
             // back to the pool, so nothing may read from `slot` after that point

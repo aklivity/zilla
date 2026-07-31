@@ -27,10 +27,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 /**
  * Hand-crafted (not {@code .idl}-generated) DescribeCluster v0 response cursor. Delegates the actual
  * byte decoding to the generated {@code protocol.idl} wire types, adding the version-tolerant
- * {@link DescribeClusterResponse} view on top - a fixed-default-on-read behavior the flyweight
+ * {@link KafkaDescribeClusterResponse} view on top - a fixed-default-on-read behavior the flyweight
  * generator cannot produce, since generated builders only default missing fields on write.
  */
-public final class DescribeClusterResponseV0FW implements DescribeClusterResponse
+public final class KafkaDescribeClusterResponseV0FW implements KafkaDescribeClusterResponse
 {
     private static final int FIELD_SIZE_THROTTLE = 4;
     private static final int FIELD_SIZE_ERROR = 2;
@@ -72,7 +72,7 @@ public final class DescribeClusterResponseV0FW implements DescribeClusterRespons
      * Wraps a complete DescribeCluster v0 response body: tagged fields, throttle time, error,
      * message, cluster id, controller id, and broker count, followed by the brokers themselves.
      */
-    public DescribeClusterResponseV0FW wrap(
+    public KafkaDescribeClusterResponseV0FW wrap(
         DirectBufferEx buffer,
         int offset,
         int limit)

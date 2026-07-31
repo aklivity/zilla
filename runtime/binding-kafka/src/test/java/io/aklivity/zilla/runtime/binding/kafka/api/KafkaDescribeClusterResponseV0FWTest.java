@@ -21,11 +21,11 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeClusterResponse.Broker;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterResponse.Broker;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class DescribeClusterResponseV0FWTest
+public class KafkaDescribeClusterResponseV0FWTest
 {
     // body bytes only, as verified against the real Kafka DescribeCluster v0 wire decoder input
     // (the response header's correlationId is decoded separately and excluded here)
@@ -63,7 +63,7 @@ public class DescribeClusterResponseV0FWTest
     @Test
     public void shouldDecodeDescribeClusterV0Response()
     {
-        DescribeClusterResponseV0FW response = new DescribeClusterResponseV0FW();
+        KafkaDescribeClusterResponseV0FW response = new KafkaDescribeClusterResponseV0FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(BODY);
         response.wrap(buffer, 0, buffer.capacity());
@@ -109,7 +109,7 @@ public class DescribeClusterResponseV0FWTest
             0x00, 0x00, 0x00, 0x00, 0x00
         };
 
-        DescribeClusterResponseV0FW response = new DescribeClusterResponseV0FW();
+        KafkaDescribeClusterResponseV0FW response = new KafkaDescribeClusterResponseV0FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(body);
         response.wrap(buffer, 0, buffer.capacity());
