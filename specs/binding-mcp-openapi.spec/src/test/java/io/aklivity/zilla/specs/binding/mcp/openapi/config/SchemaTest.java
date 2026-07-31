@@ -57,6 +57,14 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test
+    public void shouldValidateProxyKindWithRouteExit()
+    {
+        JsonObject config = schema.validate("kind.proxy.route.exit.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
     @Test(expected = JsonException.class)
     public void shouldRejectProxyKindWithoutExit()
     {

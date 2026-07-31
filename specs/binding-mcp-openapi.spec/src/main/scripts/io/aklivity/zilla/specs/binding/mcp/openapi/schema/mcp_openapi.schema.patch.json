@@ -474,12 +474,16 @@
                                 {
                                     "routes":
                                     {
-                                        "contains":
+                                        "items":
                                         {
-                                            "required":
-                                            [
-                                                "exit"
-                                            ]
+                                            "if":
+                                            {
+                                                "required": [ "with" ]
+                                            },
+                                            "then":
+                                            {
+                                                "required": [ "exit" ]
+                                            }
                                         }
                                     }
                                 },
