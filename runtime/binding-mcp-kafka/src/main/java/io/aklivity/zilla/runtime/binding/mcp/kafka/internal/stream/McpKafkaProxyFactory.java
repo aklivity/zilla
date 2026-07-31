@@ -638,10 +638,17 @@ public class McpKafkaProxyFactory implements BindingHandler
         switch (tool)
         {
         case TOOL_LIST_TOPICS:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder())
+                .add("additionalProperties", false)
+                .build();
+            break;
         case TOOL_CLUSTER_OVERVIEW:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder())
+                .add("additionalProperties", false)
                 .build();
             break;
         case TOOL_PRODUCE:
