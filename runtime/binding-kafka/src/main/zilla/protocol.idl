@@ -780,6 +780,88 @@ scope protocol
             }
         }
 
+        scope topic_metadata
+        {
+            struct MetadataRequest // v9
+            {
+                varuint32 taggedFields;
+                varuint32n topicCount;
+            }
+
+            struct TopicNameRequest
+            {
+                varstring name;
+                varuint32 taggedFields;
+            }
+
+            struct MetadataRequestPart2
+            {
+                uint8 allowAutoTopicCreation;
+                uint8 includeClusterAuthorizedOperations;
+                uint8 includeTopicAuthorizedOperations;
+                varuint32 taggedFields;
+            }
+
+            struct MetadataResponse
+            {
+                int32 correlationId;
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                varuint32n brokerCount;
+            }
+
+            struct BrokerMetadata
+            {
+                int32 nodeId;
+                varstring host;
+                int32 port;
+                varstring rack = null;
+                varuint32 taggedFields;
+            }
+
+            struct MetadataResponsePart2
+            {
+                varstring clusterId = null;
+                int32 controllerId;
+                varuint32n topicCount;
+            }
+
+            struct TopicMetadata
+            {
+                int16 errorCode;
+                varstring topic;
+                uint8 isInternal;
+                varuint32n partitionCount;
+            }
+
+            struct PartitionMetadata
+            {
+                int16 errorCode;
+                int32 partitionId;
+                int32 leader;
+                int32 leaderEpoch;
+                varuint32n replicaCount;
+                int32[replicaCount] replicas = null;
+                varuint32n isrCount;
+                int32[isrCount] isr = null;
+                varuint32n offlineReplicaCount;
+                int32[offlineReplicaCount] offlineReplicas = null;
+                varuint32 taggedFields;
+            }
+
+            struct TopicMetadataPart2
+            {
+                int32 topicAuthorizedOperations;
+                varuint32 taggedFields;
+            }
+
+            struct MetadataResponsePart3
+            {
+                int32 clusterAuthorizedOperations;
+                varuint32 taggedFields;
+            }
+        }
+
         scope find_coordinator
         {
             struct FindCoordinatorRequest // v3
@@ -882,6 +964,7 @@ scope protocol
                 varuint32 taggedFields;
             }
         }
+
 
         scope alter_configs
         {

@@ -200,6 +200,33 @@ public class McpIT
 
     @Test
     @Specification({
+        "${mcp}/list.topics/client",
+        "${mcp}/list.topics/server"})
+    public void shouldListTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/describe.topic/client",
+        "${mcp}/describe.topic/server"})
+    public void shouldDescribeTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/cluster.overview/client",
+        "${mcp}/cluster.overview/server"})
+    public void shouldClusterOverview() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/list.brokers/client",
         "${mcp}/list.brokers/server"})
     public void shouldListBrokers() throws Exception

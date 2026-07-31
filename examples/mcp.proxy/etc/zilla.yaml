@@ -352,6 +352,9 @@ bindings:
               - kafka__consume
               - kafka__create_topics
               - kafka__delete_topics
+              - kafka__list_topics
+              - kafka__describe_topic
+              - kafka__cluster_overview
               - kafka__list_brokers
               - kafka__describe_cluster
               - kafka__list_consumer_groups
@@ -648,7 +651,16 @@ bindings:
       - when:
           - tool: consume
             topics: [orders]
+      # cluster/topic metadata tools -- read-only like consume, so no
+      # tool-specific guard beyond the toolkit-level kafka:tools above; all
+      # five share one route since none of them take a topics allow-list
+      # (list_topics/cluster_overview/list_brokers/describe_cluster describe the
+      # whole cluster, describe_topic names its one topic as a call argument,
+      # not a route match)
       - when:
+          - tool: list_topics
+          - tool: describe_topic
+          - tool: cluster_overview
           - tool: list_brokers
           - tool: describe_cluster
           - tool: list_consumer_groups
