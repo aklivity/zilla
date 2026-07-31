@@ -570,50 +570,45 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 # Consumer group orders-analytics is Dead
 ```
 
+`list_consumer_groups` takes no arguments and succeeds against the real
+broker the same way:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__list_consumer_groups \
+    tools-list-client
+# No consumer groups found
+```
+
 `reset_offsets` is modeled as a real Kafka `OffsetCommit`
 (`generationId=-1`, `memberId=""`) -- the same "admin commit"
 `AdminClient.alterConsumerGroupOffsets()` makes against an inactive group in
 real Kafka, rather than a fictitious dedicated API. It resolves the group's
 coordinator broker (`FindCoordinator`), rejects if the group has active
-members (`DescribeGroups`), then commits directly -- so it works just as
-well against a group, like this one, that has never had any members at all:
+members (`DescribeGroups`), then commits directly:
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     -e CALL_TOOL=kafka__reset_offsets \
     -e CALL_ARGS='{"group":"orders-analytics","topic":"orders","partition":0,"offset":0}' \
     tools-list-client
-# Reset offset for group orders-analytics topic orders partition 0 to 0
 ```
 
-Describing the same group again now reports `Empty`, not `Dead` -- the
-offset commit above implicitly created the group's metadata on the broker,
-with no active members yet consuming it:
-
-```bash
-docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=kafka__describe_consumer_group \
-    -e CALL_ARGS='{"group_id":"orders-analytics"}' \
-    tools-list-client
-# Consumer group orders-analytics is Empty
-```
-
-`list_consumer_groups` takes no arguments and confirms the group above is
-real, persisted broker state, not just an echo of the calls that created it:
-
-```bash
-docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=kafka__list_consumer_groups \
-    tools-list-client
-# Consumer groups: orders-analytics (Empty)
-```
-
-If `orders-analytics` still had an active member consuming `orders` (state
+If `orders-analytics` had an active member consuming `orders` (state
 `Stable`, `PreparingRebalance`, or `CompletingRebalance` instead of `Empty`
 or `Dead`), `reset_offsets` would reject the call instead of committing,
 with `isError: true` and a message naming the group's actual state --
 resetting offsets out from under an active consumer is never attempted
 silently.
+
+**Known gap:** this example's automated test (`.github/test.sh`) exercises
+`reset_offsets`' `FindCoordinator` and `DescribeGroups` hops (the same
+`DescribeGroups` call `describe_consumer_group` makes) against the real
+broker, but not its final `OffsetCommit` hop -- driving that hop against a
+real broker surfaced a hang in how the `mcp_kafka` client's auto-generated
+composite routes an `OffsetCommit` stream to a dynamically resolved
+coordinator host/port (as opposed to the statically configured
+`options.servers`), tracked as a follow-up rather than papered over.
 
 ### Trigger a form elicitation round-trip
 
