@@ -40,14 +40,14 @@ public final class McpSchemaRegistryBinding implements Binding
     public String originType(
         KindConfig kind)
     {
-        return kind == KindConfig.CLIENT ? TYPE : null;
+        return kind == KindConfig.CLIENT || kind == KindConfig.PROXY ? TYPE : null;
     }
 
     @Override
     public String routedType(
         KindConfig kind)
     {
-        return kind == KindConfig.CLIENT ? TYPE : null;
+        return kind == KindConfig.CLIENT || kind == KindConfig.PROXY ? TYPE : null;
     }
 
     @Override

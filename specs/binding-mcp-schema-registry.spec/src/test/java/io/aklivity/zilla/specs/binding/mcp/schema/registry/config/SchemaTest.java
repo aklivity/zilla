@@ -41,10 +41,24 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test
+    public void shouldValidateProxyKind()
+    {
+        JsonObject config = schema.validate("proxy.kind.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyKindWithServerOption()
+    {
+        schema.validate("proxy.kind.invalid.yaml");
+    }
+
     @Test(expected = JsonException.class)
     public void shouldRejectInvalidKind()
     {
-        schema.validate("proxy.kind.invalid.yaml");
+        schema.validate("kind.invalid.yaml");
     }
 
     @Test

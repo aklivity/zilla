@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.LongFunction;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
@@ -35,6 +36,7 @@ public final class McpSchemaRegistryBindingConfig
     public final KindConfig kind;
     public final McpSchemaRegistryOptionsConfig options;
     public final List<McpSchemaRegistryRouteConfig> routes;
+    public final String exit;
 
     public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
     public final ToLongFunction<String> resolveId;
@@ -51,12 +53,23 @@ public final class McpSchemaRegistryBindingConfig
         this.qname = binding.qname;
         this.kind = binding.kind;
         this.options = (McpSchemaRegistryOptionsConfig) binding.options;
+
+        // a top-level exit: shorthand synthesizes its own catch-all last route (empty when, no with,
+        // exit set) on this same binding -- exclude it here so it never counts as a declared tool route
         this.routes = binding.routes.stream()
+            .filter(route -> route.exit == null)
             .map(McpSchemaRegistryRouteConfig::new)
             .collect(toList());
 
         this.supplyBindingId = context::supplyBindingId;
         this.resolveId = binding.resolveId;
         this.supplyQName = context::supplyQName;
+
+        final String exit = binding.routes.stream()
+            .map(route -> route.exit)
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+        this.exit = exit != null ? this.supplyQName.apply(this.resolveId.applyAsLong(exit)) : null;
     }
 }
