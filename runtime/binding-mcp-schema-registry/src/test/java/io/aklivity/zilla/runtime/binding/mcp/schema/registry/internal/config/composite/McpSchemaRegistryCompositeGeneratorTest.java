@@ -15,11 +15,14 @@
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.composite;
 
 import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -220,6 +223,50 @@ public class McpSchemaRegistryCompositeGeneratorTest
         assertThat(guarded, hasSize(1));
         assertThat(guarded.get(0).name, equalTo("test:jwt0"));
         assertThat(guarded.get(0).roles, equalTo(List.of("write")));
+    }
+
+    @Test
+    public void shouldGenerateCompositeForProxyKind()
+    {
+        when(context.supplyQName(eq(5L))).thenReturn("test:http0");
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp_schema_registry")
+            .kind(PROXY)
+            .exit("http0")
+            .build();
+        binding.routes.stream()
+            .filter(route -> "http0".equals(route.exit))
+            .findFirst()
+            .orElseThrow()
+            .id = 5L;
+
+        McpSchemaRegistryBindingConfig attached = new McpSchemaRegistryBindingConfig(context, binding);
+
+        McpSchemaRegistryCompositeConfig composite = generator.generate(attached);
+
+        BindingConfig mcpOpenapi = composite.namespaces.get(0).bindings.get(0);
+        assertThat(mcpOpenapi.kind, equalTo(PROXY));
+
+        McpOpenapiOptionsConfig mcpOpenapiOptions = (McpOpenapiOptionsConfig) mcpOpenapi.options;
+        McpOpenapiSpecificationConfig spec = mcpOpenapiOptions.specs.get(0);
+        assertThat(spec.server, nullValue());
+
+        RouteConfig exitRoute = mcpOpenapi.routes.stream()
+            .filter(route -> route.exit != null)
+            .findFirst()
+            .orElse(null);
+        assertThat(exitRoute, notNullValue());
+        assertThat(exitRoute.exit, equalTo("test:http0"));
+        assertThat(exitRoute.with, nullValue());
+
+        List<String> routedTools = mcpOpenapi.routes.stream()
+            .filter(route -> route.with != null)
+            .map(route -> ((McpOpenapiConditionConfig) route.when.get(0)).tool)
+            .toList();
+        assertThat(routedTools, equalTo(TOOLS));
     }
 
     @Test

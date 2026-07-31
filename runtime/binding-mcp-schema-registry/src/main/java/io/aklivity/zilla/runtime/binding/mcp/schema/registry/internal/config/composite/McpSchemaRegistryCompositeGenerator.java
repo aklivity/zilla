@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.composite;
 
-import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -59,6 +57,8 @@ public final class McpSchemaRegistryCompositeGenerator
     public McpSchemaRegistryCompositeConfig generate(
         McpSchemaRegistryBindingConfig binding)
     {
+        final String server = binding.options != null ? binding.options.server : null;
+
         NamespaceConfig namespace = NamespaceConfig.builder()
             .name("%s/mcp_openapi".formatted(binding.qname))
             .catalog()
@@ -74,11 +74,12 @@ public final class McpSchemaRegistryCompositeGenerator
                 .build()
             .binding(McpOpenapiBindingConfig::builder)
                 .name(BINDING_NAME)
-                .kind(CLIENT)
+                .kind(binding.kind)
+                .exit(binding.exit)
                 .options()
                     .spec()
                         .label(SUBJECT_NAME)
-                        .server(binding.options.server)
+                        .server(server)
                         .catalog()
                             .name(CATALOG_NAME)
                             .subject(SUBJECT_NAME)
