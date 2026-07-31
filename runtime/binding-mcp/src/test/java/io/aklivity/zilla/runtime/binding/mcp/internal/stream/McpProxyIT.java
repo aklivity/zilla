@@ -211,6 +211,21 @@ public class McpProxyIT
         k3po.finish();
     }
 
+    // regression test for aklivity/zilla#2220: notifications/resources/updated must be
+    // re-prefixed with the toolkit's own "<toolkit>+" URI prefix (the same one resources/list
+    // and resources/read already use), not McpAggregateRoute's short CRC-derived event-id code
+    // -- an aggregate proxy with only one configured route can never tell the two apart, so
+    // this scenario requires a second (unused) toolkit route purely to activate aggregation
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.resources.updated.toolkit.multi/server" })
+    public void shouldNotifyResourcesUpdatedWithToolkitPrefix() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({

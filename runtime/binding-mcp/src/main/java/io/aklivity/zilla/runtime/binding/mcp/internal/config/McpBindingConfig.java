@@ -708,6 +708,24 @@ public final class McpBindingConfig
         return credentials;
     }
 
+    // the toolkit's "<toolkit>+" URI prefix, matching what resources/list and resources/read
+    // already prepend -- distinct from McpAggregateRoute.prefix(), a short CRC-derived code
+    // used only to disambiguate resumable event/correlation ids across aggregated toolkits
+    public String routeResourcesPrefix(
+        long routedId)
+    {
+        String prefix = null;
+        for (McpRouteConfig route : routes)
+        {
+            if (route.id == routedId)
+            {
+                prefix = route.prefix(McpBeginExFW.KIND_RESOURCES_READ);
+                break;
+            }
+        }
+        return prefix;
+    }
+
     // resolves the effective session for a route's south connections: its own with.cache.credentials
     // override when configured, otherwise the shared session already established via
     // options.cache.authorization. Callers must first confirm cache != null.

@@ -849,6 +849,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private final long initialId;
         private final long replyId;
         private final String prefix;
+        private final String resourcesPrefix;
 
         private MessageConsumer sender;
         private int state;
@@ -889,6 +890,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 }
             }
             this.prefix = prefix;
+            this.resourcesPrefix = server.binding.routeResourcesPrefix(routedId);
         }
 
         private void doClientFlushElicitCallback(
@@ -1135,11 +1137,11 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             OctetsFW relayed = extension;
 
-            if (prefix != null && flushEx != null && flushEx.kind() == McpFlushExFW.KIND_RESOURCES_UPDATED)
+            if (resourcesPrefix != null && flushEx != null && flushEx.kind() == McpFlushExFW.KIND_RESOURCES_UPDATED)
             {
                 final McpResourcesUpdatedFlushExFW resourcesUpdated = flushEx.resourcesUpdated();
                 final String id = resourcesUpdated.id().asString();
-                final String uri = prefix + resourcesUpdated.uri().asString();
+                final String uri = resourcesPrefix + resourcesUpdated.uri().asString();
                 final McpFlushExFW rewritten = mcpFlushExRW
                     .wrap(flushExBuffer, 0, flushExBuffer.capacity())
                     .typeId(mcpTypeId)
