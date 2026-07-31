@@ -67,6 +67,22 @@
 #      sharing create_topics' route (one `when` list, two `tool` entries)
 #      and its kafka:admin scope -- both are structural, admin-risk
 #      mutations, so one route/guard covers both instead of duplicating it
+#  25. kafka__describe_consumer_group, called against a group id that has
+#      never committed an offset, reports real broker state "Dead" -- Kafka's
+#      actual behavior for a group that does not yet exist, not an error
+#  26. kafka__reset_offsets, called against that same never-used group,
+#      performs a real OffsetCommit (generationId=-1, memberId="") against
+#      the resolved coordinator broker -- the same "admin commit" a real
+#      AdminClient.alterConsumerGroupOffsets() call makes against an
+#      inactive group, gated by the same kafka:admin scope as
+#      create_topics/delete_topics
+#  27. kafka__describe_consumer_group, called again for that group, now
+#      reports state "Empty" -- the offset commit above implicitly created
+#      the group's metadata on the broker, with no active members
+#  28. kafka__list_consumer_groups lists that same group id among the
+#      real broker's groups, needing only the toolkit-level kafka:tools
+#      scope -- proving the group above is real, persisted broker state,
+#      not just an echo of the reset_offsets call
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -252,7 +268,10 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -270,7 +289,10 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'; then
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -726,6 +748,103 @@ if echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'; then
   echo "✅ kafka__delete_topics deleted the topic from the real Kafka broker"
 else
   echo "❌ kafka__delete_topics did not succeed against the real broker"
+  EXIT=1
+fi
+
+CONSUMER_GROUP="orders-analytics"
+
+# WHEN: a kafka:tools-scoped caller calls kafka__describe_consumer_group for a
+#       group id that has never committed an offset on this broker
+# THEN: the real broker reports state "Dead" -- Kafka's actual behavior for a
+#       group that does not exist yet, not an error -- proving
+#       describe_consumer_group needs only the toolkit-level kafka:tools
+#       scope, no admin scope, to describe any group by name
+call_describe_group_before_reset() {
+  DESCRIBE_GROUP_BEFORE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_consumer_group" \
+      -e CALL_ARGS="{\"group_id\":\"$CONSUMER_GROUP\"}" \
+      tools-list-client 2>&1)
+  echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Dead"
+}
+retry_until 10 3 call_describe_group_before_reset
+echo "DESCRIBE_GROUP_BEFORE_OUT=$DESCRIBE_GROUP_BEFORE_OUT"
+if echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Dead"; then
+  echo "✅ kafka__describe_consumer_group reported state Dead for a never-used group"
+else
+  echo "❌ kafka__describe_consumer_group did not report state Dead as expected"
+  EXIT=1
+fi
+
+# WHEN: a kafka:admin-scoped caller calls kafka__reset_offsets against that
+#       same never-used group for the orders topic
+# THEN: the call succeeds -- a real OffsetCommit (generationId=-1, memberId="")
+#       against the resolved coordinator broker, the same "admin commit" a
+#       real AdminClient.alterConsumerGroupOffsets() call makes against an
+#       inactive group -- proving reset_offsets' FindCoordinator ->
+#       DescribeGroups -> OffsetCommit flow works end to end against a real
+#       broker, not just the k3po test double
+call_kafka_reset_offsets() {
+  KAFKA_RESET_OFFSETS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__reset_offsets" \
+      -e CALL_ARGS="{\"group\":\"$CONSUMER_GROUP\",\"topic\":\"orders\",\"partition\":0,\"offset\":0}" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_RESET_OFFSETS_OUT" | grep -q "Reset offset for group $CONSUMER_GROUP topic orders partition 0 to 0"
+}
+retry_until 10 3 call_kafka_reset_offsets
+echo "KAFKA_RESET_OFFSETS_OUT=$KAFKA_RESET_OFFSETS_OUT"
+if echo "$KAFKA_RESET_OFFSETS_OUT" | grep -q "Reset offset for group $CONSUMER_GROUP topic orders partition 0 to 0"; then
+  echo "✅ kafka__reset_offsets committed an offset for an inactive group on the real Kafka broker"
+else
+  echo "❌ kafka__reset_offsets did not succeed against the real broker"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__describe_consumer_group again for the
+#       same group
+# THEN: the state is now "Empty" -- the offset commit above implicitly
+#       created the group's metadata on the broker, with no active members --
+#       proving reset_offsets' commit was real, persisted broker state, not
+#       just an echoed success message
+call_describe_group_after_reset() {
+  DESCRIBE_GROUP_AFTER_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_consumer_group" \
+      -e CALL_ARGS="{\"group_id\":\"$CONSUMER_GROUP\"}" \
+      tools-list-client 2>&1)
+  echo "$DESCRIBE_GROUP_AFTER_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Empty"
+}
+retry_until 10 3 call_describe_group_after_reset
+echo "DESCRIBE_GROUP_AFTER_OUT=$DESCRIBE_GROUP_AFTER_OUT"
+if echo "$DESCRIBE_GROUP_AFTER_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Empty"; then
+  echo "✅ kafka__describe_consumer_group reported state Empty after reset_offsets committed"
+else
+  echo "❌ kafka__describe_consumer_group did not report state Empty as expected"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__list_consumer_groups
+# THEN: the group above is listed among the real broker's consumer groups --
+#       proving it is real, persisted broker state, not just an echo of the
+#       reset_offsets/describe_consumer_group calls above
+call_kafka_list_consumer_groups() {
+  KAFKA_LIST_GROUPS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__list_consumer_groups" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_LIST_GROUPS_OUT" | grep -q "$CONSUMER_GROUP"
+}
+retry_until 10 3 call_kafka_list_consumer_groups
+echo "KAFKA_LIST_GROUPS_OUT=$KAFKA_LIST_GROUPS_OUT"
+if echo "$KAFKA_LIST_GROUPS_OUT" | grep -q "$CONSUMER_GROUP"; then
+  echo "✅ kafka__list_consumer_groups listed the group created by reset_offsets on the real Kafka broker"
+else
+  echo "❌ kafka__list_consumer_groups did not list the expected group"
   EXIT=1
 fi
 
