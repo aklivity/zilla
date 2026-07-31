@@ -30,9 +30,9 @@ import org.agrona.collections.LongLongConsumer;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaSaslConfig;
 import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
-import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Kind;
-import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
-import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponseV7FW;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponse.Kind;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponse.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponseV7FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -129,7 +129,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
     private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
     private final TopicResponsePart2FW topicResponsePart2RO = new TopicResponsePart2FW();
     private final CreateTopicsResponsePart2FW createTopicsResponsePart2RO = new CreateTopicsResponsePart2FW();
-    private final CreateTopicsResponseV7FW createTopicsResponseV7RO = new CreateTopicsResponseV7FW();
+    private final KafkaCreateTopicsResponseV7FW createTopicsResponseV7RO = new KafkaCreateTopicsResponseV7FW();
 
     private final KafkaCreateTopicsClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaCreateTopicsClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -791,7 +791,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             {
                 state = KafkaState.openingReply(state);
 
-                final CreateTopicsResponseV7FW response =
+                final KafkaCreateTopicsResponseV7FW response =
                     createTopicsResponseV7RO.wrapTopics(buffer, topicsOffset, topicsLimit, throttle, topicCount);
 
                 doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -811,7 +811,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
         private void encodeTopics(
             Array32FW.Builder<KafkaCreateTopicStatusFW.Builder, KafkaCreateTopicStatusFW> topics,
-            CreateTopicsResponseV7FW response)
+            KafkaCreateTopicsResponseV7FW response)
         {
             while (response.hasNext())
             {

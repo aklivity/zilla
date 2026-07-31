@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * returns a fixed default for any field its wire version does not carry, rather than changing shape.
  * </p>
  */
-public interface CreateTopicsResponse
+public interface KafkaCreateTopicsResponse
 {
     enum Kind
     {
