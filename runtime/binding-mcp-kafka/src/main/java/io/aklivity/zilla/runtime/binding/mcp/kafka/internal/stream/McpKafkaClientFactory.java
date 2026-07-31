@@ -38,7 +38,7 @@ public final class McpKafkaClientFactory extends McpKafkaProxyFactory
         this.context = context;
         // cacheClientExit/clientExit default to null; tests override them to redirect the
         // synthesized composite's exit onto a statically-declared double, mirroring
-        // McpOpenapiConfiguration.MCP_OPENAPI_HTTP_CLIENT_EXIT
+        // McpHttpConfiguration.MCP_HTTP_CLIENT_EXIT
         this.generator = new McpKafkaClientGenerator(config.cacheClientExit(), config.clientExit());
         this.composites = new Long2ObjectHashMap<>();
     }

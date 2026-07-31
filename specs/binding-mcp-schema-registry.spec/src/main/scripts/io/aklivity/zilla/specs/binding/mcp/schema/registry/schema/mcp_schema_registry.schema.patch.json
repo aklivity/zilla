@@ -29,12 +29,11 @@
                     },
                     "kind":
                     {
-                        "enum": [ "client" ]
+                        "enum": [ "client", "proxy" ]
                     },
                     "catalog": false,
                     "vault": false,
                     "entry": false,
-                    "exit": false,
                     "routes":
                     {
                         "title": "Routes",
@@ -100,11 +99,64 @@
                                 "type": "string"
                             }
                         },
-                        "required": [ "server" ],
                         "additionalProperties": false
                     }
                 },
-                "required": [ "options" ]
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "exit": false,
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            },
+                            "options":
+                            {
+                                "required": [ "server" ]
+                            }
+                        },
+                        "required": [ "options" ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "proxy"
+                            },
+                            "options":
+                            {
+                                "properties":
+                                {
+                                    "server": false
+                                }
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            }
+                        },
+                        "required": [ "exit" ]
+                    }
+                ]
             }
         }
     }

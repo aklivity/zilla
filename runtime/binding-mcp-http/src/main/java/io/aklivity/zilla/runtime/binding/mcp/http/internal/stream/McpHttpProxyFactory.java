@@ -169,6 +169,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final Supplier<String> supplySessionId;
     private final int sessionIdAttempts;
     private final LongIntPredicate isLocalIndex;
+    private final String clientExit;
 
     public McpHttpProxyFactory(
         McpHttpConfiguration config,
@@ -192,12 +193,13 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.supplySessionId = config.sessionIdSupplier();
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.isLocalIndex = context::isLocalIndex;
+        this.clientExit = config.clientExit();
     }
 
     public void attach(
         BindingConfig binding)
     {
-        bindings.put(binding.id, new McpHttpBindingConfig(binding, context));
+        bindings.put(binding.id, new McpHttpBindingConfig(binding, context, clientExit));
     }
 
     public void detach(

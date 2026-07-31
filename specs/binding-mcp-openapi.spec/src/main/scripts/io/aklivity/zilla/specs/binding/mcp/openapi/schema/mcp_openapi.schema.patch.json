@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "client" ]
+                        "enum": [ "client", "proxy" ]
                     },
                     "vault": false,
                     "entry": false,
@@ -381,6 +381,11 @@
                                             "items": { "title": "Role", "type": "string" }
                                         }
                                     }
+                                },
+                                "exit":
+                                {
+                                    "title": "Exit",
+                                    "type": "string"
                                 }
                             },
                             "required": [ "with" ],
@@ -425,7 +430,71 @@
                         }
                     }
                 },
-                "required": [ "routes" ]
+                "required": [ "routes" ],
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "exit": false,
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "proxy"
+                            }
+                        },
+                        "anyOf":
+                        [
+                            {
+                                "required":
+                                [
+                                    "exit"
+                                ]
+                            },
+                            {
+                                "properties":
+                                {
+                                    "routes":
+                                    {
+                                        "items":
+                                        {
+                                            "if":
+                                            {
+                                                "required": [ "with" ]
+                                            },
+                                            "then":
+                                            {
+                                                "required": [ "exit" ]
+                                            }
+                                        }
+                                    }
+                                },
+                                "required":
+                                [
+                                    "routes"
+                                ]
+                            }
+                        ]
+                    }
+                ]
             }
         }
     }
