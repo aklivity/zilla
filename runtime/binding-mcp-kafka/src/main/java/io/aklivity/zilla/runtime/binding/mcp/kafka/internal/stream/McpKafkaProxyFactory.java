@@ -719,7 +719,9 @@ public class McpKafkaProxyFactory implements BindingHandler
                         .add("type", "string")
                         .add("enum", Json.createArrayBuilder().add("topic").add("broker")))
                     .add("resource_name", Json.createObjectBuilder().add("type", "string"))
-                    .add("configs", Json.createObjectBuilder().add("type", "object")))
+                    .add("configs", Json.createObjectBuilder()
+                        .add("type", "object")
+                        .add("additionalProperties", Json.createObjectBuilder().add("type", "string"))))
                 .add("required", Json.createArrayBuilder().add("resource_type").add("resource_name").add("configs"))
                 .build();
             break;
@@ -791,7 +793,9 @@ public class McpKafkaProxyFactory implements BindingHandler
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
-                    .add("resource_type", Json.createObjectBuilder().add("type", "string"))
+                    .add("resource_type", Json.createObjectBuilder()
+                        .add("type", "string")
+                        .add("enum", Json.createArrayBuilder().add("topic").add("broker")))
                     .add("resource_name", Json.createObjectBuilder().add("type", "string"))
                     .add("updated", Json.createObjectBuilder().add("type", "boolean")))
                 .add("required", Json.createArrayBuilder().add("resource_type").add("resource_name").add("updated"))
