@@ -355,6 +355,8 @@ bindings:
               - kafka__list_topics
               - kafka__describe_topic
               - kafka__cluster_overview
+              - kafka__list_brokers
+              - kafka__describe_cluster
           search:
             toolkit: zilla
     routes:
@@ -622,7 +624,10 @@ bindings:
     # scope under the toolkit-level kafka:tools guard above (the same
     # layering register_schema demonstrates for the kafka_sr toolkit):
     # kafka:admin for the admin-risk topic create/delete, kafka:write for
-    # writing data -- consume needs neither, only kafka:tools
+    # writing data -- consume needs neither, only kafka:tools. list_brokers
+    # and describe_cluster are likewise read-only cluster introspection, with
+    # no topic to route on, so they share consume's unscoped kafka:tools-only
+    # route
     routes:
       - when:
           - tool: create_topics
@@ -641,13 +646,16 @@ bindings:
             topics: [orders]
       # cluster/topic metadata tools -- read-only like consume, so no
       # tool-specific guard beyond the toolkit-level kafka:tools above; all
-      # three share one route since none of them take a topics allow-list
-      # (list_topics/cluster_overview describe the whole cluster,
-      # describe_topic names its one topic as a call argument, not a route match)
+      # five share one route since none of them take a topics allow-list
+      # (list_topics/cluster_overview/list_brokers/describe_cluster describe the
+      # whole cluster, describe_topic names its one topic as a call argument,
+      # not a route match)
       - when:
           - tool: list_topics
           - tool: describe_topic
           - tool: cluster_overview
+          - tool: list_brokers
+          - tool: describe_cluster
 telemetry:
   metrics:
     - mcp.initialize

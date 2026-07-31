@@ -193,7 +193,8 @@ frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `petstore__create_pet`, `kafka_sr__list_subjects`,
 `kafka_sr__register_schema`, `kafka__produce`, `kafka__consume`,
 `kafka__create_topics`, `kafka__delete_topics`, `kafka__list_topics`,
-`kafka__describe_topic`, and `kafka__cluster_overview` -- eagerly listed in
+`kafka__describe_topic`, `kafka__cluster_overview`, `kafka__list_brokers`, and
+`kafka__describe_cluster` -- eagerly listed in
 `tools/list`. Every other tool is
 "cold": because `options.cache.tools.search` also configures a `toolkit`
 (`zilla` here), cold tools are omitted from `tools/list` entirely rather than
@@ -228,6 +229,8 @@ kafka__delete_topics
 kafka__list_topics
 kafka__describe_topic
 kafka__cluster_overview
+kafka__list_brokers
+kafka__describe_cluster
 zilla__search_tools
 zilla__describe_tool
 zilla__execute_tool
@@ -595,6 +598,34 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 # Cluster overview: 1 topic(s), 1 broker(s)
 # {"broker_count":1,"controller_id":1,"under_replicated_partitions":0,"offline_partitions":0,"topic_count":1}
 ```
+
+### List brokers and describe the cluster
+
+`list_brokers` and `describe_cluster` are read-only cluster introspection --
+unlike `produce`/`consume` and `create_topics`/`delete_topics`, they take no
+arguments and have no topic to route on, so they share `consume`'s unscoped
+`kafka:tools`-only route rather than requiring `kafka:admin`. Both issue the
+same Kafka `DescribeCluster` request through `KafkaApiDescribeClusterClient`,
+differing only in how the response is shaped into each tool's result:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__list_brokers \
+    tools-list-client
+# Brokers: 1@kafka.examples.dev:29092
+```
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__describe_cluster \
+    tools-list-client
+# Described cluster <cluster-id>, controller 1
+```
+
+The single node started by this example (`KAFKA_NODE_ID`/`KAFKA_BROKER_ID`
+both `1`) is both the only broker `list_brokers` reports and the controller
+`describe_cluster` reports -- `<cluster-id>` is a KRaft-generated identifier
+that varies per broker startup.
 
 ### Trigger a form elicitation round-trip
 

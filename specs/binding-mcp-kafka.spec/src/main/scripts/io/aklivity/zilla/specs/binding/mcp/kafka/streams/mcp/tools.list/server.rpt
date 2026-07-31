@@ -98,7 +98,18 @@ write  '{"tools":[{"name":"produce","inputSchema":{"type":"object","properties":
         '"under_replicated_partitions":{"type":"integer"},"offline_partitions":{"type":"integer"},'
         '"topic_count":{"type":"integer"}},"required":'
         '["broker_count","controller_id","under_replicated_partitions","offline_partitions","topic_count"]},'
-        '"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true}}]}'
+        '"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true}},'
+        '{"name":"list_brokers","inputSchema":{"type":"object","properties":{}},'
+        '"outputSchema":{"type":"object","properties":{"brokers":{"type":"array",'
+        '"items":{"type":"object","properties":{"broker_id":{"type":"integer"},'
+        '"host":{"type":"string"},"port":{"type":"integer"},"rack":{"type":"string"}},'
+        '"required":["broker_id","host","port"]}}},"required":["brokers"]},'
+        '"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true}},'
+        '{"name":"describe_cluster","inputSchema":{"type":"object","properties":{}},'
+        '"outputSchema":{"type":"object","properties":{"cluster_id":{"type":"string"},'
+        '"controller_id":{"type":"integer"},"authorized_operations":{"type":"integer"}},'
+        '"required":["controller_id","authorized_operations"]},"annotations":{"readOnlyHint":true,'
+        '"destructiveHint":false,"idempotentHint":true}}]}'
 write flush
 
 write close
