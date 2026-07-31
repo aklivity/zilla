@@ -45,11 +45,14 @@ public final class McpKafkaClientGenerator
     private static final String TCP_CLIENT_NAME = "tcp_client0";
 
     private final String cacheClientExit;
+    private final String clientExit;
 
     public McpKafkaClientGenerator(
-        String cacheClientExit)
+        String cacheClientExit,
+        String clientExit)
     {
         this.cacheClientExit = cacheClientExit;
+        this.clientExit = clientExit;
     }
 
     public McpKafkaCompositeConfig generate(
@@ -75,7 +78,15 @@ public final class McpKafkaClientGenerator
                 .findFirst()
                 .orElseThrow();
 
-        return new McpKafkaCompositeConfig(List.of(namespace), exitId);
+        long clientExitId = clientExit != null && !clientExit.isBlank()
+            ? binding.resolveId.applyAsLong(clientExit)
+            : namespace.bindings.stream()
+                .filter(b -> KAFKA_CLIENT_NAME.equals(b.name))
+                .mapToLong(b -> context.supplyBindingId(namespace, b))
+                .findFirst()
+                .orElseThrow();
+
+        return new McpKafkaCompositeConfig(List.of(namespace), exitId, clientExitId);
     }
 
     private <C> NamespaceConfigBuilder<C> injectKafkaCache(

@@ -22,12 +22,15 @@ public final class McpKafkaCompositeConfig
 {
     public final List<NamespaceConfig> namespaces;
     public final long exitId;
+    public final long clientExitId;
 
     public McpKafkaCompositeConfig(
         List<NamespaceConfig> namespaces,
-        long exitId)
+        long exitId,
+        long clientExitId)
     {
         this.namespaces = namespaces;
         this.exitId = exitId;
+        this.clientExitId = clientExitId;
     }
 }

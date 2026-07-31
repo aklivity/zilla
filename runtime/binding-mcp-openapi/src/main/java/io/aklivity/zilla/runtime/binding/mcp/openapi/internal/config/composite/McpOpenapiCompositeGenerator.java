@@ -52,6 +52,7 @@ import io.aklivity.zilla.config.binding.mcp.http.McpHttpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpRouteConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiAuthorizationConfig;
@@ -60,6 +61,7 @@ import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiConditionConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiResourceConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiResourceConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
@@ -77,7 +79,9 @@ import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiC
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiRouteConfig;
 import io.aklivity.zilla.runtime.common.json.JsonOverlay;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiExtension;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
+import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParserFactory;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedRef;
 import io.aklivity.zilla.runtime.common.openapi.security.GuardedResolution;
 import io.aklivity.zilla.runtime.common.openapi.security.OpenapiGuardResolver;
@@ -97,6 +101,11 @@ public final class McpOpenapiCompositeGenerator
     private static final String BINDING_NAME = "mcp_http0";
     private static final String CAPABILITY_TOOL = "tool";
     private static final String CAPABILITY_RESOURCE = "resource";
+    private static final String ANNOTATIONS_EXTENSION_NAME = "x-mcp-annotations";
+    private static final String METHOD_GET = "get";
+    private static final String METHOD_HEAD = "head";
+    private static final String METHOD_PUT = "put";
+    private static final String METHOD_DELETE = "delete";
     private static final Pattern PATH_PARAM_PATTERN = Pattern.compile("\\{([^}]+)\\}");
     private static final Pattern JSON_CONTENT_TYPE_PATTERN = Pattern.compile("^application/(?:.+\\+)?json$");
 
@@ -117,7 +126,10 @@ public final class McpOpenapiCompositeGenerator
     {
         denied.clear();
 
-        final OpenapiParser parser = new OpenapiParser();
+        final OpenapiParser parser = new OpenapiParserFactory()
+            .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OPERATION,
+                ANNOTATIONS_EXTENSION_NAME, McpAnnotationsEx.class))
+            .createParser();
         final Map<String, OpenapiView> specsByLabel = new LinkedHashMap<>();
         final Map<String, Map<String, String>> securityByLabel = new LinkedHashMap<>();
         final Map<String, String> serverByLabel = new LinkedHashMap<>();
@@ -282,7 +294,8 @@ public final class McpOpenapiCompositeGenerator
                 .ifPresent(override -> tool.description(override.description)
                     .summary(override.summary)
                     .input(override.input)
-                    .output(override.output));
+                    .output(override.output)
+                    .annotations(override.annotations));
         }
 
         return tool;
@@ -447,6 +460,7 @@ public final class McpOpenapiCompositeGenerator
                     .input(input)
                     .output(output)
                     .outputMaybeWrapped(outputMaybeWrapped)
+                    .annotations(toolAnnotations(entry.tool, entry.operation))
                     .build());
             }
             else
@@ -472,6 +486,74 @@ public final class McpOpenapiCompositeGenerator
             .tools(tools.isEmpty() ? null : tools)
             .resources(resources.isEmpty() ? null : resources)
             .build();
+    }
+
+    // Precedence, per field: authored override (options.tools.<name>.annotations) > x-mcp-annotations
+    // OpenAPI vendor extension > HTTP-method-derived default. OpenAPI has no native "destructive"/"idempotent"
+    // concept, so the derived defaults are heuristics (matching the HTTP spec's own idempotency guarantee
+    // for PUT/DELETE) rather than anything read from the operation itself.
+    private McpHttpToolAnnotationsConfig toolAnnotations(
+        McpOpenapiToolConfig tool,
+        OpenapiOperationView operation)
+    {
+        final McpOpenapiToolAnnotationsConfig override = tool.annotations;
+        final McpAnnotationsEx extension = operation.extension(ANNOTATIONS_EXTENSION_NAME, McpAnnotationsEx.class)
+            .orElse(null);
+        final String method = operation.method;
+
+        final String title = override != null && override.title != null
+            ? override.title
+            : extension != null ? extension.title : null;
+        final Boolean readOnlyHint = resolveHint(
+            override != null ? override.readOnlyHint : null,
+            extension != null ? extension.readOnlyHint : null,
+            defaultReadOnlyHint(method));
+        final Boolean destructiveHint = resolveHint(
+            override != null ? override.destructiveHint : null,
+            extension != null ? extension.destructiveHint : null,
+            defaultDestructiveHint(method));
+        final Boolean idempotentHint = resolveHint(
+            override != null ? override.idempotentHint : null,
+            extension != null ? extension.idempotentHint : null,
+            defaultIdempotentHint(method));
+        final Boolean openWorldHint = resolveHint(
+            override != null ? override.openWorldHint : null,
+            extension != null ? extension.openWorldHint : null,
+            Boolean.FALSE);
+
+        return McpHttpToolAnnotationsConfig.builder()
+            .title(title)
+            .readOnlyHint(readOnlyHint)
+            .destructiveHint(destructiveHint)
+            .idempotentHint(idempotentHint)
+            .openWorldHint(openWorldHint)
+            .build();
+    }
+
+    private static Boolean resolveHint(
+        Boolean override,
+        Boolean extension,
+        Boolean derived)
+    {
+        return override != null ? override : extension != null ? extension : derived;
+    }
+
+    private static Boolean defaultReadOnlyHint(
+        String method)
+    {
+        return METHOD_GET.equalsIgnoreCase(method) || METHOD_HEAD.equalsIgnoreCase(method) ? Boolean.TRUE : null;
+    }
+
+    private static Boolean defaultDestructiveHint(
+        String method)
+    {
+        return METHOD_DELETE.equalsIgnoreCase(method) ? Boolean.TRUE : null;
+    }
+
+    private static Boolean defaultIdempotentHint(
+        String method)
+    {
+        return METHOD_PUT.equalsIgnoreCase(method) || METHOD_DELETE.equalsIgnoreCase(method) ? Boolean.TRUE : null;
     }
 
     private McpHttpAuthorizationConfig mcpHttpAuthorization(

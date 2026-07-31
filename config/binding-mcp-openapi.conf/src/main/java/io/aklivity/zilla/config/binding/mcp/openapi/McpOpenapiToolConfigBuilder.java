@@ -28,6 +28,7 @@ public final class McpOpenapiToolConfigBuilder<T> extends ConfigBuilder<T, McpOp
     private String summary;
     private ModelConfig input;
     private ModelConfig output;
+    private McpOpenapiToolAnnotationsConfig annotations;
 
     McpOpenapiToolConfigBuilder(
         Function<McpOpenapiToolConfig, T> mapper)
@@ -77,9 +78,16 @@ public final class McpOpenapiToolConfigBuilder<T> extends ConfigBuilder<T, McpOp
         return this;
     }
 
+    public McpOpenapiToolConfigBuilder<T> annotations(
+        McpOpenapiToolAnnotationsConfig annotations)
+    {
+        this.annotations = annotations;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiToolConfig(name, description, summary, input, output));
+        return mapper.apply(new McpOpenapiToolConfig(name, description, summary, input, output, annotations));
     }
 }

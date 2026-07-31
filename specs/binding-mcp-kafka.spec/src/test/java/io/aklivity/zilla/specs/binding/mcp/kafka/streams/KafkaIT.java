@@ -125,4 +125,40 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/create.topics/client",
+        "${kafka}/create.topics/server"})
+    public void shouldCreateTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/create.topics.negotiated/client",
+        "${kafka}/create.topics.negotiated/server"})
+    public void shouldCreateTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.topics/client",
+        "${kafka}/delete.topics/server"})
+    public void shouldDeleteTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.topics.negotiated/client",
+        "${kafka}/delete.topics.negotiated/server"})
+    public void shouldDeleteTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
 }

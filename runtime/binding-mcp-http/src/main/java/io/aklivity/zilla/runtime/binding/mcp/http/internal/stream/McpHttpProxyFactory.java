@@ -48,6 +48,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -168,6 +169,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final Supplier<String> supplySessionId;
     private final int sessionIdAttempts;
     private final LongIntPredicate isLocalIndex;
+    private final String clientExit;
 
     public McpHttpProxyFactory(
         McpHttpConfiguration config,
@@ -191,12 +193,13 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.supplySessionId = config.sessionIdSupplier();
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.isLocalIndex = context::isLocalIndex;
+        this.clientExit = config.clientExit();
     }
 
     public void attach(
         BindingConfig binding)
     {
-        bindings.put(binding.id, new McpHttpBindingConfig(binding, context));
+        bindings.put(binding.id, new McpHttpBindingConfig(binding, context, clientExit));
     }
 
     public void detach(
@@ -2471,9 +2474,46 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 item.add("securitySchemes", toolSchemes);
             }
+            final JsonObject annotations = annotationsObject(tool.annotations);
+            if (annotations != null)
+            {
+                item.add("annotations", annotations);
+            }
             tools.add(item);
         }
         return compact(Json.createObjectBuilder().add("tools", tools).build());
+    }
+
+    private static JsonObject annotationsObject(
+        McpHttpToolAnnotationsConfig annotations)
+    {
+        JsonObject object = null;
+        if (annotations != null)
+        {
+            final JsonObjectBuilder builder = Json.createObjectBuilder();
+            if (annotations.title != null)
+            {
+                builder.add("title", annotations.title);
+            }
+            if (annotations.readOnlyHint != null)
+            {
+                builder.add("readOnlyHint", annotations.readOnlyHint);
+            }
+            if (annotations.destructiveHint != null)
+            {
+                builder.add("destructiveHint", annotations.destructiveHint);
+            }
+            if (annotations.idempotentHint != null)
+            {
+                builder.add("idempotentHint", annotations.idempotentHint);
+            }
+            if (annotations.openWorldHint != null)
+            {
+                builder.add("openWorldHint", annotations.openWorldHint);
+            }
+            object = builder.build();
+        }
+        return object;
     }
 
     private static JsonArrayBuilder securitySchemes(
