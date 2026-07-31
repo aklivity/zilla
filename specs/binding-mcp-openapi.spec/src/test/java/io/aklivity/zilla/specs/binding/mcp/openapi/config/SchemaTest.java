@@ -50,6 +50,12 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
+    public void shouldRejectExit()
+    {
+        schema.validate("exit.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
     public void shouldRejectUnknownOption()
     {
         schema.validate("proxy.options.unknown.invalid.yaml");
