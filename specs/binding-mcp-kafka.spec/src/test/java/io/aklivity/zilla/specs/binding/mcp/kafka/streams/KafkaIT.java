@@ -161,4 +161,58 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/list.topics/client",
+        "${kafka}/list.topics/server"})
+    public void shouldListTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.topics.negotiated/client",
+        "${kafka}/list.topics.negotiated/server"})
+    public void shouldListTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.topic/client",
+        "${kafka}/describe.topic/server"})
+    public void shouldDescribeTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.topic.negotiated/client",
+        "${kafka}/describe.topic.negotiated/server"})
+    public void shouldDescribeTopicNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/cluster.overview/client",
+        "${kafka}/cluster.overview/server"})
+    public void shouldClusterOverview() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/cluster.overview.negotiated/client",
+        "${kafka}/cluster.overview.negotiated/server"})
+    public void shouldClusterOverviewNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -115,6 +115,66 @@ public class McpKafkaClientIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.list.topics.yaml")
+    @Specification({
+        "${mcp}/list.topics/client",
+        "${kafka}/list.topics/server"})
+    public void shouldListTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.list.topics.yaml")
+    @Specification({
+        "${mcp}/list.topics/client",
+        "${kafka}/list.topics.negotiated/server"})
+    public void shouldListTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.describe.topic.yaml")
+    @Specification({
+        "${mcp}/describe.topic/client",
+        "${kafka}/describe.topic/server"})
+    public void shouldDescribeTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.describe.topic.yaml")
+    @Specification({
+        "${mcp}/describe.topic/client",
+        "${kafka}/describe.topic.negotiated/server"})
+    public void shouldDescribeTopicNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.cluster.overview.yaml")
+    @Specification({
+        "${mcp}/cluster.overview/client",
+        "${kafka}/cluster.overview/server"})
+    public void shouldClusterOverview() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.cluster.overview.yaml")
+    @Specification({
+        "${mcp}/cluster.overview/client",
+        "${kafka}/cluster.overview.negotiated/server"})
+    public void shouldClusterOverviewNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
