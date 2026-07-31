@@ -354,6 +354,9 @@ bindings:
               - kafka__delete_topics
               - kafka__describe_configs
               - kafka__alter_configs
+              - kafka__list_topics
+              - kafka__describe_topic
+              - kafka__cluster_overview
               - kafka__list_brokers
               - kafka__describe_cluster
           search:
@@ -619,16 +622,17 @@ bindings:
     # topics as call arguments rather than a single routed topic -- so they
     # share one route, matching on tool name alone (multiple `when` entries
     # OR together); all three are equally admin-risk structural mutations,
-    # so one guard covers them. describe_configs, list_brokers, and
-    # describe_cluster are likewise read-only, with no topic to route on, so
-    # they share one unscoped route needing no scope beyond the toolkit-level
-    # kafka:tools guard above.
+    # so one guard covers them. describe_configs, list_topics, describe_topic,
+    # cluster_overview, list_brokers, and describe_cluster are likewise
+    # read-only, with no topic to route on, so they share one unscoped route
+    # needing no scope beyond the toolkit-level kafka:tools guard above.
     # create_topics/delete_topics/alter_configs and produce each layer a
     # tool-specific scope under the toolkit-level kafka:tools guard above
     # (the same layering register_schema demonstrates for the kafka_sr
     # toolkit): kafka:admin for the admin-risk topic/config mutations,
-    # kafka:write for writing data -- consume, describe_configs, list_brokers,
-    # and describe_cluster need neither, only kafka:tools
+    # kafka:write for writing data -- consume, describe_configs, list_topics,
+    # describe_topic, cluster_overview, list_brokers, and describe_cluster
+    # need neither, only kafka:tools
     routes:
       - when:
           - tool: create_topics
@@ -646,8 +650,17 @@ bindings:
       - when:
           - tool: consume
             topics: [orders]
+      # cluster/topic metadata tools -- read-only like consume, so no
+      # tool-specific guard beyond the toolkit-level kafka:tools above; all
+      # six share one route since none of them take a topics allow-list
+      # (list_topics/cluster_overview/list_brokers/describe_cluster describe the
+      # whole cluster, describe_topic names its one topic as a call argument,
+      # describe_configs names a resource, not a route match)
       - when:
           - tool: describe_configs
+          - tool: list_topics
+          - tool: describe_topic
+          - tool: cluster_overview
           - tool: list_brokers
           - tool: describe_cluster
 telemetry:
