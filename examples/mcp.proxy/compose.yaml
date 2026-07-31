@@ -220,6 +220,18 @@ services:
       - ./tools-list-client:/app
     entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
 
+  # Run on demand: `docker compose run --rm resource-subscribe-client`.
+  resource-subscribe-client:
+    image: node:20-alpine
+    deploy:
+      replicas: 0
+    working_dir: /app
+    environment:
+      MCP_URL: "http://zilla:7114/mcp"
+    volumes:
+      - ./resource-subscribe-client:/app
+    entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
+
 networks:
   default:
     driver: bridge
